@@ -2574,7 +2574,7 @@ class CGenerator extends GeneratorBase {
         for (output : reactorClass.toDefinition.outputs) {
             // If the port is a multiport, create an array.
             if (output.isMultiport) {
-                initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, reactorClass)
+                initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, instance)
             } else {
                 pr(initializeTriggerObjects, '''
                     // width of -2 indicates that it is not a multiport.
@@ -2851,7 +2851,6 @@ class CGenerator extends GeneratorBase {
                         var numDestinations = 0
                         if(!port.dependentReactions.isEmpty) numDestinations = 1
                         numDestinations += port.dependentPorts.size
-<<<<<<< HEAD
                         // If it is a multiport, then the struct port object is a pointer.
                         // Otherwise, it is the actual port struct.
                         var portIndex = '.'
@@ -2860,14 +2859,6 @@ class CGenerator extends GeneratorBase {
                         }
                         pr(initializeTriggerObjectsEnd, '''
                             «nameOfSelfStruct»->__«port.parent.name».«port.name»«portIndex»num_destinations = «numDestinations»;
-=======
-                        pr(initializeTriggerObjects, '''
-<<<<<<< HEAD
-                            «nameOfSelfStruct»->«getStackPortMember('''__«port.parent.name»''', getStackPortMember(port.name, "num_destinations").toString)» = «numDestinations»;
->>>>>>> First successful code generation for Composition
-=======
-                            «nameOfSelfStruct»->__«port.parent.name».«getStackPortMember(port.name, "num_destinations")» = «numDestinations»;
->>>>>>> Added support for contained reactors
                         ''')
                     }
                 }
@@ -2958,7 +2949,8 @@ class CGenerator extends GeneratorBase {
      * @param output The output port to be initialized
      * @name
      */
-    def initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorDecl reactor) {
+    def initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorInstance instance) {
+        val reactor = instance.definition.reactorClass
         pr(builder, '''
             «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
             // Allocate memory for multiport output.
