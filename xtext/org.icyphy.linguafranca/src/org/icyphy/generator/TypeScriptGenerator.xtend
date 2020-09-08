@@ -241,7 +241,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         if (runNpmInstall) {
             val npmInstall = createCommand("npm", #["install"])
-            if (npmInstall !== null && npmInstall.executeCommand() !== 0) {
+            if (npmInstall === null || npmInstall.executeCommand() !== 0) {
                 reportError(resource.findTarget, "ERROR: npm install command failed."
                     + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
