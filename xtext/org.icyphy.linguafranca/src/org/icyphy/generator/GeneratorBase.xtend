@@ -1013,7 +1013,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val whichReturn = whichBuilder.start().waitFor()
         if (whichReturn == 0) {
             println("SUCCESS")
-            return new ProcessBuilder(#[cmd] + args)
+            val builder = new ProcessBuilder(#[cmd] + args)
+            builder.directory(new File(directory))
+            return builder
         }
         println("FAILED")
         // Try running with bash.
