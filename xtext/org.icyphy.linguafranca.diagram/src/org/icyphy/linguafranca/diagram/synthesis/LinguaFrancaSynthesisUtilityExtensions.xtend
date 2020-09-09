@@ -5,6 +5,9 @@ import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KGraphFactory
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
+import org.eclipse.elk.core.math.ElkMargin
+import org.eclipse.elk.core.options.CoreOptions
+import org.eclipse.elk.core.util.IndividualSpacings
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Code
@@ -181,12 +184,36 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 		kge.data.add(createKIdentifier => [it.setId(id)])
 	}
 	
+	/**
+	 * Retrieves the source element of the given diagram element
+	 */
 	def Object sourceElement(KGraphElement elem) {
 		return elem.getProperty(KlighdInternalProperties.MODEL_ELEMEMT)
 	}
 	
+    /**
+     * Checks if the source element of the given diagram element is a reactor
+     */
 	def boolean sourceIsReactor(KNode node) {
 		return node.sourceElement() instanceof Reactor
 	}
+
+    /**
+     * Returns the port placement margins for the node.
+     * If this spacing does not yet exist, the properties are initialized.
+     */
+    def getPortMarginsInitIfAbsent(KNode node) {
+        var spacing = node.getProperty(CoreOptions.SPACING_INDIVIDUAL_OVERRIDE)
+        if (spacing === null) {
+            spacing = new IndividualSpacings()
+            node.setProperty(CoreOptions.SPACING_INDIVIDUAL_OVERRIDE, spacing)
+        }
+        var margin = spacing.getProperty(CoreOptions.SPACING_PORTS_SURROUNDING)
+        if (margin === null) {
+            margin = new ElkMargin()
+            node.setProperty(CoreOptions.SPACING_PORTS_SURROUNDING, margin)
+        }
+        return margin
+    }	
 
 }

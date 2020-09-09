@@ -93,13 +93,17 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension LinguaFrancaShapeExtensions
 	@Inject extension LinguaFrancaSynthesisUtilityExtensions
 	@Inject extension LinguaFrancaSynthesisCycleDetection
+    @Inject extension LinguaFrancaSynthesisInterfaceDependencies
 	@Inject extension FilterCycleAction
 	
 	// -------------------------------------------------------------------------
 
 	// -- INTERNAL --
 	public static val REACTOR_INSTANCE = new Property<BreadCrumbTrail<Instantiation>>("org.icyphy.linguafranca.diagram.synthesis.reactor.instantiation")
-	public static val RECURSIVE_INSTANTIATION = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.recursive.instantiation", false)
+	public static val REACTOR_RECURSIVE_INSTANTIATION = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.reactor.recursive.instantiation", false)
+    public static val REACTOR_HAS_BANK_PORT_OFFSET = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.reactor.bank.offset", false)
+    public static val REACTOR_INPUT = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.reactor.input", false)
+    public static val REACTOR_OUTPUT = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.reactor.output", false)
 	
 	// -- STYLE --	
 	public static val ALTERNATIVE_DASH_PATTERN = #[3.0f]
@@ -150,6 +154,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			CYCLE_DETECTION,
 			SHOW_USER_LABELS,
 			SHOW_HYPERLINKS,
+			//LinguaFrancaSynthesisInterfaceDependencies.SHOW_INTERFACE_DEPENDENCIES,
 			REACTIONS_USE_HYPEREDGES,
 			USE_ALTERNATIVE_DASH_PATTERN,
 			SHOW_MULTIPORT_WIDTH,
@@ -240,9 +245,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val recursive = parentReactors.exists[key === reactor]
 		if (recursive) {
 			// Mark this node
-			node.setProperty(RECURSIVE_INSTANTIATION, true)
+			node.setProperty(REACTOR_RECURSIVE_INSTANTIATION, true)
 			// Mark root
-			allReactorNodes.get(parentReactors.head.value).setProperty(RECURSIVE_INSTANTIATION, true)
+			allReactorNodes.get(parentReactors.head.value).setProperty(REACTOR_RECURSIVE_INSTANTIATION, true)
 		}
 		val instanceTrail = if (parentReactors.empty) {
 			new BreadCrumbTrail("", null, "")
@@ -361,6 +366,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			for (output : reactor.outputs) {
 				outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), instance.isBank()))
 			}
+			// Mark ports
+			inputPorts.values.forEach[setProperty(REACTOR_INPUT, true)]
+            outputPorts.values.forEach[setProperty(REACTOR_OUTPUT, true)]
 
 			// Add content
 			if (reactor.hasContent && !recursive) {
@@ -388,6 +396,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				nodes += node.addErrorComment(TEXT_ERROR_RECURSIVE)
 			} else {
 				node.setLayoutOption(KlighdProperties.EXPAND, expandDefault)
+				
+				// Interface Dependencies
+				node.addInterfaceDependencies(expandDefault)
 			}
 			
 			if (instance !== null) {
@@ -428,7 +439,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 	
 	private def KNode detectAndAnnotateCycles(KNode node, Reactor reactor, Map<BreadCrumbTrail<Instantiation>, KNode> allReactorNodes) {
-		if (node.getProperty(RECURSIVE_INSTANTIATION)) {
+		if (node.getProperty(REACTOR_RECURSIVE_INSTANTIATION)) {
 			node.resetCycleFiltering()
     		return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
 		} else { // only detect dependency cycles if not recursive
@@ -936,11 +947,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			port.setLayoutOption(CoreOptions.PORT_BORDER_OFFSET, offset)
 		}
 		
-		if (bank) {// compensate bank figure height
+		if (bank && !node.getProperty(REACTOR_HAS_BANK_PORT_OFFSET)) {// compensate bank figure height
 		    // https://github.com/eclipse/elk/issues/693
-            val spacing = new IndividualSpacings()
-            spacing.setProperty(CoreOptions.SPACING_PORTS_SURROUNDING, new ElkMargin(0, 0, LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
-            node.setProperty(CoreOptions.SPACING_INDIVIDUAL_OVERRIDE, spacing)
+		    node.getPortMarginsInitIfAbsent().add(new ElkMargin(0, 0, LinguaFrancaShapeExtensions.BANK_FIGURE_Y_OFFSET_SUM, 0))
+		    node.setProperty(REACTOR_HAS_BANK_PORT_OFFSET, true) // only once
 		}
 		
 		port.addTrianglePort(multiport)
