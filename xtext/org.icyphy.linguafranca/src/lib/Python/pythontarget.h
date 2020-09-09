@@ -101,6 +101,21 @@ typedef struct {
     int length;
 } generic_port_instance_with_token_struct;
 
+
+/**
+ * The struct used to instantiate an action
+ * in Lingua Franca. This template is used 
+ * in the PythonGenerator.
+ **/
+typedef struct {
+    PyObject_HEAD
+    trigger_t* trigger;
+    int value;
+    bool is_present;
+    bool has_value;
+    token_t* token;
+} generic_action_instance_struct;
+
 //////////////////////////////////////////////////////////////
 /////////////  SET Functions (to produce an output)
 
@@ -129,6 +144,54 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
         return NULL;
     
     _LF_SET(port, val);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with no payload (no value conveyed).
+ * See schedule_token(), which this uses, for details.
+ * @param self Pointer to the calling object.
+ * @param args contains:
+ *      @param action Pointer to an action on the self struct.
+ *      @param offset The time offset over and above that in the action.
+ **/
+static PyObject* py_schedule(PyObject *self, PyObject *args)
+{
+    generic_action_instance_struct* act;
+    long long offset;
+
+    if (!PyArg_ParseTuple(args, "OL" ,&act, &offset))
+        return NULL;
+    
+    _lf_schedule_token(act, offset, NULL);
+
+    // FIXME: handle is not passed to the Python side
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+/**
+ * Schedule an action to occur with the specified value and time offset
+ * with a copy of the specified value.
+ * See reactor.h for documentation.
+ */
+static PyObject* py_schedule_copy(PyObject *self, PyObject *args)
+{
+    generic_action_instance_struct* act;
+    long long offset;
+    PyObject* value;
+    int length;
+
+    if (!PyArg_ParseTuple(args, "OLOi" ,&act, &offset, &value, &length))
+        return NULL;
+    
+    _lf_schedule_copy(act, offset, value, length);
+
+    // FIXME: handle is not passed to the Python side
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -286,12 +349,44 @@ static PyTypeObject port_instance_token_t = {
     .tp_members = port_instance_token_members,
 };
 
+
+
+//// Actions /////
+/*
+ * The members of a action_instance, used to define
+ * a native Python type.
+ */
+static PyMemberDef action_instance_members[] = {
+    {"value", T_OBJECT, offsetof(generic_action_instance_struct, value), 0, "Value of the port"},
+    {"is_present", T_BOOL, offsetof(generic_action_instance_struct, is_present), 0, "Check if value is present at current logical time"},
+    {NULL}  /* Sentinel */
+};
+
+/*
+ * The definition of action_instance type object.
+ * Used to describe how port_instance behaves.
+ */
+static PyTypeObject action_instance_t = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "LinguaFranca.action_instance",
+    .tp_doc = "action_instance object",
+    .tp_basicsize = sizeof(generic_action_instance_struct),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+    .tp_members = action_instance_members,
+};
+
+///
+
 /*
  * Bind Python function names to our C functions
  */
 static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_main, METH_VARARGS, NULL},
   {"SET", py_SET, METH_VARARGS, NULL},
+  {"schedule", py_schedule, METH_VARARGS, NULL},
+  {"schedule_copy", py_schedule_copy, METH_VARARGS, NULL},
   {"get_elapsed_logical_time", py_get_elapsed_logical_time, METH_NOARGS, NULL},
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
   {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
@@ -623,6 +718,14 @@ GEN_NAME(PyInit_,MODULE_NAME)(void)
         Py_DECREF(m);
         return NULL;
     }
+
+    // Add the action_instance type to the module's dictionary
+    // Py_INCREF(&action_instance_t);
+    // if (PyModule_AddObject(m, "action_instance_t", (PyObject *) &action_instance_t) < 0) {
+    //     Py_DECREF(&action_instance_t);
+    //     Py_DECREF(m);
+    //     return NULL;
+    // }
 
     return m;
 }

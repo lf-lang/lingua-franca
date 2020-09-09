@@ -63,6 +63,8 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Policy
+import org.icyphy.linguaFranca.Preamble
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -1092,12 +1094,8 @@ class CGenerator extends GeneratorBase {
         }
         
         // Preamble code contains state declarations with static initializers.
-        for (p : defn.preambles ?: emptyList) {
-            pr("// *********** From the preamble, verbatim:")
-            prSourceLineNumber(p.code)
-            pr(p.code.toText)
-            pr("\n// *********** End of preamble.")
-        }
+        generateUserPreamblesForReactor(defn)
+            
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         val constructorCode = new StringBuilder()
@@ -1112,6 +1110,19 @@ class CGenerator extends GeneratorBase {
         pr("")
 
         
+    }
+    
+    /**
+     * Generates preambles defined by user for a given reactor
+     * @param reactor The given reactor
+     */
+    def generateUserPreamblesForReactor(Reactor reactor) {
+        for (p : reactor.preambles ?: emptyList) {
+            pr("// *********** From the preamble, verbatim:")
+            prSourceLineNumber(p.code)
+            pr(p.code.toText)
+            pr("\n// *********** End of preamble.")
+        }
     }
     
     /**
@@ -3334,24 +3345,6 @@ class CGenerator extends GeneratorBase {
         // Make sure src-gen directory exists.
         val srcGenDir = new File(srcGenPath + File.separator)
         srcGenDir.mkdirs
-<<<<<<< HEAD
-
-=======
-        
-        // Process target files. Copy each of them into the src-gen dir.
-        for (file : this.targetFiles) {
-            // Generate #include statements for each .h file. FIXME: use preamble instead.
-            val name = file.name
-            if (name.endsWith(".h")) {
-                pr('''#include "«name»"''')
-            }
-            val target = new File(srcGenPath + File.separator + name)
-            if (target.exists) {
-                target.delete
-            }
-            Files.copy(file.toPath, target.toPath)
-        }
->>>>>>> Srouces and setup.py are temporarily put in folders
         
         // Handle .proto files.
         for (file : this.protoFiles) {
