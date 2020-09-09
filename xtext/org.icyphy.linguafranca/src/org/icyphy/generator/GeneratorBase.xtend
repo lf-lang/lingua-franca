@@ -998,11 +998,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * Creates a ProcessBuilder for a given command and its arguments.
      * 
-     * This method ensures that the given command is executable,
-     * It first tries to find the command with 'which cmake'. If that
-     * fails, it tries again with bash. n case this fails again,
-     * it returns null. Otherwise, a correctly constructed ProcessBuilder
-     * object is returned. 
+     * This method ensures that the given command is executable. It first tries 
+     * to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). If 
+     * that fails, it tries again with bash. In case this fails again, this
+     * method returns null. Otherwise, it returns correctly constructed 
+     * ProcessBuilder object. 
      * 
      * @param cmd The command to be executed
      * @param args A list of arguments for the given command
@@ -1011,7 +1011,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def createCommand(String cmd, List<String> args) {
         // Make sure the command is found in the PATH.
         print('''--- Looking for command «cmd» ... ''')
-        val whichBuilder = new ProcessBuilder(#["which", cmd])
+        // Use 'where' on Windows, 'which' on other systems
+        val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
+        val whichBuilder = new ProcessBuilder(#[which, cmd])
         val whichReturn = whichBuilder.start().waitFor()
         if (whichReturn == 0) {
             println("SUCCESS")
