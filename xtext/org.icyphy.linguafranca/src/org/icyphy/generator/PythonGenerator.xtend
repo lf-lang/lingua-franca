@@ -822,6 +822,7 @@ class PythonGenerator extends CGenerator {
             }
             '''
         } else {
+            // FIXME: Setting ref_counts of the token directly causes memory leak
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
             // Create a token
