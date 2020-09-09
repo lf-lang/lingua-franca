@@ -1,0 +1,47 @@
+// This checks that the after keyword adjusts logical time, not
+// using physical time.
+target Python {
+    fast: false,
+    timeout: 3 sec
+};
+reactor foo {
+    input x:int;
+    output y:int;
+    reaction(x) -> y {=
+        SET(y, 2*x.value)
+    =}
+}
+reactor print {
+    state expected_time:time(10 msec);
+    state received:int(0);
+    input x:int;
+    reaction(x) {=
+        self.received+=1
+        elapsed_time = get_elapsed_logical_time()
+        print("Result is " + str(x.value))
+        if x.value != 84:
+            sys.stderr.write("ERROR: Expected result to be 84.\n")
+            exit(1)
+
+        print("Current logical time is: " + str(elapsed_time))
+        print("Current physical time is: " + str(get_elapsed_physical_time()))
+        if elapsed_time != self.expected_time:
+            sys.stderr.write("ERROR: Expected logical time to be " + self.expected_time)
+            exit(2)
+        self.expected_time += SEC(1)
+    =}
+    reaction(shutdown) {=
+        if (self.received == 0):
+            sys.stderr.write("ERROR: Final reactor received no data.\n")
+            exit(3)
+    =}
+}
+main reactor top {
+    f = new foo();
+    p = new print();
+    timer t(0, 1 sec);
+    reaction(t) -> f.x {=
+        SET(f.x, 42)
+    =}
+    f.y -> p.x after 10 msec;
+}

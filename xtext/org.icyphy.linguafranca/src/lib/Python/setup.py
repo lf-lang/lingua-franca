@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = 'LinguaFrancaBase',
-    version = '1.0.1',
+    version = '1.0.2',
     description = 'Useful notations and helper functions used in Lingua Franca programs.',
     author= 'Soroush Bateni',
     author_email="soroosh129@gmail.com",
