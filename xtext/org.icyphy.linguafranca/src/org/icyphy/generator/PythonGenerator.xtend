@@ -304,13 +304,14 @@ class PythonGenerator extends CGenerator {
             return
         }
         
+        val className = instance.definition.reactorClass.name
+        
+        
         // Do not instantiate delay reactors in Python
-        if(instance.definition.name.contains(GEN_DELAY_CLASS_NAME))
+        if(className.contains(GEN_DELAY_CLASS_NAME))
         {
             return
         }
-
-        val className = instance.definition.reactorClass.name
 
         // Invalid use of the function
         if (instantiatedClasses === null) {
@@ -822,7 +823,15 @@ class PythonGenerator extends CGenerator {
             '''
         } else {
             '''
-            schedule_copy(«action.name», 0, &«ref»->value, 1);  // Length is 1.
+            «DISABLE_REACTION_INITIALIZATION_MARKER»
+            // Create a token
+            token_t* t = create_token(sizeof(PyObject*));
+            t->value = (*self->__«ref»)->value;
+            t->length = 1; // Length is 1
+            t->ref_count += (*self->__«ref»)->num_destinations;
+            
+            // Pass the token along
+            schedule_token(&self->__«action.name», 0, t);
             '''
         }
     }
@@ -850,7 +859,8 @@ class PythonGenerator extends CGenerator {
             '''
         } else {
             '''
-            SET(self->__«outputName», «action.name»->value);
+            «DISABLE_REACTION_INITIALIZATION_MARKER»
+            SET(self->__«outputName», (self->___«action.name».token)->value);
             '''
         }
     }
