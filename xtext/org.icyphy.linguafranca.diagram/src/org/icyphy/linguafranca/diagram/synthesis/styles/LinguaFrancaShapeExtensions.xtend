@@ -53,7 +53,9 @@ import static extension org.icyphy.ASTUtils.*
 class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
 	public static val float REACTION_POINTINESS = 6 // arrow point length 
-
+    // Property for marking the KContainterRendering in Reactor figures that is supposed to hold the content
+    public static val REACTOR_CONTENT_CONTAINER = new org.eclipse.elk.graph.properties.Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.shapes.reactor.content", false)
+    
 	@Inject extension KNodeExtensions
 	@Inject extension KEdgeExtensions
 	@Inject extension KPortExtensions
@@ -131,6 +133,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		val figure = node.addRoundedRectangle(8, 8, 1) => [
 			setGridPlacement(1)
 			style.apply(it)
+			setProperty(REACTOR_CONTENT_CONTAINER, true)
 		]
 
 		// minimal node size is necessary if no text will be added
@@ -209,6 +212,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                     ]
                 ]
             ]
+            
             return new ReactorFigureComponents(container, figure, bank)
         } else {
             return new ReactorFigureComponents(figure, figure, #[figure])

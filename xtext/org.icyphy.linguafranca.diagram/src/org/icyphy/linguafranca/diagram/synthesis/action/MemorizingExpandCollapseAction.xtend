@@ -21,6 +21,7 @@ import org.eclipse.emf.ecore.EObject
 import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
 
 import static extension com.google.common.base.Preconditions.*
+import static extension org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesisInterfaceDependencies.updateInterfaceDependencyVisibility 
 
 /**
  * Action for toggling collapse/expand state of reactors that memorizes the state and
@@ -38,7 +39,7 @@ class MemorizingExpandCollapseAction extends AbstractAction {
     
     /** Memory-leak-free cache of expansion states */
     static final WeakHashMap<EObject, Boolean> EXPANSION_STATES = new WeakHashMap()
-    
+        
     /**
      * Sets the expansion state of a node and saves it for future synthesis.
      */
@@ -56,6 +57,9 @@ class MemorizingExpandCollapseAction extends AbstractAction {
         } else {
             viewer.collapse(node)
         }
+        
+        // Handle edges that should only appear for one of the renderings
+        node.updateInterfaceDependencyVisibility(expand)
     }
     
     /**
