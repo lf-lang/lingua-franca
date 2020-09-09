@@ -1028,10 +1028,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         print('''--- Trying again with bash ... ''')
         val bashCommand = #["bash", "--login", "-c", '''which «cmd»''']
         val bashBuilder = new ProcessBuilder(bashCommand)
-        val bashReturn = bashBuilder.start().waitFor()
+        val bashOut = new ByteArrayOutputStream()
+        val bashReturn = bashBuilder.runSubprocess(#[bashOut], #[])
         if (bashReturn == 0) {
             println("SUCCESS")
-            val builder = new ProcessBuilder(#["bash", "--login", "-c", '''«cmd» «args.join(" ")»'''])
+            // extract the full command from the output of which
+            val newCmd = bashOut.toString().trim()
+            // use that command to build the process
+            val builder = new ProcessBuilder(#[newCmd] + args)
             builder.directory(new File(directory))
             return builder
         }
