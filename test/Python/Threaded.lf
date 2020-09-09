@@ -16,22 +16,27 @@ reactor Source {
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-		SET(out, self.s)
-		self.s+=1
+        SET(out, self.s)
+        self.s+=1
 	=}
 }
 reactor TakeTime {
 	input _in:int;
 	output out:int;
 	reaction(_in) -> out {=
+        def mySET(out, __in):
+            SET(out, __in)
+
         print("Received " + str(_in.value))
 
         offset:int = 0
         for i in range(100000000):
             offset+=1
         
-        _out:int = _in.value + offset
-        SET(out, _out)
+        #_out = _in.value + offset
+        _out = _in.value + offset
+
+        mySET(out, _out)
 
         print("Outputting " + str(out.value))
 	=}
@@ -41,9 +46,9 @@ reactor Destination(width:int(4)) {
 	input[width] _in:int;
 	reaction(_in) {=
 		sm = 0
-		for i in range(_in_width):
-            print("_in[" + str(i) + "]=" + str(_in[i].value))
-            sm += _in[i].value
+		for i in _in:
+            print("_in=" + str(i.value))
+            sm += i.value
 
 		print("Sum of received: " + str(sm))
 		if sm != self.s:

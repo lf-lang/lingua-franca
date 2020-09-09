@@ -303,6 +303,12 @@ class PythonGenerator extends CGenerator {
         if (instance !== this.main && !reactorBelongsToFederate(instance, federate)) {
             return
         }
+        
+        // Do not instantiate delay reactors in Python
+        if(instance.definition.name.contains(GEN_DELAY_CLASS_NAME))
+        {
+            return
+        }
 
         val className = instance.definition.reactorClass.name
 
@@ -358,7 +364,8 @@ class PythonGenerator extends CGenerator {
         for (reactor : reactors)
         {
             // Generate the reactor classes in Python only if they have a reaction
-            if(!reactor.toDefinition.allReactions.isEmpty)
+            // Skip delay reactors
+            if(!reactor.toDefinition.allReactions.isEmpty && !reactor.name.contains(GEN_DELAY_CLASS_NAME))
             {
                 pythonClasses.append(reactor.generatePythonReactorClass())
             }
@@ -669,8 +676,14 @@ class PythonGenerator extends CGenerator {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     override generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        
+                
         val reactor = decl.toDefinition
+        
+        if(reactor.name.contains(GEN_DELAY_CLASS_NAME))
+        {
+            return super.generateReaction(reaction, decl, reactionIndex)
+        }
+        
         // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
         val StringBuilder pyObjectDescriptor = new StringBuilder()
 
@@ -786,6 +799,59 @@ class PythonGenerator extends CGenerator {
             // TODO: Handle deadlines
             unindent()
             pr("}")
+        }
+    }
+    
+    /**
+     * Generate code for the body of a reaction that takes an input and
+     * schedules an action with the value of that input.
+     * @param action The action to schedule
+     * @param port The port to read from
+     */
+    override generateDelayBody(Action action, VarRef port) { 
+        val ref = generateVarRef(port);
+        // Note that the action.type set by the base class is actually
+        // the port type.
+        if (action.inferredType.isTokenType) {
+            '''
+            if («ref»->is_present) {
+                // Put the whole token on the event queue, not just the payload.
+                // This way, the length and element_size are transported.
+                schedule_token(«action.name», 0, «ref»->token);
+            }
+            '''
+        } else {
+            '''
+            schedule_copy(«action.name», 0, &«ref»->value, 1);  // Length is 1.
+            '''
+        }
+    }
+    
+    /**
+     * Generate code for the body of a reaction that is triggered by the
+     * given action and writes its value to the given port. This realizes
+     * the receiving end of a logical delay specified with the 'after'
+     * keyword.
+     * @param action The action that triggers the reaction
+     * @param port The port to write to.
+     */
+    override generateForwardBody(Action action, VarRef port) {
+        val outputName = generateVarRef(port)
+        if (action.inferredType.isTokenType) {
+            // Forward the entire token and prevent freeing.
+            // Increment the ref_count because it will be decremented
+            // by both the action handling code and the input handling code.
+            '''
+            «DISABLE_REACTION_INITIALIZATION_MARKER»
+            self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
+            self->__«outputName».token = (token_t*)self->___«action.name».token;
+            ((token_t*)self->___«action.name».token)->ref_count++;
+            self->«getStackPortMember('''__«outputName»''', "is_present")» = true;
+            '''
+        } else {
+            '''
+            SET(self->__«outputName», «action.name»->value);
+            '''
         }
     }
     
