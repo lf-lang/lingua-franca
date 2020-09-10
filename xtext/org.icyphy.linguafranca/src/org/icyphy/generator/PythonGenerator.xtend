@@ -453,24 +453,31 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
-     * Return the necessary command to compile and install the current module
-     */
-     def pythonCompileCommand() {
-         
-         var compileCommand = newArrayList
-         compileCommand.add("python3 setup.py build && ")
-         compileCommand.add("python3 -m pip install .")
-         
-         return compileCommand
-     
-    }
-    
-    /**
      * Execute the command that compiles and installs the current Python module
      */
     def pythonCompileCode()
     {
-        executeCommand(pythonCompileCommand, getSrcGenPath)
+        val compileCmd = createCommand("python3", #["setup.py" , "build"])
+        val installCmd = createCommand("python3", #["-m", "pip", "install", "."])
+        
+        compileCmd.directory(new File(getSrcGenPath))
+        installCmd.directory(new File(getSrcGenPath))
+        
+        if(executeCommand(compileCmd) == 0) {
+            println("Successfully compiled python extension.")
+            if(executeCommand(installCmd) == 0)
+            {
+                println("Successfully installed python extension.")
+            }
+            else
+            {
+                reportError("Failed to install python extension.")
+            }
+        }        
+        else
+        {
+            reportError("Failed to compile python extension.")
+        }
     }
     
     /**
@@ -520,7 +527,6 @@ class PythonGenerator extends CGenerator {
             compileRTI()
         }*/
         // TODO: add support for compiling federates
-        return 0
     }
     
     /**
