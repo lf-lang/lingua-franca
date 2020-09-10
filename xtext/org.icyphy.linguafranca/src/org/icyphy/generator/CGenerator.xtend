@@ -671,6 +671,24 @@ class CGenerator extends GeneratorBase {
         refreshProject()
     }
     
+    /** Invoke the compiler on the generated code. */
+    protected def compileCode() {
+        // If there is more than one federate, compile each one.
+        var fileToCompile = filename // base file name.
+        for (federate : federates) {
+            // Empty string means no federates were defined, so we only
+            // compile one file.
+            if (!federate.isSingleton) {
+                fileToCompile = filename + '_' + federate.name
+            }
+            runCCompiler(directory, fileToCompile, true)
+        }
+        // Also compile the RTI files if there is more than one federate.
+        if (federates.length > 1) {
+            compileRTI()
+        }
+    }
+    
     /** Overwrite the generated code after compile with a
      * clean version.
      */
@@ -2319,21 +2337,21 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protocCommand = newArrayList
-        protocCommand.addAll("protoc-c", "--c_out=src-gen", filename)
-        if (executeCommand(protocCommand, directory) != 0) {
-            return reportError(
-                "Protocol buffer compiler failed." +
-                    "\nFor installation instructions, see: https://github.com/protobuf-c/protobuf-c." +
-                    "\nMake sure that your PATH variable includes the directory where protoc-c is installed," +
-                    "\ntypically /usr/local/bin. You can set PATH in ~/.bash_profile on Linux or Mac.")
+        val protoc = createCommand("protoc-c", #["--c_out=src-gen", filename])
+        if (protoc === null) {
+            return
         }
-        val nameSansProto = filename.substring(0, filename.length - 6)
-        compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
-            ".pb-c.c")
+        val returnCode = protoc.executeCommand()
+        if (returnCode == 0) {
+            val nameSansProto = filename.substring(0, filename.length - 6)
+            compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
+                ".pb-c.c")
 
-        compileLibraries.add('-l')
-        compileLibraries.add('protobuf-c')
+            compileLibraries.add('-l')
+            compileLibraries.add('protobuf-c')    
+        } else {
+            reportError("protoc-c returns error code " + returnCode)
+        }
     }
     
     /**

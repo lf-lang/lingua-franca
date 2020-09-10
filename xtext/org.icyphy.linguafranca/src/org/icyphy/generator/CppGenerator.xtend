@@ -998,9 +998,6 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def void doCompile(IFileSystemAccess2 fsa) {
-        var makeCmd = newArrayList()
-        var cmakeCmd = newArrayList()
-
         val srcGenPath = fsa.getAbsolutePath('/')
         val rootPath = srcGenPath.substring(0, srcGenPath.length() - "/src-gen".length())
 
@@ -1009,64 +1006,44 @@ class CppGenerator extends GeneratorBase {
         val buildPath = '''«rootPath»/build/«filename»'''
         val reactorCppPath = '''«rootPath»/build/reactor-cpp'''
         
-        // Make sure cmake is found in the PATH.
-        var cmakeTest = newArrayList()
-        var cmake = "cmake"
-        cmakeTest.addAll("which", cmake)
-        var cmakeTestBuilder = new ProcessBuilder(cmakeTest)
-        var cmakeTestReturn = cmakeTestBuilder.start().waitFor()
-        if (cmakeTestReturn != 0) {
-            // Info on MaxOSX PATH variable here: https://scriptingosx.com/2017/05/where-paths-come-from/
-            println("WARNING: cmake not found on PATH: " +
-                cmakeTestBuilder.environment.get("PATH"))
-            cmake = "/opt/local/bin/cmake"
-            println("Trying " + cmake)
-            cmakeTest.clear
-            cmakeTest.addAll("which", cmake)
-            cmakeTestReturn = cmakeTestBuilder.start().waitFor()
-            if (cmakeTestReturn != 0) {
-                reportError(
-                    "cmake not found on PATH nor in /opt/local/bin.\n" +
-                        "See https://cmake.org/install to install cmake " +
-                        "or adjust the global PATH variable on your platform (e.g. /etc/paths).")
-                return
-            }
-        }
         var buildDir = new File(buildPath)
         if (!buildDir.exists()) buildDir.mkdirs()
 
-        makeCmd.addAll("make",
-            "-j" + Runtime.getRuntime().availableProcessors(), "install")
-        cmakeCmd.addAll(cmake, '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
-            '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''', srcPath)
-
-        println("--- In directory: " + buildDir)
-        println("--- Running: " + cmakeCmd.join(' '))
-        var cmakeBuilder = new ProcessBuilder(cmakeCmd)
-        cmakeBuilder.directory(buildDir)
-        var cmakeEnv = cmakeBuilder.environment();
-        if (targetCompiler !== null) {
-            cmakeEnv.put("CXX", targetCompiler);
+        val makeBuilder = createCommand("make", #[
+            '''-j«Runtime.getRuntime().availableProcessors()»''',
+            "install"])
+        val cmakeBuilder = createCommand("cmake", #[
+            '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
+            '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
+            srcPath])
+        if (makeBuilder === null || cmakeBuilder === null) {
+            return
         }
 
-        val cmakeReturnCode = cmakeBuilder.runSubprocess();
-        if (cmakeReturnCode != 0) {
-            reportError("cmake terminated with an error code!")
-        } else if (cmakeReturnCode == 0) {
-            // If cmake succeeded, run make.
-            println("--- In directory: " + buildDir)
-            println("--- Running: " + makeCmd.join(" "))
-            var makeBuilder = new ProcessBuilder(makeCmd)
+        // prepare cmake
+        cmakeBuilder.directory(buildDir)
+        if (targetCompiler !== null) {
+            val cmakeEnv = cmakeBuilder.environment();
+            cmakeEnv.put("CXX", targetCompiler);
+        }
+        
+        // run cmake
+        val cmakeReturnCode = cmakeBuilder.executeCommand();
+
+        if (cmakeReturnCode == 0) {
+            // If cmake succeeded, prepare and run make
             makeBuilder.directory(buildDir)
-            val makeReturnCode = makeBuilder.runSubprocess()
+            val makeReturnCode = makeBuilder.executeCommand()
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
                 println('''Generated source code is in «srcPath»''')
                 println('''Compiled binary is in «installPath»/bin/«filename»''')
             } else {
-                reportError("make terminated with an error code!")
+                reportError('''make failed with error code «makeReturnCode»''')
             }
+        } else {
+            reportError('''cmake failed with error code «cmakeReturnCode»''')
         }
     }
 
