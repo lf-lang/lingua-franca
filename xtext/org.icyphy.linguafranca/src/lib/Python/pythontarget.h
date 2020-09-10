@@ -110,6 +110,7 @@ typedef struct {
     PyObject_HEAD
     PyObject* action;
     PyObject* value;
+    bool is_present;
 } generic_action_capsule_struct;
 
 //////////////////////////////////////////////////////////////
@@ -433,6 +434,7 @@ static PyTypeObject port_instance_token_t = {
 static PyMemberDef action_capsule_members[] = {
     {"action", T_OBJECT, offsetof(generic_action_capsule_struct, action), 0, "The pointer to the C action struct"},
     {"value", T_OBJECT, offsetof(generic_action_capsule_struct, value), 0, "Value of the action"},
+    {"is_present", T_BOOL, offsetof(generic_action_capsule_struct, value), 0, "Check that shows if action is present"},
     {NULL}  /* Sentinel */
 };
 
@@ -547,7 +549,7 @@ void destroy_action_capsule(PyObject* capsule)
 /**
  * A helper function to convert C actions to Python action capsules
  **/
-PyObject* convert_C_action_to_py(void* action, PyObject* value)
+PyObject* convert_C_action_to_py(void* action, PyObject* value, bool is_present)
 {
     // Create the action struct in Python
     PyObject* cap = PyObject_GC_New(generic_action_capsule_struct, &action_capsule_t);
@@ -573,6 +575,7 @@ PyObject* convert_C_action_to_py(void* action, PyObject* value)
     // Fill in the Python action struct
     ((generic_action_capsule_struct*)cap)->action = capsule;
     ((generic_action_capsule_struct*)cap)->value = value;
+    ((generic_action_capsule_struct*)cap)->is_present = is_present;
 
     return cap;
 }
