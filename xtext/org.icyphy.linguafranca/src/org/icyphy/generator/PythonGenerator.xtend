@@ -1114,7 +1114,7 @@ class PythonGenerator extends CGenerator {
         }
         else
         {
-            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», Py_BuildValue("«action.inferredType.targetType.pyBuildValueArgumentType»", self->__«action.name»->value), self->__«action.name».is_present)''')
+            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», Py_BuildValue("«action.inferredType.targetType.pyBuildValueArgumentType»", self->__«action.name».value), self->__«action.name».is_present)''')
         }
     }
 
