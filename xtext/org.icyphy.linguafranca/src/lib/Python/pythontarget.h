@@ -103,18 +103,14 @@ typedef struct {
 
 
 /**
- * The struct used to instantiate an action
- * in Lingua Franca. This template is used 
- * in the PythonGenerator.
+ * The struct used to hold an action
+ * that is sent to a Python reaction.
  **/
 typedef struct {
     PyObject_HEAD
-    trigger_t* trigger;
-    int value;
-    bool is_present;
-    bool has_value;
-    token_t* token;
-} generic_action_instance_struct;
+    PyObject* action;
+    PyObject* value;
+} generic_action_capsule_struct;
 
 //////////////////////////////////////////////////////////////
 /////////////  SET Functions (to produce an output)
@@ -160,13 +156,84 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
  **/
 static PyObject* py_schedule(PyObject *self, PyObject *args)
 {
-    generic_action_instance_struct* act;
+    generic_action_capsule_struct* act;
     long long offset;
 
     if (!PyArg_ParseTuple(args, "OL" ,&act, &offset))
         return NULL;
     
-    _lf_schedule_token(act, offset, NULL);
+    void* action = PyCapsule_GetPointer(act->action,"action");
+    if (action == NULL)
+    {
+        fprintf(stderr, "Null pointer recieved.\n");
+        exit(1);
+    }
+
+    _lf_schedule_token(action, offset, NULL);
+
+    // FIXME: handle is not passed to the Python side
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+/**
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
+ */
+static PyObject* py_schedule_int(PyObject *self, PyObject *args)
+{
+    generic_action_capsule_struct* act;
+    long long offset;
+    int value;
+
+    if (!PyArg_ParseTuple(args, "OLi" ,&act, &offset, &value))
+        return NULL;
+
+
+    void* action = PyCapsule_GetPointer(act->action,"action");
+    if (action == NULL)
+    {
+        fprintf(stderr, "Null pointer recieved.\n");
+        exit(1);
+    }
+    
+    _lf_schedule_int(action, offset, value);
+
+    // FIXME: handle is not passed to the Python side
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+/**
+ * Variant of schedule_token that creates a token to carry the specified value.
+ * See reactor.h for documentation.
+ */
+/**
+ * Variant of schedule_value when the value is an integer.
+ * See reactor.h for documentation.
+ * @param action Pointer to an action on the self struct.
+ */
+static PyObject* py_schedule_value(PyObject *self, PyObject *args)
+{
+    generic_action_capsule_struct* act;
+    long long offset;
+    PyObject* value;
+    int length;
+
+    if (!PyArg_ParseTuple(args, "OLOi" ,&act, &offset, &value, &length))
+        return NULL;
+
+    void* action = PyCapsule_GetPointer(act->action,"action");
+    if (action == NULL)
+    {
+        fprintf(stderr, "Null pointer recieved.\n");
+        exit(1);
+    }
+    
+    _lf_schedule_value(action, offset, value, length);
 
     // FIXME: handle is not passed to the Python side
 
@@ -181,15 +248,22 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
  */
 static PyObject* py_schedule_copy(PyObject *self, PyObject *args)
 {
-    generic_action_instance_struct* act;
+    generic_action_capsule_struct* act;
     long long offset;
     PyObject* value;
     int length;
 
     if (!PyArg_ParseTuple(args, "OLOi" ,&act, &offset, &value, &length))
         return NULL;
+
+    void* action = PyCapsule_GetPointer(act->action,"action");
+    if (action == NULL)
+    {
+        fprintf(stderr, "Null pointer recieved.\n");
+        exit(1);
+    }
     
-    _lf_schedule_copy(act, offset, value, length);
+    _lf_schedule_copy(action, offset, value, length);
 
     // FIXME: handle is not passed to the Python side
 
@@ -353,28 +427,84 @@ static PyTypeObject port_instance_token_t = {
 
 //// Actions /////
 /*
- * The members of a action_instance, used to define
+ * The members of a action_capsule that are accessible from a Python program, used to define
  * a native Python type.
  */
-static PyMemberDef action_instance_members[] = {
-    {"value", T_OBJECT, offsetof(generic_action_instance_struct, value), 0, "Value of the port"},
-    {"is_present", T_BOOL, offsetof(generic_action_instance_struct, is_present), 0, "Check if value is present at current logical time"},
+static PyMemberDef action_capsule_members[] = {
+    {"action", T_OBJECT, offsetof(generic_action_capsule_struct, action), 0, "The pointer to the C action struct"},
+    {"value", T_OBJECT, offsetof(generic_action_capsule_struct, value), 0, "Value of the action"},
     {NULL}  /* Sentinel */
 };
 
 /*
- * The definition of action_instance type object.
- * Used to describe how port_instance behaves.
+ *
  */
-static PyTypeObject action_instance_t = {
+static void
+action_capsule_dealloc(generic_action_capsule_struct *self)
+{
+    Py_XDECREF(self->action);
+    Py_XDECREF(self->value);
+    Py_TYPE(self)->tp_free((PyObject *) self);
+}
+
+static PyObject *
+action_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    generic_action_capsule_struct *self;
+    self = (generic_action_capsule_struct *) type->tp_alloc(type, 0);
+    if (self != NULL) {
+        self->action = NULL;
+        self->value = NULL;
+    }
+    
+    return (PyObject *) self;
+}
+
+static int
+action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObject *kwds)
+{
+    static char *kwlist[] = {"action", "value", NULL};
+    PyObject *action = NULL, *value = NULL, *tmp;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OO", kwlist,
+                                     &action, &value))
+    {
+        return -1;
+    }
+    
+    if (action){
+        tmp = self->action;
+        Py_INCREF(action);
+        self->action = action;
+        Py_XDECREF(tmp);
+    }
+
+
+    if (value){
+        tmp = self->value;
+        Py_INCREF(value);
+        self->value = value;
+        Py_XDECREF(tmp);
+    }
+
+    return 0;
+}
+
+/*
+ * The definition of action_capsule type object.
+ * Used to describe how an action_capsule behaves.
+ */
+static PyTypeObject action_capsule_t = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "LinguaFranca.action_instance",
     .tp_doc = "action_instance object",
-    .tp_basicsize = sizeof(generic_action_instance_struct),
+    .tp_basicsize = sizeof(generic_action_capsule_struct),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
-    .tp_members = action_instance_members,
+    .tp_new = action_capsule_new,
+    .tp_init = (initproc) action_capsule_init,
+    .tp_dealloc = (destructor) action_capsule_dealloc,
+    .tp_members = action_capsule_members,
 };
 
 ///
@@ -387,6 +517,8 @@ static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"SET", py_SET, METH_VARARGS, NULL},
   {"schedule", py_schedule, METH_VARARGS, NULL},
   {"schedule_copy", py_schedule_copy, METH_VARARGS, NULL},
+  {"schedule_int", py_schedule_int, METH_VARARGS, NULL},
+  {"schedule_value", py_schedule_value, METH_VARARGS, NULL},
   {"get_elapsed_logical_time", py_get_elapsed_logical_time, METH_NOARGS, NULL},
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
   {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
@@ -403,7 +535,30 @@ static PyModuleDef MODULE_NAME = {
 };
 
 //////////////////////////////////////////////////////////////
-/////////////  Python Helper Functions
+/////////////  Python Helper 
+/**
+ * A function that destroys action capsules
+ **/
+void destroy_action_capsule(PyObject* capsule)
+{
+    free(PyCapsule_GetPointer(capsule, "action"));
+}
+
+/**
+ * A helper function to convert C actions to Python action capsules
+ **/
+PyObject* convert_C_action_to_py(void* action, PyObject* value)
+{
+    PyObject* cap = Py_BuildValue("OO", PyCapsule_New(action, "action", destroy_action_capsule), value);
+    if(cap == NULL)
+    {
+        fprintf(stderr, "Failed to convert action.\n");
+        exit(1);
+    }
+
+    return cap;
+}
+
 /**
  * A helper function to generate a mutable list of input ports to be sent to a Python reaction.
  */
@@ -719,13 +874,13 @@ GEN_NAME(PyInit_,MODULE_NAME)(void)
         return NULL;
     }
 
-    // Add the action_instance type to the module's dictionary
-    // Py_INCREF(&action_instance_t);
-    // if (PyModule_AddObject(m, "action_instance_t", (PyObject *) &action_instance_t) < 0) {
-    //     Py_DECREF(&action_instance_t);
-    //     Py_DECREF(m);
-    //     return NULL;
-    // }
+    // Add the action_capsule type to the module's dictionary
+    Py_INCREF(&action_capsule_t);
+    if (PyModule_AddObject(m, "action_capsule_t", (PyObject *) &action_capsule_t) < 0) {
+        Py_DECREF(&action_capsule_t);
+        Py_DECREF(m);
+        return NULL;
+    }
 
     return m;
 }
