@@ -1,0 +1,22 @@
+// Tests the is_present variable for actions.
+target Python;
+main reactor ActionIsPresent(offset:time(1 nsec), period:time(500 msec)) {
+    logical action a;
+    state success:bool(false);
+    reaction(startup, a) -> a {=
+        if a.is_present is not True:
+            if self.offset == 0:
+                print("Hello World!")
+                self.success = True
+            else:
+                schedule(a, self.offset)
+        else:
+            print("Hello World 2!")
+            self.success = True
+    =}
+    reaction(shutdown) {=
+        if self.success is not True:
+            sys.stderr.write("Failed to print 'Hello World'\n")
+            exit(1)
+    =}
+}

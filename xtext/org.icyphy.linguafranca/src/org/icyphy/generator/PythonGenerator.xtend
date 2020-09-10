@@ -50,6 +50,10 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Type
 import java.util.ArrayList
 import org.icyphy.ASTUtils
+import java.util.LinkedHashSet
+import org.icyphy.linguaFranca.Value
+import java.util.LinkedList
+import java.util.List
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -114,6 +118,48 @@ class PythonGenerator extends CGenerator {
     ////////////////////////////////////////////
     //// Protected methods
     
+     /**
+     * Override to convert true/false to True/False 
+     * @param v A value
+     * @return A value string in the target language
+     */
+    private def getPythonTargetValue(Value v) {
+        if(v.toText == "false")
+        {
+            return "False"
+        }
+        else if(v.toText == "true")
+        {
+            return "True"
+        }
+        return super.getTargetValue(v)
+    }
+    
+    /**
+     * Create a list of state initializers in target code.
+     * 
+     * @param state The state variable to create initializers for
+     * @return A list of initializers in target code
+     */
+    protected def List<String> getPythonInitializerList(StateVar state) {
+        if (!state.isInitialized) {
+            return null
+        }
+
+        var list = new LinkedList<String>();
+
+        for (i : state?.init) {
+            if (i.parameter !== null) {
+                list.add(i.parameter.targetReference)
+            } else if (state.isOfTimeType) {
+                list.add(i.targetTime)
+            } else {
+                list.add(i.pythonTargetValue)
+            }
+        }
+        return list
+    }
+    
     /**
      * Generate parameters for a reaction function
      * @param decl Reactor declaration
@@ -123,7 +169,8 @@ class PythonGenerator extends CGenerator {
     {
         var StringBuilder parameters = new StringBuilder();
         val reactor = decl.toDefinition
-        
+        var generatedParams = new LinkedHashSet<String>()
+                
         // Handle triggers
         for (TriggerRef trigger : reaction.triggers ?:emptyList)
         {
@@ -133,16 +180,17 @@ class PythonGenerator extends CGenerator {
                 {  
                     if(trigger.variable instanceof Input)
                     {
-                        parameters.append(''', «trigger.variable.name», «trigger.variable.name»_width''')
+                        generatedParams.add(trigger.variable.name)
+                        generatedParams.add('''«trigger.variable.name»_width''')
                     } else {
                         // FIXME: not using proper "."
-                        parameters.append(''', «trigger.container.name»_«trigger.variable.name»''')
+                        generatedParams.add('''«trigger.container.name»_«trigger.variable.name»''')
                     }
                         
                 }
                 else if (trigger.variable instanceof Action)
                 {
-                    parameters.append(''', «trigger.variable.name»''')
+                    generatedParams.add(trigger.variable.name)
                 }
             }
         }
@@ -151,12 +199,13 @@ class PythonGenerator extends CGenerator {
         if (reaction.triggers === null || reaction.triggers.size === 0)
         {
              for (input : reactor.inputs ?:emptyList) {
-                parameters.append(''', «input.name», «input.name»_width''')
+                generatedParams.add(input.name)
+                generatedParams.add('''«input.name»_width''')
             }
         }
         for (src : reaction.sources ?:emptyList)
         {
-                parameters.append(", " + src.variable.name)
+                generatedParams.add(src.variable.name)
         }
         
         // Handle effects
@@ -164,17 +213,16 @@ class PythonGenerator extends CGenerator {
         {
             if(effect.variable instanceof Input)
             {
-                // FIXME: not using proper "."
-                parameters.append(''', «effect.container.name»_«effect.variable.name»''')  
+                generatedParams.add('''«effect.container.name»_«effect.variable.name»''')
             }
             else{
-                parameters.append(", " + effect.variable.name)
+                generatedParams.add(effect.variable.name)
                 if (effect.variable instanceof Port)
                 {
                     if(isMultiport(effect.variable as Port))
                     {
                         // Handle multiports           
-                        parameters.append(''', «effect.variable.name»_width''')
+                        generatedParams.add('''«effect.variable.name»_width''')
                     }
                 }           
             }
@@ -183,7 +231,13 @@ class PythonGenerator extends CGenerator {
         // Handle parameters        
         for (param : reactor.allParameters)
         {
-           parameters.append(", " + param.name)
+           generatedParams.add(param.name)
+        }
+        
+        // Fill out the StrinBuilder parameters
+        for (s : generatedParams)
+        {
+            parameters.append(''', «s»''')
         }
         
         return parameters
@@ -195,7 +249,7 @@ class PythonGenerator extends CGenerator {
      * @param state a state variable
      */
     def String getTargetInitializer(StateVar state) {
-        '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
+        '''«FOR init : state.pythonInitializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
         
@@ -707,6 +761,13 @@ class PythonGenerator extends CGenerator {
         // Generate the function name in Python
         val pythonFunctionName = pythonReactionFunctionName(reactionIndex);
         
+        // Actions may appear twice, first as a trigger, then with the outputs.
+        // But we need to declare it only once. Collect in this data structure
+        // the actions that are declared as triggered so that if they appear
+        // again with the outputs, they are not defined a second time.
+        // That second redefinition would trigger a compile error.  
+        var actionsAsTriggers = new LinkedHashSet<Action>();
+        
         // Indicates if the reactor is in a bank
         var isBank = false
                
@@ -717,6 +778,7 @@ class PythonGenerator extends CGenerator {
                 if (trigger.variable instanceof Port) {
                     generatePortVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, trigger, decl)
                 } else if (trigger.variable instanceof Action) {
+                    actionsAsTriggers.add(trigger.variable as Action)
                     generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects, trigger.variable as Action, decl)
                 }
             }
@@ -737,6 +799,7 @@ class PythonGenerator extends CGenerator {
                 generatePortVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, src, decl)
             } else if (src.variable instanceof Action) {
                 //TODO: handle actions
+                actionsAsTriggers.add(src.variable as Action)
                 generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects, src.variable as Action, decl)
             }
         }
@@ -746,8 +809,11 @@ class PythonGenerator extends CGenerator {
             for (effect : reaction.effects) {
                 if(effect.variable instanceof Action)
                 {
-                    // TODO: handle action
-                    generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects, effect.variable as Action, decl)
+                    // It is an action, not an output.
+                    // If it has already appeared as trigger, do not redefine it.
+                    if (!actionsAsTriggers.contains(effect.variable)) {
+                        generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects, effect.variable as Action, decl)
+                    }
                 } else {
                     if (effect.variable instanceof Output) {
                         generateOutputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, effect.variable as Output, decl)
@@ -1044,11 +1110,11 @@ class PythonGenerator extends CGenerator {
         pyObjectDescriptor.append("O")
         if(action.type === null)
         {
-            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», PyLong_FromLong(0))''')            
+            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», PyLong_FromLong(0), self->__«action.name».is_present)''')            
         }
         else
         {
-            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», Py_BuildValue("«action.inferredType.targetType.pyBuildValueArgumentType»", self->__«action.name»->value))''')
+            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», Py_BuildValue("«action.inferredType.targetType.pyBuildValueArgumentType»", self->__«action.name»->value), self->__«action.name».is_present)''')
         }
     }
 
