@@ -240,10 +240,8 @@ class TypeScriptGenerator extends GeneratorBase {
         // Install npm modules only if the default package.json was copied over.
         
         if (runNpmInstall) {
-            var installCmd = newArrayList();
-            installCmd.addAll("npm", "install")
-            
-            if (executeCommand(installCmd, directory) !== 0) {
+            val npmInstall = createCommand("npm", #["install"])
+            if (npmInstall === null || npmInstall.executeCommand() !== 0) {
                 reportError(resource.findTarget, "ERROR: npm install command failed."
                     + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
@@ -262,15 +260,29 @@ class TypeScriptGenerator extends GeneratorBase {
             // FIXME: Should we include protoc as a submodule? If so, how to invoke it?
             // protoc is commonly installed in /usr/local/bin, which sadly is not by
             // default on the PATH for a Mac.
-            var protocCommand = newArrayList()
-            protocCommand.addAll("protoc",
+            val List<String> protocArgs = newLinkedList
+            protocArgs.addAll(
                 "--plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts",
                 "--js_out=import_style=commonjs,binary:" + outPath,
-                "--ts_out=" + srcGenPath
-            )
-            protocCommand.addAll(protoFiles.fold(newLinkedList, [list, file | list.add(file.name); list]))
-            println("Compiling imported .proto files with command: " + protocCommand.join(" "))
-            executeCommand(protocCommand, directory)
+                "--ts_out=" + srcGenPath)
+            protocArgs.addAll(protoFiles.fold(newLinkedList, [list, file | list.add(file.name); list]))
+            val protoc = createCommand("protoc", protocArgs)
+                
+            if (protoc === null) {
+                return
+            }
+
+            val returnCode = protoc.executeCommand()
+            if (returnCode == 0) {
+                val nameSansProto = filename.substring(0, filename.length - 6)
+                compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
+                    ".pb-c.c")
+
+                compileLibraries.add('-l')
+                compileLibraries.add('protobuf-c')
+            } else {
+                reportError("protoc returns error code " + returnCode)    
+            }
             // FIXME: report errors from this command.
         } else {
             println("No .proto files have been imported. Skipping protocol buffer compilation.")
@@ -289,30 +301,32 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // FIXME: Perhaps add a compileCommand option to the target directive, as in C.
         // Here, we just use a generic compile command.
-        var typeCheckCommand = newArrayList()
 
+        println("Type Checking")
         // If $tsc is run with no arguments, it uses the tsconfig file.
-        typeCheckCommand.addAll(tscPath)
-        
-        println("Type checking with command: " + typeCheckCommand.join(" "))
-        if (executeCommand(typeCheckCommand, projectPath) != 0) {
-            reportError("Type checking failed.")
-        } else {
-            // Babel will compile TypeScript to JS even if there are type errors
-            // so only run compilation if tsc found no problems.
-            var babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
-            // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
-            var compileCommand = newArrayList(babelPath, "src",
-                "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts")
-            println("Compiling with command: " + compileCommand.join(" "))
-            if (executeCommand(compileCommand, projectPath) !== 0) {
-                reportError("Compiler failed.")
+        val tsc = createCommand(tscPath)
+        if (tsc !== null) {
+            tsc.directory(new File(projectPath))
+            if (tsc.executeCommand() == 0) {
+                // Babel will compile TypeScript to JS even if there are type errors
+                // so only run compilation if tsc found no problems.
+                val babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
+                // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
+                println("Compiling")
+                val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"])
+                if (babel !== null) {
+                    babel.directory(new File(projectPath))
+                    if (babel.executeCommand() == 0) {
+                        println("SUCCESS (compiling generated TypeScript code)")                
+                    } else {
+                        reportError("Compiler failed.")
+                    }   
+                }
             } else {
-                println("SUCCESS (compiling generated TypeScript code)")
+                reportError("Type checking failed.")
             }
         }
-        
-        
+
         // If this is a federated execution, generate the C RTI
         
         // FIXME: DO THE COMMENT BELOW

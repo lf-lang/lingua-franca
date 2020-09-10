@@ -775,72 +775,92 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         fOut.close()
     }
     
-
-    /** Invoke the compiler on the generated code. */
-    def compileCode() {
-
-        // If there is more than one federate, compile each one.
-        var fileToCompile = filename // base file name.
-        for (federate : federates) {
-            // Empty string means no federates were defined, so we only
-            // compile one file.
-            if (!federate.isSingleton) {
-                fileToCompile = filename + '_' + federate.name
-            }
-            executeCommand(compileCommand(fileToCompile, true), directory)
-        }
-        // Also compile the RTI files if there is more than one federate.
-        if (federates.length > 1) {
-            compileRTI()
-        }
-    }
-    
-    /** Invoke the compiler on the generated RTI */
+    /** Invoke the C compiler on the generated RTI 
+     * 
+     * The C RTI is used across targets. Thus we need to be able to compile 
+     * it from GeneratorBase. 
+     */
     def compileRTI() {
         var fileToCompile = filename + '_RTI'
-        executeCommand(compileCommand(fileToCompile, false), directory)
+        runCCompiler(directory, fileToCompile, false)
+    }
+    
+    /** 
+     * Run the C compiler.
+     * 
+     * This is required here in order to allow any target to compile the RTI.
+     * 
+     * @param directory the directory to run the compiler in
+     * @param the source file to compile
+     * param doNotLinkIfNoMain If true, the compile command will have a
+     *  `-c` flag when there is no main reactor. If false, the compile command
+     *  will never have a `-c` flag.
+     */
+    def runCCompiler(String directory, String file, boolean doNotLinkIfNoMain) {
+        val compile = compileCCommand(file, doNotLinkIfNoMain)
+        if (compile === null) {
+            return
+        }
+
+        val stderr = new ByteArrayOutputStream()
+        val returnCode = compile.executeCommand(stderr)
+
+        if (returnCode != 0 && mode !== Mode.INTEGRATED) {
+            reportError('''«targetCompiler»r returns error code «returnCode»''')
+        }
+        // For warnings (vs. errors), the return code is 0.
+        // But we still want to mark the IDE.
+        if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
+            reportCommandErrors(stderr.toString())
+        }
     }
     
     /** Return a command to compile the specified C file.
+     * 
+     * This produces a C specific compile command. Since this command is
+     * used across targets to build the RTI, it needs to be available in
+     * GeneratorBase.
+     * 
      *  @param fileToCompile The C filename without the .c extension.
      *  @param doNotLinkIfNoMain If true, the compile command will have a
      *  `-c` flag when there is no main reactor. If false, the compile command
      *  will never have a `-c` flag.
      */
-    protected def compileCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
+    protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
         val cFilename = getTargetFileName(fileToCompile);            
         val relativeSrcFilename = "src-gen" + File.separator + cFilename;
         val relativeBinFilename = "bin" + File.separator + fileToCompile;
 
-        var compileCommand = newArrayList
-        compileCommand.add(targetCompiler)
-        val flags = targetCompilerFlags.split(' ')
-        compileCommand.addAll(flags)
-        compileCommand.add(relativeSrcFilename)
-        compileCommand.addAll(compileAdditionalSources)
-        compileCommand.addAll(compileLibraries)
+        var compileArgs = newArrayList
+        if (targetCompilerFlags !== null && !targetCompilerFlags.isEmpty()) {
+            val flags = targetCompilerFlags.split(' ')
+            compileArgs.addAll(flags)
+        }
+        compileArgs.add(relativeSrcFilename)
+        compileArgs.addAll(compileAdditionalSources)
+        compileArgs.addAll(compileLibraries)
         
         // Only set the output file name if it hasn't already been set
-        // using a target property or command line flag.
-        if (compileCommand.forall[it.trim != "-o"]) {
-            compileCommand.addAll("-o", relativeBinFilename)
+        // using a target property or Args line flag.
+        if (compileArgs.forall[it.trim != "-o"]) {
+            compileArgs.addAll("-o", relativeBinFilename)
         }
 
         // If threaded computation is requested, add a -pthread option.
         if (targetThreads !== 0) {
-            compileCommand.add("-pthread")
+            compileArgs.add("-pthread")
         }
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
         // Then again, I think this only makes sense when we can do linking.
         // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
         if (doNotLinkIfNoMain && main === null) {
-            compileCommand.add("-c") // FIXME: revisit
+            compileArgs.add("-c") // FIXME: revisit
             if (mode === Mode.STANDALONE) {
                 reportError("ERROR: Did not output executable; no main reactor found.")
             }
         }
-        return compileCommand
+        return createCommand(targetCompiler, compileArgs)
     }
 
     ////////////////////////////////////////////
@@ -892,11 +912,61 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     } 
     
     /**
-     * Execute the command given by the specified list of strings, print the
-     * command, its return code, and its output to stderr and stdout, and
-     * return the return code, which is 0 if the command succeeds.
+     * Run a given command and record its output.
      * 
-     * If the command fails to execute, then a second attempt is made using a
+     * @param cmd the command to be executed
+     * @param errStream a stream object to forward the commands error messages to
+     * @param outStrram a stream object to forward the commands output messages to
+     * @return the commands return code
+     */
+    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
+        println('''--- In directory: «cmd.directory.absolutePath»''')
+        println('''--- Executing command: «cmd.command.join(" ")»''')
+
+        var List<OutputStream> outStreams = newArrayList
+        var List<OutputStream> errStreams = newArrayList
+        outStreams.add(System.out)
+        errStreams.add(System.err)
+        if (outStream !== null) { outStreams.add(outStream) } 
+        if (errStream !== null) { errStreams.add(errStream) }
+
+        // Execute the command. Write output to the System output,
+        // but also keep copies in outStream and errStream
+        return cmd.runSubprocess(outStreams, errStreams)
+    }
+
+    /**
+     * Run a given command and record its error messages.
+     * 
+     * @param cmd the command to be executed
+     * @param errStream a stream object to forward the commands error messages to
+     * @return the commands return code
+     */
+    protected def executeCommand(ProcessBuilder cmd) {
+        return cmd.executeCommand(null, null)
+    }
+    
+    /**
+     * Run a given command.
+     * 
+     * @param cmd the command to be executed
+     * @return the commands return code
+     */
+    protected def executeCommand(ProcessBuilder cmd, OutputStream errStream) {
+        return cmd.executeCommand(errStream, null)
+    }
+    
+    /**
+     * Creates a ProcessBuilder for a given command.
+     * 
+     * This method makes sure that the given command is executable,
+     * It first tries to find the command with 'which cmake'. If that
+     * fails, it tries again with bash. In case this fails again,
+     * it returns null. Otherwise, a correctly constructed ProcessBuilder
+     * object is returned. 
+     * 
+     * A bit more context:
+     * If the command cannot be found directly, then a second attempt is made using a
      * Bash shell with the --login option, which sources the user's 
      * ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever
      * is first found) before running the command. This helps to ensure that
@@ -918,74 +988,62 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * environment variables, these variables do not affect the command that is
      * to be executed but merely the environment in which the command executes.
      * 
-     * @param command The command.
-     * @param directory The directory in which to execute the command.
-     * @return 0 if the command succeeds, otherwise, an error code.
+     * @param cmd The command to be executed
+     * @return A ProcessBuilder object if the command was found or null otherwise.
      */
-    protected def executeCommand(ArrayList<String> command, String directory) {
-        println("In directory: " + directory)
-        println("Executing command: " + command.join(" "))
-        var builder = new ProcessBuilder(command);
-        builder.directory(new File(directory));
-        try {
-            val stdout = new ByteArrayOutputStream()
-            val stderr = new ByteArrayOutputStream()
-            val returnCode = builder.runSubprocess(stdout, stderr)
-            if (stdout.size() > 0) {
-                println("--- Standard output from command:")
-                println(stdout.toString())
-                println("--- End of standard output.")
-            }
-            if (stderr.size() > 0) {
-                println("--- Standard error from command:")
-                println(stderr.toString())
-                println("--- End of standard error.")
-            }
-            if (returnCode !== 0) {
-                // Throw an exception, which will be caught below for a second attempt.
-                throw new Exception("Command returns error code " + returnCode)
-            }
-            // For warnings (vs. errors), the return code is 0.
-            // But we still want to mark the IDE.
-            if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
-                reportCommandErrors(stderr.toString())
-            }
-            return returnCode
-        } catch (Exception ex) {
-            
-            println("--- Exception: " + ex)
-            // Try running with bash.
-            // The --login option forces bash to look for and load the first of
-            // ~/.bash_profile, ~/.bash_login, and ~/.bashrc that it finds.
-            var bashCommand = new ArrayList<String>()
-            bashCommand.addAll("bash", "--login", "-c")
-            bashCommand.addAll(command.join(" "))
-            // bashCommand.addAll("bash", "--login", "-c", 'ls', '-a')
-            println("--- Attempting instead to run: " + bashCommand.join(" "))
-            builder.command(bashCommand)
-            val stdout = new ByteArrayOutputStream()
-            val stderr = new ByteArrayOutputStream()
-            val returnCode = builder.runSubprocess(stdout, stderr)
-            if (stdout.size() > 0) {
-                println("--- Standard output from command:")
-                println(stdout.toString())
-                println("--- End of standard output.")
-            }
-            if (stderr.size() > 0) {
-                println("--- Standard error from command:")
-                println(stderr.toString())
-                println("--- End of standard error.")
-            }
-            
-            if (returnCode !== 0) {
-                if (mode === Mode.INTEGRATED) {
-                    reportCommandErrors(stderr.toString())
-                } else {
-                    reportError("Bash command returns error code " + returnCode)
-                }
-            }
-            return returnCode
+    protected def createCommand(String cmd) {
+        return createCommand(cmd, #[])
+    }
+    
+    /**
+     * Creates a ProcessBuilder for a given command and its arguments.
+     * 
+     * This method ensures that the given command is executable. It first tries 
+     * to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). If 
+     * that fails, it tries again with bash. In case this fails again, this
+     * method returns null. Otherwise, it returns correctly constructed 
+     * ProcessBuilder object. 
+     * 
+     * @param cmd The command to be executed
+     * @param args A list of arguments for the given command
+     * @return A ProcessBuilder object if the command was found or null otherwise.
+     */
+    protected def createCommand(String cmd, List<String> args) {
+        // Make sure the command is found in the PATH.
+        print('''--- Looking for command «cmd» ... ''')
+        // Use 'where' on Windows, 'which' on other systems
+        val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
+        val whichBuilder = new ProcessBuilder(#[which, cmd])
+        val whichReturn = whichBuilder.start().waitFor()
+        if (whichReturn == 0) {
+            println("SUCCESS")
+            val builder = new ProcessBuilder(#[cmd] + args)
+            builder.directory(new File(directory))
+            return builder
         }
+        println("FAILED")
+        // Try running with bash.
+        // The --login option forces bash to look for and load the first of
+        // ~/.bash_profile, ~/.bash_login, and ~/.bashrc that it finds.
+        print('''--- Trying again with bash ... ''')
+        val bashCommand = #["bash", "--login", "-c", '''which «cmd»''']
+        val bashBuilder = new ProcessBuilder(bashCommand)
+        val bashOut = new ByteArrayOutputStream()
+        val bashReturn = bashBuilder.runSubprocess(#[bashOut], #[])
+        if (bashReturn == 0) {
+            println("SUCCESS")
+            // extract the full command from the output of which
+            val newCmd = bashOut.toString().trim()
+            // use that command to build the process
+            val builder = new ProcessBuilder(#[newCmd] + args)
+            builder.directory(new File(directory))
+            return builder
+        }
+        println("FAILED")
+        reportError("The command " + cmd + " could not be found.\n" +
+                    "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
+                    "You can set PATH in ~/.bash_profile on Linux or Mac.")
+        return null as ProcessBuilder
     }
     
     /**
@@ -2084,22 +2142,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         println('******** directory: ' + directory)
         println('******** mode: ' + mode)
     }
-    
-    /**
-     * Execute a process while forwarding output and error to system streams.
-     *
-     * Executing a process directly with `processBuiler.start()` could
-     * lead to a deadlock as the subprocess blocks when output or error
-     * buffers are full. This method ensures that output and error messages
-     * are continuously read and forwards them to the system's output and
-     * error streams.
-     *
-     * @param processBuilder The process to be executed.
-     * @author{Christian Menard <christian.menard@tu-dresden.de}
-     */
-    protected def runSubprocess(ProcessBuilder processBuilder) {
-        return runSubprocess(processBuilder, System.out, System.err);
-    }
 
     /**
      * Execute a process while forwarding output and error streams.
@@ -2114,16 +2156,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param errStream The stream to forward the process' error messages to.
      * @author{Christian Menard <christian.menard@tu-dresden.de}
      */
-    protected def runSubprocess(ProcessBuilder processBuilder,
-                                OutputStream outStream,
-                                OutputStream errStream) {
+    private def runSubprocess(ProcessBuilder processBuilder,
+                              List<OutputStream> outStream,
+                              List<OutputStream> errStream) {
         val process = processBuilder.start()
 
         var outThread = new Thread([|
                 var buffer = newByteArrayOfSize(64)
                 var len = process.getInputStream().read(buffer)
                 while(len != -1) {
-                    outStream.write(buffer, 0, len)
+                    for (os : outStream) {
+                        os.write(buffer, 0, len)
+                    }
                     len = process.getInputStream().read(buffer)
                 }
             ])
@@ -2133,7 +2177,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 var buffer = newByteArrayOfSize(64)
                 var len = process.getErrorStream().read(buffer)
                 while(len != -1) {
-                    errStream.write(buffer, 0, len)
+                    for (es : errStream) {
+                        es.write(buffer, 0, len)
+                    }
                     len = process.getErrorStream().read(buffer)
                 }
             ])
