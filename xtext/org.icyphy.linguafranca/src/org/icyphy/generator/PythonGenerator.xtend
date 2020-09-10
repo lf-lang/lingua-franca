@@ -142,7 +142,7 @@ class PythonGenerator extends CGenerator {
                 }
                 else if (trigger.variable instanceof Action)
                 {
-                    // TODO: handle actions
+                    parameters.append(''', «trigger.variable.name»''')
                 }
             }
         }
@@ -711,7 +711,7 @@ class PythonGenerator extends CGenerator {
                 if (trigger.variable instanceof Port) {
                     generatePortVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, trigger, decl)
                 } else if (trigger.variable instanceof Action) {
-                    // TODO: handle actions
+                    generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects, trigger.variable as Action, decl)
                 }
             }
         }
@@ -731,6 +731,7 @@ class PythonGenerator extends CGenerator {
                 generatePortVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, src, decl)
             } else if (src.variable instanceof Action) {
                 //TODO: handle actions
+                generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects, src.variable as Action, decl)
             }
         }
         
@@ -740,6 +741,7 @@ class PythonGenerator extends CGenerator {
                 if(effect.variable instanceof Action)
                 {
                     // TODO: handle action
+                    generateActionVariableToSendToPythonReaction(pyObjectDescriptor, pyObjects, effect.variable as Action, decl)
                 } else {
                     if (effect.variable instanceof Output) {
                         generateOutputVariablesToSendToPythonReaction(pyObjectDescriptor, pyObjects, effect.variable as Output, decl)
@@ -1019,6 +1021,28 @@ class PythonGenerator extends CGenerator {
                             = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i]->is_present;
                 }
             ''')
+        }
+    }
+    
+        
+    /**
+     * Generate code to convert C actions to Python action capsules
+     * @see pythontarget.h
+     * @param builder The string builder into which to write the code.
+     * @param structs A map from reactor instantiations to a place to write
+     *        struct fields.
+     * @param port The port.
+     * @param reactor The reactor.
+     */
+    def generateActionVariableToSendToPythonReaction(StringBuilder pyObjectDescriptor, StringBuilder pyObjects, Action action, ReactorDecl decl) {
+        pyObjectDescriptor.append("O")
+        if(action.type === null)
+        {
+            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», PyLong_FromLong(0))''')            
+        }
+        else
+        {
+            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», Py_BuildValue("«action.inferredType.targetType.pyBuildValueArgumentType»", self->__«action.name»->value))''')
         }
     }
 
