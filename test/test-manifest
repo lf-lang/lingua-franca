@@ -87,6 +87,7 @@ MultiportToMultiport2After.lf
 MultiportToMultiportParameter.lf
 MultiportToMultiportArray.lf
 MultiportToPort.lf
+MultiportToReaction.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
