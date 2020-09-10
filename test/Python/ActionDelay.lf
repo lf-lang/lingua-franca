@@ -1,0 +1,46 @@
+// Test logical action with delay.
+target Python;
+
+reactor GeneratedDelay {
+    input y_in:int;
+    output y_out:int;
+    state y_state:int(0);
+    logical action act(100 msec);
+    reaction(y_in) -> act {=
+        self.y_state = y_in.value
+        schedule(act, MSEC(0))
+    =}
+
+    reaction(act) -> y_out {=
+        SET(y_out, self.y_state)
+    =}
+}
+
+reactor Source {
+    output out:int;
+    reaction(startup) -> out {=
+        SET(out, 1)
+    =} 
+}
+reactor Sink {
+	input _in:int;
+	reaction(_in) {=
+        elapsed_logical = get_elapsed_logical_time()
+        logical = get_logical_time()
+        physical = get_physical_time()
+        print("Logical, physical, and elapsed logical: ", logical, physical, elapsed_logical)
+        if elapsed_logical != MSEC(100):
+            sys.stderr.write("FAILURE: Expected " + str(MSEC(100)) + " but got " + str(elapsed_logical) + ".\n")
+            exit(1)
+        else:
+            print("SUCCESS. Elapsed logical time is 100 msec.\n")
+	=}
+}
+main reactor ActionDelay {
+    source = new Source();
+    sink = new Sink();
+    g = new GeneratedDelay();
+    
+    source.out -> g.y_in;
+    g.y_out -> sink._in;
+}

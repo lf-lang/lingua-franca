@@ -549,12 +549,30 @@ void destroy_action_capsule(PyObject* capsule)
  **/
 PyObject* convert_C_action_to_py(void* action, PyObject* value)
 {
-    PyObject* cap = Py_BuildValue("OO", PyCapsule_New(action, "action", destroy_action_capsule), value);
+    // Create the action struct in Python
+    PyObject* cap = PyObject_GC_New(generic_action_capsule_struct, &action_capsule_t);
     if(cap == NULL)
     {
         fprintf(stderr, "Failed to convert action.\n");
         exit(1);
     }
+
+    // Create the capsule to hold the void* action
+    PyObject* capsule = PyCapsule_New(action, "action", NULL);
+    if(capsule == NULL)
+    {
+        fprintf(stderr, "Failed to convert action.\n");
+        exit(1);
+    }
+
+    if(value == NULL)
+    {
+        value = PyLong_FromLong(0);
+    }
+
+    // Fill in the Python action struct
+    ((generic_action_capsule_struct*)cap)->action = capsule;
+    ((generic_action_capsule_struct*)cap)->value = value;
 
     return cap;
 }
