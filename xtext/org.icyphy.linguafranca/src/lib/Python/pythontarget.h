@@ -853,6 +853,10 @@ GEN_NAME(PyInit_,MODULE_NAME)(void)
     if (PyType_Ready(&port_instance_token_t) < 0)
         return NULL;
 
+    // Initialize the action_capsule type
+    if (PyType_Ready(&action_capsule_t) < 0)
+        return NULL;
+
     m = PyModule_Create(&MODULE_NAME);
 
     if (m == NULL)
