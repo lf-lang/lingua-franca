@@ -535,6 +535,21 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
+     * Generate code that ensures only one thread can execute at a time as per Python specifications
+     * @param state 0=beginning, 1=end
+     */
+    def pyThreadMutexLockCode(int state) {
+        if(targetThreads !== 0)
+        {
+            switch(state){
+                case 0: return '''pthread_mutex_lock(&mutex);'''
+                case 1: return '''pthread_mutex_unlock(&mutex);'''
+                default: throw new Exception("Unknown state")
+            }
+        }
+    }
+    
+    /**
      * Returns the desired source gen. path
      */
     override getSrcGenPath() {
@@ -852,7 +867,9 @@ class PythonGenerator extends CGenerator {
         prSourceLineNumber(reaction.code)
         if(isBank) {
             // The reaction is in a reactor that belongs to a bank of reactors
+            pr(pyThreadMutexLockCode(0))
             pr('''invoke_python_function("__main__", "«reactor.name»s", self->instance ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+            pr(pyThreadMutexLockCode(1))
         }
         else {
             pr('''invoke_python_function("__main__", "«reactor.name»s", 0 ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
