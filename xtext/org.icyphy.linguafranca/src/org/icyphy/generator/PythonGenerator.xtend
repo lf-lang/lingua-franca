@@ -54,6 +54,7 @@ import java.util.LinkedHashSet
 import org.icyphy.linguaFranca.Value
 import java.util.LinkedList
 import java.util.List
+import java.util.regex.Pattern
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -110,6 +111,10 @@ class PythonGenerator extends CGenerator {
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
 	val generic_port_type_with_token = "generic_instance_with_token_struct*"
+	
+	
+	// Regular expression pattern for pointer types. The star at the end has to be visible.
+    static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
     
    ////////////////////////////////////////////
     //// Public methods
@@ -847,8 +852,9 @@ class PythonGenerator extends CGenerator {
         }
         
         // Finally, handle parameters        
-        for (param : reactor.allParameters)
+        for (param : reactor.allParameters )
         {
+            // FIXME: array sizes cannot change at runtime
             generateParametersToSendToPythonReaction(pyObjectDescriptor, pyObjects, param, decl)
             if(param.name == "instance"
                 && getTargetType(param.inferredType) == "int"
@@ -1285,8 +1291,39 @@ class PythonGenerator extends CGenerator {
         ReactorDecl decl
     )
     {
-        pyObjectDescriptor.append(param.targetType.pyBuildValueArgumentType)
-        pyObjects.append(''', self->«param.name»''')
+        val targetType = param.inferredType.targetType
+        // If the parameter is an array, we need to convert it to a Python tuple
+        // FIXME: Size cannot expand
+        val matcher = pointerPatternVariable.matcher(targetType)
+        if(matcher.find()){       
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''', \
+                    «'      '»«param.pyConvertParameterArrayToList(matcher.group(1))»''')
+        }
+        else
+        {
+            pyObjectDescriptor.append(param.targetType.pyBuildValueArgumentType)
+            pyObjects.append(''', self->«param.name»''')
+        }
+    }
+    
+    /** 
+     * Convert a parameter array to a Python tuple
+     */
+    private def pyConvertParameterArrayToList(Parameter param, String type) {
+        var StringBuilder pyObjectDescriptor = new StringBuilder()
+        var StringBuilder pyObjects = new StringBuilder()
+        
+        for(var i = 0; i < param.init.size ; i++)
+        {
+            pyObjectDescriptor.append(type.pyBuildValueArgumentType)
+            pyObjects.append(''', self->«param.name»[«i»]''')
+        }
+        
+        
+        return '''Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)'''
+        
+        
     }
     
     private def pyBuildValueArgumentType(String type)
