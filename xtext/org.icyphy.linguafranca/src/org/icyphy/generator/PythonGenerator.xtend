@@ -55,6 +55,7 @@ import org.icyphy.linguaFranca.Value
 import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
+import org.icyphy.InferredType
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -165,6 +166,22 @@ class PythonGenerator extends CGenerator {
         return list
     }
     
+     /**
+     * Create a Python tuple for parameter initialization in target code.
+     * 
+     * @param p The parameter instance to create initializers for
+     * @return Initialization code
+     */
+     protected def String getPythonInitializer(ParameterInstance p) {        
+            if (p.type.isList && p.init.size > 1) {
+                // parameters are initialized as immutable tuples
+                return p.init.join('(', ', ', ')', [it.targetValue])
+            } else {
+                return p.init.get(0).targetValue
+            }
+        
+    }
+    
     /**
      * Generate parameters for a reaction function
      * @param decl Reactor declaration
@@ -233,12 +250,19 @@ class PythonGenerator extends CGenerator {
             }
         }
         
-        // Handle parameters        
-        for (param : reactor.allParameters)
+        // Finally, handle parameters that need to be passed from the C runtime (e.g., instance:int)     
+        for (param : reactor.allParameters )
         {
-           generatedParams.add(param.name)
+            if(param.name == "instance"
+                && getTargetType(param.inferredType) == "int"
+            )
+            {
+                // The instance variable is a special variable that has to be passed to the reaction
+                generatedParams.add("instance")
+            }
         }
         
+       
         // Fill out the StrinBuilder parameters
         for (s : generatedParams)
         {
@@ -257,42 +281,121 @@ class PythonGenerator extends CGenerator {
         '''«FOR init : state.pythonInitializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
-        
+    
+    /**
+     * Wrapper function for the more elaborate generatePythonReactorClass that keeps track
+     * of visited reactors to avoid duplicate generation
+     * @param instance The reactor instance to be generated
+     * @param pythonClasses The class definition is appended to this string builder
+     * @param federate The federate instance for the reactor instance
+     * @param instantiatedClasses A list of visited instances to avoid generating duplicates
+     */
+    def generatePythonReactorClass(ReactorInstance instance, StringBuilder pythonClasses, FederateInstance federate)
+    {
+        var instantiatedClasses = new ArrayList<String>()
+        generatePythonReactorClass(instance, pythonClasses, federate, instantiatedClasses)
+    }
+    
+    
     /**
      * Generate a Python class corresponding to decl
-     * @param decl The reactor's declaration
+     * @param instance The reactor instance to be generated
+     * @param pythonClasses The class definition is appended to this string builder
+     * @param federate The federate instance for the reactor instance
+     * @param instantiatedClasses A list of visited instances to avoid generating duplicates
      */
-    def generatePythonReactorClass(ReactorDecl decl) '''
-        «var className = ""»
-        «IF decl instanceof Reactor»
-            «{className = decl.name; ""}»
-        «ELSE»
-            «{className = decl.toDefinition.name; ""}»    
-        «ENDIF»
+    def void generatePythonReactorClass(ReactorInstance instance, StringBuilder pythonClasses, FederateInstance federate, ArrayList<String> instantiatedClasses)
+    {
+        if (instance !== this.main && !reactorBelongsToFederate(instance, federate))
+        {
+            return
+        }
         
-        class _«className»:
+        // Invalid use of the function
+        if (instantiatedClasses === null) {
+            return
+        }
         
-        «val reactor = decl.toDefinition»
-        «FOR stateVar : reactor.allStateVars»
-            «'    '»«stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
-        «ENDFOR»
+        val decl = instance.definition.reactorClass
+        var className = ""
+        if (decl instanceof Reactor)
+        {
+            className = decl.name;
+        }
+        else
+        {
+            className = decl.toDefinition.name;   
+        }
         
-        «var reactionIndex = 0»
-        «FOR reaction : reactor.allReactions»
-                def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
-                    «reaction.pythonInitializaitons»
-                    «reaction.code.toText»
-                    return 0
-            «{reactionIndex = reactionIndex+1; ""}»
-        «ENDFOR»
-    '''
+        // Do not generate code for delay reactors in Python
+        if(className.contains(GEN_DELAY_CLASS_NAME))
+        {
+            return
+        }
+        
+        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
+            if (reactorBelongsToFederate(instance, federate) && !instantiatedClasses.contains(className)) {
+        
+                pythonClasses.append('''
+                class _«className»:
+                ''');
+                
+                val reactor = decl.toDefinition
+                for (stateVar : reactor.allStateVars) {
+                   pythonClasses.append('''    «stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
+                   ''')
+                }
+                
+                for (param : instance.parameters)
+                {
+                    pythonClasses.append('''    «param.name»:«param.definition.inferredType.pythonType» = «param.pythonInitializer»
+                    ''')
+                }
+        
+                var reactionIndex = 0
+                for (reaction : reactor.allReactions)
+                {
+                       pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
+                       ''')
+                       pythonClasses.append('''        «getPythonInitializaitons(reactor, reaction)»
+                       ''')
+                       pythonClasses.append('''        «reaction.code.toText»
+                       ''')
+                       pythonClasses.append('''        return 0
+                       ''')
+                       reactionIndex = reactionIndex+1;
+                }
+            }    
+        }
+                
+        for (child : instance.children) {
+            generatePythonReactorClass(child, pythonClasses, federate, instantiatedClasses)
+        }
+    }
+    
+    /**
+     * This generator inherits types from the CGenerator.
+     * This function reverts them back to Python types
+     * @param type The type
+     */
+    def getPythonType(InferredType type) {
+        var result = super.getTargetType(type)
+        
+        val matcher = pointerPatternVariable.matcher(result)
+        if(matcher.find()) {
+            return matcher.group(1)
+        }
+        
+        return result
+    }
     
     /**
      * Generate initialization code put at the beginning of the reaction before user code
+     * @param reactor The reactor that contains the reaction
      * @param reaction The reaction to generate initialization code for
      */
-    def getPythonInitializaitons(Reaction reaction) {
-        var StringBuilder inits = new StringBuilder();        
+    def getPythonInitializaitons(Reactor reactor, Reaction reaction) {
+        var StringBuilder inits = new StringBuilder();
         // Handle triggers
         for (TriggerRef trigger : reaction.triggers ?:emptyList)
         {
@@ -328,6 +431,18 @@ class PythonGenerator extends CGenerator {
             }
             else{
                 // Do nothing          
+            }
+        }
+        
+        // Finally, handle parameters that need to be passed from the C runtime (e.g., instance:int)     
+        for (param : reactor.allParameters )
+        {
+            if(param.name == "instance"
+                && getTargetType(param.inferredType) == "int"
+            )
+            {
+                // The instance variable is a special variable that has to be passed to the reaction
+                inits.append("self.instance = instance")
             }
         }
         
@@ -410,26 +525,8 @@ class PythonGenerator extends CGenerator {
         var StringBuilder pythonClasses = new StringBuilder()
         var StringBuilder pythonClassesInstantiation = new StringBuilder()
         
-        // Generate the main reactor class if there are reactions
-        if (!this.mainDef.reactorClass.toDefinition.allReactions.isEmpty) {
-            pythonClasses.append("# The main reactor class")
-            if (this.mainDef !== null) {
-                pythonClasses.append(mainDef.reactorClass.generatePythonReactorClass)
-            }
-        }
-
-        pythonClasses.append("\n")
-        pythonClasses.append("# Generated Python classes")
-        // Generate other reactor classes if they have reactions
-        for (reactor : reactors)
-        {
-            // Generate the reactor classes in Python only if they have a reaction
-            // Skip delay reactors
-            if(!reactor.toDefinition.allReactions.isEmpty && !reactor.name.contains(GEN_DELAY_CLASS_NAME))
-            {
-                pythonClasses.append(reactor.generatePythonReactorClass())
-            }
-        }
+        
+        this.main.generatePythonReactorClass(pythonClasses, federate)
         
         // Instantiate generated classes
         this.main.generatePythonClassInstantiation(pythonClassesInstantiation, federate)
@@ -747,6 +844,12 @@ class PythonGenerator extends CGenerator {
           "reaction_function_" + reactionIndex
     }
     
+    /**
+     * Parameters are initialized in Python not C
+     */
+    override initializeParameters(StringBuilder builder, ReactorInstance instance) {
+        // Do nothing.
+    }
         
     /** Generate a reaction function definition for a reactor.
      *  This function has a single argument that is a void* pointing to
@@ -851,15 +954,16 @@ class PythonGenerator extends CGenerator {
             }
         }
         
-        // Finally, handle parameters        
+        // Finally, handle parameters that need to be passed from the C runtime (e.g., instance:int)     
         for (param : reactor.allParameters )
         {
-            // FIXME: array sizes cannot change at runtime
-            generateParametersToSendToPythonReaction(pyObjectDescriptor, pyObjects, param, decl)
             if(param.name == "instance"
                 && getTargetType(param.inferredType) == "int"
             )
             {
+                // The instance variable is a special variable that has to be passed to the reaction
+                pyObjectDescriptor.append("i");
+                pyObjects.append(", self->instance")
                 // The reactor is in a bank
                 isBank = true
             }
@@ -1284,48 +1388,11 @@ class PythonGenerator extends CGenerator {
         pyObjects.append(''', self->__«input.name»__width''')
     }
     
-    private def generateParametersToSendToPythonReaction(
-        StringBuilder pyObjectDescriptor,
-        StringBuilder pyObjects,
-        Parameter param,
-        ReactorDecl decl
-    )
-    {
-        val targetType = param.inferredType.targetType
-        // If the parameter is an array, we need to convert it to a Python tuple
-        // FIXME: Size cannot expand
-        val matcher = pointerPatternVariable.matcher(targetType)
-        if(matcher.find()){       
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', \
-                    «'      '»«param.pyConvertParameterArrayToList(matcher.group(1))»''')
-        }
-        else
-        {
-            pyObjectDescriptor.append(param.targetType.pyBuildValueArgumentType)
-            pyObjects.append(''', self->«param.name»''')
-        }
-    }
     
-    /** 
-     * Convert a parameter array to a Python tuple
+    /**
+     * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple
+     * @param type C type
      */
-    private def pyConvertParameterArrayToList(Parameter param, String type) {
-        var StringBuilder pyObjectDescriptor = new StringBuilder()
-        var StringBuilder pyObjects = new StringBuilder()
-        
-        for(var i = 0; i < param.init.size ; i++)
-        {
-            pyObjectDescriptor.append(type.pyBuildValueArgumentType)
-            pyObjects.append(''', self->«param.name»[«i»]''')
-        }
-        
-        
-        return '''Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»)'''
-        
-        
-    }
-    
     private def pyBuildValueArgumentType(String type)
     {
         switch(type)

@@ -6,9 +6,9 @@ reactor Source(sequence:int[](0, 1, 2, 4)) {
     state count:int(0);
     logical action next;
     reaction(startup, next) -> out, next {=
-        SET(out, sequence[self.count])
+        SET(out, self.sequence[self.count])
         self.count+=1
-        if self.count < len(sequence):
+        if self.count < len(self.sequence):
             schedule(next, 0)
     =}
 }

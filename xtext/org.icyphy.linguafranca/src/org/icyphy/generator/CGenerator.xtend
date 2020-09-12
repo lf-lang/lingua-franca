@@ -2564,29 +2564,7 @@ class CGenerator extends GeneratorBase {
         pr(initializeTriggerObjects, "//***** Start initializing " + fullName)
 
         // Start with parameters.
-        for (parameter : instance.parameters) {
-            // NOTE: we now use the resolved literal value. For better efficiency, we could
-            // store constants in a global array and refer to its elements to avoid duplicate
-            // memory allocations.
-            
-            // Array type parameters have to be handled specially.
-            // Use the superclass getTargetType to avoid replacing the [] with *.
-            val targetType = super.getTargetType(parameter.type)
-            val matcher = arrayPatternVariable.matcher(targetType)
-            if (matcher.find()) {
-                // Use an intermediate temporary variable so that parameter dependencies
-                // are resolved correctly.
-                val temporaryVariableName = parameter.uniqueID
-                pr(initializeTriggerObjects, '''
-                    static «matcher.group(1)» «temporaryVariableName»[] = «parameter.getInitializer»;
-                    «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
-                ''')
-            } else {
-                pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
-                ''')
-            }
-        }
+        initializeParameters(initializeTriggerObjects, instance)
         
         // Once parameters are done, we can allocate memory for any multiports.
         // Allocate memory for outputs.
@@ -2922,6 +2900,36 @@ class CGenerator extends GeneratorBase {
         generateStartTimeStep(instance, federate)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
+    }
+    
+    /**
+     * Generate runtime initialization code for parameters of a given reactor instance
+     */
+    def initializeParameters(StringBuilder builder, ReactorInstance instance) {
+        var nameOfSelfStruct = selfStructName(instance)
+        // Array type parameters have to be handled specially.
+        // Use the superclass getTargetType to avoid replacing the [] with *.
+        for (parameter : instance.parameters) {
+            // NOTE: we now use the resolved literal value. For better efficiency, we could
+            // store constants in a global array and refer to its elements to avoid duplicate
+            // memory allocations.
+            val targetType = super.getTargetType(parameter.type)
+            val matcher = arrayPatternVariable.matcher(targetType)
+            if (matcher.find()) {
+                // Use an intermediate temporary variable so that parameter dependencies
+                // are resolved correctly.
+                val temporaryVariableName = parameter.uniqueID
+                pr(builder, '''
+                    static «matcher.group(1)» «temporaryVariableName»[] = «parameter.getInitializer»;
+                    «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
+                ''')
+            } else {
+                pr(builder, '''
+                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
+                ''')
+            }
+
+        }
     }
     
     /**
