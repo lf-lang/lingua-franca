@@ -490,8 +490,7 @@ void __pop_events() {
 
         // Push the corresponding reactions onto the reaction queue.
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            // printf("Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
-            // printf("Pushed reaction args: %p\n", event->trigger->reactions[i]->args);
+            // printf("DEBUG: Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
             pqueue_insert(reaction_q, event->trigger->reactions[i]);
         }
         // If the trigger is a periodic clock, create a new event for its next execution.
