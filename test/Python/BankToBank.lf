@@ -10,22 +10,22 @@ reactor Source(instance:int(0)) {
 	state s:int(0);
 	reaction(t) -> out {=
         SET(out, self.s)
-        self.s += instance
+        self.s += self.instance
 	=}
 }
 reactor Destination(instance:int(0)) {
 	state s:int(0);
 	input _in:int;
 	reaction(_in) {=
-        print("Destination " + str(instance) + " received: " + str(_in.value))
+        print("Destination " + str(self.instance) + " received: " + str(_in.value))
         if (_in.value != self.s):
             sys.stderr.write("ERROR: Expected " + str(self.s))
             exit(1)
-        self.s += instance
+        self.s += self.instance
 	=}
 	reaction(shutdown) {=
-        if self.s == 0 and instance != 0:
-            sys.stderr.write("ERROR: Destination " + instance + " received no input!")
+        if self.s == 0 and self.instance != 0:
+            sys.stderr.write("ERROR: Destination " + self.instance + " received no input!")
             exit(1)
         print("Success.")
     =}

@@ -15,15 +15,15 @@ reactor Destination(instance:int(0)) {
     input _in:int;
     state received:bool(0);
     reaction(_in) {=
-        print("Destination " + str(instance) + " received " + str(_in.value))
-        if instance != _in.value:
-            sys.stderr.write("ERROR: Expected " + str(instance))
+        print("Destination " + str(self.instance) + " received " + str(_in.value))
+        if self.instance != _in.value:
+            sys.stderr.write("ERROR: Expected " + str(self.instance))
             exit(1)
         self.received = True
     =}
     reaction(shutdown) {=
         if self.received is not True:
-            sys.stderr.write("ERROR: Destination " + str(instance) + " received no input!\n")
+            sys.stderr.write("ERROR: Destination " + str(self.instance) + " received no input!\n")
             exit(1)
         print("Success.")
     =}
