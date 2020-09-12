@@ -177,6 +177,7 @@ int next() {
     } else {
         next_time = event->time;
     }
+    // printf("DEBUG: Next event (elapsed) time is %lld.\n", next_time - start_time);
     // Wait until physical time >= event.time.
     // The wait_until function will advance current_time.
     if (wait_until(next_time) < 0) {
@@ -191,10 +192,12 @@ int next() {
                 stop_requested = true;
                 return 0;
             }
+            // printf("DEBUG: Setting current (elapsed) time to %lld.\n", next_time - start_time);
         } else {
             // Handle the new event.
             event = new_event;
             next_time = event->time;
+            // printf("DEBUG: New event at (elapsed) time %lld.\n", next_time - start_time);
         }
     }
     
