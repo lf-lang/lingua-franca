@@ -1,7 +1,7 @@
 // Source has an array as a parameter, the elements of which it passes
-// to Print. Note that size of the array cannot change at runtime.
+// to Print.
 target Python;
-reactor Source(sequence:int[](0, 1, 2, 4)) {
+reactor Source(sequence:int[](0, 1, 2)) {
     output out:int;
     state count:int(0);
     logical action next;
