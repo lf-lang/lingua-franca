@@ -317,15 +317,7 @@ class PythonGenerator extends CGenerator {
         }
         
         val decl = instance.definition.reactorClass
-        var className = ""
-        if (decl instanceof Reactor)
-        {
-            className = decl.name;
-        }
-        else
-        {
-            className = decl.toDefinition.name;   
-        }
+        val className = instance.definition.reactorClass.name
         
         // Do not generate code for delay reactors in Python
         if(className.contains(GEN_DELAY_CLASS_NAME))
@@ -365,6 +357,7 @@ class PythonGenerator extends CGenerator {
                        ''')
                        reactionIndex = reactionIndex+1;
                 }
+                instantiatedClasses.add(className)
             }    
         }
                 
