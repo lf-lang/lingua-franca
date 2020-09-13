@@ -13,7 +13,7 @@ reactor Print(scale:int(1)) {
     input _in;
     reaction(_in) {=
         print("Received: [%s]" % ', '.join(map(str, _in.value)))
-        if _in.value != [0, 1, 2]:
+        if _in.value != [x * self.scale for x in [0, 1, 2]]:
             sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
             exit(1)
     =}
