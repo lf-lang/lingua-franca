@@ -111,8 +111,9 @@ class PythonGenerator extends CGenerator {
     *
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
-	val generic_port_type_with_token = "generic_instance_with_token_struct*"
+	val generic_port_type_with_token = "generic_port_instance_struct*"
 	
+	override getTargetUndefinedType() '''PyObject*'''	
 	
 	// Regular expression pattern for pointer types. The star at the end has to be visible.
     static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
@@ -1285,11 +1286,6 @@ class PythonGenerator extends CGenerator {
         ReactorDecl decl        
     )
     {
-         if (output.type === null) {
-            reportError(output,
-                "Output is required to have a type: " + output.name)
-        } else {
-            val outputStructType = variableStructType(output, decl)
             // Unfortunately, for the SET macros to work out-of-the-box for
             // multiports, we need an array of *pointers* to the output structs,
             // but what we have on the self struct is an array of output structs.
@@ -1298,7 +1294,7 @@ class PythonGenerator extends CGenerator {
             if (!output.isMultiport) {
                 pyObjectDescriptor.append("O")
                 pyObjects.append(''', (PyObject *)self->__«output.name»''')
-            } else {
+            } else if (output.isMultiport) {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
                 pyObjects.append(''', make_output_port_list((generic_port_instance_struct **)self->__«output.name»,self->__«output.name»__width) ''')
@@ -1307,7 +1303,6 @@ class PythonGenerator extends CGenerator {
                 pyObjectDescriptor.append("i")
                 pyObjects.append(''', self->__«output.name»__width''')
             }
-        }
     }
     
     /** Generate into the specified string builder the code to
