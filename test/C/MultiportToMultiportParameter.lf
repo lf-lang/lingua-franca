@@ -1,5 +1,4 @@
- // Check multiport output to multiport input.
- // Destination port is wider than sending port.
+// Check multiport output to multiport input.
 target C {
     timeout: 2 sec,
     threads: 4,
