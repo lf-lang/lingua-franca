@@ -11,12 +11,8 @@ reactor Source {
 reactor Print(scale:int(1)) {
     input _in;
     reaction(_in) {=
-        count = 0       # For testing.
-        failed = False # For testing.
         print("Received: [%s]" % ', '.join(map(str, _in.value)))
         if _in.value != (0, 2.8, "hello"):
-            failed = True
-        if failed:
             sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
             exit(1)
     =}
