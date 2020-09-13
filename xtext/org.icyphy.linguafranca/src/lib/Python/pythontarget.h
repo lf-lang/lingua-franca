@@ -135,12 +135,21 @@ typedef struct {
 static PyObject* py_SET(PyObject *self, PyObject *args)
 {
     generic_port_instance_struct* port;
-    PyObject* val;
+    PyObject* val, *tmp;
 
     if (!PyArg_ParseTuple(args, "OO" ,&port, &val))
+    {
+        PyErr_SetString(PyExc_TypeError, "Could not set objects.");
         return NULL;
+    }
     
-    _LF_SET(port, val);
+    if(val)
+    {   
+        tmp = port->value;
+        Py_INCREF(val);
+        _LF_SET(port, val);
+        Py_XDECREF(tmp);
+    }
 
     Py_INCREF(Py_None);
     return Py_None;
