@@ -608,7 +608,7 @@ class PythonGenerator extends CGenerator {
     def pythonCompileCode()
     {
         val compileCmd = createCommand("python3", #["setup.py" , "build"])
-        val installCmd = createCommand("python3", #["-m", "pip", "install", "."])
+        val installCmd = createCommand("python3", #["-m", "pip", "install", "--no-cache-dir", "--force-reinstall", "--user" , "."])
         
         compileCmd.directory(new File(getSrcGenPath))
         installCmd.directory(new File(getSrcGenPath))
@@ -1366,6 +1366,7 @@ class PythonGenerator extends CGenerator {
         } else {
             // Mutable, multiport, primitive type
             // TODO: support mutable multiports
+            
             pyObjectDescriptor.append("O")            
             pyObjects.append(''', make_input_port_list((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
         }
