@@ -19,7 +19,8 @@ reactor Work {
     =}
 }
 
-main reactor Parallel {
+main reactor AfterCycles {
+    state count:int(0);
     s = new Source();
     w0 = new Work();
     w1 = new Work();
@@ -28,10 +29,37 @@ main reactor Parallel {
     s.out -> w1.in after 20 msec;
     
     reaction(w0.out) {=
-        printf("Received %d from worker 0.\n", w0.out->value);
+        self->count++;
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("Received %d from worker 0 at time %lld.\n", w0.out->value, elapsed_time);
+        if (elapsed_time != MSEC(10)) {
+            fprintf(stderr, "Time should have been 10000000.\n");
+            exit(1);
+        }
+        if (w0.out->value != 1) {
+            fprintf(stderr, "Value should have been 1.\n");
+            exit(4);
+        }
     =}
     
     reaction(w1.out) {=
-        printf("Received %d from worker 1.\n", w1.out->value);
+        self->count++;
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("Received %d from worker 1 at time %lld.\n", w1.out->value, elapsed_time);
+        if (elapsed_time != MSEC(20)) {
+            fprintf(stderr, "Time should have been 20000000.\n");
+            exit(3);
+        }
+        if (w1.out->value != 1) {
+            fprintf(stderr, "Value should have been 1.\n");
+            exit(4);
+        }
+    =}
+
+    reaction(shutdown) {=
+        if (self->count != 2) {
+            fprintf(stderr, "Top-level reactions should have been triggered but were not.\n");
+            exit(5); 
+        }
     =}
 }

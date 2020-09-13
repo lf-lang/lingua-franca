@@ -35,6 +35,7 @@ import java.util.Collection
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
+import java.util.Set
 import java.util.regex.Pattern
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -1417,130 +1418,66 @@ class CGenerator extends GeneratorBase {
         // the contained reactors.
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
-        val structs = new LinkedHashMap<Instantiation,LinkedHashSet<TypedVariable>>
-        // For each variable so collected, if the variable is an output
-        // of a contained reactor, then collect the indices of the reactions
-        // that are triggered by it.
-        val reactionsTriggered = new LinkedHashMap<Variable,LinkedHashSet<Integer>>
-        
-        var reactionCount = 0
-        for (reaction : reactor.allReactions) {
-            if (federate === null || federate.containsReaction(
-                reactor,
-                reaction
-            )) {
-                // First, handle reactions that produce outputs sent to inputs
-                // of contained reactors.
-                for (effect : reaction.effects ?: emptyList) {
-                    if (effect.variable instanceof Input) {
-                        var struct = structs.get(effect.container)
-                        if (struct === null) {
-                            struct = new LinkedHashSet<TypedVariable>
-                            structs.put(effect.container, struct)
-                        }
-                        struct.add(effect.variable as Input)
-                    }
-                }
-                // Second, handle reactions that are triggered by outputs
-                // of contained reactors.
-                for (TriggerRef trigger : reaction.triggers ?: emptyList) {
-                    if (trigger instanceof VarRef) {
-                        if (trigger.variable instanceof Output) {
-                            var struct = structs.get(trigger.container)
-                            if (struct === null) {
-                                struct = new LinkedHashSet<TypedVariable>
-                                structs.put(trigger.container, struct)
-                            }
-                            struct.add(trigger.variable as Output)
+        val portsReferencedInContainedReactors = new PortsReferencedInContainedReactors(reactor, federate)
 
-                            var triggered = reactionsTriggered.get(trigger.variable)
-                            if (triggered === null) {
-                                triggered = new LinkedHashSet<Integer>
-                                reactionsTriggered.put(trigger.variable, triggered)
-                            }
-                            triggered.add(reactionCount)
-                        }
-                    }
-                }
-                // Third, handle reading (but not triggered by)
-                // outputs of contained reactors.
-                for (source : reaction.sources ?: emptyList) {
-                    if (source.variable instanceof Output) {
-                        var struct = structs.get(source.container)
-                        if (struct === null) {
-                            struct = new LinkedHashSet<TypedVariable>
-                            structs.put(source.container, struct)
-                        }
-                        struct.add(source.variable as Output)
-                    }
-                }
-            }
-            // Increment the reaction count even if not in the federate for consistency.
-            reactionCount++
-        }
-        for (containedReactor : structs.keySet) {
+        for (containedReactor : portsReferencedInContainedReactors.containedReactors) {
             pr(body, "struct {")
             indent(body)
-            // When an output of a contained reactor triggers a reaction in this
-            // reactor, we need an entry on the self struct to refer to that output.
-            // For a reaction of this reactor that sends an event to the input
-            // of a contained reactor, we need a place to store the data.
-            for (variable : structs.get(containedReactor)) {
-                if (variable instanceof Input) {
+            for (port : portsReferencedInContainedReactors.portsOfInstance(containedReactor)) {
+                if (port instanceof Input) {
                     // If the variable is a multiport, then the place to store the data has
                     // to be malloc'd at initialization.
-                    if (!variable.isMultiport) {
-                        pr(variable, body, '''
-                            «variableStructType(variable, containedReactor.reactorClass)» «variable.name»;
+                    if (!port.isMultiport) {
+                        pr(port, body, '''
+                            «variableStructType(port, containedReactor.reactorClass)» «port.name»;
                         ''')
                     } else {
                         // Memory will be malloc'd in initialization.
-                        pr(variable, body, '''
-                            «variableStructType(variable, containedReactor.reactorClass)»** «variable.name»;
-                            int «variable.name»__width;
+                        pr(port, body, '''
+                            «variableStructType(port, containedReactor.reactorClass)»** «port.name»;
+                            int «port.name»__width;
                         ''')
                         // Add to the destructor code to free the malloc'd memory.
-                        pr(variable, destructorCode, '''
-                            free(self->__«containedReactor.name».«variable.name»);
+                        pr(port, destructorCode, '''
+                            free(self->__«containedReactor.name».«port.name»);
                         ''')
                     }
                 } else {
                     // Must be an output entry.
                     // Outputs of contained reactors are pointers to the source of data on the
                     // self struct of the container.
-                    if (!(variable as Output).isMultiport) {
-                        pr(variable, body, '''
-                            «variableStructType(variable, containedReactor.reactorClass)»* «variable.name»;
+                    if (!port.isMultiport) {
+                        pr(port, body, '''
+                            «variableStructType(port, containedReactor.reactorClass)»* «port.name»;
                         ''')
                     } else {
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
-                        pr(variable, body, '''
-                            «variableStructType(variable, containedReactor.reactorClass)»** «variable.name»;
-                            int «variable.name»__width;
+                        pr(port, body, '''
+                            «variableStructType(port, containedReactor.reactorClass)»** «port.name»;
+                            int «port.name»__width;
                         ''')
                         // Add to the destructor code to free the malloc'd memory.
-                        pr(variable, destructorCode, '''
-                            free(self->__«containedReactor.name».«variable.name»);
+                        pr(port, destructorCode, '''
+                            free(self->__«containedReactor.name».«port.name»);
                         ''')
                     }
-                    pr(variable, body, '''
-                        trigger_t «variable.name»_trigger;
+                    pr(port, body, '''
+                        trigger_t «port.name»_trigger;
                     ''')
-                    val triggered = reactionsTriggered.get(variable)
-                    val triggeredSize = (triggered === null) ? 0 : triggered.size
-                    if (triggeredSize > 0) {
-                        pr(variable, body, '''
-                            reaction_t* «variable.name»_reactions[«triggeredSize»];
+                    val triggered = portsReferencedInContainedReactors.reactionsTriggered(containedReactor, port)
+                    if (triggered.size > 0) {
+                        pr(port, body, '''
+                            reaction_t* «port.name»_reactions[«triggered.size»];
                         ''')
                         var triggeredCount = 0
                         for (index : triggered) {
-                            pr(variable, constructorCode, '''
-                                self->__«containedReactor.name».«variable.name»_reactions[«triggeredCount++»] = &self->___reaction_«index»;
+                            pr(port, constructorCode, '''
+                                self->__«containedReactor.name».«port.name»_reactions[«triggeredCount++»] = &self->___reaction_«index»;
                             ''')
                         }
-                        pr(variable, constructorCode, '''
-                            self->__«containedReactor.name».«variable.name»_trigger.reactions = self->__«containedReactor.name».«variable.name»_reactions;
+                        pr(port, constructorCode, '''
+                            self->__«containedReactor.name».«port.name»_trigger.reactions = self->__«containedReactor.name».«port.name»_reactions;
                         ''')
                     } else {
                         // Since the self struct is created using calloc, there is no need to set
@@ -1553,9 +1490,9 @@ class CGenerator extends GeneratorBase {
                     // self->__«containedReactor.name».«port.name»_trigger.is_physical = false;
                     // self->__«containedReactor.name».«port.name»_trigger.drop = false;
                     // self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
-                    pr(variable, constructorCode, '''
-                        self->__«containedReactor.name».«variable.name»_trigger.scheduled = NEVER;
-                        self->__«containedReactor.name».«variable.name»_trigger.number_of_reactions = «triggeredSize»;
+                    pr(port, constructorCode, '''
+                        self->__«containedReactor.name».«port.name»_trigger.scheduled = NEVER;
+                        self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
                     ''')
                 }
             }
@@ -4229,4 +4166,147 @@ class CGenerator extends GeneratorBase {
         throw new UnsupportedOperationException("TODO: auto-generated method stub")
     }
     
+    /**
+     * Data structure that for each instantiation of a contained
+     * reactor, provides a set of input and output ports that trigger
+     * reactions of the container, are read by a reaction of the
+     * container, or that receive data from a reaction of the container.
+     * For each port, this provides a list of reaction indices that
+     * are triggered by the port, or an empty list if there are no
+     * reactions triggered by the port.
+     * @param reactor The contianer.
+     * @param federate The federate (used to determine whether a
+     *  reaction belongs to the federate).
+     */
+    private static class PortsReferencedInContainedReactors {
+        // This horrible data structure is a collection, indexed by instantiation
+        // of a contained reactor, of lists, indexed by ports of the contained reactor
+        // that are referenced by reactions of the container, of reactions that are
+        // triggered by the port of the contained reactor. The list is empty if
+        // the port does not trigger reactions but is read by the reaction or
+        // is written to by the reaction.
+        val portsByContainedReactor = new LinkedHashMap<
+            Instantiation,
+            LinkedHashMap<
+                Port,
+                LinkedList<Integer>
+            >
+        >
+        
+        /**
+         * Scan the reactions of the specified reactor and record which ports are
+         * referenced by reactions and which reactions are triggered by such ports.
+         */
+        new(Reactor reactor, FederateInstance federate) {
+            var reactionCount = 0
+            for (reaction : reactor.allReactions) {
+                if (federate === null || federate.containsReaction(
+                    reactor,
+                    reaction
+                )) {
+                    // First, handle reactions that produce data sent to inputs
+                    // of contained reactors.
+                    for (effect : reaction.effects ?: emptyList) {
+                        // If an effect is an input, then it must be an input
+                        // of a contained reactor.
+                        if (effect.variable instanceof Input) {
+                            // This reaction is not triggered by the port, so
+                            // we do not add it to the list returned by the following.
+                            addPort(effect.container, effect.variable as Input)
+                        }
+                    }
+                    // Second, handle reactions that are triggered by outputs
+                    // of contained reactors.
+                    for (TriggerRef trigger : reaction.triggers ?: emptyList) {
+                        if (trigger instanceof VarRef) {
+                            // If an trigger is an output, then it must be an output
+                            // of a contained reactor.
+                            if (trigger.variable instanceof Output) {
+                                val list = addPort(trigger.container, trigger.variable as Output)
+                                list.add(reactionCount)
+                            }
+                        }
+                    }
+                    // Third, handle reading (but not triggered by)
+                    // outputs of contained reactors.
+                    for (source : reaction.sources ?: emptyList) {
+                        if (source.variable instanceof Output) {
+                            // If an source is an output, then it must be an output
+                            // of a contained reactor.
+                            // This reaction is not triggered by the port, so
+                            // we do not add it to the list returned by the following.
+                            addPort(source.container, source.variable as Output)
+                        }
+                    }
+                }
+                // Increment the reaction count even if not in the federate for consistency.
+                reactionCount++
+            }
+        }
+        
+        /**
+         * Return or create the list to which reactions triggered by the specified port
+         * are to be added. This also records that the port is referenced by the
+         * container's reactions.
+         * @param containedReactor The contained reactor.
+         * @param port The port.
+         */
+        def addPort(Instantiation containedReactor, Port port) {
+            // Get or create the entry for the containedReactor.
+            var containedReactorEntry = portsByContainedReactor.get(containedReactor)
+            if (containedReactorEntry === null) {
+                containedReactorEntry = new LinkedHashMap<Port,LinkedList<Integer>>
+                portsByContainedReactor.put(containedReactor, containedReactorEntry)
+            }
+            // Get or create the entry for the port.
+            var portEntry = containedReactorEntry.get(port)
+            if (portEntry === null) {
+                portEntry = new LinkedList<Integer>
+                containedReactorEntry.put(port, portEntry)
+            }
+            return portEntry
+        }
+        
+        /**
+         * Return the set of contained reactors that have ports that are referenced
+         * by reactions of the container reactor.
+         */
+        def containedReactors() {
+            return portsByContainedReactor.keySet()
+        }
+        
+        /**
+         * Return the set of ports of the specified contained reactor that are
+         * referenced by reactions of the container reactor. Return an empty
+         * set if there are none.
+         * @param containedReactor The contained reactor.
+         */
+        def portsOfInstance(Instantiation containedReactor) {
+            var result = null as Set<Port>
+            val ports = portsByContainedReactor.get(containedReactor)
+            if (ports === null) {
+                result = new LinkedHashSet<Port>
+            } else {
+                result = ports.keySet
+            }
+            return result
+        }
+        
+        /**
+         * Return the indices of the reactions triggered by the specified port
+         * of the specified contained reactor or an empty list if there are none.
+         * @param containedReactor The contained reactor.
+         * @param port The port.
+         */
+        def LinkedList<Integer> reactionsTriggered(Instantiation containedReactor, Port port) {
+            val ports = portsByContainedReactor.get(containedReactor)
+            if (ports !== null) {
+                val list = ports.get(port)
+                if (list !== null) {
+                    return list
+                }
+            }
+            return new LinkedList<Integer>
+        }
+    }
 }
