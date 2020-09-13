@@ -2,23 +2,20 @@
 // to Print. The destination references the array directly.
 target Python;
 reactor Source {
-    output out:int[3];
+    output out;
     reaction(startup) -> out {=
-        SET(out, (0 , 1, 2))
+        SET(out, (0, 2.8, "hello"))
     =}
 }
 // The scale parameter is just for testing.
 reactor Print(scale:int(1)) {
-    input _in:int[3];
+    input _in;
     reaction(_in) {=
         count = 0       # For testing.
         failed = False # For testing.
         print("Received: [%s]" % ', '.join(map(str, _in.value)))
-        for i in range(len(_in.value)):
-            # For testing, check whether values match expectation.
-            if _in.value[i] != (self.scale * count):
-                failed = True
-            count+=1         # For testing.
+        if _in.value != (0, 2.8, "hello"):
+            failed = True
         if failed:
             sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
             exit(1)

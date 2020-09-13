@@ -305,7 +305,7 @@ public enum Targets {
                 "of"
                 )
     ), 
-    Python("Python", true, Arrays.asList(
+    Python("Python", false, Arrays.asList(
             // List via: https://en.cppreference.com/w/c/keyword
             "auto",
             "break",
