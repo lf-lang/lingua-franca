@@ -1,0 +1,32 @@
+// Source produces a dynamically allocated array, which it passes
+// to Print. Reference counting ensures that the array is freed.
+target Python;
+reactor Source {
+    output out:int[];
+    reaction(startup) -> out {=
+        # Dynamically allocate an output array of length 3 and populate it.
+        SET(out, (0,1,2))
+    =}
+}
+// The scale parameter is just for testing.
+reactor Print(scale:int(1)) {
+    input _in:int[];
+    reaction(_in) {=
+        count = 0       # For testing.
+        failed = False; # For testing.
+        print("Received: [%s]" % ', '.join(map(str, _in.value)))
+        for i in range(_in.length):
+            # For testing, check whether values match expectation.
+            if in.value[i] != (self.scale * count):
+                failed = True
+            count+=1         # For testing.
+        if failed:
+            sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
+            exit(1)
+    =}
+}
+main reactor ArrayPrint {
+    s = new Source();
+    p = new Print();
+    s.out -> p._in;
+}
