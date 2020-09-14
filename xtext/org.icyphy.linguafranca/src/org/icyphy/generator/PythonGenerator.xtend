@@ -558,7 +558,7 @@ class PythonGenerator extends CGenerator {
         var StringBuilder pythonClasses = new StringBuilder()
         var StringBuilder pythonClassesInstantiation = new StringBuilder()
         
-        
+        // Generate reactor classes in Python
         this.main.generatePythonReactorClass(pythonClasses, federate)
         
         // Instantiate generated classes
@@ -837,8 +837,14 @@ class PythonGenerator extends CGenerator {
             IGeneratorContext context) {
                 // Always use the non-threaded version
             	super.doGenerate(resource, fsa, context)
-                generatePythonFiles(fsa, null)
-                pythonCompileCode
+            	
+                // Don't generate code if there is no main reactor
+                if(this.main !== null)
+                {
+                    generatePythonFiles(fsa, null)
+                    pythonCompileCode
+                }
+                
             }
             
     
