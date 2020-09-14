@@ -5,15 +5,15 @@ target Python {
     threads: 4,
     fast: true
 }; 
-reactor Source(instance:int(0), check_override:int(0)) {
-    output out:int;
+reactor Source(instance:int(0), check_override(0)) {
+    output out;
     reaction(startup) -> out {=
         SET(out, self.instance * self.check_override)
     =}
 }
 reactor Destination {
-    input[3] _in:int;
-    state received:bool(0);
+    input[3] _in;
+    state received(0);
     reaction(_in) {=
         for i in range(_in_width):
             print("Destination channel " + str(i) + " received " + str(_in[i].value))
