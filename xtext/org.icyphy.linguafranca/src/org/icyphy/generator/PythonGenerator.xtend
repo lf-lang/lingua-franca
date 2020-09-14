@@ -507,7 +507,7 @@ class PythonGenerator extends CGenerator {
                 return
             } else if (!instantiatedClasses.contains(className) &&
                 !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-                pythonClassesInstantiation.append('''«className»s = [_«className»()]
+                pythonClassesInstantiation.append('''«className»s = [_«className»(«FOR param : instance.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)]
                 ''')
                 instantiatedClasses.add(className)
             }
