@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.generator
 
 import java.io.File
-import java.io.FileOutputStream
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
@@ -35,19 +34,15 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.ReactorDecl
 import org.icyphy.linguaFranca.Reaction
-import java.util.HashMap
 import org.icyphy.linguaFranca.Instantiation
-import java.util.HashSet
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.Type
 import java.util.ArrayList
 import org.icyphy.ASTUtils
 import java.util.LinkedHashSet
@@ -56,7 +51,6 @@ import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
 import org.icyphy.InferredType
-import java.util.LinkedHashMap
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -81,9 +75,7 @@ class PythonGenerator extends CGenerator {
         this.targetCompiler = "python3"
         this.targetCompilerFlags = "-m pip install ."// -Wall -Wconversion"
     }
-    
-    var dynamicallyInitializedParameters = new LinkedHashMap<ReactorInstance, String>
-	
+    	
     /** 
     * Template struct for ports with primitive types and
     * statically allocated arrays in Lingua Franca.
@@ -418,6 +410,12 @@ class PythonGenerator extends CGenerator {
                 {  
                     if(trigger.variable instanceof Input)
                     {
+                        if((trigger.variable as Input).isMutable)
+                        {
+                            // Create a deep copy
+                            inits.append('''«trigger.variable.name» = copy.deepcopy(«trigger.variable.name»)
+                            ''')
+                        }
                         
                     } else {
                         // Handle contained reactors' ports
@@ -430,6 +428,39 @@ class PythonGenerator extends CGenerator {
                 {
                     // TODO: handle actions
                 }
+            }
+        }
+        
+        if (reaction.triggers === null || reaction.triggers.size === 0) {
+            // No triggers are given, which means react to any input.
+            // Declare an argument for every input.
+            // NOTE: this does not include contained outputs. 
+            for (input : reactor.inputs) {
+                if(input.isMutable)
+                {
+                    // Create a deep copy
+                    inits.append('''«input.name» = copy.deepcopy(«input.name»)
+                    ''')
+                }
+            }
+        }
+        
+        // Next add non-triggering inputs.
+        for (VarRef src : reaction.sources ?: emptyList) {
+            if(src.variable instanceof Port)
+            {
+                if(src.variable instanceof Input)
+                {             
+                    if((src.variable as Input).isMutable)
+                    {
+                        // Create a deep copy
+                        inits.append('''«src.variable.name» = copy.deepcopy(«src.variable.name»)
+                        ''')
+                    }
+                }
+                
+            } else if (src.variable instanceof Action) {
+                //TODO: handle actions
             }
         }
         
@@ -497,7 +528,6 @@ class PythonGenerator extends CGenerator {
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
             if (reactorBelongsToFederate(instance, federate) && instance.bankMembers !== null &&
                 !instantiatedClasses.contains(className)) {
-                var bankIdx = 0
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // a list of instances of reactors and return.         
                 pythonClassesInstantiation.
@@ -553,6 +583,7 @@ class PythonGenerator extends CGenerator {
        from LinguaFrancaBase.functions import * #Useful helper functions
        from LinguaFrancaBase.classes import * #Useful classes
        import sys
+       import copy
               
        «generatePythonReactorClasses(federate)»
        
