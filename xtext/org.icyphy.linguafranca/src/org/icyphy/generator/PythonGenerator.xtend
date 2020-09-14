@@ -56,6 +56,7 @@ import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
 import org.icyphy.InferredType
+import java.util.LinkedHashMap
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -80,6 +81,8 @@ class PythonGenerator extends CGenerator {
         this.targetCompiler = "python3"
         this.targetCompilerFlags = "-m pip install ."// -Wall -Wconversion"
     }
+    
+    var dynamicallyInitializedParameters = new LinkedHashMap<ReactorInstance, String>
 	
     /** 
     * Template struct for ports with primitive types and
@@ -184,6 +187,22 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
+     * Create a Python tuple for parameter initialization in target code.
+     * 
+     * @param p The parameter to create initializers for
+     * @return Initialization code
+     */
+     protected def String getPythonInitializer(Parameter p) {        
+            if (p.init.size > 1) {
+                // parameters are initialized as immutable tuples
+                return p.init.join('(', ', ', ')', [it.targetValue])
+            } else {
+                return p.init.get(0).targetValue
+            }
+        
+    }
+    
+    /**
      * Generate parameters for a reaction function
      * @param decl Reactor declaration
      * @param reaction The reaction to be used to generate parameters for
@@ -251,19 +270,7 @@ class PythonGenerator extends CGenerator {
             }
         }
         
-        // Finally, handle parameters that need to be passed from the C runtime (e.g., instance:int)     
-        for (param : reactor.allParameters )
-        {
-            if(param.name == "instance"
-                && getTargetType(param.inferredType) == "int"
-            )
-            {
-                // The instance variable is a special variable that has to be passed to the reaction
-                generatedParams.add("instance")
-            }
-        }
-        
-       
+      
         // Fill out the StrinBuilder parameters
         for (s : generatedParams)
         {
@@ -326,31 +333,42 @@ class PythonGenerator extends CGenerator {
             return
         }
         
-        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
+        // Do not generate classes that don't have any reactions
+        // Do not generate placeholder reactors for banks of reactors 
+        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && instance.bankMembers === null) {
             if (reactorBelongsToFederate(instance, federate) && !instantiatedClasses.contains(className)) {
         
                 pythonClasses.append('''
                 class _«className»:
                 ''');
-                
+                                
                 val reactor = decl.toDefinition
                 for (stateVar : reactor.allStateVars) {
                    pythonClasses.append('''    «stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
                    ''')
                 }
                 
-                for (param : instance.parameters)
+
+                // Handle parameters
+                for (param : decl.toDefinition.allParameters)
                 {
-                    pythonClasses.append('''    «param.name»:«param.definition.inferredType.pythonType» = «param.pythonInitializer»
+                    pythonClasses.append('''    «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
                     ''')
                 }
-        
+                
+                
+                // Handle runtime initializations
+                pythonClasses.append('''    
+                            «'    '»def __init__(self, **kwargs):
+                                «'    '»self.__dict__.update(kwargs)
+                ''')
+                        
                 var reactionIndex = 0
                 for (reaction : reactor.allReactions)
                 {
                        pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
                        ''')
-                       pythonClasses.append('''        «getPythonInitializaitons(reactor, reaction)»
+                       pythonClasses.append('''        «getPythonInitializaitons(instance, reaction)»
                        ''')
                        pythonClasses.append('''        «reaction.code.toText»
                        ''')
@@ -388,7 +406,8 @@ class PythonGenerator extends CGenerator {
      * @param reactor The reactor that contains the reaction
      * @param reaction The reaction to generate initialization code for
      */
-    def getPythonInitializaitons(Reactor reactor, Reaction reaction) {
+    def getPythonInitializaitons(ReactorInstance instance, Reaction reaction) {
+        val reactor = instance.definition.reactorClass.toDefinition
         var StringBuilder inits = new StringBuilder();
         // Handle triggers
         for (TriggerRef trigger : reaction.triggers ?:emptyList)
@@ -428,17 +447,6 @@ class PythonGenerator extends CGenerator {
             }
         }
         
-        // Finally, handle parameters that need to be passed from the C runtime (e.g., instance:int)     
-        for (param : reactor.allParameters )
-        {
-            if(param.name == "instance"
-                && getTargetType(param.inferredType) == "int"
-            )
-            {
-                // The instance variable is a special variable that has to be passed to the reaction
-                inits.append("self.instance = instance")
-            }
-        }
         
         return inits
         
@@ -489,10 +497,11 @@ class PythonGenerator extends CGenerator {
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
             if (reactorBelongsToFederate(instance, federate) && instance.bankMembers !== null &&
                 !instantiatedClasses.contains(className)) {
+                var bankIdx = 0
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // a list of instances of reactors and return.         
                 pythonClassesInstantiation.
-                    append('''«className»s = [_«className»() for i in range(«instance.bankMembers.size»)]
+                    append('''«className»s = [«FOR member : instance.bankMembers SEPARATOR ", "»_«className»(«FOR param : member.parameters SEPARATOR ", "»«IF param.name.equals("instance")»instance=«member.bankIndex/* instance is specially assigned by us*/»«ELSE»«param.name»=«param.pythonInitializer»«ENDIF»«ENDFOR»)«ENDFOR»]
                     ''')
                 instantiatedClasses.add(className)
                 return
@@ -955,9 +964,6 @@ class PythonGenerator extends CGenerator {
                 && getTargetType(param.inferredType) == "int"
             )
             {
-                // The instance variable is a special variable that has to be passed to the reaction
-                pyObjectDescriptor.append("i");
-                pyObjects.append(", self->instance")
                 // The reactor is in a bank
                 isBank = true
             }
