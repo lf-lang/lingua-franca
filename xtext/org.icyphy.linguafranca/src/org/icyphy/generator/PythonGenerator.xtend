@@ -326,8 +326,7 @@ class PythonGenerator extends CGenerator {
         }
         
         // Do not generate classes that don't have any reactions
-        // Do not generate placeholder reactors for banks of reactors 
-        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && instance.bankMembers === null) {
+        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
             if (reactorBelongsToFederate(instance, federate) && !instantiatedClasses.contains(className)) {
         
                 pythonClasses.append('''
@@ -336,16 +335,37 @@ class PythonGenerator extends CGenerator {
                                 
                 val reactor = decl.toDefinition
                 for (stateVar : reactor.allStateVars) {
-                   pythonClasses.append('''    «stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
-                   ''')
+                   if(!stateVar.inferredType.targetType.equals("PyObject*"))
+                   {
+                       // If type is given, use it
+                       pythonClasses.append('''    «stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
+                       ''')                   
+                   }
+                   else
+                   {
+                       // If type is not given, pass along the initialization directly
+                       pythonClasses.append('''    «stateVar.name» = «stateVar.targetInitializer»
+                       ''')   
+                   }
                 }
                 
 
                 // Handle parameters
                 for (param : decl.toDefinition.allParameters)
                 {
-                    pythonClasses.append('''    «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
-                    ''')
+                    if(!param.inferredType.targetType.equals("PyObject*"))
+                    {
+                        // If type is given, use it
+                        pythonClasses.append('''    «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
+                        ''')
+                    }
+                    else
+                    {
+                        // If type is not given, just pass along the initialization
+                        pythonClasses.append('''    «param.name» = «param.pythonInitializer»
+                        ''')
+                        
+                    }
                 }
                 
                 
@@ -997,11 +1017,13 @@ class PythonGenerator extends CGenerator {
         // Finally, handle parameters that need to be passed from the C runtime (e.g., instance:int)     
         for (param : reactor.allParameters )
         {
-            if(param.name == "instance"
-                && getTargetType(param.inferredType) == "int"
-            )
+            if(param.name == "instance")
             {
-                // The reactor is in a bank
+                // The reactor is in a bank.
+                // The helper function 'invoke_python_function' requires an instance_id (a.k.a. bankId)
+                // to find the specific reactor instance in a list.
+                // For example Foos = [Foo(), Foo(), Foo()] is a list of three instances of Foo in a bank of width 3
+                // where 'invoke_python_function(...,1,...) would load Foos[1].
                 isBank = true
             }
         }
@@ -1010,17 +1032,27 @@ class PythonGenerator extends CGenerator {
         indent()
 
         pr(structType + "* self = (" + structType + "*)instance_args;")
+        
         // Code verbatim from 'reaction'
         prSourceLineNumber(reaction.code)
         if(isBank) {
-            // The reaction is in a reactor that belongs to a bank of reactors
+            // Unfortunately, threads cannot run concurrently in Python.
+            // Therefore, we need to make sure reactions that belong to reactors in a bank
+            // don't run concurrently by holding the mutex.
+            // A possible fix would be to use multiprocesses
+            // Acquire the mutex lock          
             pr(pyThreadMutexLockCode(0))
+            
+            // The reaction is in a reactor that belongs to a bank of reactors
             pr('''invoke_python_function("__main__", "«reactor.name»s", self->instance ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+                        
+            // Release the mutex lock
             pr(pyThreadMutexLockCode(1))
         }
         else {
             pr('''invoke_python_function("__main__", "«reactor.name»s", 0 ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
         }
+        
         unindent()
         pr("}")
         
