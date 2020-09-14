@@ -332,6 +332,32 @@ static PyObject* py_main(PyObject *self, PyObject *args)
 //////////////////////////////////////////////////////////////
 /////////////  Python Helper Structs
 
+/**
+ * In order to implement mutable inputs, we need to deepcopy a port_instance.
+ * For this purpose, Python needs to be able to "pickle" the objects (convert
+ * them to the fomrat objectID(objmember1, ....))
+ */
+static PyObject *
+port_instance_reduce(PyObject *self)
+{
+    PyObject *attr;
+    PyObject *obj;
+    PyObject *tuple;
+    generic_port_instance_struct* port;
+
+    obj = (PyObject*)self;
+    port = (generic_port_instance_struct*)obj;
+
+	attr = PyObject_GetAttrString(obj, "__class__");
+
+#ifdef VERBOSE
+    printf("Reduce called.\n");
+#endif
+
+    tuple = Py_BuildValue("O(Oii)", attr, port->value , port->is_present, port->num_destinations);
+    return tuple;
+}
+
 /*
  * The members of a port_instance, used to define
  * a native Python type.
@@ -340,6 +366,14 @@ static PyMemberDef port_instance_members[] = {
     {"value", T_OBJECT, offsetof(generic_port_instance_struct, value), 0, "Value of the port"},
     {"is_present", T_BOOL, offsetof(generic_port_instance_struct, is_present), 0, "Check if value is present at current logical time"},
     {"num_destinations", T_INT, offsetof(generic_port_instance_struct, num_destinations), 0, "Number of destinations"},
+    {NULL}  /* Sentinel */
+};
+
+/*
+ * The function members of port_instance
+ */
+static PyMethodDef port_instance_methods[] = {    
+    {"__reduce__", (PyCFunction)port_instance_reduce, METH_NOARGS, "Necessary for pickling objects"},
     {NULL}  /* Sentinel */
 };
 
@@ -405,6 +439,7 @@ static PyTypeObject port_instance_t = {
     .tp_init = (initproc) port_instance_init,
     .tp_dealloc = (destructor) port_instance_dealloc,
     .tp_members = port_instance_members,
+    .tp_methods = port_instance_methods,
 };
 
 /*
