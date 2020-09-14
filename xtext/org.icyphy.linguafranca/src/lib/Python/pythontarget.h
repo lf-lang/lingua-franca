@@ -134,10 +134,10 @@ typedef struct {
  */
 static PyObject* py_SET(PyObject *self, PyObject *args)
 {
-    generic_port_instance_struct* port;
+    generic_port_instance_struct* port = (generic_port_instance_struct*)self;
     PyObject* val, *tmp;
 
-    if (!PyArg_ParseTuple(args, "OO" ,&port, &val))
+    if (!PyArg_ParseTuple(args, "O", &val))
     {
         PyErr_SetString(PyExc_TypeError, "Could not set objects.");
         return NULL;
@@ -166,10 +166,10 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
  **/
 static PyObject* py_schedule(PyObject *self, PyObject *args)
 {
-    generic_action_capsule_struct* act;
+    generic_action_capsule_struct* act = (generic_action_capsule_struct*)self;
     long long offset;
 
-    if (!PyArg_ParseTuple(args, "OL" ,&act, &offset))
+    if (!PyArg_ParseTuple(args, "L", &offset))
         return NULL;
     
     void* action = PyCapsule_GetPointer(act->action,"action");
@@ -374,6 +374,7 @@ static PyMemberDef port_instance_members[] = {
  */
 static PyMethodDef port_instance_methods[] = {    
     {"__reduce__", (PyCFunction)port_instance_reduce, METH_NOARGS, "Necessary for pickling objects"},
+    {"set", (PyCFunction)py_SET, METH_VARARGS, "Set value of the port as well as the is_present field"},
     {NULL}  /* Sentinel */
 };
 
@@ -483,6 +484,14 @@ static PyMemberDef action_capsule_members[] = {
 };
 
 /*
+ * The function members of action capsule
+ */
+static PyMethodDef action_capsule_methods[] = {
+    {"schedule", (PyCFunction)py_schedule, METH_VARARGS, "Schedule the action with the given offset"},
+    {NULL}  /* Sentinel */
+};
+
+/*
  *
  */
 static void
@@ -551,6 +560,7 @@ static PyTypeObject action_capsule_t = {
     .tp_init = (initproc) action_capsule_init,
     .tp_dealloc = (destructor) action_capsule_dealloc,
     .tp_members = action_capsule_members,
+    .tp_methods = action_capsule_methods,
 };
 
 ///
@@ -560,8 +570,6 @@ static PyTypeObject action_capsule_t = {
  */
 static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_main, METH_VARARGS, NULL},
-  {"SET", py_SET, METH_VARARGS, NULL},
-  {"schedule", py_schedule, METH_VARARGS, NULL},
   {"schedule_copy", py_schedule_copy, METH_VARARGS, NULL},
   {"schedule_int", py_schedule_int, METH_VARARGS, NULL},
   {"schedule_value", py_schedule_value, METH_VARARGS, NULL},
