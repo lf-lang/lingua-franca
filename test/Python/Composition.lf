@@ -13,7 +13,7 @@ reactor Source(period:time(2 sec)) {
         self.count += 1
         print("Source sending " + str(self.count))
         #print("y value is " + str(y.value))
-        SET(y, self.count)
+        y.set(self.count)
 	=}
 }
 

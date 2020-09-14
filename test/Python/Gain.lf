@@ -4,7 +4,7 @@
         input x:int;
         output y:int;
         reaction(x) -> y {=
-            SET(y, x.value * self.scale)
+            y.set(x.value * self.scale)
         =}
     }
     reactor Test {
@@ -30,6 +30,6 @@
         d = new Test();
         g.y -> d.x;
         reaction(startup) -> g.x {=
-            SET(g_x, 1)
+            g.x.set(1)
         =}
     }

@@ -10,7 +10,7 @@ reactor Source {
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-		SET(out, self.s)
+		out.set(self.s)
 		self.s+=1
 	=}
 }
@@ -18,7 +18,7 @@ reactor Computation {
 	input _in:int;
 	output out:int;
 	reaction(_in) -> out {=
-		SET(out, _in.value)
+		out.set(_in.value)
 	=}
 }
 reactor Destination {

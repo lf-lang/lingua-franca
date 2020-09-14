@@ -12,7 +12,7 @@ reactor Scale(scale:int(2)) {
     reaction(_in) -> out {=
         for i in range(len(_in.value)):
             _in.value[i] *= self.scale
-        SET(out, _in.value)
+        out.set(_in.value)
     =}
 }
 

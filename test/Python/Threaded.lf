@@ -16,7 +16,7 @@ reactor Source {
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-        SET(out, self.s)
+        out.set(self.s)
         self.s+=1
 	=}
 }
@@ -30,7 +30,7 @@ reactor TakeTime {
         for i in range(100000000):
             offset+=1
         
-        mySET(out, _in.value + offset)
+        out.set(_in.value + offset)
 
         print("Outputting " + str(out.value))
 	=}
@@ -46,7 +46,7 @@ reactor Destination(width:int(4)) {
 
 		print("Sum of received: " + str(sm))
 		if sm != self.s:
-			sys.stderr.write("ERROR: Expected " + str(self.s))
+			sys.stderr.write("ERROR: Expected " + str(self.s) +"\n")
 			exit(1)
 		self.s += _in_width
 	=}

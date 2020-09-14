@@ -8,7 +8,7 @@ target Python {
 reactor Source(instance:int(0), check_override(0)) {
     output out;
     reaction(startup) -> out {=
-        SET(out, self.instance * self.check_override)
+        out.set(self.instance * self.check_override)
     =}
 }
 reactor Destination {

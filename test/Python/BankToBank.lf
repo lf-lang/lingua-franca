@@ -9,7 +9,7 @@ reactor Source(instance:int(0)) {
 	output out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-        SET(out, self.s)
+        out.set(self.s)
         self.s += self.instance
 	=}
 }

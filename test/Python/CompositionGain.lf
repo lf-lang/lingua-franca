@@ -5,7 +5,7 @@ reactor Gain {
     output y:int;
     reaction(gainin) -> y {=
         print("Gain received " + str(gainin.value))
-        SET(y, gainin.value * 2)
+        y.set(gainin.value * 2)
     =}
 }
 reactor Wrapper {
@@ -18,7 +18,7 @@ reactor Wrapper {
 main reactor ImportComposition {
     wrapper = new Wrapper();
     reaction(startup) -> wrapper.x {=
-        SET(wrapper_x, 42)
+        wrapper_x.set(42)
     =}
     reaction(wrapper.y) {=
         print("Received " + str(wrapper_y.value))

@@ -5,7 +5,7 @@ reactor Source {
     output out;
     reaction(startup) -> out {=
         # Dynamically allocate an output array of length 3 and populate it.
-        SET(out, [0,1,2])
+        out.set([0,1,2])
     =}
 }
 // The scale parameter is just for testing.

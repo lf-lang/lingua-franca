@@ -10,8 +10,8 @@ reactor foo {
     output y:int;
     logical action a:int;
     reaction(x) -> y, a {=
-        SET(y, 2*x.value)
-        schedule(a, MSEC(500))
+        y.set(2*x.value)
+        a.schedule(MSEC(500))
     =}
     // reaction(a) {= =}
 }
@@ -29,7 +29,7 @@ main reactor top {
     p = new print();
     timer t(0, 1 sec);
     reaction(t) -> f.x {=
-        SET(f.x, 42)
+        f.x.set(42)
     =}
     f.y -> p.x after 10 msec;
 }
