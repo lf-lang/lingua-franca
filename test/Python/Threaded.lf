@@ -31,8 +31,6 @@ reactor TakeTime {
             offset+=1
         
         out.set(_in.value + offset)
-
-        print("Outputting " + str(out.value))
 	=}
 }
 reactor Destination(width:int(4)) {
@@ -41,7 +39,6 @@ reactor Destination(width:int(4)) {
 	reaction(_in) {=
 		sm = 0
 		for i in _in:
-            print("_in=" + str(i.value))
             sm += i.value
 
 		print("Sum of received: " + str(sm))

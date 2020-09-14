@@ -667,24 +667,24 @@ class PythonGenerator extends CGenerator {
      */
     def pythonCompileCode()
     {
-        // val compileCmd = createCommand("python3", #["setup.py" , "build"])
+        val compileCmd = createCommand("python3", #["setup.py" , "build"])
         val installCmd = createCommand("python3", #["-m", "pip", "install", "--no-cache-dir", "--force-reinstall", "--user" , "."])
         
         // compileCmd.directory(new File(getSrcGenPath))
         installCmd.directory(new File(getSrcGenPath))
         
-        //if(executeCommand(compileCmd) == 0) {
-        //    println("Successfully compiled python extension.")
-        if (executeCommand(installCmd) == 0) {
-            println("Successfully installed python extension.")
-        } else {
-            reportError("Failed to install python extension.")
+        if(executeCommand(compileCmd) == 0) {
+            println("Successfully compiled python extension.")
+            if (executeCommand(installCmd) == 0) {
+                println("Successfully installed python extension.")
+            } else {
+                reportError("Failed to install python extension.")
+            }
+        }        
+        else
+        {
+           reportError("Failed to compile python extension.")
         }
-        //}        
-        //else
-        //{
-        //   reportError("Failed to compile python extension.")
-        //}
     }
     
     /**
