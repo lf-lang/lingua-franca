@@ -8,7 +8,7 @@ reactor Source {
     output[3] out:int;
     reaction(startup) -> out {=
         for i in range(out_width):
-            SET(out[i], i)
+            out[i].set(i)
     =}
 }
 reactor Destination(instance:int(0)) {

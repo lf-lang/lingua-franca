@@ -4,7 +4,8 @@ target Python;
 reactor Source {
     output out;
     reaction(startup) -> out {=
-        SET(out, (0, 2.8, "hello"))
+        # Pass on a tuple to out
+        out.set((0, 2.8, "hello"))
     =}
 }
 // The scale parameter is just for testing.

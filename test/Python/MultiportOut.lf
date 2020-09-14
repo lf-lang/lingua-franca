@@ -10,7 +10,7 @@ reactor Source {
 	state s:int(0);
 	reaction(t) -> out {=
         for i in range(0,4):
-            SET(out[i], self.s)
+            out[i].set(self.s)
    	    
         self.s+=1
 	=}

@@ -901,13 +901,7 @@ class PythonGenerator extends CGenerator {
           "reaction_function_" + reactionIndex
     }
     
-    /**
-     * Parameters are initialized in Python not C
-     */
-    override initializeParameters(StringBuilder builder, ReactorInstance instance) {
-        // Do nothing.
-    }
-        
+       
     /** Generate a reaction function definition for a reactor.
      *  This function has a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),

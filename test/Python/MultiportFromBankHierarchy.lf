@@ -8,7 +8,7 @@ target Python {
 reactor Source(instance:int(0)) {
     output out:int;
     reaction(startup) -> out {=
-        SET(out, self.instance)
+        out.set(self.instance)
     =}
 }
 reactor Container {
