@@ -19,7 +19,7 @@ reactor Destination {
 	input[4] _in:int;
 	reaction(_in) {=
 		sm:int = 0
-		for i in range(_in_width):
+		for i in range(len(_in)):
             if (_in[i].is_present):
                 sm += _in[i].value
 		print("Sum of received: " + str(sm))

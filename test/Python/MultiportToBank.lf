@@ -7,7 +7,7 @@ target Python {
 reactor Source {
     output[3] out:int;
     reaction(startup) -> out {=
-        for i in range(out_width):
+        for i in range(len(out)):
             out[i].set(i)
     =}
 }

@@ -20,7 +20,7 @@ reactor Destination {
     input[3] _in:int;
     state received:bool(0);
     reaction(_in) {=
-        for i in range(_in_width):
+        for i in range(len(_in)):
             print("Destination channel " + str(i) + " received " + str(_in[i].value));
             if i != _in[i].value:
                 sys.stderr.write("ERROR: Expected "+ str(i) + ".\n")

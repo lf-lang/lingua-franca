@@ -218,7 +218,6 @@ class PythonGenerator extends CGenerator {
                     if(trigger.variable instanceof Input)
                     {
                         generatedParams.add(trigger.variable.name)
-                        generatedParams.add('''«trigger.variable.name»_width''')
                     } else {
                         // FIXME: not using proper "."
                         generatedParams.add('''«trigger.container.name»_«trigger.variable.name»''')
@@ -237,7 +236,6 @@ class PythonGenerator extends CGenerator {
         {
              for (input : reactor.inputs ?:emptyList) {
                 generatedParams.add(input.name)
-                generatedParams.add('''«input.name»_width''')
             }
         }
         for (src : reaction.sources ?:emptyList)
@@ -259,7 +257,6 @@ class PythonGenerator extends CGenerator {
                     if(isMultiport(effect.variable as Port))
                     {
                         // Handle multiports           
-                        generatedParams.add('''«effect.variable.name»_width''')
                     }
                 }           
             }
@@ -1451,10 +1448,6 @@ class PythonGenerator extends CGenerator {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
                 pyObjects.append(''', make_output_port_list((generic_port_instance_struct **)self->__«output.name»,self->__«output.name»__width) ''')
-                
-                
-                pyObjectDescriptor.append("i")
-                pyObjects.append(''', self->__«output.name»__width''')
             }
     }
     
@@ -1523,11 +1516,6 @@ class PythonGenerator extends CGenerator {
             pyObjectDescriptor.append("O")            
             pyObjects.append(''', make_input_port_list((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
         }
-        // Set the _width variable for all cases. This will be -1
-        // for a variable-width multiport, which is not currently supported.
-        // It will be -2 if it is not multiport.
-        pyObjectDescriptor.append("i")
-        pyObjects.append(''', self->__«input.name»__width''')
     }
     
     

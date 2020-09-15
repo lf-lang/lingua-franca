@@ -45,7 +45,7 @@ reactor Destination(width:int(4)) {
 		if sm != self.s:
 			sys.stderr.write("ERROR: Expected " + str(self.s) +"\n")
 			exit(1)
-		self.s += _in_width
+		self.s += len(_in)
 	=}
 }
 main reactor ThreadedThreaded(width:int(4)) {
