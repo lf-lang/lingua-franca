@@ -998,8 +998,8 @@ class PythonGenerator extends CGenerator {
         // That second redefinition would trigger a compile error.  
         var actionsAsTriggers = new LinkedHashSet<Action>();
         
-        // Indicates if the reactor is in a bank
-        var isBank = false
+        // Indicates if the reactor is in a bank and has the instance parameter
+        var hasInstance = false
                
         // Next, add the triggers (input and actions; timers are not needed).
         // TODO: handle triggers
@@ -1071,24 +1071,24 @@ class PythonGenerator extends CGenerator {
                 // to find the specific reactor instance in a list.
                 // For example Foos = [Foo(), Foo(), Foo()] is a list of three instances of Foo in a bank of width 3
                 // where 'invoke_python_function(...,1,...) would load Foos[1].
-                isBank = true
+                hasInstance = true
             }
         }
-
+        
         pr('void ' + functionName + '(void* instance_args) {')
         indent()
 
         pr(structType + "* self = (" + structType + "*)instance_args;")
         
-        // Code verbatim from 'reaction'
+        
         prSourceLineNumber(reaction.code)
-        if(isBank) {
+        if(hasInstance) {
             // Unfortunately, threads cannot run concurrently in Python.
             // Therefore, we need to make sure reactions that belong to reactors in a bank
             // don't run concurrently by holding the mutex.
             // A possible fix would be to use multiprocesses
             // Acquire the mutex lock          
-            pr(pyThreadMutexLockCode(0))
+            pr(pyThreadMutexLockCode(0))            
             
             // The reaction is in a reactor that belongs to a bank of reactors
             pr('''invoke_python_function("__main__", self->__lf_name, self->instance ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
@@ -1097,7 +1097,20 @@ class PythonGenerator extends CGenerator {
             pr(pyThreadMutexLockCode(1))
         }
         else {
+            // Unfortunately, threads cannot run concurrently in Python.
+            // Therefore, we need to make sure reactions cannot execute concurrently by
+            // holding the mutex lock. FIXME: Disabled for now
+            //if(targetThreads > 0)
+            //{
+            //    pr(pyThreadMutexLockCode(0))
+            //}
+            
             pr('''invoke_python_function("__main__", self->__lf_name, 0 ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+            
+            //if(targetThreads > 0)
+            //{
+            //    pr(pyThreadMutexLockCode(1))                
+            //}
         }
         
         unindent()
