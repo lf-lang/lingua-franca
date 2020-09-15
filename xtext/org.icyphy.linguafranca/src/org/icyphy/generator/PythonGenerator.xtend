@@ -1382,8 +1382,16 @@ class PythonGenerator extends CGenerator {
         }
         else
         {
-            pyObjectDescriptor.append("O")
-            pyObjects.append(''', (PyObject *)*self->__«port.container.name».«port.variable.name»''')
+            if(!(port.variable as Port).isMultiport)
+            {
+                pyObjectDescriptor.append("O")
+                pyObjects.append(''', (PyObject *)*self->__«port.container.name».«port.variable.name»''')
+            }
+            else
+            {                
+                pyObjectDescriptor.append("O")
+                pyObjects.append(''', make_output_port_list((generic_port_instance_struct **)*self->__«port.container.name».«port.variable.name») ''')
+            }
         }
     }
     
