@@ -52,6 +52,7 @@ import java.util.List
 import java.util.regex.Pattern
 import org.icyphy.InferredType
 import java.util.LinkedHashMap
+import org.icyphy.linguaFranca.Reactor
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -280,6 +281,11 @@ class PythonGenerator extends CGenerator {
      * @param state a state variable
      */
     def String getTargetInitializer(StateVar state) {
+        if(!state.isInitialized)
+        {
+            return '''None'''
+        }
+        
         '''«FOR init : state.pythonInitializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
     
@@ -334,6 +340,12 @@ class PythonGenerator extends CGenerator {
                 pythonClasses.append('''
                 class _«className»:
                 ''');
+                
+                // Generate preamble code
+                pythonClasses.append('''
+                
+                    «generatePythonPreamblesForReactor(decl.toDefinition)»
+                ''')
                                 
                 val reactor = decl.toDefinition
                 for (stateVar : reactor.allStateVars) {
@@ -345,9 +357,9 @@ class PythonGenerator extends CGenerator {
                    }
                    else
                    {
-                       // If type is not given, pass along the initialization directly
-                       pythonClasses.append('''    «stateVar.name» = «stateVar.targetInitializer»
-                       ''')   
+                           // If type is not given, pass along the initialization directly if it is present
+                           pythonClasses.append('''    «stateVar.name» = «stateVar.targetInitializer»
+                           ''')
                    }
                 }
                 
@@ -398,6 +410,18 @@ class PythonGenerator extends CGenerator {
             generatePythonReactorClass(child, pythonClasses, federate, instantiatedClasses)
         }
     }
+    
+    /**
+     * Generates preambles defined by user for a given reactor.
+     * The preamble code is put inside the reactor class.
+     */
+    def generatePythonPreamblesForReactor(Reactor reactor) '''
+        «FOR p : reactor.preambles ?: emptyList»
+            # From the preamble, verbatim:
+            «p.code.toText»
+            # End of preamble.
+        «ENDFOR»
+    '''
     
     /**
      * This generator inherits types from the CGenerator.
@@ -1313,6 +1337,16 @@ class PythonGenerator extends CGenerator {
                 }
             ''')
         }
+    }
+    
+    /**
+     * Generates C preambles defined by user for a given reactor
+     * Since the Python generator expects preambles written in C,
+     * this function is overridden and does nothing.
+     * @param reactor The given reactor
+     */
+    override generateUserPreamblesForReactor(Reactor reactor) {
+        // Do nothing
     }
     
         
