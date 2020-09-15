@@ -441,8 +441,10 @@ class PythonGenerator extends CGenerator {
                         
                     } else {
                         // Handle contained reactors' ports
-                        inits.append('''«trigger.container.name» = Make''')
-                        inits.append('''«trigger.container.name».«trigger.variable.name» = «trigger.container.name»_«trigger.variable.name»''')
+                        inits.append('''«trigger.container.name» = Make
+                        ''')
+                        inits.append('''«trigger.container.name».«trigger.variable.name» = «trigger.container.name»_«trigger.variable.name»
+                        ''')
                     }
                         
                 }
@@ -920,6 +922,36 @@ class PythonGenerator extends CGenerator {
           "reaction_function_" + reactionIndex
     }
     
+    
+    /**
+     * Generate code to allocate memory for a multiport of a contained reactor
+     * @param builder The StringBuilder that the allocation code is appended to
+     * @param port The multiport of a contained reactor
+     * @param container The container of the contained reactor
+     * @param instance The ReactorInstance of the contained reactor
+     * @return allocation code
+     */
+    override allocateMultiportOfContainedReactor(StringBuilder builder, Port port, Instantiation container, ReactorInstance instance) {
+        var nameOfSelfStruct = selfStructName(instance)
+        // If the width is given as a numeric constant, then add that constant
+        // to the output count. Otherwise, assume it is a reference to one or more parameters.
+        val widthSpec = multiportWidthSpecInC(port, container, instance)
+        val containerName = container.name
+        val portStructType = variableStructType(port, container.reactorClass)
+        pr(builder, '''
+            «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
+            // Allocate memory to store pointers to the multiport outputs of a contained reactor.
+            // «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+            //        * «nameOfSelfStruct»->__«containerName».«port.name»__width);
+                    
+            «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»*)malloc(sizeof(PyObject *) * «nameOfSelfStruct»->__«containerName».«port.name»__width);
+            
+            for ( int __i=0 ; __i<«nameOfSelfStruct»->__«containerName».«port.name»__width ; __i++) {
+                «nameOfSelfStruct»->__«containerName».«port.name»[__i] = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
+            }
+        ''')
+    }
+    
        
     /** Generate a reaction function definition for a reactor.
      *  This function has a single argument that is a void* pointing to
@@ -1351,7 +1383,7 @@ class PythonGenerator extends CGenerator {
         else
         {
             pyObjectDescriptor.append("O")
-            pyObjects.append(''', (PyObject *)self->__«port.container.name».«port.variable.name»''')
+            pyObjects.append(''', (PyObject *)*self->__«port.container.name».«port.variable.name»''')
         }
     }
     
