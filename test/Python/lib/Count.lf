@@ -4,7 +4,7 @@ reactor Count {
     output out:int;
     timer t(0, 1 sec);
     reaction(t) -> out {=
-        SET(out, self.count)
+        out.set(self.count)
         self.count += 1
     =}
 }

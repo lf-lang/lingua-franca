@@ -873,7 +873,7 @@ class PythonGenerator extends CGenerator {
         var srcGenPath = getSrcGenPath()
     	// Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
-        var targetFiles = newArrayList("pythontarget.h");
+        var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
         for (file : targetFiles) {
             copyFileFromClassPath(
                 "/" + "lib" + "/" + "Python" + "/" + file,
