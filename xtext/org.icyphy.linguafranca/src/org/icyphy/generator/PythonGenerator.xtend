@@ -51,6 +51,7 @@ import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
 import org.icyphy.InferredType
+import java.util.LinkedHashMap
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -72,8 +73,9 @@ class PythonGenerator extends CGenerator {
 	new () {
         super()
         // set defaults
-        this.targetCompiler = "python3"
-        this.targetCompilerFlags = "-m pip install ."// -Wall -Wconversion"
+        this.targetCompiler = "gcc"
+        this.targetCompilerFlags = ""// -Wall -Wconversion"
+        this.targetLinkerFlags = ""
     }
     	
     /** 
@@ -625,7 +627,9 @@ class PythonGenerator extends CGenerator {
     def generatePythonSetupFile() '''
     from setuptools import setup, Extension
     
-    linguafranca«filename»module = Extension("LinguaFranca«filename»", ["«filename».c"])
+    linguafranca«filename»module = Extension("LinguaFranca«filename»",
+                                               sources = ["«filename».c"],
+                                               define_macros=[('MODULE_NAME', 'LinguaFranca«filename»')])
     
     setup(name="LinguaFranca«filename»", version="1.0",
             ext_modules = [linguafranca«filename»module],
@@ -650,15 +654,17 @@ class PythonGenerator extends CGenerator {
             file.getParentFile().mkdirs();
         writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, srcGenPath + File.separator + filename + ".py")
         
+        val setupPath = srcGenPath + File.separator + "setup.py"
         // Handle Python setup
-        file = new File(srcGenPath + File.separator + "setup.py")
+        System.out.println("Generating setup file to " + setupPath)
+        file = new File(setupPath)
         if (file.exists) {
             // Append
             file.delete
         }
             
         // Create the setup file
-        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, srcGenPath + File.separator + "setup.py")        
+        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath)        
         
     }
     
@@ -667,12 +673,25 @@ class PythonGenerator extends CGenerator {
      */
     def pythonCompileCode()
     {
-        val compileCmd = createCommand("python3", #["setup.py" , "build"])
-        val installCmd = createCommand("python3", #["-m", "pip", "install", "--no-cache-dir", "--force-reinstall", "--user" , "."])
+        val compileCmd = createCommand('''python3''', #["setup.py" , "build"])
+        val installCmd = createCommand('''python3''', #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary" , ":all:", "--user", "."])
         
-        // compileCmd.directory(new File(getSrcGenPath))
+        compileCmd.directory(new File(getSrcGenPath))
         installCmd.directory(new File(getSrcGenPath))
         
+        // Set compile time environment variables
+        val compileEnv = compileCmd.environment
+        compileEnv.put("CC", targetCompiler) // Use gcc as the compiler
+        compileEnv.put("LDFLAGS", targetLinkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+                                                      // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
+                                                      // compiler.
+                                                      
+        val installEnv = compileCmd.environment
+        installEnv.put("CC", targetCompiler) // Use gcc as the compiler
+        installEnv.put("LDFLAGS", targetLinkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+                                                      // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
+                                                      // compiler.
+                
         if(executeCommand(compileCmd) == 0) {
             println("Successfully compiled python extension.")
             if (executeCommand(installCmd) == 0) {
@@ -823,7 +842,7 @@ class PythonGenerator extends CGenerator {
     override includeTargetLanguageHeaders()
     {
         pr('''#define MODULE_NAME LinguaFranca«filename»''')    	
-        pr('#include "pythontarget.h"')
+        pr('#include "pythontarget.c"')
     }
     
 //    /** Add necessary source files specific to the target language.  */

@@ -38,6 +38,9 @@ else
             if [ $1 == "TS" ]; then
                 echo "Executing command: rm package.json";
                 rm package.json;
+            elif [ $1 == "Python" ]; then
+                echo "Removing the src-gen directory";
+                rm -rf src-gen;
             fi
             while read p; do
                 if [[ "$p" =~ ^[[:space:]]*#.* ]]; then

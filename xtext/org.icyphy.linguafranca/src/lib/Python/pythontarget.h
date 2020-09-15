@@ -60,7 +60,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // MODULE_NAME is expected to be defined in the main file of the generated code
 #ifndef MODULE_NAME
-#define MODULE_NAME LinguaFranca_Default
+#error "MODULE_NAME is undefined"
 #endif
 
 #define CONCAT(x,y) x##y
@@ -153,6 +153,8 @@ typedef struct {
  */
 static PyObject* py_SET(PyObject *self, PyObject *args);
 
+//////////////////////////////////////////////////////////////
+/////////////  schedule Functions (to schedule an action)
 /**
  * Schedule an action to occur with the specified value and time offset
  * with no payload (no value conveyed).
@@ -189,6 +191,9 @@ static PyObject* py_schedule_value(PyObject *self, PyObject *args);
  */
 static PyObject* py_schedule_copy(PyObject *self, PyObject *args);
 
+
+//////////////////////////////////////////////////////////////
+/////////////  Python Helper Functions (called from Python code)
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
@@ -217,238 +222,7 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args);
 static PyObject* py_main(PyObject *self, PyObject *args);
 
 //////////////////////////////////////////////////////////////
-/////////////  Python Helper Structs
-
-/**
- * In order to implement mutable inputs, we need to deepcopy a port_instance.
- * For this purpose, Python needs to be able to "pickle" the objects (convert
- * them to the fomrat objectID(objmember1, ....))
- * @param self A port with type port_instance_t with a template structure akin to
- *             a generic_port_instance_struct* (therefore, self is castable to generic_port_instance_struct*)
- * @return tuple A tuple of format objectID(port->value, port->is_present, port->num_destinations)
- */
-static PyObject *
-port_instance_reduce(PyObject *self);
-
-/*
- * The members of a port_instance, used to define
- * a native Python type.
- */
-static PyMemberDef port_instance_members[] = {
-    {"value", T_OBJECT, offsetof(generic_port_instance_struct, value), 0, "Value of the port"},
-    {"is_present", T_BOOL, offsetof(generic_port_instance_struct, is_present), 0, "Check if value is present at current logical time"},
-    {"num_destinations", T_INT, offsetof(generic_port_instance_struct, num_destinations), 0, "Number of destinations"},
-    {NULL}  /* Sentinel */
-};
-
-/*
- * The function members of port_instance
- */
-static PyMethodDef port_instance_methods[] = {    
-    {"__reduce__", (PyCFunction)port_instance_reduce, METH_NOARGS, "Necessary for pickling objects"},
-    {"set", (PyCFunction)py_SET, METH_VARARGS, "Set value of the port as well as the is_present field"},
-    {NULL}  /* Sentinel */
-};
-
-/**
- * Called when a port_instance had to be deallocated (generally by the Python
- * garbage collector).
- * @param self An instance of generic_port_instance_struct*
- */
-static void
-port_instance_dealloc(generic_port_instance_struct *self);
-
-/**
- * Create a new port_instance. Note that a LinguaFranca.port_instance PyObject
- * follows the same structure as the @see generic_port_instance_struct.
- * 
- * To initialize the port_instance, this function first initializes a 
- * generic_port_instance_struct* self using the tp_alloc property of 
- * port_instance (@see port_isntance_t) and then assigns the members
- * of self with default values of value = NULL, is_present = false,
- * and num_destination = 0.
- * @param type The Python type object. In this case, port_instance_t
- * @param args The optional arguments that are:
- *      @param value value of the port
- *      @param is_present An indication of whether or not the value of the port
- *                      is present at the current logical time.
- *      @param num_destination Used for reference-keeping inside the C runtime
- * @param kwds Keywords (@see Python keywords)
- */
-static PyObject *
-port_intance_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
-
-/**
- * Initialize the port instance self with the given optional values for
- * value, is_present, and num_destinations. If any of these arguments
- * are missing, the default values are assigned
- * @see port_intance_new 
- * @param self The port_instance PyObject that follows
- *              the generic_port_instance_struct* internal structure
- * @param args The optional arguments that are:
- *      @param value value of the port
- *      @param is_present An indication of whether or not the value of the port
- *                      is present at the current logical time.
- *      @param num_destination Used for reference-keeping inside the C runtime
- */
-static int
-port_instance_init(generic_port_instance_struct *self, PyObject *args, PyObject *kwds);
-
-/*
- * The definition of port_instance type object.
- * Used to describe how port_instance behaves.
- */
-static PyTypeObject port_instance_t = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "LinguaFranca.port_instance",
-    .tp_doc = "port_instance objects",
-    .tp_basicsize = sizeof(generic_port_instance_struct),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = port_intance_new,
-    .tp_init = (initproc) port_instance_init,
-    .tp_dealloc = (destructor) port_instance_dealloc,
-    .tp_members = port_instance_members,
-    .tp_methods = port_instance_methods,
-};
-
-/*
- * The members of a port_instance, used to define
- * a native Python type.
- */
-static PyMemberDef port_instance_token_members[] = {
-    {"value", T_OBJECT_EX, offsetof(generic_port_instance_with_token_struct, value), 0, "Value of the port"},
-    {"is_present", T_BOOL, offsetof(generic_port_instance_with_token_struct, is_present), 0, "Check if value is present at current logical time"},
-    {"num_destinations", T_INT, offsetof(generic_port_instance_with_token_struct, num_destinations), 0, "Number of destinations"},
-    {NULL}  /* Sentinel */
-};
-
-/*
- * The definition of port_instance type object.
- * Used to describe how port_instance behaves.
- */
-static PyTypeObject port_instance_token_t = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "LinguaFranca.port_instance",
-    .tp_doc = "port_instance objects",
-    .tp_basicsize = sizeof(generic_port_instance_with_token_struct),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
-    .tp_members = port_instance_token_members,
-};
-
-
-
-//// Actions /////
-/*
- * The members of a action_capsule that are accessible from a Python program, used to define
- * a native Python type.
- */
-static PyMemberDef action_capsule_members[] = {
-    {"action", T_OBJECT, offsetof(generic_action_capsule_struct, action), 0, "The pointer to the C action struct"},
-    {"value", T_OBJECT, offsetof(generic_action_capsule_struct, value), 0, "Value of the action"},
-    {"is_present", T_BOOL, offsetof(generic_action_capsule_struct, value), 0, "Check that shows if action is present"},
-    {NULL}  /* Sentinel */
-};
-
-/**
- * The function members of action capsule
- */
-static PyMethodDef action_capsule_methods[] = {
-    {"schedule", (PyCFunction)py_schedule, METH_VARARGS, "Schedule the action with the given offset"},
-    {NULL}  /* Sentinel */
-};
-
-/**
- * Called when an action in Python is deallocated (generally
- * called by the Python grabage collector).
- * @param self
- */
-static void
-action_capsule_dealloc(generic_action_capsule_struct *self);
-
-/**
- * Called when an action in Python is to be created. Note that LinguaFranca.action_capsule
- * follows the same structure as the @see generic_action_capsule_struct.
- * 
- * To initialize the action_capsule, this function first calls the tp_alloc
- * method of type action_capsule_t and then assign default values of NULL, NULL, 0
- * to the members of the generic_action_capsule_struct.
- * @param type The Python type object. In this case, action_capsule_t
- * @param args The optional arguments that are:
- *      @param value value of the action (if given)
- *      @param is_present An indication of whether or not the action
- *                      is present at the current logical time.
- *      @param num_destination Used for reference-keeping inside the C runtime
- * @param kwds Keywords (@see Python keywords)
- */
-static PyObject *
-action_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
-
-/**
- * Initialize the action capsule "self" with the given optional values for
- * action (void *), value (PyObject*), and is_present (bool). If any of these arguments
- * are missing, the default values are assigned.
- * 
- * @see port_intance_new 
- * @param self The port_instance PyObject that follows
- *              the generic_port_instance_struct* internal structure
- * @param args The optional arguments that are:
- *      @param action The void * pointer to a C action instance struct
- *      @param value value of the port
- *      @param is_present An indication of whether or not the value of the port
- *                      is present at the current logical time.
- *      @param num_destination Used for reference-keeping inside the C runtime
- */
-static int
-action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObject *kwds);
-
-/*
- * The definition of action_capsule type object.
- * Used to describe how an action_capsule behaves.
- */
-static PyTypeObject action_capsule_t = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "LinguaFranca.action_instance",
-    .tp_doc = "action_instance object",
-    .tp_basicsize = sizeof(generic_action_capsule_struct),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = action_capsule_new,
-    .tp_init = (initproc) action_capsule_init,
-    .tp_dealloc = (destructor) action_capsule_dealloc,
-    .tp_members = action_capsule_members,
-    .tp_methods = action_capsule_methods,
-};
-
-///
-
-/*
- * Bind Python function names to our C functions
- */
-static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
-  {"start", py_main, METH_VARARGS, NULL},
-  {"schedule_copy", py_schedule_copy, METH_VARARGS, NULL},
-  {"schedule_int", py_schedule_int, METH_VARARGS, NULL},
-  {"schedule_value", py_schedule_value, METH_VARARGS, NULL},
-  {"get_elapsed_logical_time", py_get_elapsed_logical_time, METH_NOARGS, NULL},
-  {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
-  {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
-  {"get_elapsed_physical_time", py_get_elapsed_physical_time, METH_NOARGS, NULL},
-  {NULL, NULL, 0, NULL}
-};
-
-static PyModuleDef MODULE_NAME = {
-    PyModuleDef_HEAD_INIT,
-    TOSTRING(MODULE_NAME),
-    "LinguaFranca Python Module",
-    -1,
-    GEN_NAME(MODULE_NAME,_methods)
-};
-
-//////////////////////////////////////////////////////////////
-/////////////  Python Helper 
+/////////////  Python Helper Functions
 
 /**
  * A helper function to convert C actions to Python action capsules
@@ -592,8 +366,9 @@ PyObject* make_output_port_tuple(generic_port_instance_struct** port_array, Py_s
  * @param func The reaction functino to be called
  * @param pArgs the PyList of arguments to be sent to function func()
  */
-static PyObject*
+PyObject*
 invoke_python_function(string module, string class, int instance_id, string func, PyObject* pArgs);
+
 
 
 /*

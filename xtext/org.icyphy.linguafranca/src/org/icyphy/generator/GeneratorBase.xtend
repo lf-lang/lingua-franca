@@ -303,6 +303,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * The compiler flags target parameter, or null if there is none.
      */
     protected String targetCompilerFlags
+    
+    /**
+     * The linker flags target parameter, or null if there is none.
+     */
+    protected String targetLinkerFlags
 
     /**
      * The compiler target no-compile parameter, or false if there is none.
