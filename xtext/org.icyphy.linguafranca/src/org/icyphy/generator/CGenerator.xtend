@@ -312,6 +312,13 @@ class CGenerator extends GeneratorBase {
      */
     var startTimeStepTokens = 0
 
+    /**
+     * To reduce memory usage, the self struct does not include
+     * the reactor instance's name. However, for languages such as Python,
+     * having a name is a desirable feature.
+     */
+    protected var addClassNameToSelfStruct = false
+
     // Place to collect code to initialize timers for all reactors.
     protected var startTimers = new StringBuilder()
     var startTimersCount = 0
@@ -1341,7 +1348,15 @@ class CGenerator extends GeneratorBase {
         // First, create a type name for the self struct.
         
         var body = new StringBuilder()
-        // Start with parameters.
+        
+        // Then initialize the name field
+        if(addClassNameToSelfStruct === true)
+        {
+            pr(body, '''char *__lf_name;
+            ''');
+        }    
+        
+        // Next handle parameters.
         for (parameter : reactor.allParameters) {
             prSourceLineNumber(body, parameter)
             pr(body, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
@@ -2523,7 +2538,7 @@ class CGenerator extends GeneratorBase {
             
         var nameOfSelfStruct = selfStructName(instance)
         var structType = selfStructType(reactorClass)
-
+        
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and return.
         if (instance.bankMembers !== null) {
@@ -2557,6 +2572,14 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
+        }
+        
+                
+        // If creating the name field is requested, initialize it to the unique name of the instance
+        if(addClassNameToSelfStruct === true)
+        {
+            pr(initializeTriggerObjects, '''«nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
+            ''');
         }
 
         // Generate code to initialize the "self" struct in the

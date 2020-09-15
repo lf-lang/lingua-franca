@@ -27,14 +27,14 @@ reactor TakeTime {
         print("Received " + str(_in.value))
 
         offset:int = 0
-        for i in range(100000000):
+        for i in range(10000):
             offset+=1
         
         out.set(_in.value + offset)
 	=}
 }
 reactor Destination(width:int(4)) {
-	state s:int(400000000);
+	state s:int(40000);
 	input[width] _in:int;
 	reaction(_in) {=
 		sm = 0
