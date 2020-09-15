@@ -2640,18 +2640,7 @@ class CGenerator extends GeneratorBase {
                         // If the port is a multiport, then we need to create an entry for each
                         // individual port.
                         if (port.isMultiport && container !== null) {
-                            // If the width is given as a numeric constant, then add that constant
-                            // to the output count. Otherwise, assume it is a reference to one or more parameters.
-                            val widthSpec = multiportWidthSpecInC(port, container, instance)
-                            val containerName = container.name
-                            val portStructType = variableStructType(port, container.reactorClass)
-                            pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
-                                // Allocate memory to store pointers to the multiport outputs of a contained reactor.
-                                «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                        * «nameOfSelfStruct»->__«containerName».«port.name»__width);
-                            ''')
-
+                            allocateMultiportOfContainedReactor(initializeTriggerObjectsEnd, port, container, instance)
                         }
                     }
                     if (trigger.isStartup) {
@@ -2903,7 +2892,33 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
+     * Generate code to allocate memory for a multiport of a contained reactor
+     * @param builder The StringBuilder that the allocation code is appended to
+     * @param port The multiport of a contained reactor
+     * @param container The container of the contained reactor
+     * @param instance The ReactorInstance of the contained reactor
+     * @return allocation code
+     */
+    def allocateMultiportOfContainedReactor(StringBuilder builder, Port port, Instantiation container, ReactorInstance instance) {
+        var nameOfSelfStruct = selfStructName(instance)
+        // If the width is given as a numeric constant, then add that constant
+        // to the output count. Otherwise, assume it is a reference to one or more parameters.
+        val widthSpec = multiportWidthSpecInC(port, container, instance)
+        val containerName = container.name
+        val portStructType = variableStructType(port, container.reactorClass)
+        pr(builder, '''
+            «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
+            // Allocate memory to store pointers to the multiport outputs of a contained reactor.
+            «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                    * «nameOfSelfStruct»->__«containerName».«port.name»__width);
+        ''')
+    }
+    
+    /**
      * Generate runtime initialization code for parameters of a given reactor instance
+     * @param builder The StringBuilder used to append the initialization code to
+     * @param instance The reactor instance
+     * @return initialization code
      */
     def initializeParameters(StringBuilder builder, ReactorInstance instance) {
         var nameOfSelfStruct = selfStructName(instance)
