@@ -1,0 +1,62 @@
+// This tests that "after" does not introduce spurious cycles.
+// Success if running without detected a cycle.
+target Python;
+
+reactor Source {
+    output out:unsigned;
+    
+    reaction(startup) -> out {=
+        out.set(1)
+    =}
+}
+
+reactor Work {
+    input _in:unsigned;
+    output out:unsigned;
+    
+    reaction(_in) -> out {=
+        out.set(_in.value) 
+    =}
+}
+
+main reactor AfterCycles {
+    state count(0);
+    s = new Source();
+    w0 = new Work();
+    w1 = new Work();
+    
+    s.out -> w0._in after 10 msec;
+    s.out -> w1._in after 20 msec;
+    
+    reaction(w0.out) {=
+        self.count+=1
+        elapsed_time = get_elapsed_logical_time()
+        print("Received {:d} from worker 0 at time {:d}.".format(w0.out.value, elapsed_time))
+        if elapsed_time != MSEC(10):
+            sys.stderr.write("Time should have been 10000000.\n")
+            exit(1)
+
+        if w0.out.value != 1:
+            sys.stderr.write("Value should have been 1.\n")
+            exit(4)
+    =}
+    
+    reaction(w1.out) {=
+        self.count+=1
+        elapsed_time = get_elapsed_logical_time()
+        print("Received {:d} from worker 1 at time {:d}.".format(w1.out.value, elapsed_time))
+        if elapsed_time != MSEC(20):
+            sys.stderr.write("Time should have been 20000000.\n")
+            exit(3)
+
+        if w1.out.value != 1:
+            sys.stderr.write("Value should have been 1.\n")
+            exit(4)
+    =}
+
+    reaction(shutdown) {=
+        if self.count != 2:
+            sys.stderr.write("Top-level reactions should have been triggered but were not.\n")
+            exit(5)
+    =}
+}
