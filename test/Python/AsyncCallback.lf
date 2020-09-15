@@ -10,7 +10,7 @@ target Python {
 main reactor AsyncCallback {
 	
 	preamble {=
-        # Note that preamble code is generated inside the raector class in Python
+        # Note that preamble code is generated inside the reactor class in Python
         import time
         import threading
 
