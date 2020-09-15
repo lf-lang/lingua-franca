@@ -1,0 +1,37 @@
+// This the after keyword with overlapped time intervals.
+target Python {
+    fast: true,
+    timeout: 5 sec
+};
+import Count from "lib/Count.lf";
+
+reactor Test {
+    input c:int;
+    state i:int(0);
+    state received:int(0);
+    reaction(c) {=
+        self.received += 1
+        print("Received {:d}.\n".format(c.value))
+        self.i += 1
+        if c.value != self.i:
+            sys.stderr.write("ERROR: Expected {:d} but got {:d}\n.".format(self.i, c.value));
+            exit(1)
+        elapsed_time = get_elapsed_logical_time()
+        print("Current logical time is: ", elapsed_time)
+
+        expected_logical_time = SEC(2) + SEC(1)*(c.value - 1)
+        if elapsed_time != expected_logical_time:
+            sys.stderr.write("ERROR: Expected logical time to be {:d} but got {:d}\n.".format(expected_logical_time, elapsed_time))
+            exit(1)
+    =}
+    reaction(shutdown) {=
+        if self.received == 0:
+            sys.stderr.write("ERROR: Final reactor received no data.\n")
+            exit(3)
+    =}
+}
+main reactor AfterOverlapped {
+    count = new Count();
+    test = new Test();
+    count.out -> test.c after 2 sec;
+}
