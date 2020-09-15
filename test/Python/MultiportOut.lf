@@ -19,7 +19,7 @@ reactor Computation {
 	input _in:int;
 	output out:int;
 	reaction(_in) -> out {=
-		SET(out, _in.value)
+		out.set(_in.value)
 	=}
 }
 reactor Destination {
