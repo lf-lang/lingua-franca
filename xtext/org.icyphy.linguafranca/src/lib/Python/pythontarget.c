@@ -447,6 +447,201 @@ action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObjec
     return 0;
 }
 
+//////////////////////////////////////////////////////////////
+/////////////  Python Structs
+
+////// Ports //////
+/*
+ * The members of a port_instance, used to define
+ * a native Python type.
+ */
+static PyMemberDef port_instance_members[] = {
+    {"value", T_OBJECT, offsetof(generic_port_instance_struct, value), 0, "Value of the port"},
+    {"is_present", T_BOOL, offsetof(generic_port_instance_struct, is_present), 0, "Check if value is present at current logical time"},
+    {"num_destinations", T_INT, offsetof(generic_port_instance_struct, num_destinations), 0, "Number of destinations"},
+    {NULL}  /* Sentinel */
+};
+
+/*
+ * The function members of port_instance
+ */
+static PyMethodDef port_instance_methods[3] = {    
+    {"__reduce__", (PyCFunction)port_instance_reduce, METH_NOARGS, "Necessary for pickling objects"},
+    {"set", (PyCFunction)py_SET, METH_VARARGS, "Set value of the port as well as the is_present field"},
+    {NULL}  /* Sentinel */
+};
+
+
+/*
+ * The definition of port_instance type object.
+ * Used to describe how port_instance behaves.
+ */
+static PyTypeObject port_instance_t = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "LinguaFranca.port_instance",
+    .tp_doc = "port_instance objects",
+    .tp_basicsize = sizeof(generic_port_instance_struct),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = port_intance_new,
+    .tp_init = (initproc) port_instance_init,
+    .tp_dealloc = (destructor) port_instance_dealloc,
+    .tp_members = port_instance_members,
+    .tp_methods = port_instance_methods,
+};
+
+
+/*
+ * The members of a port_instance, used to define
+ * a native Python type.
+ */
+static PyMemberDef port_instance_token_members[] = {
+    {"value", T_OBJECT_EX, offsetof(generic_port_instance_with_token_struct, value), 0, "Value of the port"},
+    {"is_present", T_BOOL, offsetof(generic_port_instance_with_token_struct, is_present), 0, "Check if value is present at current logical time"},
+    {"num_destinations", T_INT, offsetof(generic_port_instance_with_token_struct, num_destinations), 0, "Number of destinations"},
+    {NULL}  /* Sentinel */
+};
+
+
+/*
+ * The definition of port_instance type object.
+ * Used to describe how port_instance behaves.
+ */
+static PyTypeObject port_instance_token_t = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "LinguaFranca.port_instance",
+    .tp_doc = "port_instance objects",
+    .tp_basicsize = sizeof(generic_port_instance_with_token_struct),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+    .tp_members = port_instance_token_members,
+};
+
+
+//// Actions /////
+/*
+ * The members of a action_capsule that are accessible from a Python program, used to define
+ * a native Python type.
+ */
+static PyMemberDef action_capsule_members[] = {
+    {"action", T_OBJECT, offsetof(generic_action_capsule_struct, action), 0, "The pointer to the C action struct"},
+    {"value", T_OBJECT, offsetof(generic_action_capsule_struct, value), 0, "Value of the action"},
+    {"is_present", T_BOOL, offsetof(generic_action_capsule_struct, value), 0, "Check that shows if action is present"},
+    {NULL}  /* Sentinel */
+};
+
+
+/**
+ * The function members of action capsule
+ */
+static PyMethodDef action_capsule_methods[] = {
+    {"schedule", (PyCFunction)py_schedule, METH_VARARGS, "Schedule the action with the given offset"},
+    {NULL}  /* Sentinel */
+};
+
+/*
+ * The definition of action_capsule type object.
+ * Used to describe how an action_capsule behaves.
+ */
+static PyTypeObject action_capsule_t = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "LinguaFranca.action_instance",
+    .tp_doc = "action_instance object",
+    .tp_basicsize = sizeof(generic_action_capsule_struct),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = action_capsule_new,
+    .tp_init = (initproc) action_capsule_init,
+    .tp_dealloc = (destructor) action_capsule_dealloc,
+    .tp_members = action_capsule_members,
+    .tp_methods = action_capsule_methods,
+};
+
+
+///// Python Module Built-ins
+/*
+ * Bind Python function names to our C functions
+ */
+static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
+  {"start", py_main, METH_VARARGS, NULL},
+  {"schedule_copy", py_schedule_copy, METH_VARARGS, NULL},
+  {"schedule_int", py_schedule_int, METH_VARARGS, NULL},
+  {"schedule_value", py_schedule_value, METH_VARARGS, NULL},
+  {"get_elapsed_logical_time", py_get_elapsed_logical_time, METH_NOARGS, NULL},
+  {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
+  {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
+  {"get_elapsed_physical_time", py_get_elapsed_physical_time, METH_NOARGS, NULL},
+  {NULL, NULL, 0, NULL}
+};
+
+
+static PyModuleDef MODULE_NAME = {
+    PyModuleDef_HEAD_INIT,
+    TOSTRING(MODULE_NAME),
+    "LinguaFranca Python Module",
+    -1,
+    GEN_NAME(MODULE_NAME,_methods)
+};
+
+//////////////////////////////////////////////////////////////
+/////////////  Module Initialization
+/*
+ * The Python runtime will call this to initialize the module.
+ * The name of this function is dynamically generated to follow
+ * the requirement of PyInit_MODULE_NAME. Since the MODULE_NAME is not
+ * known prior to compile time, the GEN_NAME macro is used.
+ */
+PyMODINIT_FUNC
+GEN_NAME(PyInit_,MODULE_NAME)(void)
+{
+    PyObject *m;
+
+    // Initialize the port_instance type
+    if (PyType_Ready(&port_instance_t) < 0)
+        return NULL;
+
+    // Initialize the port_instance_token type
+    if (PyType_Ready(&port_instance_token_t) < 0)
+        return NULL;
+
+    // Initialize the action_capsule type
+    if (PyType_Ready(&action_capsule_t) < 0)
+        return NULL;
+
+    m = PyModule_Create(&MODULE_NAME);
+
+    if (m == NULL)
+        return NULL;
+
+    // Add the port_instance type to the module's dictionary
+    Py_INCREF(&port_instance_t);
+    if (PyModule_AddObject(m, "port_instance", (PyObject *) &port_instance_t) < 0) {
+        Py_DECREF(&port_instance_t);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    // Add the port_instance_token type to the module's dictionary
+    Py_INCREF(&port_instance_token_t);
+    if (PyModule_AddObject(m, "port_instance_token", (PyObject *) &port_instance_token_t) < 0) {
+        Py_DECREF(&port_instance_token_t);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    // Add the action_capsule type to the module's dictionary
+    Py_INCREF(&action_capsule_t);
+    if (PyModule_AddObject(m, "action_capsule_t", (PyObject *) &action_capsule_t) < 0) {
+        Py_DECREF(&action_capsule_t);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    return m;
+}
+
+
 
 //////////////////////////////////////////////////////////////
 /////////////  Python Helper Functions
@@ -711,7 +906,7 @@ PyObject* make_output_port_tuple(generic_port_instance_struct** port_array, Py_s
  * @param func The reaction functino to be called
  * @param pArgs the PyList of arguments to be sent to function func()
  */
-static PyObject*
+PyObject*
 invoke_python_function(string module, string class, int instance_id, string func, PyObject* pArgs)
 {
 
@@ -881,60 +1076,4 @@ invoke_python_function(string module, string class, int instance_id, string func
 
     Py_INCREF(Py_None);
     return Py_None;
-}
-
-
-/*
- * The Python runtime will call this to initialize the module.
- * The name of this function is dynamically generated to follow
- * the requirement of PyInit_MODULE_NAME. Since the MODULE_NAME is not
- * known prior to compile time, the GEN_NAME macro is used.
- */
-PyMODINIT_FUNC
-GEN_NAME(PyInit_,MODULE_NAME)(void)
-{
-    PyObject *m;
-
-    // Initialize the port_instance type
-    if (PyType_Ready(&port_instance_t) < 0)
-        return NULL;
-
-    // Initialize the port_instance_token type
-    if (PyType_Ready(&port_instance_token_t) < 0)
-        return NULL;
-
-    // Initialize the action_capsule type
-    if (PyType_Ready(&action_capsule_t) < 0)
-        return NULL;
-
-    m = PyModule_Create(&MODULE_NAME);
-
-    if (m == NULL)
-        return NULL;
-
-    // Add the port_instance type to the module's dictionary
-    Py_INCREF(&port_instance_t);
-    if (PyModule_AddObject(m, "port_instance", (PyObject *) &port_instance_t) < 0) {
-        Py_DECREF(&port_instance_t);
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    // Add the port_instance_token type to the module's dictionary
-    Py_INCREF(&port_instance_token_t);
-    if (PyModule_AddObject(m, "port_instance_token", (PyObject *) &port_instance_token_t) < 0) {
-        Py_DECREF(&port_instance_token_t);
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    // Add the action_capsule type to the module's dictionary
-    Py_INCREF(&action_capsule_t);
-    if (PyModule_AddObject(m, "action_capsule_t", (PyObject *) &action_capsule_t) < 0) {
-        Py_DECREF(&action_capsule_t);
-        Py_DECREF(m);
-        return NULL;
-    }
-
-    return m;
 }
