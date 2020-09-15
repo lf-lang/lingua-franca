@@ -110,8 +110,8 @@ class PythonGenerator extends CGenerator {
     */
 	val generic_port_type_with_token = "generic_port_instance_struct*"
 	
-	override getTargetUndefinedType() '''PyObject*'''	
-	
+	override getTargetUndefinedType() '''PyObject*'''
+
 	// Regular expression pattern for pointer types. The star at the end has to be visible.
     static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
     
@@ -508,28 +508,15 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
-     * Helper function for class instantiation in Python
-     * @param instance The reactor instance to be instantiated
-     * @param pythonClassesInstantiation The class instantiations are appended to this string builder
-     * @param federate The federate instance for the reactor instance
-     */
-    def generatePythonClassInstantiation(ReactorInstance instance, StringBuilder pythonClassesInstantiation, FederateInstance federate)
-    {
-        var instantiatedClasses = new ArrayList<String>()
-        generatePythonClassInstantiation(instance, pythonClassesInstantiation, federate, instantiatedClasses)
-    }
-    
-    /**
      * Instantiate classes in Python.
      * Instances are always instantiated as a list of className = [_className, _className, ...] depending on the size of the bank.
      * If there is no bank or the size is 1, the instance would be generated as className = [_className]
      * @param instance The reactor instance to be instantiated
      * @param pythonClassesInstantiation The class instantiations are appended to this string builder
      * @param federate The federate instance for the reactor instance
-     * @param instantiatedClasses A list of visited instances to avoid generating duplicates
      */
     def void generatePythonClassInstantiation(ReactorInstance instance, StringBuilder pythonClassesInstantiation,
-        FederateInstance federate, ArrayList<String> instantiatedClasses) {
+        FederateInstance federate) {
         // If this is not the main reactor and is not in the federate, nothing to do.
         if (instance !== this.main && !reactorBelongsToFederate(instance, federate)) {
             return
@@ -544,32 +531,24 @@ class PythonGenerator extends CGenerator {
             return
         }
 
-        // Invalid use of the function
-        if (instantiatedClasses === null) {
-            return
-        }
 
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-            if (reactorBelongsToFederate(instance, federate) && instance.bankMembers !== null &&
-                !instantiatedClasses.contains(className)) {
+            if (reactorBelongsToFederate(instance, federate) && instance.bankMembers !== null) {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // a list of instances of reactors and return.         
                 pythonClassesInstantiation.
-                    append('''«className»s = [«FOR member : instance.bankMembers SEPARATOR ", "»_«className»(«FOR param : member.parameters SEPARATOR ", "»«IF param.name.equals("instance")»instance=«member.bankIndex/* instance is specially assigned by us*/»«ELSE»«param.name»=«param.pythonInitializer»«ENDIF»«ENDFOR»)«ENDFOR»]
+                    append('''«instance.uniqueID»_lf = [«FOR member : instance.bankMembers SEPARATOR ", "»_«className»(«FOR param : member.parameters SEPARATOR ", "»«IF param.name.equals("instance")»instance=«member.bankIndex/* instance is specially assigned by us*/»«ELSE»«param.name»=«param.pythonInitializer»«ENDIF»«ENDFOR»)«ENDFOR»]
                     ''')
-                instantiatedClasses.add(className)
                 return
-            } else if (!instantiatedClasses.contains(className) &&
-                !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-                pythonClassesInstantiation.append('''«className»s = [_«className»(«FOR param : instance.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)]
+            } else if (instance.bankIndex === -1 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
+                pythonClassesInstantiation.append('''«instance.uniqueID»_lf = [_«className»(«FOR param : instance.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)]
                 ''')
-                instantiatedClasses.add(className)
             }
 
         }
 
         for (child : instance.children) {
-            generatePythonClassInstantiation(child, pythonClassesInstantiation, federate, instantiatedClasses)
+            generatePythonClassInstantiation(child, pythonClassesInstantiation, federate)
         }
     }
     
@@ -873,7 +852,9 @@ class PythonGenerator extends CGenerator {
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
-                // Always use the non-threaded version
+                // Request to generate the name field                
+                super.addClassNameToSelfStruct = true
+                
             	super.doGenerate(resource, fsa, context)
             	
                 // Don't generate code if there is no main reactor
@@ -1086,13 +1067,13 @@ class PythonGenerator extends CGenerator {
             pr(pyThreadMutexLockCode(0))
             
             // The reaction is in a reactor that belongs to a bank of reactors
-            pr('''invoke_python_function("__main__", "«reactor.name»s", self->instance ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+            pr('''invoke_python_function("__main__", self->__lf_name, self->instance ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
                         
             // Release the mutex lock
             pr(pyThreadMutexLockCode(1))
         }
         else {
-            pr('''invoke_python_function("__main__", "«reactor.name»s", 0 ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+            pr('''invoke_python_function("__main__", self->__lf_name, 0 ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
         }
         
         unindent()
