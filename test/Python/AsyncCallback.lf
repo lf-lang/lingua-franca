@@ -1,0 +1,61 @@
+// Test asynchronous callbacks that trigger a physical action.
+// This test case assumes that target is multithreaded.
+// This test will not work with the unthreaded C target because that target
+// does not implement any mutex protecting the event queue.
+target Python {
+	timeout: 2 sec,
+	keepalive: true    // Not really needed here because there is a timer.
+};
+
+main reactor AsyncCallback {
+	
+	preamble {=
+        # Note that preamble code is generated inside the raector class in Python
+        import time
+        import threading
+
+        def callback(self, a):
+            # Schedule twice. If the action is not physical, these should
+            # get consolidated into a single action triggering. If it is,
+            # then they cause two separate triggerings with close but not
+            # equal time stamps. The minimum time between these is determined
+            # by the argument in the physical action definition.
+            a.schedule(0)
+            a.schedule(0)
+
+        # Simulate time passing before a callback occurs.
+        def take_time(self, a):
+            # The best Python can offer short of directly using ctypes to call nanosleep
+            self.time.sleep(0.1)
+            self.callback(a)
+            return None
+        
+	=}
+	timer t(0, 200 msec);
+	state thread;
+	state expected_time:time(100 msec);
+	state toggle:bool(false);
+	
+    physical action a(100 msec):int;
+    state i:int(0);
+  
+	reaction(t) -> a {=
+        # start new thread, provide callback
+        self.thread = self.threading.Thread(target=self.take_time, args=(a,))
+        self.thread.start()
+	=}
+	
+	reaction(a) {=
+        elapsed_time = get_elapsed_logical_time()
+        print("Asynchronous callback {:d}: Assigned logical time greater than start time by {:d} nsec.\n".format(self.i, elapsed_time));
+        self.i += 1 
+        if elapsed_time <= self.expected_time:
+            sys.stderr.write("ERROR: Expected logical time to be larger than {:d}.\n".format(self.expected_time));
+            exit(1)
+        if self.toggle:
+            self.toggle = False
+            self.expected_time += 200000000
+        else:
+            self.toggle = True
+	=}
+}
