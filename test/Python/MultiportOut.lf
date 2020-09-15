@@ -27,7 +27,7 @@ reactor Destination {
 	input[4] _in:int;
 	reaction(_in) {=
 		sum = 0
-		for i in range(0,_in_width):
+		for i in range(len(_in)):
             if _in[i].is_present:
                 sum += _in[i].value
                 
