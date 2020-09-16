@@ -127,6 +127,10 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
         trigger->element_size = sizeof(PyObject*);
         t = __initialize_token_with_value(trigger->token, value, 1);
 
+        // If shutdown is requested, we need to ensure that the token is 
+        // not freed by the C runtime because it contains a garbage collected Python object.
+        t->ref_count++;
+
         // Also give the new value back to the Python action itself
         Py_INCREF(value);
         act->value = value;
