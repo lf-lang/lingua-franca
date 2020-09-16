@@ -167,24 +167,6 @@ static PyObject* py_SET(PyObject *self, PyObject *args);
 static PyObject* py_schedule(PyObject *self, PyObject *args);
 
 /**
- * Variant of schedule_value when the value is an integer.
- * See reactor.h for documentation.
- * @param action Pointer to an action on the self struct.
- */
-static PyObject* py_schedule_int(PyObject *self, PyObject *args);
-
-/**
- * Variant of schedule_token that creates a token to carry the specified value.
- * See reactor.h for documentation.
- */
-/**
- * Variant of schedule_value when the value is an integer.
- * See reactor.h for documentation.
- * @param action Pointer to an action on the self struct.
- */
-static PyObject* py_schedule_value(PyObject *self, PyObject *args);
-
-/**
  * Schedule an action to occur with the specified value and time offset
  * with a copy of the specified value.
  * See reactor.h for documentation.
@@ -246,7 +228,7 @@ static PyObject* py_main(PyObject *self, PyObject *args);
  * (which is in schedule functions), PyCapsule_GetPointer(recieved_action,"action") can be called to retrieve 
  * the void* pointer into recieved_action.
  **/
-PyObject* convert_C_action_to_py(void* action, PyObject* value, bool is_present);
+PyObject* convert_C_action_to_py(void* action);
 
 /**
  * A helper function to generate a mutable list of input ports to be sent 
