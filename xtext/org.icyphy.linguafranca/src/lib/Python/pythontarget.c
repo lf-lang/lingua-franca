@@ -120,11 +120,11 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
  */
 static PyObject* py_schedule_int(PyObject *self, PyObject *args)
 {
-    generic_action_capsule_struct* act;
+    generic_action_capsule_struct* act = (generic_action_capsule_struct*)self;
     long long offset;
     int value;
 
-    if (!PyArg_ParseTuple(args, "OLi" ,&act, &offset, &value))
+    if (!PyArg_ParseTuple(args, "Li", &offset, &value))
         return NULL;
 
 
@@ -537,6 +537,7 @@ static PyMemberDef action_capsule_members[] = {
  */
 static PyMethodDef action_capsule_methods[] = {
     {"schedule", (PyCFunction)py_schedule, METH_VARARGS, "Schedule the action with the given offset"},
+    {"schedule_int", (PyCFunction)py_schedule_int, METH_VARARGS, "Schedule the action with the given offset and assign an integer value"},
     {NULL}  /* Sentinel */
 };
 
@@ -566,7 +567,6 @@ static PyTypeObject action_capsule_t = {
 static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_main, METH_VARARGS, NULL},
   {"schedule_copy", py_schedule_copy, METH_VARARGS, NULL},
-  {"schedule_int", py_schedule_int, METH_VARARGS, NULL},
   {"schedule_value", py_schedule_value, METH_VARARGS, NULL},
   {"get_elapsed_logical_time", py_get_elapsed_logical_time, METH_NOARGS, NULL},
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
