@@ -126,6 +126,10 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
         trigger->token->element_size = sizeof(PyObject*);
         trigger->element_size = sizeof(PyObject*);
         t = __initialize_token_with_value(trigger->token, value, 1);
+
+        // Also give the new value back to the Python action itself
+        Py_INCREF(value);
+        act->value = value;
     }
 
     
