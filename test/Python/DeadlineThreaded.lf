@@ -1,0 +1,52 @@
+// This example illustrates local deadline handling.
+// Even numbers are sent by the Source immediately, whereas odd numbers
+// are sent after a big enough delay to violate the deadline.
+target Python {
+    timeout: 2 sec,
+    threads: 1
+};
+
+reactor Source(period:time(1 sec)) {
+    output y:int;
+    timer t(0, period);
+    state count:int(0);
+    reaction(t) -> y {=
+        if self.count % 2 != 0:
+            # The count variable is odd.
+            # Take time to cause a deadline violation.
+            sleep_time = MSEC(200)
+            start_time = get_physical_time()
+            while (get_physical_time() < start_time + sleep_time):
+                pass
+        
+        print("Source sends: ", self.count)
+        y.set(self.count)
+        self.count += 1
+    =}
+}
+
+reactor Destination(timeout:time(1 sec)) {
+    input x:int;
+    state count:int(0);
+    reaction(x) {=
+        print("Destination receives: ", x.value)
+        if self.count % 2 != 0:
+            # The count variable is odd, so the deadline should have been violated.
+            sys.stderr.write("ERROR: Failed to detect deadline.\n")
+            exit(1)
+        
+        self.count += 1
+    =} deadline(timeout) {=
+        print("Destination deadline handler receives: ", x.value)
+        if self.count % 2 == 0:
+            # The count variable is even, so the deadline should not have been violated.
+            sys.stderr.write("ERROR: Deadline miss handler invoked without deadline violation.\n")
+            exit(2)
+        self.count += 1
+    =}
+}
+main reactor Deadline {
+    s = new Source();
+    d = new Destination(timeout = 100 msec);
+    s.y -> d.x;
+}
