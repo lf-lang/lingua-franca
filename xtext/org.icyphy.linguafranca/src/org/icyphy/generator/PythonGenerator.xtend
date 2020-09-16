@@ -713,13 +713,17 @@ class PythonGenerator extends CGenerator {
      * @param state 0=beginning, 1=end
      */
     def pyThreadMutexLockCode(int state) {
-        if(targetThreads !== 0)
+        if(targetThreads > 0)
         {
             switch(state){
                 case 0: return '''pthread_mutex_lock(&mutex);'''
                 case 1: return '''pthread_mutex_unlock(&mutex);'''
-                default: throw new Exception("Unknown state")
+                default: return ''''''
             }
+        }
+        else
+        {
+            return ''''''
         }
     }
     
@@ -1059,7 +1063,7 @@ class PythonGenerator extends CGenerator {
         }
         
         // Finally, handle parameters that need to be passed from the C runtime (e.g., instance:int)     
-        for (param : reactor.allParameters )
+        for (param : reactor.allParameters ?: emptyList)
         {
             if(param.name == "instance")
             {
@@ -1084,8 +1088,9 @@ class PythonGenerator extends CGenerator {
             // Therefore, we need to make sure reactions that belong to reactors in a bank
             // don't run concurrently by holding the mutex.
             // A possible fix would be to use multiprocesses
-            // Acquire the mutex lock          
-            pr(pyThreadMutexLockCode(0))            
+            // Acquire the mutex lock
+            
+            pr(pyThreadMutexLockCode(0))
             
             // The reaction is in a reactor that belongs to a bank of reactors
             pr('''invoke_python_function("__main__", self->__lf_name, self->instance ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')

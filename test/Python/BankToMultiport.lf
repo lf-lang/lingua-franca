@@ -1,0 +1,37 @@
+// Test bank of reactors to multiport input with id parameter in the bank.
+target Python;
+
+reactor Source(instance:int(0)) {
+    output out:int;
+    
+    reaction (startup) -> out {=
+        out.set(self.instance)
+    =}
+}
+
+reactor Sink(width:int(4)) {
+    input[width] _in:int;
+    state received:bool(false);
+    
+    reaction (_in) {=
+        indx = 0
+        for i in _in:
+            if i.is_present is True:
+                print("Received on channel {:d}: {:d}\n".format(indx, i.value))
+                self.received = True
+                if i.value != indx:
+                    sys.stderr.write("ERROR: expected {:d}\n".format(indx))
+                    exit(1)
+                indx+=1
+    =}
+    reaction(shutdown) {=
+        if self.received is False:
+            sys.stderr.write("ERROR: Sink received no data\n")
+            exit(1)
+    =}
+}
+main reactor BankToMultiport(width:int(5)) {
+    source = new[width] Source();
+    sink = new Sink(width = width);
+    source.out -> sink._in;
+}
