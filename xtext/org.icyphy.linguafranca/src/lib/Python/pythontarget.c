@@ -78,6 +78,16 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
 
 //////////// schedule Function(s) /////////////
 /**
+ * Prototype for the internal API. @see reactor_common.c
+ **/
+token_t* __initialize_token_with_value(token_t* token, void* value, int length);
+
+/**
+ * Prototype for API function. @see lib/core/reactor_common.c
+ **/
+trigger_t* _lf_action_to_trigger(void* action);
+
+/**
  * Schedule an action to occur with the specified time offset
  * with no payload (no value conveyed). This function is callable
  * in Python by calling action_name.schedule(offset).
@@ -94,88 +104,40 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
 {
     generic_action_capsule_struct* act = (generic_action_capsule_struct*)self;
     long long offset;
-
-    if (!PyArg_ParseTuple(args, "L", &offset))
-        return NULL;
-    
-    void* action = PyCapsule_GetPointer(act->action,"action");
-    if (action == NULL)
-    {
-        fprintf(stderr, "Null pointer recieved.\n");
-        exit(1);
-    }
-
-    _lf_schedule_token(action, offset, NULL);
-
-    // FIXME: handle is not passed to the Python side
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/**
- * Variant of schedule_value when the value is an integer.
- * See reactor.h for documentation.
- * @param action Pointer to an action on the self struct.
- */
-static PyObject* py_schedule_int(PyObject *self, PyObject *args)
-{
-    generic_action_capsule_struct* act = (generic_action_capsule_struct*)self;
-    long long offset;
-    int value;
-
-    if (!PyArg_ParseTuple(args, "Li", &offset, &value))
-        return NULL;
-
-
-    void* action = PyCapsule_GetPointer(act->action,"action");
-    if (action == NULL)
-    {
-        fprintf(stderr, "Null pointer recieved.\n");
-        exit(1);
-    }
-    
-    _lf_schedule_int(action, offset, value);
-
-    // FIXME: handle is not passed to the Python side
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/**
- * Variant of schedule_token that creates a token to carry the specified value.
- * See reactor.h for documentation.
- */
-/**
- * Variant of schedule_value when the value is an integer.
- * See reactor.h for documentation.
- * @param action Pointer to an action on the self struct.
- */
-static PyObject* py_schedule_value(PyObject *self, PyObject *args)
-{
-    generic_action_capsule_struct* act;
-    long long offset;
     PyObject* value;
-    int length;
 
-    if (!PyArg_ParseTuple(args, "OLOi" ,&act, &offset, &value, &length))
+    if (!PyArg_ParseTuple(args, "L|O", &offset, &value))
         return NULL;
-
+    
     void* action = PyCapsule_GetPointer(act->action,"action");
     if (action == NULL)
     {
         fprintf(stderr, "Null pointer recieved.\n");
         exit(1);
     }
+
+    trigger_t* trigger = _lf_action_to_trigger(action);
+    token_t* t = NULL;
+
+    // Check to see if value exists and token is not NULL
+    if(value && (trigger->token != NULL))
+    {
+        // DEBUG: adjust the element_size (might not be necessary)
+        trigger->token->element_size = sizeof(PyObject*);
+        trigger->element_size = sizeof(PyObject*);
+        t = __initialize_token_with_value(trigger->token, value, 1);
+    }
+
     
-    _lf_schedule_value(action, offset, value, length);
+    // Pass the token along
+    _lf_schedule_token(action, offset, t);
 
     // FIXME: handle is not passed to the Python side
 
     Py_INCREF(Py_None);
     return Py_None;
 }
+
 
 /**
  * Schedule an action to occur with the specified value and time offset
@@ -537,7 +499,6 @@ static PyMemberDef action_capsule_members[] = {
  */
 static PyMethodDef action_capsule_methods[] = {
     {"schedule", (PyCFunction)py_schedule, METH_VARARGS, "Schedule the action with the given offset"},
-    {"schedule_int", (PyCFunction)py_schedule_int, METH_VARARGS, "Schedule the action with the given offset and assign an integer value"},
     {NULL}  /* Sentinel */
 };
 
@@ -567,7 +528,6 @@ static PyTypeObject action_capsule_t = {
 static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_main, METH_VARARGS, NULL},
   {"schedule_copy", py_schedule_copy, METH_VARARGS, NULL},
-  {"schedule_value", py_schedule_value, METH_VARARGS, NULL},
   {"get_elapsed_logical_time", py_get_elapsed_logical_time, METH_NOARGS, NULL},
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
   {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
@@ -678,8 +638,11 @@ void destroy_action_capsule(PyObject* capsule)
  * (which is in schedule functions), PyCapsule_GetPointer(recieved_action,"action") can be called to retrieve 
  * the void* pointer into recieved_action.
  **/
-PyObject* convert_C_action_to_py(void* action, PyObject* value, bool is_present)
+PyObject* convert_C_action_to_py(void* action)
 {
+    // Convert to trigger_t
+    trigger_t* trigger = _lf_action_to_trigger(action);
+
     // Create the action struct in Python
     PyObject* cap = PyObject_GC_New(generic_action_capsule_struct, &action_capsule_t);
     if(cap == NULL)
@@ -696,15 +659,27 @@ PyObject* convert_C_action_to_py(void* action, PyObject* value, bool is_present)
         exit(1);
     }
 
-    if(value == NULL)
-    {
-        value = PyLong_FromLong(0);
-    }
-
     // Fill in the Python action struct
     ((generic_action_capsule_struct*)cap)->action = capsule;
-    ((generic_action_capsule_struct*)cap)->value = value;
-    ((generic_action_capsule_struct*)cap)->is_present = is_present;
+    ((generic_action_capsule_struct*)cap)->is_present = trigger->is_present;
+
+    // If token is not initialized, that is all we need to set
+    if(trigger->token == NULL)
+    {
+        return cap;
+    }
+
+    // Default value is None
+    if(trigger->token->value == NULL)
+    {
+        Py_INCREF(Py_None);
+        trigger->token->value = Py_None;
+    }
+
+    // Increase ref count for this token because value is a PyObject managed by the Python's garbage collector
+    trigger->token->ref_count++;
+    // Actions in Python always use token type
+    ((generic_action_capsule_struct*)cap)->value = trigger->token->value;
 
     return cap;
 }

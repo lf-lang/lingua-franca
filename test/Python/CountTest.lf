@@ -1,0 +1,30 @@
+target Python {
+    timeout: 3 sec,
+    fast: true
+};
+
+import Count from "lib/Count.lf";
+
+reactor Test {
+    input c:int;
+    state i:int(0);
+    reaction(c) {=
+        print("Received ", c.value)
+        self.i +=1
+        if c.value != self.i:
+            sys.stderr.write("ERROR: Expected {:d} but got {:d}\n.".format(self.i, c.value))
+            exit(1)
+    =}
+    reaction(shutdown) {=
+        if self.i != 4:
+            sys.stderr.write("ERROR: Test should have reacted 4 times, but reacted {:d} times.\n".format(self.i))
+            exit(2)
+    =}
+}
+
+main reactor CountTest {
+    count = new Count();
+    test = new Test();
+    count.out -> test.c;
+}
+

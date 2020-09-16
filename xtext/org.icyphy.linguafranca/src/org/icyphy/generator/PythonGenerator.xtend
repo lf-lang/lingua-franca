@@ -1376,14 +1376,9 @@ class PythonGenerator extends CGenerator {
      */
     def generateActionVariableToSendToPythonReaction(StringBuilder pyObjectDescriptor, StringBuilder pyObjects, Action action, ReactorDecl decl) {
         pyObjectDescriptor.append("O")
-        if(action.type === null)
-        {
-            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», PyLong_FromLong(0), self->__«action.name».is_present)''')            
-        }
-        else
-        {
-            pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name», Py_BuildValue("«action.inferredType.targetType.pyBuildValueArgumentType»", self->__«action.name».value), self->__«action.name».is_present)''')
-        }
+        // Values passed to an action are always stored in the token->value.
+        // However, sometimes token might not be initialized. Therefore, this function has an internal check for NULL in case token is not initialized.
+        pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name»)''')
     }
 
     /** Generate into the specified string builder the code to
