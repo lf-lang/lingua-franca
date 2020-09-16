@@ -1,0 +1,34 @@
+// This test connects a simple counting source to tester
+// that checks against its own count.
+target Python {
+	threads: 1,
+	fast: true,
+	timeout: 10 sec
+};
+
+reactor Source(period:time(2 sec)) {
+	output y:int;
+	timer t(1 sec, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		self.count +=1
+		y.set(self.count)
+	=}
+}
+reactor Test {
+	input x:int;
+	state count:int(0);
+	reaction(x) {=
+		self.count += 1
+		print("Received ", x.value)
+		if x.value != self.count:
+			sys.stderr.write("FAILURE: Expected {:d}".format(self.count))
+			exit(1)
+	=}
+}
+
+main reactor CompositionThreaded {
+	s = new Source();
+	d = new Test();
+	s.y -> d.x;
+}
