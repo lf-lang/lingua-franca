@@ -1,0 +1,35 @@
+// This tests actions with payloads by delaying an input by a fixed amount.
+target Python {
+    timeout: 1 sec,
+    fast: true
+};
+reactor CountSelf(delay:time(100 msec)) {
+    output out:int;
+    logical action a:int;
+    reaction(startup) -> a, out {=
+        out.set(0)
+        a.schedule(self.delay, 1)
+    =}
+    reaction(a) -> a, out {=
+        out.set(a.value)
+        a.schedule(self.delay, a.value + 1)
+    =}
+}
+reactor Test {
+    input _in:int;
+    state count:int(0);
+    reaction(_in) {=
+        print("Received: {:d}".format(_in.value))
+        if _in.value != self.count:
+            sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count))
+            exit(1)
+
+        self.count+=1
+    =}
+}
+
+main reactor DelayInt { 
+    d = new CountSelf();
+    t = new Test();
+    d.out -> t._in; 
+}
