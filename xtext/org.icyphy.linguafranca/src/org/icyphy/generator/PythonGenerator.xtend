@@ -389,15 +389,24 @@ class PythonGenerator extends CGenerator {
                 var reactionIndex = 0
                 for (reaction : reactor.allReactions)
                 {
-                       pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «generatePythonReactionParameters(reactor, reaction)»):
-                       ''')
-                       pythonClasses.append('''        «getPythonInitializaitons(instance, reaction)»
-                       ''')
-                       pythonClasses.append('''        «reaction.code.toText»
-                       ''')
-                       pythonClasses.append('''        return 0
-                       ''')
-                       reactionIndex = reactionIndex+1;
+                    val reactionParameters = generatePythonReactionParameters(reactor, reaction)
+                    pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «reactionParameters»):
+                    ''')
+                    pythonClasses.append('''        «getPythonInitializaitons(instance, reaction)»
+                    ''')
+                    pythonClasses.append('''        «reaction.code.toText»
+                    ''')
+                    pythonClasses.append('''        return 0
+                    ''')
+                    
+                    // Now generate code for the deadline violation function, if there is one.
+                    if(reaction.deadline !== null)
+                    {
+                        pythonClasses.append('''    «generateDeadlineFunctionForReaction(reaction, reactionIndex, reactionParameters.toString)»
+                        ''')
+                    }
+   
+                    reactionIndex = reactionIndex+1;
                 }
                 instantiatedClasses.add(className)
             }    
@@ -407,6 +416,21 @@ class PythonGenerator extends CGenerator {
             generatePythonReactorClass(child, pythonClasses, federate, instantiatedClasses)
         }
     }
+    
+    /**
+     * Generate the function that is executed whenever the deadline of the reaction
+     * with the given reaction index is missed
+     * @param reaction The reaction to generate deadline miss code for
+     * @param reactionIndex The agreed-upon index of the reaction in the reactor (should match the C generated code)
+     * @param reactionParameters The parameters to the deadline violation function, which are the same as the reaction function
+     */
+    def generateDeadlineFunctionForReaction(Reaction reaction, int reactionIndex, String reactionParameters)'''
+        «val deadlineFunctionName = 'deadline_function_' + reactionIndex»
+
+        def «deadlineFunctionName»(self «reactionParameters»):
+            «reaction.deadline.code.toText»
+            return 0
+    '''
     
     /**
      * Generates preambles defined by user for a given reactor.
@@ -1122,9 +1146,14 @@ class PythonGenerator extends CGenerator {
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
             val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
+            val pythonDeadlineFunctionName = 'deadline_function_' + reactionIndex
 
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
+            
+            pr(structType + "* self = (" + structType + "*)instance_args;")
+            
+            pr('''invoke_python_function("__main__", self->__lf_name, 0 ,"«pythonDeadlineFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
             //pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
             //prSourceLineNumber(reaction.deadline.code)
