@@ -1,0 +1,37 @@
+// Test a deadline where the deadline violation produces
+// an output and the container reacts to that output.
+target Python {threads: 1};
+reactor Deadline(threshold:time(100 msec)) {
+    input x;
+    output deadline_violation;
+    reaction(x) -> deadline_violation {=
+        sys.stderr.write("ERROR: Deadline violation was not detected!\n")
+        exit(1)
+    =} deadline(threshold) {=
+        print("Deadline violation detected.")
+        deadline_violation.set(True)
+    =}
+}
+main reactor DeadlineHandledAbove {
+    state violation_detected(false);
+    d = new Deadline(threshold = 10 msec);
+    reaction(startup) -> d.x {=
+        sleep_time = MSEC(200)
+        start_time = get_physical_time()
+        while get_physical_time() < (start_time + sleep_time):
+            pass
+        d.x.set(42)
+    =}
+    reaction(d.deadline_violation) {=
+        if d.deadline_violation.value is True:
+            print("Output successfully produced by deadline miss handler.")
+            self.violation_detected = True
+    =}
+    reaction(shutdown) {=
+        if self.violation_detected is True:
+            print("SUCCESS. Test passes.")
+        else:
+            sys.stderr.write("FAILURE. Container did not react to deadline violation.\n")
+            exit(2)
+    =}
+}
