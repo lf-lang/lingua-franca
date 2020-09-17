@@ -1,7 +1,7 @@
 // This tests delaying an array type.
 target Python;
 reactor DelayPointer(delay:time(100 msec)) {
-    mutable input _in; // Python does not require explicit type allocation
+    mutable input _in; // The Python target does not require explicit type allocation for types other than time
     output out;
     logical action a;
     reaction(_in) -> a {=
