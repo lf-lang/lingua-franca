@@ -1,0 +1,43 @@
+target Python {
+    threads: 1
+};
+reactor Source {
+    output y;
+    timer t;
+    reaction(t) -> y {=
+        y.set(1)
+    =}
+} 
+reactor Destination {
+    input x;
+    input y;
+    reaction(x, y) {=
+        sm = 0
+        if x.is_present:
+            sm += x.value
+        if y.is_present:
+            sm += y.value
+        print("Received ", sm);
+        if sm != 2:
+            sys.stderr.write("FAILURE: Expected 2.\n")
+            exit(4)
+    =}
+}
+reactor Pass {
+    input x;
+    output y;
+    reaction(x) -> y {=
+        y.set(x.value)
+    =}
+}
+
+main reactor Determinism {
+    s = new Source();
+    d = new Destination();
+    p1 = new Pass();
+    p2 = new Pass();
+    s.y -> d.y;
+    s.y -> p1.x;
+    p1.y -> p2.x;
+    p2.y -> d.x;
+}
