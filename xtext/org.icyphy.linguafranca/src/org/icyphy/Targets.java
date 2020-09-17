@@ -413,7 +413,7 @@ public enum Targets {
         /**
          * Directive to specify the coordination mode
          */
-        COORDINATION("coordination", Arrays.asList(Targets.C, Targets.CCpp)),
+        COORDINATION("coordination", Arrays.asList(Targets.C, Targets.CCpp, Targets.Python)),
         
         /**
          * Directive to let the execution engine remain active also if there

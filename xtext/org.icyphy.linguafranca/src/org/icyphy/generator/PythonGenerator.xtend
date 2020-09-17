@@ -53,6 +53,11 @@ import java.util.regex.Pattern
 import org.icyphy.InferredType
 import java.util.LinkedHashMap
 import org.icyphy.linguaFranca.Reactor
+import java.io.FileOutputStream
+import java.util.stream.Stream
+import java.io.IOException
+import java.nio.file.Path
+import java.nio.file.Files
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -331,7 +336,8 @@ class PythonGenerator extends CGenerator {
         }
         
         // Do not generate classes that don't have any reactions
-        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
+        // Do not generate the main federated class, which is always implemented in C
+        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !decl.toDefinition.isFederated) {
             if (reactorBelongsToFederate(instance, federate) && !instantiatedClasses.contains(className)) {
         
                 pythonClasses.append('''
@@ -576,8 +582,9 @@ class PythonGenerator extends CGenerator {
             return
         }
 
-
-        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
+        // Do not instantiate reactor classes that don't have a reaction in Python
+        // Do not instantiate the federated main reactor since it is generated in C
+        if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !instance.definition.reactorClass.toDefinition.isFederated) {
             if (reactorBelongsToFederate(instance, federate) && instance.bankMembers !== null) {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // a list of instances of reactors and return.         
@@ -665,7 +672,7 @@ class PythonGenerator extends CGenerator {
     /**
      * Generate the necessary Python files
      * @param fsa The file system access (used to write the result).
-     * 
+     * @param federate The federate instance
      */
     def generatePythonFiles(IFileSystemAccess2 fsa, FederateInstance federate)
     {
@@ -690,7 +697,8 @@ class PythonGenerator extends CGenerator {
         }
             
         // Create the setup file
-        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath)        
+        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath)
+             
         
     }
     
@@ -899,21 +907,65 @@ class PythonGenerator extends CGenerator {
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-            IGeneratorContext context) {
-                // Request to generate the name field                
-                super.addClassNameToSelfStruct = true
-                
-            	super.doGenerate(resource, fsa, context)
-            	
-                // Don't generate code if there is no main reactor
-                if(this.main !== null)
-                {
-                    generatePythonFiles(fsa, null)
-                    pythonCompileCode
-                }
-                
+    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+        // Request to generate the name field                
+        super.addClassNameToSelfStruct = true
+
+        super.doGenerate(resource, fsa, context)
+
+        var baseFileName = filename
+        for (federate : federates) {
+            if (!federate.isSingleton) {
+                filename = baseFileName + '_' + federate.name
             }
+            // Don't generate code if there is no main reactor
+            if (this.main !== null) {
+                generatePythonFiles(fsa, federate)
+                // The C generator produces all the .c files in a single central folder.
+                // However, we need to create a setup.py for each federate and run
+                // "pip install ." individually to compile and install each module
+                // Here, we move the necessary C files into each federate's folder
+                if (!federate.isSingleton) {
+
+                    val srcDir = directory + File.separator + "src-gen" + File.separator + baseFileName
+                    val dstDir = directory + File.separator + "src-gen" + File.separator + filename
+                    var filesToCopy = newArrayList('''«filename».c''', "pythontarget.c", "pythontarget.h",
+                        "ctarget.h")
+                    
+                    for (file : filesToCopy) {
+                        var src = new File(srcDir + File.separator + file)
+                        var dst = new File(dstDir + File.separator + file)
+                        try {
+                            java.nio.file.Files.copy(
+                                src.toPath(),
+                                dst.toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                                java.nio.file.StandardCopyOption.COPY_ATTRIBUTES,
+                                java.nio.file.LinkOption.NOFOLLOW_LINKS
+                            )
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                    
+                    // Copy core library files
+                    copyFolder(new File(srcDir + File.separator + "core").toPath , new File(dstDir + File.separator + "core").toPath)
+                    
+                    // Do not compile the Python code here. They will be compiled on remote machines
+                }
+                else
+                {
+                    // If there are no federates, compile and install the generated code
+                    pythonCompileCode                
+                }
+            }
+
+        }
+        // Restore filename
+        filename = baseFileName
+    }
+            
             
     
     /**
@@ -995,7 +1047,8 @@ class PythonGenerator extends CGenerator {
                 
         val reactor = decl.toDefinition
         
-        if(reactor.name.contains(GEN_DELAY_CLASS_NAME))
+        // Delay reactors and top-level reactions used in the top-level reactor(s) are generated in C
+        if(reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((decl === this.mainDef.reactorClass) && reactor.isFederated))
         {
             return super.generateReaction(reaction, decl, reactionIndex)
         }
@@ -1393,6 +1446,188 @@ class PythonGenerator extends CGenerator {
         // Do nothing
     }
     
+    /** FIXME: This function is copied from the CGenerator to enable federated
+     *  execution. Ideally, the CGenerator.createLauncher() function should be refactored
+     *  into a more flexible format that allows for various target source code extensions.
+     * 
+     *  Create the launcher shell scripts. This will create one or two file
+     *  in the output path (bin directory). The first has name equal to
+     *  the filename of the source file without the ".lf" extension.
+     *  This will be a shell script that launches the
+     *  RTI and the federates.  If, in addition, either the RTI or any
+     *  federate is mapped to a particular machine (anything other than
+     *  the default "localhost" or "0.0.0.0"), then this will generate
+     *  a shell script in the bin directory with name filename_distribute.sh
+     *  that copies the relevant source files to the remote host and compiles
+     *  them so that they are ready to execute using the launcher.
+     * 
+     *  A precondition for this to work is that the user invoking this
+     *  code generator can log into the remote host without supplying
+     *  a password. Specifically, you have to have installed your
+     *  public key (typically found in ~/.ssh/id_rsa.pub) in
+     *  ~/.ssh/authorized_keys on the remote host. In addition, the
+     *  remote host must be running an ssh service.
+     *  On an Arch Linux system using systemd, for example, this means
+     *  running:
+     * 
+     *      sudo systemctl <start|enable> ssh.service
+     * 
+     *  Enable means to always start the service at startup, whereas
+     *  start means to just start it this once.
+     *  On MacOS, open System Preferences from the Apple menu and 
+     *  click on the "Sharing" preference panel. Select the checkbox
+     *  next to "Remote Login" to enable it.
+     */
+    override createLauncher() {
+        // NOTE: It might be good to use screen when invoking the RTI
+        // or federates remotely so you can detach and the process keeps running.
+        // However, I was unable to get it working properly.
+        // What this means is that the shell that invokes the launcher
+        // needs to remain live for the duration of the federation.
+        // If that shell is killed, the federation will die.
+        // Hence, it is reasonable to launch the federation on a
+        // machine that participates in the federation, for example,
+        // on the machine that runs the RTI.  The command I tried
+        // to get screen to work looks like this:
+        // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
+        var outPath = directory + File.separator + "src-gen" + File.separator + filename
+
+        val shCode = new StringBuilder()
+        val distCode = new StringBuilder()
+        pr(shCode, '''
+            #!/bin/bash
+            # Launcher for federated «filename».lf Lingua Franca program.
+            # Uncomment to specify to behave as close as possible to the POSIX standard.
+            # set -o posix
+            # Set a trap to kill all background jobs on error.
+            trap 'echo "#### Killing federates."; kill $(jobs -p)' ERR
+            # Launch the federates:
+        ''')
+        val distHeader = '''
+            #!/bin/bash
+            # Distributor for federated «filename».lf Lingua Franca program.
+            # Uncomment to specify to behave as close as possible to the POSIX standard.
+            # set -o posix
+        '''
+        val host = federationRTIProperties.get('host')
+        var target = host
+
+        var path = federationRTIProperties.get('dir')
+        if(path === null) path = 'LinguaFrancaRemote'
+
+        var user = federationRTIProperties.get('user')
+        if (user !== null) {
+            target = user + '@' + host
+        }
+        for (federate : federates) {        
+            var pyOutPath = directory + File.separator + "src-gen" + File.separator + '''«filename»_«federate.name»'''
+            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
+                if(distCode.length === 0) pr(distCode, distHeader)
+                pr(distCode, '''
+                    echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
+                    ssh «federate.host» mkdir -p «path»/log «path»/src-gen/«filename»/core
+                    echo "Copying necessary files to host «federate.host»"
+                    scp -r  src-gen/«filename» «federate.host»:«path»/src-gen/
+                    echo "Compiling on host «federate.host» using: pip install ."
+                    ssh «federate.host» 'cd «path»/src-gen/«filename»; pip install .'
+                ''')
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    ssh «federate.host» '\
+                        cd «path»; python3 src-gen/«filename»/«filename»_«federate.name».py >& log/«filename»_«federate.name».out; \
+                        echo "****** Output from federate «federate.name» on host «federate.host»:"; \
+                        cat log/«filename»_«federate.name».out; \
+                        echo "****** End of output from federate «federate.name» on host «federate.host»"' &
+                ''')                
+            } else {
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name»."
+                    pushd «outPath» > /dev/
+                    echo "Compiling and installing the LinguaFranca«filename» module"
+                    pip install .
+                    popd > /dev/null
+                    python3 «outPath»«File.separator»«filename»_«federate.name».py &
+                ''')                
+            }
+        }
+        // Launch the RTI in the foreground.
+        if (host == 'localhost' || host == '0.0.0.0') {
+            pr(shCode, '''
+                echo "#### Launching the runtime infrastructure (RTI)."
+                «outPath»«File.separator»«filename»_RTI
+            ''')
+        } else {
+            // Copy the source code onto the remote machine and compile it there.
+            if (distCode.length === 0) pr(distCode, distHeader)
+            // The mkdir -p flag below creates intermediate directories if needed.
+            pr(distCode, '''
+                cd «path»
+                echo "Making directory «path» and subdirectories src-gen and path on host «target»"
+                ssh «target» mkdir -p «path»/log «path»/src-gen/«filename»/core
+                pushd src-gen/«filename»/core > /dev/null
+                echo "Copying LF core files to host «target»"
+                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/«filename»/core
+                popd > /dev/null
+                pushd src-gen/«filename» > /dev/null
+                echo "Copying source files to host «target»"
+                scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen/«filename»
+                popd > /dev/null
+                echo "Compiling on host «target» using: «this.targetCompiler» -O2 «path»/src-gen/«filename»/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                ssh «target» '«this.targetCompiler» -O2 «path»/src-gen/«filename»/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+            ''')
+
+            // Launch the RTI on the remote machine using ssh and screen.
+            // The -t argument to ssh creates a virtual terminal, which is needed by screen.
+            // The -S gives the session a name.
+            // The -L option turns on logging. Unfortunately, the -Logfile giving the log file name
+            // is not standardized in screen. Logs go to screenlog.0 (or screenlog.n).
+            // FIXME: Remote errors are not reported back via ssh from screen.
+            // How to get them back to the local machine?
+            // Perhaps use -c and generate a screen command file to control the logfile name,
+            // but screen apparently doesn't write anything to the log file!
+            //
+            // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
+            // The sleep at the end prevents screen from exiting before outgoing messages from
+            // the federate have had time to go out to the RTI through the socket.
+            pr(shCode, '''
+                echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
+                ssh «target» 'cd «path»; \
+                    «outPath»/«filename»_RTI >& log/«filename»_RTI.out; \
+                    echo "------ output from «filename»_RTI on host «target»:"; \
+                    cat log/«filename»_RTI.out; \
+                    echo "------ end of output from «filename»_RTI on host «target»"'
+            ''')
+        }
+
+        // Write the launcher file.
+        // Delete file previously produced, if any.
+        var file = new File(outPath + File.separator + filename)
+        if (file.exists) {
+            file.delete
+        }
+                
+        var fOut = new FileOutputStream(file)
+        fOut.write(shCode.toString().getBytes())
+        fOut.close()
+        if (!file.setExecutable(true, false)) {
+            reportWarning(null, "Unable to make launcher script executable.")
+        }
+        
+        // Write the distributor file.
+        // Delete the file even if it does not get generated.
+        file = new File(outPath + File.separator + filename + '_distribute.sh')
+        if (file.exists) {
+            file.delete
+        }
+        if (distCode.length > 0) {
+            fOut = new FileOutputStream(file)
+            fOut.write(distCode.toString().getBytes())
+            fOut.close()
+            if (!file.setExecutable(true, false)) {
+                reportWarning(null, "Unable to make distributor script executable.")
+            }
+        }
+    }
         
     /**
      * Generate code to convert C actions to Python action capsules
@@ -1575,6 +1810,21 @@ class PythonGenerator extends CGenerator {
             case "Py_Object": "O"
             case "Py_Object*": "O"
             default: "O"
+        }
+    }
+    
+    
+    private def copyFolder(Path src, Path dest) throws IOException {
+        try (var Stream<Path> stream = Files.walk(src)) {
+            stream.forEach([source|copy(source, dest.resolve(src.relativize(source)))]);
+        }
+    }
+
+    private def copy(Path source, Path dest) {
+        try {
+            Files.copy(source, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
     
