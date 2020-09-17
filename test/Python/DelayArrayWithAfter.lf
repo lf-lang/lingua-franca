@@ -1,0 +1,49 @@
+// This tests transport of dynamically allocated arrays over
+// connections with 'after'.
+target Python {
+    timeout: 5 sec,
+    fast: true
+};
+reactor Source {
+    output out:int;
+    state iteration(1);
+    timer t(0, 1 sec);
+    reaction(t) -> out {=
+        out.set([(x * self.iteration) for x in [1,2,3]])
+        print("At time {:d}, sending list ".format(get_elapsed_logical_time()), out.value) 
+        
+        self.iteration += 1
+    =}
+}
+
+// The scale parameter is just for testing.
+reactor Print(scale:int(1)) {
+    input _in:int;
+    state iteration(1);
+    state inputs_received(0);
+    reaction(_in) {=
+        self.inputs_received += 1
+
+        print("At time {:d}, received list ".format(get_elapsed_logical_time()), _in.value)
+        print("Received: [%s]" % ', '.join(map(str, _in.value)))
+        if _in.value != [(x * self.scale * self.iteration) for x in [1, 2, 3]]:
+            sys.stderr.write("ERROR: Value received by Print does not match expectation!\n")
+            exit(1)
+        if len(_in.value) != 3:
+            sys.stderr.write("ERROR: Received list length is not 3!\n")
+            exit(2)
+
+        self.iteration += 1
+    =}
+    
+    reaction(shutdown) {=
+        if self.inputs_received == 0:
+            sys.stderr.write("ERROR: Print reactor received no inputs.\n")
+            exit(3)
+    =}
+}
+main reactor DelayArrayWithAfter {
+    s = new Source();
+    p = new Print();
+    s.out -> p._in after 1500 msec;
+}
