@@ -1,0 +1,24 @@
+// This file includes code documented on the Wiki.
+// For this test, success is just compiling and running.
+target Python {
+    timeout: 2 sec,
+    fast: false
+};
+main reactor GetTime {
+    timer t(0, 1 sec);
+    reaction(t) {=
+        logical = get_logical_time()
+        print("Logical time is ", logical)
+
+        elapsed = get_elapsed_logical_time()
+        print("Elapsed logical time is ", elapsed)
+        
+        physical = get_physical_time()
+        print("Physical time is ", physical)
+
+        elapsed_physical = get_elapsed_physical_time()
+        print("Elapsed physical time is ", elapsed_physical)
+        
+        print("Time lag is ", physical - logical)
+    =}
+}
