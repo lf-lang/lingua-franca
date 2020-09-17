@@ -1,0 +1,44 @@
+// This test checks that logical time is incremented an appropriate
+// amount as a result of an invocation of the schedule() function at
+// runtime. It also performs various smoke tests of timing aligned
+// reactions. The first instance has a period of 4 seconds, the second
+// of 2 seconds, and the third (composite) or 1 second.
+target Python {
+    timeout: 10 sec,
+    fast: true
+};
+reactor Reschedule(period:time(2 secs), message("Hello Python")) {
+    state count:int(0);
+    state previous_time:time(0);
+    timer t(1 secs, period);
+    logical action a;
+    reaction(t) -> a {=
+        print(self.message)
+        a.schedule(MSEC(200))
+        # Print the current time.
+        self.previous_time = get_logical_time()
+        secs = self.previous_time/BILLION
+        print("Current time is ", self.previous_time)
+        print("Which is {:f} Plus {:d} nanoseconds.\n".format(secs, self.previous_time % BILLION))
+    =}
+    reaction(a) {=
+        self.count += 1
+        print("***** action {:d} at time {:d}\n".format(self.count, get_logical_time()))
+        # Check if a.value is not None.
+        if a.value is not None:
+            sys.stderr.write("FAILURE: Expected a.value to be None, but it exists.\n")
+            exit(2)
+        tm = get_logical_time()
+        if (tm - self.previous_time) != 200000000:
+            sys.stderr.write("FAILURE: Expected 200ms of logical time to elapse but got {:d} nanoseconds.\n".format(tm - self.previous_time))
+            exit(1)
+    =}
+} 
+reactor Inside(period:time(1 sec), message("Composite default message.")) {
+	third_instance = new Reschedule(period = period, message = message);
+}
+main reactor Hello { 
+	first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
+	second_instance = new Reschedule(message = "Hello from second_instance.");
+	composite_instance = new Inside(message = "Hello from composite_instance.");
+} 

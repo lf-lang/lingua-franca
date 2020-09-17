@@ -104,7 +104,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
 {
     generic_action_capsule_struct* act = (generic_action_capsule_struct*)self;
     long long offset;
-    PyObject* value;
+    PyObject* value = NULL;
 
     if (!PyArg_ParseTuple(args, "L|O", &offset, &value))
         return NULL;
@@ -674,6 +674,8 @@ PyObject* convert_C_action_to_py(void* action)
     // If token is not initialized, that is all we need to set
     if(trigger->token == NULL)
     {
+        Py_INCREF(Py_None);
+        ((generic_action_capsule_struct*)cap)->value = Py_None;
         return cap;
     }
 
