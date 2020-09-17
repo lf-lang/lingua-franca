@@ -1,0 +1,61 @@
+// Test data transport across hierarchy.
+target Python {
+    timeout: 5 sec,
+    fast: true
+};
+reactor Source {
+    output out:int;
+    timer t(0, 1 sec);
+    reaction(t) -> out {=
+        out.set(1)
+    =}
+}
+reactor Count {
+    output out:int;
+    timer t(0, 1 sec);
+    state i:int(0);
+    reaction(t) -> out {=
+        self.i += 1
+        out.set(self.i)
+    =}
+}
+reactor Add {
+    input in1:int;
+    input in2:int;
+    output out:int;
+    reaction(in1, in2) -> out {=
+        result = 0
+        if in1.is_present:
+            result += in1.value
+        if in2.is_present:
+            result += in2.value
+        out.set(result)
+    =}
+}
+reactor Print {
+    input _in:int;
+    state expected:int(2);
+    reaction(_in) {=
+        print("Received: ", _in.value)
+        if _in.value != self.expected:
+            sys.stderr.write("Expected {:d}.\n".format(self.expected))
+            exit(1)
+        self.expected+=1
+    =}
+}
+reactor AddCount {
+    input _in:int;
+    output out:int;
+    count = new Count();
+    add = new Add();
+    _in -> add.in1;
+    count.out -> add.in2;
+    add.out -> out;
+}
+main reactor Hierarchy2 {
+    source = new Source();
+    addCount = new AddCount();
+    print = new Print();
+    source.out -> addCount._in;
+    addCount.out -> print._in;
+}
