@@ -1,0 +1,54 @@
+// This tests actions with payloads by delaying an input by a fixed amount.
+target Python {
+    threads: 1 
+};
+reactor Delay(delay:time(100 msec)) {
+    input _in:int;
+    output out:int;
+    logical action a:int;
+    reaction(a) -> out {=
+        if (a.value is not None) and a.is_present:
+            out.set(a.value)
+    =}
+    reaction(_in) -> a {=
+        a.schedule(self.delay, _in.value)
+    =}
+}
+reactor Test {
+    input _in:int;
+    state start_time:time(0);
+    state received_value:bool(false);
+    reaction(startup) {=
+        # Record the logical time at the start.
+        self.start_time = get_logical_time()
+    =} 
+    reaction(_in) {=
+        print("Received: ", _in.value)
+        self.received_value = True
+        # Check the time of the input.
+        current_time = get_logical_time()
+        elapsed = current_time - self.start_time
+        print("After {:d} nsec of logical time.\n".format(elapsed))
+        if elapsed != 100000000:
+            sys.stderr.write("ERROR: Expected elapsed time to be 100000000. It was {:d}.\n".format(elapsed))
+            exit(1)
+        if _in.value != 42:
+            sys.stderr.write("ERROR: Expected input value to be 42. It was {:d}.\n".format(_in.value))
+            exit(2)
+    =}
+    reaction(shutdown) {=
+        print("Checking that communication occurred.")
+        if self.received_value is not True:
+            sys.stderr.write("ERROR: No communication occurred!\n")
+            exit(3)
+    =}
+}
+
+main reactor DelayInt { 
+    d = new Delay();
+    t = new Test();
+    d.out -> t._in; 
+    reaction(startup) -> d._in {=
+        d._in.set(42)
+    =}
+}

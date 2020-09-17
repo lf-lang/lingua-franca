@@ -1,0 +1,39 @@
+// This tests actions with immutable payloads that are neither malloc'd nor freed.
+target Python;
+
+reactor DelayString(delay:time(100 msec)) {
+    input _in;
+    output out;
+    logical action a;
+    reaction(a) -> out {=
+        out.set(a.value)
+    =}
+    reaction(_in) -> a {=
+        a.schedule(self.delay, _in.value)
+    =}
+}
+reactor Test {
+    input _in;
+    state start_time:time(0);
+    reaction(_in) {=
+        print("Received: ", _in.value)
+        # Check the time of the input.
+        elapsed = get_elapsed_logical_time()
+        print("After {:d} nsec of logical time.\n".format(elapsed))
+        if elapsed != 100000000:
+            sys.stderr.write("ERROR: Expected elapsed time to be 100000000. It was {:d}.\n".format(elapsed))
+            exit(1)
+        if _in.value != "Hello":
+            sys.stderr.write('ERROR: Expected input value to be "Hello". It was "{:s}".\n'.format(_in.value))
+            exit(2)
+    =}
+}
+
+main reactor DelayStringTest { 
+    d = new DelayString();
+    t = new Test();
+    d.out -> t._in; 
+    reaction(startup) -> d._in {=
+        d._in.set("Hello")
+    =}
+}
