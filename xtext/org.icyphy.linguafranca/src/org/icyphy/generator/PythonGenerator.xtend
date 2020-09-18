@@ -822,13 +822,13 @@ class PythonGenerator extends CGenerator {
         for (input : reactor.allInputs) {
             if (input.inferredType.isTokenType) {
                 pr(input, code, '''
-                    typedef «generic_port_type_with_token» «variableStructType(input, reactor)»;
+                    typedef «generic_port_type_with_token» «variableStructType(input, decl)»;
                 ''')
             }
             else
             {
                 pr(input, code, '''
-                   typedef «generic_port_type» «variableStructType(input, reactor)»;
+                   typedef «generic_port_type» «variableStructType(input, decl)»;
                 ''')                
             }
             
@@ -837,13 +837,13 @@ class PythonGenerator extends CGenerator {
         for (output : reactor.allOutputs) {
             if (output.inferredType.isTokenType) {
                  pr(output, code, '''
-                    typedef «generic_port_type_with_token» «variableStructType(output, reactor)»;
+                    typedef «generic_port_type_with_token» «variableStructType(output, decl)»;
                  ''')
             }
             else
             {
                 pr(output, code, '''
-                    typedef «generic_port_type» «variableStructType(output, reactor)»;
+                    typedef «generic_port_type» «variableStructType(output, decl)»;
                 ''')
             }
         }
@@ -1342,7 +1342,7 @@ class PythonGenerator extends CGenerator {
         }
         
         pr('''
-            «structType»* new_«reactor.name»() {
+            «structType»* new_«decl.name»() {
                 «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
                 «constructorCode.toString»
                 «portsAndTriggers.toString»
