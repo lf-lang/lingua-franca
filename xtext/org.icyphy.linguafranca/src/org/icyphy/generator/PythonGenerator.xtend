@@ -368,23 +368,8 @@ class PythonGenerator extends CGenerator {
                 ''')
                                 
                 val reactor = decl.toDefinition
-                for (stateVar : reactor.allStateVars) {
-                   if(!stateVar.inferredType.targetType.equals("PyObject*"))
-                   {
-                       // If type is given, use it
-                       pythonClasses.append('''    «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
-                       ''')                   
-                   }
-                   else if(stateVar.isInitialized)
-                   {
-                           // If type is not given, pass along the initialization directly if it is present
-                           pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»
-                           ''')
-                   }
-                }
                 
-
-                // Handle parameters
+                // Handle parameters first
                 for (param : decl.toDefinition.allParameters)
                 {
                     if(!param.inferredType.targetType.equals("PyObject*"))
@@ -402,6 +387,21 @@ class PythonGenerator extends CGenerator {
                     }
                 }
                 
+                // Next, handle state variables
+                for (stateVar : reactor.allStateVars) {
+                   if(!stateVar.inferredType.targetType.equals("PyObject*"))
+                   {
+                       // If type is given, use it
+                       pythonClasses.append('''    «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
+                       ''')                   
+                   }
+                   else if(stateVar.isInitialized)
+                   {
+                           // If type is not given, pass along the initialization directly if it is present
+                           pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»
+                           ''')
+                   }
+                }
                 
                 // Handle runtime initializations
                 pythonClasses.append('''    

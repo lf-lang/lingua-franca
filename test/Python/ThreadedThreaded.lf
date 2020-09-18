@@ -1,0 +1,46 @@
+// Check for speedup of multithreaded execution on multicore machines.
+// Thread execution is very limited in Python (threads cannot do work simoultanously)
+target Python {
+    timeout: 2 sec,
+    threads: 4
+};
+reactor Source {
+	timer t(0, 200 msec);
+	output out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+		out.set(self.s)
+		self.s += 1
+	=}
+}
+reactor TakeTime(instance:int(0)) {
+	input _in:int;
+	output out:int;
+	reaction(_in) -> out {=
+		offset = 0
+		for i in range(10000):
+		    offset+=1
+		out.set(_in.value + offset)
+	=}
+}
+reactor Destination(width:int(4)) {
+	state s:int(40000);
+	input[width] _in:int;
+	reaction(_in) {=
+		sm = sum([x.value for x in _in])
+
+		print("Sum of received: ", sm);
+		if sm != self.s:
+			sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
+			exit(1)
+
+		self.s += len(_in)
+	=}
+}
+main reactor ThreadedThreaded(width:int(4)) {
+	a = new Source();
+	t = new[width] TakeTime();
+	(a.out)+ -> t._in;
+    b = new Destination(width = width);
+	t.out -> b._in;
+}
