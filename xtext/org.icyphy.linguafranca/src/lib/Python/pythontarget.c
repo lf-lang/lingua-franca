@@ -213,6 +213,15 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args)
 }
 
 
+///////////////// Other useful functions /////////////////////
+/**
+ * Stop execution at the conclusion of the current logical time.
+ */
+static PyObject* py_stop(PyObject *self)
+{
+    stop();
+}
+
 
 //////////////////////////////////////////////////////////////
 ///////////// Main function callable from Python code
@@ -540,6 +549,7 @@ static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
   {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
   {"get_elapsed_physical_time", py_get_elapsed_physical_time, METH_NOARGS, NULL},
+  {"stop", py_stop, METH_NOARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
 
