@@ -175,12 +175,14 @@ class PythonGenerator extends CGenerator {
      * @param p The parameter instance to create initializers for
      * @return Initialization code
      */
-     protected def String getPythonInitializer(StateVar state) {        
+     protected def String getPythonInitializer(StateVar state) throws Exception {        
             if (state.init.size > 1) {
                 // parameters are initialized as mutable lists
                 return state.init.join('[', ', ', ']', [it.pythonTargetValue])
-            } else {
+            } else if (state.isInitialized) {
                 return state.init.get(0).getPythonTargetValue
+            } else {
+                return "None"
             }
         
     }
@@ -373,7 +375,7 @@ class PythonGenerator extends CGenerator {
                        pythonClasses.append('''    «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
                        ''')                   
                    }
-                   else
+                   else if(stateVar.isInitialized)
                    {
                            // If type is not given, pass along the initialization directly if it is present
                            pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»

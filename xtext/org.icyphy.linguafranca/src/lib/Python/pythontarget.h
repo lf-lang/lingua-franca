@@ -197,7 +197,10 @@ static PyObject* py_get_physical_time(PyObject *self, PyObject *args);
 instant_t get_elapsed_physical_time();
 static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args);
 
-
+/**
+ * Stop execution at the conclusion of the current logical time.
+ */
+static PyObject* py_stop(PyObject *self);
 
 //////////////////////////////////////////////////////////////
 ///////////// Main function callable from Python code
