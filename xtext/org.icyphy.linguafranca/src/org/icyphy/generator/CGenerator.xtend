@@ -2587,7 +2587,7 @@ class CGenerator extends GeneratorBase {
         pr(initializeTriggerObjects, "//***** Start initializing " + fullName)
 
         // Start with parameters.
-        initializeParameters(initializeTriggerObjects, instance)
+        generateParameterInitialization(initializeTriggerObjects, instance)
         
         // Once parameters are done, we can allocate memory for any multiports.
         // Allocate memory for outputs.
@@ -2723,57 +2723,8 @@ class CGenerator extends GeneratorBase {
         }
 
         // Next, initialize the "self" struct with state variables.
-        // These values may be expressions that refer to the parameter values defined above.
-        
-        for (stateVar : reactorClass.toDefinition.stateVars) {
-            
-            val initializer = getInitializer(stateVar, instance)
-            if (stateVar.initialized) {
-                if (stateVar.isOfTimeType) {
-                    pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "->" + stateVar.name + " = " +
-                            initializer + ";")
-                } else {
-                    // If the state is initialized with a parameter, then do not use
-                    // a temporary variable. Otherwise, do, because
-                    // static initializers for arrays and structs have to be handled
-                    // this way, and there is no way to tell whether the type of the array
-                    // is a struct.
-                    if (stateVar.isParameterized && stateVar.init.size > 0) {
-                        pr(initializeTriggerObjects,
-                            nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
-                    } else {
-                        var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
-                        // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
-                        if (instance.bank !== null) {
-                            temporaryVariableName += "_" + instance.bankIndex
-                        }
-                        // Array type has to be handled specially because C doesn't accept
-                        // type[] as a type designator.
-                        // Use the superclass to avoid [] being replaced by *.
-                        var type = super.getTargetType(stateVar.inferredType)
-                        val matcher = arrayPatternVariable.matcher(type)
-                        if (matcher.find()) {
-                            // If the state type ends in [], then we have to move the []
-                            // because C is very picky about where this goes. It has to go
-                            // after the variable name.
-                            pr(initializeTriggerObjects,
-                                "static " + matcher.group(1) + " " +
-                                temporaryVariableName + "[] = " + initializer + ";"
-                            )
-                        } else {
-                            pr(initializeTriggerObjects,
-                                "static " + type + " " +
-                                temporaryVariableName + " = " + initializer + ";"
-                            )
-                        }
-                        pr(initializeTriggerObjects,
-                            nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
-                        ) 
-                    }
-                }   
-            }
-        }
+        // These values may be expressions that refer to the parameter values defined above.        
+        generateStateVariableInitializations(instance)
 
         // Generate reaction structs for the instance.
         generateRemoteTriggerTable(instance, federate)
@@ -2915,6 +2866,66 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
+     * Generate code that initializes the state variables for a given instance.
+     * Unlike parameters, state variables are uniformly initialized for all instances
+     * of the same reactor.
+     * @param instance The reactor class instance
+     * @return Initialization code fore state variables of instance
+     */
+    def generateStateVariableInitializations(ReactorInstance instance) {
+        val reactorClass = instance.definition.reactorClass
+        val nameOfSelfStruct = selfStructName(instance)
+        for (stateVar : reactorClass.toDefinition.stateVars) {
+
+            val initializer = getInitializer(stateVar, instance)
+            if (stateVar.initialized) {
+                if (stateVar.isOfTimeType) {
+                    pr(initializeTriggerObjects, nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
+                } else {
+                    // If the state is initialized with a parameter, then do not use
+                    // a temporary variable. Otherwise, do, because
+                    // static initializers for arrays and structs have to be handled
+                    // this way, and there is no way to tell whether the type of the array
+                    // is a struct.
+                    if (stateVar.isParameterized && stateVar.init.size > 0) {
+                        pr(initializeTriggerObjects,
+                            nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
+                    } else {
+                        var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                        // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
+                        if (instance.bank !== null) {
+                            temporaryVariableName += "_" + instance.bankIndex
+                        }
+                        // Array type has to be handled specially because C doesn't accept
+                        // type[] as a type designator.
+                        // Use the superclass to avoid [] being replaced by *.
+                        var type = super.getTargetType(stateVar.inferredType)
+                        val matcher = arrayPatternVariable.matcher(type)
+                        if (matcher.find()) {
+                            // If the state type ends in [], then we have to move the []
+                            // because C is very picky about where this goes. It has to go
+                            // after the variable name.
+                            pr(
+                                initializeTriggerObjects,
+                                "static " + matcher.group(1) + " " + temporaryVariableName + "[] = " + initializer + ";"
+                            )
+                        } else {
+                            pr(
+                                initializeTriggerObjects,
+                                "static " + type + " " + temporaryVariableName + " = " + initializer + ";"
+                            )
+                        }
+                        pr(
+                            initializeTriggerObjects,
+                            nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
      * Generate code to allocate memory for a multiport of a contained reactor
      * @param builder The StringBuilder that the allocation code is appended to
      * @param port The multiport of a contained reactor
@@ -2943,7 +2954,7 @@ class CGenerator extends GeneratorBase {
      * @param instance The reactor instance
      * @return initialization code
      */
-    def initializeParameters(StringBuilder builder, ReactorInstance instance) {
+    def generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
         var nameOfSelfStruct = selfStructName(instance)
         // Array type parameters have to be handled specially.
         // Use the superclass getTargetType to avoid replacing the [] with *.

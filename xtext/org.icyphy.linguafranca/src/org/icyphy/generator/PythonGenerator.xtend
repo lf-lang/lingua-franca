@@ -129,20 +129,19 @@ class PythonGenerator extends CGenerator {
     //// Protected methods
     
      /**
-     * Override to convert true/false to True/False 
+     * Override to convert some C types to their
+     * Python equivalent.
+     * Examples:
+     * true/false -> True/False
      * @param v A value
      * @return A value string in the target language
      */
     private def getPythonTargetValue(Value v) {
-        if(v.toText == "false")
-        {
-            return "False"
+        switch(v.toText) {
+            case "false": return "False"
+            case "true": return "True"
+            default: return super.getTargetValue(v)
         }
-        else if(v.toText == "true")
-        {
-            return "True"
-        }
-        return super.getTargetValue(v)
     }
     
     /**
@@ -176,18 +175,34 @@ class PythonGenerator extends CGenerator {
      * @param p The parameter instance to create initializers for
      * @return Initialization code
      */
-     protected def String getPythonInitializer(ParameterInstance p) {        
-            if (p.type.isList && p.init.size > 1) {
-                // parameters are initialized as immutable tuples
-                return p.init.join('(', ', ', ')', [it.targetValue])
+     protected def String getPythonInitializer(StateVar state) {        
+            if (state.init.size > 1) {
+                // parameters are initialized as mutable lists
+                return state.init.join('[', ', ', ']', [it.pythonTargetValue])
             } else {
-                return p.init.get(0).targetValue
+                return state.init.get(0).getPythonTargetValue
+            }
+        
+    }
+    
+     /**
+     * Create a Python list for parameter initialization in target code.
+     * 
+     * @param p The parameter instance to create initializers for
+     * @return Initialization code
+     */
+     protected def String getPythonInitializer(ParameterInstance p) {        
+            if (p.init.size > 1) {
+                // parameters are initialized as immutable tuples
+                return p.init.join('(', ', ', ')', [it.pythonTargetValue])
+            } else {
+                return p.init.get(0).getPythonTargetValue
             }
         
     }
     
     /**
-     * Create a Python tuple for parameter initialization in target code.
+     * Create a Python list for parameter initialization in target code.
      * 
      * @param p The parameter to create initializers for
      * @return Initialization code
@@ -195,9 +210,9 @@ class PythonGenerator extends CGenerator {
      protected def String getPythonInitializer(Parameter p) {        
             if (p.init.size > 1) {
                 // parameters are initialized as immutable tuples
-                return p.init.join('(', ', ', ')', [it.targetValue])
+                return p.init.join('(', ', ', ')', [it.pythonTargetValue])
             } else {
-                return p.init.get(0).targetValue
+                return p.init.get(0).pythonTargetValue
             }
         
     }
@@ -355,13 +370,13 @@ class PythonGenerator extends CGenerator {
                    if(!stateVar.inferredType.targetType.equals("PyObject*"))
                    {
                        // If type is given, use it
-                       pythonClasses.append('''    «stateVar.name»:«stateVar.targetType» = «stateVar.targetInitializer»
+                       pythonClasses.append('''    «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
                        ''')                   
                    }
                    else
                    {
                            // If type is not given, pass along the initialization directly if it is present
-                           pythonClasses.append('''    «stateVar.name» = «stateVar.targetInitializer»
+                           pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»
                            ''')
                    }
                 }
@@ -453,10 +468,18 @@ class PythonGenerator extends CGenerator {
     /**
      * This generator inherits types from the CGenerator.
      * This function reverts them back to Python types
+     * For example, the types double is converted to float,
+     * the * for pointer types is removed, etc.
      * @param type The type
+     * @return The Python equivalent of a C type
      */
     def getPythonType(InferredType type) {
         var result = super.getTargetType(type)
+        
+        switch(result){
+            case "double": result = "float"
+            default: result = result
+        }
         
         val matcher = pointerPatternVariable.matcher(result)
         if(matcher.find()) {
@@ -1215,6 +1238,18 @@ class PythonGenerator extends CGenerator {
             unindent()
             pr("}")
         }
+    }
+    
+    /**
+     * Generate code that initializes the state variables for a given instance.
+     * Unlike parameters, state variables are uniformly initialized for all instances
+     * of the same reactor. This task is left to Python code to allow for more liberal
+     * state variable assignments.
+     * @param instance The reactor class instance
+     * @return Initialization code fore state variables of instance
+     */
+    override generateStateVariableInitializations(ReactorInstance instance) {
+        
     }
     
     /**

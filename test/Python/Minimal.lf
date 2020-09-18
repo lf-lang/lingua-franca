@@ -3,6 +3,5 @@ target Python;
 main reactor Minimal {
     reaction(startup) {=
         print("Hello World.")
-    =}
-   
+    =}   
 }
