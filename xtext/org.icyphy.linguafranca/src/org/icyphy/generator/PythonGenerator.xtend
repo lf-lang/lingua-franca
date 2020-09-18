@@ -1341,12 +1341,11 @@ class PythonGenerator extends CGenerator {
         
         // Next handle inputs.
         for (input : reactor.allInputs) {
-           if (input.isMultiport) {
-               // TODO
-           }
-           else
-           {
-           }
+           // FIXME: might need to address multiports differently
+           // Allocate the default value so that unconnected inputs are initialized as PyObjects
+           pr(input, portsAndTriggers, '''
+           self->__default__«input.name» = port_instance_t.tp_new(&port_instance_t, NULL, NULL);
+           ''')
         }
         
         // Next handle outputs.

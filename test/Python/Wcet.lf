@@ -1,0 +1,40 @@
+// Setup for WCET analysis of Worker
+target Python;
+reactor Source {
+    output out1: int;
+    output out2: int;
+    timer t;
+    reaction(t) -> out1, out2 {=
+        out1.set(5)
+        out2.set(10)
+    =}
+}
+reactor Work {
+    input in1: int;
+    input in2: int;
+    output out:int;
+    reaction(in1, in2) -> out {=
+        ret = 0
+        if in1.value > 10:
+            ret = in2.value * in1.value
+        else:
+            ret = in2.value + in1.value
+        out.set(ret)
+    =}
+}
+reactor Print {
+    input p_in:int;
+    reaction(p_in) {=
+        print("Received: ", p_in.value)
+    =}
+}
+
+main reactor Wcet {
+    source = new Source();
+    work = new Work();
+    print = new Print();
+    
+    source.out1 -> work.in1;
+    source.out2 -> work.in2;
+    work.out -> print.p_in;
+}
