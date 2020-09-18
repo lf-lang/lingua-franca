@@ -569,7 +569,8 @@ class PythonGenerator extends CGenerator {
             {
                 inits.append('''«effect.container.name» = Make
                 ''')
-                inits.append('''«effect.container.name».«effect.variable.name» = «effect.container.name»_«effect.variable.name»''')  
+                inits.append('''«effect.container.name».«effect.variable.name» = «effect.container.name»_«effect.variable.name»
+                ''')  
             }
             else{
                 // Do nothing          
