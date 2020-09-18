@@ -1,0 +1,54 @@
+target Python;
+
+// That's the stuff that shall be generated for the after
+reactor GeneratedDelay {
+	
+  input y_in:int;
+  output y_out:int;
+  state y_state:int(0);
+  
+  // TODO: delay in act or the schedule call?
+  physical action act(0 msec);
+
+  reaction(y_in) -> act {=
+    self.y_state = y_in.value
+    act.schedule(MSEC(100))
+=}
+
+  reaction(act) -> y_out {=
+    y_out.set(self.y_state)
+  =}
+}
+reactor Source {
+    output out:int;
+    timer t;
+    // reaction(t) -> out after 100 msec {=
+    reaction(t) -> out {=
+        out.set(1)
+    =} 
+}
+
+reactor Sink {
+	input s_in:int;
+	reaction(s_in) {=
+        elapsed_logical = get_elapsed_logical_time()
+        logical = get_logical_time()
+        physical = get_physical_time()
+        print("Nanoseconds since start: {:d} {:d} {:d}.\n".format(logical, physical, elapsed_logical))
+        if elapsed_logical < MSEC(100):
+            sys.stderr.write("Expected {:d} but got {:d}.\n".format(MSEC(100), elapsed_logical))
+            exit(1)
+	=} deadline(200 msec) {= =}
+}
+main reactor ManualDelayedReaction {
+    
+    source = new Source();
+    sink = new Sink();
+    g = new GeneratedDelay();
+    
+    // source.out -> sink.s_in;
+    // rewritten above
+    source.out -> g.y_in;
+    g.y_out -> sink.s_in;
+    
+}
