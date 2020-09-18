@@ -1,35 +1,35 @@
 // Example in the Wiki.
-    target Python {threads: 1};
-   reactor Scale(scale:int(2)) {
-        input x:int;
-        output y:int;
-        reaction(x) -> y {=
-            y.set(x.value * self.scale)
-        =}
-    }
-    reactor Test {
-        input x:int;
-        state received_value:bool(0);
-        reaction(x) {=
-            print("Received " + str(x.value))
-            self.received_value = True
-            if x.value != 2:
-                sys.stderr.write("ERROR: Expected 2!")
-                exit(1)
-        =}
-        reaction(shutdown) {=
-            if self.received_value is None:
-                sys.stderr.write("ERROR: No value received by Test reactor!")
-            else:
-                sys.stderr.write("Test passes.")
-            
-        =}
-    }
-    main reactor Gain {
-        g = new Scale();
-        d = new Test();
-        g.y -> d.x;
-        reaction(startup) -> g.x {=
-            g.x.set(1)
-        =}
-    }
+target Python {threads: 1};
+reactor Scale(scale:int(2)) {
+    input x:int;
+    output y:int;
+    reaction(x) -> y {=
+        y.set(x.value * self.scale)
+    =}
+}
+reactor Test {
+    input x:int;
+    state received_value:bool(0);
+    reaction(x) {=
+        print("Received " + str(x.value))
+        self.received_value = True
+        if x.value != 2:
+            sys.stderr.write("ERROR: Expected 2!")
+            exit(1)
+    =}
+    reaction(shutdown) {=
+        if self.received_value is None:
+            sys.stderr.write("ERROR: No value received by Test reactor!")
+        else:
+            sys.stderr.write("Test passes.")
+        
+    =}
+}
+main reactor Gain {
+    g = new Scale();
+    d = new Test();
+    g.y -> d.x;
+    reaction(startup) -> g.x {=
+        g.x.set(1)
+    =}
+}
