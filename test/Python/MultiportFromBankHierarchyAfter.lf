@@ -1,0 +1,45 @@
+ // Check multiport output to bank of recipients.
+ // Here, the bank is smaller than the width of the sending port.
+target Python {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source(instance:int(0)) {
+    output out:int;
+    reaction(startup) -> out {=
+        out.set(self.instance)
+    =}
+}
+reactor Container {
+    output[3] out:int;
+    s = new[3] Source();
+    s.out -> out;
+}
+reactor Destination {
+    input[3] _in:int;
+    state received(false);
+    reaction(_in) {=
+        for i in range(len(_in)):
+            print("Destination channel {:d} received {:d}.\n".format(i, _in[i].value))
+            if i != _in[i].value:
+                sys.stderr.write("ERROR: Expected {:d}.\n".format(i))
+                exit(1)
+        if get_elapsed_logical_time() != SEC(1):
+            sys.stderr.write("ERROR: Expected to receive input after one second.\n")
+            exit(2)
+        self.received = True
+    =}
+    reaction(shutdown) {=
+        if self.received is not True:
+            sys.stderr.write("ERROR: Destination received no input!\n")
+            exit(1)
+        print("Success.\n")
+    =}
+}
+
+main reactor MultiportFromBankHierarchyAfter {
+    a = new Container();
+    b = new Destination();
+    a.out -> b._in after 1 sec;
+}
