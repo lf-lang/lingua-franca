@@ -1048,7 +1048,7 @@ class PythonGenerator extends CGenerator {
         val reactor = decl.toDefinition
         
         // Delay reactors and top-level reactions used in the top-level reactor(s) are generated in C
-        if(reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((decl === this.mainDef.reactorClass) && reactor.isFederated))
+        if(reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((decl === this.mainDef?.reactorClass) && reactor.isFederated))
         {
             return super.generateReaction(reaction, decl, reactionIndex)
         }
