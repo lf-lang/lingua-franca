@@ -1,0 +1,34 @@
+target Python;
+reactor Destination {
+    input x:int;
+    input y:int;
+    reaction(x, y) {=
+        elapsed = get_elapsed_logical_time()
+        print("Time since start: ", elapsed)
+        if elapsed != 0:
+            sys.stderr.write("Expected elapsed time to be 0, but it was {:d}.\n".format(elapsed))
+            exit(1)
+        count = 0
+        if x.is_present:
+            print("  x is present.\n")
+            count += 1
+        if y.is_present:
+            print("  y is present.\n")
+            count += 1
+        if count != 1:
+            sys.stderr.write("Expected exactly one input to be present but got {:d}.\n".format(count))
+            exit(1)
+    =}
+}
+main reactor Microsteps {
+    timer start;
+    logical action repeat;
+    d = new Destination();
+    reaction(start) -> d.x, repeat {=
+        d.x.set(1)
+        repeat.schedule(0)
+    =}
+    reaction(repeat) -> d.y {=
+        d.y.set(1)
+    =}
+}

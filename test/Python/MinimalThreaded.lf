@@ -1,0 +1,9 @@
+// This is a smoke test of a minimal reactor.
+target Python {
+	threads: 1
+};
+main reactor MinimalThreaded {
+    reaction(startup) {=
+        print("Hello World.")
+    =}   
+}
