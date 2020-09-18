@@ -1,0 +1,16 @@
+// This tests the ability to import a reactor definition
+// that itself imports a reactor definition.
+target Python;
+import Imported as X from "Imported.lf"
+import Imported as Y from "Imported.lf"
+import ImportedAgain as Z from "ImportedAgain.lf"
+main reactor Import {
+	timer t;
+	a = new X();
+	b = new Y();
+	c = new Z();
+	
+	reaction(t) -> a.x {=
+		a.x.set(42) 
+	=}
+}
