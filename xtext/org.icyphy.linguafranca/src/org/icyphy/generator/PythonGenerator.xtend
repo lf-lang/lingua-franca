@@ -1205,17 +1205,17 @@ class PythonGenerator extends CGenerator {
             // Unfortunately, threads cannot run concurrently in Python.
             // Therefore, we need to make sure reactions cannot execute concurrently by
             // holding the mutex lock. FIXME: Disabled for now
-            //if(targetThreads > 0)
-            //{
-            //    pr(pyThreadMutexLockCode(0))
-            //}
+            if(targetThreads > 0)
+            {
+                pr(pyThreadMutexLockCode(0))
+            }
             
             pr('''invoke_python_function("__main__", self->__lf_name, 0 ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
             
-            //if(targetThreads > 0)
-            //{
-            //    pr(pyThreadMutexLockCode(1))                
-            //}
+            if(targetThreads > 0)
+            {
+                pr(pyThreadMutexLockCode(1))                
+            }
         }
         
         unindent()
