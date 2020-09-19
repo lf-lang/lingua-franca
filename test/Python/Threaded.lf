@@ -24,7 +24,6 @@ reactor TakeTime {
 	input _in:int;
 	output out:int;
 	reaction(_in) -> out {=
-        print("Received " + str(_in.value))
 
         offset:int = 0
         for i in range(10000):
