@@ -70,7 +70,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ////////////// Global variables ///////////////
-// The global Python object that hold the .py module that the
+// The global Python object that holds the .py module that the
 // C runtime interacts with
 PyObject *globalPythonModule = NULL;
 
