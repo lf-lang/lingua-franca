@@ -931,61 +931,75 @@ invoke_python_function(string module, string class, int instance_id, string func
 #ifdef VERBOSE
     printf("Initialized the Python interpreter.\n");
 #endif
-    
-    // Decode the MODULE name into a filesystem compatible string
-    pFileName = PyUnicode_DecodeFSDefault(module);
-    
-    // Set the Python search path to be the current working directory
-    char cwd[PATH_MAX];
-    if( getcwd(cwd, sizeof(cwd)) == NULL)
-    {
-        fprintf(stderr, "Failed to get the current working directory.\n");
-        exit(0);
-    }
 
-    wchar_t wcwd[PATH_MAX];
+    // If the Python module is already loaded, skip this.
+    if(globalPythonModule == NULL)
+    {    
+        // Decode the MODULE name into a filesystem compatible string
+        pFileName = PyUnicode_DecodeFSDefault(module);
+        
+        // Set the Python search path to be the current working directory
+        char cwd[PATH_MAX];
+        if( getcwd(cwd, sizeof(cwd)) == NULL)
+        {
+            fprintf(stderr, "Failed to get the current working directory.\n");
+            exit(0);
+        }
 
-    mbstowcs(wcwd, cwd, PATH_MAX);
+        wchar_t wcwd[PATH_MAX];
 
-    Py_SetPath(wcwd);
+        mbstowcs(wcwd, cwd, PATH_MAX);
+
+        Py_SetPath(wcwd);
 
 #ifdef VERBOSE
     printf("Loading module %s in %s.\n", module, cwd);
 #endif
 
-    pModule = PyImport_Import(pFileName);
+        pModule = PyImport_Import(pFileName);
 
 #ifdef VERBOSE
     printf("Loaded module %p.\n", pModule);
 #endif
 
-    // Free the memory occupied by pFileName
-    Py_DECREF(pFileName);
+        // Free the memory occupied by pFileName
+        Py_DECREF(pFileName);
 
-    // Check if the module was correctly loaded
-    if (pModule != NULL) {
-        // Get contents of module. pDict is a borrowed reference.
-        pDict = PyModule_GetDict(pModule);
-        if(pDict == NULL)
-        {
-            PyErr_Print();
-            fprintf(stderr, "Failed to load contents of module %s.\n", module);
-            return 1;
+        // Check if the module was correctly loaded
+        if (pModule != NULL) {
+            // Get contents of module. pDict is a borrowed reference.
+            pDict = PyModule_GetDict(pModule);
+            if(pDict == NULL)
+            {
+                PyErr_Print();
+                fprintf(stderr, "Failed to load contents of module %s.\n", module);
+                return 1;
+            }
+
+            Py_INCREF(pModule);
+            globalPythonModule = pModule;
+            Py_INCREF(pDict);
+            globalPythonModuleDict = pDict;
+
         }
+    }
 
+    if(globalPythonModule != NULL && globalPythonModuleDict != NULL)
+    {
+        Py_INCREF(globalPythonModule);
         // Convert the class name to a PyObject
         PyObject* list_name = PyUnicode_DecodeFSDefault(class);
 
         // Get the class list
-        Py_INCREF(pDict);
-        pClasses = PyDict_GetItem(pDict, list_name);
+        Py_INCREF(globalPythonModuleDict);
+        pClasses = PyDict_GetItem(globalPythonModuleDict, list_name);
         if(pClasses == NULL){
             PyErr_Print();
             fprintf(stderr, "Failed to load class list \"%s\" in module %s.\n", class, module);
             return 1;
         }
 
-        Py_DECREF(pDict);
+        Py_DECREF(globalPythonModuleDict);
 
         pClass = PyList_GetItem(pClasses, instance_id);
         if(pClass == NULL){
@@ -1034,7 +1048,7 @@ invoke_python_function(string module, string class, int instance_id, string func
                 // If the function call fails, print an error
                 // message and get rid of the PyObjects
                 Py_DECREF(pFunc);
-                Py_DECREF(pModule);
+                Py_DECREF(globalPythonModule);
                 Py_DECREF(pClass);
                 PyErr_Print();
                 fprintf(stderr, "Calling react failed.\n");
@@ -1055,7 +1069,7 @@ invoke_python_function(string module, string class, int instance_id, string func
             fprintf(stderr, "Function %s was not found or is not callable.\n", func);
         }
         Py_XDECREF(pFunc);
-        Py_DECREF(pModule); 
+        Py_DECREF(globalPythonModule); 
     }
     else {
         PyErr_Print();

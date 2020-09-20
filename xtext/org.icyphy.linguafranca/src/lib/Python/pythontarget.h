@@ -68,6 +68,17 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define STRINGIFY(X) #X
 #define TOSTRING(x) STRINGIFY(x)
 
+
+////////////// Global variables ///////////////
+// The global Python object that hold the .py module that the
+// C runtime interacts with
+PyObject *globalPythonModule = NULL;
+
+// The dictionary of the Python module that is used to load
+// class objects from
+PyObject *globalPythonModuleDict = NULL;
+
+
 /**
  * The struct used to instantiate a port
  * in Lingua Franca. This template is used 
