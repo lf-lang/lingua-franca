@@ -220,6 +220,9 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args)
 static PyObject* py_stop(PyObject *self)
 {
     stop();
+    
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 
