@@ -117,6 +117,9 @@ class InferredType {
      * @return A new inferred type representing the given AST node
      */
     static def fromAST(Type type) {
+        if (type === null) {
+            return undefined();
+        }
         return new InferredType(
             type,
             type.isTime,

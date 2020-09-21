@@ -1,0 +1,30 @@
+// This test demonstrates that after can be used on connections
+// with ports that have no types.
+target TypeScript {
+    fast: false,
+    timeout: 3 sec
+};
+
+reactor Foo {
+    input x;
+    output y;
+    reaction(x) -> y {=
+       // Do something
+    =}
+}
+reactor Print {
+    state expected_time:time(10 msec);
+    input x;
+    reaction(x) {=
+        // Do something
+    =}
+}
+main reactor Top {
+    f = new Foo();
+    p = new Print();
+    timer t(0, 1 sec);
+    reaction(t) -> f.x {=
+        // Do something
+    =}
+    f.y -> p.x after 10 msec;
+}

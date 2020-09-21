@@ -3,6 +3,7 @@ ActionIsPresent.lf
 ActionWithNoReaction.lf
 After.lf
 AfterCycles.lf
+AfterNoTypes.lf
 AfterOverlapped.lf
 AfterVoid.lf
 AsyncCallback.lf
