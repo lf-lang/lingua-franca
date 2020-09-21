@@ -105,7 +105,7 @@ class ASTUtils {
                     val type = (connection.rightPorts.get(0).variable as Port).type
                     val delayClass = getDelayClass(type, delayClasses, container, resource, generator)
                     val generic = generator.supportsGenerics
-                            ? InferredType.fromAST(type).toText
+                            ? generator.getTargetType(InferredType.fromAST(type))
                             : ""
                     // If the left or right has a multiport or bank, then create a bank
                     // of delays with an inferred width.
