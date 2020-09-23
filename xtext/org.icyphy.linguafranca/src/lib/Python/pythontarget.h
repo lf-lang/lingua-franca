@@ -93,11 +93,23 @@ PyObject *globalPythonModuleDict = NULL;
  *     connections to destinations.
  **/
 typedef struct {
-    PyObject_HEAD
     PyObject* value;
     bool is_present;
     int num_destinations;
 } generic_port_instance_struct;
+
+/**
+ * The struct used to represent ports in Python 
+ * applications. TODO: more comments.
+ **/
+typedef struct {
+    PyObject_HEAD
+    PyObject* port;
+    PyObject* value;
+    bool is_present;
+    int width;
+    int current_index;
+} generic_port_capsule_struct;
 
 /**
  * Special version of the template_input_output_port_struct
@@ -221,9 +233,15 @@ static PyObject* py_main(PyObject *self, PyObject *args);
 /////////////  Python Helper Functions
 
 /**
+ * A helper function to convert C ports to Python ports
+ * 
+ */
+PyObject* convert_C_port_to_py(void* port, int width);
+
+/**
  * A helper function to convert C actions to Python action capsules
  * @see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CGenerator.xtend for details about C actions
- * Python actions have the following fields (for more informatino @see generic_action_capsule_struct):
+ * Python actions have the following fields (for more information @see generic_action_capsule_struct):
  *   PyObject_HEAD
  *   PyObject* action;   
  *   PyObject* value; 
@@ -243,106 +261,6 @@ static PyObject* py_main(PyObject *self, PyObject *args);
  * the void* pointer into recieved_action.
  **/
 PyObject* convert_C_action_to_py(void* action);
-
-/**
- * A helper function to generate a mutable list of input ports to be sent 
- * to a Python reaction. Therefore, an array port_array[3] is converted to a 
- * Python list [port_array[0], port_array[1], port_array[2]].
- * 
- * This function recieves an array of ports of type port_instance_t in "port_array" with the given "size".
- * The ports in port_array will follow the template laid out in @see generic_port_instance_struct.
- * The port_array is structured as follows:
- *  generic_port_instance_struct* * *
- *                              ↑ ↑ ↑
- *                              Heap-allocated port that follows the generic_port_instance_struct template
- *                                | |
- *                                An array of ports in generic_port_instance_struct*[] format
- *                                  |
- *                                  Passed by reference
- * A Python list (which is mutable) of size "size" is created by calling PyList_New(size)
- * and each member in the generic_port_instance_struct*[] is added to this newly created list
- * by calling PyList_SET_ITEM(list, position, *input_by_reference).
- * 
- * @param port_array An array of input ports passed by reference
- * @param size size of the port_array
- * @return list A Python list of the input ports
- */
-PyObject* make_input_port_list(generic_port_instance_struct*** port_array, Py_ssize_t size);
-
-/**
- * A helper function to generate a mutable list of output ports to be sent 
- * to a Python reaction. Therefore, an array port_array[3] is converted to a 
- * Python list [port_array[0], port_array[1], port_array[2]].
- * 
- * This function recieves an array of ports of type port_instance_t in "port_array" with the given "size".
- * The ports in port_array will follow the template laid out in @see generic_port_instance_struct.
- * The port_array is structured as follows:
- *  generic_port_instance_struct* * 
- *                              ↑ ↑ 
- *                              Heap-allocated port that follows the generic_port_instance_struct template
- *                                | |
- *                                An array of ports in generic_port_instance_struct*[] format
- * 
- * A Python list (which is mutable) of size "size" is created by calling PyList_New(size)
- * and each member in the generic_port_instance_struct*[] is added to this newly created list
- * by calling PyList_SET_ITEM(list, position, input).
- * 
- * @param port_array An array of output ports passed by reference
- * @param size size of the port_array
- * @return list A Python list of the output ports
- */
-PyObject* make_output_port_list(generic_port_instance_struct** port_array, Py_ssize_t size);
-
-/**
- * A helper function to generate an immutable tuple of input ports to be sent 
- * to a Python reaction. Therefore, an array port_array[3] is converted to a 
- * Python tuple (port_array[0], port_array[1], port_array[2]). The contents of this tuple
- * cannot change at runtime.
- * 
- * This function recieves an array of ports of type port_instance_t in "port_array" with the given "size".
- * The ports in port_array will follow the template laid out in @see generic_port_instance_struct.
- * The port_array is structured as follows:
- *  generic_port_instance_struct* * *
- *                              ↑ ↑ ↑
- *                              Heap-allocated port that follows the generic_port_instance_struct template
- *                                | |
- *                                An array of ports in generic_port_instance_struct*[] format
- *                                  |
- *                                  Passed by reference
- * A Python tuple (which is mutable) of size "size" is created by calling PyTuple_New(size)
- * and each member in the generic_port_instance_struct*[] is added to this newly created tuple
- * by calling PyTuple_SET_ITEM(tuple, position, *input_by_reference).
- * 
- * @param port_array An array of input ports passed by reference
- * @param size size of the port_array
- * @return tuple A Python tuple of the input ports
- */
-PyObject* make_input_port_tuple(generic_port_instance_struct*** port_array, Py_ssize_t size);
-
-/**
- * A helper function to generate a mutable tuple of output ports to be sent 
- * to a Python reaction. Therefore, an array port_array[3] is converted to a 
- * Python tuple (port_array[0], port_array[1], port_array[2]). The contents of this tuple
- * cannot change at runtime.
- * 
- * This function recieves an array of ports of type port_instance_t in "port_array" with the given "size".
- * The ports in port_array will follow the template laid out in @see generic_port_instance_struct.
- * The port_array is structured as follows:
- *  generic_port_instance_struct* * 
- *                              ↑ ↑ 
- *                              Heap-allocated port that follows the generic_port_instance_struct template
- *                                | |
- *                                An array of ports in generic_port_instance_struct*[] format
- * 
- * A Python tuple (which is mutable) of size "size" is created by calling PyTuple_New(size)
- * and each member in the generic_port_instance_struct*[] is added to this newly created tuple
- * by calling PyTuple_SET_ITEM(tuple, position, input).
- * 
- * @param port_array An array of output ports passed by reference
- * @param size size of the port_array
- * @return tuple A Python tuple of the output ports
- */
-PyObject* make_output_port_tuple(generic_port_instance_struct** port_array, Py_ssize_t size);
 
 /** 
  * Invoke a Python func in class[instance_id] from module.
