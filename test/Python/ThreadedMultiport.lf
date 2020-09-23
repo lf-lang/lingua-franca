@@ -1,0 +1,57 @@
+// Check multiport capabilities on Outputs.
+target Python {
+    timeout: 2 sec,
+    threads: 4
+}; 
+reactor Source(width:int(4)) {
+	timer t(0, 200 msec);
+	output[width] out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+        for o in out:
+            o.set(self.s)
+        self.s += 1
+	=}
+}
+reactor Computation(instance:int(0), iterations:int(10000)) {
+	input _in:int;
+	output out:int;
+	reaction(_in) -> out {=
+        offset = 0
+        for i in range (self.iterations):
+            offset += 1
+        out.set(_in.value + offset)
+	=}
+}
+reactor Destination(width:int(4), iterations:int(10000)) {
+	state s:int(0);
+	input[width] _in:int;
+	reaction(_in) {=
+        expected = self.iterations * self.width + self.s
+        sm = 0
+        for i in _in:
+            if i.is_present:
+                sm += i.value
+        print("Sum of received: ", sm)
+        if sm != expected:
+            sys.stderr.write("ERROR: Expected {:d}.\n".format(expected))
+            exit(1)
+
+        self.s += self.width
+	=}
+	reaction(shutdown) {=
+        if self.s == 0:
+            sys.stderr.write("ERROR: Destination received no input!\n")
+            exit(1)
+
+        print("Success.\n")
+    =}
+}
+
+main reactor ThreadedMultiport(width:int(4), iterations:int(10000)) { 
+	a = new Source(width = width);
+	t = new[width] Computation(iterations = iterations);
+	b = new Destination(width = width, iterations = iterations);
+	a.out -> t._in;
+	t.out -> b._in;
+}
