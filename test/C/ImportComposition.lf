@@ -5,12 +5,14 @@ import ImportedComposition from "ImportedComposition.lf";
 
 main reactor ImportComposition {
     a = new ImportedComposition();
+    state received:bool(false);
     reaction(startup) -> a.x {=
         SET(a.x, 42); 
     =}
     reaction(a.y) {=
         interval_t receive_time = get_elapsed_logical_time();
         printf("Received %d at time %lld\n", a.y->value, receive_time);
+        self->received = true;
         if (receive_time != 55000000LL) {
             fprintf(stderr, "ERROR: Received time should have been 55,000,000.\n");
             exit(1);
@@ -20,4 +22,10 @@ main reactor ImportComposition {
             exit(2);
         }
     =}
-} 
+    reaction(shutdown) {=
+        if (!self->received) {
+            fprintf(stderr, "ERROR: Nothing received.\n");
+            exit(3);
+        }
+    =}
+}

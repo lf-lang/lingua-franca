@@ -2015,7 +2015,7 @@ class CGenerator extends GeneratorBase {
                 for (port : reaction.dependentPorts) {
                     // The port to which the reaction writes may have dependent
                     // reactions in the container. If so, we list that port here.
-                    var portsWithDependentReactions = new LinkedList<PortInstance>()
+                    var portsWithDependentReactions = new LinkedHashSet<PortInstance>()
 
                     // The size of the array to be inserted into the triggers array of
                     // the reaction is the sum of the number of destination ports and
@@ -2082,8 +2082,20 @@ class CGenerator extends GeneratorBase {
                             // In that case, we want NULL.
                             // If the destination is an output port, however, then
                             // the dependentReactions.size reflects the number of downstream
-                            // reactions.
-                            if (destination.dependentReactions.size === 0 || destination.isOutput) {
+                            // reactions, including possible reactions in the container.
+                            if (destination.isOutput) {
+                                if (destination.dependentReactions.size === 0) {
+                                    pr(initializeTriggerObjectsEnd, '''
+                                        // Destination port «destination.getFullName» itself has no reactions.
+                                        «triggerArray»[«destinationCount++»] = NULL;
+                                    ''')
+                                } else {
+                                    // Add to portsWithDependentReactions. This occurs if the destination is
+                                    // output port of the container, and that output port triggers reactions in
+                                    // its container.
+                                    portsWithDependentReactions.add(destination)
+                                }
+                            } else if (destination.dependentReactions.size === 0) {
                                 pr(initializeTriggerObjectsEnd, '''
                                     // Destination port «destination.getFullName» itself has no reactions.
                                     «triggerArray»[«destinationCount++»] = NULL;
