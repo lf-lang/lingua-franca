@@ -290,10 +290,6 @@ class CGenerator extends GeneratorBase {
     
     // Set of acceptable import targets includes only C.
     val acceptableTargetSet = newLinkedHashSet('C')
-
-    // List of deferred assignments to perform in initialize_trigger_objects.
-    // FIXME: Remove this and InitializeRemoteTriggersTable
-    var deferredInitialize = new LinkedList<InitializeRemoteTriggersTable>()
     
     // Place to collect code to initialize the trigger objects for all reactor instances.
     var initializeTriggerObjects = new StringBuilder()
@@ -406,7 +402,6 @@ class CGenerator extends GeneratorBase {
         var commonCode = code;
         var commonStartTimers = startTimers;
         for (federate : federates) {
-            deferredInitialize.clear()
             shutdownActionInstances.clear()
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
@@ -3427,41 +3422,7 @@ class CGenerator extends GeneratorBase {
         // First, populate the trigger tables for each output.
         // The entries point to the trigger_t structs for the destination inputs.
         pr('// doDeferredInitialize')
-        for (init : deferredInitialize) {
-            if (init.reaction === null) {
-                // Input port being triggered.
-                var triggerStructName = triggerStructName(init.input)
-                // If the destination of a connection is an input
-                // port of a reactor that has no reactions to that input,
-                // then this trigger struct will not have been created.
-                // In that case, we want NULL.
-                // If the destination is an output port, however, then
-                // the dependentReactions.size will be zero, but we nevertheless
-                // want to set up the trigger.
-                if (init.input.dependentReactions.size === 0 &&
-                    !init.input.isOutput) {
-                    pr(init.remoteTriggersArrayName + '[' + init.arrayIndex +
-                        '] = NULL;')
-                } else {
-                    pr(
-                        init.remoteTriggersArrayName + '[' + init.arrayIndex +
-                            '] = &' + triggerStructName + ';')
-                }
-            } else {
-                // Reaction in a container being triggered.
-                // In this case, the input field is not an input, but the
-                // output of a contained reactor. If the contained reactor
-                // is not in the federate, then skip this step.
-                // Note that in this case, init.input is misnamed.
-                // It is an output.
-                if (reactorBelongsToFederate(init.input.parent, federate)) {
-                    var triggerStructName = triggerStructName(init.input)
-                    pr(
-                        init.remoteTriggersArrayName + '[' + init.arrayIndex +
-                        '] = &' + triggerStructName + ';')
-                }
-            }
-        }
+
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
         createDefaultTokens(main, federate)
