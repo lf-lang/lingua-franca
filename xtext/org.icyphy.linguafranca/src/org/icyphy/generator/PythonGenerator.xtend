@@ -97,7 +97,7 @@ class PythonGenerator extends CGenerator {
     *
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
-	val generic_port_type =  "generic_port_instance_struct*"
+	val generic_port_type =  "generic_port_instance_struct"
 
     /** 
     * Special template struct for ports with dynamically allocated
@@ -114,7 +114,7 @@ class PythonGenerator extends CGenerator {
     *
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
-	val generic_port_type_with_token = "generic_port_instance_struct*"
+	val generic_port_type_with_token = "generic_port_instance_struct"
 	
 	override getTargetUndefinedType() '''PyObject*'''
 
@@ -511,8 +511,11 @@ class PythonGenerator extends CGenerator {
                         if((trigger.variable as Input).isMutable)
                         {
                             // Create a deep copy
-                            inits.append('''«trigger.variable.name» = copy.deepcopy(«trigger.variable.name»)
+                            // FIXME: the value is not connected to anywhere
+                            inits.append('''«trigger.variable.name».value = copy.deepcopy(«trigger.variable.name».value)
                             ''')
+                            //inits.append('''«trigger.variable.name» = copy.deepcopy(«trigger.variable.name»)
+                            //''')
                         }
                         
                     } else {
@@ -799,20 +802,8 @@ class PythonGenerator extends CGenerator {
           directory + File.separator + "src-gen" + File.separator + filename
     }
     
-    /**
-     * Python always uses heap memory for ports 
-     */
-    override getStackPortMember(String portName, String member){
-         portName.getHeapPortMember(member)
-     }
-     
-     /**
-     * Return the operator used to retrieve struct members
-     */
-    override getStackStructOperator() '''
-    ->
-    '''
-    
+         
+   
     /**
      * Invoke pip on the generated code.
      */
@@ -888,6 +879,24 @@ class PythonGenerator extends CGenerator {
                 } «variableStructType(action, reactor)»;
             ''')
         }
+    }
+    
+       /**
+     * For the specified action, return a declaration for action struct to
+     * contain the value of the action. An action of
+     * type int[10], for example, will result in this:
+     * ```
+     *     int* value;
+     * ```
+     * This will return an empty string for an action with no type.
+     * @param action The action.
+     * @return A string providing the value field of the action struct.
+     */
+    override valueDeclaration(Action action) {
+        if (action.type === null) {
+            return ''
+        }
+        return "PyObject* value;"
     }
     
     /** Return a set of targets that are acceptable to this generator.
@@ -1028,36 +1037,6 @@ class PythonGenerator extends CGenerator {
      */
     def pythonReactionFunctionName(int reactionIndex) {
           "reaction_function_" + reactionIndex
-    }
-    
-    
-    /**
-     * Generate code to allocate memory for a multiport of a contained reactor
-     * @param builder The StringBuilder that the allocation code is appended to
-     * @param port The multiport of a contained reactor
-     * @param container The container of the contained reactor
-     * @param instance The ReactorInstance of the contained reactor
-     * @return allocation code
-     */
-    override allocateMultiportOfContainedReactor(StringBuilder builder, Port port, Instantiation container, ReactorInstance instance) {
-        var nameOfSelfStruct = selfStructName(instance)
-        // If the width is given as a numeric constant, then add that constant
-        // to the output count. Otherwise, assume it is a reference to one or more parameters.
-        val widthSpec = multiportWidthSpecInC(port, container, instance)
-        val containerName = container.name
-        val portStructType = variableStructType(port, container.reactorClass)
-        pr(builder, '''
-            «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
-            // Allocate memory to store pointers to the multiport outputs of a contained reactor.
-            // «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-            //        * «nameOfSelfStruct»->__«containerName».«port.name»__width);
-                    
-            «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»*)malloc(sizeof(PyObject *) * «nameOfSelfStruct»->__«containerName».«port.name»__width);
-            
-            for ( int __i=0 ; __i<«nameOfSelfStruct»->__«containerName».«port.name»__width ; __i++) {
-                «nameOfSelfStruct»->__«containerName».«port.name»[__i] = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-            }
-        ''')
     }
     
        
@@ -1252,227 +1231,20 @@ class PythonGenerator extends CGenerator {
      * @return Initialization code fore state variables of instance
      */
     override generateStateVariableInitializations(ReactorInstance instance) {
-        
+        // Do nothing
     }
     
     /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
+     * This function is overridden in the Python generator to do nothing.
+     * The state variables are initialized in Python code directly.
+     * @param reactor The reactor
+     * @param builder The StringBuilder that the generated code is appended to
+     * @return 
      */
-    override generateDelayBody(Action action, VarRef port) { 
-        val ref = generateVarRef(port);
-        // Note that the action.type set by the base class is actually
-        // the port type.
-        if (action.inferredType.isTokenType) {
-            '''
-            if («ref»->is_present) {
-                // Put the whole token on the event queue, not just the payload.
-                // This way, the length and element_size are transported.
-                schedule_token(«action.name», 0, «ref»->token);
-            }
-            '''
-        } else {
-            // FIXME: Setting ref_counts of the token directly causes memory leak
-            '''
-            «DISABLE_REACTION_INITIALIZATION_MARKER»
-            // Create a token
-            token_t* t = create_token(sizeof(PyObject*));
-            t->value = (*self->__«ref»)->value;
-            t->length = 1; // Length is 1
-            t->ref_count += (*self->__«ref»)->num_destinations;
-            
-            // Pass the token along
-            schedule_token(&self->__«action.name», 0, t);
-            '''
-        }
+    override generateStateVariablesForReactor(StringBuilder builder, Reactor reactor) {        
+        // Do nothing
     }
-    
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
-     * @param action The action that triggers the reaction
-     * @param port The port to write to.
-     */
-    override generateForwardBody(Action action, VarRef port) {
-        val outputName = generateVarRef(port)
-        if (action.inferredType.isTokenType) {
-            // Forward the entire token and prevent freeing.
-            // Increment the ref_count because it will be decremented
-            // by both the action handling code and the input handling code.
-            '''
-            «DISABLE_REACTION_INITIALIZATION_MARKER»
-            self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
-            self->__«outputName».token = (token_t*)self->___«action.name».token;
-            ((token_t*)self->___«action.name».token)->ref_count++;
-            self->«getStackPortMember('''__«outputName»''', "is_present")» = true;
-            '''
-        } else {
-            '''
-            «DISABLE_REACTION_INITIALIZATION_MARKER»
-            SET(self->__«outputName», (self->___«action.name».token)->value);
-            '''
-        }
-    }
-    
-    
-    /**
-     * Generate a constructor for the specified reactor in the specified federate.
-     * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
-     * @param constructorCode Lines of code previously generated that need to
-     *  go into the constructor.
-     */
-    override generateConstructor(
-        ReactorDecl decl, FederateInstance federate, StringBuilder constructorCode
-    ) {
-        val structType = selfStructType(decl)
-        val StringBuilder portsAndTriggers = new StringBuilder()
-        
-        val reactor = decl.toDefinition
-  
-
-                
-        // Initialize actions in Python
-        for (action : reactor.allActions) {
-            // TODO
-        }
-        
-        // Next handle inputs.
-        for (input : reactor.allInputs) {
-           // FIXME: might need to address multiports differently
-           // Allocate the default value so that unconnected inputs are initialized as PyObjects
-           pr(input, portsAndTriggers, '''
-           self->__default__«input.name» = port_instance_t.tp_new(&port_instance_t, NULL, NULL);
-           ''')
-        }
-        
-        // Next handle outputs.
-        for (output : reactor.allOutputs) {
-            if (output.isMultiport) {
-
-            } else {
-                pr(output, portsAndTriggers, '''
-                    self->__«output.name» =  PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-                ''')
-            }
-        }
-        
-        // Handle outputs of contained reactors
-        for (reaction : reactor.allReactions)
-        {
-            for (effect : reaction.effects ?:emptyList)
-            {
-                if(effect.variable instanceof Input)
-                {
-                    pr(effect.variable , portsAndTriggers, '''
-                        self->__«effect.container.name».«effect.variable.name» =  PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-                    ''')
-                }
-                else {
-                    // Do nothing
-                }
-            }
-        }
-        
-        pr('''
-            «structType»* new_«decl.name»() {
-                «structType»* self = («structType»*)calloc(1, sizeof(«structType»));
-                «constructorCode.toString»
-                «portsAndTriggers.toString»
-                return self;
-            }''')
-
-    }
-    
-    
-    /**
-     * A function used to generate initalization code for an output multiport
-     * @param builder The generated code is put into builder
-     * @param output The output port to be initialized
-     * @name
-     */
-    override initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorInstance instance) {
-        val reactor = instance.definition.reactorClass
-        pr(builder, '''
-            «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
-            // Allocate memory for multiport output.
-            «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(PyObject *) * «nameOfSelfStruct»->__«output.name»__width);
-            
-            for ( int __i=0 ; __i<«nameOfSelfStruct»->__«output.name»__width ; __i++) {
-                «nameOfSelfStruct»->__«output.name»[__i] = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-            }
-        ''')
-    }
-    
-    
-    /**
-     * Generate instantiation and initialization code for an output multiport of a reaction.
-     * The instantiations and the initializations are put into two separate StringBuilders in case delayed initialization is desirable
-     * @param instantiation The StringBuilder used to put code that allocates overall memory for a multiport
-     * @param initialization The StringBuilderused to put code that initializes members of a multiport
-     * @param effect The output effect of a given reaction
-     * @param instance The reaction instance itself
-     * @param reactionIdx The index of the reaction in the Reactor
-     * @param startIdx The index used to figure out the starting position of the output_produced array
-     */
-    override initializeReactionEffectMultiport(StringBuilder instantiation, StringBuilder initialization, VarRef effect, ReactorInstance instance, int reationIdx, String startIdx)
-    {
-        val port = effect.variable as Port
-        val reactorClass = instance.definition.reactorClass
-        val nameOfSelfStruct = selfStructName(instance)
-        // If the width is given as a numeric constant, then add that constant
-        // to the output count. Otherwise, assume it is a reference to one or more parameters.
-        val widthSpec = multiportWidthSpecInC(port, effect.container, instance)
-        // Allocate memory where the data will produced by the reaction will be stored
-        // and made available to the input of the contained reactor.
-        // This is done differently for ports like "c.in" than "out".
-        // This has to go at the end of the initialize_trigger_objects() function
-        // because the self struct of contained reactors has not yet been defined.
-        // FIXME: The following mallocs are not freed by the destructor!
-        if (effect.container === null) {
-            // This has form "out".
-            val portStructType = variableStructType(port, reactorClass)
-            pr(instantiation, '''
-                «nameOfSelfStruct»->__«port.name»__width = «widthSpec»;
-                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                «nameOfSelfStruct»->__«port.name» = («portStructType»*)malloc(sizeof(PyObject *) * «nameOfSelfStruct»->__«port.name»__width);
-                                    
-                for ( int __i=0 ; __i<«nameOfSelfStruct»->__«port.name»__width ; __i++) {
-                    «nameOfSelfStruct»->__«port.name»[__i] = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-                }
-            ''')
-            pr(initialization, '''
-                for (int i = 0; i < «widthSpec»; i++) {
-                    «nameOfSelfStruct»->___reaction_«reationIdx».output_produced[«startIdx» + i]
-                            = &«nameOfSelfStruct»->«getStackPortMember('''__«ASTUtils.toText(effect)»[i]''', "is_present")»;
-                }
-            ''')
-        } else {
-            // This has form "c.in".
-            val containerName = effect.container.name
-            val portStructType = variableStructType(port, effect.container.reactorClass)
-            pr(instantiation, '''
-                «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
-                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(PyObject *) 
-                        * «nameOfSelfStruct»->__«containerName».«port.name»__width);
-                for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«port.name»__width; i++) {
-                    «nameOfSelfStruct»->__«containerName».«port.name»[i] = PyObject_GC_New(generic_port_instance_struct, &port_instance_t);
-                }
-            ''')
-            pr(initialization, '''
-                for (int i = 0; i < «widthSpec»; i++) {
-                    «nameOfSelfStruct»->___reaction_«reationIdx».output_produced[«startIdx» + i]
-                            = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i]->is_present;
-                }
-            ''')
-        }
-    }
-    
+   
     /**
      * Generates C preambles defined by user for a given reactor
      * Since the Python generator expects preambles written in C,
@@ -1711,12 +1483,12 @@ class PythonGenerator extends CGenerator {
             if(!(port.variable as Port).isMultiport)
             {
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', (PyObject *)*self->__«port.container.name».«port.variable.name»''')
+                pyObjects.append(''', convert_C_port_to_py(&self->__«port.container.name».«port.variable.name», -2)''')
             }
             else
             {                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', make_output_port_list((generic_port_instance_struct **)*self->__«port.container.name».«port.variable.name») ''')
+                pyObjects.append(''', convert_C_port_to_py(self->__«port.container.name».«port.variable.name», self->__«port.container.name».«port.variable.name»_width) ''')
             }
         }
     }
@@ -1744,11 +1516,11 @@ class PythonGenerator extends CGenerator {
             // array of pointers.
             if (!output.isMultiport) {
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', (PyObject *)self->__«output.name»''')
+                pyObjects.append(''', convert_C_port_to_py(&self->__«output.name», -2)''')
             } else if (output.isMultiport) {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', make_output_port_list((generic_port_instance_struct **)self->__«output.name»,self->__«output.name»__width) ''')
+                pyObjects.append(''', convert_C_port_to_py(&self->__«output.name»,self->__«output.name»__width) ''')
             }
     }
     
@@ -1767,9 +1539,15 @@ class PythonGenerator extends CGenerator {
         ReactorDecl decl        
     )
     {
-        // TODO: handle multiports
-        pyObjectDescriptor.append("O")
-        pyObjects.append(''', (PyObject *)self->__«definition.name».«input.name»''')
+        if(input.isMultiport)
+        {            
+            // TODO: handle multiports
+        }
+        else
+        {
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''', convert_C_port_to_py(&self->__«definition.name».«input.name», -2)''')        
+        }
     }
     
     /** Generate into the specified string builder the code to
@@ -1799,23 +1577,23 @@ class PythonGenerator extends CGenerator {
         if (!input.isMutable && !input.isMultiport) {
             // Non-mutable, non-multiport, primitive type.
             pyObjectDescriptor.append("O")
-            pyObjects.append(''', (PyObject *)*self->__«input.name»''')
+            pyObjects.append(''', convert_C_port_to_py(self->__«input.name», self->__«input.name»__width)''')
         } else if (input.isMutable && !input.isMultiport) {
             // Mutable, non-multiport, primitive type.
             // TODO: handle mutable
             pyObjectDescriptor.append("O")
-            pyObjects.append(''', (PyObject *)*self->__«input.name»''')
+            pyObjects.append(''', convert_C_port_to_py(self->__«input.name», self->__«input.name»__width)''')
         } else if (!input.isMutable && input.isMultiport) {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
             pyObjectDescriptor.append("O")            
-            pyObjects.append(''', make_input_port_tuple((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
+            pyObjects.append(''', convert_C_port_to_py((generic_port_instance_struct **)self->__«input.name»,self->__«input.name»__width) ''')
         } else {
             // Mutable, multiport, primitive type
             // TODO: support mutable multiports
             
             pyObjectDescriptor.append("O")            
-            pyObjects.append(''', make_input_port_list((generic_port_instance_struct ***)self->__«input.name»,self->__«input.name»__width) ''')
+            pyObjects.append(''', convert_C_port_to_py((generic_port_instance_struct **)self->__«input.name»,self->__«input.name»__width) ''')
         }
     }
     

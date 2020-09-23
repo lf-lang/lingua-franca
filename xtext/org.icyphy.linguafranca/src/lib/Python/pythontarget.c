@@ -55,13 +55,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 static PyObject* py_SET(PyObject *self, PyObject *args)
 {
-    generic_port_instance_struct* port = (generic_port_instance_struct*)self;
+    generic_port_capsule_struct* p = (generic_port_capsule_struct*)self;
     PyObject* val, *tmp;
 
     if (!PyArg_ParseTuple(args, "O", &val))
     {
         PyErr_SetString(PyExc_TypeError, "Could not set objects.");
         return NULL;
+    }
+
+    generic_port_instance_struct* port = PyCapsule_GetPointer(p->port, "port");
+    if(port == NULL)
+    {
+        fprintf(stderr, "Null pointer recieved.\n");
+        exit(1);
     }
     
     if(val)
@@ -247,15 +254,15 @@ static PyObject* py_main(PyObject *self, PyObject *args)
  * @return tuple A tuple of format objectID(port->value, port->is_present, port->num_destinations)
  */
 static PyObject *
-port_instance_reduce(PyObject *self)
+port_capsule_reduce(PyObject *self)
 {
     PyObject *attr;
     PyObject *obj;
     PyObject *tuple;
-    generic_port_instance_struct* port;
+    generic_port_capsule_struct* port;
 
     obj = (PyObject*)self;
-    port = (generic_port_instance_struct*)obj;
+    port = (generic_port_capsule_struct*)obj;
 
 	attr = PyObject_GetAttrString(obj, "__class__");
 
@@ -263,10 +270,9 @@ port_instance_reduce(PyObject *self)
     printf("Reduce called.\n");
 #endif
 
-    tuple = Py_BuildValue("O(Oii)", attr, port->value , port->is_present, port->num_destinations);
+    tuple = Py_BuildValue("O(OOi)", attr, port->port, port->value , port->is_present);
     return tuple;
 }
-
 
 /**
  * Called when a port_instance had to be deallocated (generally by the Python
@@ -274,8 +280,9 @@ port_instance_reduce(PyObject *self)
  * @param self An instance of generic_port_instance_struct*
  */
 static void
-port_instance_dealloc(generic_port_instance_struct *self)
+port_capsule_dealloc(generic_port_capsule_struct *self)
 {
+    Py_XDECREF(self->port);
     Py_XDECREF(self->value);
     Py_TYPE(self)->tp_free((PyObject *) self);
 }
@@ -298,18 +305,146 @@ port_instance_dealloc(generic_port_instance_struct *self)
  * @param kwds Keywords (@see Python keywords)
  */
 static PyObject *
-port_intance_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+port_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    generic_port_instance_struct *self;
-    self = (generic_port_instance_struct *) type->tp_alloc(type, 0);
+    generic_port_capsule_struct *self;
+    self = (generic_port_capsule_struct *) type->tp_alloc(type, 0);
     if (self != NULL) {
+        self->port = NULL;
         self->value = NULL;
         self->is_present = false;
-        self->num_destinations = 0;
+        self->current_index = 0;
+        self->width = -2;
     }
-    
     return (PyObject *) self;
 }
+
+/**
+ * 
+ */
+static PyObject *
+port_iter(PyObject *self)
+{
+    generic_port_capsule_struct* port = (generic_port_capsule_struct*)self;
+    generic_port_capsule_struct* pyport = (generic_port_capsule_struct*)self->ob_type->tp_new(self->ob_type, NULL, NULL);
+    long long index = port->current_index;
+
+    if(port->current_index == port->width)
+    {
+        port->current_index = 0;
+        return NULL;
+    }
+
+    if (port->width == -2)
+    {
+        PyErr_Format(PyExc_TypeError,
+                "Non-multiport type is not iteratable.");
+        return NULL;
+    }
+
+    generic_port_instance_struct **cport = (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
+    if (cport == NULL)
+    {
+        fprintf(stderr, "Null pointer recieved.\n");
+        exit(1);
+    }
+
+    //Py_INCREF(cport[index]->value);
+    pyport->port = PyCapsule_New(cport[index], "port", NULL);
+    pyport->value = cport[index]->value;
+    pyport->is_present = cport[index]->is_present;
+
+    port->current_index++;
+
+}
+
+/**
+ * 
+ */
+static PyObject *
+port_iter_next(PyObject *self)
+{
+
+}
+/**
+ * 
+ */
+static PyObject *
+port_capsule_get_item(PyObject *self, PyObject *item)
+{
+    generic_port_capsule_struct* port = (generic_port_capsule_struct*)self;
+    generic_port_capsule_struct* pyport = (generic_port_capsule_struct*)self->ob_type->tp_new(self->ob_type, NULL, NULL);
+    long long index = -3;
+
+    // Port is not a multiport
+    if (port->width == -2)
+    {
+        return self;
+    }
+
+    index = PyLong_AsLong(item);
+    if(index == -3)
+    {
+        PyErr_Format(PyExc_TypeError,
+                     "multiport indices must be integers, not %.200s",
+                     Py_TYPE(item)->tp_name);
+        return NULL;
+    }
+    
+    if(index != -3 && port->width > 0)
+    {
+        generic_port_instance_struct **cport = (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
+        if (cport == NULL)
+        {
+            fprintf(stderr, "Null pointer recieved.\n");
+            exit(1);
+        }
+
+        //Py_INCREF(cport[index]->value);
+        pyport->port = PyCapsule_New(cport[index], "port", NULL);
+        pyport->value = cport[index]->value;
+        pyport->is_present = cport[index]->is_present;
+
+
+    }
+
+    
+    if(pyport->value == NULL)
+    {
+        Py_INCREF(Py_None);
+        pyport->value = Py_None;
+    }
+
+    //Py_INCREF(((generic_port_capsule_struct*)port)->value);
+    Py_INCREF(pyport);
+    //Py_INCREF(self);
+    return pyport;
+}
+
+static int
+port_capsule_assign_get_item(PyObject *self, PyObject *item, PyObject* value)
+{
+    PyErr_Format(PyExc_TypeError,
+                     "You cannot assign to ports directly. Please use the .set method.",
+                     Py_TYPE(item)->tp_name);
+    return NULL;
+}
+
+static Py_ssize_t
+port_length(PyObject *self)
+{
+    generic_port_capsule_struct* port = (generic_port_capsule_struct*)self;
+#ifdef VERBOSE
+    printf("Getting the length, which is %d.\n", port->width);
+#endif
+    return (Py_ssize_t)port->width;
+}
+
+static PyMappingMethods port_as_mapping = {    
+    (lenfunc)port_length,
+    (binaryfunc)port_capsule_get_item,
+    (objobjargproc)port_capsule_assign_get_item
+};
 
 /**
  * Initialize the port instance self with the given optional values for
@@ -325,14 +460,13 @@ port_intance_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
  *      @param num_destination Used for reference-keeping inside the C runtime
  */
 static int
-port_instance_init(generic_port_instance_struct *self, PyObject *args, PyObject *kwds)
+port_capsule_init(generic_port_capsule_struct *self, PyObject *args, PyObject *kwds)
 {
-    static char *kwlist[] = {"value", "is_present", "num_destinations", NULL};
+    static char *kwlist[] = { "port", "value", "is_present", NULL};
     PyObject *value = NULL, *tmp;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Opi", kwlist,
-                                     &value, &self->is_present,
-                                     &self->num_destinations))
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOp", kwlist,
+                                     &value, &self->is_present))
     {
         return -1;
     }
@@ -437,18 +571,20 @@ action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObjec
  * The members of a port_instance, used to define
  * a native Python type.
  */
-static PyMemberDef port_instance_members[] = {
-    {"value", T_OBJECT, offsetof(generic_port_instance_struct, value), 0, "Value of the port"},
-    {"is_present", T_BOOL, offsetof(generic_port_instance_struct, is_present), 0, "Check if value is present at current logical time"},
-    {"num_destinations", T_INT, offsetof(generic_port_instance_struct, num_destinations), 0, "Number of destinations"},
-    {NULL}  /* Sentinel */
+static PyMemberDef port_capsule_members[] = {
+    {"port", T_OBJECT, offsetof(generic_port_capsule_struct, port), 0, ""},
+    {"value", T_OBJECT, offsetof(generic_port_capsule_struct, value), 0, "Value of the port"},
+    {"is_present", T_BOOL, offsetof(generic_port_capsule_struct, is_present), 0, "Check if value is present at current logical time"},
+    {"width", T_INT, offsetof(generic_port_capsule_struct, width), 0, ""},    
+    {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
 /*
  * The function members of port_instance
  */
-static PyMethodDef port_instance_methods[3] = {    
-    {"__reduce__", (PyCFunction)port_instance_reduce, METH_NOARGS, "Necessary for pickling objects"},
+static PyMethodDef port_capsule_methods[] = {
+    {"__getitem__", (PyCFunction)port_capsule_get_item, METH_O|METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
+    {"__reduce__", (PyCFunction)port_capsule_reduce, METH_NOARGS, "Necessary for pickling objects"},
     {"set", (PyCFunction)py_SET, METH_VARARGS, "Set value of the port as well as the is_present field"},
     {NULL}  /* Sentinel */
 };
@@ -458,18 +594,21 @@ static PyMethodDef port_instance_methods[3] = {
  * The definition of port_instance type object.
  * Used to describe how port_instance behaves.
  */
-static PyTypeObject port_instance_t = {
+static PyTypeObject port_capsule_t = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "LinguaFranca.port_instance",
-    .tp_doc = "port_instance objects",
-    .tp_basicsize = sizeof(generic_port_instance_struct),
+    .tp_name = "LinguaFranca.port_capsule",
+    .tp_doc = "port_capsule objects",
+    .tp_basicsize = sizeof(generic_port_capsule_struct),
     .tp_itemsize = 0,
     .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = port_intance_new,
-    .tp_init = (initproc) port_instance_init,
-    .tp_dealloc = (destructor) port_instance_dealloc,
-    .tp_members = port_instance_members,
-    .tp_methods = port_instance_methods,
+    .tp_as_mapping = &port_as_mapping,
+    .tp_iter = port_iter,
+    .tp_iternext = port_iter_next,
+    .tp_new = port_capsule_new,
+    .tp_init = (initproc) port_capsule_init,
+    .tp_dealloc = (destructor) port_capsule_dealloc,
+    .tp_members = port_capsule_members,
+    .tp_methods = port_capsule_methods,
 };
 
 
@@ -579,7 +718,7 @@ GEN_NAME(PyInit_,MODULE_NAME)(void)
     PyObject *m;
 
     // Initialize the port_instance type
-    if (PyType_Ready(&port_instance_t) < 0)
+    if (PyType_Ready(&port_capsule_t) < 0)
         return NULL;
 
     // Initialize the port_instance_token type
@@ -596,9 +735,9 @@ GEN_NAME(PyInit_,MODULE_NAME)(void)
         return NULL;
 
     // Add the port_instance type to the module's dictionary
-    Py_INCREF(&port_instance_t);
-    if (PyModule_AddObject(m, "port_instance", (PyObject *) &port_instance_t) < 0) {
-        Py_DECREF(&port_instance_t);
+    Py_INCREF(&port_capsule_t);
+    if (PyModule_AddObject(m, "port_capsule", (PyObject *) &port_capsule_t) < 0) {
+        Py_DECREF(&port_capsule_t);
         Py_DECREF(m);
         return NULL;
     }
@@ -635,6 +774,61 @@ GEN_NAME(PyInit_,MODULE_NAME)(void)
 void destroy_action_capsule(PyObject* capsule)
 {
     free(PyCapsule_GetPointer(capsule, "action"));
+}
+
+/**
+ * TODO: used for non-multiport types
+ */
+PyObject* convert_C_port_to_py(void* port, int width)
+{
+    generic_port_instance_struct* cport;
+    if(width == -2)
+    {
+        // Not a multiport
+        cport = (generic_port_instance_struct *)port;
+    }
+    // Create the action struct in Python
+    PyObject* cap = PyObject_GC_New(generic_port_capsule_struct, &port_capsule_t);
+    if(cap == NULL)
+    {
+        fprintf(stderr, "Failed to convert port.\n");
+        exit(1);
+    }
+
+    // Create the capsule to hold the void* port
+    PyObject* capsule = PyCapsule_New(port, "port", NULL);
+    if(capsule == NULL)
+    {
+        fprintf(stderr, "Failed to convert port.\n");
+        exit(1);
+    }
+
+    // Fill in the Python port struct
+    ((generic_port_capsule_struct*)cap)->port = capsule;
+    ((generic_port_capsule_struct*)cap)->width = width;
+
+    if(width == -2)
+    {
+        ((generic_port_capsule_struct*)cap)->is_present = cport->is_present;
+
+
+        if(cport->value == NULL)
+        {
+            // Value is absent
+            Py_INCREF(Py_None);
+            ((generic_action_capsule_struct*)cap)->value = Py_None;
+            return cap;
+        }
+
+        //Py_INCREF(cport->value);
+        ((generic_port_capsule_struct*)cap)->value = cport->value;
+    }
+    else
+    {
+        ((generic_port_capsule_struct*)cap)->is_present = false;
+    }
+
+    return cap;
 }
 
 /**
@@ -706,185 +900,6 @@ PyObject* convert_C_action_to_py(void* action)
 
     return cap;
 }
-
-/**
- * A helper function to generate a mutable list of input ports to be sent 
- * to a Python reaction. Therefore, an array port_array[3] is converted to a 
- * Python list [port_array[0], port_array[1], port_array[2]].
- * 
- * This function recieves an array of ports of type port_instance_t in "port_array" with the given "size".
- * The ports in port_array will follow the template laid out in @see generic_port_instance_struct.
- * The port_array is structured as follows:
- *  generic_port_instance_struct* * *
- *                              ↑ ↑ ↑
- *                              Heap-allocated port that follows the generic_port_instance_struct template
- *                                | |
- *                                An array of ports in generic_port_instance_struct*[] format
- *                                  |
- *                                  Passed by reference
- * A Python list (which is mutable) of size "size" is created by calling PyList_New(size)
- * and each member in the generic_port_instance_struct*[] is added to this newly created list
- * by calling PyList_SET_ITEM(list, position, *input_by_reference).
- * 
- * @param port_array An array of input ports passed by reference
- * @param size size of the port_array
- * @return list A Python list of the input ports
- */
-PyObject* make_input_port_list(generic_port_instance_struct*** port_array, Py_ssize_t size)
-{
-#ifdef VERBOSE
-    printf("Port width is %d.\n", size);
-#endif
-    PyObject *list = PyList_New(size);
-    if(list == NULL)
-    {
-        fprintf(stderr, "Couldn't create a list!");
-        return NULL;
-    }
-    for (Py_ssize_t i = 0; i != size; i++) {
-        if(PyList_SET_ITEM(list, i, (PyObject*)*port_array[i]) == NULL)
-        {
-            fprintf(stderr, "Error setting list value.\n");
-        }
-    }
-
-    return list;
-}
-
-
-/**
- * A helper function to generate a mutable list of output ports to be sent 
- * to a Python reaction. Therefore, an array port_array[3] is converted to a 
- * Python list [port_array[0], port_array[1], port_array[2]].
- * 
- * This function recieves an array of ports of type port_instance_t in "port_array" with the given "size".
- * The ports in port_array will follow the template laid out in @see generic_port_instance_struct.
- * The port_array is structured as follows:
- *  generic_port_instance_struct* * 
- *                              ↑ ↑ 
- *                              Heap-allocated port that follows the generic_port_instance_struct template
- *                                | |
- *                                An array of ports in generic_port_instance_struct*[] format
- * 
- * A Python list (which is mutable) of size "size" is created by calling PyList_New(size)
- * and each member in the generic_port_instance_struct*[] is added to this newly created list
- * by calling PyList_SET_ITEM(list, position, input).
- * 
- * @param port_array An array of output ports passed by reference
- * @param size size of the port_array
- * @return list A Python list of the output ports
- */
-PyObject* make_output_port_list(generic_port_instance_struct** port_array, Py_ssize_t size)
-{
-#ifdef VERBOSE
-    printf("Port width is %d.\n", size);
-#endif
-    PyObject *list = PyList_New(size);
-    if(list == NULL)
-    {
-        fprintf(stderr, "Couldn't create a list!");
-        return NULL;
-    }
-    for (Py_ssize_t i = 0; i != size; i++) {
-        if(PyList_SET_ITEM(list, i, (PyObject*)port_array[i]) == NULL)
-        {
-            fprintf(stderr, "Error setting list value.\n");
-        }
-    }
-
-    return list;
-}
-
-/**
- * A helper function to generate an immutable tuple of input ports to be sent 
- * to a Python reaction. Therefore, an array port_array[3] is converted to a 
- * Python tuple (port_array[0], port_array[1], port_array[2]). The contents of this tuple
- * cannot change at runtime.
- * 
- * This function recieves an array of ports of type port_instance_t in "port_array" with the given "size".
- * The ports in port_array will follow the template laid out in @see generic_port_instance_struct.
- * The port_array is structured as follows:
- *  generic_port_instance_struct* * *
- *                              ↑ ↑ ↑
- *                              Heap-allocated port that follows the generic_port_instance_struct template
- *                                | |
- *                                An array of ports in generic_port_instance_struct*[] format
- *                                  |
- *                                  Passed by reference
- * A Python tuple (which is mutable) of size "size" is created by calling PyTuple_New(size)
- * and each member in the generic_port_instance_struct*[] is added to this newly created tuple
- * by calling PyTuple_SET_ITEM(tuple, position, *input_by_reference).
- * 
- * @param port_array An array of input ports passed by reference
- * @param size size of the port_array
- * @return tuple A Python tuple of the input ports
- */
-PyObject* make_input_port_tuple(generic_port_instance_struct*** port_array, Py_ssize_t size)
-{
-#ifdef VERBOSE
-    printf("Port width is %d.\n", size);
-#endif
-    PyObject *tuple = PyTuple_New(size);
-    if(tuple == NULL)
-    {
-        fprintf(stderr, "Couldn't create a tuple!");
-        return NULL;
-    }
-    for (Py_ssize_t i = 0; i != size; i++) {
-        if(PyTuple_SET_ITEM(tuple, i, (PyObject*)*port_array[i]) == NULL)
-        {
-            fprintf(stderr, "Error setting tuple value.\n");
-        }
-    }
-
-    return tuple;
-}
-
-
-/**
- * A helper function to generate a mutable tuple of output ports to be sent 
- * to a Python reaction. Therefore, an array port_array[3] is converted to a 
- * Python tuple (port_array[0], port_array[1], port_array[2]). The contents of this tuple
- * cannot change at runtime.
- * 
- * This function recieves an array of ports of type port_instance_t in "port_array" with the given "size".
- * The ports in port_array will follow the template laid out in @see generic_port_instance_struct.
- * The port_array is structured as follows:
- *  generic_port_instance_struct* * 
- *                              ↑ ↑ 
- *                              Heap-allocated port that follows the generic_port_instance_struct template
- *                                | |
- *                                An array of ports in generic_port_instance_struct*[] format
- * 
- * A Python tuple (which is mutable) of size "size" is created by calling PyTuple_New(size)
- * and each member in the generic_port_instance_struct*[] is added to this newly created tuple
- * by calling PyTuple_SET_ITEM(tuple, position, input).
- * 
- * @param port_array An array of output ports passed by reference
- * @param size size of the port_array
- * @return tuple A Python tuple of the output ports
- */
-PyObject* make_output_port_tuple(generic_port_instance_struct** port_array, Py_ssize_t size)
-{
-#ifdef VERBOSE
-    printf("Port width is %d.\n", size);
-#endif
-    PyObject *tuple = PyTuple_New(size);
-    if(tuple == NULL)
-    {
-        fprintf(stderr, "Couldn't create a tuple!");
-        return NULL;
-    }
-    for (Py_ssize_t i = 0; i != size; i++) {
-        if(PyTuple_SET_ITEM(tuple, i, (PyObject*)port_array[i]) == NULL)
-        {
-            fprintf(stderr, "Error setting tuple value.\n");
-        }
-    }
-
-    return tuple;
-}
-
 
 /** 
  * Invoke a Python func in class[instance_id] from module.

@@ -1361,11 +1361,10 @@ class CGenerator extends GeneratorBase {
             prSourceLineNumber(body, parameter)
             pr(body, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
         }
+        
         // Next handle states.
-        for (stateVar : reactor.allStateVars) {
-            prSourceLineNumber(body, stateVar)
-            pr(body, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
-        }
+        generateStateVariablesForReactor(body, reactor)
+        
         // Next handle actions.
         for (action : reactor.allActions) {
             pr(action, body, '''
@@ -1542,6 +1541,19 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
+    }
+    
+    /**
+     * Generate code for state variables of a reactor in the form "stateVar_type stateVar_name;"
+     * @param reactor The reactor
+     * @param builder The StringBuilder that the generated code is appended to
+     * @return 
+     */
+    def generateStateVariablesForReactor(StringBuilder builder, Reactor reactor) {        
+        for (stateVar : reactor.allStateVars) {
+            prSourceLineNumber(builder, stateVar)
+            pr(builder, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
+        }
     }
     
     /**
