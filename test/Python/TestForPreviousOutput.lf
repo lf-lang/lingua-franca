@@ -1,0 +1,37 @@
+// This tests the mechanism for testing whether a previous reaction has
+// produced a given output. The output should always be 42.
+target Python;
+reactor Source {
+    output out:int;
+    preamble {=
+        import random
+    =}
+
+    reaction(startup) -> out {=
+        # Set a seed for random number generation based on the current time.
+        self.random.seed()
+        # Randomly produce an output or not.
+        if self.random.choice([0,1]) == 1:
+            out.set(21)
+    =}
+    reaction(startup) -> out {=
+        if out.is_present:
+            out.set(2 * out.value)
+        else:
+            out.set(42)
+    =}
+}
+reactor Sink {
+    input _in:int;
+    reaction(_in) {=
+        print("Received ", _in.value)
+        if _in.value != 42:
+            sys.stderr.write("FAILED: Expected 42.\n")
+            exit(1)
+    =}
+}
+main reactor TestForPreviousOutput {
+    s = new Source();
+    d = new Sink();
+    s.out -> d._in;
+}
