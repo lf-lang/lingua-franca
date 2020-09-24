@@ -323,8 +323,11 @@ token_freed __done_using(token_t* token) {
         if (token->value != NULL) {
             // Count frees to issue a warning if this is never freed.
             __count_payload_allocations--;
-            // printf("DEBUG: __done_using: Freeing allocated memory for payload (token value): %p\n", token->value);
-            free(token->value);
+            if(OK_TO_FREE != ignore)
+            {
+                // printf("DEBUG: __done_using: Freeing allocated memory for payload (token value): %p\n", token->value);
+                free(token->value);
+            }
             token->value = NULL;
             result = VALUE_FREED;
         }
@@ -400,7 +403,7 @@ token_t* __create_token(size_t element_size) {
     token->length = 0;
     token->element_size = element_size;
     token->ref_count = 0;
-    token->ok_to_free = false;
+    token->ok_to_free = no;
     token->next_free = NULL;
     return token;
 }
@@ -416,7 +419,7 @@ token_t* create_token(size_t element_size) {
     // printf("DEBUG: create_token: element_size: %zu\n", element_size);
     __count_token_allocations++;
     token_t* result = __create_token(element_size);
-    result->ok_to_free = true;
+    result->ok_to_free = OK_TO_FREE;
     return result;
 }
 
@@ -512,7 +515,7 @@ void __pop_events() {
         // for which we decrement the reference count.
         if (event->trigger->token != event->token && event->trigger->token != NULL) {
             // Mark the previous one ok_to_free so we don't get a memory leak.
-            event->trigger->token->ok_to_free = true;
+            event->trigger->token->ok_to_free = OK_TO_FREE;
             // Free the token if its reference count is zero. Since __done_using
             // decrements the reference count, first increment it here.
             event->trigger->token->ref_count++;
@@ -521,7 +524,7 @@ void __pop_events() {
         event->trigger->token = token;
         // Prevent this token from being freed. It is the new template.
         // This might be null if there are no reactions to the action.
-        if (token != NULL) token->ok_to_free = false;
+        if (token != NULL) token->ok_to_free = no;
 
         // Mark the trigger present.
         event->trigger->is_present = true;
