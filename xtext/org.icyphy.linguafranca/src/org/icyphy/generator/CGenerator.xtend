@@ -50,8 +50,6 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
@@ -300,9 +298,6 @@ class CGenerator extends GeneratorBase {
     // The command to run the generated code if specified in the target directive.
     var runCommand = new ArrayList<String>()
 
-    // Place to collect shutdown action instances.
-    var shutdownActionInstances = new LinkedList<ActionInstance>()
-
     // Place to collect code to execute at the start of a time step.
     var startTimeStep = new StringBuilder()
     
@@ -319,6 +314,7 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to initialize timers for all reactors.
     protected var startTimers = new StringBuilder()
     var startTimersCount = 0
+    var shutdownCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
@@ -346,8 +342,6 @@ class CGenerator extends GeneratorBase {
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
-        
-        // Perform AST transformation on reactors that reference startup or shutdown.
         
         // Generate code for each reactor.
         val names = newLinkedHashSet
@@ -402,7 +396,6 @@ class CGenerator extends GeneratorBase {
         var commonCode = code;
         var commonStartTimers = startTimers;
         for (federate : federates) {
-            shutdownActionInstances.clear()
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
             
@@ -474,26 +467,32 @@ class CGenerator extends GeneratorBase {
                 // If there are timers, create a table of timers to be initialized.
                 if (startTimersCount > 0) {
                     pr('''
-                        // Array of pointers to timer triggers to start the timers in __start_timers().
+                        // Array of pointers to timer and startup triggers to start the timers in __start_timers().
                         trigger_t* __timer_triggers[«startTimersCount»];
+                    ''')
+                } else {
+                    pr('''
+                        // Array of pointers to timer and startup triggers to start the timers in __start_timers().
+                        trigger_t** __timer_triggers = NULL;
                     ''')
                 }
                 pr('''
                     int __timer_triggers_size = «startTimersCount»;
                 ''')
-                if (shutdownActionInstances.size > 0) {
+                // If there are shutdown reactions, create a table of triggers.
+                if (shutdownCount > 0) {
                     pr('''
                         // Array of pointers to shutdown triggers.
-                        trigger_t* __shutdown_triggers[«shutdownActionInstances.size»];
+                        trigger_t* __shutdown_triggers[«shutdownCount»];
                     ''')
                 } else {
                     pr('''
-                        // Array of pointers to shutdown triggers.
+                        // Empty rray of pointers to shutdown triggers.
                         trigger_t** __shutdown_triggers = NULL;
                     ''')
                 }
                 pr('''
-                    int __shutdown_triggers_size = «shutdownActionInstances.size»;
+                    int __shutdown_triggers_size = «shutdownCount»;
                 ''')
                 
                 // Generate function to return a pointer to the action trigger_t
@@ -1080,10 +1079,6 @@ class CGenerator extends GeneratorBase {
             pr("// =============== START reactor class " + defn.name + " as " + reactor.name)
         }
         
-        // Perform AST transformation that creates timer and action for startup
-        // and shutdown, if they occur in any of the reaction interfaces.
-        defn.handleStartupAndShutdown
-
         // Preamble code contains state declarations with static initializers.
         for (p : defn.preambles ?: emptyList) {
             pr("// *********** From the preamble, verbatim:")
@@ -1315,7 +1310,6 @@ class CGenerator extends GeneratorBase {
         FederateInstance federate,
         StringBuilder constructorCode,
         StringBuilder destructorCode
-
     ) {
         val reactor = decl.toDefinition
         val selfType = selfStructType(decl)
@@ -1528,7 +1522,8 @@ class CGenerator extends GeneratorBase {
         ReactorDecl decl, 
         StringBuilder constructorCode, 
         StringBuilder destructorCode, 
-        FederateInstance federate) {
+        FederateInstance federate
+    ) {
         var reactionCount = 0;
         val reactor = decl.toDefinition
         // Iterate over reactions and create initialize the reaction_t struct
@@ -1540,6 +1535,8 @@ class CGenerator extends GeneratorBase {
         val triggerMap = new LinkedHashMap<Variable,LinkedList<Integer>>()
         val sourceSet = new LinkedHashSet<Variable>()
         val outputsOfContainedReactors = new LinkedHashMap<Variable,Instantiation>
+        val startupReactions = new LinkedHashSet<Integer>
+        val shutdownReactions = new LinkedHashSet<Integer>
         for (reaction : reactor.allReactions) {
             if (federate === null || federate.containsReaction(reactor, reaction)) {
                 // Create the reaction_t struct.
@@ -1558,6 +1555,12 @@ class CGenerator extends GeneratorBase {
                         if (trigger.container !== null) {
                             outputsOfContainedReactors.put(trigger.variable, trigger.container)
                         }
+                    }
+                    if (trigger.isStartup) {
+                        startupReactions.add(reactionCount)
+                    }
+                    if (trigger.isShutdown) {
+                        shutdownReactions.add(reactionCount)
                     }
                 }
                 // Create the set of sources read but not triggering.
@@ -1616,6 +1619,45 @@ class CGenerator extends GeneratorBase {
             // self->___«timer.name».element_size = 0;
             pr(constructorCode, '''
                 self->___«timer.name».is_timer = true;
+            ''')
+        }
+        
+        // Handle startup triggers.
+        if (startupReactions.size > 0) {
+            pr(body, '''
+                trigger_t ___startup;
+                reaction_t* ___startup_reactions[«startupReactions.size»];
+            ''')
+            var i = 0
+            for (reactionIndex : startupReactions) {
+                pr(constructorCode, '''
+                    self->___startup_reactions[«i++»] = &self->___reaction_«reactionIndex»;
+                ''')
+            }
+            pr(constructorCode, '''
+                self->___startup.scheduled = NEVER;
+                self->___startup.reactions = &self->___startup_reactions[0];
+                self->___startup.number_of_reactions = «startupReactions.size»;
+                self->___startup.is_timer = false;
+            ''')
+        }
+        // Handle shutdown triggers.
+        if (shutdownReactions.size > 0) {
+            pr(body, '''
+                trigger_t ___shutdown;
+                reaction_t* ___shutdown_reactions[«shutdownReactions.size»];
+            ''')
+            var i = 0
+            for (reactionIndex : shutdownReactions) {
+                pr(constructorCode, '''
+                    self->___shutdown_reactions[«i++»] = &self->___reaction_«reactionIndex»;
+                ''')
+            }
+            pr(constructorCode, '''
+                self->___shutdown.scheduled = NEVER;
+                self->___shutdown.reactions = &self->___shutdown_reactions[0];
+                self->___shutdown.number_of_reactions = «shutdownReactions.size»;
+                self->___shutdown.is_timer = false;
             ''')
         }
 
@@ -1708,88 +1750,6 @@ class CGenerator extends GeneratorBase {
         }
     }    
     
-    /**
-     * If any reaction in the specified reactor is triggered by startup,
-     * then create a Timer to trigger that reaction. If any reaction
-     * is triggered by shutdown, then create an action to trigger
-     * that reaction. Only one timer or action will be created, even
-     * if multiple reactions are triggered.
-     * @param reactor The reactor.
-     */
-    protected def void handleStartupAndShutdown(Reactor reactor) {
-        // Only one of each of these should be created even if multiple
-        // reactions are triggered by them.
-        var Timer timer = null
-        var Action action = null
-        var factory = LinguaFrancaFactory.eINSTANCE
-        if (reactor.allReactions !== null) {
-            for (Reaction reaction : reactor.allReactions) {
-                // If the reaction triggers include 'startup' or 'shutdown',
-                // then create Timer and TimerInstance objects named 'startup'
-                // or Action and ActionInstance objects named 'shutdown'.
-                // Using a Timer for startup means that the target-specific
-                // code generator doesn't have to do anything special to support this.
-                // However, for 'shutdown', the target-specific code generator
-                // needs to check all reaction instances for a shutdownActionInstance
-                // and schedule that action before shutting down the program.
-                // These get inserted into both the ECore model and the
-                // instance model.
-                var TriggerRef startupTrigger = null;
-                var TriggerRef shutdownTrigger = null;
-                for (trigger : reaction.triggers) {
-                    // FIXME: The reaction could be one defined in a base class.
-                    // If that base class has been extended by some other reactor that
-                    // has already been processed, then this AST transformation will
-                    // have already occurred, and a Timer named "startup" will have
-                    // been created.  If there is also a reaction to startup in the
-                    // derived class, then a second timer named "startup" will get
-                    // created.  Worse, if the subclass has no reaction to startup,
-                    // then an NPE will occur. This whole design needs to be rethought.
-                    if (trigger.isStartup) {
-                        startupTrigger = trigger
-                        if (timer === null) {
-                            timer = factory.createTimer
-                            timer.name = LinguaFrancaPackage.Literals.
-                                TRIGGER_REF__STARTUP.name
-                            timer.offset = factory.createValue
-                            timer.offset.literal = "0"
-                            timer.period = factory.createValue
-                            timer.period.literal = "0"
-                            reactor.timers.add(timer)
-                        }
-                    } else if (trigger.isShutdown) {
-                        shutdownTrigger = trigger
-                        if (action === null) {
-                            action = factory.createAction
-                            action.name = LinguaFrancaPackage.Literals.
-                                TRIGGER_REF__SHUTDOWN.name
-                            action.origin = ActionOrigin.LOGICAL
-                            action.minDelay = factory.createValue
-                            action.minDelay.literal = "0"
-                            reactor.actions.add(action)
-                        }
-                    }
-                }
-                // If appropriate, add a VarRef to the triggers list of this
-                // reaction for the startup timer or shutdown action.
-                if (startupTrigger !== null) {
-                    reaction.triggers.remove(startupTrigger)
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.
-                        createVarRef()
-                    variableReference.setVariable(timer)
-                    reaction.triggers.add(variableReference)
-                }
-                if (shutdownTrigger !== null) {
-                    reaction.triggers.remove(shutdownTrigger)
-                    var variableReference = LinguaFrancaFactory.eINSTANCE.
-                        createVarRef()
-                    variableReference.setVariable(action)
-                    reaction.triggers.add(variableReference)
-                }
-            }
-        }
-    }
-
     /** Generate reaction functions definition for a reactor.
      *  These functions have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
@@ -2679,7 +2639,7 @@ class CGenerator extends GeneratorBase {
                     }
                 }
                 // Next handle triggers of the reaction that come from a multiport output
-                // of a contained reactor.
+                // of a contained reactor.  Also, handle startup and shutdown triggers.
                 for (trigger : reaction.triggers) {
                     if (trigger instanceof VarRef
                         && (trigger as VarRef).variable instanceof Port
@@ -2702,6 +2662,15 @@ class CGenerator extends GeneratorBase {
                             ''')
 
                         }
+                    }
+                    if (trigger.isStartup) {
+                        pr(initializeTriggerObjects, '''
+                            __timer_triggers[«startTimersCount++»] = &«nameOfSelfStruct»->___startup;
+                        ''')
+                    } else if (trigger.isShutdown) {
+                        pr(initializeTriggerObjects, '''
+                            __shutdown_triggers[«shutdownCount++»] = &«nameOfSelfStruct»->___shutdown;
+                        ''')
                     }
                 }
                 
@@ -2870,14 +2839,6 @@ class CGenerator extends GeneratorBase {
         // Skip any action that is not actually used as a trigger.
         val triggersInUse = instance.triggers
         for (action : instance.actions) {
-            // If the action is a shutdown action, add it to the list of
-            // shutdown actions.
-            if (action.isShutdown) {
-                pr(initializeTriggerObjects, '''
-                    __shutdown_triggers[«shutdownActionInstances.size»] = &«nameOfSelfStruct»->___«action.name»;
-                ''')
-                shutdownActionInstances.add(action)
-            }
             // Skip this step if the action is not in use. 
             if (triggersInUse.contains(action)) {
                 var type = (action.definition as Action).inferredType

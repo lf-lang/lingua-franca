@@ -8,8 +8,8 @@
 // for over 27 million reactions per second.
 // This translates to 37 nanoseconds per reaction invocation.
 target C {
-        flags: "-O2",
-	fast: true
+    flags: "-O2",
+    fast: true
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
