@@ -75,7 +75,8 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
     {   
         tmp = port->value;
         Py_INCREF(val);
-        _LF_SET(port, val);
+        _LF_SET(port, val);        
+        p->value = val;
         //Py_XDECREF(tmp); // Since value is allocated in Python, the Python garbage collector will manage and free this memory
     }
 

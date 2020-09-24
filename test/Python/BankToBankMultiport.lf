@@ -9,8 +9,8 @@ reactor Source(instance:int(0), width:int(1)) {
     output[width] out;
     state s(0);
     reaction(t) -> out {=
-        for o in out:
-            o.set(self.s)
+        for i in range(len(out)):
+            out[i].set(self.s)
             self.s += 1
     =}
 }
@@ -19,9 +19,9 @@ reactor Destination(instance:int(0), width:int(1)) {
     input[width] _in:int;
     reaction(_in) {=
         sm = 0
-        for i in _in:
-            if i.is_present is True:
-                sm += i.value
+        for i in range(len(_in)):
+            if _in[i].is_present is True:
+                sm += _in[i].value
 
         print("Sum of received: ", sm)
         if sm != self.s:
