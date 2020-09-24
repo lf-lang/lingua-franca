@@ -76,6 +76,8 @@ class PythonGenerator extends CGenerator {
 	// Set of acceptable import targets includes only C.
     val acceptableTargetSet = newLinkedHashSet('Python')
 	
+	private val buildPyWheel = false;
+	
 	new () {
         super()
         // set defaults
@@ -741,38 +743,42 @@ class PythonGenerator extends CGenerator {
     /**
      * Execute the command that compiles and installs the current Python module
      */
-    def pythonCompileCode()
-    {
-        val compileCmd = createCommand('''python3''', #["setup.py" , "build"])
-        val installCmd = createCommand('''python3''', #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary" , ":all:", "--user", "."])
-        
+    def pythonCompileCode() {
+        val compileCmd = createCommand('''python3''', #["setup.py", "build"])
+        val installCmd = createCommand('''python3''',
+            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."])
+
         compileCmd.directory(new File(getSrcGenPath))
         installCmd.directory(new File(getSrcGenPath))
-        
+
         // Set compile time environment variables
         val compileEnv = compileCmd.environment
         compileEnv.put("CC", targetCompiler) // Use gcc as the compiler
         compileEnv.put("LDFLAGS", targetLinkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
-                                                      // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
-                                                      // compiler.
-                                                      
+        // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
+        // compiler.
         val installEnv = compileCmd.environment
         installEnv.put("CC", targetCompiler) // Use gcc as the compiler
         installEnv.put("LDFLAGS", targetLinkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
-                                                      // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
-                                                      // compiler.
-                
-        if(executeCommand(compileCmd) == 0) {
-            println("Successfully compiled python extension.")
+        // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
+        // compiler.
+        if (buildPyWheel === true) {
+            if (executeCommand(compileCmd) == 0) {
+                println("Successfully compiled python extension.")
+                if (executeCommand(installCmd) == 0) {
+                    println("Successfully installed python extension.")
+                } else {
+                    reportError("Failed to install python extension.")
+                }
+            } else {
+                reportError("Failed to compile python extension.")
+            }
+        } else {
             if (executeCommand(installCmd) == 0) {
                 println("Successfully installed python extension.")
             } else {
                 reportError("Failed to install python extension.")
             }
-        }        
-        else
-        {
-           reportError("Failed to compile python extension.")
         }
     }
     
@@ -921,7 +927,8 @@ class PythonGenerator extends CGenerator {
      */
     override includeTargetLanguageHeaders()
     {
-        pr('''#define MODULE_NAME LinguaFranca«filename»''')    	
+        pr('''#define MODULE_NAME LinguaFranca«filename»''')
+         pr('''#define __GARBAGE_COLLECTED''')    	
         pr('#include "pythontarget.c"')
     }
     
@@ -1258,7 +1265,6 @@ class PythonGenerator extends CGenerator {
             token_t* t = create_token(sizeof(PyObject*));
             t->value = self->__«ref»->value;
             t->length = 1; // Length is 1
-            t->ref_count += self->__«ref»->num_destinations;
             
             // Pass the token along
             schedule_token(«action.name», 0, t);
