@@ -35,7 +35,6 @@ import java.io.OutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
-import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -53,6 +52,8 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.eclipse.xtext.resource.XtextResource
+import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.InferredType
 import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
@@ -78,8 +79,7 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.eclipse.xtext.resource.XtextResource
-import org.eclipse.xtext.validation.CheckMode
+import org.icyphy.linguaFranca.Code
 
 /**
  * Generator base class for shared code between code generators.
@@ -126,6 +126,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     
     /** Additional libraries to add to the compile command using the "-l" command-line option. */
     protected var List<String> compileLibraries = newArrayList
+
+    /**
+     * Collection of generated delay classes.
+     */
+    val delayClasses = new LinkedHashSet<Reactor>()
+    
+    /**
+     * The top-level AST node.
+     */
+    protected var Model model
 
     /**
      * Path to the directory containing the .lf file.
@@ -371,6 +381,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
     
+    def void addDelayClass(Reactor generatedDelay) {
+        // Record this class, so it can be reused.
+        this.delayClasses.add(generatedDelay)
+        this.model.reactors.add(generatedDelay)
+    }
+    
+    def Reactor findDelayClass(String className) {
+        return this.delayClasses.findFirst[it|it.name.equals(className)]
+    }
+    
     /**
      * Analyze the model, setting target variables, filenames,
      * working directory, and federates. This also performs any
@@ -386,7 +406,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             IGeneratorContext context) {
         
         this.resource = resource
-        
+        this.model = (this.resource.allContents.findFirst[it|it instanceof Model] as Model)
         // Clear any markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
         clearMarkers()
@@ -499,35 +519,33 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // FIXME: We should factor them out and rename the following method
         // parseTargetProperties or something along those lines. 
         analyzeModel(resource, fsa, context)
-
-        // Replace connections in this resources that are annotated with the 
-        // "after" keyword by ones that go through a delay reactor. 
-        resource.insertGeneratedDelays(this)
         
-        
-        // Collect a list of reactors defined in this resource and (non-main)
+        // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
-        instantiationGraph = new InstantiationGraph(resource, false)
-
-        // Topologically sort the instantiations such that all of a reactor's
-        // dependencies occur earlier in the sorted list or reactors.
-        this.reactors = instantiationGraph.nodesInTopologicalOrder
+        val reactors = new InstantiationGraph(resource, false).nodes
+        
         // Add to the known resources the resource that is the main file.
         this.resources.add(resource)
         // Add to the known resources all imported files.
-        for (r : this.reactors) {
+        for (r : reactors) {
             this.resources.add(r.eResource)
         }
-        // FIXME: This is just a proof of concept. What to do instead:
-        // - use reportError
-        // - report at node that represents import through which this resource
-        // was (transitively) reached; we need an ImportGraph for this resource
-        // reached.
-        // Alternatively: only validate the individual reactors that are imported
-        // This would allow importing a reactor from a file that has issues.
-        // Probably not the best idea.
+
         for (r : this.resources) {
+            // Replace connections in this resources that are annotated with the 
+            // "after" keyword by ones that go through a delay reactor. 
+            r.insertGeneratedDelays(this) // FIXME: do this by reactor, not by resource
+            
             if (r !== this.resource) {
+                // FIXME: This is just a proof of concept. What to do instead:
+                // - use reportError
+                // - report at node that represents import through which this resource
+                // was (transitively) reached; we need an ImportGraph for this resource
+                // reached.
+                // Alternatively: only validate the individual reactors that are imported
+                // This would allow importing a reactor from a file that has issues.
+                // Probably not the best idea.
+                
                 val issues = (r as XtextResource).resourceServiceProvider.
                     resourceValidator.validate(r, CheckMode.ALL, null)
                 if (issues.size > 0) {
@@ -537,6 +555,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 }
             }
         }
+        // Assuming all AST transformations have completed, build the instantiation graph.
+        this.instantiationGraph = new InstantiationGraph(resource, false)
+        
+        // Topologically sort the reactors such that all of a reactor's
+        // dependencies occur earlier in the sorted list or reactors.
+        this.reactors = this.instantiationGraph.nodesInTopologicalOrder
         
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
@@ -1117,10 +1141,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         prComment("Code generated by the Lingua Franca compiler from file:")
         prComment(sourceFile)
         val models = new LinkedHashSet<Model>
+        
         for (r : this.reactors ?: emptyList) {
+            // The following assumes all reactors have a container.
+            // This means that generated reactors **have** to be
+            // added to a resource; not doing so will result in a NPE.
             models.add(r.toDefinition.eContainer as Model)
         }
-        // FIXME: preambles should also be printed in correct order. (see topological sort in doGenerate
         for (m : models) {
             for (p : m.preambles) {
                 pr(p.code.toText)
@@ -1257,6 +1284,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             pr(begin)
             code.append(inserted)
             pr(end)
+        }
+    }
+
+    /**
+     * Leave a marker in the generated code that indicates the original line
+     * number in the LF source.
+     * @param eObject The node.
+     */
+    protected def prSourceLineNumber(EObject eObject) {
+        if (eObject instanceof Code) {
+            pr(code, '''// «NodeModelUtils.getNode(eObject).startLine +1»''')
+        } else {
+            pr(code, '''// «NodeModelUtils.getNode(eObject).startLine»''')
         }
     }
 

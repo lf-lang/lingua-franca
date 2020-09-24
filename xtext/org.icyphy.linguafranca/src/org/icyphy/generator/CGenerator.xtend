@@ -353,8 +353,7 @@ class CGenerator extends GeneratorBase {
         
         // Perform AST transformation on reactors that reference startup or shutdown.
         
-        // Generate code for each reactor. If the reactor already has been handled, set
-        // the parameter aliasOnly to true.
+        // Generate code for each reactor.
         val names = newLinkedHashSet
         for (r : reactors) {
             for (d : this.instantiationGraph.getDeclarations(r)) {
@@ -1074,7 +1073,6 @@ class CGenerator extends GeneratorBase {
      * data to contained reactors that are not in the federate.
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
-     * @param aliasOnly True if this declaration already has been handled, false otherwise.
      */
     def generateReactorFederated(ReactorDecl reactor, FederateInstance federate) {
         // FIXME: Currently we're not reusing definitions for declarations that point to the same definition.
@@ -1173,7 +1171,6 @@ class CGenerator extends GeneratorBase {
      * actions of the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
      * @param federate A federate name, or null to unconditionally generate.
-     * @param aliasOnly Only generate typedefs, no definitions.
      */
     protected def generateAuxiliaryStructs(
         ReactorDecl decl, FederateInstance federate
@@ -4073,11 +4070,12 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** Print the #line compiler directive with the line number of
-     *  the specified object.
-     *  @param eObject The node.
+    /**
+     * Print the #line compiler directive with the line number of
+     * the specified object.
+     * @param eObject The node.
      */
-    protected def prSourceLineNumber(EObject eObject) {
+    override prSourceLineNumber(EObject eObject) {
         prSourceLineNumber(code, eObject)
     }
 
