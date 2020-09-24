@@ -27,7 +27,7 @@ reactor Destination(width:int(4)) {
 	state s:int(40000);
 	input[width] _in:int;
 	reaction(_in) {=
-		sm = sum([x.value for x in _in])
+		sm = sum([_in[i].value for i in range(len(_in))])
 
 		print("Sum of received: ", sm);
 		if sm != self.s:
