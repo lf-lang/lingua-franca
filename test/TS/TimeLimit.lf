@@ -33,7 +33,7 @@ reactor Destination {
 // so the period parameter was changed to sec
 
 //main reactor TimeLimit(period:time(1 usec)) {
-main reactor TimeLimit(period:time(1 sec)) {
+main reactor TimeLimit(period:time(1 usec)) {
     timer stop(10 secs);
     reaction(stop) {=
         util.requestShutdown();
