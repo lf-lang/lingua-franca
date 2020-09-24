@@ -116,7 +116,7 @@ class PythonGenerator extends CGenerator {
     *
     * @see xtext/org.icyphy.linguafranca/src/lib/CCpp/ccpptarget.h
     */
-	val generic_port_type_with_token = "generic_port_instance_struct"
+	val generic_port_type_with_token = "generic_port_instance_with_token_struct"
 	
 	override getTargetUndefinedType() '''PyObject*'''
 

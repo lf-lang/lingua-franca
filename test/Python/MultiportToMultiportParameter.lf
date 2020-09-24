@@ -1,0 +1,45 @@
+// Check multiport output to multiport input.
+target Python {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true
+}; 
+reactor Source(width:int(1)) {
+    timer t(0, 200 msec);
+    output[width] out:int;
+    state s:int(0);
+    reaction(t) -> out {=
+        for i in range(len(out)):
+            print("Before SET, out[{:d}]->is_present has value %d".format(i), out[i].is_present)
+            out[i].set(self.s)
+            self.s += 1
+            print("AFTER set, out[{:d}]->is_present has value ".format(i), out[i].is_present)
+            print("AFTER set, out[{:d}]->value has value ".format(i), out[i].value)
+    =}
+}
+reactor Destination(width:int(1)) {
+    state s:int(6);
+	input[width] _in:int;
+	reaction(_in) {=
+        sm = 0
+        for i in range(len(_in)):
+            if _in[i].is_present:
+                sm += _in[i].value
+        print("Sum of received: ", sm)
+        if sm != self.s:
+            sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
+            exit(1)
+        self.s += 16
+    =}
+    reaction(shutdown) {=
+        if self.s <= 6:
+            sys.stderr.write("ERROR: Destination received no input!\n")
+            exit(1)
+        print("Success.")
+    =}
+}
+main reactor MultiportParameterized(width:int(4)) { 
+    a = new Source(width = width);
+    b = new Destination(width = width);
+    a.out -> b._in;
+}
