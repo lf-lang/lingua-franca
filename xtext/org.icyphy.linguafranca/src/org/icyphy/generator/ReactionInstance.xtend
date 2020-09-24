@@ -81,16 +81,6 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     this.triggers.add(timerInstance)
                     timerInstance.dependentReactions.add(this)
                 }
-            } else if (trigger.isShutdown) {
-                var actionInstance = parent.shutdownAction
-                this.triggers.add(actionInstance)
-                actionInstance.dependentReactions.add(this)
-                this.dependsOnActions.add(actionInstance)
-            } else if (trigger.isStartup) {
-                var timerInstance = parent.startupTimer
-                this.triggers.add(timerInstance)
-                timerInstance.dependentReactions.add(this)
-                this.dependsOnTimers.add(timerInstance)
             }
         }
         // Next handle the ports that this reaction reads.
