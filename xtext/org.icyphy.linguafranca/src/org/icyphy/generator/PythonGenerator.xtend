@@ -1553,7 +1553,8 @@ class PythonGenerator extends CGenerator {
     {
         if(input.isMultiport)
         {            
-            // TODO: handle multiports
+            pyObjectDescriptor.append("O")
+            pyObjects.append(''', convert_C_port_to_py(«definition.name».«input.name», «definition.name».«input.name»_width)''')   
         }
         else
         {
