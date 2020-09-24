@@ -4,6 +4,7 @@ target C {
     fast: false,
     timeout: 3 sec
 };
+
 reactor foo {
     input x:int;
     output y:int;

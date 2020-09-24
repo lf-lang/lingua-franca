@@ -1,6 +1,7 @@
 // This is used by the test for the ability to import a reactor definition
 // that itself imports a reactor definition.
 target C;
+
 reactor Gain {
     input x:int;
     output y:int;

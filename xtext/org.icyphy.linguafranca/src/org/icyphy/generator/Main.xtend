@@ -29,10 +29,8 @@ package org.icyphy.generator
 
 import com.google.inject.Inject
 import com.google.inject.Provider
-import java.io.BufferedReader
 import java.io.File
 import java.io.FileNotFoundException
-import java.io.FileReader
 import java.io.IOException
 import java.util.Properties
 import org.eclipse.emf.common.util.URI

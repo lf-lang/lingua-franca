@@ -31,7 +31,6 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
-import java.util.Set
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
@@ -52,7 +51,6 @@ import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
@@ -94,7 +92,6 @@ class ASTUtils {
         val oldConnections = new LinkedList<Connection>()
         val newConnections = new LinkedHashMap<Reactor, List<Connection>>()
         val delayInstances = new LinkedHashMap<Reactor, List<Instantiation>>()
-        val delayClasses = new LinkedHashSet<Reactor>()
         
         // Iterate over the connections in the tree.
         for (container : resource.allContents.toIterable.filter(Reactor)) {
@@ -103,7 +100,7 @@ class ASTUtils {
                     val parent = connection.eContainer as Reactor
                     // Assume all the types are the same, so just use the first on the right.
                     val type = (connection.rightPorts.get(0).variable as Port).type
-                    val delayClass = getDelayClass(type, delayClasses, container, resource, generator)
+                    val delayClass = getDelayClass(type, generator)
                     val generic = generator.supportsGenerics
                             ? generator.getTargetType(InferredType.fromAST(type))
                             : ""
@@ -253,26 +250,11 @@ class ASTUtils {
      * reactor. Depending on whether the target supports generics, either this
      * method will synthesize a generic definition and keep returning it upon
      * subsequent calls, or otherwise, it will synthesize a new definition for 
-     * each new type it hasn't yet created a compatible delay reactor for. All
-     * the classes generated so far are passed as an argument to this method,
-     * and newly created definitions are accumulated as a side effect of
-     * invoking this method. For each invocation, if no existing definition
-     * exists that can handle the given type, a new definition is created, 
-     * it is added to the set generated classes, and it is returned.
+     * each new type it hasn't yet created a compatible delay reactor for.
      * @param type The type the delay class must be compatible with.
-     * @param generatedClasses Set of class definitions already generated.
-     * @param container The first container that needs this class.
-     * @param resource The eCore resource.
      * @param generator A code generator.
      */
-    private static def Reactor getDelayClass(
-        Type type, 
-        Set<Reactor> generatedClasses,
-        Reactor container,
-        Resource resource,
-        GeneratorBase generator
-    ) {
-        
+    private static def Reactor getDelayClass(Type type, GeneratorBase generator) {
         val className = generator.supportsGenerics ? 
             GeneratorBase.GEN_DELAY_CLASS_NAME : {
                 val id = Integer.toHexString(
@@ -281,7 +263,7 @@ class ASTUtils {
             }
             
         // Only add class definition if it is not already there.
-        val classDef = generatedClasses.findFirst[it|it.name.equals(className)]
+        val classDef = generator.findDelayClass(className)
         if (classDef !== null) {
             return classDef
         }
@@ -369,59 +351,9 @@ class ASTUtils {
         delayClass.outputs.add(output)
         delayClass.parameters.add(delayParameter)
         
-        generatedClasses.add(delayClass)
-        
-        // Finally, add the class definition just prior to the
-        // container reactor in the resource.
-        // Contained reactors are normally declared before container
-        // reactors. But we don't want them to be too much before
-        // because conceivably they could depend on preamble code
-        // that defines data types in previously defined reactors.
-        val model = findModel(resource)
-        val position = reactorPosition(container, model)
-        if (position < 0) {
-            throw new RuntimeException("INTERNAL ERROR: Cannot find " + container + " in the model.")
-        }
-        model.reactors.add(position, delayClass)
+        generator.addDelayClass(delayClass)
         
         return delayClass
-    }
-    
-    /**
-     * Return the position of the specified reactor in the model contents.
-     * Reactor class definitions are always in the top-level Model.
-     * @param reactor The reactor class definition to find.
-     * @param model The top-level model.
-     * @return Return the position or -1 if it is not found.
-     */
-    static private def reactorPosition(Reactor reactor, Model model) {
-        var position = 0
-        for (candidate : model.reactors) {
-            if (reactor === candidate) {
-                return position
-            }
-            position++
-        }
-        return -1
-    }
-    
-    /**
-     * Return the top-level Model.
-     */
-    static def findModel(Resource resource) {
-        var model = null as Model
-        for (t : resource.contents) {
-            if (t instanceof Model) {
-                if (model !== null) {
-                    throw new RuntimeException("There is more than one Model!")
-                }
-                model = t
-            }
-        }
-        if (model === null) {
-            throw new RuntimeException("No Model found!")
-        }
-        model
     }
     
     /** 
