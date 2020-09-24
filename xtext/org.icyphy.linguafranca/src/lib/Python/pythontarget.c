@@ -356,6 +356,8 @@ port_iter(PyObject *self)
 
     port->current_index++;
 
+    Py_INCREF(pyport);
+    return pyport;
 }
 
 /**
