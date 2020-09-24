@@ -380,13 +380,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
-    
+    /**
+     * Store the given reactor in the collection of generated delay classes
+     * and insert it in the AST under the top-level reactors node.
+     */
     def void addDelayClass(Reactor generatedDelay) {
         // Record this class, so it can be reused.
         this.delayClasses.add(generatedDelay)
+        // And hook it into the AST.
         this.model.reactors.add(generatedDelay)
     }
     
+    /**
+     * Return the generated delay reactor that corresponds to the given class
+     * name if it had been created already, `null` otherwise.
+     */
     def Reactor findDelayClass(String className) {
         return this.delayClasses.findFirst[it|it.name.equals(className)]
     }
@@ -534,7 +542,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         for (r : this.resources) {
             // Replace connections in this resources that are annotated with the 
             // "after" keyword by ones that go through a delay reactor. 
-            r.insertGeneratedDelays(this) // FIXME: do this by reactor, not by resource
+            r.insertGeneratedDelays(this)
             
             if (r !== this.resource) {
                 // FIXME: This is just a proof of concept. What to do instead:
