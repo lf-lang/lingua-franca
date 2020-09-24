@@ -120,6 +120,7 @@ StructAsTypeDirect.lf
 StructParallel.lf
 StructPrint.lf
 StructScale.lf
+SubclassesAndStartup.lf
 TestForPreviousOutput.lf
 Threaded.lf
 ThreadedMultiport.lf
