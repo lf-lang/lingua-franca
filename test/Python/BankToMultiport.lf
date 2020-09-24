@@ -14,15 +14,13 @@ reactor Sink(width:int(4)) {
     state received:bool(false);
     
     reaction (_in) {=
-        indx = 0
-        for i in _in:
-            if i.is_present is True:
-                print("Received on channel {:d}: {:d}\n".format(indx, i.value))
+        for i in range(len(_in)):
+            if _in[i].is_present is True:
+                print("Received on channel {:d}: {:d}\n".format(i, _in[i].value))
                 self.received = True
-                if i.value != indx:
-                    sys.stderr.write("ERROR: expected {:d}\n".format(indx))
+                if _in[i].value != i:
+                    sys.stderr.write("ERROR: expected {:d}\n".format(i))
                     exit(1)
-                indx+=1
     =}
     reaction(shutdown) {=
         if self.received is False:

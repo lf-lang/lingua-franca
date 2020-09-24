@@ -1525,7 +1525,7 @@ class PythonGenerator extends CGenerator {
         pyObjectDescriptor.append("O")
         // Values passed to an action are always stored in the token->value.
         // However, sometimes token might not be initialized. Therefore, this function has an internal check for NULL in case token is not initialized.
-        pyObjects.append(''', convert_C_action_to_py((void *)&self->__«action.name»)''')
+        pyObjects.append(''', convert_C_action_to_py(«action.name»)''')
     }
 
     /** Generate into the specified string builder the code to
@@ -1557,12 +1557,12 @@ class PythonGenerator extends CGenerator {
             if(!(port.variable as Port).isMultiport)
             {
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(&self->__«port.container.name».«port.variable.name», -2)''')
+                pyObjects.append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», -2)''')
             }
             else
             {                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(self->__«port.container.name».«port.variable.name», self->__«port.container.name».«port.variable.name»_width) ''')
+                pyObjects.append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», port.container.name».«port.variable.name»_width) ''')
             }
         }
     }
@@ -1594,7 +1594,7 @@ class PythonGenerator extends CGenerator {
             } else if (output.isMultiport) {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(&«output.name»,self->__«output.name»__width) ''')
+                pyObjects.append(''', convert_C_port_to_py(&«output.name»,«output.name»_width) ''')
             }
     }
     
@@ -1621,7 +1621,7 @@ class PythonGenerator extends CGenerator {
         else
         {
             pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(&self->__«definition.name».«input.name», -2)''')        
+            pyObjects.append(''', convert_C_port_to_py(«definition.name».«input.name», -2)''')        
         }
     }
     
@@ -1652,23 +1652,23 @@ class PythonGenerator extends CGenerator {
         if (!input.isMutable && !input.isMultiport) {
             // Non-mutable, non-multiport, primitive type.
             pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(self->__«input.name», self->__«input.name»__width)''')
+            pyObjects.append(''', convert_C_port_to_py(«input.name», «input.name»_width)''')
         } else if (input.isMutable && !input.isMultiport) {
             // Mutable, non-multiport, primitive type.
             // TODO: handle mutable
             pyObjectDescriptor.append("O")
-            pyObjects.append(''', convert_C_port_to_py(self->__«input.name», self->__«input.name»__width)''')
+            pyObjects.append(''', convert_C_port_to_py(«input.name», «input.name»_width)''')
         } else if (!input.isMutable && input.isMultiport) {
             // Non-mutable, multiport, primitive.
             // TODO: support multiports
             pyObjectDescriptor.append("O")            
-            pyObjects.append(''', convert_C_port_to_py((generic_port_instance_struct **)self->__«input.name»,self->__«input.name»__width) ''')
+            pyObjects.append(''', convert_C_port_to_py(«input.name»,«input.name»_width) ''')
         } else {
             // Mutable, multiport, primitive type
             // TODO: support mutable multiports
             
             pyObjectDescriptor.append("O")            
-            pyObjects.append(''', convert_C_port_to_py((generic_port_instance_struct **)self->__«input.name»,self->__«input.name»__width) ''')
+            pyObjects.append(''', convert_C_port_to_py(«input.name»,«input.name»_width) ''')
         }
     }
     
