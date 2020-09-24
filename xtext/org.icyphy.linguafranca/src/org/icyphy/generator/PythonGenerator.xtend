@@ -520,11 +520,22 @@ class PythonGenerator extends CGenerator {
                         if((trigger.variable as Input).isMutable)
                         {
                             // Create a deep copy
-                            // FIXME: the value is not connected to anywhere
-                            inits.append('''«trigger.variable.name» = Make()
-                            ''')
-                            inits.append('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)
-                            ''')
+                            if((trigger.variable as Input).isMultiport)
+                            {
+                                inits.append('''«trigger.variable.name» = [Make() for i in range(len(mutable_«trigger.variable.name»))]
+                                ''')                   
+                                inits.append('''for i in range(len(mutable_«trigger.variable.name»)):
+                                ''')                                
+                                inits.append('''    «trigger.variable.name»[i].value = copy.deepcopy(mutable_«trigger.variable.name»[i].value)
+                                ''')  
+                            }
+                            else
+                            {
+                                inits.append('''«trigger.variable.name» = Make()
+                                ''')
+                                inits.append('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)
+                                ''')                            
+                            }
                         }
                         
                     } else {
