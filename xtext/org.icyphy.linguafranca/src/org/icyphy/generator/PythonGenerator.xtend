@@ -939,7 +939,7 @@ class PythonGenerator extends CGenerator {
     override includeTargetLanguageHeaders()
     {
         pr('''#define MODULE_NAME LinguaFranca«filename»''')
-         pr('''#define __GARBAGE_COLLECTED''')    	
+        pr('''#define __GARBAGE_COLLECTED''')    	
         pr('#include "pythontarget.c"')
     }
     
