@@ -326,6 +326,10 @@ class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
+    
+    // If set to false, allows the descendants of the CGenerator
+    // to have more lenient type systems
+    protected var requiresTypes = true
 
 
     new () {
@@ -1265,7 +1269,7 @@ class CGenerator extends GeneratorBase {
      * @return A string providing the value field of the port struct.
      */
     protected def valueDeclaration(Port port) {
-        if (port.type === null) {
+        if (port.type === null && requiresTypes === true) {
             // This should have been caught by the validator.
             reportError(port, "Port is required to have a type: " + port.name)
             return ''
@@ -1301,7 +1305,7 @@ class CGenerator extends GeneratorBase {
      * @return A string providing the value field of the action struct.
      */
     protected def valueDeclaration(Action action) {
-        if (action.type === null) {
+        if (action.type === null && requiresTypes === true) {
             return ''
         }
         // Do not convert to token_t* using lfTypeToTokenType because there
@@ -1838,7 +1842,46 @@ class CGenerator extends GeneratorBase {
         
         // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(decl, reactionIndex)
+        
+        
+        pr('void ' + functionName + '(void* instance_args) {')
+        indent()
+        var body = reaction.code.toText
+        
+        generateInitializationForReaction(body, reaction, decl)
+        
+        // Code verbatim from 'reaction'
+        prSourceLineNumber(reaction.code)
+        pr(body)
+        unindent()
+        pr("}")
 
+        // Now generate code for the deadline violation function, if there is one.
+        if (reaction.deadline !== null) {
+            // The following name has to match the choice in generateReactionInstances
+            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
+
+            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            indent();
+            generateInitializationForReaction(body, reaction, reactor)
+            // Code verbatim from 'deadline'
+            prSourceLineNumber(reaction.deadline.code)
+            pr(reaction.deadline.code.toText)
+            unindent()
+            pr("}")
+        }
+    }
+    
+    /**
+     * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.
+     * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
+     * @param reaction The initialization code will be generated for this specific reaction
+     * @param decl The reactor that has the reaction
+     * @return The reaction initialization code for reusability.
+     */
+    def generateInitializationForReaction(String body, Reaction reaction, ReactorDecl decl) {
+        val reactor = decl.toDefinition
+        
         // Construct the reactionInitialization code to go into
         // the body of the function before the verbatim code.
         var StringBuilder reactionInitialization = new StringBuilder()
@@ -1947,10 +1990,6 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        pr('void ' + functionName + '(void* instance_args) {')
-        indent()
-        var body = reaction.code.toText
-
         // Do not generate the initialization code if the body is marked
         // to not generate it.
         if (!body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
@@ -1967,26 +2006,8 @@ class CGenerator extends GeneratorBase {
         } else {
             pr(structType + "* self = (" + structType + "*)instance_args;")
         }
-        // Code verbatim from 'reaction'
-        prSourceLineNumber(reaction.code)
-        pr(body)
-        unindent()
-        pr("}")
-
-        // Now generate code for the deadline violation function, if there is one.
-        if (reaction.deadline !== null) {
-            // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
-
-            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
-            indent();
-            pr(reactionInitialization.toString)
-            // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline.code)
-            pr(reaction.deadline.code.toText)
-            unindent()
-            pr("}")
-        }
+        
+        return reactionInitialization.toString
     }
 
     /** Generate code to create the trigger table for each reaction of the
@@ -3991,7 +4012,7 @@ class CGenerator extends GeneratorBase {
         Output output,
         ReactorDecl decl
     ) {
-        if (output.type === null) {
+        if (output.type === null && requiresTypes === true) {
             reportError(output,
                 "Output is required to have a type: " + output.name)
         } else {

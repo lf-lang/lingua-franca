@@ -239,7 +239,14 @@ class PythonGenerator extends CGenerator {
                 {  
                     if(trigger.variable instanceof Input)
                     {
-                        generatedParams.add(trigger.variable.name)
+                        if((trigger.variable as Input).isMutable)
+                        {
+                            generatedParams.add('''mutable_«trigger.variable.name»''')
+                        }
+                        else
+                        {
+                            generatedParams.add(trigger.variable.name)
+                        }
                     } else {
                         // FIXME: not using proper "."
                         generatedParams.add('''«trigger.container.name»_«trigger.variable.name»''')
@@ -512,10 +519,10 @@ class PythonGenerator extends CGenerator {
                         {
                             // Create a deep copy
                             // FIXME: the value is not connected to anywhere
-                            inits.append('''«trigger.variable.name».value = copy.deepcopy(«trigger.variable.name».value)
+                            inits.append('''«trigger.variable.name» = Make()
                             ''')
-                            //inits.append('''«trigger.variable.name» = copy.deepcopy(«trigger.variable.name»)
-                            //''')
+                            inits.append('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)
+                            ''')
                         }
                         
                     } else {
@@ -945,6 +952,8 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         // Request to generate the name field                
         super.addClassNameToSelfStruct = true
+        // Dynamic types
+        super.requiresTypes = false
 
         super.doGenerate(resource, fsa, context)
 
@@ -1083,7 +1092,8 @@ class PythonGenerator extends CGenerator {
         
         // Indicates if the reactor is in a bank and has the instance parameter
         var hasInstance = false
-               
+        
+        
         // Next, add the triggers (input and actions; timers are not needed).
         // TODO: handle triggers
         for (TriggerRef trigger : reaction.triggers ?: emptyList) {
@@ -1160,8 +1170,9 @@ class PythonGenerator extends CGenerator {
         
         pr('void ' + functionName + '(void* instance_args) {')
         indent()
-
-        pr(structType + "* self = (" + structType + "*)instance_args;")
+        
+        // First, generate C initializations
+        super.generateInitializationForReaction("", reaction, decl)
         
         
         prSourceLineNumber(reaction.code)
@@ -1209,7 +1220,8 @@ class PythonGenerator extends CGenerator {
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
             
-            pr(structType + "* self = (" + structType + "*)instance_args;")
+            
+            super.generateInitializationForReaction("", reaction, decl)
             
             pr('''invoke_python_function("__main__", self->__lf_name, 0 ,"«pythonDeadlineFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
             //pr(reactionInitialization.toString)
@@ -1516,11 +1528,11 @@ class PythonGenerator extends CGenerator {
             // array of pointers.
             if (!output.isMultiport) {
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(&self->__«output.name», -2)''')
+                pyObjects.append(''', convert_C_port_to_py(«output.name», -2)''')
             } else if (output.isMultiport) {
                 // Set the _width variable.                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(&self->__«output.name»,self->__«output.name»__width) ''')
+                pyObjects.append(''', convert_C_port_to_py(&«output.name»,self->__«output.name»__width) ''')
             }
     }
     

@@ -37,8 +37,8 @@ reactor Destination(width:int(4)) {
 	input[width] _in:int;
 	reaction(_in) {=
 		sm = 0
-		for i in _in:
-            sm += i.value
+		for i in range(len(_in)):
+            sm += _in[i].value
 
 		print("Sum of received: " + str(sm))
 		if sm != self.s:
