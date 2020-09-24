@@ -1,0 +1,40 @@
+target C;
+
+reactor Super {
+    state count:int(0);
+    reaction (startup) {=
+        printf("%s(Super) started\n", self->name);
+        self->count++;
+    =}
+    reaction(shutdown) {=
+        if (self->count == 0) {
+            fprintf(stderr, "No startup reaction was invoked!\n");
+            exit(3);
+        }
+    =}
+}
+
+reactor SubA(name:string("SubA")) extends Super {
+    reaction (startup) {=
+        printf("%s started\n", self->name);
+        if (self->count == 0) {
+            fprintf(stderr, "Base class startup reaction was not invoked!\n");
+            exit(1);
+        }
+    =}
+}
+
+reactor SubB(name:string("SubB")) extends Super {
+    reaction (startup) {=
+        printf("%s started\n", self->name);
+        if (self->count == 0) {
+            fprintf(stderr, "Base class startup reaction was not invoked!\n");
+            exit(2);
+        }
+    =}
+}
+
+main reactor SubclassesAndStartup {
+    a = new SubA();
+    b = new SubB();
+} 
