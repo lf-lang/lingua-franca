@@ -1579,7 +1579,7 @@ class PythonGenerator extends CGenerator {
             else
             {                
                 pyObjectDescriptor.append("O")
-                pyObjects.append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», port.container.name».«port.variable.name»_width) ''')
+                pyObjects.append(''', convert_C_port_to_py(«port.container.name».«port.variable.name», «port.container.name».«port.variable.name»_width) ''')
             }
         }
     }
