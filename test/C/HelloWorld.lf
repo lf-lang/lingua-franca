@@ -1,7 +1,16 @@
 target C;
 reactor HelloWorld {
+    state success:bool(false);
     reaction(startup) {=
         printf("Hello World.\n");
+        self->success = true;
+    =}
+    reaction(shutdown) {=
+        printf("Shutdown invoked.\n");
+        if (!self->success) {
+            fprintf(stderr, "ERROR: startup reaction not executed.\n");
+            exit(1);
+        }
     =}
 }
 main reactor HelloWorldTest {
