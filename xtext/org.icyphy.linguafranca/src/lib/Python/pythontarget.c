@@ -34,7 +34,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //////////// set Function(s) /////////////
 /**
  * Set the value and is_present field of self which is of type
- * LinguaFranca.port_instance (a.k.a. generic_port_instance_struct*).
+ * LinguaFranca.port_capsule
+ * 
+ * Each LinguaFranca.port_capsule includes a void* pointer of 
+ * the C port (a.k.a. generic_port_instance_struct*).
+ * @see generic_port_capsule_struct in pythontarget.h
+ * 
+ * This function calls the underlying _LF_SET API.
+ * @see xtext/org.icyphy.linguafranca/src/lib/core/reactor.h
  * 
  * This function can be used to set any type of PyObject ranging from
  * primitive types to complex lists and tuples. Moreover, this function
@@ -75,8 +82,11 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
     {   
         tmp = port->value;
         Py_INCREF(val);
-        _LF_SET(port, val);        
+        _LF_SET(port, val);
+
+        // Also set the values for the port capsule.       
         p->value = val;
+        p->is_present = true;
         //Py_XDECREF(tmp); // Since value is allocated in Python, the Python garbage collector will manage and free this memory
     }
 
@@ -247,36 +257,7 @@ static PyObject* py_main(PyObject *self, PyObject *args)
 
 ///////////////// Functions used in port creation, initialization, deletion, and copying /////////////
 /**
- * In order to implement mutable inputs, we need to deepcopy a port_instance.
- * For this purpose, Python needs to be able to "pickle" the objects (convert
- * them to the fomrat objectID(objmember1, ....))
- * @param self A port with type port_instance_t with a template structure akin to
- *             a generic_port_instance_struct* (therefore, self is castable to generic_port_instance_struct*)
- * @return tuple A tuple of format objectID(port->value, port->is_present, port->num_destinations)
- */
-static PyObject *
-port_capsule_reduce(PyObject *self)
-{
-    PyObject *attr;
-    PyObject *obj;
-    PyObject *tuple;
-    generic_port_capsule_struct* port;
-
-    obj = (PyObject*)self;
-    port = (generic_port_capsule_struct*)obj;
-
-	attr = PyObject_GetAttrString(obj, "__class__");
-
-#ifdef VERBOSE
-    printf("Reduce called.\n");
-#endif
-
-    tuple = Py_BuildValue("O(OOi)", attr, port->port, port->value , port->is_present);
-    return tuple;
-}
-
-/**
- * Called when a port_instance had to be deallocated (generally by the Python
+ * Called when a port_capsule has to be deallocated (generally by the Python
  * garbage collector).
  * @param self An instance of generic_port_instance_struct*
  */
@@ -289,20 +270,23 @@ port_capsule_dealloc(generic_port_capsule_struct *self)
 }
 
 /**
- * Create a new port_instance. Note that a LinguaFranca.port_instance PyObject
- * follows the same structure as the @see generic_port_instance_struct.
+ * Create a new port_capsule. Note that a LinguaFranca.port_capsule PyObject
+ * follows the same structure as the @see generic_port_capsule_struct.
  * 
- * To initialize the port_instance, this function first initializes a 
- * generic_port_instance_struct* self using the tp_alloc property of 
- * port_instance (@see port_isntance_t) and then assigns the members
- * of self with default values of value = NULL, is_present = false,
- * and num_destination = 0.
- * @param type The Python type object. In this case, port_instance_t
+ * To initialize the port_capsule, this function first initializes a 
+ * generic_port_capsule_struct* self using the tp_alloc property of 
+ * port_capsule (@see port_capsule_t) and then assigns the members
+ * of self with default values of port= NULL, value = NULL, is_present = false,
+ * current_index = 0, width = -2.
+ * @param type The Python type object. In this case, port_capsule_t
  * @param args The optional arguments that are:
+ *      @param port A capsule that holds a void* to the underlying C port
  *      @param value value of the port
  *      @param is_present An indication of whether or not the value of the port
- *                      is present at the current logical time.
- *      @param num_destination Used for reference-keeping inside the C runtime
+ *                       is present at the current logical time.
+ *      @param current_index Used to reference multiports in the iterator
+ *      @param width Used to indicate the width of a multiport. If the port
+ *                   is not a multiport, this field will be -2.
  * @param kwds Keywords (@see Python keywords)
  */
 static PyObject *
@@ -321,7 +305,12 @@ port_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 /**
- * 
+ * The iterator function that can be useful to implement iterator features for multiports.
+ * For example to make
+ *     for p in foo_multiport:
+ *         p.set(42)
+ * possible in Python.
+ * FIXME: Incomplete iterator
  */
 static PyObject *
 port_iter(PyObject *self)
@@ -362,7 +351,11 @@ port_iter(PyObject *self)
 }
 
 /**
- * 
+ * The function that is responsible for getting the next iterator for a multiport.
+ * This would make the following code possible:
+ *     for p in foo_multiport:
+ *         p.set(42)
+ * FIXME: incomplete iterator next
  */
 static PyObject *
 port_iter_next(PyObject *self)
@@ -370,7 +363,18 @@ port_iter_next(PyObject *self)
 
 }
 /**
- * 
+ * Get an item from a Linugua Franca port capsule type.
+ * If a port is a not a multiport, it will have a width of
+ * -2 (@see CGenerator.xtend). In this case, this function will
+ * return the port capsule itself.
+ * If a port is a multiport, this function will convert the index
+ * item and convert it into a C long long, and use it to access
+ * the underlying array stored in the PyCapsule as "port". A new
+ * non-multiport capsule is created and returned, which in turn can be
+ * used as an ordinary LinguaFranca.port_capsule.
+ * @param self The port which can be a multiport or a singular port
+ * @param item The index which is used to retrieve an item from the underlying
+ *             C array if the port is a multiport.
  */
 static PyObject *
 port_capsule_get_item(PyObject *self, PyObject *item)
@@ -407,7 +411,7 @@ port_capsule_get_item(PyObject *self, PyObject *item)
         pyport->port = PyCapsule_New(cport[index], "port", NULL);
         pyport->value = cport[index]->value;
         pyport->is_present = cport[index]->is_present;
-
+        pyport->width = -2;
 
     }
 
@@ -424,6 +428,13 @@ port_capsule_get_item(PyObject *self, PyObject *item)
     return pyport;
 }
 
+/**
+ * This function is overloaded to prevent directly assigning to multiports.
+ * The set function currently is the only way to assign value to ports.
+ * @param self The port of type LinguaFranca.port_capsule
+ * @param item The index (which is ignored)
+ * @param value The value to be assigned (which is ignored)
+ */
 static int
 port_capsule_assign_get_item(PyObject *self, PyObject *item, PyObject* value)
 {
@@ -433,6 +444,10 @@ port_capsule_assign_get_item(PyObject *self, PyObject *item, PyObject* value)
     return NULL;
 }
 
+/**
+ * A function that allows the invocation of len() on a port.
+ * @param self A port of type LinguaFranca.port_capsule
+ */ 
 static Py_ssize_t
 port_length(PyObject *self)
 {
@@ -443,6 +458,10 @@ port_length(PyObject *self)
     return (Py_ssize_t)port->width;
 }
 
+/**
+ * Methods that convert a LinguaFranca.port_capsule into a mapping,
+ * which allows it to be subscriptble.
+ */ 
 static PyMappingMethods port_as_mapping = {    
     (lenfunc)port_length,
     (binaryfunc)port_capsule_get_item,
@@ -450,26 +469,29 @@ static PyMappingMethods port_as_mapping = {
 };
 
 /**
- * Initialize the port instance self with the given optional values for
- * value, is_present, and num_destinations. If any of these arguments
+ * Initialize the port capsule self with the given optional values for
+ * port, value, is_present, and num_destinations. If any of these arguments
  * are missing, the default values are assigned
  * @see port_intance_new 
  * @param self The port_instance PyObject that follows
  *              the generic_port_instance_struct* internal structure
  * @param args The optional arguments that are:
+ *      @param port A capsule that holds a void* to the underlying C port
  *      @param value value of the port
  *      @param is_present An indication of whether or not the value of the port
- *                      is present at the current logical time.
- *      @param num_destination Used for reference-keeping inside the C runtime
+ *                       is present at the current logical time.
+ *      @param current_index Used to reference multiports in the iterator
+ *      @param width Used to indicate the width of a multiport. If the port
+ *                   is not a multiport, this field will be -2.
  */
 static int
 port_capsule_init(generic_port_capsule_struct *self, PyObject *args, PyObject *kwds)
 {
-    static char *kwlist[] = { "port", "value", "is_present", NULL};
-    PyObject *value = NULL, *tmp;
+    static char *kwlist[] = { "port", "value", "is_present", "width", "current_index", NULL};
+    PyObject *value = NULL, *tmp, *port = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOp", kwlist,
-                                     &value, &self->is_present))
+                                     &port, &value, &self->is_present, &self->width, &self->current_index))
     {
         return -1;
     }
@@ -478,6 +500,13 @@ port_capsule_init(generic_port_capsule_struct *self, PyObject *args, PyObject *k
         tmp = self->value;
         Py_INCREF(value);
         self->value = value;
+        Py_XDECREF(tmp);
+    }
+    
+    if (port){
+        tmp = self->port;
+        Py_INCREF(port);
+        self->port = port;
         Py_XDECREF(tmp);
     }
 
@@ -571,8 +600,12 @@ action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObjec
 
 ////// Ports //////
 /*
- * The members of a port_instance, used to define
+ * The members of a port_capsule, used to define
  * a native Python type.
+ * port contains the port capsule, which holds a void* pointer to the underlying C port.
+ * value contains the copied value of the C port. The type is always PyObject*.
+ * is_present contains the copied value of the is_present field of the C port.
+ * width indicates the width of a multiport or -2 if not a multiport.
  */
 static PyMemberDef port_capsule_members[] = {
     {"port", T_OBJECT, offsetof(generic_port_capsule_struct, port), 0, ""},
@@ -583,11 +616,12 @@ static PyMemberDef port_capsule_members[] = {
 };
 
 /*
- * The function members of port_instance
+ * The function members of port_capsule
+ * __getitem__ is used to reference a multiport with an index (e.g., foo[2])
+ * set is used to set a port value and its is_present field.
  */
 static PyMethodDef port_capsule_methods[] = {
     {"__getitem__", (PyCFunction)port_capsule_get_item, METH_O|METH_COEXIST, "x.__getitem__(y) <==> x[y]"},
-    {"__reduce__", (PyCFunction)port_capsule_reduce, METH_NOARGS, "Necessary for pickling objects"},
     {"set", (PyCFunction)py_SET, METH_VARARGS, "Set value of the port as well as the is_present field"},
     {NULL}  /* Sentinel */
 };
@@ -684,8 +718,20 @@ static PyTypeObject action_capsule_t = {
 
 
 ///// Python Module Built-ins
-/*
- * Bind Python function names to our C functions
+/**
+ * Bind Python function names to the C functions.
+ * The name of this struct is dynamically generated because
+ * MODULE_NAME is given by the generated code. This struct
+ * will be named as MODULE_NAME_methods.
+ * For example, for MODULE_NAME=Foo, this struct will
+ * be called Foo_methods.
+ * start() initiates the main loop in the C core library
+ * @see schedule_copy
+ * @see get_elapsed_logical_time
+ * @see get_logical_time
+ * @see get_physical_time
+ * @see get_elapsed_physical_time
+ * @see stop
  */
 static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_main, METH_VARARGS, NULL},
@@ -699,6 +745,10 @@ static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
 };
 
 
+/**
+ * Define the Lingua Franca module.
+ * The MODULE_NAME is given by the generated code.
+ */
 static PyModuleDef MODULE_NAME = {
     PyModuleDef_HEAD_INIT,
     TOSTRING(MODULE_NAME),
@@ -714,6 +764,9 @@ static PyModuleDef MODULE_NAME = {
  * The name of this function is dynamically generated to follow
  * the requirement of PyInit_MODULE_NAME. Since the MODULE_NAME is not
  * known prior to compile time, the GEN_NAME macro is used.
+ * The generated function will have the name PyInit_MODULE_NAME.
+ * For example for a module named LinguaFrancaFoo, this function
+ * will be called PyInit_LinguaFrancaFoo
  */
 PyMODINIT_FUNC
 GEN_NAME(PyInit_,MODULE_NAME)(void)
@@ -780,7 +833,19 @@ void destroy_action_capsule(PyObject* capsule)
 }
 
 /**
- * TODO: used for non-multiport types
+ * A function that is called any time a Python reaction is called with
+ * ports as inputs and outputs. This function converts ports that are
+ * either a multiport or a non-multiport into a port_capsule.
+ * 
+ * First, the void* pointer is stored in a PyCapsule. If the port is not
+ * a multiport, the value and is_present fields are copied verbatim. These
+ * feilds then can be accessed from the Python code as port.value and
+ * port.is_present.
+ * If the value is absent, it will be set to None.
+ * 
+ * For multiports, the value of the port_capsule (i.e., port.value) is always
+ * set to None and is_present is set to false.
+ * Individual ports can then later be accessed in Python code as port[idx].
  */
 PyObject* convert_C_port_to_py(void* port, int width)
 {
@@ -828,6 +893,9 @@ PyObject* convert_C_port_to_py(void* port, int width)
     }
     else
     {
+        // Value is absent
+        Py_INCREF(Py_None);
+        ((generic_action_capsule_struct*)cap)->value = Py_None;
         ((generic_port_capsule_struct*)cap)->is_present = false;
     }
 

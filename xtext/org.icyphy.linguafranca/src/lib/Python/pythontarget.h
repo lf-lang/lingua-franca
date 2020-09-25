@@ -84,13 +84,13 @@ PyObject *globalPythonModuleDict = NULL;
  * in Lingua Franca. This template is used 
  * in the PythonGenerator instead of redefining
  * a struct for each port.
- * This template can be used for both primitive types
- * and statically allocated arrays (e.g., int x[3];).
- * T value: the value of the port with type T
+ * This template can be used for any Python object,
+ * including lists and tuples.
+ * PyObject* value: the value of the port with the generic Python type
  * is_present: indicates if the value of the port is present
- *     at the current logcal time
+ *             at the current logical time
  * num_destinations: used for reference counting the number of
- *     connections to destinations.
+ *                   connections to destinations.
  **/
 typedef struct {
     PyObject* value;
@@ -100,7 +100,25 @@ typedef struct {
 
 /**
  * The struct used to represent ports in Python 
- * applications. TODO: more comments.
+ * This template is used as a blueprint to create
+ * Python objects that follow the same structure.
+ * The resulting Python object will have the type 
+ * port_capsule_t in C (LinguaFranca.port_capsule in Python).
+ * 
+ * port: A PyCapsule (https://docs.python.org/3/c-api/capsule.html)
+ *       that safely holds a C void* inside a Python object. This capsule
+ *       is passed through the Python code and is extracted in C functions
+ *       like set and __getitem__.
+ * value: The value of the port at the time of invocation of @see convert_C_port_to_py.
+ *        The value and is_present are copied from the port if it is not a multiport and can be accessed as
+ *        port.value. For multiports, is_present will be false and value will be None. The value of each individual
+ *        port can be accessed as port[idx].value (@see port_capsule_get_item). 
+ *        Subsequent calls to set will also need to update the value and is_present fields so that they are reflected
+ *        in Python code.
+ * is_present: Indicates if the value of the singular port is present
+ *             at the current logical time
+ * width: Indicates the width of the multiport. This is set to -2 for non-multiports.
+ * current_index: Used to facilitate iterative functions (@see port_iter)
  **/
 typedef struct {
     PyObject_HEAD
@@ -113,7 +131,9 @@ typedef struct {
 
 /**
  * Special version of the template_input_output_port_struct
- * for dynamic arrays
+ * for dynamic arrays.
+ * FIXME: This is currently kept for compatibility reasons
+ * and should be removed soon.
  **/
 typedef struct {
     PyObject_HEAD
@@ -155,7 +175,14 @@ typedef struct {
 
 /**
  * Set the value and is_present field of self which is of type
- * LinguaFranca.port_instance (a.k.a. generic_port_instance_struct*).
+ * LinguaFranca.port_capsule
+ * 
+ * Each LinguaFranca.port_capsule includes a void* pointer of 
+ * the C port (a.k.a. generic_port_instance_struct*).
+ * @see generic_port_capsule_struct in pythontarget.h
+ * 
+ * This function calls the underlying _LF_SET API.
+ * @see xtext/org.icyphy.linguafranca/src/lib/core/reactor.h
  * 
  * This function can be used to set any type of PyObject ranging from
  * primitive types to complex lists and tuples. Moreover, this function
@@ -233,8 +260,19 @@ static PyObject* py_main(PyObject *self, PyObject *args);
 /////////////  Python Helper Functions
 
 /**
- * A helper function to convert C ports to Python ports
+ * A function that is called any time a Python reaction is called with
+ * ports as inputs and outputs. This function converts ports that are
+ * either a multiport or a non-multiport into a port_capsule.
  * 
+ * First, the void* pointer is stored in a PyCapsule. If the port is not
+ * a multiport, the value and is_present fields are copied verbatim. These
+ * feilds then can be accessed from the Python code as port.value and
+ * port.is_present.
+ * If the value is absent, it will be set to None.
+ * 
+ * For multiports, the value of the port_capsule (i.e., port.value) is always
+ * set to None and is_present is set to false.
+ * Individual ports can then later be accessed in Python code as port[idx].
  */
 PyObject* convert_C_port_to_py(void* port, int width);
 
@@ -286,10 +324,13 @@ invoke_python_function(string module, string class, int instance_id, string func
 
 
 /*
- * The Python runtime will call this to initialize the module.
+ * The Python runtime will call this function to initialize the module.
  * The name of this function is dynamically generated to follow
  * the requirement of PyInit_MODULE_NAME. Since the MODULE_NAME is not
  * known prior to compile time, the GEN_NAME macro is used.
+ * The generated function will have the name PyInit_MODULE_NAME.
+ * For example for a module named LinguaFrancaFoo, this function
+ * will be called PyInit_LinguaFrancaFoo
  */
 PyMODINIT_FUNC
 GEN_NAME(PyInit_,MODULE_NAME)(void);
