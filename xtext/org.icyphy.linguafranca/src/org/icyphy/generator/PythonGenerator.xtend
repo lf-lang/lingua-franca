@@ -253,7 +253,7 @@ class PythonGenerator extends CGenerator {
                                     append('''    «trigger.variable.name»[i].value = copy.deepcopy(mutable_«trigger.variable.name»[i].value)
                                     ''')
                             } else {
-                                inits.append('''«trigger.variable.name» = Make()
+                                inits.append('''«trigger.variable.name» = Make
                                 ''')
                                 inits.
                                     append('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)
@@ -265,7 +265,7 @@ class PythonGenerator extends CGenerator {
                     } else {
                         // Handle contained reactors' ports
                         generatedParams.add('''«trigger.container.name»_«trigger.variable.name»''')
-                        inits.append('''«trigger.container.name» = Make()
+                        inits.append('''«trigger.container.name» = Make
                         ''')
                         inits.
                             append('''«trigger.container.name».«trigger.variable.name» = «trigger.container.name»_«trigger.variable.name»
@@ -293,7 +293,7 @@ class PythonGenerator extends CGenerator {
             if (src.variable instanceof Output) {
                 // Output of a contained reactor
                 generatedParams.add('''«src.container.name»_«src.variable.name»''')
-                inits.append('''«src.container.name» = Make()
+                inits.append('''«src.container.name» = Make
                 ''')
                 inits.append('''«src.container.name».«src.variable.name» = «src.container.name»_«src.variable.name»
                 ''')
@@ -313,7 +313,7 @@ class PythonGenerator extends CGenerator {
         for (effect : reaction.effects ?: emptyList) {
             if (effect.variable instanceof Input) {
                 generatedParams.add('''«effect.container.name»_«effect.variable.name»''')
-                inits.append('''«effect.container.name» = Make()
+                inits.append('''«effect.container.name» = Make
                 ''')
                 inits.
                     append('''«effect.container.name».«effect.variable.name» = «effect.container.name»_«effect.variable.name»
