@@ -29,7 +29,11 @@ addons:
       - libprotobuf-c-dev
       - protobuf-compiler
       - protobuf-c-compiler
-#env:  
+env:
+  - TEST=C  
+  - TEST=Cpp  
+  - TEST=TS  
+  - TEST=Python  
 # global:  
 #  - DISPLAY=:99.0  
 #before_install:
@@ -41,7 +45,4 @@ script:
  - ./gradlew test
  - popd
 # - bin/build-lfc --clean
- - bin/run-lf-tests C
- - bin/run-lf-tests Cpp
- - bin/run-lf-tests TS
- - bin/run-lf-tests Python
+ - bin/run-lf-tests TEST
