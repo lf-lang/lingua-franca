@@ -1,0 +1,35 @@
+// Test local deadline, where a deadline is associated with a reaction
+// definition. This test triggers a reaction exactly once with a
+// deadline violation.
+target Python;
+reactor Deadline(threshold:time(100 msec)) {
+    input x:int;
+    output deadlineViolation:bool;
+    reaction(x) -> deadlineViolation {=
+        sys.stderr.write("ERROR: Deadline violation was not detected!\n")
+        exit(1)
+    =} deadline(threshold) {=
+        print("Deadline violation detected.")
+        deadlineViolation.set(True)
+    =}
+}
+reactor Print {
+    input _in:bool;
+    reaction(_in) {=
+        if _in.value is True:
+            print("Output successfully produced by deadline handler.")
+    =}
+}
+main reactor SimpleDeadline {
+    timer start;
+    d = new Deadline(threshold = 10 msec);
+    p = new Print();
+    d.deadlineViolation -> p._in;
+    preamble {=
+        import time
+    =}
+    reaction(start) -> d.x {=
+        self.time.sleep(0.02)
+        d.x.set(42)
+    =}
+} 
