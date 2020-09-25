@@ -760,7 +760,7 @@ static PyModuleDef MODULE_NAME = {
 //////////////////////////////////////////////////////////////
 /////////////  Module Initialization
 /*
- * The Python runtime will call this to initialize the module.
+ * The Python runtime will call this function to initialize the module.
  * The name of this function is dynamically generated to follow
  * the requirement of PyInit_MODULE_NAME. Since the MODULE_NAME is not
  * known prior to compile time, the GEN_NAME macro is used.
