@@ -1,0 +1,17 @@
+target Python;
+reactor Printer {
+    input x:int;
+    reaction(x) {=
+        print("Inside reactor received: ", x.value)
+        if x.value != 1:
+            sys.stderr.write("ERROR: Expected 1.\n")
+            exit(1)
+    =}
+}
+main reactor SendingInside2 {
+    timer t;
+    p = new Printer();
+    reaction(t) -> p.x {=
+        p.x.set(1)
+    =}
+}
