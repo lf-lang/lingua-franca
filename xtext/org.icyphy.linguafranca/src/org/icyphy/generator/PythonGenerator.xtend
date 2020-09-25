@@ -489,6 +489,7 @@ class PythonGenerator extends CGenerator {
         
         switch(result){
             case "double": result = "float"
+            case "string": result = "object"
             default: result = result
         }
         
