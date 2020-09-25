@@ -145,10 +145,6 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
         trigger->element_size = sizeof(PyObject*);
         t = __initialize_token_with_value(trigger->token, value, 1);
 
-        // If shutdown is requested, we need to ensure that the token is 
-        // not freed by the C runtime because it contains a garbage collected Python object.
-        t->ref_count++;
-
         // Also give the new value back to the Python action itself
         Py_INCREF(value);
         act->value = value;
@@ -964,8 +960,6 @@ PyObject* convert_C_action_to_py(void* action)
         trigger->token->value = Py_None;
     }
 
-    // Increase ref count for this token because value is a PyObject managed by the Python's garbage collector
-    trigger->token->ref_count++;
     // Actions in Python always use token type
     ((generic_action_capsule_struct*)cap)->value = trigger->token->value;
 
