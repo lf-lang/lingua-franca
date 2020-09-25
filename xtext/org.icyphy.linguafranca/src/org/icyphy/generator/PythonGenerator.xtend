@@ -222,95 +222,118 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
-     * Generate parameters for a reaction function
+     * Generate parameters and their respective initialization code for a reaction function
+     * The initialization code is put at the beginning of the reaction before user code
+     * @param parameters The parameters used for function definition
+     * @param inits The initialization code for those paramters
      * @param decl Reactor declaration
      * @param reaction The reaction to be used to generate parameters for
      */
-    def generatePythonReactionParameters(ReactorDecl decl, Reaction reaction)
-    {
-        var StringBuilder parameters = new StringBuilder();
+    def generatePythonReactionParametersAndInitializations(StringBuilder parameters, StringBuilder inits, ReactorDecl decl,
+        Reaction reaction) {
         val reactor = decl.toDefinition
         var generatedParams = new LinkedHashSet<String>()
-                
+
         // Handle triggers
-        for (TriggerRef trigger : reaction.triggers ?:emptyList)
-        {
-            if (trigger instanceof VarRef)
-            {
-                if (trigger.variable instanceof Port)
-                {  
-                    if(trigger.variable instanceof Input)
-                    {
-                        if((trigger.variable as Input).isMutable)
-                        {
+        for (TriggerRef trigger : reaction.triggers ?: emptyList) {
+            if (trigger instanceof VarRef) {
+                if (trigger.variable instanceof Port) {
+                    if (trigger.variable instanceof Input) {
+                        if ((trigger.variable as Input).isMutable) {
                             generatedParams.add('''mutable_«trigger.variable.name»''')
-                        }
-                        else
-                        {
+
+                            // Create a deep copy                            
+                            if ((trigger.variable as Input).isMultiport) {
+                                inits.
+                                    append('''«trigger.variable.name» = [Make() for i in range(len(mutable_«trigger.variable.name»))]
+                                    ''')
+                                inits.append('''for i in range(len(mutable_«trigger.variable.name»)):
+                                ''')
+                                inits.
+                                    append('''    «trigger.variable.name»[i].value = copy.deepcopy(mutable_«trigger.variable.name»[i].value)
+                                    ''')
+                            } else {
+                                inits.append('''«trigger.variable.name» = Make()
+                                ''')
+                                inits.
+                                    append('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)
+                                    ''')
+                            }
+                        } else {
                             generatedParams.add(trigger.variable.name)
                         }
                     } else {
-                        // FIXME: not using proper "."
+                        // Handle contained reactors' ports
                         generatedParams.add('''«trigger.container.name»_«trigger.variable.name»''')
+                        inits.append('''«trigger.container.name» = Make()
+                        ''')
+                        inits.
+                            append('''«trigger.container.name».«trigger.variable.name» = «trigger.container.name»_«trigger.variable.name»
+                            ''')
                     }
-                        
-                }
-                else if (trigger.variable instanceof Action)
-                {
+
+                } else if (trigger.variable instanceof Action) {
                     generatedParams.add(trigger.variable.name)
                 }
             }
         }
-        
+
         // Handle non-triggering inputs
-        if (reaction.triggers === null || reaction.triggers.size === 0)
-        {
-             for (input : reactor.inputs ?:emptyList) {
+        if (reaction.triggers === null || reaction.triggers.size === 0) {
+            for (input : reactor.inputs ?: emptyList) {
                 generatedParams.add(input.name)
+                if (input.isMutable) {
+                    // Create a deep copy
+                    inits.append('''«input.name» = copy.deepcopy(«input.name»)
+                    ''')
+                }
             }
         }
-        for (src : reaction.sources ?:emptyList)
-        {
-            if(src.variable instanceof Output)
-            {
+        for (src : reaction.sources ?: emptyList) {
+            if (src.variable instanceof Output) {
                 // Output of a contained reactor
                 generatedParams.add('''«src.container.name»_«src.variable.name»''')
-            }
-            else
-            {
-                generatedParams.add(src.variable.name)            
+                inits.append('''«src.container.name» = Make()
+                ''')
+                inits.append('''«src.container.name».«src.variable.name» = «src.container.name»_«src.variable.name»
+                ''')
+            } else {
+                generatedParams.add(src.variable.name)
+                if (src.variable instanceof Input) {
+                    if ((src.variable as Input).isMutable) {
+                        // Create a deep copy
+                        inits.append('''«src.variable.name» = copy.deepcopy(«src.variable.name»)
+                        ''')
+                    }
+                }
             }
         }
-        
+
         // Handle effects
-        for (effect : reaction.effects ?:emptyList)
-        {
-            if(effect.variable instanceof Input)
-            {
+        for (effect : reaction.effects ?: emptyList) {
+            if (effect.variable instanceof Input) {
                 generatedParams.add('''«effect.container.name»_«effect.variable.name»''')
-            }
-            else{
+                inits.append('''«effect.container.name» = Make()
+                ''')
+                inits.
+                    append('''«effect.container.name».«effect.variable.name» = «effect.container.name»_«effect.variable.name»
+                    ''')
+            } else {
                 generatedParams.add(effect.variable.name)
-                if (effect.variable instanceof Port)
-                {
-                    if(isMultiport(effect.variable as Port))
-                    {
+                if (effect.variable instanceof Port) {
+                    if (isMultiport(effect.variable as Port)) {
                         // Handle multiports           
                     }
-                }           
+                }
             }
         }
-        
-      
+
         // Fill out the StrinBuilder parameters
-        for (s : generatedParams)
-        {
+        for (s : generatedParams) {
             parameters.append(''', «s»''')
         }
-        
-        return parameters
-        
-      }
+
+    }
     
     /**
      * Handle initialization for state variable
@@ -348,110 +371,104 @@ class PythonGenerator extends CGenerator {
      * @param federate The federate instance for the reactor instance
      * @param instantiatedClasses A list of visited instances to avoid generating duplicates
      */
-    def void generatePythonReactorClass(ReactorInstance instance, StringBuilder pythonClasses, FederateInstance federate, ArrayList<String> instantiatedClasses)
-    {
-        if (instance !== this.main && !reactorBelongsToFederate(instance, federate))
-        {
+    def void generatePythonReactorClass(ReactorInstance instance, StringBuilder pythonClasses,
+        FederateInstance federate, ArrayList<String> instantiatedClasses) {
+        if (instance !== this.main && !reactorBelongsToFederate(instance, federate)) {
             return
         }
-        
+
         // Invalid use of the function
         if (instantiatedClasses === null) {
             return
         }
-        
+
         val decl = instance.definition.reactorClass
         val className = instance.definition.reactorClass.name
-        
+
         // Do not generate code for delay reactors in Python
-        if(className.contains(GEN_DELAY_CLASS_NAME))
-        {
+        if (className.contains(GEN_DELAY_CLASS_NAME)) {
             return
         }
-        
+
         // Do not generate classes that don't have any reactions
         // Do not generate the main federated class, which is always implemented in C
         if (!instance.definition.reactorClass.toDefinition.allReactions.isEmpty && !decl.toDefinition.isFederated) {
             if (reactorBelongsToFederate(instance, federate) && !instantiatedClasses.contains(className)) {
-        
+
                 pythonClasses.append('''
-                class _«className»:
+                    class _«className»:
                 ''');
-                
+
                 // Generate preamble code
                 pythonClasses.append('''
-                
-                    «generatePythonPreamblesForReactor(decl.toDefinition)»
+                    
+                        «generatePythonPreamblesForReactor(decl.toDefinition)»
                 ''')
-                                
+
                 val reactor = decl.toDefinition
-                
+
                 // Handle parameters first
-                for (param : decl.toDefinition.allParameters)
-                {
-                    if(!param.inferredType.targetType.equals("PyObject*"))
-                    {
+                for (param : decl.toDefinition.allParameters) {
+                    if (!param.inferredType.targetType.equals("PyObject*")) {
                         // If type is given, use it
-                        pythonClasses.append('''    «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
-                        ''')
-                    }
-                    else
-                    {
+                        pythonClasses.
+                            append('''    «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
+                            ''')
+                    } else {
                         // If type is not given, just pass along the initialization
                         pythonClasses.append('''    «param.name» = «param.pythonInitializer»
                         ''')
-                        
+
                     }
                 }
-                
+
                 // Next, handle state variables
                 for (stateVar : reactor.allStateVars) {
-                   if(!stateVar.inferredType.targetType.equals("PyObject*"))
-                   {
-                       // If type is given, use it
-                       pythonClasses.append('''    «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
-                       ''')                   
-                   }
-                   else if(stateVar.isInitialized)
-                   {
-                           // If type is not given, pass along the initialization directly if it is present
-                           pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»
-                           ''')
-                   }
+                    if (!stateVar.inferredType.targetType.equals("PyObject*")) {
+                        // If type is given, use it
+                        pythonClasses.
+                            append('''    «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
+                            ''')
+                    } else if (stateVar.isInitialized) {
+                        // If type is not given, pass along the initialization directly if it is present
+                        pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»
+                        ''')
+                    }
                 }
-                
+
                 // Handle runtime initializations
                 pythonClasses.append('''    
-                            «'    '»def __init__(self, **kwargs):
-                                «'    '»self.__dict__.update(kwargs)
+                    «'    '»def __init__(self, **kwargs):
+                        «'    '»self.__dict__.update(kwargs)
                 ''')
-                        
+
                 var reactionIndex = 0
-                for (reaction : reactor.allReactions)
-                {
-                    val reactionParameters = generatePythonReactionParameters(reactor, reaction)
+                for (reaction : reactor.allReactions) {
+                    val reactionParameters = new StringBuilder() // Will contain parameters for the function (e.g., Foo(x,y,z,...)
+                    val inits = new StringBuilder() // Will contain initialization code for some parameters
+                    generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction)
                     pythonClasses.append('''    def «pythonReactionFunctionName(reactionIndex)»(self «reactionParameters»):
                     ''')
-                    pythonClasses.append('''        «getPythonInitializaitons(instance, reaction)»
+                    pythonClasses.append('''        «inits»
                     ''')
                     pythonClasses.append('''        «reaction.code.toText»
                     ''')
                     pythonClasses.append('''        return 0
                     ''')
-                    
+
                     // Now generate code for the deadline violation function, if there is one.
-                    if(reaction.deadline !== null)
-                    {
-                        pythonClasses.append('''    «generateDeadlineFunctionForReaction(reaction, reactionIndex, reactionParameters.toString)»
-                        ''')
+                    if (reaction.deadline !== null) {
+                        pythonClasses.
+                            append('''    «generateDeadlineFunctionForReaction(reaction, reactionIndex, reactionParameters.toString)»
+                            ''')
                     }
-   
-                    reactionIndex = reactionIndex+1;
+
+                    reactionIndex = reactionIndex + 1;
                 }
                 instantiatedClasses.add(className)
-            }    
+            }
         }
-                
+
         for (child : instance.children) {
             generatePythonReactorClass(child, pythonClasses, federate, instantiatedClasses)
         }
@@ -507,121 +524,6 @@ class PythonGenerator extends CGenerator {
         }
         
         return result
-    }
-    
-    /**
-     * Generate initialization code put at the beginning of the reaction before user code
-     * @param reactor The reactor that contains the reaction
-     * @param reaction The reaction to generate initialization code for
-     */
-    def getPythonInitializaitons(ReactorInstance instance, Reaction reaction) {
-        val reactor = instance.definition.reactorClass.toDefinition
-        var StringBuilder inits = new StringBuilder();
-        // Handle triggers
-        for (TriggerRef trigger : reaction.triggers ?:emptyList)
-        {
-            if (trigger instanceof VarRef)
-            {
-                if (trigger.variable instanceof Port)
-                {  
-                    if(trigger.variable instanceof Input)
-                    {
-                        if((trigger.variable as Input).isMutable)
-                        {
-                            // Create a deep copy
-                            if((trigger.variable as Input).isMultiport)
-                            {
-                                inits.append('''«trigger.variable.name» = [Make() for i in range(len(mutable_«trigger.variable.name»))]
-                                ''')                   
-                                inits.append('''for i in range(len(mutable_«trigger.variable.name»)):
-                                ''')                                
-                                inits.append('''    «trigger.variable.name»[i].value = copy.deepcopy(mutable_«trigger.variable.name»[i].value)
-                                ''')  
-                            }
-                            else
-                            {
-                                inits.append('''«trigger.variable.name» = Make()
-                                ''')
-                                inits.append('''«trigger.variable.name».value = copy.deepcopy(mutable_«trigger.variable.name».value)
-                                ''')                            
-                            }
-                        }
-                        
-                    } else {
-                        // Handle contained reactors' ports
-                        inits.append('''«trigger.container.name» = Make
-                        ''')
-                        inits.append('''«trigger.container.name».«trigger.variable.name» = «trigger.container.name»_«trigger.variable.name»
-                        ''')
-                    }
-                        
-                }
-                else if (trigger.variable instanceof Action)
-                {
-                    // TODO: handle actions
-                }
-            }
-        }
-        
-        if (reaction.triggers === null || reaction.triggers.size === 0) {
-            // No triggers are given, which means react to any input.
-            // Declare an argument for every input.
-            // NOTE: this does not include contained outputs. 
-            for (input : reactor.inputs) {
-                if(input.isMutable)
-                {
-                    // Create a deep copy
-                    inits.append('''«input.name» = copy.deepcopy(«input.name»)
-                    ''')
-                }
-            }
-        }
-        
-        // Next add non-triggering inputs.
-        for (VarRef src : reaction.sources ?: emptyList) {
-            if(src.variable instanceof Port)
-            {
-                if(src.variable instanceof Input)
-                {             
-                    if((src.variable as Input).isMutable)
-                    {
-                        // Create a deep copy
-                        inits.append('''«src.variable.name» = copy.deepcopy(«src.variable.name»)
-                        ''')
-                    }
-                }
-                else
-                {
-                    // Output of a contained reactor
-                    inits.append('''«src.container.name» = Make()
-                    ''')
-                    inits.append('''«src.container.name».«src.variable.name» = «src.container.name»_«src.variable.name»
-                    ''')                    
-                }
-                
-            } else if (src.variable instanceof Action) {
-                //TODO: handle actions
-            }
-        }
-        
-        // Handle effects
-        for (effect : reaction.effects ?:emptyList)
-        {
-            if(effect.variable instanceof Input)
-            {
-                inits.append('''«effect.container.name» = Make()
-                ''')
-                inits.append('''«effect.container.name».«effect.variable.name» = «effect.container.name»_«effect.variable.name»
-                ''')  
-            }
-            else{
-                // Do nothing          
-            }
-        }
-        
-        
-        return inits
-        
     }
     
     /**
