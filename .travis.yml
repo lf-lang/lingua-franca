@@ -45,4 +45,4 @@ script:
  - ./gradlew test
  - popd
 # - bin/build-lfc --clean
- - bin/run-lf-tests TEST
+ - bin/run-lf-tests $TEST
