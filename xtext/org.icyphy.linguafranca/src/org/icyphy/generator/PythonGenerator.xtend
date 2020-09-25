@@ -271,7 +271,15 @@ class PythonGenerator extends CGenerator {
         }
         for (src : reaction.sources ?:emptyList)
         {
-                generatedParams.add(src.variable.name)
+            if(src.variable instanceof Output)
+            {
+                // Output of a contained reactor
+                generatedParams.add('''«src.container.name»_«src.variable.name»''')
+            }
+            else
+            {
+                generatedParams.add(src.variable.name)            
+            }
         }
         
         // Handle effects
@@ -582,6 +590,14 @@ class PythonGenerator extends CGenerator {
                         ''')
                     }
                 }
+                else
+                {
+                    // Output of a contained reactor
+                    inits.append('''«src.container.name» = Make()
+                    ''')
+                    inits.append('''«src.container.name».«src.variable.name» = «src.container.name»_«src.variable.name»
+                    ''')                    
+                }
                 
             } else if (src.variable instanceof Action) {
                 //TODO: handle actions
@@ -593,7 +609,7 @@ class PythonGenerator extends CGenerator {
         {
             if(effect.variable instanceof Input)
             {
-                inits.append('''«effect.container.name» = Make
+                inits.append('''«effect.container.name» = Make()
                 ''')
                 inits.append('''«effect.container.name».«effect.variable.name» = «effect.container.name»_«effect.variable.name»
                 ''')  
