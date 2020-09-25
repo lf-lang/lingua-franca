@@ -1,0 +1,27 @@
+// This tests a reactor that contains another reactor and also
+// has its own reaction that routes inputs to the contained reactor.
+target Python {
+    threads: 3,
+    timeout: 10 sec,
+    fast: true
+};
+reactor Printer {
+	input x:int;
+	state count:int(1);
+	reaction(x) {=
+		print("Inside reactor received: ", x.value)
+		if x.value != self.count:
+			sys.stderr.write("FAILURE: Expected {:d}.\n".format(self.count))
+			exit(1)
+		self.count += 1
+	=}
+}
+main reactor SendingInsideThreaded {
+	state count:int(0);
+	timer t(0, 1 sec);
+	p = new Printer();
+	reaction(t) -> p.x {=
+		self.count += 1
+		p.x.set(self.count)
+	=}
+}
