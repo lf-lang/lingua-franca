@@ -1,0 +1,18 @@
+target Python;
+
+reactor Bar {
+    output out:int;
+    reaction(startup) -> out {=
+        out.set(42)
+    =}
+}
+
+main reactor StartupOutFromInside {
+    bar = new Bar();
+    reaction(startup) bar.out {=
+        print("Output from bar: ", bar.out.value)
+        if bar.out.value != 42:
+            sys.stderr.write("Expected 42!\n")
+            exit(1)
+    =}
+}
