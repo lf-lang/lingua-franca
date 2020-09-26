@@ -1164,6 +1164,24 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
         }
+        if (this.target == Targets.Python) {
+            if (type.stars.size > 0) {
+                error(
+                    "Pointers are not allowed in Python.",
+                    Literals.TYPE__STARS
+                )
+            }
+            // Allow array specification for time and interval_t (a.k.a, the time type in Python target code)
+            else if (type.arraySpec !== null && !type.time && type.id != "interval_t")
+            {
+                System.out.println(type.toString)                
+                error(
+                    "Arrays are not allowed in Python for parameters, state variables, " +
+                    "and ports. Use (1,2,...) to initialize a Python list.",
+                    Literals.TYPE__ARRAY_SPEC
+                )
+            }
+        }
     }
         
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
