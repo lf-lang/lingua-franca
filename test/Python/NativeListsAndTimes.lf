@@ -5,7 +5,7 @@ target Python;
 main reactor Foo(x:int(0), 
 			y:time(0), 		// Units are missing but not required
 			z(1 msec), 		// Type is missing but not required
-			p:int[](1, 2, 3, 4),		// List of integers 
+			p(1, 2, 3, 4),		// List of integers 
 			q:interval_t[](1 msec, 2 msec, 3 msec), // list of time values
 			r:time({=0=}),	// Zero-valued target code also is a valid time
 			g:time[](1 msec, 2 msec)	// List of time values
@@ -19,6 +19,8 @@ main reactor Foo(x:int(0),
 	timer toe(z);		// Implicit type time
 	state baz(p);		// Implicit type int[]
 	state period(z);	// Implicit type time
+    state bar:interval_t[](1 msec, 2 msec, 3 msec);  // list of time values
+    state notype(1, 2, 3, 4);
 	reaction(tick) {=
 		# Target code	
 	=}

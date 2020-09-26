@@ -1,0 +1,23 @@
+// Example from Schedule section of the C Reactor Target wiki page.
+target Python;
+reactor Schedule {
+    input x:int;
+    logical action a;
+    reaction(x) -> a {=
+        a.schedule(MSEC(200))
+    =}
+    reaction(a) {=
+        elapsed_time = get_elapsed_logical_time()
+        print("Action triggered at logical time {:d} nsec after start.\n".format(elapsed_time))
+        if elapsed_time != 200000000:
+            sys.stderr.write("Expected action time to be 200 msec. It was {:d} nsec.\n".format(elapsed_time))
+            exit(1)
+    =}
+}
+main reactor Main {
+    a = new Schedule();
+    timer t;
+    reaction(t) -> a.x {=
+        a.x.set(1)
+    =}
+}
