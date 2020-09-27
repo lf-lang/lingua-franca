@@ -843,6 +843,8 @@ void usage(int argc, char* argv[]) {
     printf("   Whether continue execution even when there are no events to process.\n\n");
     printf("  -t, --threads <n>\n");
     printf("   Executed in <n> threads if possible (optional feature).\n\n");
+    printf("  -i, --id <n>\n");
+    printf("   The ID of the federation that this reactor will join.\n\n");
 
     printf("Command given:\n");
     for (int i = 0; i < argc; i++) {
@@ -855,6 +857,9 @@ void usage(int argc, char* argv[]) {
 // default command-line options.
 int default_argc = 0;
 char** default_argv = NULL;
+
+/** The ID of the federation that this reactor will join. */
+char* federation_id = NULL;
 
 /**
  * Process the command-line arguments. If the command line arguments are not
@@ -883,7 +888,7 @@ int process_args(int argc, char* argv[]) {
                || strcmp(argv[i], "-timeout") == 0) {
            // Tolerate -timeout for legacy uses.
            if (argc < i + 3) {
-               printf("Error: --timeout needs time and units.\n");
+               fprintf(stderr, "Error: --timeout needs time and units.\n");
                usage(argc, argv);
                return 0;
            }
@@ -894,7 +899,7 @@ int process_args(int argc, char* argv[]) {
            // A parse error returns 0LL, so check to see whether that is what is meant.
            if (duration == 0LL && strncmp(time_spec, "0", 1) != 0) {
         	   // Parse error.
-        	   printf("Error: invalid time value: %s", time_spec);
+        	   fprintf(stderr,"Error: invalid time value: %s", time_spec);
         	   usage(argc, argv);
         	   return 0;
            }
@@ -916,13 +921,13 @@ int process_args(int argc, char* argv[]) {
         	   duration = WEEK(duration);
            } else {
         	   // Invalid units.
-        	   printf("Error: invalid time units: %s", units);
+        	   fprintf(stderr,"Error: invalid time units: %s", units);
         	   usage(argc, argv);
         	   return 0;
            }
        } else if (strcmp(argv[i], "-k") == 0 || strcmp(argv[i], "--keepalive") == 0) {
     	   if (argc < i + 2) {
-    		   printf("Error: --keepalive needs a boolean.\n");
+    		   fprintf(stderr,"Error: --keepalive needs a boolean.\n");
     		   usage(argc, argv);
     		   return 0;
     	   }
@@ -933,11 +938,11 @@ int process_args(int argc, char* argv[]) {
     	   } else if (strcmp(keep_spec, "false") == 0) {
     		   keepalive_specified = false;
     	   } else {
-    		   printf("Error: Invalid value for --keepalive: %s\n", keep_spec);
+    		   fprintf(stderr,"Error: Invalid value for --keepalive: %s\n", keep_spec);
     	   }
        } else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--threads") == 0) {
     	   if (argc < i + 2) {
-    		   printf("Error: --threads needs an integer argument.\n");
+    		   fprintf(stderr,"Error: --threads needs an integer argument.\n");
     		   usage(argc, argv);
     		   return 0;
     	   }
@@ -945,10 +950,19 @@ int process_args(int argc, char* argv[]) {
     	   char* threads_spec = argv[i++];
     	   number_of_threads = atoi(threads_spec);
     	   if (number_of_threads <= 0) {
-    		   printf("Error: Invalid value for --threads: %s\n", threads_spec);
+    		   fprintf(stderr,"Error: Invalid value for --threads: %s\n", threads_spec);
     	   }
+       } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {
+           if (argc < i + 2) {
+               fprintf(stderr,"Error: --id needs a string argument.\n");
+               usage(argc, argv);
+               return 0;
+           }
+           i++;
+           printf("Federation ID: %s\n", argv[i]);
+           federation_id = argv[i++];
        } else {
-    	   printf("Error: Unrecognized command-line argument: %s\n", argv[i]);
+    	   fprintf(stderr,"Error: Unrecognized command-line argument: %s\n", argv[i]);
     	   usage(argc, argv);
     	   return 0;
        }
