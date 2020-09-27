@@ -781,6 +781,8 @@ class CGenerator extends GeneratorBase {
         // federates.
         // FIXME: No support below for some federates to be FAST and some REALTIME.
         pr(rtiCode, '''
+            process_args(argc, argv);
+            printf("Starting RTI for %d federates in federation ID %s\n", NUMBER_OF_FEDERATES, federation_id);
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
                 «IF targetFast»
@@ -869,14 +871,14 @@ class CGenerator extends GeneratorBase {
         fOut.close()
     }
     
-    /** Create the launcher shell scripts. This will create one or two file
+    /** Create the launcher shell scripts. This will create one or two files
      *  in the output path (bin directory). The first has name equal to
      *  the filename of the source file without the ".lf" extension.
      *  This will be a shell script that launches the
      *  RTI and the federates.  If, in addition, either the RTI or any
      *  federate is mapped to a particular machine (anything other than
      *  the default "localhost" or "0.0.0.0"), then this will generate
-     *  a shell script in the bin directory with name filename_distribute.sh
+     *  a shell script in the bin  with name filename_distribute.sh
      *  that copies the relevant source files to the remote host and compiles
      *  them so that they are ready to execute using the launcher.
      * 
@@ -896,6 +898,11 @@ class CGenerator extends GeneratorBase {
      *  On MacOS, open System Preferences from the Apple menu and 
      *  click on the "Sharing" preference panel. Select the checkbox
      *  next to "Remote Login" to enable it.
+     * 
+     *  In addition, every host must have OpenSSL installed, with at least
+     *  version 1.1.1a.  You can check the version with
+     * 
+     *      openssl version
      */
     def createLauncher() {
         // NOTE: It might be good to use screen when invoking the RTI
@@ -921,6 +928,10 @@ class CGenerator extends GeneratorBase {
             # set -o posix
             # Set a trap to kill all background jobs on error.
             trap 'echo "#### Killing federates."; kill $(jobs -p)' ERR
+            # Create a random 48-byte text ID for this federation.
+            # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
+            FEDERATION_ID=`openssl rand -hex 24`
+            echo "Federation ID is: "$FEDERATION_ID
             # Launch the federates:
         ''')
         val distHeader = '''
@@ -942,10 +953,18 @@ class CGenerator extends GeneratorBase {
         for (federate : federates) {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
+                val logFileName = '''log/«filename»_«federate.name».log'''
+                val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'''
+                // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
-                    echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
-                    ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
-                    pushd src-gen/core > /dev/
+                    echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
+                    # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
+                    ssh «federate.host» '\
+                        mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core; \
+                        echo "--------------" >> «path»/«logFileName»; \
+                        date >> «path»/«logFileName»;
+                    '
+                    pushd src-gen/core > /dev/null
                     echo "Copying LF core files to host «federate.host»"
                     scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
                     popd > /dev/null
@@ -953,21 +972,27 @@ class CGenerator extends GeneratorBase {
                     echo "Copying source files to host «federate.host»"
                     scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread"
-                    ssh «federate.host» 'cd «path»; «this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'
+                    echo "Compiling on host «federate.host» using: «compileCommand»"
+                    ssh «federate.host» '\
+                        cd «path»; \
+                        echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
+                        # Capture the output in the log file and stdout.
+                        «compileCommand» 2>&1 | tee -a «logFileName»;'
                 ''')
+                val executeCommand = '''bin/«filename»_«federate.name» -i '$FEDERATION_ID' '''
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
                     ssh «federate.host» '\
-                        cd «path»; bin/«filename»_«federate.name» >& log/«filename»_«federate.name».out; \
-                        echo "****** Output from federate «federate.name» on host «federate.host»:"; \
-                        cat log/«filename»_«federate.name».out; \
-                        echo "****** End of output from federate «federate.name» on host «federate.host»"' &
+                        cd «path»; \
+                        echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
+                        date >> «logFileName»; \
+                        echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
+                        «executeCommand» 2>&1 | tee -a «logFileName»' &
                 ''')                
             } else {
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name»."
-                    «outPath»«File.separator»«filename»_«federate.name» &
+                    «outPath»«File.separator»«filename»_«federate.name» -i $FEDERATION_ID &
                 ''')                
             }
         }
@@ -975,26 +1000,40 @@ class CGenerator extends GeneratorBase {
         if (host == 'localhost' || host == '0.0.0.0') {
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI)."
-                «outPath»«File.separator»«filename»_RTI
+                «outPath»«File.separator»«filename»_RTI -i $FEDERATION_ID
             ''')
         } else {
+            // Start the RTI on the remote machine.
+            // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
             // Copy the source code onto the remote machine and compile it there.
             if (distCode.length === 0) pr(distCode, distHeader)
+            
+            val logFileName = '''log/«filename»_RTI.log'''
+            val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_RTI.c -o bin/«filename»_RTI -pthread'''
+            
             // The mkdir -p flag below creates intermediate directories if needed.
             pr(distCode, '''
                 cd «path»
                 echo "Making directory «path» and subdirectories src-gen and path on host «target»"
-                ssh «target» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
+                ssh «target» '\
+                    mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core; \
+                    echo "--------------" >> «path»/«logFileName»; \
+                    date >> «path»/«logFileName»; \
+                '
                 pushd src-gen/core > /dev/null
-                echo "Copying LF core files to host «target»"
+                echo "Copying LF core files for RTI to host «target»"
                 scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
-                echo "Copying source files to host «target»"
+                echo "Copying source files for RTI to host «target»"
                 scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
                 echo "Compiling on host «target» using: «this.targetCompiler» «this.targetCompilerFlags» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
-                ssh «target» '«this.targetCompiler» «this.targetCompilerFlags» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+                ssh «target» ' \
+                    cd «path»; \
+                    echo "In «path» compiling RTI with: «compileCommand»" >> «logFileName» 2>&1; \
+                    # Capture the output in the log file and stdout.
+                    «compileCommand» 2>&1 | tee -a «logFileName»;'
             ''')
 
             // Launch the RTI on the remote machine using ssh and screen.
@@ -1010,13 +1049,14 @@ class CGenerator extends GeneratorBase {
             // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
             // The sleep at the end prevents screen from exiting before outgoing messages from
             // the federate have had time to go out to the RTI through the socket.
+            val executeCommand = '''bin/«filename»_RTI -i '$FEDERATION_ID' '''
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
                 ssh «target» 'cd «path»; \
-                    bin/«filename»_RTI >& log/«filename»_RTI.out; \
-                    echo "------ output from «filename»_RTI on host «target»:"; \
-                    cat log/«filename»_RTI.out; \
-                    echo "------ end of output from «filename»_RTI on host «target»"'
+                    echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
+                    date >> «logFileName»; \
+                    echo "In «path», executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
+                    «executeCommand» 2>&1 | tee -a «logFileName»' &
             ''')
         }
 
