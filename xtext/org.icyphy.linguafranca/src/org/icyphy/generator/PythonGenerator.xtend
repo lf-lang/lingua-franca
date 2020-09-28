@@ -78,6 +78,9 @@ class PythonGenerator extends CGenerator {
 	
 	private val buildPyWheel = false;
 	
+	// Used to add statements that come before reactor classes and user code
+	private var pythonPreamble = new StringBuilder()
+	
 	new () {
         super()
         // set defaults
@@ -767,6 +770,59 @@ class PythonGenerator extends CGenerator {
         }*/
         // TODO: add support for compiling federates
     }
+    
+    /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
+     *  depending on whether threads are specified in target directive.
+     *  As a side effect, this populates the runCommand and compileCommand
+     *  private variables if such commands are specified in the target directive.
+     */
+    override generatePreamble() {
+
+        includeTargetLanguageHeaders()
+
+        pr('#define NUMBER_OF_FEDERATES ' + federates.length);
+
+        // Handle target parameters.
+        // First, if there are federates, then ensure that threading is enabled.
+        if (targetThreads === 0 && federates.length > 1) {
+            targetThreads = 1
+        }
+
+        includeTargetLanguageSourceFiles()
+
+        super.parseTargetParameters()
+        
+        // Make sure src-gen directory exists.
+        val srcGenDir = new File(srcGenPath + File.separator)
+        srcGenDir.mkdirs
+
+        // Process target files. Copy each of them into the src-gen dir.
+        for (file : this.targetFiles) {
+            // Generate import statements for each .py file. FIXME: use preamble instead.
+            // A foo.py file will be imported as 'import foo' as per Python specification
+            val name = file.name
+            if (name.endsWith(".py")) {
+                pythonPreamble.append('''import "«name.replace(".py", "")»"''')
+            }
+            val target = new File(srcGenPath + File.separator + name)
+            if (target.exists) {
+                target.delete
+            }
+            Files.copy(file.toPath, target.toPath)
+        }
+
+        // Handle .proto files.
+        for (file : this.protoFiles) {
+            val name = file.name
+            this.processProtoFile(name)
+            val dotIndex = name.lastIndexOf('.')
+            var rootFilename = name
+            if (dotIndex > 0) {
+                rootFilename = name.substring(0, dotIndex)
+            }
+            pr('#include "' + rootFilename + '.pb-c.h"')
+        }
+    }   
     
     /**
      * Generate the aliases for inputs, outputs, and struct type definitions for 

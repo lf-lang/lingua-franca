@@ -12,7 +12,7 @@ reactor Source {
 reactor Work {
     input in1: int;
     input in2: int;
-    output out:int;
+    output out;
     reaction(in1, in2) -> out {=
         ret = 0
         if in1.value > 10:
@@ -23,7 +23,7 @@ reactor Work {
     =}
 }
 reactor Print {
-    input p_in:int;
+    input p_in;
     reaction(p_in) {=
         print("Received: ", p_in.value)
     =}

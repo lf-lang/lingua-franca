@@ -9,7 +9,7 @@ reactor Source {
     =}
 }
 // The scale parameter is just for testing.
-reactor Print(scale:int(1)) {
+reactor Print(scale(1)) {
     input _in;
     reaction(_in) {=
         print("Recieved ", _in.value)

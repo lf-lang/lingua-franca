@@ -33,11 +33,11 @@ main reactor AsyncCallback {
 	=}
 	timer t(0, 200 msec);
 	state thread;
-	state expected_time:time(100 msec);
-	state toggle:bool(false);
+	state expected_time(100 msec);
+	state toggle(false);
 	
-    physical action a(100 msec):int;
-    state i:int(0);
+    physical action a(100 msec);
+    state i(0);
   
 	reaction(t) -> a {=
         # start new thread, provide callback

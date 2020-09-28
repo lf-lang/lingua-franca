@@ -7,9 +7,9 @@ target Python {
     timeout: 10 sec,
     fast: true
 };
-reactor Reschedule(period:time(2 secs), message("Hello Python")) {
-    state count:int(0);
-    state previous_time:time(0);
+reactor Reschedule(period(2 secs), message("Hello Python")) {
+    state count(0);
+    state previous_time(0);
     timer t(1 secs, period);
     logical action a;
     reaction(t) -> a {=
@@ -34,7 +34,7 @@ reactor Reschedule(period:time(2 secs), message("Hello Python")) {
             exit(1)
     =}
 } 
-reactor Inside(period:time(1 sec), message("Composite default message.")) {
+reactor Inside(period(1 sec), message("Composite default message.")) {
 	third_instance = new Reschedule(period = period, message = message);
 }
 main reactor Hello { 

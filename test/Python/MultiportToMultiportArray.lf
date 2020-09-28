@@ -7,7 +7,7 @@ target Python {
 reactor Source {
     timer t(0, 200 msec);
     output[2] out;
-    state s:int(0);
+    state s(0);
     reaction(t) -> out {=
         for i in range(2):
             out[i].set([self.s, self.s + 1, self.s + 2])
@@ -16,7 +16,7 @@ reactor Source {
 }
 
 reactor Destination {
-    state s:int(15);
+    state s(15);
     input[2] _in;
     reaction(_in) {=
         sm = 0

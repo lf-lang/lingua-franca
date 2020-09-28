@@ -1,6 +1,6 @@
 target Python;
 
-reactor Foo(bar:int(42)) {
+reactor Foo(bar(42)) {
 	state baz(bar);
 	
 	reaction (startup) {=

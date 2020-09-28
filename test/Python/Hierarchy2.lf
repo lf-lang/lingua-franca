@@ -4,25 +4,25 @@ target Python {
     fast: true
 };
 reactor Source {
-    output out:int;
+    output out;
     timer t(0, 1 sec);
     reaction(t) -> out {=
         out.set(1)
     =}
 }
 reactor Count {
-    output out:int;
+    output out;
     timer t(0, 1 sec);
-    state i:int(0);
+    state i(0);
     reaction(t) -> out {=
         self.i += 1
         out.set(self.i)
     =}
 }
 reactor Add {
-    input in1:int;
-    input in2:int;
-    output out:int;
+    input in1;
+    input in2;
+    output out;
     reaction(in1, in2) -> out {=
         result = 0
         if in1.is_present:
@@ -33,8 +33,8 @@ reactor Add {
     =}
 }
 reactor Print {
-    input _in:int;
-    state expected:int(2);
+    input _in;
+    state expected(2);
     reaction(_in) {=
         print("Received: ", _in.value)
         if _in.value != self.expected:
@@ -44,8 +44,8 @@ reactor Print {
     =}
 }
 reactor AddCount {
-    input _in:int;
-    output out:int;
+    input _in;
+    output out;
     count = new Count();
     add = new Add();
     _in -> add.in1;

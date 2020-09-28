@@ -2,7 +2,7 @@
 // produced a given output. The output should always be 42.
 target Python;
 reactor Source {
-    output out:int;
+    output out;
     preamble {=
         import random
     =}
@@ -22,7 +22,7 @@ reactor Source {
     =}
 }
 reactor Sink {
-    input _in:int;
+    input _in;
     reaction(_in) {=
         print("Received ", _in.value)
         if _in.value != 42:

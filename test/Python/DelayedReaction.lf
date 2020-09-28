@@ -10,7 +10,7 @@ reactor Source {
 } 
 
 reactor Sink {
-	input _in:int;
+	input _in;
 	reaction(_in) {=
         elapsed = get_elapsed_logical_time()
         print("Nanoseconds since start: ", elapsed)

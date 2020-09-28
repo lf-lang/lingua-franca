@@ -4,19 +4,19 @@ target Python {
     fast: true,
     threads: 4
 };
-reactor Source(instance:int(0), width:int(1)) {
+reactor Source(instance(0), width(1)) {
     timer t(0, 200 msec);
-    output[width] out:int;
-    state s:int(0);
+    output[width] out;
+    state s(0);
     reaction(t) -> out {=
         for i in range(len(out)):
             out[i].set(self.s)
             self.s += 1
     =}
 }
-reactor Destination(instance:int(0), width:int(1)) {
-    state s:int(6);
-    input[width] _in:int;
+reactor Destination(instance(0), width(1)) {
+    state s(6);
+    input[width] _in;
     reaction(_in) {=
         sm = 0
         for i in range(len(_in)):
@@ -37,7 +37,7 @@ reactor Destination(instance:int(0), width:int(1)) {
         print("Success.")
     =}
 }
-main reactor BankToBankMultiport(bank_width:int(4)) { 
+main reactor BankToBankMultiport(bank_width(4)) { 
 	a = new[bank_width] Source(width = 4);
 	b = new[bank_width] Destination(width = 4);
 	a.out -> b._in after 200 msec;

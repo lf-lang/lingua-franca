@@ -5,7 +5,7 @@ target Python {
     fast: true
 };
 reactor Source {
-    output out:int;
+    output out;
     state iteration(1);
     timer t(0, 1 sec);
     reaction(t) -> out {=
@@ -17,8 +17,8 @@ reactor Source {
 }
 
 // The scale parameter is just for testing.
-reactor Print(scale:int(1)) {
-    input _in:int;
+reactor Print(scale(1)) {
+    input _in;
     state iteration(1);
     state inputs_received(0);
     reaction(_in) {=

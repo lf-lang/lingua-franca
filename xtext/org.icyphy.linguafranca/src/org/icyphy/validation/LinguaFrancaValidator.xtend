@@ -1114,7 +1114,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
             // If parameter is referenced, check that it is of the correct type.
             if (value.parameter !== null) {
-                if (!value.parameter.isOfTimeType) {
+                if (!value.parameter.isOfTimeType && target.requiresTypes === true) {
                     error("Parameter is not of time type",
                         Literals.VALUE__PARAMETER)
                 }
@@ -1164,21 +1164,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
         }
-        if (this.target == Targets.Python) {
-            if (type.stars.size > 0) {
+        else if (this.target == Targets.Python) {
+            if (type !== null) {               
                 error(
-                    "Pointers are not allowed in Python.",
-                    Literals.TYPE__STARS
-                )
-            }
-            // Allow array specification for time and interval_t (a.k.a, the time type in Python target code)
-            else if (type.arraySpec !== null && !type.time && type.id != "interval_t")
-            {
-                System.out.println(type.toString)                
-                error(
-                    "Arrays are not allowed in Python for parameters, state variables, " +
-                    "and ports. Use (1,2,...) to initialize a Python list.",
-                    Literals.TYPE__ARRAY_SPEC
+                    "Types are not allowed in the Python target",
+                    Literals.TYPE__ID
                 )
             }
         }

@@ -2,9 +2,9 @@
 // definition. This test triggers a reaction exactly once with a
 // deadline violation.
 target Python;
-reactor Deadline(threshold:time(100 msec)) {
-    input x:int;
-    output deadlineViolation:bool;
+reactor Deadline(threshold(100 msec)) {
+    input x;
+    output deadlineViolation;
     reaction(x) -> deadlineViolation {=
         sys.stderr.write("ERROR: Deadline violation was not detected!\n")
         exit(1)
@@ -14,7 +14,7 @@ reactor Deadline(threshold:time(100 msec)) {
     =}
 }
 reactor Print {
-    input _in:bool;
+    input _in;
     reaction(_in) {=
         if _in.value is True:
             print("Output successfully produced by deadline handler.")

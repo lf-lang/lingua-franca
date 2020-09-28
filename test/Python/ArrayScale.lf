@@ -6,7 +6,7 @@
 target Python;
 import Print, Source from "ArrayPrint.lf";
 
-reactor Scale(scale:int(2)) {
+reactor Scale(scale(2)) {
     mutable input _in;
     output out;
     reaction(_in) -> out {=

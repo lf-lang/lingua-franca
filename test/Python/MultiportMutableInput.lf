@@ -4,15 +4,15 @@
 // Print is done with it.
 target Python;
 reactor Source {
-    output[2] out:int;
+    output[2] out;
     reaction(startup) -> out {=
         out[0].set(21)
         out[1].set(42)
     =}
 }
 // The scale parameter is just for testing.
-reactor Print(scale:int(1)) {
-    input[2] _in:int;
+reactor Print(scale(1)) {
+    input[2] _in;
     reaction(_in) {=
         expected = 42
         for j in range(2):
@@ -24,9 +24,9 @@ reactor Print(scale:int(1)) {
     =}
 }
 
-reactor Scale(scale:int(2)) {
-    mutable input[2] _in:int;
-    output[2] out:int;
+reactor Scale(scale(2)) {
+    mutable input[2] _in;
+    output[2] out;
     reaction(_in) -> out {=
         for j in range(2):
             # Modify the input, allowed because mutable.

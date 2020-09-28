@@ -5,8 +5,8 @@ target Python {
     timeout: 3 sec
 };
 reactor foo {
-    input x:int;
-    output y:int;
+    input x;
+    output y;
     logical action a;
     reaction(x) -> y, a {=
         y.set(2*x.value)
@@ -18,8 +18,8 @@ reactor foo {
     =}
 }
 reactor print {
-    state expected_time:time(0);
-    input x:int;
+    state expected_time(0);
+    input x;
     reaction(x) {=
         elapsed_time = get_elapsed_logical_time()
         print("Result is ", x.value)

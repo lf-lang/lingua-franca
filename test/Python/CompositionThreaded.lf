@@ -6,18 +6,18 @@ target Python {
 	timeout: 10 sec
 };
 
-reactor Source(period:time(2 sec)) {
-	output y:int;
+reactor Source(period(2 sec)) {
+	output y;
 	timer t(1 sec, period);
-	state count:int(0);
+	state count(0);
 	reaction(t) -> y {=
 		self.count +=1
 		y.set(self.count)
 	=}
 }
 reactor Test {
-	input x:int;
-	state count:int(0);
+	input x;
+	state count(0);
 	reaction(x) {=
 		self.count += 1
 		print("Received ", x.value)

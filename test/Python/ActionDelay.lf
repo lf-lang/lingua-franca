@@ -2,9 +2,9 @@
 target Python;
 
 reactor GeneratedDelay {
-    input y_in:int;
-    output y_out:int;
-    state y_state:int(0);
+    input y_in;
+    output y_out;
+    state y_state(0);
     logical action act(100 msec);
     reaction(y_in) -> act {=
         self.y_state = y_in.value
@@ -17,13 +17,13 @@ reactor GeneratedDelay {
 }
 
 reactor Source {
-    output out:int;
+    output out;
     reaction(startup) -> out {=
         out.set(1)
     =} 
 }
 reactor Sink {
-	input _in:int;
+	input _in;
 	reaction(_in) {=
         elapsed_logical = get_elapsed_logical_time()
         logical = get_logical_time()

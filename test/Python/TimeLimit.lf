@@ -10,10 +10,10 @@
 target Python {
 	fast: true
 };
-reactor Clock(offset:time(0), period:time(1 sec)) {
-	output y:int;
+reactor Clock(offset(0), period(1 sec)) {
+	output y;
 	timer t(offset, period);
-	state count:int(0);
+	state count(0);
 	reaction(t) -> y {=
 		self.count += 1
 		# print("Reacting at time ", get_elapsed_logical_time())
@@ -21,8 +21,8 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 	=}
 }
 reactor Destination {
-	input x:int;
-	state s:int(1);
+	input x;
+	state s(1);
 	reaction(x) {=
 		# print(x.value)
 		if x.value != self.s:
@@ -31,7 +31,7 @@ reactor Destination {
 		self.s += 1
 	=}
 }
-main reactor TimeLimit(period:time(1 usec)) {
+main reactor TimeLimit(period(1 usec)) {
 	timer stop(10 secs);
 	reaction(stop) {=
 		stop()

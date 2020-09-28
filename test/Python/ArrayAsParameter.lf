@@ -2,8 +2,8 @@
 // to Print.
 target Python;
 reactor Source(sequence(0, 1, 2)) {
-    output out:int;
-    state count:int(0);
+    output out;
+    state count(0);
     logical action next;
     reaction(startup, next) -> out, next {=
         out.set(self.sequence[self.count])
@@ -13,9 +13,9 @@ reactor Source(sequence(0, 1, 2)) {
     =}
 }
 reactor Print {
-    input _in:int;
-    state count:int(1);
-    state received:int(0);
+    input _in;
+    state count(1);
+    state received(0);
     reaction(_in) {=
         self.received+=1
         print("Received: {:d}\n".format(_in.value))

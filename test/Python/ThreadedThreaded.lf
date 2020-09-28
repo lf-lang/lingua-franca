@@ -6,16 +6,16 @@ target Python {
 };
 reactor Source {
 	timer t(0, 200 msec);
-	output out:int;
-	state s:int(0);
+	output out;
+	state s(0);
 	reaction(t) -> out {=
 		out.set(self.s)
 		self.s += 1
 	=}
 }
-reactor TakeTime(instance:int(0)) {
-	input _in:int;
-	output out:int;
+reactor TakeTime(instance(0)) {
+	input _in;
+	output out;
 	reaction(_in) -> out {=
 		offset = 0
 		for i in range(10000):
@@ -23,9 +23,9 @@ reactor TakeTime(instance:int(0)) {
 		out.set(_in.value + offset)
 	=}
 }
-reactor Destination(width:int(4)) {
-	state s:int(40000);
-	input[width] _in:int;
+reactor Destination(width(4)) {
+	state s(40000);
+	input[width] _in;
 	reaction(_in) {=
 		sm = sum([_in[i].value for i in range(len(_in))])
 
@@ -37,7 +37,7 @@ reactor Destination(width:int(4)) {
 		self.s += len(_in)
 	=}
 }
-main reactor ThreadedThreaded(width:int(4)) {
+main reactor ThreadedThreaded(width(4)) {
 	a = new Source();
 	t = new[width] TakeTime();
 	(a.out)+ -> t._in;
