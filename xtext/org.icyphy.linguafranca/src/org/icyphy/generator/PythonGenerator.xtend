@@ -610,6 +610,8 @@ class PythonGenerator extends CGenerator {
        from LinguaFrancaBase.classes import * #Useful classes
        import sys
        import copy
+       
+       «pythonPreamble»
               
        «generatePythonReactorClasses(federate)»
        
@@ -802,7 +804,7 @@ class PythonGenerator extends CGenerator {
             // A foo.py file will be imported as 'import foo' as per Python specification
             val name = file.name
             if (name.endsWith(".py")) {
-                pythonPreamble.append('''import "«name.replace(".py", "")»"''')
+                pythonPreamble.append('''import «name.replace(".py", "")»''')
             }
             val target = new File(srcGenPath + File.separator + name)
             if (target.exists) {
