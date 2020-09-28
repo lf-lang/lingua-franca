@@ -2,9 +2,9 @@
 // ports of a contained reactor.
 target Python;
 reactor Contained {
-    output trigger:int;
-    input in1:int;
-    input in2:int;
+    output trigger;
+    input in1;
+    input in2;
     reaction(startup) -> trigger {=
         trigger.set(42)
     =}

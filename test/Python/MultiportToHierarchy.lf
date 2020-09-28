@@ -7,17 +7,17 @@ target Python {
 }; 
 reactor Source {
 	timer t(0, 200 msec);
-	output[4] out:int;
-	state s:int(0);
+	output[4] out;
+	state s(0);
 	reaction(t) -> out {=
         for i in range(len(out)):
             out[i].set(self.s)
             self.s += 1
 	=}
 }
-reactor Destination(width:int(4)) {
-	state s:int(6);
-	input[width] _in:int;
+reactor Destination(width(4)) {
+	state s(6);
+	input[width] _in;
 	reaction(_in) {=
         sm = 0
         for i in range(len(_in)):
@@ -36,8 +36,8 @@ reactor Destination(width:int(4)) {
         print("Success.")
     =}
 }
-reactor Container(width:int(4)) {
-    input[width] in:int;
+reactor Container(width(4)) {
+    input[width] in;
     dst = new Destination();
     in -> dst._in;
 }

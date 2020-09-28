@@ -1,7 +1,7 @@
 // Example from Schedule section of the C Reactor Target wiki page.
 target Python;
 reactor Schedule {
-    input x:int;
+    input x;
     logical action a;
     reaction(x) -> a {=
         a.schedule(MSEC(200))

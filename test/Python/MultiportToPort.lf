@@ -5,16 +5,16 @@ target Python {
     fast: true
 }; 
 reactor Source {
-    output[2] out:int;
+    output[2] out;
     reaction(startup) -> out {=
         for i in range(len(out)):
             print("Source sending ", i)
             out[i].set(i)
     =}
 }
-reactor Destination(expected:int(0)) {
-    input _in:int;
-    state received:bool(false);
+reactor Destination(expected(0)) {
+    input _in;
+    state received(false);
     reaction(_in) {=
         print("Received: ", _in.value)
         self.received = True

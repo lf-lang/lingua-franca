@@ -1,7 +1,7 @@
 target Python;
 reactor Destination {
-    input x:int;
-    input y:int;
+    input x;
+    input y;
     reaction(x, y) {=
         elapsed = get_elapsed_logical_time()
         print("Time since start: ", elapsed)

@@ -19,9 +19,9 @@ reactor MASource {
 }
 reactor MovingAverageImpl {
     state delay_line(0.0, 0.0, 0.0);
-    state index:int(0);
-    input m_in:double;
-    output out:double;
+    state index(0);
+    input m_in;
+    output out;
     
     reaction(m_in) -> out {=
         # Calculate the output.

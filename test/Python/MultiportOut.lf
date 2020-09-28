@@ -6,8 +6,8 @@ target Python {
 }; 
 reactor Source {
 	timer t(0, 200 msec);
-	output[4] out:int;
-	state s:int(0);
+	output[4] out;
+	state s(0);
 	reaction(t) -> out {=
         for i in range(0,4):
             out[i].set(self.s)
@@ -16,15 +16,15 @@ reactor Source {
 	=}
 }
 reactor Computation {
-	input _in:int;
-	output out:int;
+	input _in;
+	output out;
 	reaction(_in) -> out {=
 		out.set(_in.value)
 	=}
 }
 reactor Destination {
-	state s:int(0);
-	input[4] _in:int;
+	state s(0);
+	input[4] _in;
 	reaction(_in) {=
 		sum = 0
 		for i in range(len(_in)):

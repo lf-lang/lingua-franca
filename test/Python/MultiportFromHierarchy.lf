@@ -6,8 +6,8 @@ target Python {
 }; 
 reactor Source {
 	timer t(0, 200 msec);
-	output[4] out:int;
-	state s:int(0);
+	output[4] out;
+	state s(0);
 	reaction(t) -> out {=
         for i in range(4):
             out[i].set(self.s)
@@ -15,10 +15,10 @@ reactor Source {
 	=}
 }
 reactor Destination {
-	state s:int(6);
-	input[4] _in:int;
+	state s(6);
+	input[4] _in;
 	reaction(_in) {=
-		sm:int = 0
+		sm = 0
 		for i in range(len(_in)):
             if (_in[i].is_present):
                 sm += _in[i].value
@@ -36,13 +36,13 @@ reactor Destination {
     =}
 }
 reactor Container {
-    output[4] out:int;
+    output[4] out;
     src = new InsideContainer();
     src.out -> out;
 }
 
 reactor InsideContainer {
-    output[4] out:int;
+    output[4] out;
     src = new Source();
     src.out -> out;
 }

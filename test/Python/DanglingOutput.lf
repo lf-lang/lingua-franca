@@ -2,7 +2,7 @@
 // in a compilation error.  Passing the test is just compiling and running.
 target Python;
 reactor Source {
-    output out:int;
+    output out;
     timer t;
     reaction(t) -> out {=
         out.set(1);
@@ -10,8 +10,8 @@ reactor Source {
 }
 
 reactor Gain {
-    input _in:int;
-    output out:int;
+    input _in;
+    output out;
     reaction(_in) -> out {=
         print("Received ", _in.value)
         out.set(_in.value * 2)

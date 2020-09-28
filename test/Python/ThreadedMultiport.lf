@@ -3,19 +3,19 @@ target Python {
     timeout: 2 sec,
     threads: 4
 }; 
-reactor Source(width:int(4)) {
+reactor Source(width(4)) {
 	timer t(0, 200 msec);
-	output[width] out:int;
-	state s:int(0);
+	output[width] out;
+	state s(0);
 	reaction(t) -> out {=
         for i in range(len(out)):
             out[i].set(self.s)
         self.s += 1
 	=}
 }
-reactor Computation(instance:int(0), iterations:int(10000)) {
-	input _in:int;
-	output out:int;
+reactor Computation(instance(0), iterations(10000)) {
+	input _in;
+	output out;
 	reaction(_in) -> out {=
         offset = 0
         for i in range(self.iterations):
@@ -23,9 +23,9 @@ reactor Computation(instance:int(0), iterations:int(10000)) {
         out.set(_in.value + offset)
 	=}
 }
-reactor Destination(width:int(4), iterations:int(10000)) {
-	state s:int(0);
-	input[width] _in:int;
+reactor Destination(width(4), iterations(10000)) {
+	state s(0);
+	input[width] _in;
 	reaction(_in) {=
         expected = self.iterations * self.width + self.s
         sm = 0
@@ -48,7 +48,7 @@ reactor Destination(width:int(4), iterations:int(10000)) {
     =}
 }
 
-main reactor ThreadedMultiport(width:int(4), iterations:int(10000)) { 
+main reactor ThreadedMultiport(width(4), iterations(10000)) { 
 	a = new Source(width = width);
 	t = new[width] Computation(iterations = iterations);
 	b = new Destination(width = width, iterations = iterations);

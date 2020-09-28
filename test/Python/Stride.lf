@@ -4,9 +4,9 @@ target Python {
     timeout: 2 sec,
     fast: true
 };
-reactor Count(stride:int(1)) {
-    state count:int(1);
-    output y:int;
+reactor Count(stride(1)) {
+    state count(1);
+    output y;
     timer t(0, 100 msec);
     reaction(t) -> y {=
         y.set(self.count)
@@ -14,8 +14,8 @@ reactor Count(stride:int(1)) {
     =}
 }
 reactor Display {
-    input x:int;
-    state expected:int(1); // for testing.
+    input x;
+    state expected(1); // for testing.
     reaction(x) {=
         print("Received: ", x.value)
         if x.value != self.expected:

@@ -7,23 +7,23 @@ target Python {
 
 reactor Source {
     timer t(0, 200 msec);
-    output out:int;
-    state s:int(0);
+    output out;
+    state s(0);
     reaction(t) -> out {=
         out.set(self.s)
         self.s += 1
     =}
 }
 reactor Computation {
-    input _in:int;
-    output out:int;
+    input _in;
+    output out;
     reaction(_in) -> out {=
         out.set(_in.value)
     =}
 }
-reactor Destination(width:int(1)) {
-    state s:int(0);
-    input[width] _in:int;
+reactor Destination(width(1)) {
+    state s(0);
+    input[width] _in;
     reaction(_in) {=
         sm = 0
         for i in range(len(_in)):

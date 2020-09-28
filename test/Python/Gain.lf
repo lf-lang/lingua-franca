@@ -1,15 +1,15 @@
 // Example in the Wiki.
 target Python;
-reactor Scale(scale:int(2)) {
-    input x:int;
-    output y:int;
+reactor Scale(scale(2)) {
+    input x;
+    output y;
     reaction(x) -> y {=
         y.set(x.value * self.scale)
     =}
 }
 reactor Test {
-    input x:int;
-    state received_value:bool(0);
+    input x;
+    state received_value(0);
     reaction(x) {=
         print("Received " + str(x.value))
         self.received_value = True

@@ -3,9 +3,9 @@ target Python;
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {
 	
-  input y_in:int;
-  output y_out:int;
-  state y_state:int(0);
+  input y_in;
+  output y_out;
+  state y_state(0);
   
   // TODO: delay in act or the schedule call?
   physical action act(0 msec);
@@ -20,7 +20,7 @@ reactor GeneratedDelay {
   =}
 }
 reactor Source {
-    output out:int;
+    output out;
     timer t;
     // reaction(t) -> out after 100 msec {=
     reaction(t) -> out {=
@@ -29,7 +29,7 @@ reactor Source {
 }
 
 reactor Sink {
-	input s_in:int;
+	input s_in;
 	reaction(s_in) {=
         elapsed_logical = get_elapsed_logical_time()
         logical = get_logical_time()

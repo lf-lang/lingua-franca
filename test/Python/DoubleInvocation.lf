@@ -14,9 +14,9 @@ target Python {
     fast: true
 };
 reactor Ball {
-    output position:int;
-    output velocity:int;
-    state p:int(200);
+    output position;
+    output velocity;
+    state p(200);
     timer trigger(0, 1 sec);
     reaction(trigger) -> position, velocity {=
         position.set(self.p)
@@ -25,9 +25,9 @@ reactor Ball {
     =}
 }
 reactor Print {
-    input velocity:int;
-    input position:int;
-    state previous:int(-1);
+    input velocity;
+    input position;
+    state previous(-1);
     reaction (startup) {=
         print("####### Print startup\n")
     =}

@@ -1,16 +1,16 @@
 // This tests send data through a contained reactor.
 target Python;
 reactor Gain {
-    input gainin:int;
-    output y:int;
+    input gainin;
+    output y;
     reaction(gainin) -> y {=
         print("Gain received " + str(gainin.value))
         y.set(gainin.value * 2)
     =}
 }
 reactor Wrapper {
-    input x:int;
-    output y:int;
+    input x;
+    output y;
     gain = new Gain();
     x -> gain.gainin;
     gain.y -> y;

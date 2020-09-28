@@ -1,7 +1,7 @@
 target Python;
 reactor Count {
-    state count:int(1);
-    output out:int;
+    state count(1);
+    output out;
     timer t(0, 1 sec);
     reaction(t) -> out {=
         out.set(self.count)

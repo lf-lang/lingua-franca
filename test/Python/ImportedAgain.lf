@@ -4,7 +4,7 @@ target Python;
 //import Imported from "Imported.lf"
 reactor ImportedAgain {
 	//y = new Imported(); // FIXME: Address this bug
-	input x:int;
+	input x;
 	reaction(x) {=
         print("Received: " + str(x.value))
         if (x.value != 42):

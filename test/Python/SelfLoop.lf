@@ -3,10 +3,10 @@ target Python {
     fast: true
 };
 reactor Self {
-    input x:int;
-    output y:int;
-    logical action a:int;
-    state expected:int(43);
+    input x;
+    output y;
+    logical action a;
+    state expected(43);
     reaction(a) -> y {=
         print("a = ", a.value)
         y.set(a.value + 1)

@@ -4,9 +4,9 @@ target Python {
     threads: 4,
     fast: true
 }; 
-reactor Destination(width:int(1)) {
-    state s:int(6);
-    input[width] _in:int;
+reactor Destination(width(1)) {
+    state s(6);
+    input[width] _in;
     reaction(_in) {=
         sm = 0;
         for i in range(len(_in)):
@@ -28,7 +28,7 @@ reactor Destination(width:int(1)) {
 }
 main reactor MultiportFromReaction {
     timer t(0, 200 msec);
-    state s:int(0);
+    state s(0);
     b = new Destination(width = 4);
     reaction(t) -> b._in {=
         for i in range(len(b._in)):

@@ -1,7 +1,7 @@
 target Python;
 
 reactor Bar {
-    output out:int;
+    output out;
     reaction(startup) -> out {=
         out.set(42)
     =}

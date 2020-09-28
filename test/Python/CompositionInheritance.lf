@@ -4,11 +4,11 @@ target Python {
     fast: true,
     timeout: 10 sec
 };
-reactor Source(period:time(2 sec)) {
-    input foo:int;
-	output y:int;
+reactor Source(period(2 sec)) {
+    input foo;
+	output y;
 	timer t(1 sec, period);
-	state count:int(0);
+	state count(0);
 	reaction(t) -> y {=
 		print("Hello World. My count is: ", self.count)
 		y.set(self.count)
@@ -26,8 +26,8 @@ reactor SourceExtended extends Source {
 }
 
 reactor Test {
-	input x:int;
-	state count:int(0);
+	input x;
+	state count(0);
 	reaction(x) {=
 		self.count += 1
 		print("Received ", x.value)

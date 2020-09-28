@@ -3,14 +3,14 @@
 
 target Python;
 reactor Contained {
-    output out:int;
+    output out;
     reaction(startup) -> out {=
         out.set(42)
     =}
 }
 main reactor ReadOutputOfContainedReactor {
     c = new Contained();
-    state count:int(0);
+    state count(0);
     reaction(startup) c.out {=
         print("Startup reaction reading output of contained reactor: ", c.out.value)
         if c.out.value != 42:

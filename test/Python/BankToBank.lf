@@ -4,18 +4,18 @@ target Python {
     fast: true,
     threads: 1
 }; 
-reactor Source(instance:int(0)) {
+reactor Source(instance(0)) {
 	timer t(0, 200 msec);
-	output out:int;
-	state s:int(0);
+	output out;
+	state s(0);
 	reaction(t) -> out {=
         out.set(self.s)
         self.s += self.instance
 	=}
 }
-reactor Destination(instance:int(0)) {
-	state s:int(0);
-	input _in:int;
+reactor Destination(instance(0)) {
+	state s(0);
+	input _in;
 	reaction(_in) {=
         print("Destination " + str(self.instance) + " received: " + str(_in.value))
         if (_in.value != self.s):
@@ -31,7 +31,7 @@ reactor Destination(instance:int(0)) {
     =}
 }
 
-main reactor BankToBank(width:int(4)) { 
+main reactor BankToBank(width(4)) { 
 	a = new[width] Source();
 	b = new[width] Destination();
 	a.out -> b._in;

@@ -6,9 +6,9 @@ target Python {
     timeout: 3 sec
 };
 reactor foo {
-    input x:int;
-    output y:int;
-    logical action a:int;
+    input x;
+    output y;
+    logical action a;
     reaction(x) -> y, a {=
         y.set(2*x.value)
         a.schedule(MSEC(500))
@@ -16,7 +16,7 @@ reactor foo {
     // reaction(a) {= =}
 }
 reactor print {
-    input x:int;
+    input x;
     reaction(x) {=
         print("Result is {:d}\n".format(x.value))
         print("Current logical time is: {:d}\n".format(get_elapsed_logical_time()))

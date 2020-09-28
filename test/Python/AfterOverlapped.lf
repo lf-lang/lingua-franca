@@ -6,9 +6,9 @@ target Python {
 import Count from "lib/Count.lf";
 
 reactor Test {
-    input c:int;
-    state i:int(0);
-    state received:int(0);
+    input c;
+    state i(0);
+    state received(0);
     reaction(c) {=
         self.received += 1
         print("Received {:d}.\n".format(c.value))

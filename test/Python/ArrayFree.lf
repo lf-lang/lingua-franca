@@ -7,7 +7,7 @@ target Python;
 import Source, Print from "ArrayPrint.lf";
 import Scale from "ArrayScale.lf";
 
-reactor Free(scale:int(2)) {
+reactor Free(scale(2)) {
     mutable input _in;
     reaction(_in) {=
         for i in range(len(_in.value)):

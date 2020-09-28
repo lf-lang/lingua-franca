@@ -2,16 +2,16 @@
 // See also MultiportToMultiport.
 target Python;
 
-reactor Source(width:int(2)) {
-    output[width] out:int;
+reactor Source(width(2)) {
+    output[width] out;
     reaction (startup) -> out {=
         for i in range(len(out)):
             out[i].set(i)
     =}
 }
 
-reactor Destination(width:int(2)) {
-    input[width] _in:int;
+reactor Destination(width(2)) {
+    input[width] _in;
     reaction (_in) {=
         for i in range(len(_in)):
             if _in[i].is_present:

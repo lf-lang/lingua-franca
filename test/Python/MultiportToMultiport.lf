@@ -4,10 +4,10 @@ target Python {
     threads: 4,
     fast: true
 }; 
-reactor Source(width:int(1)) {
+reactor Source(width(1)) {
     timer t(0, 200 msec);
-    output[width] out:int;
-    state s:int(0);
+    output[width] out;
+    state s(0);
     reaction(t) -> out {=
         for i in range(len(out)):
             print("Before SET, out[{:d}]->is_present has value %d".format(i), out[i].is_present)
@@ -17,9 +17,9 @@ reactor Source(width:int(1)) {
             print("AFTER set, out[{:d}]->value has value ".format(i), out[i].value)
     =}
 }
-reactor Destination(width:int(1)) {
-    state s:int(6);
-	input[width] _in:int;
+reactor Destination(width(1)) {
+    state s(6);
+	input[width] _in;
 	reaction(_in) {=
         sm = 0
         for i in range(len(_in)):

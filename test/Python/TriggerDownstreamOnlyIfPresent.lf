@@ -6,9 +6,9 @@ target Python {
     fast: true
 };
 reactor Source {
-    output a:int;
-    output b:int;
-    state count:int(0);
+    output a;
+    output b;
+    state count(0);
     timer t(0, 200 msec);
     reaction(t) -> a, b {=
         if (self.count % 2) == 0:
@@ -18,8 +18,8 @@ reactor Source {
     =}
 }
 reactor Destination {
-    input a:int;
-    input b:int;
+    input a;
+    input b;
     reaction(a) {=
         if a.is_present is not True:
             sys.stderr.write("Reaction to a triggered even though all inputs are absent!\n")

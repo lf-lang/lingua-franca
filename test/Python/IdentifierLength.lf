@@ -4,18 +4,18 @@ target Python {
     timeout: 10 sec,
     fast: true
 };
-reactor A_Really_Long_Name_For_A_Source_But_Not_Quite_255_Characters_Which_Is_The_Maximum_For_The_Python_Target(period:time(2 sec)) {
-	output y:int;
+reactor A_Really_Long_Name_For_A_Source_But_Not_Quite_255_Characters_Which_Is_The_Maximum_For_The_Python_Target(period(2 sec)) {
+	output y;
 	timer t(1 sec, period);
-	state count:int(0);
+	state count(0);
 	reaction(t) -> y {=
 		self.count += 1
 		y.set(self.count)
 	=}
 }
 reactor Another_Really_Long_Name_For_A_Test_Class {
-	input x:int;
-	state count:int(0);
+	input x;
+	state count(0);
 	reaction(x) {=
 		self.count += 1
 		print("Received ", x.value)

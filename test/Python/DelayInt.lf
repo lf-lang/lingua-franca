@@ -1,9 +1,9 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
 target Python;
-reactor Delay(delay:time(100 msec)) {
-    input _in:int;
-    output out:int;
-    logical action a:int;
+reactor Delay(delay(100 msec)) {
+    input _in;
+    output out;
+    logical action a;
     reaction(a) -> out {=
         if (a.value is not None) and a.is_present:
             out.set(a.value)
@@ -13,9 +13,9 @@ reactor Delay(delay:time(100 msec)) {
     =}
 }
 reactor Test {
-    input _in:int;
-    state start_time:time(0);
-    state received_value:bool(false);
+    input _in;
+    state start_time(0);
+    state received_value(false);
     reaction(startup) {=
         # Record the logical time at the start.
         self.start_time = get_logical_time()

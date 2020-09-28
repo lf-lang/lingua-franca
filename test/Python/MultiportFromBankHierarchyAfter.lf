@@ -5,19 +5,19 @@ target Python {
     threads: 4,
     fast: true
 }; 
-reactor Source(instance:int(0)) {
-    output out:int;
+reactor Source(instance(0)) {
+    output out;
     reaction(startup) -> out {=
         out.set(self.instance)
     =}
 }
 reactor Container {
-    output[3] out:int;
+    output[3] out;
     s = new[3] Source();
     s.out -> out;
 }
 reactor Destination {
-    input[3] _in:int;
+    input[3] _in;
     state received(false);
     reaction(_in) {=
         for i in range(len(_in)):

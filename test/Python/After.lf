@@ -5,16 +5,16 @@ target Python {
     timeout: 3 sec
 };
 reactor foo {
-    input x:int;
-    output y:int;
+    input x;
+    output y;
     reaction(x) -> y {=
         y.set(2*x.value)
     =}
 }
 reactor print {
-    state expected_time:time(10 msec);
-    state received:int(0);
-    input x:int;
+    state expected_time(10 msec);
+    state received(0);
+    input x;
     reaction(x) {=
         self.received+=1
         elapsed_time = get_elapsed_logical_time()

@@ -4,8 +4,8 @@ target Python {
 };
 
 main reactor Periodic(
-        offset:time(0), 
-        period:time(500 msec)) {
+        offset(0), 
+        period(500 msec)) {
     logical action init(offset);
     logical action recur(period);
    

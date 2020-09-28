@@ -3403,6 +3403,30 @@ class CGenerator extends GeneratorBase {
 
         includeTargetLanguageSourceFiles()
         
+        parseTargetParameters()
+        
+        // Make sure src-gen directory exists.
+        val srcGenDir = new File(srcGenPath + File.separator)
+        srcGenDir.mkdirs
+        
+        // Handle .proto files.
+        for (file : this.protoFiles) {
+            val name = file.name
+            this.processProtoFile(name)
+            val dotIndex = name.lastIndexOf('.')
+            var rootFilename = name
+            if (dotIndex > 0) {
+                rootFilename = name.substring(0, dotIndex)
+            }
+            pr('#include "' + rootFilename + '.pb-c.h"')
+        }
+    }
+    
+    /**
+     * Parse the target parameters and set flags to the runCommand
+     * accordingly.
+     */
+    def parseTargetParameters() {
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
@@ -3429,24 +3453,6 @@ class CGenerator extends GeneratorBase {
             runCommand.add(targetTimeoutUnit.toString)
         }
         
-        {
-        	
-        }
-        // Make sure src-gen directory exists.
-        val srcGenDir = new File(srcGenPath + File.separator)
-        srcGenDir.mkdirs
-        
-        // Handle .proto files.
-        for (file : this.protoFiles) {
-            val name = file.name
-            this.processProtoFile(name)
-            val dotIndex = name.lastIndexOf('.')
-            var rootFilename = name
-            if (dotIndex > 0) {
-                rootFilename = name.substring(0, dotIndex)
-            }
-            pr('#include "' + rootFilename + '.pb-c.h"')
-        }
     }
     
     /** Add necessary header files specific to the target language.

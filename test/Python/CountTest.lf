@@ -6,8 +6,8 @@ target Python {
 import Count from "lib/Count.lf";
 
 reactor Test {
-    input c:int;
-    state i:int(0);
+    input c;
+    state i(0);
     reaction(c) {=
         print("Received ", c.value)
         self.i +=1

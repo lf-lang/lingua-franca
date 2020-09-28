@@ -5,10 +5,10 @@ target Python {
     timeout: 10 sec,
     fast: true
 };
-reactor Clock(offset:time(0), period:time(1 sec)) {
-	output y:int;
+reactor Clock(offset(0), period(1 sec)) {
+	output y;
 	timer t(offset, period);
-	state count:int(0);
+	state count(0);
 	reaction(t) -> y {=
 		self.count += 1
 		y.set(self.count)
@@ -16,9 +16,9 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 }
 
 reactor Destination {
-	input x:int;
-	input w:int;
-	state s:int(2);
+	input x;
+	input w;
+	state s(2);
 	reaction(x, w) {=
 		sm = 0
 		if x.is_present:

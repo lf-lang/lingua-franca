@@ -3,7 +3,7 @@
 target Python;
 
 reactor Source {
-    output out:unsigned;
+    output out;
     
     reaction(startup) -> out {=
         out.set(1)
@@ -11,8 +11,8 @@ reactor Source {
 }
 
 reactor Work {
-    input _in:unsigned;
-    output out:unsigned;
+    input _in;
+    output out;
     
     reaction(_in) -> out {=
         out.set(_in.value) 

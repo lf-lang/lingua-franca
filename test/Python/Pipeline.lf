@@ -6,9 +6,9 @@ target Python {
 import TakeTime from "Threaded.lf";
 
 reactor Print {
-    input _in:int;
-    state count:int(0);
-    state received:int(0);
+    input _in;
+    state count(0);
+    state received(0);
     reaction(_in) {=
         self.received += 1
         print("Received: {:d} at logical time {:d}".format(_in.value, get_elapsed_logical_time()))
@@ -26,7 +26,7 @@ reactor Print {
 
 main reactor Pipeline {
     timer t(0, 200 msec);
-    state count:int(0);
+    state count(0);
     
     c1 = new TakeTime();
     c2 = new TakeTime();

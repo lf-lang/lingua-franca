@@ -6,10 +6,10 @@ target Python {
     threads: 1
 };
 
-reactor Source(period:time(1 sec)) {
-    output y:int;
+reactor Source(period(1 sec)) {
+    output y;
     timer t(0, period);
-    state count:int(0);
+    state count(0);
     reaction(t) -> y {=
         if self.count % 2 != 0:
             # The count variable is odd.
@@ -25,9 +25,9 @@ reactor Source(period:time(1 sec)) {
     =}
 }
 
-reactor Destination(timeout:time(1 sec)) {
-    input x:int;
-    state count:int(0);
+reactor Destination(timeout(1 sec)) {
+    input x;
+    state count(0);
     reaction(x) {=
         print("Destination receives: ", x.value)
         if self.count % 2 != 0:

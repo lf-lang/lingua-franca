@@ -6,8 +6,8 @@ target Python {
     fast: true
 };
 reactor Printer {
-	input x:int;
-	state count:int(1);
+	input x;
+	state count(1);
 	reaction(x) {=
 		print("Inside reactor received: ", x.value)
 		if x.value != self.count:
@@ -17,7 +17,7 @@ reactor Printer {
 	=}
 }
 main reactor SendingInsideThreaded {
-	state count:int(0);
+	state count(0);
 	timer t(0, 1 sec);
 	p = new Printer();
 	reaction(t) -> p.x {=
