@@ -3,15 +3,23 @@
 // NOTE: Ideally, only one copy would be made, but this requires
 // modifying the precedence graph between reactions.
 target C {files: ["include/hello.h"]};
-//import StructScale.lf;
+import Source from "StructScale.lf";
 
 reactor Check(expected:int(42)) {
     input in:hello_t*;
+    state invoked:bool(false);
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
         if (in->value->value != self->expected) {
             printf("ERROR: Expected value to be %d.\n", self->expected);
             exit(1);
+        }
+        self->invoked = true;
+    =}
+    reaction(shutdown) {=
+        if (self->invoked == false) {
+            fprintf(stderr, "ERROR: No data received.\n");
+            exit(2);
         }
     =}
 }
@@ -23,13 +31,13 @@ reactor Print(scale:int(2)) {
     output out:hello_t*;
     reaction(in) -> out {=
         in->value->value *= self->scale;
+        printf("Print received name = %s, value = %d\n", in->value->name, in->value->value);
         SET_TOKEN(out, in->token);
     =}
 }
 
-
 main reactor StructParallel {
-    s = new Print();
+    s = new Source();
     c1 = new Print();
     c2 = new Print(scale = 3);
     p1 = new Check(expected = 84);
