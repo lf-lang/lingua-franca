@@ -1,0 +1,27 @@
+// Source produces a dynamically allocated class object, which it passes
+// to Print. Reference counting ensures that the struct is freed.
+target Python {files: ["include/hello.py"]};
+
+reactor Print {
+    output out;
+    reaction(startup) -> out {=
+        out.set(hello.hello("Earth", 42))
+    =}
+}
+
+// expected parameter is for testing.
+reactor Check(expected(42)) {
+    input _in;
+    reaction(_in) {=
+        print("Received: name = {:s}, value = {:d}\n".format(_in.value.name, _in.value.value))
+        if _in.value.value != self.expected:
+            sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
+            exit(1)
+    =}
+}
+
+main reactor StructPrintTest {
+    s = new Print();
+    p = new Check();
+    s.out -> p._in;
+}
