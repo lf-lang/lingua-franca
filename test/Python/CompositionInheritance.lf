@@ -16,7 +16,7 @@ reactor Source(period(2 sec)) {
 }
 
 reactor SourceExtended extends Source {
-	output y2: int;
+	output y2;
 	timer t2(1 sec, 3 sec);
 	reaction(t2) -> y2 {=
 		self.count += 1

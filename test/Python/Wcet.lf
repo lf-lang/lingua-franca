@@ -1,8 +1,8 @@
 // Setup for WCET analysis of Worker
 target Python;
 reactor Source {
-    output out1: int;
-    output out2: int;
+    output out1;
+    output out2;
     timer t;
     reaction(t) -> out1, out2 {=
         out1.set(5)
@@ -10,8 +10,8 @@ reactor Source {
     =}
 }
 reactor Work {
-    input in1: int;
-    input in2: int;
+    input in1;
+    input in2;
     output out;
     reaction(in1, in2) -> out {=
         ret = 0
