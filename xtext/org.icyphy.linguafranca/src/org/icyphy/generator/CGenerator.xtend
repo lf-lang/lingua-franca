@@ -1358,7 +1358,10 @@ class CGenerator extends GeneratorBase {
         {
             pr(body, '''char *__lf_name;
             ''');
-        }    
+        }
+        
+        // Handle bank_index
+        pr(body, '''«targetBankIndexType» «targetBankIndex»;''');    
         
         // Next handle parameters.
         for (parameter : reactor.allParameters) {
@@ -2588,22 +2591,19 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
-            // If the reactor has a parameter named "instance", set it.
-            for (parameter : reactorClass.toDefinition.allParameters) {
-                if (parameter.name == "instance"
-                    && getTargetType(parameter.inferredType) == "int"
-                ) {
-                    // Override the default parameter value for instance.
-                    // This needs to be at the end or it will be overwrittend
-                    // with the default parameter value.
-                    pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->instance = «instance.bankIndex»;
-                    ''')
-                }
-            }
+            // Set the bankIndex for the reactor
+            pr(initializeTriggerObjectsEnd, '''
+                «nameOfSelfStruct»->«targetBankIndex» = «instance.bankIndex»;
+            ''')
+                
+            
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
+            ''')
+            // Set the bankIndex to zero
+            pr(initializeTriggerObjectsEnd, '''
+                «nameOfSelfStruct»->«targetBankIndex» = 0;
             ''')
         }
         
