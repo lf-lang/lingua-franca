@@ -1,11 +1,11 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
 target Python;
 
-reactor Source(instance(0)) {
+reactor Source() {
     output out;
     
     reaction (startup) -> out {=
-        out.set(self.instance)
+        out.set(self.bank_index)
     =}
 }
 

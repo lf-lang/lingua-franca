@@ -5,10 +5,10 @@ target Python {
     threads: 4,
     fast: true
 }; 
-reactor Source(instance(0)) {
+reactor Source {
     output out;
     reaction(startup) -> out {=
-        out.set(self.instance)
+        out.set(self.bank_index)
     =}
 }
 reactor Container {
