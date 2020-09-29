@@ -5,10 +5,10 @@ target Python {
     threads: 4,
     fast: true
 }; 
-reactor Source(instance(0), check_override(0)) {
+reactor Source(check_override(0)) {
     output out;
     reaction(startup) -> out {=
-        out.set(self.instance * self.check_override)
+        out.set(self.bank_index * self.check_override)
     =}
 }
 reactor Destination {
