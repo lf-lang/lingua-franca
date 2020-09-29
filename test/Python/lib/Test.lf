@@ -1,6 +1,6 @@
 target Python;
 
-reactor TestDouble(expected:double(1.0, 1.0, 1.0, 1.0)) {
+reactor TestDouble(expected(1.0, 1.0, 1.0, 1.0)) {
     input t_in;
     state count(0);
     reaction(t_in) {=
