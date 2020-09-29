@@ -173,7 +173,7 @@ void __broadcast_stop() {
  *  @param hostname A hostname, such as "localhost".
  *  @param port A port number.
  */
-void connect_to_rti(int id, char* hostname, int port) {
+void connect_to_rti(ushort id, char* hostname, int port) {
     // Repeatedly try to connect, one attempt every 2 seconds, until
     // either the program is killed, the sleep is interrupted,
     // or the connection succeeds.
@@ -225,7 +225,7 @@ void connect_to_rti(int id, char* hostname, int port) {
             }
         }
     }
-    printf("Federate: connected to RTI at %s, port %d.\n", hostname, port);
+    printf("Federate %d: connected to RTI at %s, port %d.\n", __my_fed_id, hostname, port);
 
     // Notify the RTI of the ID of this federate.
     // Send the message type first.
@@ -235,9 +235,9 @@ void connect_to_rti(int id, char* hostname, int port) {
     if (bytes_written < 0) error("ERROR sending federate ID to RTI");
 
     // Send the ID.
-    int message = swap_bytes_if_big_endian_int(id);
+    int message = swap_bytes_if_big_endian_ushort(id);
 
-    bytes_written = write(rti_socket, (void*)(&message), sizeof(int));
+    bytes_written = write(rti_socket, (void*)(&message), sizeof(ushort));
     if (bytes_written < 0) error("ERROR sending federate ID to RTI");
 }
 

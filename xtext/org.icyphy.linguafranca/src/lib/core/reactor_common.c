@@ -858,8 +858,12 @@ void usage(int argc, char* argv[]) {
 int default_argc = 0;
 char** default_argv = NULL;
 
-/** The ID of the federation that this reactor will join. */
-char* federation_id = NULL;
+/**
+ * The ID of the federation that this reactor will join.
+ * This should be overridden with a command-line -i option to ensure
+ * that each federate only joins its assigned federation.
+ */
+char* federation_id = "Unidentified Federation";
 
 /**
  * Process the command-line arguments. If the command line arguments are not

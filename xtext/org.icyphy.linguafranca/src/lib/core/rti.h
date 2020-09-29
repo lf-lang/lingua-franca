@@ -59,7 +59,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // These message types will be encoded in an unsigned char,
 // so the magnitude must not exceed 255.
 
-/** Byte identifying a federate ID message, which is 16 bits long.
+/** Byte identifying a federate ID message, which is sizeof(ushort) or 16 bits.
  *  Each federate needs to have a unique ID between 0 and
  *  NUMBER_OF_FEDERATES-1.
  *  Each federate, when starting up, should send a message of this

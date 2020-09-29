@@ -521,9 +521,9 @@ void connect_to_federates(int socket_descriptor) {
         int socket_id = accept(socket_descriptor, &client_fd, &client_length);
         if (socket_id < 0) error("ERROR on server accept");
 
-        // The first message from the federate should be its ID.
+        // The first message from the federate should contain its ID and the federation ID.
         // Buffer for message ID plus the federate ID.
-        int length = sizeof(int) + 1;
+        int length = sizeof(ushort) + 1;
         unsigned char buffer[length];
 
         // Read bytes from the socket. We need 5 bytes.
@@ -544,7 +544,7 @@ void connect_to_federates(int socket_descriptor) {
         }
 
         ushort fed_id = extract_ushort(buffer + 1);
-        // printf("DEBUG: RTI received federate ID: %d\n", fed_id);
+        printf("DEBUG: RTI received federate ID: %d\n", fed_id);
 
         if (fed_id >= NUMBER_OF_FEDERATES) {
             fprintf(stderr, "ERROR: Federate ID %d is required to be between zero and %d.\n", fed_id, NUMBER_OF_FEDERATES-1);
@@ -661,8 +661,12 @@ void usage(int argc, char* argv[]) {
     printf("\n\n");
 }
 
-/** The ID of the federation that this reactor will join. */
-char* federation_id = NULL;
+/**
+ * The ID of the federation that this RTI will supervise.
+ * This should be overridden with a command-line -i option to ensure
+ * that each federate only joins its assigned federation.
+ */
+char* federation_id = "Unidentified Federation";
 
 /**
  * Process the command-line arguments. If the command line arguments are not
