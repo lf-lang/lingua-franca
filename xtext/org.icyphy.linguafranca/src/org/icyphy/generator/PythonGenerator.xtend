@@ -1446,13 +1446,26 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
-     * This task is done in Python code.
+     * 
+     * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
+     * port widths for now.
+     * 
      * @param reactor The reactor
      * @param builder The StringBuilder that the generated code is appended to
      * @return 
      */
     override generateParametersForReactor(StringBuilder builder, Reactor reactor) {
-        // Do nothing
+        for (parameter : reactor.allParameters) {
+            // Check for targetBankIndex
+            // FIXME: for now throw a reserved error
+            if (parameter.name.equals(targetBankIndex)) {
+                reportError('''«targetBankIndex» is reserved.''')
+            }
+
+            prSourceLineNumber(builder, parameter)
+            // Assume all parameters are integers
+            pr(builder,'''int «parameter.name» ;''');
+        }
     }
     
     /**
@@ -1470,12 +1483,28 @@ class PythonGenerator extends CGenerator {
     /**
      * Generate runtime initialization code for parameters of a given reactor instance
      * All parameters are initialized in Python code
+     * 
+     * FIXME: To allow for parameterized port widths, we assume that all parameters are int
+     * in C and try to assign the value. We don't need to do this for list types as they
+     * cannot be used to delineate port widths.
+     * 
      * @param builder The StringBuilder used to append the initialization code to
      * @param instance The reactor instance
      * @return initialization code
      */
     override generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
-        // Do nothing
+       var nameOfSelfStruct = selfStructName(instance)
+        for (parameter : instance.parameters) {            
+            if (parameter.init.size > 1) {
+                // Ignore the initialization in C for arrays
+                // The actual initialization will be done in Python
+            } else {
+                pr(builder, '''
+                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
+                ''')
+            }
+
+        }
     }
     
     /**
@@ -1497,6 +1526,35 @@ class PythonGenerator extends CGenerator {
      */
     override generateUserPreamblesForReactor(Reactor reactor) {
         // Do nothing
+    }
+    
+    
+    /**
+     * Generate code that is executed while the reactor instance is being initialized
+     * @param initializationCode The StringBuilder appended to __initialize_trigger_objects()
+     * @param instance The reactor instance
+     * @param federate The federate instance
+     */
+    override generateReactorInstanceExtension(StringBuilder initializationCode, ReactorInstance instance, FederateInstance federate) {
+        var nameOfSelfStruct = selfStructName(instance)        
+        // Initialize the name field to the unique name of the instance
+        pr(initializationCode, '''«nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
+        ''');
+    }
+    
+    
+    /**
+     * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
+     * @param selfStructBody The body of the self struct
+     * @param decl The reactor declaration for the self struct
+     * @param instance The current federate instance
+     * @param constructorCode Code that is executed when the reactor is instantiated
+     * @param destructorCode Code that is executed when the reactor instance is freed
+     */
+    override generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
+        // Add the name field
+        pr(selfStructBody, '''char *__lf_name;
+        ''');
     }
         
     /**

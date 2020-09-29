@@ -1349,16 +1349,13 @@ class CGenerator extends GeneratorBase {
         val selfType = selfStructType(decl)
         
         // Construct the typedef for the "self" struct.
-        // First, create a type name for the self struct.
+        // Create a type name for the self struct.
         
         var body = new StringBuilder()
         
-        // Then initialize the name field
-        if(addClassNameToSelfStruct === true)
-        {
-            pr(body, '''char *__lf_name;
-            ''');
-        }
+       
+        // Extensions can add functionality to the CGenerator
+        generateSelfStructExtension(body, decl, federate, constructorCode, destructorCode)
         
         // Handle bank_index
         pr(body, '''«targetBankIndexType» «targetBankIndex»;''');    
@@ -1545,6 +1542,18 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
+    }
+    
+    /**
+     * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
+     * @param body The body of the self struct
+     * @param decl The reactor declaration for the self struct
+     * @param instance The current federate instance
+     * @param constructorCode Code that is executed when the reactor is instantiated
+     * @param destructorCode Code that is executed when the reactor instance is freed
+     */
+    def generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
+        // Do nothing
     }
     
     
@@ -2631,13 +2640,7 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-                
-        // If creating the name field is requested, initialize it to the unique name of the instance
-        if(addClassNameToSelfStruct === true)
-        {
-            pr(initializeTriggerObjects, '''«nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
-            ''');
-        }
+        generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
 
         // Generate code to initialize the "self" struct in the
         // __initialize_trigger_objects function.
@@ -2920,6 +2923,17 @@ class CGenerator extends GeneratorBase {
         generateStartTimeStep(instance, federate)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
+    }
+    
+    
+    /**
+     * Generate code that is executed while the reactor instance is being initialized
+     * @param initializationCode The StringBuilder appended to __initialize_trigger_objects()
+     * @param instance The reactor instance
+     * @param federate The federate instance
+     */
+    def generateReactorInstanceExtension(StringBuilder initializationCode, ReactorInstance instance, FederateInstance federate) {
+        // Do nothing
     }
     
     /**

@@ -13,7 +13,7 @@ reactor Source {
 		self.s += 1
 	=}
 }
-reactor TakeTime(instance(0)) {
+reactor TakeTime {
 	input _in;
 	output out;
 	reaction(_in) -> out {=
