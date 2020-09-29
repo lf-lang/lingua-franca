@@ -156,7 +156,7 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
 
     read_from_socket(sending_socket, bytes_to_read, buffer + header_size);
     int bytes_read = bytes_to_read + header_size;
-    printf("DEBUG: Message received by RTI: %s.\n", buffer + header_size);
+    // printf("DEBUG: Message received by RTI: %s.\n", buffer + header_size);
 
     // Need to acquire the mutex lock to ensure that the thread handling
     // messages coming from the socket connected to the destination does not
@@ -176,7 +176,7 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
     // Forward the message or message chunk.
     int destination_socket = federates[federate_id].socket;
 
-    printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
+    // printf("DEBUG: RTI forwarding message to port %d of federate %d of length %d.\n", port_id, federate_id, length);
     // Need to make sure that the destination federate's thread has already
     // sent the starting TIMESTAMP message.
     while (federates[federate_id].state == NOT_CONNECTED) {
@@ -189,7 +189,7 @@ void handle_message(int sending_socket, unsigned char* buffer, unsigned int head
     // in which case we have to handle it in chunks.
     int total_bytes_read = bytes_read;
     while (total_bytes_read < total_bytes_to_read) {
-        printf("DEBUG: Forwarding message in chunks.\n");
+        // printf("DEBUG: Forwarding message in chunks.\n");
         bytes_to_read = total_bytes_to_read - total_bytes_read;
         if (bytes_to_read > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE;
         read_from_socket(sending_socket, bytes_to_read, buffer);
@@ -209,7 +209,7 @@ void send_time_advance_grant(federate_t* fed, instant_t time) {
     buffer[0] = TIME_ADVANCE_GRANT;
     encode_ll(time, &(buffer[1]));
     write_to_socket(fed->socket, 9, buffer);
-    printf("DEBUG: RTI sent to federate %d the TAG %lld.\n", fed->id, time - start_time);
+    // printf("DEBUG: RTI sent to federate %d the TAG %lld.\n", fed->id, time - start_time);
 }
 
 /** Find the earliest time at which the specified federate may
@@ -320,7 +320,7 @@ bool send_time_advance_if_appropriate(federate_t* fed) {
         send_time_advance_grant(fed, candidate_time_advance);
         return true;
     } else {
-        printf("DEBUG: Not sending TAG to fed %d of %lld because it is not greater than the completed %lld.\n", fed->id, candidate_time_advance - start_time, fed->completed - start_time);
+        // printf("DEBUG: Not sending TAG to fed %d of %lld because it is not greater than the completed %lld.\n", fed->id, candidate_time_advance - start_time, fed->completed - start_time);
     }
     return false;
 }
@@ -340,7 +340,7 @@ void handle_logical_time_complete(federate_t* fed) {
     pthread_mutex_lock(&rti_mutex);
 
     fed->completed = swap_bytes_if_big_endian_ll(buffer.ull);
-    printf("DEBUG: RTI received from federate %d the logical time complete %lld.\n", fed->id, fed->completed - start_time);
+    // printf("DEBUG: RTI received from federate %d the logical time complete %lld.\n", fed->id, fed->completed - start_time);
 
     // Check downstream federates to see whether they should now be granted a TAG.
     for (int i = 0; i < fed->num_downstream; i++) {
@@ -364,7 +364,7 @@ void handle_next_event_time(federate_t* fed) {
     pthread_mutex_lock(&rti_mutex);
 
     fed->next_event = swap_bytes_if_big_endian_ll(buffer.ull);
-    printf("DEBUG: RTI received from federate %d the NET %lld.\n", fed->id, fed->next_event - start_time);
+    // printf("DEBUG: RTI received from federate %d the NET %lld.\n", fed->id, fed->next_event - start_time);
 
     // Check to see whether we can reply now with a time advance grant.
     // If the federate has no upstream federates, then it does not wait for
@@ -390,7 +390,7 @@ void handle_stop_message(federate_t* fed) {
     pthread_mutex_lock(&rti_mutex);
 
     instant_t stop_time = swap_bytes_if_big_endian_ll(buffer.ull);
-    printf("DEBUG: RTI received from federate %d a STOP request with time %lld.\n", fed->id, stop_time - start_time);
+    // printf("DEBUG: RTI received from federate %d a STOP request with time %lld.\n", fed->id, stop_time - start_time);
 
     // Iterate over federates and send each a STOP message.
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
@@ -400,7 +400,7 @@ void handle_stop_message(federate_t* fed) {
             buffer[0] = STOP;
             encode_ll(stop_time, &(buffer[1]));
             write_to_socket(federates[i].socket, 9, buffer);
-            printf("DEBUG: RTI sent to federate %d STOP with (elapsed) time %lld.\n", fed->id, stop_time - start_time);
+            // printf("DEBUG: RTI sent to federate %d STOP with (elapsed) time %lld.\n", fed->id, stop_time - start_time);
         }
     }
 
@@ -430,7 +430,7 @@ void* federate(void* fed) {
     }
 
     instant_t timestamp = swap_bytes_if_big_endian_ll(*((long long*)(&(buffer[1]))));
-    printf("DEBUG: RTI received message: %llx\n", timestamp);
+    // printf("DEBUG: RTI received message: %llx\n", timestamp);
 
     pthread_mutex_lock(&rti_mutex);
     num_feds_proposed_start++;
@@ -536,7 +536,7 @@ void connect_to_federates(int socket_descriptor) {
             if (more == 0) return;
             bytes_read += more;
         }
-        printf("DEBUG: read %d bytes.\n", bytes_read);
+        // printf("DEBUG: read %d bytes.\n", bytes_read);
 
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
@@ -544,7 +544,7 @@ void connect_to_federates(int socket_descriptor) {
         }
 
         ushort fed_id = extract_ushort(buffer + 1);
-        printf("DEBUG: RTI received federate ID: %d\n", fed_id);
+        // printf("DEBUG: RTI received federate ID: %d\n", fed_id);
 
         if (fed_id >= NUMBER_OF_FEDERATES) {
             fprintf(stderr, "ERROR: Federate ID %d is required to be between zero and %d.\n", fed_id, NUMBER_OF_FEDERATES-1);
