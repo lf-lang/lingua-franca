@@ -1364,17 +1364,7 @@ class CGenerator extends GeneratorBase {
         pr(body, '''«targetBankIndexType» «targetBankIndex»;''');    
         
         // Next handle parameters.
-        for (parameter : reactor.allParameters) {
-            // Check for targetBankIndex
-            // FIXME: for now throw a reserved error
-            if(parameter.name.equals(targetBankIndex))
-            {
-                reportError('''«targetBankIndex» is reserved.''')
-            }
-            
-            prSourceLineNumber(body, parameter)
-            pr(body, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
-        }
+        generateParametersForReactor(body, reactor)
         
         // Next handle states.
         generateStateVariablesForReactor(body, reactor)
@@ -1557,8 +1547,28 @@ class CGenerator extends GeneratorBase {
         
     }
     
+    
     /**
-     * Generate code for state variables of a reactor in the form "stateVar_type stateVar_name;"
+     * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
+     * @param reactor The reactor
+     * @param builder The StringBuilder that the generated code is appended to
+     * @return 
+     */
+    def generateParametersForReactor(StringBuilder builder, Reactor reactor) {
+        for (parameter : reactor.allParameters) {
+            // Check for targetBankIndex
+            // FIXME: for now throw a reserved error
+            if (parameter.name.equals(targetBankIndex)) {
+                reportError('''«targetBankIndex» is reserved.''')
+            }
+
+            prSourceLineNumber(builder, parameter)
+            pr(builder, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
+        }
+    }
+    
+    /**
+     * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
      * @param reactor The reactor
      * @param builder The StringBuilder that the generated code is appended to
      * @return 

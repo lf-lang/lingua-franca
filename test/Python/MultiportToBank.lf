@@ -11,19 +11,19 @@ reactor Source {
             out[i].set(i)
     =}
 }
-reactor Destination(instance(0)) {
+reactor Destination {
     input _in;
     state received(0);
     reaction(_in) {=
-        print("Destination " + str(self.instance) + " received " + str(_in.value))
-        if self.instance != _in.value:
-            sys.stderr.write("ERROR: Expected " + str(self.instance))
+        print("Destination " + str(self.bank_index) + " received " + str(_in.value))
+        if self.bank_index != _in.value:
+            sys.stderr.write("ERROR: Expected " + str(self.bank_index))
             exit(1)
         self.received = True
     =}
     reaction(shutdown) {=
         if self.received is not True:
-            sys.stderr.write("ERROR: Destination " + str(self.instance) + " received no input!\n")
+            sys.stderr.write("ERROR: Destination " + str(self.bank_index) + " received no input!\n")
             exit(1)
         print("Success.")
     =}
