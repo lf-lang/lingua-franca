@@ -11,13 +11,13 @@ reactor Source {
         }
     =}
 }
-reactor Destination(instance:int(0)) {
+reactor Destination {
     input in:int;
     state received:bool(false);
     reaction(in) {=
-        printf("Destination %d received %d.\n", self->instance, in->value);
-        if (self->instance != in->value) {
-            printf("ERROR: Expected %d.\n", self->instance);
+        printf("Destination %d received %d.\n", self->bank_index, in->value);
+        if (self->bank_index != in->value) {
+            printf("ERROR: Expected %d.\n", self->bank_index);
             exit(1);
         }
         if (get_elapsed_logical_time() != SEC(1)) {
@@ -28,7 +28,7 @@ reactor Destination(instance:int(0)) {
     =}
     reaction(shutdown) {=
         if (!self->received) {
-            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->instance);
+            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
             exit(3);
         }
         printf("Success.\n");
