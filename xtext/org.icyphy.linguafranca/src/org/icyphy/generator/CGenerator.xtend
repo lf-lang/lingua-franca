@@ -931,7 +931,7 @@ class CGenerator extends GeneratorBase {
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
-            echo "Federation ID is: "$FEDERATION_ID
+            echo "Federate «filename» in Federation ID "$FEDERATION_ID
             # Launch the federates:
         ''')
         val distHeader = '''
