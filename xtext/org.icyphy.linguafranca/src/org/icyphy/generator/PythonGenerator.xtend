@@ -1442,6 +1442,18 @@ class PythonGenerator extends CGenerator {
             pr("}")
         }
     }
+        
+    
+    /**
+     * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
+     * This task is done in Python code.
+     * @param reactor The reactor
+     * @param builder The StringBuilder that the generated code is appended to
+     * @return 
+     */
+    override generateParametersForReactor(StringBuilder builder, Reactor reactor) {
+        // Do nothing
+    }
     
     /**
      * Generate code that initializes the state variables for a given instance.
@@ -1452,6 +1464,17 @@ class PythonGenerator extends CGenerator {
      * @return Initialization code fore state variables of instance
      */
     override generateStateVariableInitializations(ReactorInstance instance) {
+        // Do nothing
+    }
+    
+    /**
+     * Generate runtime initialization code for parameters of a given reactor instance
+     * All parameters are initialized in Python code
+     * @param builder The StringBuilder used to append the initialization code to
+     * @param instance The reactor instance
+     * @return initialization code
+     */
+    override generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
         // Do nothing
     }
     
