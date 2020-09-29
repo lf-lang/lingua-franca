@@ -1,0 +1,41 @@
+// Source allocates an array dynamically and then sends it to two reactors,
+// each of which want to modify it.
+// NOTE: Ideally, only one copy would be made, but this requires
+// modifying the precedence graph between reactions.
+target Python {files: ["include/hello.py"]};
+import Source from "StructScale.lf";
+
+reactor Check(expected(42)) {
+    input _in;
+    reaction(_in) {=
+        print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
+        if _in.value.value != self.expected:
+            sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
+            exit(1)
+    =}
+}
+
+reactor Print(scale(2)) {
+    // Mutable keyword indicates that this reactor wants a writable copy of the input.
+    mutable input _in;
+    
+    output out;
+    reaction(_in) -> out {=
+        print(_in.value.value)
+        _in.value.value *= self.scale;
+        out.set(_in.value)
+    =}
+}
+
+
+main reactor StructParallel {
+    s = new Source();
+    c1 = new Print();
+    c2 = new Print(scale = 3);
+    p1 = new Check(expected = 84);
+    p2 = new Check(expected = 126);
+    s.out -> c1._in;
+    s.out -> c2._in;
+    c1.out -> p1._in;
+    c2.out -> p2._in;
+}
