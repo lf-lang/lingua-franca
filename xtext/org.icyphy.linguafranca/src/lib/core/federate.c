@@ -214,8 +214,8 @@ void connect_to_rti(int id, char* hostname, int port) {
                         CONNECT_NUM_RETRIES);
                 exit(2);
             }
-            printf("Could not connect to RTI at %s, port %d. Will try again every %d seconds.\n",
-                    hostname, port, CONNECT_RETRY_INTERVAL);
+            printf("Federate %d could not connect to RTI at %s, port %d. Will try again every %d seconds.\n",
+                    __my_fed_id, hostname, port, CONNECT_RETRY_INTERVAL);
             // Wait CONNECT_RETRY_INTERVAL seconds.
             struct timespec wait_time = {(time_t)CONNECT_RETRY_INTERVAL, 0L};
             struct timespec remaining_time;
