@@ -1,7 +1,5 @@
-// Source allocates an array dynamically and then sends it to two reactors,
+// Source allocates a class object and then sends it to two reactors,
 // each of which want to modify it.
-// NOTE: Ideally, only one copy would be made, but this requires
-// modifying the precedence graph between reactions.
 target Python {files: ["include/hello.py"]};
 import Source from "StructScale.lf";
 
