@@ -560,11 +560,11 @@ class PythonGenerator extends CGenerator {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // a list of instances of reactors and return.         
                 pythonClassesInstantiation.
-                    append('''«instance.uniqueID»_lf = [«FOR member : instance.bankMembers SEPARATOR ", "»_«className»(«FOR param : member.parameters SEPARATOR ", "»«IF param.name.equals("instance")»instance=«member.bankIndex/* instance is specially assigned by us*/»«ELSE»«param.name»=«param.pythonInitializer»«ENDIF»«ENDFOR»)«ENDFOR»]
+                    append('''«instance.uniqueID»_lf = [«FOR member : instance.bankMembers SEPARATOR ", "»_«className»(bank_index = «member.bankIndex/* bank_index is specially assigned by us*/», «FOR param : member.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
                     ''')
                 return
             } else if (instance.bankIndex === -1 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-                pythonClassesInstantiation.append('''«instance.uniqueID»_lf = [_«className»(«FOR param : instance.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)]
+                pythonClassesInstantiation.append('''«instance.uniqueID»_lf = [_«className»(bank_index = 0«/* bank_index is specially assigned by us*/», «FOR param : instance.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)]
                 ''')
             }
 
@@ -1393,19 +1393,6 @@ class PythonGenerator extends CGenerator {
             }
         }
         
-        // Finally, handle parameters that need to be passed from the C runtime (e.g., instance:int)     
-        for (param : reactor.allParameters ?: emptyList)
-        {
-            if(param.name == "instance")
-            {
-                // The reactor is in a bank.
-                // The helper function 'invoke_python_function' requires an instance_id (a.k.a. bankId)
-                // to find the specific reactor instance in a list.
-                // For example Foos = [Foo(), Foo(), Foo()] is a list of three instances of Foo in a bank of width 3
-                // where 'invoke_python_function(...,1,...) would load Foos[1].
-                hasInstance = true
-            }
-        }
         
         pr('void ' + functionName + '(void* instance_args) {')
         indent()
@@ -1415,36 +1402,19 @@ class PythonGenerator extends CGenerator {
         
         
         prSourceLineNumber(reaction.code)
-        if(hasInstance) {
-            // Unfortunately, threads cannot run concurrently in Python.
-            // Therefore, we need to make sure reactions that belong to reactors in a bank
-            // don't run concurrently by holding the mutex.
-            // A possible fix would be to use multiprocesses
-            // Acquire the mutex lock
-            
+        // Unfortunately, threads cannot run concurrently in Python.
+        // Therefore, we need to make sure reactions cannot execute concurrently by
+        // holding the mutex lock.
+        if(targetThreads > 0)
+        {
             pr(pyThreadMutexLockCode(0))
-            
-            // The reaction is in a reactor that belongs to a bank of reactors
-            pr('''invoke_python_function("__main__", self->__lf_name, self->instance ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
-                        
-            // Release the mutex lock
-            pr(pyThreadMutexLockCode(1))
         }
-        else {
-            // Unfortunately, threads cannot run concurrently in Python.
-            // Therefore, we need to make sure reactions cannot execute concurrently by
-            // holding the mutex lock. FIXME: Disabled for now
-            if(targetThreads > 0)
-            {
-                pr(pyThreadMutexLockCode(0))
-            }
-            
-            pr('''invoke_python_function("__main__", self->__lf_name, 0 ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
-            
-            if(targetThreads > 0)
-            {
-                pr(pyThreadMutexLockCode(1))                
-            }
+        
+        pr('''invoke_python_function("__main__", self->__lf_name, self->«targetBankIndex» ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+        
+        if(targetThreads > 0)
+        {
+            pr(pyThreadMutexLockCode(1))                
         }
         
         unindent()
