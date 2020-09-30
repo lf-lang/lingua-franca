@@ -58,6 +58,7 @@ import java.util.stream.Stream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Files
+import org.icyphy.linguaFranca.Model
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -611,8 +612,8 @@ class PythonGenerator extends CGenerator {
        import sys
        import copy
        
-       «pythonPreamble»
-              
+       «pythonPreamble.toString»
+       
        «generatePythonReactorClasses(federate)»
        
        # The main function
@@ -773,12 +774,27 @@ class PythonGenerator extends CGenerator {
         // TODO: add support for compiling federates
     }
     
-    /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
+    /** 
+     * Generate top-level preambles and #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
      *  As a side effect, this populates the runCommand and compileCommand
      *  private variables if such commands are specified in the target directive.
      */
     override generatePreamble() {
+        
+        val models = new LinkedHashSet<Model>
+        
+        for (r : this.reactors ?: emptyList) {
+            // The following assumes all reactors have a container.
+            // This means that generated reactors **have** to be
+            // added to a resource; not doing so will result in a NPE.
+            models.add(r.toDefinition.eContainer as Model)
+        }
+        for (m : models) {
+            for (p : m.preambles) {
+                pythonPreamble.append(p.code.toText)
+            }
+        }
 
         includeTargetLanguageHeaders()
 
@@ -822,9 +838,27 @@ class PythonGenerator extends CGenerator {
             if (dotIndex > 0) {
                 rootFilename = name.substring(0, dotIndex)
             }
-            pr('#include "' + rootFilename + '.pb-c.h"')
+            pythonPreamble.append('''import «rootFilename»_pb2 as «rootFilename»''')
         }
-    }   
+    }
+    
+    /**
+     * Process a given .proto file.
+     * 
+     * Run, if possible, the proto-c protocol buffer code generator to produce
+     * the required .h and .c files.
+     * @param filename Name of the file to process.
+     */
+     override processProtoFile(String filename) {
+        val protoc = createCommand("protoc", #['''--python_out=src-gen/«this.filename»''', filename])
+        if (protoc === null) {
+            return
+        }
+        val returnCode = protoc.executeCommand()
+        if (returnCode !== 0) {
+            reportError("protoc returns error code " + returnCode)
+        }
+    }
     
     /**
      * Generate the aliases for inputs, outputs, and struct type definitions for 

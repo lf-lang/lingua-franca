@@ -439,7 +439,7 @@ public enum Targets {
          * Directive for specifying .proto files that need to be compiled and their
          * code included in the sources.
          */
-        PROTOBUFS("protobufs", Arrays.asList(Targets.C, Targets.TS)),
+        PROTOBUFS("protobufs", Arrays.asList(Targets.C, Targets.TS, Targets.Python)),
         /**
          * Directive to specify the number of threads.
          */
