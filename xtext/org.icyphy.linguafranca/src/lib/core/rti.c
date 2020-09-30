@@ -90,8 +90,7 @@ char* federation_id = "Unidentified Federation";
  *  @param port The port number to use.
  *  @return The socket descriptor on which to accept connections.
  */
-int create_server(int port) {
-    printf("************ FIXME\n");
+int create_server(int specified_port, int port) {
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
     int socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_descriptor < 0) error("ERROR on creating RTI socket");
@@ -138,7 +137,10 @@ int create_server(int port) {
             socket_descriptor,
             (struct sockaddr *) &server_fd,
             sizeof(server_fd));
+    // If the binding fails with this port and no particular port was specified
+    // in the LF program, then try the next few ports in sequence.
     while (result != 0
+            && specified_port == 0
             && port >= STARTING_PORT
             && port <= STARTING_PORT + PORT_RANGE_LIMIT) {
         printf("RTI failed to get port %d. Trying %d\n", port, port + 1);
@@ -150,7 +152,7 @@ int create_server(int port) {
                 sizeof(server_fd));
     }
     if (result != 0) {
-        error("ERROR on binding RTI socket. Cannot find a usable port.");
+        error("ERROR on binding RTI socket. Cannot find a usable port. Consider increasing PORT_RANGE_LIMIT in rti.h");
     }
     printf("RTI for federation %s started using port %d.\n", federation_id, port);
 
@@ -640,11 +642,12 @@ pid_t federate_launcher(char* executable) {
  *   0 to use the default port range.
  */
 int start_rti_server(int port) {
+    int specified_port = port;
     if (port == 0) {
         // Use the default starting port.
         port = STARTING_PORT;
     }
-    int socket_descriptor = create_server(port);
+    int socket_descriptor = create_server(specified_port, port);
     printf("RTI: Listening for federates.\n");
     return socket_descriptor;
 }
