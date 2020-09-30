@@ -29,6 +29,7 @@ addons:
       - libprotobuf-c-dev
       - protobuf-compiler
       - protobuf-c-compiler
+      - python3-googleapi
 env:
   - TEST=C  
   - TEST=Cpp  
