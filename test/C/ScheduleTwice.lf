@@ -1,0 +1,23 @@
+target C;
+main reactor ScheduleTwice {
+    logical action a:int;
+    state got_it:bool(false);
+    reaction(startup) -> a {=
+        schedule_int(a, MSEC(100), 42);
+        schedule_int(a, MSEC(100), 84);
+    =}
+    reaction(a) {=
+        printf("Received %d.\n", a->value);
+        if (a->value != 84) {
+            fprintf(stderr, "Expected 84.\n");
+            exit(1);
+        }
+        self->got_it = true;
+    =}
+    reaction(shutdown) {=
+        if (!self->got_it) {
+            fprintf(stderr, "Didn't get any data.\n");
+            exit(2);
+        }
+    =}
+}
