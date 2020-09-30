@@ -433,8 +433,13 @@ class TypeScriptGenerator extends GeneratorBase {
         if (reactor.isMain()) {
             superCall = "super(timeout, keepAlive, fast, success, fail);"
         } else if (reactor.isFederated()) {
+            var port = federationRTIProperties.get('port')
+            // Default of 0 is an indicator to use the default port, 15045.
+            if (port === 0) {
+                port = 15045
+            }
             superCall = '''
-            super(«federate.id», «federationRTIProperties.get('port')», «
+            super(«federate.id», «port», «
                 »"«federationRTIProperties.get('host')»", «
                 »timeout, keepAlive, fast, success, fail);
             '''

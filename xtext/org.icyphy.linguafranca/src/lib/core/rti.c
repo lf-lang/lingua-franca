@@ -79,14 +79,27 @@ int num_feds_proposed_start = 0;
 // The start time for an execution.
 instant_t start_time = NEVER;
 
+/**
+ * The ID of the federation that this RTI will supervise.
+ * This should be overridden with a command-line -i option to ensure
+ * that each federate only joins its assigned federation.
+ */
+char* federation_id = "Unidentified Federation";
+
 /** Create a server and enable listening for socket connections.
  *  @param port The port number to use.
  *  @return The socket descriptor on which to accept connections.
  */
 int create_server(int port) {
+    printf("************ FIXME\n");
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
     int socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_descriptor < 0) error("ERROR on creating RTI socket");
+
+    /*
+     * The following used to permit reuse of a port that an RTI has previously
+     * used that has not been released. We no longer do this, but instead
+     * increment the port number until an available port is found.
 
     // SO_REUSEPORT (since Linux 3.9)
     //       Permits multiple AF_INET or AF_INET6 sockets to be bound to an
@@ -109,6 +122,7 @@ int create_server(int port) {
         perror("setsockopt(SO_REUSEPORT) failed");
     }
     #endif
+    */
 
     // Server file descriptor.
     struct sockaddr_in server_fd;
@@ -124,7 +138,21 @@ int create_server(int port) {
             socket_descriptor,
             (struct sockaddr *) &server_fd,
             sizeof(server_fd));
-    if (result != 0) error("ERROR on binding RTI socket");
+    while (result != 0
+            && port >= STARTING_PORT
+            && port <= STARTING_PORT + PORT_RANGE_LIMIT) {
+        printf("RTI failed to get port %d. Trying %d\n", port, port + 1);
+        port++;
+        server_fd.sin_port = htons(port);
+        result = bind(
+                socket_descriptor,
+                (struct sockaddr *) &server_fd,
+                sizeof(server_fd));
+    }
+    if (result != 0) {
+        error("ERROR on binding RTI socket. Cannot find a usable port.");
+    }
+    printf("RTI for federation %s started using port %d.\n", federation_id, port);
 
     // Enable listening for socket connections.
     // The second argument is the maximum number of queued socket requests,
@@ -608,11 +636,16 @@ pid_t federate_launcher(char* executable) {
 /** Start the socket server for the runtime infrastructure (RTI) and
  *  return the socket descriptor.
  *  @param num_feds Number of federates.
- *  @param port The port on which to listen for socket connections.
+ *  @param port The port on which to listen for socket connections, or
+ *   0 to use the default port range.
  */
 int start_rti_server(int port) {
+    if (port == 0) {
+        // Use the default starting port.
+        port = STARTING_PORT;
+    }
     int socket_descriptor = create_server(port);
-    printf("RTI: Listening for federates on port %d.\n", port);
+    printf("RTI: Listening for federates.\n");
     return socket_descriptor;
 }
 
@@ -660,13 +693,6 @@ void usage(int argc, char* argv[]) {
     }
     printf("\n\n");
 }
-
-/**
- * The ID of the federation that this RTI will supervise.
- * This should be overridden with a command-line -i option to ensure
- * that each federate only joins its assigned federation.
- */
-char* federation_id = "Unidentified Federation";
 
 /**
  * Process the command-line arguments. If the command line arguments are not
