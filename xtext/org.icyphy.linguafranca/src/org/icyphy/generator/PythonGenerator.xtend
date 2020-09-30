@@ -1452,7 +1452,7 @@ class PythonGenerator extends CGenerator {
             pr(pyThreadMutexLockCode(0))
         }
         
-        pr('''invoke_python_function("__main__", self->__lf_name, self->«targetBankIndex» ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+        pr('''invoke_python_function("«filename»", self->__lf_name, self->«targetBankIndex» ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
         
         if(targetThreads > 0)
         {
@@ -1474,7 +1474,7 @@ class PythonGenerator extends CGenerator {
             
             super.generateInitializationForReaction("", reaction, decl)
             
-            pr('''invoke_python_function("__main__", self->__lf_name, 0 ,"«pythonDeadlineFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+            pr('''invoke_python_function("«filename»", self->__lf_name, 0 ,"«pythonDeadlineFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
             //pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
             //prSourceLineNumber(reaction.deadline.code)
