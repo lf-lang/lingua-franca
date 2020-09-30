@@ -1,0 +1,39 @@
+// Test delaying a struct pointer type.
+target Python {files: ["include/hello.py"]};
+
+reactor DelayPointer(delay(100 msec)) {
+    input _in;
+    output out;
+    logical action a;
+    reaction(a) -> out {=
+        out.set(a.value);
+    =}
+    reaction(_in) -> a {=
+        # Schedule the actual token from the input rather than
+        # a new token with a copy of the input value.
+        a.schedule(self.delay, _in.value);
+    =}
+}
+reactor Source {
+    output out;
+    reaction(startup) -> out {=
+        out.set(hello.hello("Earth", 42))
+    =}
+}
+// expected parameter is for testing.
+reactor Print(expected(42)) {
+    input _in;
+    reaction(_in) {=
+        print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
+        if _in.value.value != self.expected:
+            sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
+            exit(1)
+    =}
+}
+main reactor DelayStruct {
+    s = new Source();
+    d = new DelayPointer();
+    p = new Print();
+    s.out -> d._in;
+    d.out -> p._in;
+}
