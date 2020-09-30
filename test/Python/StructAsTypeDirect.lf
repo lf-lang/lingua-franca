@@ -1,9 +1,5 @@
 target Python {files: include/hello.py};
 
-preamble {=
-	import hello
-=}
-
 reactor Source {
     output out;
     reaction(startup) -> out {=

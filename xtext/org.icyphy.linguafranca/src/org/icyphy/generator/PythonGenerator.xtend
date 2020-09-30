@@ -792,7 +792,8 @@ class PythonGenerator extends CGenerator {
         }
         for (m : models) {
             for (p : m.preambles) {
-                pythonPreamble.append(p.code.toText)
+                pythonPreamble.append('''«p.code.toText»
+                ''')
             }
         }
 
@@ -820,7 +821,8 @@ class PythonGenerator extends CGenerator {
             // A foo.py file will be imported as 'import foo' as per Python specification
             val name = file.name
             if (name.endsWith(".py")) {
-                pythonPreamble.append('''import «name.replace(".py", "")»''')
+                pythonPreamble.append('''import «name.replace(".py", "")»
+                ''')
             }
             val target = new File(srcGenPath + File.separator + name)
             if (target.exists) {
@@ -838,7 +840,8 @@ class PythonGenerator extends CGenerator {
             if (dotIndex > 0) {
                 rootFilename = name.substring(0, dotIndex)
             }
-            pythonPreamble.append('''import «rootFilename»_pb2 as «rootFilename»''')
+            pythonPreamble.append('''import «rootFilename»_pb2 as «rootFilename»
+            ''')
         }
     }
     
