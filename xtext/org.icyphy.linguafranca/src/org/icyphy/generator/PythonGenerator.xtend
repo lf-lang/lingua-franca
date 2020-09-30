@@ -82,6 +82,9 @@ class PythonGenerator extends CGenerator {
 	// Used to add statements that come before reactor classes and user code
 	private var pythonPreamble = new StringBuilder()
 	
+	// Used to add module requirements to setup.py (delimited with ,)
+	private var pythonRequiredModules = new StringBuilder()
+	
 	new () {
         super()
         // set defaults
@@ -640,7 +643,7 @@ class PythonGenerator extends CGenerator {
     
     setup(name="LinguaFranca«filename»", version="1.0",
             ext_modules = [linguafranca«filename»module],
-            install_requires=['LinguaFrancaBase'],)
+            install_requires=['LinguaFrancaBase' «pythonRequiredModules»],)
     '''
     
     /**
@@ -858,7 +861,9 @@ class PythonGenerator extends CGenerator {
             return
         }
         val returnCode = protoc.executeCommand()
-        if (returnCode !== 0) {
+        if (returnCode == 0) {
+            pythonRequiredModules.append(''', 'google-api-python-client' ''')
+        } else {
             reportError("protoc returns error code " + returnCode)
         }
     }
