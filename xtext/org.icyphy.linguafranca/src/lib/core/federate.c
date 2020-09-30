@@ -180,7 +180,11 @@ void connect_to_rti(ushort id, char* hostname, int port) {
     // or the connection succeeds.
     // If the specified port is 0, set it instead to the start of the
     // port range.
-    if (port == 0) port = STARTING_PORT;
+    bool specific_port_given = true;
+    if (port == 0) {
+        port = STARTING_PORT;
+        specific_port_given = false;
+    }
     int result = -1;
     int count_retries = 0;
 
@@ -211,8 +215,9 @@ void connect_to_rti(ushort id, char* hostname, int port) {
             rti_socket,
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
-        // If this failed, try more ports.
+        // If this failed, try more ports, unless a specific port was given.
         if (result != 0
+                && !specific_port_given
                 && port >= STARTING_PORT
                 && port <= STARTING_PORT + PORT_RANGE_LIMIT
         ) {
@@ -231,7 +236,7 @@ void connect_to_rti(ushort id, char* hostname, int port) {
         }
         // If this still failed, try again with the original port after some time.
         if (result < 0) {
-            if (port == STARTING_PORT + PORT_RANGE_LIMIT + 1) {
+            if (!specific_port_given && port == STARTING_PORT + PORT_RANGE_LIMIT + 1) {
                 port = STARTING_PORT;
             }
             count_retries++;
