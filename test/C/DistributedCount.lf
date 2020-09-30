@@ -36,7 +36,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCountMain at localhost {
+federated reactor DistributedCount {
     c = new Count();
     p = new Print();
     c.out -> p.in after 200 msec;    // Indicating a 'logical' connection.
