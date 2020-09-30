@@ -1,0 +1,24 @@
+// This tests delaying a struct using after.
+target Python {files: include/hello.py};
+
+reactor Source {
+    output out;
+    reaction(startup) -> out {=
+        out.set(hello.hello("Earth", 42))
+    =}
+}
+// expected parameter is for testing.
+reactor Print(expected(42)) {
+    input _in;
+    reaction(_in) {=
+        print("Received: name = {:s}, value = {:d}\n".format(_in.value.name, _in.value.value))
+        if _in.value.value != self.expected:
+            sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
+            exit(1)
+    =}
+}
+main reactor DelayStructWithAfter {
+    s = new Source();
+    p = new Print();
+    s.out -> p._in after 100 msec;
+}
