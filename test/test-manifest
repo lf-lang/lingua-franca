@@ -99,6 +99,7 @@ PreambleFile.lf
 ProtoNoPacking.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
+ScheduleTwice.lf
 ScheduleValue.lf
 ScheduleLogicalAction.lf
 SelfLoop.lf
