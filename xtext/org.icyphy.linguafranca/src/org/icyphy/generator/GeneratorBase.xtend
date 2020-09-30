@@ -281,7 +281,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected val federationRTIProperties = newLinkedHashMap(
         'host' -> 'localhost',
-        'port' -> 15045
+        'port' -> 0 // Indicator to use the default port, typically 15045.
     )
     
     /**

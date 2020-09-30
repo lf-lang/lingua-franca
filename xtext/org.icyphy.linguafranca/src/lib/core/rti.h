@@ -53,20 +53,60 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define CONNECT_NUM_RETRIES 500
 
+/**
+ * Default starting port number for the RTI's socket server.
+ * Unless a specific port has been specified by the LF program,
+ * the RTI, when it starts up, will attempt to open a socket server
+ * on this port, and, if this fails, increment the port number and
+ * try again. The number of increments is limited by PORT_RANGE_LIMIT.
+ */
+#define STARTING_PORT 15045
+
+/**
+ * Number of ports to try to connect to. Unless the LF program specifies
+ * a specific port number to use, the RTI will attempt to start
+ * a socket server on port 15045. If that port is not available (e.g.,
+ * another RTI is running or has recently exited), then it will try the
+ * next port, 15046, and keep incrementing the port number up to this
+ * limit. If no port between 15045 and 15045 + PORT_RANGE_LIMIT
+ * is available, then the RTI will fail to start. This number, therefore,
+ * limits the number of RTIs that can be simultaneously
+ * running on any given machine.
+ */
+#define PORT_RANGE_LIMIT 8
+
 ////////////////////////////////////////////
 //// Message types
 
 // These message types will be encoded in an unsigned char,
 // so the magnitude must not exceed 255.
 
-/** Byte identifying a federate ID message, which is sizeof(ushort) or 16 bits.
+/**
+ * Byte identifying a rejection of the previously received message.
+ * The reason for the rejection is included as an additional byte
+ * (uchar) (see below for encodings of rejection reasons).
+ */
+#define REJECT 0
+
+/**
+ * Byte identifying an acknowledgment of the previously received message.
+ */
+#define ACK 255
+
+/** Byte identifying a message from a federate to an RTI containing
+ *  the federation ID and the federate ID. The message contains, in
+ *  this order:
+ *  * Two bytes (ushort) giving the federate ID.
+ *  * One byte (uchar) giving the length N of the federation ID.
+ *  * N bytes containing the federation ID.
  *  Each federate needs to have a unique ID between 0 and
  *  NUMBER_OF_FEDERATES-1.
- *  Each federate, when starting up, should send a message of this
- *  type to the RTI. This is its first message to the RTI.
+ *  Each federate, when starting up, should send this message
+ *  to the RTI. This is its first message to the RTI.
+ *  The RTI will respond with either REJECT or ACK.
  *  If the federate is a C target LF program, the generated
  *  code does this by calling synchronize_with_other_federates(),
- *  passing to it this ID.
+ *  passing to it its federate ID.
  */
 #define FED_ID 1
 
@@ -121,6 +161,23 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  in nondeterministic stop times.
  */
 #define STOP 9
+
+/////////////////////////////////////////////
+//// Rejection codes
+
+/**
+ * These codes are sent in a REJECT message.
+ * They are limited to one byte (uchar).
+ */
+
+/** Federation ID does not match. */
+#define FEDERATION_ID_DOES_NOT_MATCH 1
+
+/** Federate with the specified ID has already joined. */
+#define FEDERATE_ID_IN_USE 2
+
+/** Federate ID out of range. */
+#define FEDERATE_ID_OUT_OF_RANGE 3
 
 /////////////////////////////////////////////
 //// Data structures

@@ -963,7 +963,7 @@ int process_args(int argc, char* argv[]) {
                return 0;
            }
            i++;
-           printf("Federation ID: %s\n", argv[i]);
+           printf("Federation ID for executable %s: %s\n", argv[0], argv[i]);
            federation_id = argv[i++];
        } else {
     	   fprintf(stderr,"Error: Unrecognized command-line argument: %s\n", argv[i]);

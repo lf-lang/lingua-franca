@@ -926,8 +926,9 @@ class CGenerator extends GeneratorBase {
             # Launcher for federated «filename».lf Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
-            # Set a trap to kill all background jobs on error.
+            # Set a trap to kill all background jobs on error or control-C
             trap 'echo "#### Killing federates."; kill $(jobs -p)' ERR
+            trap 'kill $(jobs -p)' SIGINT
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`

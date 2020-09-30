@@ -165,8 +165,9 @@ void __broadcast_stop() {
     send_time(STOP, current_time);
 }
 
-/** Connect to the RTI at the specified host and port and return
- *  the socket descriptor for the connection. If this fails, the
+/**
+ * Connect to the RTI at the specified host and port and return
+ * the socket descriptor for the connection. If this fails, the
  *  program exits. If it succeeds, it sets the rti_socket global
  *  variable to refer to the socket for communicating with the RTI.
  *  @param id The assigned ID of the federate.
@@ -177,8 +178,13 @@ void connect_to_rti(ushort id, char* hostname, int port) {
     // Repeatedly try to connect, one attempt every 2 seconds, until
     // either the program is killed, the sleep is interrupted,
     // or the connection succeeds.
+    // If the specified port is 0, set it instead to the start of the
+    // port range.
+    if (port == 0) port = STARTING_PORT;
     int result = -1;
     int count_retries = 0;
+
+    bool failure_message = false;
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
         rti_socket = socket(AF_INET , SOCK_STREAM , 0);
@@ -191,7 +197,6 @@ void connect_to_rti(ushort id, char* hostname, int port) {
         }
         // Server file descriptor.
         struct sockaddr_in server_fd;
-
         // Zero out the server_fd struct.
         bzero((char *) &server_fd, sizeof(server_fd));
 
@@ -202,20 +207,41 @@ void connect_to_rti(ushort id, char* hostname, int port) {
              server->h_length);
         // Convert the port number from host byte order to network byte order.
         server_fd.sin_port = htons(port);
-
         result = connect(
             rti_socket,
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
+        // If this failed, try more ports.
+        if (result != 0
+                && port >= STARTING_PORT
+                && port <= STARTING_PORT + PORT_RANGE_LIMIT
+        ) {
+            if (!failure_message) {
+                printf("Federate %d failed to connect to RTI on port %d. Trying %d", __my_fed_id, port, port + 1);
+                failure_message = true;
+            } else {
+                printf(", %d", port);
+            }
+            port++;
+            continue;
+        }
+        if (failure_message) {
+            printf("\n");
+            failure_message = false;
+        }
+        // If this still failed, try again with the original port after some time.
         if (result < 0) {
+            if (port == STARTING_PORT + PORT_RANGE_LIMIT + 1) {
+                port = STARTING_PORT;
+            }
             count_retries++;
             if (count_retries > CONNECT_NUM_RETRIES) {
-                fprintf(stderr, "Failed to connect to the RTI after %d retries. Giving up.\n",
-                        CONNECT_NUM_RETRIES);
+                fprintf(stderr, "Federate %d failed to connect to the RTI after %d retries. Giving up.\n",
+                        __my_fed_id, CONNECT_NUM_RETRIES);
                 exit(2);
             }
-            printf("Federate %d could not connect to RTI at %s, port %d. Will try again every %d seconds.\n",
-                    __my_fed_id, hostname, port, CONNECT_RETRY_INTERVAL);
+            printf("Federate %d could not connect to RTI at %s. Will try again every %d seconds.\n",
+                    __my_fed_id, hostname, CONNECT_RETRY_INTERVAL);
             // Wait CONNECT_RETRY_INTERVAL seconds.
             struct timespec wait_time = {(time_t)CONNECT_RETRY_INTERVAL, 0L};
             struct timespec remaining_time;
