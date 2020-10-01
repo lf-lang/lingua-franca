@@ -1342,7 +1342,7 @@ class PythonGenerator extends CGenerator {
                 
         val reactor = decl.toDefinition
         
-        // Delay reactors and top-level reactions used in the top-level reactor(s) are generated in C
+        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
         if(reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((decl === this.mainDef?.reactorClass) && reactor.isFederated))
         {
             return super.generateReaction(reaction, decl, reactionIndex)
@@ -1452,7 +1452,14 @@ class PythonGenerator extends CGenerator {
             pr(pyThreadMutexLockCode(0))
         }
         
-        pr('''invoke_python_function("«filename»", self->__lf_name, self->«targetBankIndex» ,"«pythonFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+        pr('''PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
+        ''')
+        pr('''
+            if (rValue == NULL)
+            {
+                fprintf(stderr, "Faild to call reaction «pythonFunctionName».\n");
+            }
+        ''')
         
         if(targetThreads > 0)
         {
@@ -1474,7 +1481,14 @@ class PythonGenerator extends CGenerator {
             
             super.generateInitializationForReaction("", reaction, decl)
             
-            pr('''invoke_python_function("«filename»", self->__lf_name, 0 ,"«pythonDeadlineFunctionName»", Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));''')
+            pr('''PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
+            ''')
+            pr('''
+                if (rValue == NULL)
+                {
+                    fprintf(stderr, "Faild to call reaction «deadlineFunctionName».\n");
+                }
+            ''')
             //pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
             //prSourceLineNumber(reaction.deadline.code)
@@ -1578,10 +1592,30 @@ class PythonGenerator extends CGenerator {
      * @param federate The federate instance
      */
     override generateReactorInstanceExtension(StringBuilder initializationCode, ReactorInstance instance, FederateInstance federate) {
-        var nameOfSelfStruct = selfStructName(instance)        
+        var nameOfSelfStruct = selfStructName(instance)
+        var reactor = instance.definition.reactorClass.toDefinition
+        
+         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
+        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((instance.definition.reactorClass === this.mainDef?.reactorClass) && reactor.isFederated))
+        {
+            return
+        }
+        
         // Initialize the name field to the unique name of the instance
         pr(initializationCode, '''«nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
         ''');
+        
+        for (reaction : instance.reactions)
+        {
+            val pythonFunctionName = pythonReactionFunctionName(reaction.reactionIndex)
+            // Create a PyObject for each reaction
+            pr(initializationCode, '''«nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = get_python_function("«filename»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"«pythonFunctionName»");''')
+        
+            if (reaction.definition.deadline !== null) {
+                pr(initializationCode, '''«nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = get_python_function("«filename»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"deadline_function_«reaction.reactionIndex»");''')
+            }
+        
+        }
     }
     
     
@@ -1594,9 +1628,23 @@ class PythonGenerator extends CGenerator {
      * @param destructorCode Code that is executed when the reactor instance is freed
      */
     override generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
+        val reactor = decl.toDefinition
         // Add the name field
         pr(selfStructBody, '''char *__lf_name;
         ''');
+        
+        var reactionIndex = 0
+        for (reaction : reactor.allReactions)
+        {
+            // Create a PyObject for each reaction
+            pr(selfStructBody, '''PyObject *__py_reaction_function_«reactionIndex»;''')
+            
+            if (reaction.deadline !== null) {                
+                pr(selfStructBody, '''PyObject *__py_deadline_function_«reactionIndex»;''')
+            }
+            
+            reactionIndex++
+        }
     }
         
     /**

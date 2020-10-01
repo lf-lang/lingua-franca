@@ -985,7 +985,7 @@ PyObject* convert_C_action_to_py(void* action)
  * @param pArgs the PyList of arguments to be sent to function func()
  */
 PyObject*
-invoke_python_function(string module, string class, int instance_id, string func, PyObject* pArgs)
+get_python_function(string module, string class, int instance_id, string func)
 {
 
     // Set if the interpreter is already initialized
@@ -1106,38 +1106,8 @@ invoke_python_function(string module, string class, int instance_id, string func
 #ifdef VERBOSE
             printf("Attempting to call function %s from class %s[%d].\n", func , class, instance_id);
 #endif
-
-
-            // Call the func() function with arguments pArgs
-            // The output will be returned to rValue
-            rValue = PyObject_CallObject(pFunc, pArgs);
-
-#ifdef VERBOSE
-                printf("Finished calling %s.\n", func);
-#endif
-
-            // Check if the function is executed correctly
-            if (rValue != NULL)
-            {
-#ifdef VERBOSE
-                printf("I called %s and got %ld.\n", func , PyLong_AsLong(rValue));
-#endif
-                Py_DECREF(rValue);
-            }
-            else {
-                // If the function call fails, print an error
-                // message and get rid of the PyObjects
-                Py_DECREF(pFunc);
-                Py_DECREF(globalPythonModule);
-                Py_DECREF(pClass);
-                PyErr_Print();
-                fprintf(stderr, "Calling react failed.\n");
-                exit(0);
-            }
-
-
-            // Free pArgs (or rather decrement its reference count)
-            //Py_DECREF(pArgs);
+            Py_INCREF(pFunc);
+            return pFunc;
         }
         else
         {
