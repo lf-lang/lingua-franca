@@ -36,7 +36,7 @@ reactor Destination {
         }
     =}
 }
-federated reactor HelloDistributed at localhost:15046 {
+federated reactor HelloDistributed at localhost {
     reaction(startup) {=
         printf("Printing something in federated reactor.\n");
     =}
