@@ -30,8 +30,7 @@
  * @author Soroush Bateni
  */
 target Python {
-    fast: true,
-    threads: 1
+    fast: true
 };
 reactor Ping(count(1000000)) {
     input receive;

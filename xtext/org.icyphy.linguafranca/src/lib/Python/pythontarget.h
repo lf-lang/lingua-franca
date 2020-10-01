@@ -319,7 +319,7 @@ PyObject* convert_C_action_to_py(void* action);
  * @param pArgs the PyList of arguments to be sent to function func()
  */
 PyObject*
-invoke_python_function(string module, string class, int instance_id, string func, PyObject* pArgs);
+get_python_function(string module, string class, int instance_id, string func);
 
 
 

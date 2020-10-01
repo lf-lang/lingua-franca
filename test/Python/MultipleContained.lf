@@ -9,7 +9,7 @@ reactor Contained {
         trigger.set(42)
     =}
     reaction(in1) {=
-        print("in1 received \n", in1.value);
+        print("in1 received ", in1.value);
         if in1.value != 42:
             sys.stderr.write("FAILED: Expected 42.\n")
             exit(1)
