@@ -424,22 +424,12 @@ class CCppGenerator extends CGenerator {
             
     
     /**
-     * Copy C specific target code to the src-gen directory
-     */        
-    override copyTargetFiles()
-    {    	
-        var srcGenPath = directory + File.separator + "src-gen"
-    	// Copy the required target language files into the target file system.
-        // This will also overwrite previous versions.
-        var targetFiles = newArrayList("ccpptarget.h");
-        for (file : targetFiles) {
-            copyFileFromClassPath(
-                "/" + "lib" + "/" + "CCpp" + "/" + file,
-                srcGenPath + File.separator + file
-            )
-        }
+     * Copy target-specific header file to the src-gen directory.
+     */
+    override copyTargetHeaderFile() {
+        val srcGenPath = directory + File.separator + "src-gen"
+        copyFileFromClassPath("/lib/CCpp/ccpptarget.h", srcGenPath + File.separator + "ccpptarget.h")
     }
-    
     
     /** Overwrite the generated code after compile with a
      * clean version.
@@ -462,7 +452,7 @@ class CCppGenerator extends CGenerator {
             // Write a clean version of the code to the output file
             var fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(removeLineDirectives().getBytes())
+            fOut.write(this.getCode.removeLineDirectives.getBytes())
             fOut.close()
             
         }

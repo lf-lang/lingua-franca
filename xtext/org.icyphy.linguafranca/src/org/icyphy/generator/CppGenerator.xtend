@@ -1,7 +1,7 @@
 /* Generator for Cpp target. */
 
 /*************
- * Copyright (c) 2019, TU Dresden.
+ * Copyright (c) 2019-2020, TU Dresden.
 
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:

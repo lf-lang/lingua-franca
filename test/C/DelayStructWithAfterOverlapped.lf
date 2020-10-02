@@ -4,6 +4,11 @@ target C {
     fast: true,
     files: ["include/hello.h"]
 };
+
+preamble {=
+    #include "hello.h"
+=}
+
 reactor Source {
     output out:hello_t*;
     timer t(0, 1 sec);
