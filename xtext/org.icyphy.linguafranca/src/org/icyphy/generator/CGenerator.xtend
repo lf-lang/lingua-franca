@@ -658,8 +658,9 @@ class CGenerator extends GeneratorBase {
         } else {
             println("Exiting before invoking target compiler.")
         }
-                
-        writeCleanCode(filename)
+        
+        // FIXME: does not work with source files generated for federated execution        
+        // writeCleanCode(filename)
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
