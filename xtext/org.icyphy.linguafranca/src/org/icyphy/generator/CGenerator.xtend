@@ -3299,20 +3299,7 @@ class CGenerator extends GeneratorBase {
         // Make sure src-gen directory exists.
         val srcGenDir = new File(directory + File.separator + "src-gen/")
         srcGenDir.mkdirs
-        
-        // Process target files. Copy each of them into the src-gen dir.
-        for (file : this.targetFiles) {
-            // Generate #include statements for each .h file. FIXME: use preamble instead.
-            val name = file.name
-            if (name.endsWith(".h")) {
-                pr('''#include "«name»"''')
-            }
-            val target = new File(directory + File.separator + "src-gen/" + name)
-            if (target.exists) {
-                target.delete
-            }
-            Files.copy(file.toPath, target.toPath)
-        }
+
         
         // Handle .proto files.
         for (file : this.protoFiles) {

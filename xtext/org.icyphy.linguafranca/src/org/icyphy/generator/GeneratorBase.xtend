@@ -528,6 +528,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // parseTargetProperties or something along those lines. 
         analyzeModel(resource, fsa, context)
         
+        // Process target files. Copy each of them into the src-gen dir.
+        processTargetFiles()
+        
         // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
         val reactors = new InstantiationGraph(resource, false).nodes
@@ -573,6 +576,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere.
+        
+    }
+    
+    protected def processTargetFiles() {
+        
+        for (file : this.targetFiles) {
+            // Generate #include statements for each .h file. FIXME: use preamble instead.
+            val name = file.name
+            if (name.endsWith(".h")) {
+                pr('''#include "«name»"''')
+            }
+            val target = new File(directory + File.separator + "src-gen/" + name)
+            if (target.exists) {
+                target.delete
+            }
+            Files.copy(file.toPath, target.toPath)
+        }
     }
     
     /**
