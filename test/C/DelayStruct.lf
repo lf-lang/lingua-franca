@@ -1,6 +1,10 @@
 // Test delaying a struct pointer type.
 target C {files: ["include/hello.h"]};
 
+preamble {=
+    #include "hello.h"
+=}
+
 reactor DelayPointer(delay:time(100 msec)) {
     input in:hello_t*;
     output out:hello_t*;

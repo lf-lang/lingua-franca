@@ -381,7 +381,8 @@ class CGenerator extends GeneratorBase {
         }
         
         copyFilesFromClassPath("/lib/core", srcGenPath + File.separator + "core", files)
-        copyFileFromClassPath("/lib/C/ctarget.h", srcGenPath + File.separator + "ctarget.h")
+        
+        copyTargetHeaderFile()
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = filename
@@ -682,34 +683,22 @@ class CGenerator extends GeneratorBase {
      * sanitized version with enhanced readability.
      */
     protected def writeCleanCode(String baseFilename) {
-        var srcGenPath = directory + File.separator + "src-gen"
-
-        for (federate : federates) {
-            // Only clean one file if there is no federation.
-            if (!federate.isSingleton) {
-                filename = baseFilename + '_' + federate.name // FIXME: This is overrriding the value of a class variable, which can't be right.
+        if (federates.length == 1) {
+            writeSourceCodeToFile(this.getCode.removeLineDirectives.getBytes(), filename + ".c")
+        } else {
+            for (federate : federates) {
+                // FIXME retrieve the code for each federate and sanatize it.
+                // It is unclear where this code is stored (if at all).
             }
-            
-            // Derive target filename from the .lf filename.
-            val cFilename = filename + ".c";
-            
-            
-            // Write a clean version of the code to the output file
-            var fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(this.getCode.removeLineDirectives.getBytes())
-            fOut.close()
-            
         }
     }
     
-    /** Write the source code to file */
-    protected def writeSourceCodeToFile(byte[] code, String path) {
-        // Write the generated code to the output file.
-        var fOut = new FileOutputStream(
-            new File(path), false);
-        fOut.write(code)
-        fOut.close()
+    /**
+     * Copy target-specific header file to the src-gen directory.
+     */
+    def copyTargetHeaderFile() {
+        val srcGenPath = directory + File.separator + "src-gen"
+        copyFileFromClassPath("/lib/C/ctarget.h", srcGenPath + File.separator + "ctarget.h")
     }
 
     ////////////////////////////////////////////

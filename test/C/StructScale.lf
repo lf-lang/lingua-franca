@@ -5,6 +5,10 @@
 // Print is done with it.
 target C {files: ["include/hello.h"]};
 
+preamble {=
+    #include "hello.h"
+=}
+
 reactor Source {
     output out:hello_t*;
     reaction(startup) -> out {=

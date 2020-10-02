@@ -5,6 +5,10 @@
 target C {files: ["include/hello.h"]};
 import Source from "StructScale.lf";
 
+preamble {=
+    #include "hello.h"
+=}
+
 reactor Check(expected:int(42)) {
     input in:hello_t*;
     state invoked:bool(false);

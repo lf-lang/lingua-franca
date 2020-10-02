@@ -2,6 +2,10 @@
 // to Print. Reference counting ensures that the struct is freed.
 target C {files: ["include/hello.h"]};
 
+preamble {=
+    #include "hello.h"
+=}
+
 reactor Print {
     output out:hello_t*;
     reaction(startup) -> out {=

@@ -1,7 +1,7 @@
 /* Generator base class for shared code between code generators. */
 
 /*************
-Copyright (c) 2020, The University of California at Berkeley.
+Copyright (c) 2019-2020, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -1341,26 +1341,27 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * Given a line of text from the output of a compiler, return
      * an instance of ErrorFileAndLine if the line is recognized as
-     *  the first line of an error message. Otherwise, return null.
-     *  This base class simply returns null.
-     *  @param line A line of output from a compiler or other external
-     *   tool that might generate errors.
-     *  @return If the line is recognized as the start of an error message,
-     *   then return a class containing the path to the file on which the
-     *   error occurred (or null if there is none), the line number (or the
-     *   string "1" if there is none), the character position (or the string
-     *   "0" if there is none), and the message (or an empty string if there
-     *   is none).
+     * the first line of an error message. Otherwise, return null.
+     * This base class simply returns null.
+     * @param line A line of output from a compiler or other external
+     * tool that might generate errors.
+     * @return If the line is recognized as the start of an error message,
+     * then return a class containing the path to the file on which the
+     * error occurred (or null if there is none), the line number (or the
+     * string "1" if there is none), the character position (or the string
+     * "0" if there is none), and the message (or an empty string if there
+     * is none).
      */
     protected def parseCommandOutput(String line) {
         return null as ErrorFileAndLine
     }
-        
-    /** Parse the specified string for command errors that can be reported
-     *  using marks in the Eclipse IDE. In this class, we attempt to parse
-     *  the messages to look for file and line information, thereby generating
-     *  marks on the appropriate lines.
-     *  @param stderr The output on standard error of executing a command.
+
+    /**
+     * Parse the specified string for command errors that can be reported
+     * using marks in the Eclipse IDE. In this class, we attempt to parse
+     * the messages to look for file and line information, thereby generating
+     * marks on the appropriate lines.
+     * @param stderr The output on standard error of executing a command.
      */
     protected def reportCommandErrors(String stderr) {
         // First, split the message into lines.
@@ -2362,7 +2363,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return v.toText 
     }
     
-    
+    /**
+     * Write the source code to file.
+     * @param code The code to be written.
+     * @param path The file to write the code to.
+     */
+    protected def writeSourceCodeToFile(byte[] code, String path) {
+        // Write the generated code to the output file.
+        var fOut = new FileOutputStream(
+            new File(path), false);
+        fOut.write(code)
+        fOut.close()
+    }
 
     enum Mode {
         STANDALONE,
