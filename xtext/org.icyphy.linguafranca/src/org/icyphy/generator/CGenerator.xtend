@@ -639,8 +639,6 @@ class CGenerator extends GeneratorBase {
                     pr("void __termination() {}");
                 }
             }
-
-			
             writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
             
         }
