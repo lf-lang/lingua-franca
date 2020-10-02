@@ -88,6 +88,27 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
     }
 }
 
+/** Read the specified number of bytes from the specified socket into the
+ *  specified buffer. If a disconnect occurs during this
+ *  reading, return a negative number. If an EOF occurs during this
+ *  reading, return 0. Otherwise, return the number of bytes read.
+ *  This is a version of read_from_socket() that does not error out.
+ *  @param socket The socket ID.
+ *  @param num_bytes The number of bytes to read.
+ *  @param buffer The buffer into which to put the bytes.
+ *  @return The number of bytes read.
+ */
+int read_from_socket2(int socket, int num_bytes, unsigned char* buffer) {
+    int bytes_read = 0;
+    while (bytes_read < num_bytes) {
+        int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
+        if (more < 0) return more;
+        if (more == 0) return more;
+        bytes_read += more;
+    }
+    return bytes_read;
+}
+
 /** Write the specified number of bytes to the specified socket from the
  *  specified buffer. If a disconnect or an EOF occurs during this
  *  reading, report an error and exit.
@@ -103,6 +124,26 @@ void write_to_socket(int socket, int num_bytes, unsigned char* buffer) {
         if (more == 0) error(ERROR_EOF);
         bytes_written += more;
     }
+}
+
+/** Write the specified number of bytes to the specified socket from the
+ *  specified buffer. If a disconnect or an EOF occurs during this
+ *  reading, return a negative number or 0 respectively. Otherwise,
+ *  return the number of bytes written.
+ *  This is a version of write_to_socket() that does not error out.
+ *  @param socket The socket ID.
+ *  @param num_bytes The number of bytes to write.
+ *  @param buffer The buffer from which to get the bytes.
+ */
+int write_to_socket2(int socket, int num_bytes, unsigned char* buffer) {
+    int bytes_written = 0;
+    while (bytes_written < num_bytes) {
+        int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
+        if (more < 0) return more;
+        if (more == 0) return more;
+        bytes_written += more;
+    }
+    return bytes_written;
 }
 
 /** Write the specified data as a sequence of bytes starting

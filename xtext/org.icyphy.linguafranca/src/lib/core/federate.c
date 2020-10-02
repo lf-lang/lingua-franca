@@ -116,7 +116,6 @@ void send_via_rti_timed(unsigned int port, unsigned int federate, size_t length,
     unsigned char buffer[17];
     // First byte identifies this as a timed message.
     buffer[0] = TIMED_MESSAGE;
-    // FIXME: The following encoding ops should become generic utilities in util.c.
     // Next two bytes identify the destination port.
     // NOTE: Send messages little endian, not big endian.
     encode_ushort(port, &(buffer[1]));
@@ -254,22 +253,50 @@ void connect_to_rti(ushort id, char* hostname, int port) {
                 // Sleep was interrupted.
                 continue;
             }
+        } else {
+            // Have connected to an RTI, but not sure it's the right RTI.
+            // Send a FED_ID message and wait for a reply.
+            printf("Federate %d: connected to RTI at %s, port %d.\n", __my_fed_id, hostname, port);
+
+            // Notify the RTI of the ID of this federate and its federation.
+            unsigned char buffer[4];
+
+            // Send the message type first.
+            buffer[0] = FED_ID;
+            // Next send the federate ID.
+            encode_ushort(id, &buffer[1]);
+            // Next send the federation ID length.
+            // The federation ID is limited to 255 bytes.
+            size_t federation_id_length = strnlen(federation_id, 255);
+            buffer[3] = federation_id_length & 0xff;
+
+            int bytes_written = write(rti_socket, buffer, 4);
+            // FIXME: Retry rather than exit.
+            if (bytes_written < 0) error("ERROR sending federate ID to RTI");
+
+            // Next send the federation ID itself.
+            bytes_written = write(rti_socket, federation_id, federation_id_length);
+            // FIXME: Retry rather than exit.
+            if (bytes_written < 0) error("ERROR sending federation ID to RTI");
+
+            // Wait for a response.
+            unsigned char response;
+            int bytes_read = read(rti_socket, &response, 1);
+            if (response == REJECT) {
+                // Read one more byte to determine the cause of rejection.
+                unsigned char cause;
+                bytes_read = read(rti_socket, &cause, 1);
+                if (cause == FEDERATION_ID_DOES_NOT_MATCH) {
+                    printf("Federate %d connected to the wrong RTI on port %d. Trying %d", __my_fed_id, port, port + 1);
+                    port++;
+                    result = -1;
+                    continue;
+                }
+                fprintf(stderr, "RTI Rejected FED_ID message with response (see rti.h): %d. Federate quits.\n", cause);
+                exit(1);
+            }
         }
     }
-    printf("Federate %d: connected to RTI at %s, port %d.\n", __my_fed_id, hostname, port);
-
-    // Notify the RTI of the ID of this federate.
-    // Send the message type first.
-    unsigned char message_marker = FED_ID;
-    int bytes_written = write(rti_socket, &message_marker, 1);
-    // FIXME: Retry rather than exit.
-    if (bytes_written < 0) error("ERROR sending federate ID to RTI");
-
-    // Send the ID.
-    int message = swap_bytes_if_big_endian_ushort(id);
-
-    bytes_written = write(rti_socket, (void*)(&message), sizeof(ushort));
-    if (bytes_written < 0) error("ERROR sending federate ID to RTI");
 }
 
 /** Send the specified timestamp to the RTI and wait for a response.

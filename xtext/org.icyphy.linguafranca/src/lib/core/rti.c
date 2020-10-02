@@ -79,12 +79,21 @@ int num_feds_proposed_start = 0;
 // The start time for an execution.
 instant_t start_time = NEVER;
 
+// Boolean indicating that all federates have exited.
+volatile bool all_federates_exited = false;
+
 /**
  * The ID of the federation that this RTI will supervise.
  * This should be overridden with a command-line -i option to ensure
  * that each federate only joins its assigned federation.
  */
 char* federation_id = "Unidentified Federation";
+
+/** The final port number that the socket server ends up using. */
+int final_port = -1;
+
+/** The socket descriptor for the socket server. */
+int socket_descriptor = -1;
 
 /** Create a server and enable listening for socket connections.
  *  @param port The port number to use.
@@ -152,9 +161,15 @@ int create_server(int specified_port, int port) {
                 sizeof(server_fd));
     }
     if (result != 0) {
-        error("ERROR on binding RTI socket. Cannot find a usable port. Consider increasing PORT_RANGE_LIMIT in rti.h");
+        if (specified_port == 0) {
+            error("ERROR on binding RTI socket. Cannot find a usable port. Consider increasing PORT_RANGE_LIMIT in rti.h");
+        } else {
+            error("ERROR on binding RTI socket. Specified port is not available. Consider leaving the port unspecified");
+        }
     }
     printf("RTI for federation %s started using port %d.\n", federation_id, port);
+
+    final_port = port;
 
     // Enable listening for socket connections.
     // The second argument is the maximum number of queued socket requests,
@@ -552,45 +567,109 @@ void connect_to_federates(int socket_descriptor) {
         if (socket_id < 0) error("ERROR on server accept");
 
         // The first message from the federate should contain its ID and the federation ID.
-        // Buffer for message ID plus the federate ID.
-        int length = sizeof(ushort) + 1;
+        // Buffer for message ID, federate ID, and federation ID length.
+        int length = sizeof(ushort) + 2; // This should be 4.
         unsigned char buffer[length];
 
-        // Read bytes from the socket. We need 5 bytes.
-        int bytes_read = 0;
-        while (bytes_read < length) {
-            int more = read(socket_id, &(buffer[bytes_read]),
-                    length - bytes_read);
-            if (more < 0) error("ERROR on RTI reading from socket");
-            // If more == 0, this is an EOF. Exit the thread.
-            if (more == 0) return;
-            bytes_read += more;
-        }
+        // Read bytes from the socket. We need 4 bytes.
+        read_from_socket(socket_id, length, buffer);
         // printf("DEBUG: read %d bytes.\n", bytes_read);
+
+        // If any error occurs, this will be set to non-zero.
+        unsigned char error_code = 0;
+
+        ushort fed_id;
 
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
-            fprintf(stderr, "ERROR: RTI expected a FED_ID message. Got %u (see rti.h).\n", buffer[0]);
+            fprintf(stderr, "WARNING: RTI expected a FED_ID message. Got %u (see rti.h).\n", buffer[0]);
+            error_code = UNEXPECTED_MESSAGE;
+        } else {
+            fed_id = extract_ushort(buffer + 1);
+            // printf("DEBUG: RTI received federate ID: %d\n", fed_id);
+
+            // Read the federation ID.
+            size_t federation_id_length = buffer[3];
+            char federation_id_received[federation_id_length + 1];
+
+            int bytes_read = read_from_socket2(socket_id, federation_id_length, (unsigned char*)federation_id_received);
+
+            // Terminate the string with a null.
+            federation_id_received[federation_id_length] = 0;
+
+            // Compare the received federation ID to mine.
+            if (strncmp(federation_id, federation_id_received, federation_id_length) != 0) {
+                // Federation IDs do not match. Send back a REJECT message.
+                fprintf(stderr,
+                        "WARNING: Federate from another federation %s attempted to connect to RTI in federation %s.\n",
+                        federation_id_received,
+                        federation_id);
+                error_code = FEDERATION_ID_DOES_NOT_MATCH;
+            } else {
+                if (fed_id >= NUMBER_OF_FEDERATES) {
+                    // Federate ID is out of range.
+                    fprintf(stderr, "WARNING: RTI received federate ID %d, which is out of range.\n", fed_id);
+                    error_code = FEDERATE_ID_OUT_OF_RANGE;
+                } else {
+                    if (federates[fed_id].state != NOT_CONNECTED) {
+                        fprintf(stderr, "WARNING: RTI received duplicate federate ID: %d.\n", fed_id);
+                        error_code = FEDERATE_ID_IN_USE;
+                    }
+                }
+            }
         }
 
-        ushort fed_id = extract_ushort(buffer + 1);
-        printf("DEBUG: RTI received federate ID: %d\n", fed_id);
-
-        if (fed_id >= NUMBER_OF_FEDERATES) {
-            fprintf(stderr, "ERROR: Federate ID %d is required to be between zero and %d.\n", fed_id, NUMBER_OF_FEDERATES-1);
-            // FIXME: Rather harsh error handling here.
-            exit(1);
+        // If the FED_ID message was not exactly right, respond with a REJECT,
+        // close the socket, and continue waiting for federates to join.
+        if (error_code != 0) {
+            unsigned char response[2];
+            response[0] = REJECT;
+            response[1] = error_code;
+            // Ignore errors on this response.
+            write_to_socket2(socket_id, 2, response);
+            // Close the socket.
+            close(socket_id);
+            // Invalid federate. Try again.
+            i--;
+            continue;
+        } else {
+            // Send an ACK message.
+            unsigned char response[1];
+            response[0] = ACK;
+            // Ignore errors on this response.
+            write_to_socket2(socket_id, 1, response);
         }
 
-        if (federates[fed_id].state != NOT_CONNECTED) {
-            fprintf(stderr, "Duplicate federate ID: %d.\n", fed_id);
-            // FIXME: Rather harsh error handling here.
-            exit(1);
-        }
         federates[fed_id].socket = socket_id;
 
         // Create a thread to communicate with the federate.
         pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id]));
+    }
+}
+
+/**
+ * Thread to respond to new connections, which could be federates of other
+ * federations who are attempting to join the wrong federation.
+ * @param nothing Nothing needed here.
+ */
+void* respond_to_erroneous_connections(void* nothing) {
+    while (true) {
+        // Wait for an incoming connection request.
+        struct sockaddr client_fd;
+        uint32_t client_length = sizeof(client_fd);
+        int socket_id = accept(socket_descriptor, &client_fd, &client_length);
+        if (socket_id < 0) return NULL;
+
+        if (all_federates_exited) return NULL;
+
+        fprintf(stderr, "WARNING: RTI received an unexpected connection request. Federation is running.\n");
+        unsigned char response[2];
+        response[0] = REJECT;
+        response[1] = FEDERATION_ID_DOES_NOT_MATCH;
+        // Ignore errors on this response.
+        write_to_socket2(socket_id, 2, response);
+        // Close the socket.
+        close(socket_id);
     }
 }
 
@@ -647,7 +726,7 @@ int start_rti_server(int port) {
         // Use the default starting port.
         port = STARTING_PORT;
     }
-    int socket_descriptor = create_server(specified_port, port);
+    socket_descriptor = create_server(specified_port, port);
     printf("RTI: Listening for federates.\n");
     return socket_descriptor;
 }
@@ -663,22 +742,56 @@ void wait_for_federates(int socket_descriptor) {
     // All federates have connected.
     printf("RTI: All expected federates have connected. Starting execution.\n");
 
+    // Unfortunately, the socket server will continue to accept connections.
+    // In case some other federation's federates are trying to join the wrong
+    // federation, need to respond. Start a separate thread to do that.
+
+    pthread_t responder_thread;
+    pthread_create(&responder_thread, NULL, respond_to_erroneous_connections, NULL);
+
     // Wait for federate threads to exit.
     void* thread_exit_status;
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         pthread_join(federates[i].thread_id, &thread_exit_status);
         printf("RTI: Federate thread exited.\n");
     }
+
+    // NOTE: Apparently, closing the socket will not necessarily
+    // cause the respond_to_erroneous_connections accept() call to return,
+    // so instead, we connect here so that it can check the all_federates_exited
+    // variable.
+    all_federates_exited = true;
+
+    // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
+    int tmp_socket = socket(AF_INET , SOCK_STREAM , 0);
+    // If creating the socket fails, assume the thread has already exited.
+    if (tmp_socket >= 0) {
+        struct hostent *server = gethostbyname("localhost");
+        if (server != NULL) {
+            // Server file descriptor.
+            struct sockaddr_in server_fd;
+            // Zero out the server_fd struct.
+            bzero((char *) &server_fd, sizeof(server_fd));
+            // Set up the server_fd fields.
+            server_fd.sin_family = AF_INET;    // IPv4
+            bcopy((char *)server->h_addr,
+                 (char *)&server_fd.sin_addr.s_addr,
+                 server->h_length);
+            // Convert the port number from host byte order to network byte order.
+            server_fd.sin_port = htons(final_port);
+            connect(
+                tmp_socket,
+                (struct sockaddr *)&server_fd,
+                sizeof(server_fd));
+            close(tmp_socket);
+        }
+    }
+
     // NOTE: In all common TCP/IP stacks, there is a time period,
     // typically between 30 and 120 seconds, called the TIME_WAIT period,
     // before the port is released after this close. This is because
     // the OS is preventing another program from accidentally receiving
     // duplicated packets intended for this program.
-
-    // Before binding the socket, the RTI sets the SO_REUSEADDR (and
-    // SO_REUSEPORT if applicable) in order to circumvent the "ERROR on
-    // binding:Address already in use" error, which arises if the RTI 
-    // is restarted within the TIME_WAIT window.
     close(socket_descriptor);
 }
 
