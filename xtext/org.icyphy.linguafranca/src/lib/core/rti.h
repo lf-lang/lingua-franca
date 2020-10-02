@@ -96,6 +96,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Byte identifying a message from a federate to an RTI containing
  *  the federation ID and the federate ID. The message contains, in
  *  this order:
+ *  * One byte equal to FED_ID.
  *  * Two bytes (ushort) giving the federate ID.
  *  * One byte (uchar) giving the length N of the federation ID.
  *  * N bytes containing the federation ID.
@@ -178,6 +179,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Federate ID out of range. */
 #define FEDERATE_ID_OUT_OF_RANGE 3
+
+/** Incoming message is not expected. */
+#define UNEXPECTED_MESSAGE 4
 
 /////////////////////////////////////////////
 //// Data structures
