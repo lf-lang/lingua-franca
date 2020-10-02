@@ -462,7 +462,7 @@ class CCppGenerator extends CGenerator {
             // Write a clean version of the code to the output file
             var fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(getReadableCode().getBytes())
+            fOut.write(removeLineDirectives().getBytes())
             fOut.close()
             
         }

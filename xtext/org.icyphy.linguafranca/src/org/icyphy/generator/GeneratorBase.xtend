@@ -529,7 +529,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         analyzeModel(resource, fsa, context)
         
         // Process target files. Copy each of them into the src-gen dir.
-        processTargetFiles()
+        copyUserFiles()
         
         // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
@@ -579,15 +579,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
     }
     
-    protected def processTargetFiles() {
+    /**
+     * Copy all files listed in the target property `files` into the src-gen
+     * directory.
+     */
+    protected def copyUserFiles() {
         
         for (file : this.targetFiles) {
-            // Generate #include statements for each .h file. FIXME: use preamble instead.
-            val name = file.name
-            if (name.endsWith(".h")) {
-                pr('''#include "«name»"''')
-            }
-            val target = new File(directory + File.separator + "src-gen/" + name)
+            val target = new File(directory + File.separator + "src-gen/" + file.name)
             if (target.exists) {
                 target.delete
             }
@@ -1190,17 +1189,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def getCode() {
         code.toString()
     }
-    
-    /**
-     * Depending on the target language, parts of code might be
-     * generated that are only useful for the compiler and can
-     * make the generated code less readable for the end user.
-     * @return The cleaned up code so far as a String
-     */
-     protected def getReadableCode() {
-     	code.toString()
-     }
-        
+
     /**
      * Increase the indentation of the output code produced.
      */
@@ -1562,11 +1551,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 + "Also try to refresh and clean the project explorer if working from eclipse.")
         }
 
-        // copy the file
+        // Copy the file.
         try {
-	    // make sure the directory exists
-	    val destFile = new File(destination);
-	    destFile.getParentFile().mkdirs();
+            // Make sure the directory exists.
+            val destFile = new File(destination);
+            destFile.getParentFile().mkdirs();
 
             Files.copy(sourceStream, Paths.get(destination), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ex) {
@@ -1575,6 +1564,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 + "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.", ex)
         } finally {
             sourceStream.close()
+        }
+    }
+    
+    /**
+     * Copy a list of files from a given source directory to a given destination directory.
+     * @param srcDir The directory to copy files from.
+     * @param dstDir The directory to copy files to.
+     * @param files The files to copy.
+     */
+    protected def copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) {
+        for (file : files) {
+            copyFileFromClassPath(srcDir + File.separator + file, dstDir + File.separator + file)
         }
     }
     

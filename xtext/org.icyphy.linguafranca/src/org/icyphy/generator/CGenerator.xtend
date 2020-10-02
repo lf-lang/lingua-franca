@@ -29,7 +29,6 @@ package org.icyphy.generator
 import java.io.File
 import java.io.FileOutputStream
 import java.math.BigInteger
-import java.nio.file.Files
 import java.util.ArrayList
 import java.util.Collection
 import java.util.LinkedHashMap
@@ -330,12 +329,13 @@ class CGenerator extends GeneratorBase {
     ////////////////////////////////////////////
     //// Public methods
 
-    /** Generate C code from the Lingua Franca model contained by the
-     *  specified resource. This is the main entry point for code
-     *  generation.
-     *  @param resource The resource containing the source code.
-     *  @param fsa The file system access (used to write the result).
-     *  @param context FIXME: Undocumented argument. No idea what this is.
+    /**
+     * Generate C code from the Lingua Franca model contained by the
+     * specified resource. This is the main entry point for code
+     * generation.
+     * @param resource The resource containing the source code.
+     * @param fsa The file system access (used to write the result).
+     * @param context FIXME: Undocumented argument. No idea what this is.
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
@@ -380,15 +380,8 @@ class CGenerator extends GeneratorBase {
             createLauncher()
         }
         
-        for (file : files) {
-            copyFileFromClassPath(
-                "/" + "lib" + "/" + "core" + "/" + file,
-                srcGenPath + File.separator + "core" + File.separator + file
-            )
-        }
-
-        copyTargetFiles();
-
+        copyFilesFromClassPath("/lib/core", srcGenPath + File.separator + "core", files)
+        copyFileFromClassPath("/lib/C/ctarget.h", srcGenPath + File.separator + "ctarget.h")
 
         // Perform distinct code generation into distinct files for each federate.
         val baseFilename = filename
@@ -684,18 +677,17 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Overwrite the generated code after compile with a
-     * clean version.
+    /**
+     * Overwrite the generated code after compile with a
+     * sanitized version with enhanced readability.
      */
-    protected def writeCleanCode(String baseFilename)
-    {
+    protected def writeCleanCode(String baseFilename) {
         var srcGenPath = directory + File.separator + "src-gen"
-    	//Cleanup the code so that it is more readable
+
         for (federate : federates) {
-                
             // Only clean one file if there is no federation.
-            if (!federate.isSingleton) {                
-                filename = baseFilename + '_' + federate.name               
+            if (!federate.isSingleton) {
+                filename = baseFilename + '_' + federate.name // FIXME: This is overrriding the value of a class variable, which can't be right.
             }
             
             // Derive target filename from the .lf filename.
@@ -705,42 +697,19 @@ class CGenerator extends GeneratorBase {
             // Write a clean version of the code to the output file
             var fOut = new FileOutputStream(
             new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(getReadableCode().getBytes())
+            fOut.write(this.getCode.removeLineDirectives.getBytes())
             fOut.close()
             
-        }
-    	
-    }
-    
-    /** Copy target specific files to the src-gen directory */
-    protected def copyTargetFiles()
-    {    	
-        var srcGenPath = directory + File.separator + "src-gen"
-    	// Copy the required target language files into the target file system.
-        // This will also overwrite previous versions.
-        var targetFiles = newArrayList("ctarget.h");
-        for (file : targetFiles) {
-            copyFileFromClassPath(
-                "/" + "lib" + "/" + "C" + "/" + file,
-                srcGenPath + File.separator + file
-            )
         }
     }
     
     /** Write the source code to file */
-    protected def writeSourceCodeToFile(byte[] code, String path)
-    {
+    protected def writeSourceCodeToFile(byte[] code, String path) {
         // Write the generated code to the output file.
         var fOut = new FileOutputStream(
             new File(path), false);
         fOut.write(code)
         fOut.close()
-    }
-    
-    /** Produces the filename including the target-specific extension */
-    override getTargetFileName(String fileName)
-    {
-    	return fileName + ".c";
     }
 
     ////////////////////////////////////////////
@@ -3381,25 +3350,24 @@ class CGenerator extends GeneratorBase {
     
     
     /**
-     * Target specific cleanup for the C language.
-     * @return The code with #line directives removed
+     * Strip all line directives from the given C code.
+     * @param code The code to remove # line directives from.
+     * @return The code without #line directives.
      */
-     override getReadableCode()
-     {
-        val stringCode = code.toString()
-        val lines = stringCode.split(System.getProperty("line.separator"));
+     def removeLineDirectives(String code) {
         
-        val readableStringBuilder = new StringBuilder("");
+        val separator = System.getProperty("line.separator")
+        val lines = code.split(separator)
         
-        for(line : lines)
-        {
+        val builder = new StringBuilder("")
+        
+        for(line : lines) {
             val trimmedLine = line.trim()
-            if(!trimmedLine.startsWith("#line"))
-            {
-                readableStringBuilder.append(line).append(System.getProperty("line.separator"));
+            if(!trimmedLine.startsWith("#line")) {
+                builder.append(line).append(separator)
             }
         }
-        return readableStringBuilder.toString()
+        return builder.toString()
      }
         
     // //////////////////////////////////////////
