@@ -60,7 +60,6 @@
 #include "pqueue.h"
 
 //  ======== Macros ========  //
-
 #define CONSTRUCTOR(classname) (new_ ## classname)
 #define SELF_STRUCT_T(classname) (classname ## _self_t)
 

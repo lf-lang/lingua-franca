@@ -23,6 +23,7 @@
  * @author Edward A. Lee
  */
 target C;
+
 reactor Ping(count:int(10)) {
     input receive:int;
     output send:int;

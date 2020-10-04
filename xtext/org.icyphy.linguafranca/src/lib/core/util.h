@@ -35,6 +35,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOST_LITTLE_ENDIAN 1
 #define HOST_BIG_ENDIAN 2
 
+
+#define VERBOSE
+
+#ifdef VERBOSE
+#define DEBUG 1
+#else
+#define DEBUG 0
+#endif
+
+#define debug_print(...) \
+            do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
+
 /** Print the error defined by the errno variable with the
  *  specified message as a prefix, then exit with error code 1.
  *  @param msg The prefix to the message.
