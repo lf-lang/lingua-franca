@@ -1165,6 +1165,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param sendingFed The sending federate.
      * @param receivingFed The destination federate.
      * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
      * @throws UnsupportedOperationException If the target does not support this operation.
      */
     def String generateNetworkSenderBody(
@@ -1173,7 +1174,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }

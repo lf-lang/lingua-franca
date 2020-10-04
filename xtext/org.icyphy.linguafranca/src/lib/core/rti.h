@@ -163,6 +163,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define STOP 9
 
+/**
+ * Byte identifying a address query message, sent by a federate to RTI
+ * to ask for another federates address and port number.
+ */
+#define ADDRESSQUERY 10
+
+/**
+ * Byte identifying a message adverising the port for the physical connection server
+ * of a federate
+ */
+#define ADDRESSAD 11
+
 /////////////////////////////////////////////
 //// Rejection codes
 
@@ -219,6 +231,9 @@ typedef struct federate_t {
     int* downstream;        // Array of downstream federate ids.
     int num_downstream;     // Size of the array of downstream federates.
     execution_mode_t mode;  // FAST or REALTIME.
+    char* server_hostname; // Information about the hostname and 
+    int server_port;       // port number of the socket server of the federate
+                    // if it has any.
 } federate_t;
 
 
