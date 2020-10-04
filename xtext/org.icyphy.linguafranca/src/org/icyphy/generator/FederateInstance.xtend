@@ -116,6 +116,16 @@ class FederateInstance {
      *  The sending federate needs to specify this ID.
      */
     public var networkMessageActions = new LinkedList<Action>()
+    
+    /** 
+     * A list of federates with which this federate has an inbound connection
+     */
+    public var inboundPhysicalConnections = <FederateInstance>newArrayList()
+    
+    /**
+     * A list of federate with which this federate has an outbound physical connection
+     */
+    public var outboundPhysicalConnections = <FederateInstance>newArrayList()
 
     /////////////////////////////////////////////
     //// Public Methods
@@ -219,5 +229,6 @@ class FederateInstance {
     var excludeReactions = null as Set<Reaction>
     
     /** The generator using this. */
-    var generator = null as GeneratorBase 
+    var generator = null as GeneratorBase
+    
 }

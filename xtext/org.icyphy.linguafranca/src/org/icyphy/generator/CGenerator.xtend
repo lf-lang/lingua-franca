@@ -406,13 +406,7 @@ class CGenerator extends GeneratorBase {
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
-                pr(startTimers, 'synchronize_with_other_federates('
-                    + federate.id
-                    + ', "'
-                    + federationRTIProperties.get('host') 
-                    + '", ' + federationRTIProperties.get('port')
-                    + ");"
-                )
+                pr(startTimers, "synchronize_with_other_federates();")
             }
         
             // Build the instantiation tree if a main reactor is present.
@@ -570,6 +564,31 @@ class CGenerator extends GeneratorBase {
                     if (federate.sendsTo.size > 0) {
                         pr('__fed_has_downstream = true;')
                     }
+
+                    pr('''__my_fed_id = «federate.id»;''');
+
+                    pr('''// Initialize the array of sockets.''')
+                    pr('''federate_sockets = (int*)malloc(«federates.length» * sizeof(int));''')
+                    // pr('''memset(federate_sockets, -1, «federates.length» * sizeof(int));''')
+                    pr('''// Connect to the RTI. This sets rti_socket.''');
+                    pr('''connect_to_rti(«federate.id», "«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);''')
+
+                    if (federate.inboundPhysicalConnections.length > 0) {
+                        pr('''// Create a socket server to listen to other federates.''')
+                        pr('''server_socket = create_server(«federate.port», «federationRTIProperties.get('port')», «federate.id»);''')
+                        pr('''// Connect to remote federates for each physical connection''')
+                        pr('''connect_to_federates(«federate.inboundPhysicalConnections.length»);''');
+                    }
+                                        
+                                    
+                    for (remoteFederate : federate.outboundPhysicalConnections) {
+                        if (remoteFederate.host !== null) {
+                            pr('''connect_to_federate(«remoteFederate.id», «remoteFederate.host»);''')
+                        } else {
+                            pr('''connect_to_federate(«remoteFederate.id», "localhost");''')
+                        }
+                    }
+
                 }
                 unindent()
                 pr('}\n')
@@ -3363,6 +3382,7 @@ class CGenerator extends GeneratorBase {
      * @param sendingFed The sending federate.
      * @param receivingFed The destination federate.
      * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
      */
     override generateNetworkSenderBody(
         VarRef sendingPort,
@@ -3370,7 +3390,8 @@ class CGenerator extends GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) { 
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -3378,14 +3399,22 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
-        // FIXME: Use send_via_rti if the physical keyword is supplied to the connection.
+        // If the connection is physical and the receiving federate is remote, send it directly on a socket.
+        // If the connection is physical and the receiving federate is local, send it via shared memory. FIXME: not implemented yet
+        // If the connection is logical, send via RTI.
         if (isTokenType(type)) {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
+                «IF isPhysical && receivingFed.host !== null && receivingFed.host != 'localhost' && receivingFed.host != '0.0.0.0'»
+                send_directly(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                «ELSEIF isPhysical»
+                send_directly(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                «ELSE»
                 send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                «ENDIF»
                 __done_using(«sendRef»->token);
             ''')
         } else {
@@ -3404,7 +3433,13 @@ class CGenerator extends GeneratorBase {
             }
             result.append('''
             size_t message_length = «lengthExpression»;
+            «IF isPhysical && receivingFed.host !== null && receivingFed.host != 'localhost' && receivingFed.host != '0.0.0.0'»
+            send_directly(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            «ELSEIF isPhysical»
+            send_directly(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            «ELSE»
             send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            «ENDIF»
             ''')
         }
         return result.toString
