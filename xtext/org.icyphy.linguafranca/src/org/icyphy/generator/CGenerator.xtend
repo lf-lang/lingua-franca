@@ -1476,7 +1476,7 @@ class CGenerator extends GeneratorBase {
                     // self->__«containedReactor.name».«port.name»_trigger.drop = false;
                     // self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
                     pr(port, constructorCode, '''
-                        self->__«containedReactor.name».«port.name»_trigger.scheduled = NEVER;
+                        self->__«containedReactor.name».«port.name»_trigger.last = NULL;
                         self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
                     ''')
                 }
@@ -1634,7 +1634,7 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
             pr(constructorCode, '''
-                self->___startup.scheduled = NEVER;
+                self->___startup.last = NULL;
                 self->___startup.reactions = &self->___startup_reactions[0];
                 self->___startup.number_of_reactions = «startupReactions.size»;
                 self->___startup.is_timer = false;
@@ -1653,7 +1653,7 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
             pr(constructorCode, '''
-                self->___shutdown.scheduled = NEVER;
+                self->___shutdown.last = NULL;
                 self->___shutdown.reactions = &self->___shutdown_reactions[0];
                 self->___shutdown.number_of_reactions = «shutdownReactions.size»;
                 self->___shutdown.is_timer = false;
@@ -1714,7 +1714,7 @@ class CGenerator extends GeneratorBase {
             trigger_t ___«variable.name»;
         ''')
         pr(variable, constructorCode, '''
-            self->___«variable.name».scheduled = NEVER;
+            self->___«variable.name».last = NULL;
         ''')
         // Generate the reactions triggered table.
         val reactionsTriggered = triggerMap.get(variable)

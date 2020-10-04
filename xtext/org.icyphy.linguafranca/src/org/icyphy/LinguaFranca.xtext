@@ -452,7 +452,7 @@ Token:
     // Action origins
     'logical' | 'physical' |
     // Policies
-    'defer' | 'drop' | 'replace' |
+    'defer' | 'drop' | 'update' |
     // Visibility modifiers
     'private' | 'public' |
     // Time units

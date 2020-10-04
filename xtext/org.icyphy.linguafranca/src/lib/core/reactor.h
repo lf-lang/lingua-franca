@@ -306,6 +306,14 @@ typedef enum {false, true} bool;
 /**
  * Policy for handling scheduled events that violate the specified
  * minimum interarrival time.
+ * The default policy is `defer`: adjust the tag to that the minimum
+ * interarrival time is satisfied.
+ * The `drop` policy simply drops events that are scheduled too early.
+ * The `replace` policy will attempt to replace the value of the event
+ * that it preceded it. Unless the preceding event has already been
+ * handled, its gets assigned the value of the new event. If the
+ * preceding event has already been popped off the event queue, the
+ * `defer` policy is fallen back to.
  */
 typedef enum {defer, drop, replace} policy_t;
 
@@ -426,6 +434,14 @@ struct reaction_t {
     reaction_function_t deadline_violation_handler; // Deadline violation handler. COMMON.
 };
 
+/** Event activation record to push onto the event queue. */
+typedef struct event_t {
+    instant_t time;           // Time of release.
+    trigger_t* trigger;       // Associated trigger.
+    size_t pos;               // Position in the priority queue.
+    token_t* token;           // Pointer to the token wrapping the value.
+} event_t;
+
 /**
  * Trigger struct representing an output, timer, action, or input.
  * Instances of this struct are put onto the event queue (event_q).
@@ -438,22 +454,13 @@ struct trigger_t {
     interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
     token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action.
-    instant_t scheduled;      // Tag of the last event that was scheduled for this action.
-//    event_t* last;            // Pointer to the last event that was scheduled for this action.
+//    instant_t scheduled;      // Tag of the last event that was scheduled for this action.
+    event_t* last;            // Pointer to the last event that was scheduled for this action.
     policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
 };
-
-/** Event activation record to push onto the event queue. */
-typedef struct event_t {
-    instant_t time;           // Time of release.
-    trigger_t* trigger;       // Associated trigger.
-    size_t pos;               // Position in the priority queue.
-    token_t* token;           // Pointer to the token wrapping the value.
-} event_t;
-
 //  ======== Function Declarations ========  //
 
 /**

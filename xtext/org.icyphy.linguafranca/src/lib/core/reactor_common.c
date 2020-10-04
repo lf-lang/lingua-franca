@@ -626,23 +626,48 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         }
     }
 
-    // Check to see whether the event is early based on the minimum interarrival time.
-    // This check is not needed if this action has had no event.
-    if (trigger->scheduled != NEVER) {
-        instant_t earliest_time = trigger->scheduled + min_inter_arrival;
-
+    // Check to see whether the event is early based on the minimum
+    // interarrival time. This check is not needed if this action has
+    // had no event, or if no MIT has been specified (it has to be strictly
+    // greater than zero).
+    event_t* existing = (event_t*)(trigger->last);
+    if (existing != NULL && trigger->period > 0) {
+        // The earliest time at which the event can be scheduled depends
+        // on the tag of the last event
+        instant_t earliest_time = existing->time + min_inter_arrival;
+        instant_t logical_time = get_logical_time();
         // If the event is early, see which policy applies.
-        event_t* existing = NULL;
         if (earliest_time > tag) {
-            if (trigger->policy == drop) {
-                // Recycle the new event and the token.
-                if (existing == NULL || existing->token != token) __done_using(token);
-                e->token = NULL;
-                pqueue_insert(recycle_q, e);
-                return(0);
-            } else {
-                // Adjust the tag.
-                tag = earliest_time;
+            switch(trigger->policy) {
+                case drop:
+                    // Recycle the new event and the token.
+                    if (existing->token != token) __done_using(token);
+                    e->token = NULL;
+                    pqueue_insert(recycle_q, e);
+                    return(0);
+                case replace:
+                    // If the existing event has not been handled yet, update it.
+                    //
+                    // Caution: because microsteps are not explicit, we cannot determine
+                    // whether the event has been handled yet if the tag is equal. Only
+                    // if we can find it in the queue can be we certain that it hasn't
+                    // yet been handled.
+                    if (existing->time > logical_time || 
+                            (existing->time == logical_time && 
+                            pqueue_find_equal_same_priority(event_q, e) != NULL)) {
+                        // Recycle the existing token and the new event
+                        if (existing->token != token) __done_using(existing->token);
+                        // Update the token of the existing event.
+                        existing->token = token;
+                        pqueue_insert(recycle_q, e);
+                        return(0);
+                    }
+                    // If the preceding event has already been handled, 
+                    // fall trought this case and defer the event.
+                default:
+                    // Adjust the tag.
+                    tag = earliest_time;
+                    break;
             }
         }
     }
@@ -670,6 +695,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
     // Handle duplicate events for logical actions (events with the same tag).
     // This replaces the previous payload with the new one.
+    // FIXME: this is expected to interact weirdly with the `replace` policy
     if (!trigger->is_physical) {
         event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
@@ -683,8 +709,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         }
     }
 
-    // Record the tag for the next check of MIT.
-    trigger->scheduled = tag;
+    // Store a pointer to the current event in order to check the MIT between
+    // this and the following event.
+    trigger->last = (event_t*)e;
 
     // Queue the event.
     // NOTE: There is no need for an explicit microstep because
