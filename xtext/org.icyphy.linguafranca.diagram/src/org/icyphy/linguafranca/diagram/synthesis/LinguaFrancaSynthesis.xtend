@@ -672,13 +672,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			
 			val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
 			if (action.minDelay !== null) {
-				node.addOutsideBottomCenteredNodeLabel("min delay:" + action.minDelay.toText, 7)
+				node.addOutsideBottomCenteredNodeLabel('''min delay: «action.minDelay.toText»''', 7)
 			}
 			if (action.minInterArrival !== null) {
-                node.addOutsideBottomCenteredNodeLabel("min spacing:" + action.minInterArrival.toText, 7)
+                node.addOutsideBottomCenteredNodeLabel('''min spacing: «action.minInterArrival.toText»''', 7)
             }
             if (action.policy !== Policy.NONE) {
-                node.addOutsideBottomCenteredNodeLabel("policy:" + action.policy.getName(), 7) // FIXME: check layout
+                node.addOutsideBottomCenteredNodeLabel('''policy: «action.policy»''', 7)
             }
 			
 			// connect source
