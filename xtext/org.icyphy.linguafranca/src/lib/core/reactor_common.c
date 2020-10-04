@@ -631,6 +631,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // had no event, or if no MIT has been specified (it has to be strictly
     // greater than zero).
     event_t* existing = (event_t*)(trigger->last);
+    bool replaced = false;
     if (existing != NULL && trigger->period > 0) {
         // The earliest time at which the event can be scheduled depends
         // on the tag of the last event
@@ -660,6 +661,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                         // Update the token of the existing event.
                         existing->token = token;
                         pqueue_insert(recycle_q, e);
+                        replaced = true;
                         return(0);
                     }
                     // If the preceding event has already been handled, 
@@ -695,8 +697,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
     // Handle duplicate events for logical actions (events with the same tag).
     // This replaces the previous payload with the new one.
-    // FIXME: this is expected to interact weirdly with the `replace` policy
-    if (!trigger->is_physical) {
+    // If this is a physical action or if the payload has already been replaced
+    // due to an MIT violation, skip.
+    if (!replaced && !trigger->is_physical) {
         event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
             // Free the previous payload.
