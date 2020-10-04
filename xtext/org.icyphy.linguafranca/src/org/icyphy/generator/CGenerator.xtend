@@ -63,6 +63,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Policy
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -1677,7 +1678,9 @@ class CGenerator extends GeneratorBase {
             // self->___«action.name».is_timer = false;
             pr(constructorCode, '''
                 self->___«action.name».is_physical = «isPhysical»;
-                self->___«action.name».drop = «action.drop»;
+                «IF action.policy != Policy.NONE»
+                self->___«action.name».policy = «action.policy»;
+                «ENDIF»
                 self->___«action.name».element_size = «elementSize»;
             ''')
         }

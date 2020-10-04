@@ -634,7 +634,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         // If the event is early, see which policy applies.
         event_t* existing = NULL;
         if (earliest_time > tag) {
-            if (trigger->drop) {
+            if (trigger->policy == drop) {
                 // Recycle the new event and the token.
                 if (existing == NULL || existing->token != token) __done_using(token);
                 e->token = NULL;
