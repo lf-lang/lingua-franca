@@ -73,6 +73,7 @@ import org.icyphy.linguafranca.diagram.synthesis.styles.ReactorFigureComponents
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.ASTUtils.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import org.icyphy.linguaFranca.Policy
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -671,8 +672,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			
 			val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
 			if (action.minDelay !== null) {
-				node.addOutsideBottomCenteredNodeLabel(action.minDelay.toText, 7)
+				node.addOutsideBottomCenteredNodeLabel("min delay:" + action.minDelay.toText, 7)
 			}
+			if (action.minInterArrival !== null) {
+                node.addOutsideBottomCenteredNodeLabel("min spacing:" + action.minInterArrival.toText, 7)
+            }
+            if (action.policy !== Policy.NONE) {
+                node.addOutsideBottomCenteredNodeLabel("policy:" + action.policy.getName(), 7) // FIXME: check layout
+            }
 			
 			// connect source
 			for (source : actionSources.get(action)) {

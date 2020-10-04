@@ -175,7 +175,7 @@ terminal FALSE:
 // to elapse between action occurrences.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=Value (',' minInterArrival=Value (',' (drop?=TRUE | FALSE))? )? ')')?
+    ('(' minDelay=Value (',' minInterArrival=Value (',' policy=Policy)? )? ')')?
     (':' type=Type)? ';';
 
 Reaction:
@@ -412,6 +412,10 @@ Path:
 enum ActionOrigin:
     NONE | LOGICAL='logical' | PHYSICAL='physical';
 
+enum Policy:
+    NONE | DEFER='defer' | DROP='drop' | REPLACE='replace'
+;
+
 enum Visibility:
     NONE | PRIVATE='private' | PUBLIC='public';
 
@@ -447,6 +451,8 @@ Token:
     NEGINT | TRUE | FALSE |
     // Action origins
     'logical' | 'physical' |
+    // Policies
+    'defer' | 'drop' | 'replace' |
     // Visibility modifiers
     'private' | 'public' |
     // Time units

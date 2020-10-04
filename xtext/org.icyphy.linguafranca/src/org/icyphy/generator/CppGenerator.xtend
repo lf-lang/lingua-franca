@@ -57,6 +57,7 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.ASTUtils
 import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 import com.google.inject.Inject
+import org.icyphy.linguaFranca.Policy
 
 /** Generator for C++ target.
  * 
@@ -574,18 +575,18 @@ class CppGenerator extends GeneratorBase {
 
     def initialize(Action a) {
         if (a.origin == ActionOrigin.LOGICAL) {
-            if (a.minInterArrival !== null || a.drop == true) {
+            if (a.minInterArrival !== null || a.policy != Policy.NONE) {
                 a.reportError(
-                    "minInterArrival and tail drop are not supported for logical actions!");
+                    "minInterArrival and tail drop are not yet supported for logical actions in reactor-ccp!");
             } else if (a.minDelay !== null) {
                 ''', «a.name»{"«a.name»", this, «a.minDelay.targetTime»}'''
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }
         } else {
-            if (a.minDelay !== null || a.minInterArrival !== null || a.drop == true) {
+            if (a.minDelay !== null || a.minInterArrival !== null || a.policy != Policy.NONE) {
                 a.reportError(
-                    "minDelay, minInterArrival and tail drop are not supported for physical actions!");
+                    "minDelay, minInterArrival and tail drop are not yet supported for physical actions in reactor-ccp!");
             } else {
                 ''', «a.name»{"«a.name»", this}'''
             }

@@ -304,6 +304,12 @@ typedef enum {false, true} bool;
 #endif
 
 /**
+ * Policy for handling scheduled events that violate the specified
+ * minimum interarrival time.
+ */
+typedef enum {defer, drop, replace} policy_t;
+
+/**
  * Handles for scheduled triggers. These handles are returned
  * by schedule() functions. The intent is that the handle can be
  * used to cancel a future scheduled event, but this is not
@@ -433,7 +439,8 @@ struct trigger_t {
     token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action.
     instant_t scheduled;      // Tag of the last event that was scheduled for this action.
-    bool drop;                // Whether or not to drop events if they succeed one another more quickly than the minimum interarrival time allows.
+//    event_t* last;            // Pointer to the last event that was scheduled for this action.
+    policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
