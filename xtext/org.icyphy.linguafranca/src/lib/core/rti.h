@@ -175,6 +175,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define ADDRESSAD 11
 
+/**
+ * Byte identifying a message that is sent by a federate directly to another federate.
+ */
+#define P2PMESSAGE 12
+
 /////////////////////////////////////////////
 //// Rejection codes
 
@@ -194,6 +199,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Incoming message is not expected. */
 #define UNEXPECTED_MESSAGE 4
+
+/** Connected to the wrong server. */
+#define WRONG_SERVER 5
 
 /////////////////////////////////////////////
 //// Data structures

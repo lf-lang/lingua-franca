@@ -153,10 +153,6 @@ int create_server(int specified_port,
     // which according to the Mac man page is limited to 128.
     listen(socket_descriptor, 128);
 
-    // Start a thread to listen for incoming messages from other federates.
-    pthread_t thread_id;
-    pthread_create(&thread_id, NULL, listen_to_federates, &socket_descriptor);
-
     // Set the global server port
     server_port = port;
     
@@ -164,7 +160,11 @@ int create_server(int specified_port,
     unsigned char buffer[sizeof(int) + 1];
     buffer[0] = ADDRESSAD;
     encode_int(server_port, &(buffer[1]));
-    write_to_socket(rti_socket, sizeof(int) + 1, (unsigned char*)buffer);
+    int bytes_written = write_to_socket2(rti_socket, sizeof(int) + 1, (unsigned char*)buffer);
+    if (bytes_written == 0)
+    {
+        printf("ERROR: failed to send address advertisement.\n");
+    }
     printf("Federate %d sent port %d to RTI.\n", __my_fed_id, server_port);
 
     return socket_descriptor;
@@ -184,10 +184,11 @@ int create_server(int specified_port,
  *  @param message The message.
  */
 void send_directly(unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
+    printf("DEBUG: sending message directly to federate %d.\n", federate);
     assert(port < 65536);
     assert(federate < 65536);
     unsigned char buffer[9];
-    buffer[0] = MESSAGE;
+    buffer[0] = P2PMESSAGE;
     // NOTE: Send messages little endian, not big endian.
     buffer[1] = port & 0xff;
     buffer[2] = port & 0xff00;
@@ -199,12 +200,12 @@ void send_directly(unsigned int port, unsigned int federate, size_t length, unsi
     buffer[8] = length & 0xff000000;
 
     // Use a mutex lock to prevent multiple threads from simulatenously sending.
-    // printf("DEBUG: Federate %d pthread_mutex_lock send_via_rti\n", __my_fed_id);
+    printf("DEBUG: Federate %d pthread_mutex_lock send_directly(%s)\n", __my_fed_id, message);
     pthread_mutex_lock(&mutex);
-    // printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
+    printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
     write_to_socket(federate_sockets[federate], 9, buffer);
     write_to_socket(federate_sockets[federate], length, message);
-    // printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
+    printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
     pthread_mutex_unlock(&mutex);
 }
 
@@ -320,13 +321,74 @@ void connect_to_federates(int expected_number_of_federates)
         uint32_t client_length = sizeof(client_fd);
         int socket_id = accept(server_socket, &client_fd, &client_length);
         if (socket_id < 0) return;
-
+        printf("DEBUG: federate %d accepted new connection from remote federate.\n", __my_fed_id);
+        
         ushort remote_fed_id;
-        unsigned char bf[2];
-        read_from_socket(server_socket, 2, (unsigned char*)&bf);
-        remote_fed_id = extract_ushort((unsigned char*)&bf);
+        unsigned char bf[sizeof(ushort) + 1];
+        int bytes_read = read_from_socket2(socket_id, 1, (unsigned char*)&bf);
+        if(bytes_read == 0)
+        {
+            printf("DEBUG: federate %d failed to read p2p header from remote federate.\n", __my_fed_id);
+        }
+        else if (bytes_read < 0)
+        {
+            fprintf(stderr, "ERROR, p2p federate socket not connected.\n");
+            exit(1);
+        }
+
+        if (bf[0] != P2PMESSAGE)
+        {
+            unsigned char response[2];
+            printf("ERROR: federate conencted to the wrong server.\n");
+            response[0] = REJECT;
+            response[1] = WRONG_SERVER;
+            // Ignore errors on this response.
+            write_to_socket2(socket_id, 2, response);
+            close(socket_id);
+            continue;
+        }
+        bytes_read = read_from_socket2(socket_id, sizeof(ushort), (unsigned char*)&(bf[1]));
+        if(bytes_read == 0)
+        {
+            printf("DEBUG: federate %d failed to read federate ID from remote federate.\n", __my_fed_id);
+        }
+        else if (bytes_read < 0)
+        {
+            fprintf(stderr, "ERROR, p2p federate socket not connected.\n");
+            exit(1);
+        }
+        
+        remote_fed_id = extract_ushort((unsigned char*)&(bf[1]));
+
+        printf("DEBUG: received federate ID %d.\n", remote_fed_id);
+
+        assert(remote_fed_id > -1);
+
+        federate_sockets[remote_fed_id] = socket_id;
+
+        // Send an ACK message.
+        unsigned char response[1];
+        response[0] = ACK;
+        // Ignore errors on this response.
+        write_to_socket2(socket_id, 1, (unsigned char*)&response);
+
+
+
+        int *arg = malloc(sizeof(*arg));
+        if ( arg == NULL ) {
+            fprintf(stderr, "Couldn't allocate memory for thread arg.\n");
+            exit(EXIT_FAILURE);
+        }
+        *arg = remote_fed_id;
+        // Start a thread to listen for incoming messages from other federates.
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, listen_to_federates, arg);
+        
+
         received_federates++;
     }
+
+    printf("DEBUG: all remote federates are connected to federate %d.\n", __my_fed_id);
 }
 
 /**
@@ -344,22 +406,45 @@ void connect_to_federate(ushort id, char* hostname) {
     int count_retries = 0;
 
     // Ask the RTI for port number of the remote federate
-    unsigned char buffer[3];
-    buffer[0] = ADDRESSQUERY;
-    // NOTE: Sending messages in little endian.
-    encode_ushort(id, &(buffer[1]));
+    unsigned char buffer[sizeof(int) + 1];
+    int port = -1;
+    while (1)
+    {
+        buffer[0] = ADDRESSQUERY;
+        // NOTE: Sending messages in little endian.
+        encode_ushort(id, &(buffer[1]));
 
-    printf("DEBUG: sending address query for federate %d.\n", id);
+        printf("DEBUG: sending address query for federate %d.\n", id);
 
-    write_to_socket(rti_socket, sizeof(ushort) + 1, buffer);
+        write_to_socket(rti_socket, sizeof(ushort) + 1, buffer);
 
-    // Read RIT's response
-    read_from_socket(rti_socket, sizeof(ushort), buffer);
+        // Read RIT's response
+        read_from_socket(rti_socket, sizeof(int), buffer);
+
+        // FIXME: converting signed to unsigned
+        port = extract_int(buffer);
+
+        if (port == -1)
+        {
+            // Retry every millisecond
+            struct timespec wait_time = {0L, 1000000L};
+            struct timespec remaining_time;
+            if (nanosleep(&wait_time, &remaining_time) != 0)
+            {
+                // Sleep was interrupted.
+                continue;
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+    assert(port < 65536);
+
     
-    // FIXME: converting signed to unsigned
-    ushort port = extract_ushort(buffer);
-    assert(id < 65536);
-    assert(port > 0);
+    printf("DEBUG: received port %d for federate %d from RTI.\n", port, id);
+
 
     bool failure_message = false;
     while (result < 0) {
@@ -419,14 +504,28 @@ void connect_to_federate(ushort id, char* hostname) {
                 // Sleep was interrupted.
                 continue;
             }
-        } else {
-            printf("Federate %d: connected to federate %d at %s, port %d.\n", __my_fed_id, id, hostname, port);
+        }
+        else
+        {            
+            unsigned char bf[sizeof(ushort) + 1];
+            bf[0] = P2PMESSAGE;
+            encode_ushort(__my_fed_id, (unsigned char *)&(bf[1]));
+            write_to_socket(federate_sockets[id], sizeof(ushort) + 1, (unsigned char *)&bf);
+
+            read_from_socket(federate_sockets[id], 1, (unsigned char *)&bf);
+            if (bf[0] != ACK)
+            {
+                printf("DEBUG: received error message from remote federate.");
+                result = -1;
+                continue;
+            }
+            else
+            {                
+                printf("Federate %d: connected to federate %d at %s, port %d.\n", __my_fed_id, id, hostname, port);
+            }
+            
         }
     }
-
-    unsigned char bf[2];
-    encode_ushort(__my_fed_id, (unsigned char*)&bf);
-    write_to_socket(federate_sockets[id], sizeof(ushort), (unsigned char*)&bf);
 }
 
 
@@ -552,7 +651,7 @@ void connect_to_rti(ushort id, char* hostname, int port) {
                 // Read one more byte to determine the cause of rejection.
                 unsigned char cause;
                 bytes_read = read(rti_socket, &cause, 1);
-                if (cause == FEDERATION_ID_DOES_NOT_MATCH) {
+                if (cause == FEDERATION_ID_DOES_NOT_MATCH || cause == WRONG_SERVER) {
                     printf("Federate %d connected to the wrong RTI on port %d. Trying %d", __my_fed_id, port, port + 1);
                     port++;
                     result = -1;
@@ -592,8 +691,9 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     unsigned char buffer[buffer_length];
 
     // Read bytes from the socket. We need 9 bytes.
-    read_from_socket(rti_socket, 9, &(buffer[0]));
-    // printf("DEBUG: federate read 9 bytes.\n");
+    int bytes_read = read_from_socket2(rti_socket, 9, &(buffer[0]));
+    if (bytes_read < 1) error("ERROR reading TIMESTAMP message from RTI.");
+    printf("DEBUG: federate read 9 bytes.\n");
 
     // First byte received is the message ID.
     if (buffer[0] != TIMESTAMP) {
@@ -617,32 +717,6 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
  */
 trigger_t* __action_for_port(int port_id);
 
-/** 
- * Handle a message being received from a remote federate via the RTI or
- * directly via a physical connection.
- * This version is for messages carrying no timestamp.
- * @param socket The socket to read from.
- * @param buffer The buffer to read.
- */
-void handle_message(int socket, unsigned char* buffer) {
-    // Read the header.
-    read_from_socket(socket, 8, buffer);
-    // Extract the header information.
-    unsigned short port_id;
-    unsigned short federate_id;
-    unsigned int length;
-    extract_header(buffer, &port_id, &federate_id, &length);
-    // printf("DEBUG: Federate %d receiving message to port %d of length %d.\n", federate_id, port_id, length);
-
-    // Read the payload.
-    // Allocate memory for the message contents.
-    unsigned char* message_contents = (unsigned char*)malloc(length);
-    read_from_socket(socket, length, message_contents);
-    // printf("DEBUG: Message received by federate: %s.\n", message_contents);
-
-    schedule_value(__action_for_port(port_id), 0LL, message_contents, length);
-    // printf("DEBUG: Called schedule\n");
-}
 
 /** Version of schedule_value() identical to that in reactor_common.c
  *  except that it does not acquire the mutex lock.
@@ -663,6 +737,40 @@ handle_t schedule_value_already_locked(
     // printf("DEBUG: Federate %d pthread_cond_broadcast(&event_q_changed)\n", __my_fed_id);
     pthread_cond_broadcast(&event_q_changed);
     return return_value;
+}
+
+/** 
+ * Handle a message being received from a remote federate via the RTI or
+ * directly via a physical connection.
+ * This version is for messages carrying no timestamp.
+ * @param socket The socket to read from.
+ * @param buffer The buffer to read.
+ */
+void handle_message(int socket, unsigned char* buffer) {
+    // Read the header.
+    read_from_socket(socket, 8, buffer);
+    // Extract the header information.
+    unsigned short port_id;
+    unsigned short federate_id;
+    unsigned int length;
+    extract_header(buffer, &port_id, &federate_id, &length);
+    printf("DEBUG: Federate %d receiving message to port %d of length %d.\n", federate_id, port_id, length);
+
+    // Read the payload.
+    // Allocate memory for the message contents.
+    unsigned char* message_contents = (unsigned char*)malloc(length);
+    read_from_socket(socket, length, message_contents);
+    printf("DEBUG: Message received by federate: %s.\n", message_contents);
+
+    printf("DEBUG: Federate %d pthread_mutex_lock handle_message\n", __my_fed_id);
+    pthread_mutex_lock(&mutex);
+    printf("DEBUG: Federate %d pthread_mutex_locked\n", __my_fed_id);
+    schedule_value_already_locked(__action_for_port(port_id), 0LL, message_contents, length);
+    printf("DEBUG: Called schedule.\n");
+
+    pthread_mutex_unlock(&mutex);
+    printf("DEBUG: Federate %d pthread_mutex_unlock\n", __my_fed_id);
+   
 }
 
 /** Handle a timestamped message being received from a remote federate via the RTI.
@@ -777,6 +885,12 @@ void handle_incoming_stop_message() {
  *  This always calls schedule.
  */
 void* listen_to_federates(void *args) {
+    int fed_id = *((int *)args);
+
+    printf("DEBUG: listening to federate %d.\n", fed_id);
+
+    int socket_id = federate_sockets[fed_id];
+
     // Buffer for incoming messages.
     // This does not constrain the message size
     // because the message will be put into malloc'd memory.
@@ -785,13 +899,23 @@ void* listen_to_federates(void *args) {
     // Listen for messages from the federate.
     while (1) {
         // Read one byte to get the message type.
-        read_from_socket(server_socket, 1, buffer);
+        int bytes_read = read_from_socket2(socket_id, 1, buffer);
+        if (bytes_read == 0)
+        {
+            continue;
+        }
+        else if (bytes_read < 0)
+        {
+            fprintf(stderr, "P2P socket between federate %d and %d borken.\n", __my_fed_id, fed_id);
+            exit(1);
+        }
         switch(buffer[0]) {
-        case MESSAGE:
-            handle_message(server_socket, buffer + 1);
+        case P2PMESSAGE:
+            printf("DEBUG: handling p2p message from federate %d.\n", fed_id);
+            handle_message(socket_id, buffer + 1);
             break;
         default:
-            // printf("DEBUG: Erroneous message type: %d\n", buffer[0]);
+            printf("DEBUG: Erroneous message type: %d\n", buffer[0]);
             error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);
         }
     }
@@ -845,7 +969,7 @@ void* listen_to_rti(void* args) {
  */
 void synchronize_with_other_federates() {
                 
-    // printf("DEBUG: Federate synchronizing with other federates.\n");
+    printf("DEBUG: Federate %d synchronizing with other federates.\n", __my_fed_id);
 
     // Reset the start time to the coordinated start time for all federates.
     current_time = get_start_time_from_rti(get_physical_time());
