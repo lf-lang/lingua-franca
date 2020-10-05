@@ -59,6 +59,7 @@ import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Files
 import org.icyphy.linguaFranca.Model
+import org.icyphy.Targets
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -126,6 +127,12 @@ class PythonGenerator extends CGenerator {
 	val generic_port_type_with_token = "generic_port_instance_with_token_struct"
 	
 	override getTargetUndefinedType() '''PyObject*'''
+	
+	/** Returns the Target enum for this generator */
+    override getTarget()
+    {
+        return Targets.get("Python")
+    }
 
 	// Regular expression pattern for pointer types. The star at the end has to be visible.
     static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
@@ -983,8 +990,6 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         // Request to generate the name field                
         super.addClassNameToSelfStruct = true
-        // Dynamic types
-        super.requiresTypes = false
 
         super.doGenerate(resource, fsa, context)
 

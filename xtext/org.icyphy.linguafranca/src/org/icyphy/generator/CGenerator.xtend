@@ -65,6 +65,7 @@ import org.icyphy.linguaFranca.Variable
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Policy
 import org.icyphy.linguaFranca.Preamble
+import org.icyphy.Targets
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -326,10 +327,6 @@ class CGenerator extends GeneratorBase {
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
-    
-    // If set to false, allows the descendants of the CGenerator
-    // to have more lenient type systems
-    protected var requiresTypes = true
 
 
     new () {
@@ -1269,7 +1266,7 @@ class CGenerator extends GeneratorBase {
      * @return A string providing the value field of the port struct.
      */
     protected def valueDeclaration(Port port) {
-        if (port.type === null && requiresTypes === true) {
+        if (port.type === null && target.requiresTypes === true) {
             // This should have been caught by the validator.
             reportError(port, "Port is required to have a type: " + port.name)
             return ''
@@ -1305,7 +1302,7 @@ class CGenerator extends GeneratorBase {
      * @return A string providing the value field of the action struct.
      */
     protected def valueDeclaration(Action action) {
-        if (action.type === null && requiresTypes === true) {
+        if (action.type === null && target.requiresTypes === true) {
             return ''
         }
         // Do not convert to token_t* using lfTypeToTokenType because there
@@ -4056,7 +4053,7 @@ class CGenerator extends GeneratorBase {
         Output output,
         ReactorDecl decl
     ) {
-        if (output.type === null && requiresTypes === true) {
+        if (output.type === null && target.requiresTypes === true) {
             reportError(output,
                 "Output is required to have a type: " + output.name)
         } else {
@@ -4276,6 +4273,13 @@ class CGenerator extends GeneratorBase {
         = '// **** Do not include initialization code in this reaction.'
         
     public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    
+       
+    /** Returns the Target enum for this generator */
+    override getTarget()
+    {
+        return Targets.get("C")
+    }
         
     override getTargetTimeType() '''interval_t'''
 

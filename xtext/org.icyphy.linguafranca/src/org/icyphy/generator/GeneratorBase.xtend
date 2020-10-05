@@ -80,6 +80,7 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Code
+import org.icyphy.Targets
 
 /**
  * Generator base class for shared code between code generators.
@@ -2292,6 +2293,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     abstract def String getTargetFixedSizeListType(String baseType, Integer size)
 
     abstract def String getTargetVariableSizeListType(String baseType);
+    
+    /**
+     * Return the Targets enum for the current target
+     */
+    def Targets getTarget() {}
     
     /**
      * Return a string representing the specified type in the target language.
