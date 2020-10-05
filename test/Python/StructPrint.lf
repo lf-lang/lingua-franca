@@ -2,6 +2,10 @@
 // to Print. Reference counting ensures that the struct is freed.
 target Python {files: ["include/hello.py"]};
 
+preamble {=
+import hello
+=}
+
 reactor Print {
     output out;
     reaction(startup) -> out {=

@@ -1,6 +1,10 @@
 // Test delaying a struct pointer type.
 target Python {files: ["include/hello.py"]};
 
+preamble {=
+import hello
+=}
+
 reactor DelayPointer(delay(100 msec)) {
     input _in;
     output out;

@@ -7,9 +7,9 @@ target Python {
 import Imported from "Imported.lf";
 
 main reactor ImportThreaded {
-	timer t;
-	a = new Imported();
-	reaction(t) -> a.x {=
-		a.x.set(42) 
-	=}
+    timer t;
+    a = new Imported();
+    reaction(t) -> a.x {=
+        a.x.set(42) 
+    =}
 }

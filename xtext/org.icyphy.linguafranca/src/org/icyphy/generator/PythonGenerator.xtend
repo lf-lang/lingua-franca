@@ -820,13 +820,7 @@ class PythonGenerator extends CGenerator {
 
         // Process target files. Copy each of them into the src-gen dir.
         for (file : this.targetFiles) {
-            // Generate import statements for each .py file. FIXME: use preamble instead.
-            // A foo.py file will be imported as 'import foo' as per Python specification
             val name = file.name
-            if (name.endsWith(".py")) {
-                pythonPreamble.append('''import «name.replace(".py", "")»
-                ''')
-            }
             val target = new File(srcGenPath + File.separator + name)
             if (target.exists) {
                 target.delete
@@ -1052,7 +1046,7 @@ class PythonGenerator extends CGenerator {
     /**
      * Copy Python specific target code to the src-gen directory
      */        
-    override copyTargetFiles()
+    override copyUserFiles()
     {    	
         var srcGenPath = getSrcGenPath()
     	// Copy the required target language files into the target file system.

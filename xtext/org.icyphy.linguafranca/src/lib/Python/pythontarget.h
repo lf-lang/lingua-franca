@@ -195,7 +195,7 @@ typedef struct {
  * 
  * The port type given in the Lingua Franca is only used as a "suggestion"
  * as per Python's duck typing principles. The end-user is responsible for
- * appropriately handling types on the recieveing end of this port.
+ * appropriately handling types on the receiving end of this port.
  * @param self The output port (by name) or input of a contained
  *                 reactor in form input_name.port_name.
  * @param args contains:

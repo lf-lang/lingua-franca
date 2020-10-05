@@ -6,19 +6,19 @@ target Python {
     fast: true
 }; 
 reactor Source {
-	timer t(0, 200 msec);
-	output[4] out;
-	state s(0);
-	reaction(t) -> out {=
+    timer t(0, 200 msec);
+    output[4] out;
+    state s(0);
+    reaction(t) -> out {=
         for i in range(len(out)):
             out[i].set(self.s)
             self.s += 1
-	=}
+    =}
 }
 reactor Destination(width(4)) {
-	state s(6);
-	input[width] _in;
-	reaction(_in) {=
+    state s(6);
+    input[width] _in;
+    reaction(_in) {=
         sm = 0
         for i in range(len(_in)):
             if _in[i].is_present:
@@ -43,7 +43,7 @@ reactor Container(width(4)) {
 }
 
 main reactor MultiportToHierarchy  { 
-	a = new Source();
-	b = new Container();
-	a.out -> b.in;
+    a = new Source();
+    b = new Container();
+    a.out -> b.in;
 }

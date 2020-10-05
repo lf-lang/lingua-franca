@@ -4,6 +4,11 @@ target Python {
     fast: true,
     files: ["include/hello.py"]
 };
+
+preamble {=
+import hello
+=}
+
 reactor Source {
     output out;
     timer t(0, 1 sec);
