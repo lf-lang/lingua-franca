@@ -612,14 +612,15 @@ void* federate(void* fed) {
             handle_address_ad(my_fed);
             break;
         case MESSAGE:            
-            assert(my_fed->state != NOT_CONNECTED);
+            if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_message(my_fed->socket, buffer, 9);
             break;
         case TIMED_MESSAGE:
+            if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_message(my_fed->socket, buffer, 17);
             break;
         case RESIGN:
-            assert(my_fed->state != NOT_CONNECTED);
+            if (my_fed->state == NOT_CONNECTED) return NULL;
             // Nothing more to do. Close the socket and exit.
             printf("Federate %d has resigned.\n", my_fed->id);
             pthread_mutex_lock(&rti_mutex);
@@ -629,15 +630,15 @@ void* federate(void* fed) {
             return NULL;
             break;
         case NEXT_EVENT_TIME:
-            assert(my_fed->state != NOT_CONNECTED);
+            if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_next_event_time(my_fed);
             break;
         case LOGICAL_TIME_COMPLETE:
-            assert(my_fed->state != NOT_CONNECTED);
+            if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_logical_time_complete(my_fed);
             break;
         case STOP:
-            assert(my_fed->state != NOT_CONNECTED);
+            if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_stop_message(my_fed);
             break;
         default:
