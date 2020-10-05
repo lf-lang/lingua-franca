@@ -321,16 +321,16 @@ typedef enum {defer, drop, replace} policy_t;
  * ignore freeing the void* inside a token if the void*
  * value is garbage collected by an external controller
  */
-typedef enum {no=0, yes, ignore} ok_to_free_t;
+typedef enum {no=0, token_and_value, token_only} ok_to_free_t;
 
 /**
  * The flag OK_TO_FREE is used to indicate whether
  * the void* in toke_t should be freed or not.
  */ 
 #ifdef __GARBAGE_COLLECTED
-#define OK_TO_FREE ignore
+#define OK_TO_FREE token_only
 #else
-#define OK_TO_FREE yes
+#define OK_TO_FREE token_and_value
 #endif
 
 /**
