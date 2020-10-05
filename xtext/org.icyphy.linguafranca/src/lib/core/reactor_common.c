@@ -629,12 +629,20 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             // in some way?
             tag = physical_time;
         }
+    } else {
+        // FIXME: We need to verify that we are executing within a reaction?
+        // See reactor_threaded.
     }
 
     // Check to see whether the event is early based on the minimum
     // interarrival time. This check is not needed if this action has
     // had no event, or if no MIT has been specified (it has to be strictly
     // greater than zero).
+    // NOTE: This pointer to the prior event gets used only if that event
+    // is still on the event queue and hence has not been recycled.
+    // WARNING: If provide a mechanism for unscheduling, we can no longer
+    // rely on the tag of the existing event to determine whether or not
+    // it has been recycled.
     event_t* existing = (event_t*)(trigger->last);
     
     if (existing != NULL && min_inter_arrival > 0) {
@@ -661,9 +669,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                     // NOTE: Because microsteps are not explicit, if the tag of
                     // the preceding event is equal to the current time, then
                     // we cannot determine solely based on the tag whether the
-                    // event has been handled or not. Only if we can find it 
-                    // in the queue can be we certain that it hasn't
-                    // yet been handled.
+                    // event has been pulled off the event queue or not. Only
+                    // if we can find it in the queue can be we certain that
+                    // it hasn't yet been handled.
                     if (existing->time > current_time || 
                             (existing->time == current_time &&
                             pqueue_find_equal_same_priority(event_q, existing) != NULL)) {
@@ -688,7 +696,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // If a logical action is scheduled asynchronously (which should never be
     // done) the computed tag can be smaller than the current tag, in which case
     // it needs to be adjusted.
-    // FIXME: Detect the use of logical actions asynchronously and print a better warning.
+    // FIXME: This can go away once:
+    // - we have eliminated the possibility to have a negative additional delay; and
+    // - we detect the asynchronous use of logical actions
     if (tag < current_time) {
         fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
                 "Revising request to the current time %lld.\n", current_time - tag, current_time);
@@ -714,6 +724,10 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // Check for collisions only if no MIT is specified.
     // If this event collides with an existing event in the queue,
     // then update its payload using that of the new event.
+    // FIXME: Alternatively, we could make the default spacing be zero,
+    // which would enforce monotonic behavior, and if you give a negative
+    // spacing, then this would allow for (limited) nonmonotonic behavior.
+    // QUESTION: what does it mean to have a defer policy with zero spacing?
     if (!(trigger->is_timer || min_inter_arrival > 0)) {
         event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {

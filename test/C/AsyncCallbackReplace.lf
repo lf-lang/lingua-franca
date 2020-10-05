@@ -1,4 +1,4 @@
-// Test asynchronous callbacks that trigger a physical action with a DROP policy.
+// Test asynchronous callbacks that trigger a physical action with a "replace" policy.
 // This test case assumes that the target is multithreaded.
 // This test will not work with the unthreaded C target because that target
 // does not implement any mutex protecting the event queue.
@@ -37,7 +37,7 @@ main reactor AsyncCallback {
 
     physical action a(100 msec, 100 msec, replace):int;
     state i:int(0);
-  
+  	
 	reaction(t) -> a {=
 		// start new thread, provide callback
 		pthread_create(&self->thread_id, NULL, &take_time, a);
