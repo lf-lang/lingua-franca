@@ -5,42 +5,42 @@ target Python {
     threads: 4
 };
 reactor Source {
-	timer t(0, 200 msec);
-	output out;
-	state s(0);
-	reaction(t) -> out {=
-		out.set(self.s)
-		self.s += 1
-	=}
+    timer t(0, 200 msec);
+    output out;
+    state s(0);
+    reaction(t) -> out {=
+        out.set(self.s)
+        self.s += 1
+    =}
 }
 reactor TakeTime {
-	input _in;
-	output out;
-	reaction(_in) -> out {=
-		offset = 0
-		for i in range(10000):
-		    offset+=1
-		out.set(_in.value + offset)
-	=}
+    input _in;
+    output out;
+    reaction(_in) -> out {=
+        offset = 0
+        for i in range(10000):
+            offset+=1
+        out.set(_in.value + offset)
+    =}
 }
 reactor Destination(width(4)) {
-	state s(40000);
-	input[width] _in;
-	reaction(_in) {=
-		sm = sum([_in[i].value for i in range(len(_in))])
+    state s(40000);
+    input[width] _in;
+    reaction(_in) {=
+        sm = sum([_in[i].value for i in range(len(_in))])
 
-		print("Sum of received: ", sm);
-		if sm != self.s:
-			sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
-			exit(1)
+        print("Sum of received: ", sm);
+        if sm != self.s:
+            sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
+            exit(1)
 
-		self.s += len(_in)
-	=}
+        self.s += len(_in)
+    =}
 }
 main reactor ThreadedThreaded(width(4)) {
-	a = new Source();
-	t = new[width] TakeTime();
-	(a.out)+ -> t._in;
+    a = new Source();
+    t = new[width] TakeTime();
+    (a.out)+ -> t._in;
     b = new Destination(width = width);
-	t.out -> b._in;
+    t.out -> b._in;
 }

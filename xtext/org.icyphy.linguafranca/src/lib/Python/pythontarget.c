@@ -56,7 +56,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * as per Python's duck typing principles. The end-user is responsible for
  * appropriately handling types on the recieveing end of this port.
  * @param self The output port (by name) or input of a contained
- *                 reactor in form input_name.port_name.
+ *                 reactor in form instance_name.port_name.
  * @param args contains:
  *      @param val The value to insert into the port struct.
  */
@@ -72,13 +72,13 @@ static PyObject* py_SET(PyObject *self, PyObject *args)
     }
 
     generic_port_instance_struct* port = PyCapsule_GetPointer(p->port, "port");
-    if(port == NULL)
+    if (port == NULL)
     {
-        fprintf(stderr, "Null pointer recieved.\n");
+        fprintf(stderr, "Null pointer received.\n");
         exit(1);
     }
     
-    if(val)
+    if (val)
     {   
         tmp = port->value;
         Py_INCREF(val);
@@ -118,8 +118,7 @@ trigger_t* _lf_action_to_trigger(void* action);
  *      @param action Pointer to an action on the self struct.
  *      @param offset The time offset over and above that in the action.
  **/
-static PyObject* py_schedule(PyObject *self, PyObject *args)
-{
+static PyObject* py_schedule(PyObject *self, PyObject *args) {
     generic_action_capsule_struct* act = (generic_action_capsule_struct*)self;
     long long offset;
     PyObject* value = NULL;
@@ -130,7 +129,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
     void* action = PyCapsule_GetPointer(act->action,"action");
     if (action == NULL)
     {
-        fprintf(stderr, "Null pointer recieved.\n");
+        fprintf(stderr, "Null pointer received.\n");
         exit(1);
     }
 
@@ -138,7 +137,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
     token_t* t = NULL;
 
     // Check to see if value exists and token is not NULL
-    if(value && (trigger->token != NULL))
+    if (value && (trigger->token != NULL))
     {
         // DEBUG: adjust the element_size (might not be necessary)
         trigger->token->element_size = sizeof(PyObject*);
@@ -166,8 +165,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args)
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-static PyObject* py_schedule_copy(PyObject *self, PyObject *args)
-{
+static PyObject* py_schedule_copy(PyObject *self, PyObject *args) {
     generic_action_capsule_struct* act;
     long long offset;
     PyObject* value;
@@ -179,7 +177,7 @@ static PyObject* py_schedule_copy(PyObject *self, PyObject *args)
     void* action = PyCapsule_GetPointer(act->action,"action");
     if (action == NULL)
     {
-        fprintf(stderr, "Null pointer recieved.\n");
+        fprintf(stderr, "Null pointer received.\n");
         exit(1);
     }
     
@@ -196,24 +194,21 @@ static PyObject* py_schedule_copy(PyObject *self, PyObject *args)
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
-static PyObject* py_get_elapsed_logical_time(PyObject *self, PyObject *args)
-{
+static PyObject* py_get_elapsed_logical_time(PyObject *self, PyObject *args) {
     return PyLong_FromLong(get_elapsed_logical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
-static PyObject* py_get_logical_time(PyObject *self, PyObject *args)
-{
+static PyObject* py_get_logical_time(PyObject *self, PyObject *args) {
     return PyLong_FromLong(get_logical_time());
 }
 
 /** 
  * Return the elapsed physical time in nanoseconds.
  */
-static PyObject* py_get_physical_time(PyObject *self, PyObject *args)
-{
+static PyObject* py_get_physical_time(PyObject *self, PyObject *args) {
     return PyLong_FromLong(get_physical_time());
 }
 
@@ -221,8 +216,7 @@ static PyObject* py_get_physical_time(PyObject *self, PyObject *args)
  * Return the elapsed physical time in nanoseconds.
  */
 instant_t get_elapsed_physical_time();
-static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args)
-{
+static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
     return PyLong_FromLong(get_elapsed_physical_time());
 }
 
@@ -231,8 +225,7 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args)
 /**
  * Stop execution at the conclusion of the current logical time.
  */
-static PyObject* py_stop(PyObject *self)
-{
+static PyObject* py_stop(PyObject *self) {
     stop();
     
     Py_INCREF(Py_None);
@@ -242,8 +235,7 @@ static PyObject* py_stop(PyObject *self)
 
 //////////////////////////////////////////////////////////////
 ///////////// Main function callable from Python code
-static PyObject* py_main(PyObject *self, PyObject *args)
-{
+static PyObject* py_main(PyObject *self, PyObject *args) {
     main(1, NULL);
 
     Py_INCREF(Py_None);
@@ -258,8 +250,7 @@ static PyObject* py_main(PyObject *self, PyObject *args)
  * @param self An instance of generic_port_instance_struct*
  */
 static void
-port_capsule_dealloc(generic_port_capsule_struct *self)
-{
+port_capsule_dealloc(generic_port_capsule_struct *self) {
     Py_XDECREF(self->port);
     Py_XDECREF(self->value);
     Py_TYPE(self)->tp_free((PyObject *) self);
@@ -286,8 +277,7 @@ port_capsule_dealloc(generic_port_capsule_struct *self)
  * @param kwds Keywords (@see Python keywords)
  */
 static PyObject *
-port_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
+port_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     generic_port_capsule_struct *self;
     self = (generic_port_capsule_struct *) type->tp_alloc(type, 0);
     if (self != NULL) {
@@ -309,13 +299,12 @@ port_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
  * FIXME: Incomplete iterator
  */
 static PyObject *
-port_iter(PyObject *self)
-{
+port_iter(PyObject *self) {
     generic_port_capsule_struct* port = (generic_port_capsule_struct*)self;
     generic_port_capsule_struct* pyport = (generic_port_capsule_struct*)self->ob_type->tp_new(self->ob_type, NULL, NULL);
     long long index = port->current_index;
 
-    if(port->current_index == port->width)
+    if (port->current_index == port->width)
     {
         port->current_index = 0;
         return NULL;
@@ -331,7 +320,7 @@ port_iter(PyObject *self)
     generic_port_instance_struct **cport = (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
     if (cport == NULL)
     {
-        fprintf(stderr, "Null pointer recieved.\n");
+        fprintf(stderr, "Null pointer received.\n");
         exit(1);
     }
 
@@ -354,8 +343,7 @@ port_iter(PyObject *self)
  * FIXME: incomplete iterator next
  */
 static PyObject *
-port_iter_next(PyObject *self)
-{
+port_iter_next(PyObject *self) {
 
 }
 /**
@@ -373,8 +361,7 @@ port_iter_next(PyObject *self)
  *             C array if the port is a multiport.
  */
 static PyObject *
-port_capsule_get_item(PyObject *self, PyObject *item)
-{
+port_capsule_get_item(PyObject *self, PyObject *item) {
     generic_port_capsule_struct* port = (generic_port_capsule_struct*)self;
     generic_port_capsule_struct* pyport = (generic_port_capsule_struct*)self->ob_type->tp_new(self->ob_type, NULL, NULL);
     long long index = -3;
@@ -386,7 +373,7 @@ port_capsule_get_item(PyObject *self, PyObject *item)
     }
 
     index = PyLong_AsLong(item);
-    if(index == -3)
+    if (index == -3)
     {
         PyErr_Format(PyExc_TypeError,
                      "multiport indices must be integers, not %.200s",
@@ -394,12 +381,12 @@ port_capsule_get_item(PyObject *self, PyObject *item)
         return NULL;
     }
     
-    if(index != -3 && port->width > 0)
+    if (index != -3 && port->width > 0)
     {
         generic_port_instance_struct **cport = (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
         if (cport == NULL)
         {
-            fprintf(stderr, "Null pointer recieved.\n");
+            fprintf(stderr, "Null pointer received.\n");
             exit(1);
         }
 
@@ -412,7 +399,7 @@ port_capsule_get_item(PyObject *self, PyObject *item)
     }
 
     
-    if(pyport->value == NULL)
+    if (pyport->value == NULL)
     {
         Py_INCREF(Py_None);
         pyport->value = Py_None;
@@ -432,8 +419,7 @@ port_capsule_get_item(PyObject *self, PyObject *item)
  * @param value The value to be assigned (which is ignored)
  */
 static int
-port_capsule_assign_get_item(PyObject *self, PyObject *item, PyObject* value)
-{
+port_capsule_assign_get_item(PyObject *self, PyObject *item, PyObject* value) {
     PyErr_Format(PyExc_TypeError,
                      "You cannot assign to ports directly. Please use the .set method.",
                      Py_TYPE(item)->tp_name);
@@ -445,8 +431,7 @@ port_capsule_assign_get_item(PyObject *self, PyObject *item, PyObject* value)
  * @param self A port of type LinguaFranca.port_capsule
  */ 
 static Py_ssize_t
-port_length(PyObject *self)
-{
+port_length(PyObject *self) {
     generic_port_capsule_struct* port = (generic_port_capsule_struct*)self;
 #ifdef VERBOSE
     printf("Getting the length, which is %d.\n", port->width);
@@ -481,8 +466,7 @@ static PyMappingMethods port_as_mapping = {
  *                   is not a multiport, this field will be -2.
  */
 static int
-port_capsule_init(generic_port_capsule_struct *self, PyObject *args, PyObject *kwds)
-{
+port_capsule_init(generic_port_capsule_struct *self, PyObject *args, PyObject *kwds) {
     static char *kwlist[] = { "port", "value", "is_present", "width", "current_index", NULL};
     PyObject *value = NULL, *tmp, *port = NULL;
 
@@ -517,8 +501,7 @@ port_capsule_init(generic_port_capsule_struct *self, PyObject *args, PyObject *k
  * @param self
  */
 static void
-action_capsule_dealloc(generic_action_capsule_struct *self)
-{
+action_capsule_dealloc(generic_action_capsule_struct *self) {
     Py_XDECREF(self->action);
     Py_XDECREF(self->value);
     Py_TYPE(self)->tp_free((PyObject *) self);
@@ -533,8 +516,7 @@ action_capsule_dealloc(generic_action_capsule_struct *self)
  * to the members of the generic_action_capsule_struct.
  */
 static PyObject *
-action_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
+action_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     generic_action_capsule_struct *self;
     self = (generic_action_capsule_struct *) type->tp_alloc(type, 0);
     if (self != NULL) {
@@ -562,8 +544,7 @@ action_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
  *      @param num_destination Used for reference-keeping inside the C runtime
  */
 static int
-action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObject *kwds)
-{
+action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObject *kwds) {
     static char *kwlist[] = {"action", "value", "is_present", NULL};
     PyObject *action = NULL, *value = NULL, *tmp;
 
@@ -765,8 +746,7 @@ static PyModuleDef MODULE_NAME = {
  * will be called PyInit_LinguaFrancaFoo
  */
 PyMODINIT_FUNC
-GEN_NAME(PyInit_,MODULE_NAME)(void)
-{
+GEN_NAME(PyInit_,MODULE_NAME)(void) {
     PyObject *m;
 
     // Initialize the port_instance type
@@ -823,8 +803,7 @@ GEN_NAME(PyInit_,MODULE_NAME)(void)
 /**
  * A function that destroys action capsules
  **/
-void destroy_action_capsule(PyObject* capsule)
-{
+void destroy_action_capsule(PyObject* capsule) {
     free(PyCapsule_GetPointer(capsule, "action"));
 }
 
@@ -843,17 +822,16 @@ void destroy_action_capsule(PyObject* capsule)
  * set to None and is_present is set to false.
  * Individual ports can then later be accessed in Python code as port[idx].
  */
-PyObject* convert_C_port_to_py(void* port, int width)
-{
+PyObject* convert_C_port_to_py(void* port, int width) {
     generic_port_instance_struct* cport;
-    if(width == -2)
+    if (width == -2)
     {
         // Not a multiport
         cport = (generic_port_instance_struct *)port;
     }
     // Create the action struct in Python
     PyObject* cap = PyObject_GC_New(generic_port_capsule_struct, &port_capsule_t);
-    if(cap == NULL)
+    if (cap == NULL)
     {
         fprintf(stderr, "Failed to convert port.\n");
         exit(1);
@@ -861,7 +839,7 @@ PyObject* convert_C_port_to_py(void* port, int width)
 
     // Create the capsule to hold the void* port
     PyObject* capsule = PyCapsule_New(port, "port", NULL);
-    if(capsule == NULL)
+    if (capsule == NULL)
     {
         fprintf(stderr, "Failed to convert port.\n");
         exit(1);
@@ -871,12 +849,12 @@ PyObject* convert_C_port_to_py(void* port, int width)
     ((generic_port_capsule_struct*)cap)->port = capsule;
     ((generic_port_capsule_struct*)cap)->width = width;
 
-    if(width == -2)
+    if (width == -2)
     {
         ((generic_port_capsule_struct*)cap)->is_present = cport->is_present;
 
 
-        if(cport->value == NULL)
+        if (cport->value == NULL)
         {
             // Value is absent
             Py_INCREF(Py_None);
@@ -917,17 +895,16 @@ PyObject* convert_C_port_to_py(void* port, int width)
  * This encapsulation is done by calling PyCapsule_New(action, "name_of_the_container_in_the_capsule", NULL), 
  * where "name_of_the_container_in_the_capsule" is an agreed-upon container name inside the capsule. This 
  * capsule can then be treated as a PyObject* and safely passed through Python code. On the other end 
- * (which is in schedule functions), PyCapsule_GetPointer(recieved_action,"action") can be called to retrieve 
- * the void* pointer into recieved_action.
+ * (which is in schedule functions), PyCapsule_GetPointer(received_action,"action") can be called to retrieve 
+ * the void* pointer into received_action.
  **/
-PyObject* convert_C_action_to_py(void* action)
-{
+PyObject* convert_C_action_to_py(void* action) {
     // Convert to trigger_t
     trigger_t* trigger = _lf_action_to_trigger(action);
 
     // Create the action struct in Python
     PyObject* cap = PyObject_GC_New(generic_action_capsule_struct, &action_capsule_t);
-    if(cap == NULL)
+    if (cap == NULL)
     {
         fprintf(stderr, "Failed to convert action.\n");
         exit(1);
@@ -935,7 +912,7 @@ PyObject* convert_C_action_to_py(void* action)
 
     // Create the capsule to hold the void* action
     PyObject* capsule = PyCapsule_New(action, "action", NULL);
-    if(capsule == NULL)
+    if (capsule == NULL)
     {
         fprintf(stderr, "Failed to convert action.\n");
         exit(1);
@@ -946,7 +923,7 @@ PyObject* convert_C_action_to_py(void* action)
     ((generic_action_capsule_struct*)cap)->is_present = trigger->is_present;
 
     // If token is not initialized, that is all we need to set
-    if(trigger->token == NULL)
+    if (trigger->token == NULL)
     {
         Py_INCREF(Py_None);
         ((generic_action_capsule_struct*)cap)->value = Py_None;
@@ -954,7 +931,7 @@ PyObject* convert_C_action_to_py(void* action)
     }
 
     // Default value is None
-    if(trigger->token->value == NULL)
+    if (trigger->token->value == NULL)
     {
         Py_INCREF(Py_None);
         trigger->token->value = Py_None;
@@ -985,13 +962,12 @@ PyObject* convert_C_action_to_py(void* action)
  * @param pArgs the PyList of arguments to be sent to function func()
  */
 PyObject*
-get_python_function(string module, string class, int instance_id, string func)
-{
+get_python_function(string module, string class, int instance_id, string func) {
 
     // Set if the interpreter is already initialized
     int is_initialized = 0;
 
-    if(Py_IsInitialized())
+    if (Py_IsInitialized())
     {
         is_initialized = 1;
     }
@@ -1013,14 +989,14 @@ get_python_function(string module, string class, int instance_id, string func)
 #endif
 
     // If the Python module is already loaded, skip this.
-    if(globalPythonModule == NULL)
+    if (globalPythonModule == NULL)
     {    
         // Decode the MODULE name into a filesystem compatible string
         pFileName = PyUnicode_DecodeFSDefault(module);
         
         // Set the Python search path to be the current working directory
         char cwd[PATH_MAX];
-        if( getcwd(cwd, sizeof(cwd)) == NULL)
+        if ( getcwd(cwd, sizeof(cwd)) == NULL)
         {
             fprintf(stderr, "Failed to get the current working directory.\n");
             exit(0);
@@ -1049,7 +1025,7 @@ get_python_function(string module, string class, int instance_id, string func)
         if (pModule != NULL) {
             // Get contents of module. pDict is a borrowed reference.
             pDict = PyModule_GetDict(pModule);
-            if(pDict == NULL)
+            if (pDict == NULL)
             {
                 PyErr_Print();
                 fprintf(stderr, "Failed to load contents of module %s.\n", module);
@@ -1064,7 +1040,7 @@ get_python_function(string module, string class, int instance_id, string func)
         }
     }
 
-    if(globalPythonModule != NULL && globalPythonModuleDict != NULL)
+    if (globalPythonModule != NULL && globalPythonModuleDict != NULL)
     {
         Py_INCREF(globalPythonModule);
         // Convert the class name to a PyObject
@@ -1073,7 +1049,7 @@ get_python_function(string module, string class, int instance_id, string func)
         // Get the class list
         Py_INCREF(globalPythonModuleDict);
         pClasses = PyDict_GetItem(globalPythonModuleDict, list_name);
-        if(pClasses == NULL){
+        if (pClasses == NULL){
             PyErr_Print();
             fprintf(stderr, "Failed to load class list \"%s\" in module %s.\n", class, module);
             return 1;
@@ -1082,7 +1058,7 @@ get_python_function(string module, string class, int instance_id, string func)
         Py_DECREF(globalPythonModuleDict);
 
         pClass = PyList_GetItem(pClasses, instance_id);
-        if(pClass == NULL){
+        if (pClass == NULL){
             PyErr_Print();
             fprintf(stderr, "Failed to load class \"%s[%d]\" in module %s.\n", class, instance_id, module);
             return 1;
@@ -1130,7 +1106,7 @@ get_python_function(string module, string class, int instance_id, string func)
     printf("Done with start()\n");
 #endif
 
-    if(is_initialized == 0)
+    if (is_initialized == 0)
     {
         /* We are the first to initilize the Pyton interpreter. Destroy it when done. */
         Py_FinalizeEx();

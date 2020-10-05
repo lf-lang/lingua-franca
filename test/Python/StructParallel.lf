@@ -3,6 +3,10 @@
 target Python {files: ["include/hello.py"]};
 import Source from "StructScale.lf";
 
+preamble {=
+import hello
+=}
+
 reactor Check(expected(42)) {
     input _in;
     reaction(_in) {=
