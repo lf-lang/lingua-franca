@@ -1,0 +1,24 @@
+// Test that two simultaneous triggers don't cause 
+// a reaction to execute twice at the same tag.
+target Cpp;
+
+main reactor DoubleTrigger {
+	timer t1;
+	timer t2;
+	state s:int(0);
+	reaction(t1, t2) {=
+        s++;
+        if (s > 1) {
+            std::cout << "FAILURE: Reaction got triggered twice." << std::endl;
+            exit(1);
+        }
+    =}
+    reaction(shutdown) {=
+        if (s == 1) {            
+        	std::cout << "SUCCESS" << std::endl;
+        } else {
+            std::cerr << "FAILURE: Reaction was never triggered." << std::endl;
+            exit(1);
+        }
+    =}
+}
