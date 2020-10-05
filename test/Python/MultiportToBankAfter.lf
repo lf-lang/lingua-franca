@@ -14,7 +14,7 @@ reactor Destination {
     input _in;
     state received(false);
     reaction(_in) {=
-        print("Destination {:d} received {:d}.\n".format(self.bank_index, _in.value))
+        print("Destination {:d} received {:d}.".format(self.bank_index, _in.value))
         if self.bank_index != _in.value:
             sys.stderr.write("ERROR: Expected {:d}.\n".format(self.bank_index))
             exit(1)
