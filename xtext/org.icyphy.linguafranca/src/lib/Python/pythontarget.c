@@ -60,26 +60,22 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param args contains:
  *      @param val The value to insert into the port struct.
  */
-static PyObject* py_SET(PyObject *self, PyObject *args)
-{
+static PyObject* py_SET(PyObject *self, PyObject *args) {
     generic_port_capsule_struct* p = (generic_port_capsule_struct*)self;
     PyObject* val, *tmp;
 
-    if (!PyArg_ParseTuple(args, "O", &val))
-    {
+    if (!PyArg_ParseTuple(args, "O", &val))     {
         PyErr_SetString(PyExc_TypeError, "Could not set objects.");
         return NULL;
     }
 
     generic_port_instance_struct* port = PyCapsule_GetPointer(p->port, "port");
-    if (port == NULL)
-    {
+    if (port == NULL) {
         fprintf(stderr, "Null pointer received.\n");
         exit(1);
     }
     
-    if (val)
-    {   
+    if (val) {   
         tmp = port->value;
         Py_INCREF(val);
         _LF_SET(port, val);
@@ -127,8 +123,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args) {
         return NULL;
     
     void* action = PyCapsule_GetPointer(act->action,"action");
-    if (action == NULL)
-    {
+    if (action == NULL) {
         fprintf(stderr, "Null pointer received.\n");
         exit(1);
     }
@@ -137,8 +132,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args) {
     token_t* t = NULL;
 
     // Check to see if value exists and token is not NULL
-    if (value && (trigger->token != NULL))
-    {
+    if (value && (trigger->token != NULL)) {
         // DEBUG: adjust the element_size (might not be necessary)
         trigger->token->element_size = sizeof(PyObject*);
         trigger->element_size = sizeof(PyObject*);
@@ -175,8 +169,7 @@ static PyObject* py_schedule_copy(PyObject *self, PyObject *args) {
         return NULL;
 
     void* action = PyCapsule_GetPointer(act->action,"action");
-    if (action == NULL)
-    {
+    if (action == NULL) {
         fprintf(stderr, "Null pointer received.\n");
         exit(1);
     }
@@ -304,22 +297,19 @@ port_iter(PyObject *self) {
     generic_port_capsule_struct* pyport = (generic_port_capsule_struct*)self->ob_type->tp_new(self->ob_type, NULL, NULL);
     long long index = port->current_index;
 
-    if (port->current_index == port->width)
-    {
+    if (port->current_index == port->width) {
         port->current_index = 0;
         return NULL;
     }
 
-    if (port->width == -2)
-    {
+    if (port->width == -2) {
         PyErr_Format(PyExc_TypeError,
                 "Non-multiport type is not iteratable.");
         return NULL;
     }
 
     generic_port_instance_struct **cport = (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
-    if (cport == NULL)
-    {
+    if (cport == NULL) {
         fprintf(stderr, "Null pointer received.\n");
         exit(1);
     }
@@ -549,12 +539,11 @@ action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObjec
     PyObject *action = NULL, *value = NULL, *tmp;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "|OOi", kwlist,
-                                     &action, &value, &self->is_present))
-    {
+                                     &action, &value, &self->is_present)) {
         return -1;
     }
     
-    if (action){
+    if (action) {
         tmp = self->action;
         Py_INCREF(action);
         self->action = action;
@@ -562,7 +551,7 @@ action_capsule_init(generic_action_capsule_struct *self, PyObject *args, PyObjec
     }
 
 
-    if (value){
+    if (value) {
         tmp = self->value;
         Py_INCREF(value);
         self->value = value;
@@ -750,21 +739,25 @@ GEN_NAME(PyInit_,MODULE_NAME)(void) {
     PyObject *m;
 
     // Initialize the port_instance type
-    if (PyType_Ready(&port_capsule_t) < 0)
+    if (PyType_Ready(&port_capsule_t) < 0) {
         return NULL;
+    }
 
     // Initialize the port_instance_token type
-    if (PyType_Ready(&port_instance_token_t) < 0)
+    if (PyType_Ready(&port_instance_token_t) < 0) {
         return NULL;
+    }
 
     // Initialize the action_capsule type
-    if (PyType_Ready(&action_capsule_t) < 0)
+    if (PyType_Ready(&action_capsule_t) < 0) {
         return NULL;
+    }
 
     m = PyModule_Create(&MODULE_NAME);
 
-    if (m == NULL)
+    if (m == NULL) {
         return NULL;
+    }
 
     // Add the port_instance type to the module's dictionary
     Py_INCREF(&port_capsule_t);
@@ -824,23 +817,20 @@ void destroy_action_capsule(PyObject* capsule) {
  */
 PyObject* convert_C_port_to_py(void* port, int width) {
     generic_port_instance_struct* cport;
-    if (width == -2)
-    {
+    if (width == -2) {
         // Not a multiport
         cport = (generic_port_instance_struct *)port;
     }
     // Create the action struct in Python
     PyObject* cap = PyObject_GC_New(generic_port_capsule_struct, &port_capsule_t);
-    if (cap == NULL)
-    {
+    if (cap == NULL) {
         fprintf(stderr, "Failed to convert port.\n");
         exit(1);
     }
 
     // Create the capsule to hold the void* port
     PyObject* capsule = PyCapsule_New(port, "port", NULL);
-    if (capsule == NULL)
-    {
+    if (capsule == NULL) {
         fprintf(stderr, "Failed to convert port.\n");
         exit(1);
     }
@@ -849,13 +839,11 @@ PyObject* convert_C_port_to_py(void* port, int width) {
     ((generic_port_capsule_struct*)cap)->port = capsule;
     ((generic_port_capsule_struct*)cap)->width = width;
 
-    if (width == -2)
-    {
+    if (width == -2) {
         ((generic_port_capsule_struct*)cap)->is_present = cport->is_present;
 
 
-        if (cport->value == NULL)
-        {
+        if (cport->value == NULL) {
             // Value is absent
             Py_INCREF(Py_None);
             ((generic_action_capsule_struct*)cap)->value = Py_None;
@@ -865,8 +853,7 @@ PyObject* convert_C_port_to_py(void* port, int width) {
         //Py_INCREF(cport->value);
         ((generic_port_capsule_struct*)cap)->value = cport->value;
     }
-    else
-    {
+    else {
         // Value is absent
         Py_INCREF(Py_None);
         ((generic_action_capsule_struct*)cap)->value = Py_None;
@@ -904,16 +891,14 @@ PyObject* convert_C_action_to_py(void* action) {
 
     // Create the action struct in Python
     PyObject* cap = PyObject_GC_New(generic_action_capsule_struct, &action_capsule_t);
-    if (cap == NULL)
-    {
+    if (cap == NULL) {
         fprintf(stderr, "Failed to convert action.\n");
         exit(1);
     }
 
     // Create the capsule to hold the void* action
     PyObject* capsule = PyCapsule_New(action, "action", NULL);
-    if (capsule == NULL)
-    {
+    if (capsule == NULL) {
         fprintf(stderr, "Failed to convert action.\n");
         exit(1);
     }
@@ -923,16 +908,14 @@ PyObject* convert_C_action_to_py(void* action) {
     ((generic_action_capsule_struct*)cap)->is_present = trigger->is_present;
 
     // If token is not initialized, that is all we need to set
-    if (trigger->token == NULL)
-    {
+    if (trigger->token == NULL) {
         Py_INCREF(Py_None);
         ((generic_action_capsule_struct*)cap)->value = Py_None;
         return cap;
     }
 
     // Default value is None
-    if (trigger->token->value == NULL)
-    {
+    if (trigger->token->value == NULL) {
         Py_INCREF(Py_None);
         trigger->token->value = Py_None;
     }
@@ -967,8 +950,7 @@ get_python_function(string module, string class, int instance_id, string func) {
     // Set if the interpreter is already initialized
     int is_initialized = 0;
 
-    if (Py_IsInitialized())
-    {
+    if (Py_IsInitialized()) {
         is_initialized = 1;
     }
 
@@ -989,8 +971,7 @@ get_python_function(string module, string class, int instance_id, string func) {
 #endif
 
     // If the Python module is already loaded, skip this.
-    if (globalPythonModule == NULL)
-    {    
+    if (globalPythonModule == NULL) {    
         // Decode the MODULE name into a filesystem compatible string
         pFileName = PyUnicode_DecodeFSDefault(module);
         
@@ -1025,8 +1006,7 @@ get_python_function(string module, string class, int instance_id, string func) {
         if (pModule != NULL) {
             // Get contents of module. pDict is a borrowed reference.
             pDict = PyModule_GetDict(pModule);
-            if (pDict == NULL)
-            {
+            if (pDict == NULL) {
                 PyErr_Print();
                 fprintf(stderr, "Failed to load contents of module %s.\n", module);
                 return 1;
@@ -1040,8 +1020,7 @@ get_python_function(string module, string class, int instance_id, string func) {
         }
     }
 
-    if (globalPythonModule != NULL && globalPythonModuleDict != NULL)
-    {
+    if (globalPythonModule != NULL && globalPythonModuleDict != NULL) {
         Py_INCREF(globalPythonModule);
         // Convert the class name to a PyObject
         PyObject* list_name = PyUnicode_DecodeFSDefault(class);
@@ -1058,7 +1037,7 @@ get_python_function(string module, string class, int instance_id, string func) {
         Py_DECREF(globalPythonModuleDict);
 
         pClass = PyList_GetItem(pClasses, instance_id);
-        if (pClass == NULL){
+        if (pClass == NULL) {
             PyErr_Print();
             fprintf(stderr, "Failed to load class \"%s[%d]\" in module %s.\n", class, instance_id, module);
             return 1;
@@ -1077,16 +1056,14 @@ get_python_function(string module, string class, int instance_id, string func) {
 
         // Check if the funciton is loaded properly
         // and if it is callable
-        if (pFunc && PyCallable_Check(pFunc))
-        {
+        if (pFunc && PyCallable_Check(pFunc)) {
 #ifdef VERBOSE
             printf("Attempting to call function %s from class %s[%d].\n", func , class, instance_id);
 #endif
             Py_INCREF(pFunc);
             return pFunc;
         }
-        else
-        {
+        else {
             // Function is not found or it is not callable
             if (PyErr_Occurred())
             {
@@ -1106,8 +1083,7 @@ get_python_function(string module, string class, int instance_id, string func) {
     printf("Done with start()\n");
 #endif
 
-    if (is_initialized == 0)
-    {
+    if (is_initialized == 0) {
         /* We are the first to initilize the Pyton interpreter. Destroy it when done. */
         Py_FinalizeEx();
     }

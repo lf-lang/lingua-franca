@@ -11,7 +11,7 @@ main reactor ImportComposition {
     =}
     reaction(a.y) {=
         receive_time = get_elapsed_logical_time()
-        print("Received {:d} at time {:d}\n".format(a.y.value, receive_time))
+        print("Received {:d} at time {:d}".format(a.y.value, receive_time))
         self.received = True
         if receive_time != 55000000:
             sys.stderr.write("ERROR: Received time should have been 55,000,000.\n")

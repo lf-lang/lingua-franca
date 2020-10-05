@@ -33,7 +33,7 @@ reactor Destination {
             sys.stderr.write("ERROR: Destination received no input!\n")
             exit(1)
 
-        print("Success.\n")
+        print("Success.")
     =}
 }
 

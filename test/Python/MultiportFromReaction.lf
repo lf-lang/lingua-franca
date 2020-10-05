@@ -32,10 +32,10 @@ main reactor MultiportFromReaction {
     b = new Destination(width = 4);
     reaction(t) -> b._in {=
         for i in range(len(b._in)):
-            print("Before SET, b.in[{:d}].is_present has value {:d}\n".format(i, b._in[i].is_present))
+            print("Before SET, b.in[{:d}].is_present has value {:d}".format(i, b._in[i].is_present))
             b._in[i].set(self.s)
             self.s += 1
-            print("AFTER set, b.in[{:d}].is_present has value {:d}\n".format(i, b._in[i].is_present))
-            print("AFTER set, b.in[{:d}].value has value {:d}\n".format(i, b._in[i].value))
+            print("AFTER set, b.in[{:d}].is_present has value {:d}".format(i, b._in[i].is_present))
+            print("AFTER set, b.in[{:d}].value has value {:d}".format(i, b._in[i].value))
     =}
 }
