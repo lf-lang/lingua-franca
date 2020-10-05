@@ -471,7 +471,7 @@ void handle_address_query(federate_t* fed) {
     assert(federates[remote_fed_id].server_port < 65536);
     if(federates[remote_fed_id].server_port == -1)
     {
-        printf("Warning: RTI received request for a federate %d server that does not exist yet.\n", remote_fed_id);
+        debug_print("Warning: RTI received request for a federate %d server that does not exist yet.\n", remote_fed_id);
     }
     // Retrieve the port
     encode_int(federates[remote_fed_id].server_port, (unsigned char*)buffer);
