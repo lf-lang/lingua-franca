@@ -569,7 +569,7 @@ class CGenerator extends GeneratorBase {
 
                     pr('''// Initialize the array of sockets.''')
                     pr('''federate_sockets = (int*)malloc(«federates.length» * sizeof(int));''')
-                    // pr('''memset(federate_sockets, -1, «federates.length» * sizeof(int));''')
+                    pr('''memset(federate_sockets, -1, «federates.length» * sizeof(int));''')
                     pr('''// Connect to the RTI. This sets rti_socket.''');
                     pr('''connect_to_rti(«federate.id», "«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);''')
 
@@ -577,7 +577,16 @@ class CGenerator extends GeneratorBase {
                         pr('''// Create a socket server to listen to other federates.''')
                         pr('''server_socket = create_server(«federate.port», «federationRTIProperties.get('port')», «federate.id»);''')
                         pr('''// Connect to remote federates for each physical connection''')
-                        pr('''connect_to_federates(«federate.inboundPhysicalConnections.length»);''');
+                        pr('''
+                        pthread_t thread_id;
+                        int *arg = malloc(sizeof(*arg));
+                        if ( arg == NULL ) {
+                            fprintf(stderr, "Couldn't allocate memory for thread arg.\n");
+                            exit(EXIT_FAILURE);
+                        }
+                        int num_inbound_physical_connections = «federate.inboundPhysicalConnections.length»;
+                        *arg = num_inbound_physical_connections;
+                        pthread_create(&thread_id, NULL, connect_to_federates, arg);''');
                     }
                                         
                                     
@@ -587,6 +596,13 @@ class CGenerator extends GeneratorBase {
                         } else {
                             pr('''connect_to_federate(«remoteFederate.id», "localhost");''')
                         }
+                    }
+                    
+                    if (federate.inboundPhysicalConnections.length > 0) {
+                        pr('''// Wait for all remote federates to connect''')
+                        pr('''
+                        void* thread_exit_status;
+                        pthread_join(thread_id, thread_exit_status);''')                        
                     }
 
                 }
