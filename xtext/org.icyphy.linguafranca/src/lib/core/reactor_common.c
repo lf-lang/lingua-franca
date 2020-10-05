@@ -490,10 +490,15 @@ void __pop_events() {
 
         // Push the corresponding reactions onto the reaction queue.
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            // printf("DEBUG: Pushed on reaction_q: %p\n", event->trigger->reactions[i]);
-            pqueue_insert(reaction_q, event->trigger->reactions[i]);
+            // printf("DEBUG: Pushed onto reaction_q: %p\n", event->trigger->reactions[i]);
+            reaction_t* reaction = event->trigger->reactions[i];
+            // Do not enqueue this reaction twice.
+            if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                // printf("DEBUG: Enqueing reaction %p.\n", reaction);
+                pqueue_insert(reaction_q, reaction);
+            }
         }
-        // If the trigger is a periodic clock, create a new event for its next execution.
+        // If the trigger is a periodic timer, create a new event for its next execution.
         if (event->trigger->is_timer && event->trigger->period > 0LL) {
             // Reschedule the trigger.
             // Note that the delay here may be negative because the __schedule
@@ -572,7 +577,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     if (token != NULL) {
         // printf("DEBUG: __schedule: payload at %p.\n", token->value);
     }
-
+    
 	// The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
     // payload will be freed, if there is one.
@@ -631,48 +636,59 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // had no event, or if no MIT has been specified (it has to be strictly
     // greater than zero).
     event_t* existing = (event_t*)(trigger->last);
-    bool replaced = false;
-    if (existing != NULL && trigger->period > 0) {
+    
+    if (existing != NULL && min_inter_arrival > 0) {
         // The earliest time at which the event can be scheduled depends
         // on the tag of the last event
         instant_t earliest_time = existing->time + min_inter_arrival;
-        instant_t logical_time = get_logical_time();
+        //printf("DEBUG: >>> check MIT <<<\n");
+        //printf("DEBUG: earliest: %lld, tag: %lld\n", earliest_time, tag);
         // If the event is early, see which policy applies.
         if (earliest_time > tag) {
+            //printf("DEBUG: >>> early <<<\n");
             switch(trigger->policy) {
                 case drop:
+                    //printf("DEBUG: >>> drop <<<\n");
                     // Recycle the new event and the token.
                     if (existing->token != token) __done_using(token);
                     e->token = NULL;
                     pqueue_insert(recycle_q, e);
                     return(0);
                 case replace:
+                    //printf("DEBUG: >>> replace <<<\n");
                     // If the existing event has not been handled yet, update it.
                     //
-                    // Caution: because microsteps are not explicit, we cannot determine
-                    // whether the event has been handled yet if the tag is equal. Only
-                    // if we can find it in the queue can be we certain that it hasn't
+                    // NOTE: Because microsteps are not explicit, if the tag of
+                    // the preceding event is equal to the current time, then
+                    // we cannot determine solely based on the tag whether the
+                    // event has been handled or not. Only if we can find it 
+                    // in the queue can be we certain that it hasn't
                     // yet been handled.
-                    if (existing->time > logical_time || 
-                            (existing->time == logical_time && 
-                            pqueue_find_equal_same_priority(event_q, e) != NULL)) {
+                    if (existing->time > current_time || 
+                            (existing->time == current_time &&
+                            pqueue_find_equal_same_priority(event_q, existing) != NULL)) {
                         // Recycle the existing token and the new event
                         if (existing->token != token) __done_using(existing->token);
                         // Update the token of the existing event.
                         existing->token = token;
                         pqueue_insert(recycle_q, e);
-                        replaced = true;
                         return(0);
                     }
-                    // If the preceding event has already been handled, 
-                    // fall trought this case and defer the event.
+                    // If the preceding event _has_ been handled, then fall
+                    // through this case and adjust the tag to defer the event.
                 default:
+                    //printf("DEBUG: >>> defer <<<\n");
                     // Adjust the tag.
                     tag = earliest_time;
                     break;
             }
         }
     }
+
+    // If a logical action is scheduled asynchronously (which should never be
+    // done) the computed tag can be smaller than the current tag, in which case
+    // it needs to be adjusted.
+    // FIXME: Detect the use of logical actions asynchronously and print a better warning.
     if (tag < current_time) {
         fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
                 "Revising request to the current time %lld.\n", current_time - tag, current_time);
@@ -695,11 +711,10 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         return(0);
     }
 
-    // Handle duplicate events for logical actions (events with the same tag).
-    // This replaces the previous payload with the new one.
-    // If this is a physical action or if the payload has already been replaced
-    // due to an MIT violation, skip.
-    if (!replaced && !trigger->is_physical) {
+    // Check for collisions only if no MIT is specified.
+    // If this event collides with an existing event in the queue,
+    // then update its payload using that of the new event.
+    if (!(trigger->is_timer || min_inter_arrival > 0)) {
         event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
             // Free the previous payload.
@@ -710,11 +725,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             pqueue_insert(recycle_q, e);
             return(0);
         }
+    } else {
+        // Store a pointer to the current event in order to check the MIT
+        // between this and the following event. Only necessary for actions
+        // that actually specify an MIT.
+        trigger->last = (event_t*)e;
     }
-
-    // Store a pointer to the current event in order to check the MIT between
-    // this and the following event.
-    trigger->last = (event_t*)e;
 
     // Queue the event.
     // NOTE: There is no need for an explicit microstep because

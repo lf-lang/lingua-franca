@@ -49,6 +49,7 @@ DistributedToken.lf
 DoubleInvocation.lf
 DoubleReaction.lf
 DoubleReactionThreaded.lf
+DoubleTrigger.lf
 Gain.lf
 GainThreaded.lf
 GenericDelay.lf
