@@ -73,7 +73,6 @@ import org.icyphy.linguafranca.diagram.synthesis.styles.ReactorFigureComponents
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.ASTUtils.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import org.icyphy.linguaFranca.Policy
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -677,7 +676,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			if (action.minSpacing !== null) {
                 node.addOutsideBottomCenteredNodeLabel('''min spacing: «action.minSpacing.toText»''', 7)
             }
-            if (action.policy !== Policy.NONE) {
+            if (!action.policy.isNullOrEmpty) {
                 node.addOutsideBottomCenteredNodeLabel('''policy: «action.policy»''', 7)
             }
 			
