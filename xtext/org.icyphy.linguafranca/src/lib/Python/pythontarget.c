@@ -64,7 +64,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
     generic_port_capsule_struct* p = (generic_port_capsule_struct*)self;
     PyObject* val, *tmp;
 
-    if (!PyArg_ParseTuple(args, "O", &val))     {
+    if (!PyArg_ParseTuple(args, "O", &val)) {
         PyErr_SetString(PyExc_TypeError, "Could not set objects.");
         return NULL;
     }
