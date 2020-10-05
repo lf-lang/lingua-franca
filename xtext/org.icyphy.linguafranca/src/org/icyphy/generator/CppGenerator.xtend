@@ -57,7 +57,6 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.ASTUtils
 import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 import com.google.inject.Inject
-import org.icyphy.linguaFranca.Policy
 
 /** Generator for C++ target.
  * 
@@ -575,7 +574,7 @@ class CppGenerator extends GeneratorBase {
 
     def initialize(Action a) {
         if (a.origin == ActionOrigin.LOGICAL) {
-            if (a.minSpacing !== null || a.policy != Policy.NONE) {
+            if (a.minSpacing !== null || !a.policy.isNullOrEmpty) {
                 a.reportError(
                     "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!");
             } else if (a.minDelay !== null) {
@@ -584,7 +583,7 @@ class CppGenerator extends GeneratorBase {
                 ''', «a.name»{"«a.name»", this}'''
             }
         } else {
-            if (a.minDelay !== null || a.minSpacing !== null || a.policy != Policy.NONE) {
+            if (a.minDelay !== null || a.minSpacing !== null || !a.policy.isNullOrEmpty) {
                 a.reportError(
                     "minDelay, minSpacing and spacing violation policies are not yet supported for physical actions in reactor-ccp!");
             } else {

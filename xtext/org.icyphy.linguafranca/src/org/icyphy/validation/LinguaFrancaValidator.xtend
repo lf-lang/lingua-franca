@@ -1,7 +1,7 @@
 /* Validation checks for Lingua Franca code. */
 
 /*************
- * Copyright (c) 2019, The University of California at Berkeley.
+ * Copyright (c) 2019-2020, The University of California at Berkeley.
 
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -130,6 +130,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
 
+    static val spacingViolationPolicies = #['defer', 'drop', 'replace']
+
     @Check
     def checkImportedReactor(ImportedReactor reactor) {
         if (reactor.unused) {
@@ -251,6 +253,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 "Action must have modifier `logical` or `physical`.",
                 Literals.ACTION__ORIGIN
             )
+        }
+        if (action.policy !== null &&
+            !spacingViolationPolicies.contains(action.policy)) {
+            error(
+                "Unrecognized spacing violation policy: " + action.policy +
+                    ". Available policies are: " +
+                    spacingViolationPolicies.join(", ") + ".",
+                Literals.ACTION__POLICY)
         }
     }
 
@@ -604,8 +614,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             if (!TargetProperties.isValidName(param.name)) {
                 warning(
                     "Unrecognized target parameter: " + param.name +
-                        ". Recognized parameters are " +
-                        TargetProperties.values().join(", "),
+                        ". Recognized parameters are: " +
+                        TargetProperties.values().join(", ") + ".",
                     Literals.KEY_VALUE_PAIR__NAME)
             }
             val prop = TargetProperties.get(param.name)

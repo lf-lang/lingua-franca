@@ -327,7 +327,7 @@ public enum Targets {
     public final static Targets[] ALL = Targets.values();
     
     /**
-     * 
+     * All target properties along with a list of targets that supports them.
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum TargetProperties {
