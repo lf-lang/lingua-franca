@@ -171,11 +171,11 @@ terminal FALSE:
 // minDelay is a minimum logical delay after the physical time
 // at which schedule() is called that the action will occur.
 //
-// For all actions, minInterArrival is the minimum physical time
-// to elapse between action occurrences.
+// For all actions, minSpacing is the minimum difference between
+// the tags of two subsequently scheduled events.
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
-    ('(' minDelay=Value (',' minInterArrival=Value (',' policy=Policy)? )? ')')?
+    ('(' minDelay=Value (',' minSpacing=Value (',' policy=Policy)? )? ')')?
     (':' type=Type)? ';';
 
 Reaction:

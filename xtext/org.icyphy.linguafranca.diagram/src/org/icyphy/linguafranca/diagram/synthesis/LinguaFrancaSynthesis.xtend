@@ -674,8 +674,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			if (action.minDelay !== null) {
 				node.addOutsideBottomCenteredNodeLabel('''min delay: «action.minDelay.toText»''', 7)
 			}
-			if (action.minInterArrival !== null) {
-                node.addOutsideBottomCenteredNodeLabel('''min spacing: «action.minInterArrival.toText»''', 7)
+			if (action.minSpacing !== null) {
+                node.addOutsideBottomCenteredNodeLabel('''min spacing: «action.minSpacing.toText»''', 7)
             }
             if (action.policy !== Policy.NONE) {
                 node.addOutsideBottomCenteredNodeLabel('''policy: «action.policy»''', 7)

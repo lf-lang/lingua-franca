@@ -71,13 +71,13 @@ class ActionInstance extends TriggerInstance<Variable> {
                 this.minDelay = definition.minDelay.timeValue
             }
         }
-        if (definition.minInterArrival !== null) {
-            if (definition.minInterArrival.parameter !== null) {
-                val parm = definition.minInterArrival.parameter
+        if (definition.minSpacing !== null) {
+            if (definition.minSpacing.parameter !== null) {
+                val parm = definition.minSpacing.parameter
                 this.minInterArrival = parent.lookupParameterInstance(parm).init.
                     get(0).getTimeValue
             } else {
-                this.minInterArrival = definition.minInterArrival.timeValue
+                this.minInterArrival = definition.minSpacing.timeValue
             }
         }
     }
