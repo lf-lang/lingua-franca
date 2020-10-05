@@ -598,7 +598,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     interval_t tag = current_time + delay;
     // printf("DEBUG: __schedule: current_time = %lld.\n", current_time);
     // printf("DEBUG: __schedule: total logical delay = %lld.\n", delay);
-    interval_t min_inter_arrival = trigger->period;
+    interval_t min_spacing = trigger->period;
 
     // Get an event_t struct to put on the event queue.
     // Recycle event_t structs, if possible.    
@@ -635,9 +635,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     }
 
     // Check to see whether the event is early based on the minimum
-    // interarrival time. This check is not needed if this action has
-    // had no event, or if no MIT has been specified (it has to be strictly
-    // greater than zero).
+    // spacing requirement. This check is not needed if this action has
+    // had no event, or if no min spacing has been specified (it has to be
+    // strictly greater than zero).
     // NOTE: This pointer to the prior event gets used only if that event
     // is still on the event queue and hence has not been recycled.
     // WARNING: If provide a mechanism for unscheduling, we can no longer
@@ -645,11 +645,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // it has been recycled.
     event_t* existing = (event_t*)(trigger->last);
     
-    if (existing != NULL && min_inter_arrival > 0) {
+    if (existing != NULL && min_spacing > 0) {
         // The earliest time at which the event can be scheduled depends
         // on the tag of the last event
-        instant_t earliest_time = existing->time + min_inter_arrival;
-        //printf("DEBUG: >>> check MIT <<<\n");
+        instant_t earliest_time = existing->time + min_spacing;
+        //printf("DEBUG: >>> check min spacing <<<\n");
         //printf("DEBUG: earliest: %lld, tag: %lld\n", earliest_time, tag);
         // If the event is early, see which policy applies.
         if (earliest_time > tag) {
@@ -721,14 +721,14 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         return(0);
     }
 
-    // Check for collisions only if no MIT is specified.
+    // Check for collisions only if no min spacing is specified.
     // If this event collides with an existing event in the queue,
     // then update its payload using that of the new event.
     // FIXME: Alternatively, we could make the default spacing be zero,
     // which would enforce monotonic behavior, and if you give a negative
     // spacing, then this would allow for (limited) nonmonotonic behavior.
     // QUESTION: what does it mean to have a defer policy with zero spacing?
-    if (!(trigger->is_timer || min_inter_arrival > 0)) {
+    if (!(trigger->is_timer || min_spacing > 0)) {
         event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
         if (existing != NULL) {
             // Free the previous payload.
@@ -740,9 +740,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             return(0);
         }
     } else {
-        // Store a pointer to the current event in order to check the MIT
+        // Store a pointer to the current event in order to check the min spacing
         // between this and the following event. Only necessary for actions
-        // that actually specify an MIT.
+        // that actually specify a min spacing.
         trigger->last = (event_t*)e;
     }
 
