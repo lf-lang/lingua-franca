@@ -681,8 +681,13 @@ void connect_to_federates(int socket_descriptor) {
 
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
+            if(buffer[0] == P2PMESSAGE) {
+                error_code = WRONG_SERVER;
+            }
+            else {
+                error_code = UNEXPECTED_MESSAGE;
+            }
             fprintf(stderr, "WARNING: RTI expected a FED_ID message. Got %u (see rti.h).\n", buffer[0]);
-            error_code = UNEXPECTED_MESSAGE;
         } else {
             fed_id = extract_ushort(buffer + 1);
             debug_print("RTI received federate ID: %d\n", fed_id);
