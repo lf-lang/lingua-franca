@@ -412,28 +412,30 @@ void* connect_to_federates(void *arg)
  * @param id The ID of the remote federate.
  * @param hostname A hostname, such as "localhost".
  */
-void connect_to_federate(ushort id, char* hostname) {
+void connect_to_federate(ushort id) {
     int result = -1;
     int count_retries = 0;
 
     // Ask the RTI for port number of the remote federate
-    unsigned char buffer[sizeof(int) + 1];
+    unsigned char buffer[sizeof(int) + INET_ADDRSTRLEN];
     int port = -1;
+    unsigned char hostname[INET_ADDRSTRLEN];
     while (1)
     {
         buffer[0] = ADDRESSQUERY;
         // NOTE: Sending messages in little endian.
         encode_ushort(id, &(buffer[1]));
 
-        debug_print("Sending address query for federate %d.\n", id);
+        //debug_print("Sending address query for federate %d.\n", id);
 
         write_to_socket(rti_socket, sizeof(ushort) + 1, buffer);
 
         // Read RIT's response
-        read_from_socket(rti_socket, sizeof(int), buffer);
+        read_from_socket(rti_socket, sizeof(int) + INET_ADDRSTRLEN, buffer);
 
         // FIXME: converting signed to unsigned
         port = extract_int(buffer);
+        strcpy(hostname, (unsigned char*)(&(buffer[sizeof(int)])));
 
         if (port == -1)
         {
@@ -454,7 +456,7 @@ void connect_to_federate(ushort id, char* hostname) {
     assert(port < 65536);
 
     
-    debug_print("Received port %d for federate %d from RTI.\n", port, id);
+    debug_print("Received address %s port %d for federate %d from RTI.\n", hostname, port, id);
 
 
     bool failure_message = false;
@@ -506,8 +508,8 @@ void connect_to_federate(ushort id, char* hostname) {
                         __my_fed_id, id, CONNECT_NUM_RETRIES);
                 exit(2);
             }
-            printf("Federate %d could not connect to federate %d at %s. Will try again every %d seconds.\n",
-                    __my_fed_id, id, hostname, CONNECT_RETRY_INTERVAL);
+            printf("Federate %d could not connect to federate %d. Will try again every %d seconds.\n",
+                    __my_fed_id, id, CONNECT_RETRY_INTERVAL);
             // Wait CONNECT_RETRY_INTERVAL seconds.
             struct timespec wait_time = {(time_t)CONNECT_RETRY_INTERVAL, 0L};
             struct timespec remaining_time;
@@ -526,13 +528,13 @@ void connect_to_federate(ushort id, char* hostname) {
             read_from_socket(federate_sockets[id], 1, (unsigned char *)&bf);
             if (bf[0] != ACK)
             {
-                debug_print("Received error message from remote federate.");
+                debug_print("Received error message from remote federate (%d).\n", bf[0]);
                 result = -1;
                 continue;
             }
             else
             {                
-                printf("Federate %d: connected to federate %d at %s, port %d.\n", __my_fed_id, id, hostname, port);
+                printf("Federate %d: connected to federate %d, port %d.\n", __my_fed_id, id, port);
             }
             
         }
@@ -632,8 +634,6 @@ void connect_to_rti(ushort id, char* hostname, int port) {
         } else {
             // Have connected to an RTI, but not sure it's the right RTI.
             // Send a FED_ID message and wait for a reply.
-            printf("Federate %d: connected to RTI at %s, port %d.\n", __my_fed_id, hostname, port);
-
             // Notify the RTI of the ID of this federate and its federation.
             unsigned char buffer[4];
 
@@ -663,7 +663,7 @@ void connect_to_rti(ushort id, char* hostname, int port) {
                 unsigned char cause;
                 bytes_read = read(rti_socket, &cause, 1);
                 if (cause == FEDERATION_ID_DOES_NOT_MATCH || cause == WRONG_SERVER) {
-                    printf("Federate %d connected to the wrong RTI on port %d. Trying %d", __my_fed_id, port, port + 1);
+                    printf("Federate %d connected to the wrong RTI on port %d. Trying %d.\n", __my_fed_id, port, port + 1);
                     port++;
                     result = -1;
                     continue;
@@ -671,6 +671,8 @@ void connect_to_rti(ushort id, char* hostname, int port) {
                 fprintf(stderr, "RTI Rejected FED_ID message with response (see rti.h): %d. Federate quits.\n", cause);
                 exit(1);
             }
+            printf("Federate %d: connected to RTI at %s:%d.\n", __my_fed_id, hostname, port);
+
         }
     }
 }
