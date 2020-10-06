@@ -6,7 +6,7 @@
  */
 target Python {
     timeout: 1 sec,
-    fast: true,
+    fast: true
 };
 main reactor SlowingClock {
     logical action a(100 msec);

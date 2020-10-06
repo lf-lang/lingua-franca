@@ -1,7 +1,7 @@
  // Check bank of reactors sending to bank of reactors with multiports.
 target Python {
     timeout: 2 sec,
-    fast: true,
+    fast: true
 };
 reactor Source(width(1)) {
     timer t(0, 200 msec);
