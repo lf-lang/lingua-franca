@@ -63,8 +63,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Policy
-import org.icyphy.linguaFranca.Preamble
 import org.icyphy.Targets
 
 /** 
