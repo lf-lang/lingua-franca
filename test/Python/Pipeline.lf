@@ -1,6 +1,5 @@
 target Python {
     timeout: 2 sec,
-    threads: 4
 };
 
 import TakeTime from "Threaded.lf";

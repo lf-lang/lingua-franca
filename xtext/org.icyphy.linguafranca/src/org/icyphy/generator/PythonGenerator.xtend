@@ -987,8 +987,12 @@ class PythonGenerator extends CGenerator {
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {        
-        
+    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+        // If there are federates, assign the number of threads in the CGenerator to 1        
+        if(federates.length > 1)
+        {
+            super.targetThreads = 1;
+        }
 
         super.doGenerate(resource, fsa, context)
 

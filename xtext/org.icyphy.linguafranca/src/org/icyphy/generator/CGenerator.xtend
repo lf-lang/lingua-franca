@@ -313,12 +313,6 @@ class CGenerator extends GeneratorBase {
      */
     var startTimeStepTokens = 0
 
-    /**
-     * To reduce memory usage, the self struct does not include
-     * the reactor instance's name. However, for languages such as Python,
-     * having a name is a desirable feature.
-     */
-    protected var addClassNameToSelfStruct = false
 
     // Place to collect code to initialize timers for all reactors.
     protected var startTimers = new StringBuilder()
