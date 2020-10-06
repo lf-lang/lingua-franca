@@ -457,59 +457,66 @@ void handle_stop_message(federate_t* fed) {
  * Handle address query messages.
  * @param fed The federate sending a STOP message.
  */
-void handle_address_query(federate_t* fed) {
-    debug_print("Received address query from %d\n", fed->id);
+void handle_address_query(ushort fed_id) {
 
-    unsigned char buffer[sizeof(int)];
-    int bytes_read = read_from_socket2(fed->socket, sizeof(ushort), (unsigned char*)buffer);
+    unsigned char buffer[sizeof(int) + INET_ADDRSTRLEN];
+    int bytes_read = read_from_socket2(federates[fed_id].socket, sizeof(ushort), (unsigned char*)buffer);
     if(bytes_read == 0)
     {
         error("Failed to read address query.\n");
     }
     ushort remote_fed_id = extract_ushort(buffer);
+    
+    debug_print("Received address query from %d for %d.\n", fed_id, remote_fed_id);
 
     assert(federates[remote_fed_id].server_port < 65536);
     if(federates[remote_fed_id].server_port == -1)
     {
-        debug_print("Warning: RTI received request for a federate %d server that does not exist yet.\n", remote_fed_id);
+        //debug_print("Warning: RTI received request for a federate %d server that does not exist yet.\n", remote_fed_id);
     }
-    // Retrieve the port
+    // Retrieve the port and hostname
     encode_int(federates[remote_fed_id].server_port, (unsigned char*)buffer);
-    
-    // Send the port number to federate which could be -1
-    int bytes_written = write_to_socket2(fed->socket, sizeof(int), (unsigned char*)buffer);
+    strcpy((&(buffer[sizeof(int)])), federates[remote_fed_id].server_hostname);
+    // Send the port number and server ip address to federate which could be -1
+    int bytes_written = write_to_socket2(federates[fed_id].socket, sizeof(int) + INET_ADDRSTRLEN, (unsigned char*)buffer);
     if(bytes_written == 0)
     {
         error("Failed to write address query to socket.");
     }
 
-    
-    debug_print("Replied address query from %d with port %d\n", fed->id, federates[remote_fed_id].server_port);
+    if( federates[remote_fed_id].server_port != -1)
+    {
+        debug_print("Replied address query from %d with address %s:%d\n", fed_id, federates[remote_fed_id].server_hostname, federates[remote_fed_id].server_port);
+    }
 
 }
 
 /**
  * Handle address advertisement messages.
  */
-void handle_address_ad(federate_t *my_fed)
+void handle_address_ad(ushort fed_id)
 {   
-    debug_print("Received address advertisement from federate %d.\n", my_fed->id);
+    debug_print("Received address advertisement from federate %d.\n", fed_id);
     // Read the port number of the federate that can be used for physical
     // connections to other federates
     int server_port = -1;
     unsigned char pb[sizeof(int)];
-    int bytes_written = read_from_socket2(my_fed->socket, sizeof(int), (unsigned char *)pb);
+    int bytes_written = read_from_socket2(federates[fed_id].socket, sizeof(int), (unsigned char *)pb);
 
     if (bytes_written == 0)
     {
-        debug_print("Error reading port data from federate %d.\n", my_fed->id);
+        debug_print("Error reading port data from federate %d.\n", federates[fed_id].id);
     }
 
     server_port = extract_int(pb);
 
-    my_fed->server_port = server_port;
+    
+    pthread_mutex_lock(&rti_mutex);
+    federates[fed_id].server_port = server_port;
+    pthread_mutex_unlock(&rti_mutex);
 
-    debug_print("Got physical connection server address %s:%d from federate %d.\n", my_fed->server_hostname, my_fed->server_port, my_fed->id);
+
+    debug_print("Got physical connection server address %s:%d from federate %d.\n", federates[fed_id].server_hostname, federates[fed_id].server_port, federates[fed_id].id);
 }
 
 /**
@@ -605,11 +612,11 @@ void* federate(void* fed) {
             break;
         case ADDRESSQUERY:
             debug_print("Handling ADDRESSQUERY message.\n");
-            handle_address_query(my_fed);
+            handle_address_query(my_fed->id);
             break;
         case ADDRESSAD:
             debug_print("Handling ADDRESSAD message.\n");
-            handle_address_ad(my_fed);
+            handle_address_ad(my_fed->id);
             break;
         case MESSAGE:            
             if (my_fed->state == NOT_CONNECTED) return NULL;
@@ -742,21 +749,21 @@ void connect_to_federates(int socket_descriptor) {
             response[0] = ACK;
             // Ignore errors on this response.
             write_to_socket2(socket_id, 1, response);
+        }
 
+        
             
 
-            // Assign the address information for federate
-            // First, convert the IP address to a string
-            struct sockaddr_in* pV4Addr = (struct sockaddr_in*)&client_fd;
-            struct in_addr ipAddr = pV4Addr->sin_addr;
-            char str[INET_ADDRSTRLEN];
-            inet_ntop( AF_INET, &ipAddr, str, INET_ADDRSTRLEN );
-            // Then assign the IP address for the federate's socket server
-            federates[fed_id].server_hostname = str;            
+        // Assign the address information for federate
+        // First, convert the IP address to a string
+        struct sockaddr_in* pV4_addr = (struct sockaddr_in*)&client_fd;
+        // Then assign the IP address for the federate's socket server
+        federates[fed_id].server_ip_addr = pV4_addr->sin_addr;
+        char str[INET_ADDRSTRLEN];
+        inet_ntop( AF_INET, &federates[fed_id].server_ip_addr, str, INET_ADDRSTRLEN );  
+        strcpy (federates[fed_id].server_hostname, str);     
 
-            debug_print("Got address %s from federate %d.\n", federates[fed_id].server_hostname, fed_id);
-
-        }
+        debug_print("Got address %s from federate %d.\n", federates[fed_id].server_hostname, fed_id);
 
         federates[fed_id].socket = socket_id;
 
@@ -808,7 +815,8 @@ void initialize_federate(int id) {
     federates[id].downstream = NULL;
     federates[id].num_downstream = 0;
     federates[id].mode = REALTIME;    
-    federates[id].server_hostname = "localhost";
+    strcpy(federates[id].server_hostname ,"localhost");
+    federates[id].server_ip_addr.s_addr = 0;
     federates[id].server_port = -1;
 }
 

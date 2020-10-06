@@ -591,11 +591,7 @@ class CGenerator extends GeneratorBase {
                                         
                                     
                     for (remoteFederate : federate.outboundPhysicalConnections) {
-                        if (remoteFederate.host !== null) {
-                            pr('''connect_to_federate(«remoteFederate.id», «remoteFederate.host»);''')
-                        } else {
-                            pr('''connect_to_federate(«remoteFederate.id», "localhost");''')
-                        }
+                        pr('''connect_to_federate(«remoteFederate.id»);''')
                     }
                     
                     if (federate.inboundPhysicalConnections.length > 0) {
