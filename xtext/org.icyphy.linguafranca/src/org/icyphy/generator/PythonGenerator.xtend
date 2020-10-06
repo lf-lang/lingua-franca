@@ -987,9 +987,8 @@ class PythonGenerator extends CGenerator {
      *  @param fsa The file system access (used to write the result).
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        // Request to generate the name field                
-        super.addClassNameToSelfStruct = true
+    override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {        
+        
 
         super.doGenerate(resource, fsa, context)
 
