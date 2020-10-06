@@ -2,7 +2,18 @@ target Python {
     timeout: 2 sec
 };
 
-import TakeTime from "Threaded.lf";
+reactor TakeTime {
+	input _in;
+	output out;
+	reaction(_in) -> out {=
+
+        offset = 0
+        for i in range(10000):
+            offset+=1
+        
+        out.set(_in.value + offset)
+	=}
+}
 
 reactor Print {
     input _in;
