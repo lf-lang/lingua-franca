@@ -1456,7 +1456,7 @@ class PythonGenerator extends CGenerator {
         pr('''
             if (rValue == NULL)
             {
-                fprintf(stderr, "Faild to call reaction «pythonFunctionName».\n");
+                fprintf(stderr, "Failed to call reaction «pythonFunctionName».\n");
             }
         ''')
         
@@ -1485,7 +1485,7 @@ class PythonGenerator extends CGenerator {
             pr('''
                 if (rValue == NULL)
                 {
-                    fprintf(stderr, "Faild to call reaction «deadlineFunctionName».\n");
+                    fprintf(stderr, "Failed to call reaction «deadlineFunctionName».\n");
                 }
             ''')
             //pr(reactionInitialization.toString)
