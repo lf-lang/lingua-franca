@@ -323,8 +323,7 @@ token_freed __done_using(token_t* token) {
         if (token->value != NULL) {
             // Count frees to issue a warning if this is never freed.
             __count_payload_allocations--;
-            if(OK_TO_FREE != token_only)
-            {
+            if(OK_TO_FREE != token_only) {
                 // printf("DEBUG: __done_using: Freeing allocated memory for payload (token value): %p\n", token->value);
                 free(token->value);
             }
