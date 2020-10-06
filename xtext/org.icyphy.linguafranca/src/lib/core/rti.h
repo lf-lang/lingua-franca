@@ -180,6 +180,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define P2PMESSAGE 12
 
+/**
+ * A vairant of P2PMESSAGE that carries the logical timestamp as well between the federates.
+ * This can only be used in coordinated mode.
+ */
+#define P2PMESSAGE_TIMED 13
+
 /////////////////////////////////////////////
 //// Rejection codes
 
