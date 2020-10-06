@@ -3421,9 +3421,9 @@ class CGenerator extends GeneratorBase {
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
                 «IF isPhysical && receivingFed.host !== null && receivingFed.host != 'localhost' && receivingFed.host != '0.0.0.0'»
-                send_directly(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                send_directly_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 «ELSEIF isPhysical»
-                send_directly(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                send_directly_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 «ELSE»
                 send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 «ENDIF»
@@ -3446,9 +3446,9 @@ class CGenerator extends GeneratorBase {
             result.append('''
             size_t message_length = «lengthExpression»;
             «IF isPhysical && receivingFed.host !== null && receivingFed.host != 'localhost' && receivingFed.host != '0.0.0.0'»
-            send_directly(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            send_directly_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             «ELSEIF isPhysical»
-            send_directly(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            send_directly_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             «ELSE»
             send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             «ENDIF»

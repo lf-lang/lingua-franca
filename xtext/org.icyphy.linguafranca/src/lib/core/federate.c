@@ -208,6 +208,49 @@ void send_directly(unsigned int port, unsigned int federate, size_t length, unsi
     debug_print("Federate %d pthread_mutex_unlock\n", __my_fed_id);
 }
 
+/** Send the specified message directly to the specified port in the
+ *  specified federate along with the current logical time. The port should be an
+ *  input port of a reactor in the destination federate.
+ *  This version is used for physical connections.
+ *  The caller can reuse or free the memory after this returns.
+ *  This function assumes the caller does not hold the mutex lock,
+ *  which it acquires to perform the send.
+ *  @param port The ID of the destination port.
+ *  @param federate The ID of the destination federate.
+ *  @param length The message length.
+ *  @param message The message.
+ */
+void send_directly_timed(unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
+    debug_print("Sending message directly to federate %d.\n", federate);
+    assert(port < 65536);
+    assert(federate < 65536);
+    unsigned char buffer[17];
+    buffer[0] = P2PMESSAGE_TIMED;
+    // Next two bytes identify the destination port.
+    // NOTE: Send messages little endian, not big endian.
+    encode_ushort(port, &(buffer[1]));
+    // Next two bytes identify the destination federate.
+    encode_ushort(federate, &(buffer[3]));
+
+    // The next four bytes are the message length.
+    encode_int(length, &(buffer[5]));
+
+    instant_t current_time = get_logical_time();
+
+    encode_ll(current_time, &(buffer[9]));
+    debug_print("Federate %d sending message with timestamp %lld.\n", __my_fed_id, current_time - start_time);
+
+
+    // Use a mutex lock to prevent multiple threads from simulatenously sending.
+    debug_print("Federate %d pthread_mutex_lock send_directly(%s)\n", __my_fed_id, message);
+    pthread_mutex_lock(&mutex);
+    debug_print("Federate %d pthread_mutex_locked\n", __my_fed_id);
+    write_to_socket(federate_sockets[federate], 17, buffer);
+    write_to_socket(federate_sockets[federate], length, message);
+    pthread_mutex_unlock(&mutex);
+    debug_print("Federate %d pthread_mutex_unlock\n", __my_fed_id);
+}
+
 /** Send the specified message to the specified port in the
  *  specified federate via the RTI. The port should be an
  *  input port of a reactor in the destination federate.
@@ -825,16 +868,18 @@ void handle_message(unsigned char* buffer) {
     // printf("DEBUG: Called schedule\n");
 }
 
-/** Handle a timestamped message being received from a remote federate via the RTI.
+/** Handle a timestamped message being received from a remote federate via the RTI
+ *  or directly from other federates.
  *  This will read the timestamp, which is appended to the header,
  *  and calculate an offset to pass to the schedule function.
  *  This function assumes the caller does not hold the mutex lock,
  *  which it acquires to call schedule.
+ *  @param socket The socket to read the message from.
  *  @param buffer The buffer to read.
  */
-void handle_timed_message(unsigned char* buffer) {
+void handle_timed_message(int socket, unsigned char* buffer) {
     // Read the header.
-    read_from_socket(rti_socket, 16, buffer);
+    read_from_socket(socket, 16, buffer);
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
@@ -849,7 +894,7 @@ void handle_timed_message(unsigned char* buffer) {
     // Read the payload.
     // Allocate memory for the message contents.
     unsigned char* message_contents = (unsigned char*)malloc(length);
-    read_from_socket(rti_socket, length, message_contents);
+    read_from_socket(socket, length, message_contents);
     debug_print("Message received by federate: %s.\n", message_contents);
 
     // Acquire the one mutex lock to prevent logical time from advancing
@@ -966,6 +1011,10 @@ void* listen_to_federates(void *args) {
             debug_print("Handling p2p message from federate %d.\n", fed_id);
             handle_direct_message(socket_id, buffer, 9);
             break;
+        case P2PMESSAGE_TIMED:
+            debug_print("Handling timed p2p message from federate %d.\n", fed_id);
+            handle_timed_message(socket_id, buffer + 1);
+            break;
         default:
             debug_print("Erroneous message type: %d\n", buffer[0]);
             error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);
@@ -992,7 +1041,7 @@ void* listen_to_rti(void* args) {
             handle_message(buffer + 1);
             break;
         case TIMED_MESSAGE:
-            handle_timed_message(buffer + 1);
+            handle_timed_message(rti_socket, buffer + 1);
             break;
         case TIME_ADVANCE_GRANT:
             handle_time_advance_grant();
