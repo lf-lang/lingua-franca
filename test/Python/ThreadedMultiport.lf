@@ -1,7 +1,6 @@
 // Check multiport capabilities on Outputs.
 target Python {
     timeout: 2 sec,
-    threads: 4
 }; 
 reactor Source(width(4)) {
 	timer t(0, 200 msec);
