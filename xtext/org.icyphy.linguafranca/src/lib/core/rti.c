@@ -96,9 +96,15 @@ int final_port = -1;
 /** The socket descriptor for the socket server. */
 int socket_descriptor = -1;
 
-/** Create a server and enable listening for socket connections.
- *  @param port The port number to use.
- *  @return The socket descriptor on which to accept connections.
+/** 
+ * Create a server and enable listening for socket connections.
+ * 
+ * @note This function is similar to create_server(...) in 
+ * federate.c. However, it contains logs that are specific
+ * to the RTI.
+ * 
+ * @param port The port number to use.
+ * @return The socket descriptor on which to accept connections.
  */
 int create_server(int specified_port, int port) {
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
@@ -618,15 +624,18 @@ void* federate(void* fed) {
             debug_print("Handling ADDRESSAD message.\n");
             handle_address_ad(my_fed->id);
             break;
-        case MESSAGE:            
+        case MESSAGE:      
+            debug_print("Handling MESSAGE.\n");      
             if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_message(my_fed->socket, buffer, 9);
             break;
         case TIMED_MESSAGE:
+            debug_print("Handling timed message.\n");
             if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_message(my_fed->socket, buffer, 17);
             break;
         case RESIGN:
+            debug_print("Handling resign.\n");
             if (my_fed->state == NOT_CONNECTED) return NULL;
             // Nothing more to do. Close the socket and exit.
             printf("Federate %d has resigned.\n", my_fed->id);
@@ -636,15 +645,18 @@ void* federate(void* fed) {
             pthread_mutex_unlock(&rti_mutex);
             return NULL;
             break;
-        case NEXT_EVENT_TIME:
+        case NEXT_EVENT_TIME:            
+            debug_print("Handling next event time.\n");
             if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_next_event_time(my_fed);
             break;
-        case LOGICAL_TIME_COMPLETE:
+        case LOGICAL_TIME_COMPLETE:            
+            debug_print("Handling logical time completion.\n");
             if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_logical_time_complete(my_fed);
             break;
         case STOP:
+            debug_print("Handling stop.\n");
             if (my_fed->state == NOT_CONNECTED) return NULL;
             handle_stop_message(my_fed);
             break;

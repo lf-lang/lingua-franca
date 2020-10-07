@@ -3414,19 +3414,25 @@ class CGenerator extends GeneratorBase {
         // If the connection is physical and the receiving federate is remote, send it directly on a socket.
         // If the connection is physical and the receiving federate is local, send it via shared memory. FIXME: not implemented yet
         // If the connection is logical, send via RTI.
+        var String socket;
+        var String messageType;
+        if (isPhysical) {
+            socket = '''federate_sockets[«receivingFed.id»]'''
+            messageType = "P2PMESSAGE_TIMED"
+        }
+        else {
+            // Logical connection
+            // Send the message via rti
+            socket = '''rti_socket'''
+            messageType = "TIMED_MESSAGE"
+        }
         if (isTokenType(type)) {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
-                «IF isPhysical && receivingFed.host !== null && receivingFed.host != 'localhost' && receivingFed.host != '0.0.0.0'»
-                send_directly_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
-                «ELSEIF isPhysical»
-                send_directly_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
-                «ELSE»
-                send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
-                «ENDIF»
+                send_message_timed(«socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»->token);
             ''')
         } else {
@@ -3445,13 +3451,7 @@ class CGenerator extends GeneratorBase {
             }
             result.append('''
             size_t message_length = «lengthExpression»;
-            «IF isPhysical && receivingFed.host !== null && receivingFed.host != 'localhost' && receivingFed.host != '0.0.0.0'»
-            send_directly_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
-            «ELSEIF isPhysical»
-            send_directly_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
-            «ELSE»
-            send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
-            «ENDIF»
+            send_message_timed(«socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             ''')
         }
         return result.toString
