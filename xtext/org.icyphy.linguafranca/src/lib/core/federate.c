@@ -227,6 +227,8 @@ void send_message(int socket, unsigned int port, unsigned int federate, size_t l
  * This method assumes that the caller does not hold the mutex lock,
  * which it acquires to perform the send.
  * 
+ * @param socket The socket to send the message on
+ * @param mesasge_type The type of the mesasge being sent. Currently can be TIMED_MESSAG
  * @param port The ID of the destination port.
  * @param federate The ID of the destination federate.
  * @param length The message length.
