@@ -80,6 +80,7 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Code
+import org.icyphy.Targets
 
 /**
  * Generator base class for shared code between code generators.
@@ -303,6 +304,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * The compiler flags target parameter, or null if there is none.
      */
     protected String targetCompilerFlags
+    
+    /**
+     * The linker flags target parameter, or null if there is none.
+     */
+    protected String targetLinkerFlags
 
     /**
      * The compiler target no-compile parameter, or false if there is none.
@@ -368,6 +374,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * The tracing target parameter, or false if there is none.
      */
     protected boolean targetTracing = false
+    
+    /**
+     * The index available to user-generated reaction that delineates the index
+     * of the reactor in a bank of reactors. The value must be set to zero
+     * in generated code for reactors that are not in a bank
+     */
+     protected String targetBankIndex = "bank_index"
+     
+     /**
+      * The type of the bank index, which must be an integer in the target language
+      */
+     protected String targetBankIndexType = "int"
 
     ////////////////////////////////////////////
     //// Private fields.
@@ -2275,6 +2293,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     abstract def String getTargetFixedSizeListType(String baseType, Integer size)
 
     abstract def String getTargetVariableSizeListType(String baseType);
+    
+    /**
+     * Return the Targets enum for the current target
+     */
+    def Targets getTarget() {}
     
     /**
      * Return a string representing the specified type in the target language.

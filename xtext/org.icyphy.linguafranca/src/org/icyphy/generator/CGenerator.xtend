@@ -63,6 +63,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.Targets
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -310,6 +311,7 @@ class CGenerator extends GeneratorBase {
      */
     var startTimeStepTokens = 0
 
+
     // Place to collect code to initialize timers for all reactors.
     protected var startTimers = new StringBuilder()
     var startTimersCount = 0
@@ -356,8 +358,8 @@ class CGenerator extends GeneratorBase {
         }
         
         // Create the output directories if they don't yet exist.
-        var srcGenPath = directory + File.separator + "src-gen"
-        var outPath = directory + File.separator + "bin"
+        var srcGenPath = getSrcGenPath()
+        var outPath = getBinGenPath
         var dir = new File(srcGenPath)
         if (!dir.exists()) dir.mkdirs()
         dir = new File(outPath)
@@ -708,8 +710,8 @@ class CGenerator extends GeneratorBase {
         // Derive target filename from the .lf filename.
         var cFilename = getTargetFileName(filename + "_RTI")
         
-        var srcGenPath = directory + File.separator + "src-gen"
-        var outPath = directory + File.separator + "bin"
+        var srcGenPath = getSrcGenPath()
+        var outPath = getBinGenPath()
 
         // Delete source previously produced by the LF compiler.
         var file = new File(srcGenPath + File.separator + cFilename)
@@ -828,7 +830,21 @@ class CGenerator extends GeneratorBase {
         fOut.close()
     }
     
-    /** Create the launcher shell scripts. This will create one or two files
+    /**
+     * Returns the desired source gen. path
+     */
+    def getSrcGenPath() {
+          directory + File.separator + "src-gen"
+    }
+     
+    /**
+     * Returns the desired output path
+     */
+    def getBinGenPath() {
+          directory + File.separator + "bin"
+    }
+    
+    /** Create the launcher shell scripts. This will create one or two file
      *  in the output path (bin directory). The first has name equal to
      *  the filename of the source file without the ".lf" extension.
      *  This will be a shell script that launches the
@@ -874,7 +890,7 @@ class CGenerator extends GeneratorBase {
         // to get screen to work looks like this:
         // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
         
-        var outPath = directory + File.separator + "bin"
+        var outPath = getBinGenPath()
 
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()
@@ -1078,12 +1094,8 @@ class CGenerator extends GeneratorBase {
         }
         
         // Preamble code contains state declarations with static initializers.
-        for (p : defn.preambles ?: emptyList) {
-            pr("// *********** From the preamble, verbatim:")
-            prSourceLineNumber(p.code)
-            pr(p.code.toText)
-            pr("\n// *********** End of preamble.")
-        }
+        generateUserPreamblesForReactor(defn)
+            
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         val constructorCode = new StringBuilder()
@@ -1098,6 +1110,19 @@ class CGenerator extends GeneratorBase {
         pr("")
 
         
+    }
+    
+    /**
+     * Generates preambles defined by user for a given reactor
+     * @param reactor The given reactor
+     */
+    def generateUserPreamblesForReactor(Reactor reactor) {
+        for (p : reactor.preambles ?: emptyList) {
+            pr("// *********** From the preamble, verbatim:")
+            prSourceLineNumber(p.code)
+            pr(p.code.toText)
+            pr("\n// *********** End of preamble.")
+        }
     }
     
     /**
@@ -1233,7 +1258,7 @@ class CGenerator extends GeneratorBase {
      * @return A string providing the value field of the port struct.
      */
     protected def valueDeclaration(Port port) {
-        if (port.type === null) {
+        if (port.type === null && target.requiresTypes === true) {
             // This should have been caught by the validator.
             reportError(port, "Port is required to have a type: " + port.name)
             return ''
@@ -1269,7 +1294,7 @@ class CGenerator extends GeneratorBase {
      * @return A string providing the value field of the action struct.
      */
     protected def valueDeclaration(Action action) {
-        if (action.type === null) {
+        if (action.type === null && target.requiresTypes === true) {
             return ''
         }
         // Do not convert to token_t* using lfTypeToTokenType because there
@@ -1313,19 +1338,23 @@ class CGenerator extends GeneratorBase {
         val selfType = selfStructType(decl)
         
         // Construct the typedef for the "self" struct.
-        // First, create a type name for the self struct.
+        // Create a type name for the self struct.
         
         var body = new StringBuilder()
-        // Start with parameters.
-        for (parameter : reactor.allParameters) {
-            prSourceLineNumber(body, parameter)
-            pr(body, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
-        }
+        
+       
+        // Extensions can add functionality to the CGenerator
+        generateSelfStructExtension(body, decl, federate, constructorCode, destructorCode)
+        
+        // Handle bank_index
+        pr(body, '''«targetBankIndexType» «targetBankIndex»;''');    
+        
+        // Next handle parameters.
+        generateParametersForReactor(body, reactor)
+        
         // Next handle states.
-        for (stateVar : reactor.allStateVars) {
-            prSourceLineNumber(body, stateVar)
-            pr(body, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
-        }
+        generateStateVariablesForReactor(body, reactor)
+        
         // Next handle actions.
         for (action : reactor.allActions) {
             pr(action, body, '''
@@ -1502,6 +1531,58 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
+    }
+    
+    /**
+     * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
+     * @param body The body of the self struct
+     * @param decl The reactor declaration for the self struct
+     * @param instance The current federate instance
+     * @param constructorCode Code that is executed when the reactor is instantiated
+     * @param destructorCode Code that is executed when the reactor instance is freed
+     */
+    def void generateSelfStructExtension(StringBuilder selfStructBody, ReactorDecl decl, FederateInstance instance, StringBuilder constructorCode, StringBuilder destructorCode) {
+        // Do nothing
+    }
+    
+    
+    /**
+     * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
+     * @param reactor The reactor
+     * @param builder The StringBuilder that the generated code is appended to
+     * @return 
+     */
+    def generateParametersForReactor(StringBuilder builder, Reactor reactor) {
+        for (parameter : reactor.allParameters) {
+            // Check for targetBankIndex
+            // FIXME: for now throw a reserved error
+            if (parameter.name.equals(targetBankIndex)) {
+                reportError('''«targetBankIndex» is reserved.''')
+            }
+
+            prSourceLineNumber(builder, parameter)
+            pr(builder, parameter.getInferredType.targetType + ' ' + parameter.name + ';');
+        }
+    }
+    
+    /**
+     * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
+     * @param reactor The reactor
+     * @param builder The StringBuilder that the generated code is appended to
+     * @return 
+     */
+    def generateStateVariablesForReactor(StringBuilder builder, Reactor reactor) {        
+        for (stateVar : reactor.allStateVars) {            
+            // Check for targetBankIndex
+            // FIXME: for now throw a reserved error
+            if(stateVar.name.equals(targetBankIndex))
+            {
+                reportError('''«targetBankIndex» is reserved.''')
+            }
+            
+            prSourceLineNumber(builder, stateVar)
+            pr(builder, stateVar.getInferredType.targetType + ' ' + stateVar.name + ';');
+        }
     }
     
     /**
@@ -1786,7 +1867,46 @@ class CGenerator extends GeneratorBase {
         
         // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(decl, reactionIndex)
+        
+        
+        pr('void ' + functionName + '(void* instance_args) {')
+        indent()
+        var body = reaction.code.toText
+        
+        generateInitializationForReaction(body, reaction, decl)
+        
+        // Code verbatim from 'reaction'
+        prSourceLineNumber(reaction.code)
+        pr(body)
+        unindent()
+        pr("}")
 
+        // Now generate code for the deadline violation function, if there is one.
+        if (reaction.deadline !== null) {
+            // The following name has to match the choice in generateReactionInstances
+            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
+
+            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
+            indent();
+            generateInitializationForReaction(body, reaction, reactor)
+            // Code verbatim from 'deadline'
+            prSourceLineNumber(reaction.deadline.code)
+            pr(reaction.deadline.code.toText)
+            unindent()
+            pr("}")
+        }
+    }
+    
+    /**
+     * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.
+     * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
+     * @param reaction The initialization code will be generated for this specific reaction
+     * @param decl The reactor that has the reaction
+     * @return The reaction initialization code for reusability.
+     */
+    def generateInitializationForReaction(String body, Reaction reaction, ReactorDecl decl) {
+        val reactor = decl.toDefinition
+        
         // Construct the reactionInitialization code to go into
         // the body of the function before the verbatim code.
         var StringBuilder reactionInitialization = new StringBuilder()
@@ -1895,10 +2015,6 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        pr('void ' + functionName + '(void* instance_args) {')
-        indent()
-        var body = reaction.code.toText
-
         // Do not generate the initialization code if the body is marked
         // to not generate it.
         if (!body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
@@ -1915,26 +2031,8 @@ class CGenerator extends GeneratorBase {
         } else {
             pr(structType + "* self = (" + structType + "*)instance_args;")
         }
-        // Code verbatim from 'reaction'
-        prSourceLineNumber(reaction.code)
-        pr(body)
-        unindent()
-        pr("}")
-
-        // Now generate code for the deadline violation function, if there is one.
-        if (reaction.deadline !== null) {
-            // The following name has to match the choice in generateReactionInstances
-            val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
-
-            pr('void ' + deadlineFunctionName + '(void* instance_args) {')
-            indent();
-            pr(reactionInitialization.toString)
-            // Code verbatim from 'deadline'
-            prSourceLineNumber(reaction.deadline.code)
-            pr(reaction.deadline.code.toText)
-            unindent()
-            pr("}")
-        }
+        
+        return reactionInitialization.toString
     }
 
     /** Generate code to create the trigger table for each reaction of the
@@ -2133,7 +2231,7 @@ class CGenerator extends GeneratorBase {
                         if (reactorBelongsToFederate(sourcePort.parent, federate)) {
                             // If this is a multiport, then the port struct on the self
                             // struct is a pointer. Otherwise, it is the struct itself.
-                            var multiportIndex = '.'
+                            var multiportIndex = stackStructOperator // '.'
                             if (sourcePort.multiportIndex >= 0) {
                                 multiportIndex = '[' + sourcePort.multiportIndex + ']->'
                             }
@@ -2173,7 +2271,7 @@ class CGenerator extends GeneratorBase {
                         for (multiportInstance : output.instances) {
                             pr(startTimeStep, '''
                                 // Add port «output.getFullName» to array of is_present fields.
-                                __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name»[«j»].is_present;
+                                __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "is_present")»;
                             ''')
                             startTimeStepIsPresentCount++
                             j++
@@ -2181,7 +2279,7 @@ class CGenerator extends GeneratorBase {
                     } else {
                         pr(startTimeStep, '''
                             // Add port «output.getFullName» to array of is_present fields.
-                            __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->__«output.name».is_present;
+                            __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "is_present")»;
                         ''')
                         startTimeStepIsPresentCount++
                     }
@@ -2449,6 +2547,36 @@ class CGenerator extends GeneratorBase {
     static def triggerStructName(PortInstance port, ReactionInstance reaction) {
         return '''«selfStructName(reaction.parent)»->__«port.parent.name».«port.name»_trigger;'''
     }
+    
+    /**
+     * Generates C code to retrieve port->member
+     * This function is used for clarity and is called whenever struct is allocated on heap memory.
+     * @param portName The name of the port in string
+     * @param member The member's name (e.g., is_present)
+     * @return Generated code
+     */
+    def getHeapPortMember(String portName, String member) '''
+        «portName»->«member»
+    '''
+    
+    
+    /**
+     * Return the operator used to retrieve struct members
+     */
+    def getStackStructOperator() '''
+    .
+    '''
+    
+    /**
+     * Generates C code to retrieve port.member
+     * This function is used for clarity and is called whenever struct is allocated on stack memory.
+     * @param portName The name of the port in string
+     * @param member The member's name(e.g., is_present)
+     * @return Generated code
+     */
+    def getStackPortMember(String portName, String member) '''
+        «portName».«member»
+    '''
 
     /** Generate code to instantiate the specified reactor instance and
      *  initialize it.
@@ -2468,7 +2596,7 @@ class CGenerator extends GeneratorBase {
             
         var nameOfSelfStruct = selfStructName(instance)
         var structType = selfStructType(reactorClass)
-
+        
         // If this reactor is a placeholder for a bank of reactors, then generate
         // an array of instances of reactors and return.
         if (instance.bankMembers !== null) {
@@ -2485,64 +2613,37 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjects, '''
                 «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
-            // If the reactor has a parameter named "instance", set it.
-            for (parameter : reactorClass.toDefinition.allParameters) {
-                if (parameter.name == "instance"
-                    && getTargetType(parameter.inferredType) == "int"
-                ) {
-                    // Override the default parameter value for instance.
-                    // This needs to be at the end or it will be overwrittend
-                    // with the default parameter value.
-                    pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->instance = «instance.bankIndex»;
-                    ''')
-                }
-            }
+            // Set the bankIndex for the reactor
+            pr(initializeTriggerObjectsEnd, '''
+                «nameOfSelfStruct»->«targetBankIndex» = «instance.bankIndex»;
+            ''')
+                
+            
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
             ''')
+            // Set the bankIndex to zero
+            pr(initializeTriggerObjectsEnd, '''
+                «nameOfSelfStruct»->«targetBankIndex» = 0;
+            ''')
         }
+        
+        generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
 
         // Generate code to initialize the "self" struct in the
         // __initialize_trigger_objects function.
         pr(initializeTriggerObjects, "//***** Start initializing " + fullName)
 
         // Start with parameters.
-        for (parameter : instance.parameters) {
-            // NOTE: we now use the resolved literal value. For better efficiency, we could
-            // store constants in a global array and refer to its elements to avoid duplicate
-            // memory allocations.
-            
-            // Array type parameters have to be handled specially.
-            // Use the superclass getTargetType to avoid replacing the [] with *.
-            val targetType = super.getTargetType(parameter.type)
-            val matcher = arrayPatternVariable.matcher(targetType)
-            if (matcher.find()) {
-                // Use an intermediate temporary variable so that parameter dependencies
-                // are resolved correctly.
-                val temporaryVariableName = parameter.uniqueID
-                pr(initializeTriggerObjects, '''
-                    static «matcher.group(1)» «temporaryVariableName»[] = «parameter.getInitializer»;
-                    «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
-                ''')
-            } else {
-                pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
-                ''')
-            }
-        }
+        generateParameterInitialization(initializeTriggerObjects, instance)
         
         // Once parameters are done, we can allocate memory for any multiports.
         // Allocate memory for outputs.
         for (output : reactorClass.toDefinition.outputs) {
             // If the port is a multiport, create an array.
             if (output.isMultiport) {
-                pr(initializeTriggerObjects, '''
-                    «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
-                    // Allocate memory for multiport output.
-                    «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactorClass)»*)malloc(sizeof(«variableStructType(output, reactorClass)») * «nameOfSelfStruct»->__«output.name»__width); 
-                ''')
+                initializeOutputMultiport(initializeTriggerObjects, output, nameOfSelfStruct, instance)
             } else {
                 pr(initializeTriggerObjects, '''
                     // width of -2 indicates that it is not a multiport.
@@ -2581,46 +2682,8 @@ class CGenerator extends GeneratorBase {
                             // If the width is given as a numeric constant, then add that constant
                             // to the output count. Otherwise, assume it is a reference to one or more parameters.
                             val widthSpec = multiportWidthSpecInC(port, effect.container, instance)
-                            // Allocate memory where the data will produced by the reaction will be stored
-                            // and made available to the input of the contained reactor.
-                            // This is done differently for ports like "c.in" than "out".
-                            // This has to go at the end of the initialize_trigger_objects() function
-                            // because the self struct of contained reactors has not yet been defined.
-                            if (effect.container === null) {
-                                // This has form "out".
-                                val portStructType = variableStructType(port, reactorClass)
-                                pr(initializeTriggerObjectsEnd, '''
-                                    «nameOfSelfStruct»->__«port.name»__width = «widthSpec»;
-                                    // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                                    «nameOfSelfStruct»->__«port.name» = («portStructType»*)malloc(sizeof(«portStructType») 
-                                            * «nameOfSelfStruct»->__«port.name»__width); 
-                                ''')
-                                pr(initialization, '''
-                                    for (int i = 0; i < «widthSpec»; i++) {
-                                        «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index» + i]
-                                                = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i].is_present;
-                                    }
-                                ''')
-                            } else {
-                                // This has form "c.in".
-                                val containerName = effect.container.name
-                                val portStructType = variableStructType(port, effect.container.reactorClass)
-                                pr(initializeTriggerObjectsEnd, '''
-                                    «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
-                                    // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                                    «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                            * «nameOfSelfStruct»->__«containerName».«port.name»__width);
-                                    for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«port.name»__width; i++) {
-                                        «nameOfSelfStruct»->__«containerName».«port.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
-                                    }
-                                ''')
-                                pr(initialization, '''
-                                    for (int i = 0; i < «widthSpec»; i++) {
-                                        «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index» + i]
-                                                = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i]->is_present;
-                                    }
-                                ''')
-                            }
+                            
+                            initializeReactionEffectMultiport(initializeTriggerObjectsEnd, initialization, effect, instance, reactionCount, index)
                             // Append the width of this port to an expression for the total number of
                             // outputs from this reaction.
                             try {
@@ -2632,7 +2695,7 @@ class CGenerator extends GeneratorBase {
                         } else {
                             pr(initialization, '''
                                 «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«index»]
-                                        = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)».is_present;
+                                        = &«nameOfSelfStruct»->«getStackPortMember('''__«ASTUtils.toText(effect)»''', "is_present")»;
                             ''')
                             outputCount++
                         }
@@ -2649,18 +2712,7 @@ class CGenerator extends GeneratorBase {
                         // If the port is a multiport, then we need to create an entry for each
                         // individual port.
                         if (port.isMultiport && container !== null) {
-                            // If the width is given as a numeric constant, then add that constant
-                            // to the output count. Otherwise, assume it is a reference to one or more parameters.
-                            val widthSpec = multiportWidthSpecInC(port, container, instance)
-                            val containerName = container.name
-                            val portStructType = variableStructType(port, container.reactorClass)
-                            pr(initializeTriggerObjectsEnd, '''
-                                «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
-                                // Allocate memory to store pointers to the multiport outputs of a contained reactor.
-                                «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                        * «nameOfSelfStruct»->__«containerName».«port.name»__width);
-                            ''')
-
+                            allocateMultiportOfContainedReactor(initializeTriggerObjectsEnd, port, container, instance)
                         }
                     }
                     if (trigger.isStartup) {
@@ -2720,57 +2772,8 @@ class CGenerator extends GeneratorBase {
         }
 
         // Next, initialize the "self" struct with state variables.
-        // These values may be expressions that refer to the parameter values defined above.
-        
-        for (stateVar : reactorClass.toDefinition.stateVars) {
-            
-            val initializer = getInitializer(stateVar, instance)
-            if (stateVar.initialized) {
-                if (stateVar.isOfTimeType) {
-                    pr(initializeTriggerObjects,
-                        nameOfSelfStruct + "->" + stateVar.name + " = " +
-                            initializer + ";")
-                } else {
-                    // If the state is initialized with a parameter, then do not use
-                    // a temporary variable. Otherwise, do, because
-                    // static initializers for arrays and structs have to be handled
-                    // this way, and there is no way to tell whether the type of the array
-                    // is a struct.
-                    if (stateVar.isParameterized && stateVar.init.size > 0) {
-                        pr(initializeTriggerObjects,
-                            nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
-                    } else {
-                        var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
-                        // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
-                        if (instance.bank !== null) {
-                            temporaryVariableName += "_" + instance.bankIndex
-                        }
-                        // Array type has to be handled specially because C doesn't accept
-                        // type[] as a type designator.
-                        // Use the superclass to avoid [] being replaced by *.
-                        var type = super.getTargetType(stateVar.inferredType)
-                        val matcher = arrayPatternVariable.matcher(type)
-                        if (matcher.find()) {
-                            // If the state type ends in [], then we have to move the []
-                            // because C is very picky about where this goes. It has to go
-                            // after the variable name.
-                            pr(initializeTriggerObjects,
-                                "static " + matcher.group(1) + " " +
-                                temporaryVariableName + "[] = " + initializer + ";"
-                            )
-                        } else {
-                            pr(initializeTriggerObjects,
-                                "static " + type + " " +
-                                temporaryVariableName + " = " + initializer + ";"
-                            )
-                        }
-                        pr(initializeTriggerObjects,
-                            nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
-                        ) 
-                    }
-                }   
-            }
-        }
+        // These values may be expressions that refer to the parameter values defined above.        
+        generateStateVariableInitializations(instance)
 
         // Generate reaction structs for the instance.
         generateRemoteTriggerTable(instance, federate)
@@ -2791,16 +2794,15 @@ class CGenerator extends GeneratorBase {
                 var j = 0
                 for (multiportInstance : output.instances) {
                     var numDestinations = multiportInstance.numDestinationReactors
-                    // This has to appear after memory is allocated for the output array.
                     pr(initializeTriggerObjectsEnd, '''
-                        «nameOfSelfStruct»->__«output.name»[«j»].num_destinations = «numDestinations»;
+                        «nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "num_destinations")» = «numDestinations»;
                     ''')
                     j++
                 }
             } else {
                 var numDestinations = output.numDestinationReactors
                 pr(initializeTriggerObjectsEnd, '''
-                    «nameOfSelfStruct»->__«output.name».num_destinations = «numDestinations»;
+                    «nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "num_destinations")» = «numDestinations»;
                 ''')
             }
         }
@@ -2822,7 +2824,7 @@ class CGenerator extends GeneratorBase {
                         numDestinations += port.dependentPorts.size
                         // If it is a multiport, then the struct port object is a pointer.
                         // Otherwise, it is the actual port struct.
-                        var portIndex = '.'
+                        var portIndex = stackStructOperator // '.'
                         if (port.multiportIndex >= 0) {
                             portIndex = '[' + port.multiportIndex + ']->'
                         }
@@ -2910,6 +2912,209 @@ class CGenerator extends GeneratorBase {
         generateStartTimeStep(instance, federate)
 
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
+    }
+    
+    
+    /**
+     * Generate code that is executed while the reactor instance is being initialized
+     * @param initializationCode The StringBuilder appended to __initialize_trigger_objects()
+     * @param instance The reactor instance
+     * @param federate The federate instance
+     */
+    def void generateReactorInstanceExtension(StringBuilder initializationCode, ReactorInstance instance, FederateInstance federate) {
+        // Do nothing
+    }
+    
+    /**
+     * Generate code that initializes the state variables for a given instance.
+     * Unlike parameters, state variables are uniformly initialized for all instances
+     * of the same reactor.
+     * @param instance The reactor class instance
+     * @return Initialization code fore state variables of instance
+     */
+    def generateStateVariableInitializations(ReactorInstance instance) {
+        val reactorClass = instance.definition.reactorClass
+        val nameOfSelfStruct = selfStructName(instance)
+        for (stateVar : reactorClass.toDefinition.stateVars) {
+
+            val initializer = getInitializer(stateVar, instance)
+            if (stateVar.initialized) {
+                if (stateVar.isOfTimeType) {
+                    pr(initializeTriggerObjects, nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
+                } else {
+                    // If the state is initialized with a parameter, then do not use
+                    // a temporary variable. Otherwise, do, because
+                    // static initializers for arrays and structs have to be handled
+                    // this way, and there is no way to tell whether the type of the array
+                    // is a struct.
+                    if (stateVar.isParameterized && stateVar.init.size > 0) {
+                        pr(initializeTriggerObjects,
+                            nameOfSelfStruct + "->" + stateVar.name + " = " + initializer + ";")
+                    } else {
+                        var temporaryVariableName = instance.uniqueID + '_initial_' + stateVar.name
+                        // To ensure uniqueness, if this reactor is in a bank, append the bank member index.
+                        if (instance.bank !== null) {
+                            temporaryVariableName += "_" + instance.bankIndex
+                        }
+                        // Array type has to be handled specially because C doesn't accept
+                        // type[] as a type designator.
+                        // Use the superclass to avoid [] being replaced by *.
+                        var type = super.getTargetType(stateVar.inferredType)
+                        val matcher = arrayPatternVariable.matcher(type)
+                        if (matcher.find()) {
+                            // If the state type ends in [], then we have to move the []
+                            // because C is very picky about where this goes. It has to go
+                            // after the variable name.
+                            pr(
+                                initializeTriggerObjects,
+                                "static " + matcher.group(1) + " " + temporaryVariableName + "[] = " + initializer + ";"
+                            )
+                        } else {
+                            pr(
+                                initializeTriggerObjects,
+                                "static " + type + " " + temporaryVariableName + " = " + initializer + ";"
+                            )
+                        }
+                        pr(
+                            initializeTriggerObjects,
+                            nameOfSelfStruct + "->" + stateVar.name + " = " + temporaryVariableName + ";"
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Generate code to allocate memory for a multiport of a contained reactor
+     * @param builder The StringBuilder that the allocation code is appended to
+     * @param port The multiport of a contained reactor
+     * @param container The container of the contained reactor
+     * @param instance The ReactorInstance of the contained reactor
+     * @return allocation code
+     */
+    def allocateMultiportOfContainedReactor(StringBuilder builder, Port port, Instantiation container, ReactorInstance instance) {
+        var nameOfSelfStruct = selfStructName(instance)
+        // If the width is given as a numeric constant, then add that constant
+        // to the output count. Otherwise, assume it is a reference to one or more parameters.
+        val widthSpec = multiportWidthSpecInC(port, container, instance)
+        val containerName = container.name
+        val portStructType = variableStructType(port, container.reactorClass)
+        pr(builder, '''
+            «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
+            // Allocate memory to store pointers to the multiport outputs of a contained reactor.
+            «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                    * «nameOfSelfStruct»->__«containerName».«port.name»__width);
+        ''')
+    }
+    
+    /**
+     * Generate runtime initialization code for parameters of a given reactor instance
+     * @param builder The StringBuilder used to append the initialization code to
+     * @param instance The reactor instance
+     * @return initialization code
+     */
+    def generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
+        var nameOfSelfStruct = selfStructName(instance)
+        // Array type parameters have to be handled specially.
+        // Use the superclass getTargetType to avoid replacing the [] with *.
+        for (parameter : instance.parameters) {
+            // NOTE: we now use the resolved literal value. For better efficiency, we could
+            // store constants in a global array and refer to its elements to avoid duplicate
+            // memory allocations.
+            val targetType = super.getTargetType(parameter.type)
+            val matcher = arrayPatternVariable.matcher(targetType)
+            if (matcher.find()) {
+                // Use an intermediate temporary variable so that parameter dependencies
+                // are resolved correctly.
+                val temporaryVariableName = parameter.uniqueID
+                pr(builder, '''
+                    static «matcher.group(1)» «temporaryVariableName»[] = «parameter.getInitializer»;
+                    «nameOfSelfStruct»->«parameter.name» = «temporaryVariableName»;
+                ''')
+            } else {
+                pr(builder, '''
+                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
+                ''')
+            }
+
+        }
+    }
+    
+    /**
+     * A function used to generate initialization code for an output multiport
+     * @param builder The generated code is put into builder
+     * @param output The output port to be initialized
+     * @name
+     */
+    def initializeOutputMultiport(StringBuilder builder, Output output, String nameOfSelfStruct, ReactorInstance instance) {
+        val reactor = instance.definition.reactorClass
+        pr(builder, '''
+            «nameOfSelfStruct»->__«output.name»__width = «multiportWidthSpecInC(output, null, instance)»;
+            // Allocate memory for multiport output.
+            «nameOfSelfStruct»->__«output.name» = («variableStructType(output, reactor)»*)malloc(sizeof(«variableStructType(output, reactor)») * «nameOfSelfStruct»->__«output.name»__width); 
+        ''')
+    }
+    
+    /**
+     * Generate instantiation and initialization code for an output multiport of a reaction.
+     * The instantiations and the initializations are put into two separate StringBuilders in case delayed initialization is desirable
+     * @param instantiation The StringBuilder used to put code that allocates overall memory for a multiport
+     * @param initialization The StringBuilderused to put code that initializes members of a multiport
+     * @param effect The output effect of a given reaction
+     * @param instance The reaction instance itself
+     * @param reactionIdx The index of the reaction in the Reactor
+     * @param startIdx The index used to figure out the starting position of the output_produced array
+     */
+    def initializeReactionEffectMultiport(StringBuilder instantiation, StringBuilder initialization, VarRef effect, ReactorInstance instance, int reationIdx, String startIdx)
+    {
+        val port = effect.variable as Port
+        val reactorClass = instance.definition.reactorClass
+        val nameOfSelfStruct = selfStructName(instance)
+        // If the width is given as a numeric constant, then add that constant
+        // to the output count. Otherwise, assume it is a reference to one or more parameters.
+        val widthSpec = multiportWidthSpecInC(port, effect.container, instance)
+        // Allocate memory where the data will produced by the reaction will be stored
+        // and made available to the input of the contained reactor.
+        // This is done differently for ports like "c.in" than "out".
+        // This has to go at the end of the initialize_trigger_objects() function
+        // because the self struct of contained reactors has not yet been defined.
+        // FIXME: The following mallocs are not freed by the destructor!
+        if (effect.container === null) {
+            // This has form "out".
+            val portStructType = variableStructType(port, reactorClass)
+            pr(instantiation, '''
+                «nameOfSelfStruct»->__«port.name»__width = «widthSpec»;
+                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
+                «nameOfSelfStruct»->__«port.name» = («portStructType»*)malloc(sizeof(«portStructType») 
+                        * «nameOfSelfStruct»->__«port.name»__width); 
+            ''')
+            pr(initialization, '''
+                for (int i = 0; i < «widthSpec»; i++) {
+                    «nameOfSelfStruct»->___reaction_«reationIdx».output_produced[«startIdx» + i]
+                            = &«nameOfSelfStruct»->«getStackPortMember('''__«ASTUtils.toText(effect)»[i]''', "is_present")»;
+                }
+            ''')
+        } else {
+            // This has form "c.in".
+            val containerName = effect.container.name
+            val portStructType = variableStructType(port, effect.container.reactorClass)
+            pr(instantiation, '''
+                «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
+                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
+                «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                        * «nameOfSelfStruct»->__«containerName».«port.name»__width);
+                for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«port.name»__width; i++) {
+                    «nameOfSelfStruct»->__«containerName».«port.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
+                }
+            ''')
+            pr(initialization, '''
+                for (int i = 0; i < «widthSpec»; i++) {
+                    «nameOfSelfStruct»->___reaction_«reationIdx».output_produced[«startIdx» + i]
+                            = &«nameOfSelfStruct»->__«ASTUtils.toText(effect)»[i]->is_present;
+                }
+            ''')
+        }
     }
     
     /**
@@ -3086,7 +3291,7 @@ class CGenerator extends GeneratorBase {
             self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
             self->__«outputName».token = (token_t*)self->___«action.name».token;
             ((token_t*)self->___«action.name».token)->ref_count++;
-            self->__«outputName».is_present = true;
+            self->«getStackPortMember('''__«outputName»''', "is_present")» = true;
             '''
         } else {
             '''
@@ -3225,6 +3430,30 @@ class CGenerator extends GeneratorBase {
 
         includeTargetLanguageSourceFiles()
         
+        parseTargetParameters()
+        
+        // Make sure src-gen directory exists.
+        val srcGenDir = new File(srcGenPath + File.separator)
+        srcGenDir.mkdirs
+        
+        // Handle .proto files.
+        for (file : this.protoFiles) {
+            val name = file.name
+            this.processProtoFile(name)
+            val dotIndex = name.lastIndexOf('.')
+            var rootFilename = name
+            if (dotIndex > 0) {
+                rootFilename = name.substring(0, dotIndex)
+            }
+            pr('#include "' + rootFilename + '.pb-c.h"')
+        }
+    }
+    
+    /**
+     * Parse the target parameters and set flags to the runCommand
+     * accordingly.
+     */
+    def parseTargetParameters() {
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
@@ -3251,25 +3480,6 @@ class CGenerator extends GeneratorBase {
             runCommand.add(targetTimeoutUnit.toString)
         }
         
-        {
-        	
-        }
-        // Make sure src-gen directory exists.
-        val srcGenDir = new File(directory + File.separator + "src-gen/")
-        srcGenDir.mkdirs
-
-        
-        // Handle .proto files.
-        for (file : this.protoFiles) {
-            val name = file.name
-            this.processProtoFile(name)
-            val dotIndex = name.lastIndexOf('.')
-            var rootFilename = name
-            if (dotIndex > 0) {
-                rootFilename = name.substring(0, dotIndex)
-            }
-            pr('#include "' + rootFilename + '.pb-c.h"')
-        }
     }
     
     /** Add necessary header files specific to the target language.
@@ -3835,7 +4045,7 @@ class CGenerator extends GeneratorBase {
         Output output,
         ReactorDecl decl
     ) {
-        if (output.type === null) {
+        if (output.type === null && target.requiresTypes === true) {
             reportError(output,
                 "Output is required to have a type: " + output.name)
         } else {
@@ -4051,10 +4261,17 @@ class CGenerator extends GeneratorBase {
     // For example, for "foo[]", the first match will be "foo".
     static final Pattern arrayPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\[\\]\\s*$");
     
-    static var DISABLE_REACTION_INITIALIZATION_MARKER
+    protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
     public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    
+       
+    /** Returns the Target enum for this generator */
+    override getTarget()
+    {
+        return Targets.get("C")
+    }
         
     override getTargetTimeType() '''interval_t'''
 

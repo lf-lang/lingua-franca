@@ -304,6 +304,54 @@ public enum Targets {
                 "from",
                 "of"
                 )
+    ), 
+    Python("Python", false, Arrays.asList(
+            // List via: https://en.cppreference.com/w/c/keyword
+            "auto",
+            "break",
+            "case",
+            "char",
+            "const",
+            "continue",
+            "default",
+            "do",
+            "double",
+            "else",
+            "enum",
+            "extern",
+            "float",
+            "for",
+            "goto",
+            "if",
+            "inline", // (since C99)
+            "int",
+            "long",
+            "register",
+            "restrict", // (since C99)
+            "return",
+            "short",
+            "signed",
+            "sizeof",
+            "static",
+            "struct",
+            "switch",
+            "typedef",
+            "union",
+            "unsigned",
+            "void",
+            "volatile",
+            "while",
+            "_Alignas", // (since C11)
+            "_Alignof", // (since C11)
+            "_Atomic", // (since C11)
+            "_Bool", // (since C99)
+            "_Complex", // (since C99)
+            "_Generic", // (since C11)
+            "_Imaginary", // (since C99)
+            "_Noreturn", // (since C11)
+            "_Static_assert", // (since C11)
+            "_Thread_local" // (since C11)
+            )
     );
     
     /**
@@ -365,7 +413,7 @@ public enum Targets {
         /**
          * Directive to specify the coordination mode
          */
-        COORDINATION("coordination", Arrays.asList(Targets.C, Targets.CCpp)),
+        COORDINATION("coordination", Arrays.asList(Targets.C, Targets.CCpp, Targets.Python)),
         
         /**
          * Directive to let the execution engine remain active also if there
@@ -391,7 +439,7 @@ public enum Targets {
          * Directive for specifying .proto files that need to be compiled and their
          * code included in the sources.
          */
-        PROTOBUFS("protobufs", Arrays.asList(Targets.C, Targets.TS)),
+        PROTOBUFS("protobufs", Arrays.asList(Targets.C, Targets.TS, Targets.Python)),
         /**
          * Directive to specify the number of threads.
          */

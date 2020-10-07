@@ -1,0 +1,24 @@
+target Python {
+    fast: true,
+    timeout: 5 sec
+};
+main reactor DelayedAction {
+    timer t(0, 1 sec);
+    logical action a;
+    state count(0);
+    reaction(t) -> a {=
+        a.schedule(MSEC(100))
+    =}
+    
+    reaction(a) {=
+        elapsed = get_elapsed_logical_time()
+        elapsed_physical = get_elapsed_physical_time()
+        print("Nanoseconds since start: ", elapsed)
+        print("Physical nanoseconds since start: ", elapsed_physical)
+        expected = self.count * 1000000000 + 100000000
+        self.count += 1
+        if elapsed != expected:
+            sys.stderr.write("Expected {:d} but got {:d}.\n".format(expected, elapsed))
+            exit(1)
+    =}
+}

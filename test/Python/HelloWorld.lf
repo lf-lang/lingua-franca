@@ -1,0 +1,9 @@
+target Python;
+reactor HelloWorld {
+    reaction(startup) {=
+        print("Hello World.")
+    =}
+}
+main reactor HelloWorldTest {
+    a = new HelloWorld();
+}

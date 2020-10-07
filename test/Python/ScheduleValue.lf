@@ -1,0 +1,17 @@
+/** Test of schedule_value. */
+target Python {
+    timeout: 3 sec
+};
+main reactor ScheduleValue {
+    logical action a;
+    reaction(startup) -> a {=
+        value = "Hello"
+        a.schedule(0, value)
+    =}
+    reaction(a) {=
+        print("Received: ", a.value)
+        if a.value != "Hello":
+            sys.stderr.write('FAILURE: Should have received "Hello"\n')
+            exit(1)
+    =}
+}

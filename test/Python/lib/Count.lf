@@ -1,0 +1,14 @@
+target Python;
+reactor Count {
+    state count(1);
+    output out;
+    timer t(0, 1 sec);
+    reaction(t) -> out {=
+        out.set(self.count)
+        self.count += 1
+    =}
+}
+
+reactor Foo {
+    
+}
