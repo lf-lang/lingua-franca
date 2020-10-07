@@ -317,6 +317,22 @@ typedef enum {false, true} bool;
  */
 typedef enum {defer, drop, replace} policy_t;
 
+ /* An enum that enables the C core library to
+ * ignore freeing the void* inside a token if the void*
+ * value is garbage collected by an external controller
+ */
+typedef enum {no=0, token_and_value, token_only} ok_to_free_t;
+
+/**
+ * The flag OK_TO_FREE is used to indicate whether
+ * the void* in toke_t should be freed or not.
+ */ 
+#ifdef __GARBAGE_COLLECTED
+#define OK_TO_FREE token_only
+#else
+#define OK_TO_FREE token_and_value
+#endif
+
 /**
  * Handles for scheduled triggers. These handles are returned
  * by schedule() functions. The intent is that the handle can be
@@ -394,7 +410,7 @@ typedef struct token_t {
      * Tokens that are created at the start of execution and associated with output
      * ports or actions are not expected to be freed. They can be reused instead.
      */
-    bool ok_to_free;
+    ok_to_free_t ok_to_free;
     /** For recycling, a pointer to the next token in the recycling bin. */
     struct token_t* next_free;
 } token_t;

@@ -38,6 +38,9 @@ else
             if [ $1 == "TS" ]; then
                 echo "Executing command: rm package.json";
                 rm package.json;
+            elif [ $1 == "Python" ]; then
+                echo "Removing the src-gen directory";
+                rm -rf src-gen;
             fi
             while read p; do
                 if [[ "$p" =~ ^[[:space:]]*#.* ]]; then
@@ -68,8 +71,10 @@ else
                     command="bin/$name"
 	            elif [ $1 == "TS" ]; then
                     command="node ${name}/dist/${name}"".js"
+                elif [ $1 == "Python" ]; then
+                    command="python3 src-gen/${name}/${name}"".py"
                 else
-                    echo "Unknown target. Valid targets are: \"Cpp\", \"TS\", and \"C\".";
+                    echo "Unknown target. Valid targets are: \"Cpp\", \"CCpp\", \"TS\", \"Python\", and \"C\".";
                     exit 1;
                 fi
                 echo "Executing command:"$command;

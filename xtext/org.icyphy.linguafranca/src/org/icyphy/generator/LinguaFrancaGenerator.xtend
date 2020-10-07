@@ -67,9 +67,12 @@ class LinguaFrancaGenerator extends AbstractGenerator {
                 case TS: {
                     generator = new TypeScriptGenerator()
                 }
-            }
-        }
-        generator.doGenerate(resource, fsa, context)
+                case Python: {
+                    generator = new PythonGenerator()
+                }
+			}
+		}
+		generator.doGenerate(resource, fsa, context)
         generatorErrorsOccurred = generator.errorsOccurred()
     }
 

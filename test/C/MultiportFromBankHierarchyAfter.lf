@@ -5,10 +5,10 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source(instance:int(0)) {
+reactor Source {
     output out:int;
     reaction(startup) -> out {=
-        SET(out, self->instance);
+        SET(out, self->bank_index);
     =}
 }
 reactor Container {
