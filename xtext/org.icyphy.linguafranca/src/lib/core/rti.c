@@ -473,7 +473,7 @@ void handle_address_query(ushort fed_id) {
     }
     ushort remote_fed_id = extract_ushort(buffer);
     
-    debug_print("Received address query from %d for %d.\n", fed_id, remote_fed_id);
+    // debug_print("Received address query from %d for %d.\n", fed_id, remote_fed_id);
 
     assert(federates[remote_fed_id].server_port < 65536);
     if(federates[remote_fed_id].server_port == -1)
@@ -617,7 +617,7 @@ void* federate(void* fed) {
             handle_timestamp(my_fed);
             break;
         case ADDRESSQUERY:
-            debug_print("Handling ADDRESSQUERY message.\n");
+            // debug_print("Handling ADDRESSQUERY message.\n");
             handle_address_query(my_fed->id);
             break;
         case ADDRESSAD:

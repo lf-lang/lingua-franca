@@ -646,7 +646,7 @@ void connect_to_rti(ushort id, char* hostname, int port) {
                     result = -1;
                     continue;
                 }
-                fprintf(stderr, "RTI Rejected FED_ID message with response (see rti.h): %d. Federate quits.\n", cause);
+                fprintf(stderr, "RTI Rejected FED_ID message with response (see rti.h): %d. Error code: %d. Federate quits.\n", response, cause);
                 exit(1);
             }
             printf("Federate %d: connected to RTI at %s:%d.\n", __my_fed_id, hostname, port);
