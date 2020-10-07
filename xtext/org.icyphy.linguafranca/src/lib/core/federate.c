@@ -64,7 +64,7 @@ int rti_socket = -1;
 /**
  * A dynamically allocated array that holds the socket descriptor for
  * physical connections to each federate. The index will be the federate
- * ID. This is initialized at strutup and is set by connect_to_federate().
+ * ID. This is initialized at startup and is set by connect_to_federate().
  */
 int *federate_sockets;
 
@@ -289,8 +289,13 @@ void __broadcast_stop() {
     send_time(STOP, current_time);
 }
 
-void* connect_to_federates(void *arg)
-{
+/**
+ * Thread to start a socket server to accept connections from other
+ * federates that send this federate messages directly (not through the RTI).
+ * @param arg An int giving the number of federates that this federate
+ *  expects to receive direct messages from.
+ */
+void* connect_to_federates(void *arg) {
     int expected_number_of_federates = *((int *)arg);
     int received_federates = 0;
     while (received_federates < expected_number_of_federates) {
@@ -298,6 +303,7 @@ void* connect_to_federates(void *arg)
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
         int socket_id = accept(server_socket, &client_fd, &client_length);
+        // FIXME: Error handling here is too harsh maybe?
         if (socket_id < 0) return NULL;
         debug_print("Federate %d accepted new connection from remote federate.\n", __my_fed_id);
         
@@ -381,8 +387,10 @@ void* connect_to_federates(void *arg)
 }
 
 /**
- * Connect to the federate at the specified host and port and return
- * the socket descriptor for the connection. If this fails, the
+ * Connect to the federate with the specified id. This is used for sending
+ * messages directly
+ * This first sends an
+ * ADDRESS_QUERY message to the If this fails, the
  * program exits. If it succeeds, it sets element [id] of the federate_sockets
  * global array to refer to the socket for communicating with the federate.
  * 
@@ -398,9 +406,8 @@ void connect_to_federate(ushort id) {
     unsigned char buffer[sizeof(int) + INET_ADDRSTRLEN];
     int port = -1;
     unsigned char hostname[INET_ADDRSTRLEN];
-    while (1)
-    {
-        buffer[0] = ADDRESSQUERY;
+    while (1) {
+        buffer[0] = ADDRESS_QUERY;
         // NOTE: Sending messages in little endian.
         encode_ushort(id, &(buffer[1]));
 
@@ -408,20 +415,18 @@ void connect_to_federate(ushort id) {
 
         write_to_socket(rti_socket, sizeof(ushort) + 1, buffer);
 
-        // Read RIT's response
+        // Read RTI's response
         read_from_socket(rti_socket, sizeof(int) + INET_ADDRSTRLEN, buffer);
 
         // FIXME: converting signed to unsigned
         port = extract_int(buffer);
         strcpy(hostname, (unsigned char*)(&(buffer[sizeof(int)])));
 
-        if (port == -1)
-        {
+        if (port == -1) {
             // Retry every 100 microseconds
             struct timespec wait_time = {0L, 100000L};
             struct timespec remaining_time;
-            if (nanosleep(&wait_time, &remaining_time) != 0)
-            {
+            if (nanosleep(&wait_time, &remaining_time) != 0) {
                 // Sleep was interrupted.
                 continue;
             }
