@@ -273,6 +273,7 @@ void send_message_timed(int socket, int message_type, unsigned int port, unsigne
  *  @param time The time of this federate's next event.
  */
 void send_time(unsigned char type, instant_t time) {
+    debug_print("Sending time %lld to the RTI.\n", time);
     unsigned char buffer[9];
     buffer[0] = type;
     encode_ll(time, &(buffer[1]));
