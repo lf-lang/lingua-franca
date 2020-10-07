@@ -461,14 +461,14 @@ void handle_stop_message(federate_t* fed) {
 
 /** 
  * Handle address query messages.
- * @param fed The federate sending a STOP message.
+ * @param fed_id The federate sending a ADDRESS_QUERY message.
  */
 void handle_address_query(ushort fed_id) {
-
+    // Use buffer both for reading and constructing the reply.
+    // The length is what is needed for the reply.
     unsigned char buffer[sizeof(int) + INET_ADDRSTRLEN];
     int bytes_read = read_from_socket2(federates[fed_id].socket, sizeof(ushort), (unsigned char*)buffer);
-    if(bytes_read == 0)
-    {
+    if (bytes_read == 0) {
         error("Failed to read address query.\n");
     }
     ushort remote_fed_id = extract_ushort(buffer);
@@ -476,25 +476,21 @@ void handle_address_query(ushort fed_id) {
     // debug_print("Received address query from %d for %d.\n", fed_id, remote_fed_id);
 
     assert(federates[remote_fed_id].server_port < 65536);
-    if(federates[remote_fed_id].server_port == -1)
-    {
+    if (federates[remote_fed_id].server_port == -1) {
         //debug_print("Warning: RTI received request for a federate %d server that does not exist yet.\n", remote_fed_id);
     }
     // Retrieve the port and hostname
     encode_int(federates[remote_fed_id].server_port, (unsigned char*)buffer);
-    strcpy((&(buffer[sizeof(int)])), federates[remote_fed_id].server_hostname);
-    // Send the port number and server ip address to federate which could be -1
+    strcpy((&(buffer[sizeof(int)])), (unsigned char*) federates[remote_fed_id].server_hostname);
+    // Send the port number (which could be -1) and server ip address to federate
     int bytes_written = write_to_socket2(federates[fed_id].socket, sizeof(int) + INET_ADDRSTRLEN, (unsigned char*)buffer);
-    if(bytes_written == 0)
-    {
+    if (bytes_written == 0) {
         error("Failed to write address query to socket.");
     }
 
-    if( federates[remote_fed_id].server_port != -1)
-    {
+    if (federates[remote_fed_id].server_port != -1) {
         debug_print("Replied address query from %d with address %s:%d\n", fed_id, federates[remote_fed_id].server_hostname, federates[remote_fed_id].server_port);
     }
-
 }
 
 /**
@@ -616,8 +612,8 @@ void* federate(void* fed) {
             debug_print("RTI handling TIMESTAMP message.\n");
             handle_timestamp(my_fed);
             break;
-        case ADDRESSQUERY:
-            // debug_print("Handling ADDRESSQUERY message.\n");
+        case ADDRESS_QUERY:
+            // debug_print("Handling ADDRESS_QUERY message.\n");
             handle_address_query(my_fed->id);
             break;
         case ADDRESSAD:

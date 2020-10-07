@@ -165,9 +165,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * Byte identifying a address query message, sent by a federate to RTI
- * to ask for another federates address and port number.
+ * to ask for another federate's address and port number.
  */
-#define ADDRESSQUERY 10
+#define ADDRESS_QUERY 10
 
 /**
  * Byte identifying a message adverising the port for the physical connection server
