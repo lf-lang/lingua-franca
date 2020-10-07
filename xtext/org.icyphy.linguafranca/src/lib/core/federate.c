@@ -731,18 +731,19 @@ handle_t schedule_value_already_locked(
 
 /** 
  * Handle a message being received from a remote federate directly
- * via a physical connection or from the RTI.
+ * or from the RTI.
  * This version is for messages carrying no timestamp.
- * 
- * @note This is similar to handle_message() but has specific
- * log message for the direct connection between federates.
  * 
  * @param socket The socket to read from.
  * @param buffer The buffer to read.
+ * @param heasder_size The size of the header of the message
+ *                     (9 for non-timed and 17 for timed).
+ *                     @note Timed message currently
+ *                     have their own function @see handle_timed_message.
  */
 void handle_message(int socket, unsigned char* buffer, unsigned int header_size) {
     // Read the header.
-    read_from_socket(socket, 8, buffer + 1);
+    read_from_socket(socket, header_size-1 , buffer + 1);
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
