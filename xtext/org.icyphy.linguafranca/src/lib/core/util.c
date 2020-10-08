@@ -75,8 +75,8 @@ char* ERROR_EOF = "ERROR peer sent EOF.";
 /** 
  * Read the specified number of bytes from the specified socket into the
  * specified buffer. If a disconnect or an EOF occurs during this
- * reading, report an error and exit. This function can optionally
- * take a formatted string and additional arguments similar to printf(format, ...)
+ * reading, report an error and exit. This function takes a formatted 
+ * string and additional optional arguments similar to printf(format, ...)
  * that is appended to the error messages.
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to read.
@@ -123,8 +123,8 @@ int read_from_socket2(int socket, int num_bytes, unsigned char* buffer) {
 /**
  * Write the specified number of bytes to the specified socket from the
  * specified buffer. If a disconnect or an EOF occurs during this
- * reading, report an error and exit. This function can optionally
- * take a formatted string and additional arguments similar to printf(format, ...)
+ * reading, report an error and exit. This function takes a formatted 
+ * string and additional optional arguments similar to printf(format, ...)
  * that is appended to the error messages.
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to write.
