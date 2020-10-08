@@ -586,7 +586,7 @@ class CGenerator extends GeneratorBase {
                         }
                         int num_inbound_physical_connections = «federate.inboundPhysicalConnections.length»;
                         *arg = num_inbound_physical_connections;
-                        pthread_create(&thread_id, NULL, connect_to_federates, arg);''');
+                        pthread_create(&thread_id, NULL, wait_for_p2p_connections_from_federates, arg);''');
                     }
                                         
                                     
