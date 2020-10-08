@@ -705,7 +705,7 @@ void connect_to_federates(int socket_descriptor) {
 
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
-            if(buffer[0] == P2P_SENDING_FED_ID || buffer[0] == P2PMESSAGE_TIMED) {
+            if(buffer[0] == P2P_SENDING_FED_ID || buffer[0] == P2P_MESSAGE_TIMED) {
                 error_code = WRONG_SERVER;
             }
             else {
