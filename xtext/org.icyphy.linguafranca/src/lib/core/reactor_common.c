@@ -570,11 +570,17 @@ void __pop_events() {
  *
  * @param trigger The trigger to be invoked at a later logical time.
  * @param extra_delay The logical time delay, which gets added to the
- *  trigger's minimum delay, if it has one.
+ *  trigger's minimum delay, if it has one. If this number is negative,
+ *  then zero is used instead.
  * @param token The token wrapping the payload or NULL for no payload.
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+
+    if (extra_delay < 0LL) {
+        DEBUG_PRINT("WARNING: schedule called with a negative extra_delay. Replacing with zero.\n");
+        extra_delay = 0LL;
+    }
 
     // printf("DEBUG: __schedule: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
     if (token != NULL) {

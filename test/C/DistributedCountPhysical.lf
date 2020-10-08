@@ -8,6 +8,9 @@
 target C {
     timeout: 1 sec
 };
+preamble {=
+    #define VERBOSE
+=}
 reactor Count {
     timer t(0, 200 msec);
     state s:int(0);
@@ -35,7 +38,7 @@ reactor Print {
     =}
     reaction(shutdown) {=
         if (self->c != 5) {
-            printf("Expected to receive 5 items.\n");
+            printf("Expected to receive 5 items. Received %d.\n", self->c);
             exit(2);
         }
     =}

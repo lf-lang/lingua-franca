@@ -35,8 +35,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOST_LITTLE_ENDIAN 1
 #define HOST_BIG_ENDIAN 2
 
-
-#define VERBOSE
+// Uncomment this to get all debug messages.
+// #define VERBOSE
 
 #ifdef VERBOSE
 #define DEBUG 1
@@ -53,11 +53,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
 
 /**
- * A macro that can be used in lieu of fprintf(stderr, ...) that also exits
- * the program. The input to this macro is exactly like printf: (format, ...).
- */ 
-#define ERROR_PRINT(format, ...) \
-            do { vfprintf(stderr, format, __VA_ARGS__); exit(1); } while (0)
+ * A function that can be used in lieu of fprintf(stderr, ...).
+ * The input to this function is exactly like printf: (format, ...).
+ */
+void error_print(char* format, ...);
+
+/**
+ * A function that can be used in lieu of fprintf(stderr, ...) that also exits
+ * the program. The input to this function is exactly like printf: (format, ...).
+ */
+void error_print_and_exit(char* format, ...);
 
 /** Print the error defined by the errno variable with the
  *  specified message as a prefix, then exit with error code 1.

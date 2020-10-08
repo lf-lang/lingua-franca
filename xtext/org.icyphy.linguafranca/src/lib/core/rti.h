@@ -127,6 +127,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  The next two bytes are the destination federate ID.
  *  The four bytes after that will be the length of the message.
  *  The remaining bytes are the message.
+ *  NOTE: This is currently not used. All messages are timed, even
+ *  on physical connections, because if "after" is used, the message
+ *  may preserve the logical timestamp rather than using the physical time.
  */
 #define MESSAGE 3
 
@@ -216,7 +219,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next eight bytes will be the timestamp.
  * The ramaining bytes are the message.
  */
-#define P2P_MESSAGE_TIMED 13
+#define P2P_TIMED_MESSAGE 13
 
 /////////////////////////////////////////////
 //// Rejection codes

@@ -186,12 +186,12 @@ int create_server(int specified_port, int port) {
     return socket_descriptor;
 }
 
-/** Handle a message being received from a federate via the RTI.
+/** Handle a timed message being received from a federate via the RTI.
  *  @param sending_socket The identifier for the sending socket.
  *  @param buffer The buffer to read into (the first byte is already there).
- *  @param header_size The number of bytes in the header.
  */
-void handle_message(int sending_socket, unsigned char* buffer, unsigned int header_size) {
+void handle_timed_message(int sending_socket, unsigned char* buffer) {
+    int header_size = 17;
     // Read the header, minus the first byte which is already there.
     read_from_socket(sending_socket, header_size - 1, buffer + 1, "");
     // Extract the header information.
@@ -543,7 +543,7 @@ void handle_timestamp(federate_t *my_fed)
 
 
     instant_t timestamp = swap_bytes_if_big_endian_ll(*((long long *)(&buffer)));
-    DEBUG_PRINT("RTI received message: %llx\n", timestamp);
+    DEBUG_PRINT("RTI received timestamp message: %llx\n", timestamp);
 
     pthread_mutex_lock(&rti_mutex);
     num_feds_proposed_start++;
@@ -626,15 +626,10 @@ void* federate(void* fed) {
             DEBUG_PRINT("Handling ADDRESS_AD message.\n");
             handle_address_ad(my_fed->id);
             break;
-        case MESSAGE:      
-            DEBUG_PRINT("Handling MESSAGE.\n");      
-            if (my_fed->state == NOT_CONNECTED) return NULL;
-            handle_message(my_fed->socket, buffer, 9);
-            break;
         case TIMED_MESSAGE:
             DEBUG_PRINT("Handling timed message.\n");
             if (my_fed->state == NOT_CONNECTED) return NULL;
-            handle_message(my_fed->socket, buffer, 17);
+            handle_timed_message(my_fed->socket, buffer);
             break;
         case RESIGN:
             DEBUG_PRINT("Handling resign.\n");
@@ -702,7 +697,7 @@ void connect_to_federates(int socket_descriptor) {
 
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
-            if(buffer[0] == P2P_SENDING_FED_ID || buffer[0] == P2P_MESSAGE_TIMED) {
+            if(buffer[0] == P2P_SENDING_FED_ID || buffer[0] == P2P_TIMED_MESSAGE) {
                 error_code = WRONG_SERVER;
             }
             else {
