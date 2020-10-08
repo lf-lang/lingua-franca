@@ -54,6 +54,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONNECT_NUM_RETRIES 500
 
 /**
+ * Number of nanoseconds that a federate waits before asking
+ * the RTI again for the port and IP address of a federate
+ * (an ADDRESS_QUERY message) when the RTI responds that it
+ * does not know.
+ */
+#define ADDRESS_QUERY_RETRY_INTERVAL 100000000
+
+/**
  * Default starting port number for the RTI's socket server.
  * Unless a specific port has been specified by the LF program,
  * the RTI, when it starts up, will attempt to open a socket server
@@ -166,19 +174,30 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Byte identifying a address query message, sent by a federate to RTI
  * to ask for another federate's address and port number.
+ * The next two bytes are the other federate's ID.
+ * The reply from the RTI will a port number (an int), which is -1
+ * if the RTI does not know yet (it has not received ADDRESS_AD from
+ * the other federate), followed by the IP address of the other
+ * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
  */
 #define ADDRESS_QUERY 10
 
 /**
- * Byte identifying a message adverising the port for the physical connection server
- * of a federate
+ * Byte identifying a message advertising the port for the physical connection server
+ * of a federate.
  */
 #define ADDRESSAD 11
 
 /**
- * Byte identifying a message that is sent by a federate directly to another federate.
+ * Byte identifying a first message that is sent by a federate directly to another federate
+ * after establishing a socket connection to send messages directly to the federate. This
+ * first message contains two bytes identifying the sending federate (its ID), a byte
+ * giving the length of the federation ID, followed by the federation ID (a string).
+ * The response from the remote federate is expected to be ACK, but if the remote
+ * federate does not expect this federate or federation to connect, it will respond
+ * instead with REJECT.
  */
-#define P2PMESSAGE 12
+#define P2P_SENDING_FED_ID 12
 
 /**
  * A vairant of P2PMESSAGE that carries the logical timestamp as well between the federates.
@@ -245,8 +264,8 @@ typedef struct federate_t {
     int num_downstream;     // Size of the array of downstream federates.
     execution_mode_t mode;  // FAST or REALTIME.
     unsigned char server_hostname[INET_ADDRSTRLEN]; // Information about the hostname and 
-    int server_port;       // port number of the socket server of the federate
-                    // if it has any.
+    int server_port;        // port number of the socket server of the federate
+                            // if it has any incoming direct connections from other federates.
     struct in_addr server_ip_addr; // Information about the ip address of the socket
                                 // server of the federate.
 } federate_t;

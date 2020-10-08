@@ -481,7 +481,7 @@ void handle_address_query(ushort fed_id) {
     }
     // Retrieve the port and hostname
     encode_int(federates[remote_fed_id].server_port, (unsigned char*)buffer);
-    strcpy((&(buffer[sizeof(int)])), (unsigned char*) federates[remote_fed_id].server_hostname);
+    strcpy((&(buffer[sizeof(int)])), federates[remote_fed_id].server_hostname);
     // Send the port number (which could be -1) and server ip address to federate
     int bytes_written = write_to_socket2(federates[fed_id].socket, sizeof(int) + INET_ADDRSTRLEN, (unsigned char*)buffer);
     if (bytes_written == 0) {
@@ -696,7 +696,7 @@ void connect_to_federates(int socket_descriptor) {
 
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
-            if(buffer[0] == P2PMESSAGE || buffer[0] == P2PMESSAGE_TIMED) {
+            if(buffer[0] == P2P_SENDING_FED_ID || buffer[0] == P2PMESSAGE_TIMED) {
                 error_code = WRONG_SERVER;
             }
             else {
