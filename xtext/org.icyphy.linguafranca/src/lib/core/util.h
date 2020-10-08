@@ -44,8 +44,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEBUG 0
 #endif
 
-#define debug_print(...) \
+/**
+ * A macro used to print useful debug information. It can be enabled
+ * by setting the @see DEBUG macro to 1.
+ * The input to this macro is in similar to printf(format, ...).
+ */ 
+#define DEBUG_PRINT(...) \
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
+
+/**
+ * A macro that can be used in lieu of fprintf(stderr, ...) that also exits
+ * the program. The input to this macro is in similar to printf(format, ...).
+ */ 
+#define ERROR_PRINT(format, ...) \
+            do { vfprintf(stderr, format, __VA_ARGS__); exit(1); } while (0)
 
 /** Print the error defined by the errno variable with the
  *  specified message as a prefix, then exit with error code 1.
@@ -58,23 +70,31 @@ void error(char *msg);
  */
 int host_is_big_endian();
 
-/** Read the specified number of bytes from the specified socket into the
- *  specified buffer. If a disconnect or an EOF occurs during this
- *  reading, report an error and exit.
- *  @param socket The socket ID.
- *  @param num_bytes The number of bytes to read.
- *  @param buffer The buffer into which to put the bytes.
+/** 
+ * Read the specified number of bytes from the specified socket into the
+ * specified buffer. If a disconnect or an EOF occurs during this
+ * reading, report an error and exit. This function
+ * takes a formatted string and additional arguments similar to printf(format, ...)
+ * that is appended to the error messages.
+ *  
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to read.
+ * @param buffer The buffer into which to put the bytes.
  */
-void read_from_socket(int socket, int num_bytes, unsigned char* buffer);
+void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* format, ...);
 
-/** Write the specified number of bytes to the specified socket from the
- *  specified buffer. If a disconnect or an EOF occurs during this
- *  reading, report an error and exit.
- *  @param socket The socket ID.
- *  @param num_bytes The number of bytes to write.
- *  @param buffer The buffer from which to get the bytes.
+/** 
+ * Write the specified number of bytes to the specified socket from the
+ * specified buffer. If a disconnect or an EOF occurs during this
+ * reading, report an error and exit. This function
+ * takes a formatted string and additional arguments similar to printf(format, ...)
+ * that is appended to the error messages.
+ * 
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to write.
+ * @param buffer The buffer from which to get the bytes.
  */
-void write_to_socket(int socket, int num_bytes, unsigned char* buffer);
+void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* format, ...);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
