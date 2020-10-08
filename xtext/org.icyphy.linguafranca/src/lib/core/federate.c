@@ -257,7 +257,7 @@ void __broadcast_stop() {
  * @param arg An int giving the number of federates that this federate
  *  expects to receive direct messages from.
  */
-void* connect_to_federates(void *arg) {
+void* wait_for_p2p_connections_from_federates(void *arg) {
     int expected_number_of_federates = *((int *)arg);
     int received_federates = 0;
     while (received_federates < expected_number_of_federates) {
