@@ -290,7 +290,7 @@ void* wait_for_p2p_connections_from_federates(void *arg) {
         char remote_federation_id[federation_id_length];
         bytes_read = read_from_socket2(socket_id, federation_id_length, (unsigned char*)remote_federation_id);
         if(bytes_read != federation_id_length
-                || (strncmp(federation_id, remote_federation_id, strnlen(federation_id, 255) != 0))) {
+                || (strncmp(federation_id, remote_federation_id, strnlen(federation_id, 255)) != 0)) {
             printf("WARNING: Federate received invalid federation ID. Closing socket.\n");
             if (bytes_read >= 0) {
                 unsigned char response[2];
