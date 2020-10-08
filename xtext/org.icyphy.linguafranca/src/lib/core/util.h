@@ -47,14 +47,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * A macro used to print useful debug information. It can be enabled
  * by setting the @see DEBUG macro to 1.
- * The input to this macro is in similar to printf(format, ...).
+ * The input to this macro is exactly like printf: (format, ...).
  */ 
 #define DEBUG_PRINT(...) \
             do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
 
 /**
  * A macro that can be used in lieu of fprintf(stderr, ...) that also exits
- * the program. The input to this macro is in similar to printf(format, ...).
+ * the program. The input to this macro is exactly like printf: (format, ...).
  */ 
 #define ERROR_PRINT(format, ...) \
             do { vfprintf(stderr, format, __VA_ARGS__); exit(1); } while (0)
