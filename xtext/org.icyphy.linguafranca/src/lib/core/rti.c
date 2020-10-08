@@ -607,12 +607,9 @@ void* federate(void* fed) {
     while (1) {
         // Read no more than one byte to get the message type.
         int bytes_read = read_from_socket2(my_fed->socket, 1, buffer);
-        if (bytes_read == 0)
-        {
+        if (bytes_read == 0) {
             continue;
-        }
-        else if (bytes_read < 0)
-        {
+        } else if (bytes_read < 0) {
             fprintf(stderr, "ERROR: RTI socket to federate %d broken.\n", my_fed->id);
             exit(1);
         }
@@ -625,8 +622,8 @@ void* federate(void* fed) {
             // debug_print("Handling ADDRESS_QUERY message.\n");
             handle_address_query(my_fed->id);
             break;
-        case ADDRESSAD:
-            DEBUG_PRINT("Handling ADDRESSAD message.\n");
+        case ADDRESS_AD:
+            DEBUG_PRINT("Handling ADDRESS_AD message.\n");
             handle_address_ad(my_fed->id);
             break;
         case MESSAGE:      
