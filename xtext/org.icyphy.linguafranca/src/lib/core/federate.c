@@ -93,7 +93,7 @@ void* listen_to_federates(void *args);
  * @note This function is similar to create_server(...) in rti.c.
  * However, it contains specific log messages for the peer to
  * peer connections between federates. It also additionally 
- * sends an address advertisement (ADDRESSAD) message to the
+ * sends an address advertisement (ADDRESS_AD) message to the
  * RTI informing it of the port.
  * 
  * @param port The port number to use.
@@ -168,7 +168,7 @@ int create_server(int specified_port,
     
     // Send the server port number to the RTI
     unsigned char buffer[sizeof(int) + 1];
-    buffer[0] = ADDRESSAD;
+    buffer[0] = ADDRESS_AD;
     encode_int(server_port, &(buffer[1]));
     int bytes_written = write_to_socket2(rti_socket, sizeof(int) + 1, (unsigned char*)buffer);
     if (bytes_written == 0)
@@ -741,6 +741,8 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     unsigned short federate_id;
     unsigned int length;
     extract_header(buffer, &port_id, &federate_id, &length);
+    // Check if the message is intended for this federate
+    assert (__my_fed_id == federate_id);
     DEBUG_PRINT("Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 
     // Read the timestamp.
@@ -866,11 +868,7 @@ void* listen_to_federates(void *args) {
             exit(1);
         }
         switch(buffer[0]) {
-        case P2P_SENDING_FED_ID:
-            DEBUG_PRINT("Handling p2p message from federate %d.\n", fed_id);
-            handle_message(socket_id, buffer, 9);
-            break;
-        case P2PMESSAGE_TIMED:
+        case P2P_MESSAGE_TIMED:
             DEBUG_PRINT("Handling timed p2p message from federate %d.\n", fed_id);
             handle_timed_message(socket_id, buffer + 1);
             break;

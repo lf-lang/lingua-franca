@@ -185,8 +185,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Byte identifying a message advertising the port for the physical connection server
  * of a federate.
+ * The next four bytes (or sizeof(int)) will be the port number.
+ * The sending federate will not wait for a response from the RTI and assumes its
+ * request will be processed eventually by the RTI.
  */
-#define ADDRESSAD 11
+#define ADDRESS_AD 11
 
 /**
  * Byte identifying a first message that is sent by a federate directly to another federate
@@ -200,9 +203,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define P2P_SENDING_FED_ID 12
 
 /**
- * A vairant of P2PMESSAGE that carries the logical timestamp as well between the federates.
+ * Byte identifying a timestamped message to send directly to another federate.
+ * This is a variant of @see TIMED_MESSAGE that is used in P2P connections between
+ * federates. Having a separate message type for P2P connections between federates
+ * will be useful in preventing crosstalk.
+ * 
+ * The next two bytes will be the ID of the destination port.
+ * The next two bytes are the destination federate ID. This is checked against
+ * the __my_fed_id of the receiving federate to ensure the message was intended for
+ * the correct federate.
+ * The four bytes after will be the length of the message.
+ * The next eight bytes will be the timestamp.
+ * The ramaining bytes are the message.
  */
-#define P2PMESSAGE_TIMED 13
+#define P2P_MESSAGE_TIMED 13
 
 /////////////////////////////////////////////
 //// Rejection codes
