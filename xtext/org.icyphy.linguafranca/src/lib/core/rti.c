@@ -765,9 +765,6 @@ void connect_to_federates(int socket_descriptor) {
             write_to_socket2(socket_id, 1, response);
         }
 
-        
-            
-
         // Assign the address information for federate
         // The IP address is stored here both as an in_addr struct (in .server_ip_addr) that can be useful
         // to create sockets and can be efficiently sent over the network, and in a human readable format
@@ -777,12 +774,13 @@ void connect_to_federates(int socket_descriptor) {
         // Then extract the internet address (which is in IPv4 format) and assign it as the federate's socket server
         federates[fed_id].server_ip_addr = pV4_addr->sin_addr;
 
-        // Then create the human readable format and store that in the .server_hostname feild of the federate.
+        // Then create the human readable format and copy that into
+        // the .server_hostname field of the federate.
         char str[INET_ADDRSTRLEN];
         inet_ntop( AF_INET, &federates[fed_id].server_ip_addr, str, INET_ADDRSTRLEN );  
         strcpy (federates[fed_id].server_hostname, str);     
 
-        DEBUG_PRINT("Got address %s from federate %d.\n", federates[fed_id].server_hostname, fed_id);
+        DEBUG_PRINT("RTI got address %s from federate %d.\n", federates[fed_id].server_hostname, fed_id);
 
         federates[fed_id].socket = socket_id;
 

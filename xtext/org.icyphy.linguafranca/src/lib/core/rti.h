@@ -277,10 +277,12 @@ typedef struct federate_t {
     int* downstream;        // Array of downstream federate ids.
     int num_downstream;     // Size of the array of downstream federates.
     execution_mode_t mode;  // FAST or REALTIME.
-    unsigned char server_hostname[INET_ADDRSTRLEN]; // Information about the hostname and 
+    char server_hostname[INET_ADDRSTRLEN]; // Human-readable IP address and
     int server_port;        // port number of the socket server of the federate
                             // if it has any incoming direct connections from other federates.
-    struct in_addr server_ip_addr; // Information about the ip address of the socket
+                            // The port number will be -1 if there is no server or if the
+                            // RTI has not been informed of the port number.
+    struct in_addr server_ip_addr; // Information about the IP address of the socket
                                 // server of the federate.
 } federate_t;
 
