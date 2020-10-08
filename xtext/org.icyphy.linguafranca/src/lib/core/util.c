@@ -42,6 +42,25 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NUMBER_OF_FEDERATES 1
 #endif
 
+/**
+ * A function that can be used in lieu of fprintf(stderr, ...).
+ * The input to this function is exactly like printf: (format, ...).
+ */
+void error_print(char* format, ...) {
+    va_list args;
+    vfprintf(stderr, format, args);
+}
+
+/**
+ * A function that can be used in lieu of fprintf(stderr, ...) that also exits
+ * the program. The input to this function is exactly like printf: (format, ...).
+ */
+void error_print_and_exit(char* format, ...) {
+    va_list args;
+    vfprintf(stderr, format, args);
+    exit(1);
+}
+
 /** Print the error defined by the errno variable with the
  *  specified message as a prefix, then exit with error code 1.
  *  @param msg The prefix to the message.
@@ -89,11 +108,11 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* fo
         int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
         if (more < 0) {
             fprintf(stderr, "ERROR socket is not connected. ");
-            ERROR_PRINT(format, args);
+            error_print_and_exit(format, args);
         }
         if (more == 0) {
             fprintf(stderr, "ERROR peer sent EOF. ");
-            ERROR_PRINT(format, args);
+            error_print_and_exit(format, args);
         }
         bytes_read += more;
     }
@@ -129,6 +148,8 @@ int read_from_socket2(int socket, int num_bytes, unsigned char* buffer) {
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to write.
  * @param buffer The buffer from which to get the bytes.
+ * @param format A format string for error messages, followed by any number of
+ *  fields that will be used to fill the format string as in printf.
  */
 void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* format, ...) {
     int bytes_written = 0;
@@ -137,11 +158,11 @@ void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* for
         int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
         if (more < 0) {
             fprintf(stderr, "ERROR socket is not connected. ");
-            ERROR_PRINT(format, args);
+            error_print_and_exit(format, args);
         }
         if (more == 0) {
             fprintf(stderr, "ERROR peer sent EOF.");
-            ERROR_PRINT(format, args);
+            error_print_and_exit(format, args);
         }
         bytes_written += more;
     }

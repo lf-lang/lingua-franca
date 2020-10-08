@@ -58,6 +58,7 @@
 #include <limits.h>
 #include <errno.h>
 #include "pqueue.h"
+#include "util.h"
 
 //  ======== Macros ========  //
 #define CONSTRUCTOR(classname) (new_ ## classname)

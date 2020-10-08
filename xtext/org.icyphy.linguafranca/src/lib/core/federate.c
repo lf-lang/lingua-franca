@@ -49,7 +49,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via RTI";
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
 char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from RTI an unrecognized message type";
-char* ERROR_UNRECOGNIZED_P2P_MESSAGE_TYPE = "ERROR Received from federate an unrecognized message type";
 
 /** The ID of this federate as assigned when synchronize_with_other_federates()
  *  is called.
@@ -306,7 +305,6 @@ void* wait_for_p2p_connections_from_federates(void *arg) {
         // Extract the ID of the sending federate.
         ushort remote_fed_id = extract_ushort((unsigned char*)&(buffer[1]));
         DEBUG_PRINT("Federate %d recieved sending federate ID %d.\n", __my_fed_id, remote_fed_id);
-        assert(remote_fed_id > -1);
         federate_sockets[remote_fed_id] = socket_id;
 
         // Send an ACK message.
@@ -316,7 +314,13 @@ void* wait_for_p2p_connections_from_federates(void *arg) {
 
         // Start a thread to listen for incoming messages from other federates.
         pthread_t thread_id;
-        pthread_create(&thread_id, NULL, listen_to_federates, (void*)remote_fed_id);
+        // We cannot pass a pointer to remote_fed_id to the thread we need to create
+        // because that variable is on the stack. Instead, we malloc memory.
+        // The created thread is responsible for calling free().
+        ushort* remote_fed_id_copy = malloc(sizeof(ushort));
+        if (remote_fed_id_copy == NULL) error_print("ERROR: malloc failed in federate %d.\n", __my_fed_id);
+        *remote_fed_id_copy = remote_fed_id;
+        pthread_create(&thread_id, NULL, listen_to_federates, remote_fed_id_copy);
 
         received_federates++;
     }
@@ -623,7 +627,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     // Read bytes from the socket. We need 9 bytes.
     int bytes_read = read_from_socket2(rti_socket, 9, &(buffer[0]));
     if (bytes_read < 1) error("ERROR reading TIMESTAMP message from RTI.");
-    DEBUG_PRINT("Federate read 9 bytes.\n");
+    DEBUG_PRINT("Federate %d read 9 bytes.\n", __my_fed_id);
 
     // First byte received is the message ID.
     if (buffer[0] != TIMESTAMP) {
@@ -648,14 +652,15 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 trigger_t* __action_for_port(int port_id);
 
 
-/** Version of schedule_value() identical to that in reactor_common.c
- *  except that it does not acquire the mutex lock.
- *  @param action The action or timer to be triggered.
- *  @param extra_delay Extra offset of the event release.
- *  @param value Dynamically allocated memory containing the value to send.
- *  @param length The length of the array, if it is an array, or 1 for a
- *   scalar and 0 for no payload.
- *  @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
+/**
+ * Version of schedule_value() identical to that in reactor_common.c
+ * except that it does not acquire the mutex lock.
+ * @param action The action or timer to be triggered.
+ * @param extra_delay Extra offset of the event release.
+ * @param value Dynamically allocated memory containing the value to send.
+ * @param length The length of the array, if it is an array, or 1 for a
+ *  scalar and 0 for no payload.
+ * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule_value_already_locked(
     trigger_t* trigger, interval_t extra_delay, void* value, int length) {
@@ -669,69 +674,15 @@ handle_t schedule_value_already_locked(
     return return_value;
 }
 
-/** 
- * Handle a message being received from a remote federate directly
- * or from the RTI.
- * This version is for messages carrying no timestamp.
- * 
- * @param socket The socket to read from.
+/**
+ * Handle a timestamped message being received from a remote federate via the RTI
+ * or directly from other federates.
+ * This will read the timestamp, which is appended to the header,
+ * and calculate an offset to pass to the schedule function.
+ * This function assumes the caller does not hold the mutex lock,
+ * which it acquires to call schedule.
+ * @param socket The socket to read the message from.
  * @param buffer The buffer to read.
- * @param heasder_size The size of the header of the message
- *                     (9 for non-timed and 17 for timed).
- *                     @note Timed message currently
- *                     have their own function @see handle_timed_message.
- */
-void handle_message(int socket, unsigned char* buffer, unsigned int header_size) {
-    // Read the header.
-    read_from_socket(socket, header_size-1 , buffer + 1, "");
-    // Extract the header information.
-    unsigned short port_id;
-    unsigned short federate_id;
-    unsigned int length;
-    extract_header(buffer + 1, &port_id, &federate_id, &length);
-    DEBUG_PRINT("Federate %d receiving message to port %d of length %d.\n", federate_id, port_id, length);
-
-    // Prevent a buffer overflow.
-    if (length + header_size > BUFFER_SIZE)
-    { 
-        DEBUG_PRINT("The received message is too large for the buffer size.\n");
-        length = BUFFER_SIZE - header_size;
-    }
-    
-    unsigned char* message_contents = (unsigned char*)malloc(length);
-    read_from_socket(socket, length, message_contents, "");
-    DEBUG_PRINT("Message received by federate: %s.\n",  message_contents);
-
-    DEBUG_PRINT("Federate %d pthread_mutex_lock handle_message\n", __my_fed_id);
-    pthread_mutex_lock(&mutex);
-
-    // If the destination federate not connected, issue a warning
-    // and return.
-    if (federate_id != __my_fed_id) {
-        pthread_mutex_unlock(&mutex);
-        printf("Federate %d read message that was meant for %d. Dropping message.\n",
-                __my_fed_id, federate_id
-        );
-        return;
-    }
-
-    DEBUG_PRINT("Federate %d pthread_mutex_locked\n", __my_fed_id);
-    schedule_value_already_locked(__action_for_port(port_id), 0LL, message_contents, length);
-    DEBUG_PRINT("Called schedule.\n");
-
-    pthread_mutex_unlock(&mutex);
-    DEBUG_PRINT("Federate %d pthread_mutex_unlock\n", __my_fed_id);
-   
-}
-
-/** Handle a timestamped message being received from a remote federate via the RTI
- *  or directly from other federates.
- *  This will read the timestamp, which is appended to the header,
- *  and calculate an offset to pass to the schedule function.
- *  This function assumes the caller does not hold the mutex lock,
- *  which it acquires to call schedule.
- *  @param socket The socket to read the message from.
- *  @param buffer The buffer to read.
  */
 void handle_timed_message(int socket, unsigned char* buffer) {
     // Read the header.
@@ -763,7 +714,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 
     interval_t delay = timestamp - get_logical_time();
     // NOTE: Cannot call schedule_value(), which is what we really want to call,
-    // because pthreads it too incredibly stupid and deadlocks trying to acquire
+    // because pthreads is too incredibly stupid and deadlocks trying to acquire
     // a lock that the calling thread already holds.
     schedule_value_already_locked(__action_for_port(port_id), delay, message_contents, length);
     DEBUG_PRINT("Called schedule with delay %lld.\n", delay);
@@ -837,15 +788,18 @@ void handle_incoming_stop_message() {
 
 /** 
  * Thread that listens for inputs from other federates.
- * This always calls schedule.
- * @param args This is not actually a pointer, but rather a ushort giving the
- *  remote federate ID being listened to.
+ * This thread listens for P2P_MESSAGE_TIMED messages from the specified
+ * peer federate and calls schedule to schedule an event.
+ * If an error occurs or an EOF is received from the peer, then this
+ * procedure returns, terminating the thread.
+ * @param fed_id_ptr A pointer to a ushort containing federate ID being listened to.
+ *  This procedure frees the memory pointed to before returning.
  */
-void* listen_to_federates(void *args) {
-    // FIXME: This is ugly!
-    ushort fed_id = (ushort)args;
+void* listen_to_federates(void *fed_id_ptr) {
 
-    DEBUG_PRINT("Listening to federate %d.\n", fed_id);
+    ushort fed_id = *((ushort*)fed_id_ptr);
+
+    DEBUG_PRINT("Federate %d listening to federate %d.\n", __my_fed_id, fed_id);
 
     int socket_id = federate_sockets[fed_id];
 
@@ -857,26 +811,31 @@ void* listen_to_federates(void *args) {
     // Listen for messages from the federate.
     while (1) {
         // Read one byte to get the message type.
+        DEBUG_PRINT("Federate %d waiting for a P2P message.\n", __my_fed_id);
         int bytes_read = read_from_socket2(socket_id, 1, buffer);
-        if (bytes_read == 0)
-        {
-            continue;
-        }
-        else if (bytes_read < 0)
-        {
-            fprintf(stderr, "P2P socket between federate %d and %d borken.\n", __my_fed_id, fed_id);
-            exit(1);
+        DEBUG_PRINT("Federate %d received a P2P message of type %d.\n", __my_fed_id, buffer[0]);
+        if (bytes_read == 0) {
+            // EOF occurred. This breaks the connection.
+            DEBUG_PRINT("Federate %d received EOF from peer federate %d. Closing the socket.\n", __my_fed_id, fed_id);
+            close(socket_id);
+            break;
+        } else if (bytes_read < 0) {
+            error_print("P2P socket between federate %d and %d broken.\n", __my_fed_id, fed_id);
+            close(socket_id);
+            break;
         }
         switch(buffer[0]) {
-        case P2P_MESSAGE_TIMED:
-            DEBUG_PRINT("Handling timed p2p message from federate %d.\n", fed_id);
+        case P2P_TIMED_MESSAGE:
+            DEBUG_PRINT("Federate %d handling timed p2p message from federate %d.\n", __my_fed_id, fed_id);
             handle_timed_message(socket_id, buffer + 1);
             break;
         default:
-            DEBUG_PRINT("Erroneous message type: %d\n", buffer[0]);
-            error(ERROR_UNRECOGNIZED_P2P_MESSAGE_TYPE);
+            error_print("Federate %d received erroneous message type: %d. Closing the socket.\n", __my_fed_id, buffer[0]);
+            close(socket_id);
+            break;
         }
     }
+    free(fed_id_ptr);
     return NULL;
 }
 
@@ -894,9 +853,6 @@ void* listen_to_rti(void* args) {
         // Read one byte to get the message type.
         read_from_socket(rti_socket, 1, buffer, "");
         switch(buffer[0]) {
-        case MESSAGE:
-            handle_message(rti_socket, buffer, 9);
-            break;
         case TIMED_MESSAGE:
             handle_timed_message(rti_socket, buffer + 1);
             break;

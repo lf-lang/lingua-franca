@@ -3418,7 +3418,7 @@ class CGenerator extends GeneratorBase {
         var String messageType;
         if (isPhysical) {
             socket = '''federate_sockets[«receivingFed.id»]'''
-            messageType = "P2P_MESSAGE_TIMED"
+            messageType = "P2P_TIMED_MESSAGE"
         }
         else {
             // Logical connection
