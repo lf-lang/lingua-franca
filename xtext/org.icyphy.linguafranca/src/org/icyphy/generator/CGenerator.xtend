@@ -573,14 +573,22 @@ class CGenerator extends GeneratorBase {
                     val numberOfOutboundConnections  = federate.outboundPhysicalConnections.length;
                     
                     if (numberOfInboundConnections > 0) {
-                        pr('''// Initialize the array of socket for incoming connectionss. The sockets have to be separated into incoming and outgoing to prevent an override in case of a two-way connection.''')
-                        pr('''federate_sockets_for_inbound_physical_connections = (int*)malloc(«numberOfInboundConnections» * sizeof(int));''')
-                        pr('''memset(federate_sockets_for_inbound_physical_connections, -1, «numberOfInboundConnections» * sizeof(int));''')                    
+                        pr('''
+                        // Initialize the array of socket for incoming connections.
+                        // The sockets have to be separated into inbound and outbound to prevent an override in case of a two-way connection.
+                        // Freed in __termination().''')
+                        pr('''int expected_number_of_inbound_physical_connections = «numberOfInboundConnections»;''')
+                        pr('''federate_sockets_for_inbound_physical_connections = (int*)malloc(expected_number_of_inbound_physical_connections * sizeof(int));''')
+                        pr('''memset(federate_sockets_for_inbound_physical_connections, -1, expected_number_of_inbound_physical_connections * sizeof(int));''')                    
                     }
                     if (numberOfOutboundConnections > 0) {                        
-                        pr('''// Initialize the array of socket for outgoing connectionss. The sockets have to be separated into incoming and outgoing to prevent an override in case of a two-way connection.''')
-                        pr('''federate_sockets_for_outbound_physical_connections = (int*)malloc(«numberOfOutboundConnections» * sizeof(int));''')
-                        pr('''memset(federate_sockets_for_outbound_physical_connections, -1, «numberOfOutboundConnections» * sizeof(int));''')
+                        pr('''
+                        // Initialize the array of socket for outgoing connections.
+                        // The sockets have to be separated into inbound and outbound to prevent an override in case of a two-way connection.
+                        // Freed in __termination().''')
+                        pr('''int expected_number_of_outbound_physical_connections = «numberOfOutboundConnections»;''')
+                        pr('''federate_sockets_for_outbound_physical_connections = (int*)malloc(expected_number_of_outbound_physical_connections * sizeof(int));''')
+                        pr('''memset(federate_sockets_for_outbound_physical_connections, -1, expected_number_of_outbound_physical_connections * sizeof(int));''')
                     }
                     
                     
@@ -598,7 +606,7 @@ class CGenerator extends GeneratorBase {
                             fprintf(stderr, "Could not allocate memory for the argument of wait_for_p2p_connections_from_federates().\n");
                             exit(EXIT_FAILURE);
                         }
-                        *number_of_inbound_physical_connections_ptr = «numberOfInboundConnections»;
+                        *number_of_inbound_physical_connections_ptr = expected_number_of_inbound_physical_connections;
                         pthread_create(&thread_id, NULL, wait_for_p2p_connections_from_federates, number_of_inbound_physical_connections_ptr);''');
                     }
                                         
@@ -671,14 +679,20 @@ class CGenerator extends GeneratorBase {
                 ''')
                 
                 // Generate the termination function.
+                // If there are inbound physical connections, this will free the allocated federate_sockets_for_inbound_physical_connections array of socket IDs.
+                // If there are outbound physical connections, this will free the allocated federate_sockets_for_outbound_physical_connections array of socket IDs.
                 // If there are federates, this will resign from the federation.
                 if (federates.length > 1) {
                     pr('''
                         void __termination() {
+                            «IF federate.inboundPhysicalConnections.length > 0»
+                            free(federate_sockets_for_inbound_physical_connections);
+                            «ENDIF»                            
+                            «IF federate.outboundPhysicalConnections.length > 0»
+                            free(federate_sockets_for_outbound_physical_connections);
+                            «ENDIF»
                             unsigned char message_marker = RESIGN;
-                            if (write(rti_socket, &message_marker, 1) != 1) {
-                                fprintf(stderr, "WARNING: Failed to send RESIGN message to the RTI.\n");
-                            }
+                            write_to_socket(rti_socket, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", __my_fed_id);
                         }
                     ''')
                 } else {
