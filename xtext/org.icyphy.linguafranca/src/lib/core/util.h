@@ -45,12 +45,24 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /**
+ * A handy macro that can concatenate three strings.
+ * Useful in the DEBUG_PRINT macro and error_print
+ * functions that want to concatenate a "DEBUG: " or
+ * "ERROR: " to the beginning of the message and a 
+ * new line format \n at the end.
+ */
+#define CONCATENATE_THREE_STRINGS(__string1, __string2, __string3) __string1 __string2 __string3
+/**
  * A macro used to print useful debug information. It can be enabled
  * by setting the @see DEBUG macro to 1.
  * The input to this macro is exactly like printf: (format, ...).
+ * A "DEBUG: " moniker is appended to the beginning of the message
+ * as well a new line to the end of the message.
  */ 
-#define DEBUG_PRINT(...) \
-            do { if (DEBUG) fprintf(stderr, __VA_ARGS__); } while (0)
+#define DEBUG_PRINT(format, ...) \
+            do { if (DEBUG) { \
+                    fprintf(stderr, CONCATENATE_THREE_STRINGS("DEBUG: ",format,"\n"), ##__VA_ARGS__); \
+                } } while (0)
 
 /**
  * A function that can be used in lieu of fprintf(stderr, ...).

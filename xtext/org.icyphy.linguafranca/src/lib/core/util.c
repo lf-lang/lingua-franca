@@ -45,20 +45,30 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * A function that can be used in lieu of fprintf(stderr, ...).
  * The input to this function is exactly like printf: (format, ...).
+ * A "ERROR: " moniker is appended to the beginning of the message
+ * as well a new line to the end of the message.
  */
 void error_print(char* format, ...) {
     va_list args;
-    vfprintf(stderr, format, args);
+    char* new_format = strcat(strcat("ERROR: ", format), "\n");
+    va_start (args, format);
+    vfprintf(stderr, new_format, args);
+    va_end (args);
 }
 
 /**
  * A function that can be used in lieu of fprintf(stderr, ...) that also exits
  * the program. The input to this function is exactly like printf: (format, ...).
+ * A "ERROR: " moniker is appended to the beginning of the message
+ * as well a new line to the end of the message.
  */
 void error_print_and_exit(char* format, ...) {
     va_list args;
-    vfprintf(stderr, format, args);
-    exit(1);
+    char* new_format = strcat(strcat("ERROR: ", format), "\n");
+    va_start (args, format);
+    vfprintf(stderr, new_format, args);
+    va_end (args);
+    exit(EXIT_FAILURE);
 }
 
 /** Print the error defined by the errno variable with the
