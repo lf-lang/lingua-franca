@@ -51,9 +51,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The size of the error message depends on the size of the input format, which
  * should be a null-terminated string.
  * 
- * FIXME: This function could be slow. The strcat is required because it is used
- * in a multi-threaded application. Using multiple calls to vfprintf will result
- * in staggered output of the function and an incorrect output format.
+ * FIXME: This function could be slow. The strcat is required because this 
+ * function is used in a multi-threaded application. Using multiple calls 
+ * to vfprintf will result in staggered output of the function and an incorrect
+ * output format.
  */
 void error_print(char* format, ...) {
     va_list args;
@@ -75,9 +76,10 @@ void error_print(char* format, ...) {
  * The size of the error message depends on the size of the input format, which
  * should be a null-terminated string.
  * 
- * FIXME: This function could be slow. The strcat is required because it is used
- * in a multi-threaded application. Using multiple calls to vfprintf will result
- * in staggered output of the function and an incorrect output format.
+ * FIXME: This function could be slow. The strcat is required because this 
+ * function is used in a multi-threaded application. Using multiple calls 
+ * to vfprintf will result in staggered output of the function and an incorrect
+ * output format.
  */
 void error_print_and_exit(char* format, ...) {
     va_list args;
