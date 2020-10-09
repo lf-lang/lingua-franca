@@ -98,8 +98,7 @@ pthread_t _lf_inbound_p2p_handling_thread_id;
 
 /**
  * A socket descriptor for the socket server of the federate.
- * This is assigned in __initialize_trigger_objects() by calling
- * create_server, which returns the server socket descriptor.
+ * This is assigned create_server().
  * This socket is used to listen to incoming physical connections from
  * remote federates.
  */
@@ -122,7 +121,21 @@ int _lf_server_port = -1;
 void* listen_to_federates(void *args);
 
 /** 
- * Create a server and enable listening for socket connections.
+ * Create a server to listen to incoming physical
+ * connections from remote federates. This function
+ * only handles the creation of the server socket.
+ * The reserved port for the server socket is then
+ * sent to the RTI by sending an ADDRESS_AD message 
+ * (@see rti.h). This function expects no response
+ * from the RTI.
+ * 
+ * 
+ * If a port is specified by the user, that will be used
+ * as the only possibility for the server. This function
+ * will fail if that port is not available. If a port is not
+ * specified, the STARTING_PORT (@see rti.h) will be used.
+ * The function will keep incrementing the port in this case 
+ * until the number of tries reaches PORT_RANGE_LIMIT.
  * 
  * @note This function is similar to create_server(...) in rti.c.
  * However, it contains specific log messages for the peer to
@@ -130,21 +143,20 @@ void* listen_to_federates(void *args);
  * sends an address advertisement (ADDRESS_AD) message to the
  * RTI informing it of the port.
  * 
- * @param port The port number to use.
- * @param my_ID The federate ID of the host. Used for logging purposes.
+ * @param specified_port The specified port by the user.
  * @return The socket descriptor on which to accept connections.
  */
-int create_server(int specified_port,
-        int port,
-        int my_ID) {
-    if (port == 0) {
+void create_server(int specified_port) {
+    int port = specified_port;
+    if (specified_port == 0) {
         // Use the default starting port.
         port = STARTING_PORT;
     }
+    DEBUG_PRINT("Federate %d attempting to create a socket server on port %d.", _lf_my_fed_id, port);
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
     int socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_descriptor < 0) {
-        error_print_and_exit("Federate %d failed to obtain a socket server.", my_ID);
+        error_print_and_exit("Federate %d failed to obtain a socket server.", _lf_my_fed_id);
     }
 
     // Server file descriptor.
@@ -167,7 +179,7 @@ int create_server(int specified_port,
             && specified_port == 0
             && port >= STARTING_PORT
             && port <= STARTING_PORT + PORT_RANGE_LIMIT) {
-        printf("Federate %d failed to get port %d. Trying %d\n", my_ID, port, port + 1);
+        printf("Federate %d failed to get port %d. Trying %d\n", _lf_my_fed_id, port, port + 1);
         port++;
         server_fd.sin_port = htons(port);
         result = bind(
@@ -178,13 +190,13 @@ int create_server(int specified_port,
     if (result != 0) {
         if (specified_port == 0) {
             error_print_and_exit("ERROR on binding the socket for federate %d. Cannot find a usable port. Consider increasing PORT_RANGE_LIMIT in federate.c",
-                                 my_ID);
+                                 _lf_my_fed_id);
         } else {
             error_print_and_exit("ERROR on binding socket for federate %d. Specified port is not available. Consider leaving the port unspecified",
-                                 my_ID);
+                                 _lf_my_fed_id);
         }
     }
-    printf("Server for federate %d started using port %d.\n", my_ID, port);
+    printf("Server for federate %d started using port %d.\n", _lf_my_fed_id, port);
 
     // Enable listening for socket connections.
     // The second argument is the maximum number of queued socket requests,
@@ -202,7 +214,8 @@ int create_server(int specified_port,
                                         "Federate %d failed to send address advertisement.", _lf_my_fed_id);
     printf("Federate %d sent port %d to the RTI.\n", _lf_my_fed_id, _lf_server_port);
 
-    return socket_descriptor;
+    // Set the global server socket
+    _lf_server_socket = socket_descriptor;
 }
 
 /** 

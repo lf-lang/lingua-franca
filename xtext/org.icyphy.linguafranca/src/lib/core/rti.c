@@ -508,7 +508,17 @@ void handle_address_query(ushort fed_id) {
 }
 
 /**
- * Handle address advertisement messages.
+ * Handle address advertisement messages. The federate
+ * is expected to send its server port number as the next
+ * byte. The RTI will keep a record of this number in the .server_port
+ * field of the federates[fed_id] array of structs.
+ * 
+ * The server_hostname and server_ip_addr fields are assigned
+ * in connect_to_federates() upon accepting the socket
+ * from the remote federate.
+ * 
+ * @param fed_id The id of the remote federate that is
+ *  sending the address advertisement.
  */
 void handle_address_ad(ushort fed_id)
 {   
