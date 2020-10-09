@@ -566,31 +566,40 @@ class CGenerator extends GeneratorBase {
                     }
 
                     pr('''__my_fed_id = «federate.id»;''');
-
-                    pr('''// Initialize the array of sockets. The sockets have to be separated into incoming and outgoing to prevent an override in case of a two-way connection.''')
-                    pr('''incoming_federate_sockets = (int*)malloc(«federate.inboundPhysicalConnections.length» * sizeof(int));''')
-                    pr('''memset(incoming_federate_sockets, -1, «federate.inboundPhysicalConnections.length» * sizeof(int));''')
-                    pr('''outgoing_federate_sockets = (int*)malloc(«federate.outboundPhysicalConnections.length» * sizeof(int));''')
-                    pr('''memset(outgoing_federate_sockets, -1, «federate.outboundPhysicalConnections.length» * sizeof(int));''')
+                    
+                    // We keep separate record for incoming and outgoing physical connections to allow incoming traffic to be processed in a separate
+                    // thread without requiring a mutex lock.
+                    val numberOfInboundConnections = federate.inboundPhysicalConnections.length;
+                    val numberOfOutboundConnections  = federate.outboundPhysicalConnections.length;
+                    
+                    if (numberOfInboundConnections > 0) {
+                        pr('''// Initialize the array of socket for incoming connectionss. The sockets have to be separated into incoming and outgoing to prevent an override in case of a two-way connection.''')
+                        pr('''federate_sockets_for_inbound_physical_connections = (int*)malloc(«numberOfInboundConnections» * sizeof(int));''')
+                        pr('''memset(federate_sockets_for_inbound_physical_connections, -1, «numberOfInboundConnections» * sizeof(int));''')                    
+                    }
+                    if (numberOfOutboundConnections > 0) {                        
+                        pr('''// Initialize the array of socket for outgoing connectionss. The sockets have to be separated into incoming and outgoing to prevent an override in case of a two-way connection.''')
+                        pr('''federate_sockets_for_outbound_physical_connections = (int*)malloc(«numberOfOutboundConnections» * sizeof(int));''')
+                        pr('''memset(federate_sockets_for_outbound_physical_connections, -1, «numberOfOutboundConnections» * sizeof(int));''')
+                    }
                     
                     
                     pr('''// Connect to the RTI. This sets rti_socket.''');
                     pr('''connect_to_rti(«federate.id», "«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);''')
 
-                    if (federate.inboundPhysicalConnections.length > 0) {
+                    if (numberOfInboundConnections > 0) {
                         pr('''// Create a socket server to listen to other federates.''')
                         pr('''server_socket = create_server(«federate.port», «federationRTIProperties.get('port')», «federate.id»);''')
                         pr('''// Connect to remote federates for each physical connection''')
                         pr('''
                         pthread_t thread_id;
-                        int *arg = malloc(sizeof(*arg));
-                        if ( arg == NULL ) {
-                            fprintf(stderr, "Couldn't allocate memory for thread arg.\n");
+                        int *number_of_inbound_physical_connections_ptr = malloc(sizeof(*number_of_inbound_physical_connections_ptr)); // Freed inside wait_for_p2p_connections_from_federates() 
+                        if ( number_of_inbound_physical_connections_ptr == NULL ) {
+                            fprintf(stderr, "Could not allocate memory for the argument of wait_for_p2p_connections_from_federates().\n");
                             exit(EXIT_FAILURE);
                         }
-                        int num_inbound_physical_connections = «federate.inboundPhysicalConnections.length»;
-                        *arg = num_inbound_physical_connections;
-                        pthread_create(&thread_id, NULL, wait_for_p2p_connections_from_federates, arg);''');
+                        *number_of_inbound_physical_connections_ptr = «numberOfInboundConnections»;
+                        pthread_create(&thread_id, NULL, wait_for_p2p_connections_from_federates, number_of_inbound_physical_connections_ptr);''');
                     }
                                         
                                     
@@ -598,7 +607,7 @@ class CGenerator extends GeneratorBase {
                         pr('''connect_to_federate(«remoteFederate.id»);''')
                     }
                     
-                    if (federate.inboundPhysicalConnections.length > 0) {
+                    if (numberOfInboundConnections > 0) {
                         pr('''// Wait for all remote federates to connect''')
                         pr('''
                         void* thread_exit_status;
@@ -3421,7 +3430,7 @@ class CGenerator extends GeneratorBase {
         var String socket;
         var String messageType;
         if (isPhysical) {
-            socket = '''outgoing_federate_sockets[«receivingFed.id»]'''
+            socket = '''federate_sockets_for_outbound_physical_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         }
         else {
