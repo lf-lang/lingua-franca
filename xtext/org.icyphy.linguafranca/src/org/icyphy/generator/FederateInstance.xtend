@@ -118,12 +118,20 @@ class FederateInstance {
     public var networkMessageActions = new LinkedList<Action>()
     
     /** 
-     * A list of federates with which this federate has an inbound connection
+     * A set of federates with which this federate has an inbound connection
+     * There will only be one physical connection even if federate A has defined multiple
+     * physical connections to federate B. The message handler on federate A will be 
+     * responsible for including the appropriate information in the message header (such as port ID)
+     * to help the receiver distinguish different events.
      */
     public var inboundPhysicalConnections = new LinkedHashSet<FederateInstance>()
     
     /**
-     * A list of federate with which this federate has an outbound physical connection
+     * A list of federate with which this federate has an outbound physical connection. 
+     * There will only be one physical connection even if federate A has defined multiple
+     * physical connections to federate B. The message handler on federate B will be 
+     * responsible for distinguishing the incoming messages by parsing their header and
+     * scheduling the appropriate action.
      */
     public var outboundPhysicalConnections = new LinkedHashSet<FederateInstance>()
 
