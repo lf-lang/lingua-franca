@@ -635,7 +635,7 @@ class CGenerator extends GeneratorBase {
                                 pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
-                            write_to_socket(rti_socket, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", __my_fed_id);
+                            write_to_socket(_lf_rti_socket, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
                         }
                     ''')
                 } else {
@@ -677,7 +677,7 @@ class CGenerator extends GeneratorBase {
                 pr('__fed_has_downstream = true;')
             }
             // Set global variable identifying the federate.
-            pr('''__my_fed_id = «federate.id»;''');
+            pr('''_lf_my_fed_id = «federate.id»;''');
             
             // We keep separate record for incoming and outgoing physical connections to allow incoming traffic to be processed in a separate
             // thread without requiring a mutex lock.
@@ -706,14 +706,14 @@ class CGenerator extends GeneratorBase {
             }
             
             pr('''
-                // Connect to the RTI. This sets rti_socket.
+                // Connect to the RTI. This sets _lf_rti_socket.
                 connect_to_rti(«federate.id», "«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
             ''');
         
             if (numberOfInboundConnections > 0) {
                 pr('''
                     // Create a socket server to listen to other federates.
-                    server_socket = create_server(«federate.port», «federationRTIProperties.get('port')», «federate.id»);
+                    _lf_server_socket = create_server(«federate.port», «federationRTIProperties.get('port')», «federate.id»);
                     // Connect to remote federates for each physical connection.
                     // This is done in a separate thread because this thread will call
                     // connect_to_federate for each outbound physical connection at the same
@@ -3460,7 +3460,7 @@ class CGenerator extends GeneratorBase {
         } else {
             // Logical connection
             // Send the message via rti
-            socket = '''rti_socket'''
+            socket = '''_lf_rti_socket'''
             messageType = "TIMED_MESSAGE"
         }
         if (isTokenType(type)) {
