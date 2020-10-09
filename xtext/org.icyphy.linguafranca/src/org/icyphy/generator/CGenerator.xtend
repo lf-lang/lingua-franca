@@ -620,6 +620,16 @@ class CGenerator extends GeneratorBase {
                     // FIXME: Check return values.
                     pr('''
                         void __termination() {
+                            // Check for all outgoing physical connections in
+                            // _lf_federate_sockets_for_outbound_physical_connections and 
+                            // if the socket ID is not -1, the connection is still open. 
+                            // Send an EOF by closing the socket here.
+                            for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+                                if (_lf_federate_sockets_for_outbound_physical_connections[i] != -1) {
+                                    close(_lf_federate_sockets_for_outbound_physical_connections[i]);
+                                    _lf_federate_sockets_for_outbound_physical_connections[i] = -1;
+                                }
+                            }
                             «IF federate.inboundPhysicalConnections.length > 0»
                                 void* thread_return;
                                 pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
