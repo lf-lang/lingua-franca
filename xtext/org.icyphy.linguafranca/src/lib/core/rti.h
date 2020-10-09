@@ -213,7 +213,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * The next two bytes will be the ID of the destination port.
  * The next two bytes are the destination federate ID. This is checked against
- * the __my_fed_id of the receiving federate to ensure the message was intended for
+ * the _lf_my_fed_id of the receiving federate to ensure the message was intended for
  * the correct federate.
  * The four bytes after will be the length of the message.
  * The next eight bytes will be the timestamp.
