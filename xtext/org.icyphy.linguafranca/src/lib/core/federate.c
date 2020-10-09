@@ -62,10 +62,18 @@ int rti_socket = -1;
 
 /**
  * A dynamically allocated array that holds the socket descriptor for
- * physical connections to each federate. The index will be the federate
+ * incoming physical connections to each federate. The index will be the federate
  * ID. This is initialized at startup and is set by connect_to_federate().
  */
-int *federate_sockets;
+int *incoming_federate_sockets;
+
+/**
+ * A dynamically allocated array that holds the socket descriptor for
+ * outgoing physical connections to each federate. The index will be the federate
+ * ID. This is initialized at startup and is set by connect_to_federate().
+ */
+int *outgoing_federate_sockets;
+
 
 /**
  * A socket descriptor for the socket server of the federate.
@@ -297,7 +305,7 @@ void* wait_for_p2p_connections_from_federates(void *arg) {
         // Extract the ID of the sending federate.
         ushort remote_fed_id = extract_ushort((unsigned char*)&(buffer[1]));
         DEBUG_PRINT("Federate %d recieved sending federate ID %d.", __my_fed_id, remote_fed_id);
-        federate_sockets[remote_fed_id] = socket_id;
+        incoming_federate_sockets[remote_fed_id] = socket_id;
 
         // Send an ACK message.
         unsigned char response[1];
@@ -387,8 +395,8 @@ void connect_to_federate(ushort id) {
 
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        federate_sockets[id] = socket(AF_INET , SOCK_STREAM , 0);
-        if (federate_sockets[id] < 0) {
+        outgoing_federate_sockets[id] = socket(AF_INET , SOCK_STREAM , 0);
+        if (outgoing_federate_sockets[id] < 0) {
             error_print_and_exit("ERROR on federate %d creating socket to federate %d.", __my_fed_id, id);
         }
 
@@ -404,7 +412,7 @@ void connect_to_federate(ushort id) {
         // Convert the port number from host byte order to network byte order.
         server_fd.sin_port = htons(port);
         result = connect(
-            federate_sockets[id],
+            outgoing_federate_sockets[id],
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
         
@@ -439,16 +447,16 @@ void connect_to_federate(ushort id) {
             encode_ushort(__my_fed_id, (unsigned char *)&(buffer[1]));
             unsigned char federation_id_length = strnlen(federation_id, 255);
             buffer[sizeof(ushort) + 1] = federation_id_length;
-            write_to_socket(federate_sockets[id], buffer_length, buffer,
+            write_to_socket(outgoing_federate_sockets[id], buffer_length, buffer,
                             "Federate %d failed to send fed_id to federate %d.", __my_fed_id, id);
-            write_to_socket(federate_sockets[id], federation_id_length, (unsigned char *)federation_id,
+            write_to_socket(outgoing_federate_sockets[id], federation_id_length, (unsigned char *)federation_id,
                             "Federate %d failed to send federation id to federate %d.", __my_fed_id, id);
 
-            read_from_socket(federate_sockets[id], 1, (unsigned char *)buffer,
+            read_from_socket(outgoing_federate_sockets[id], 1, (unsigned char *)buffer,
                             "Federate %d failed to read ACK from federate %d in response to sending fed_id.", __my_fed_id, id);
             if (buffer[0] != ACK) {
                 // Get the error code.
-                read_from_socket(federate_sockets[id], 1, (unsigned char *)buffer,
+                read_from_socket(outgoing_federate_sockets[id], 1, (unsigned char *)buffer,
                                 "Federate %d failed to read error code from federate %d in response to sending fed_id.", __my_fed_id, id);
                 error_print("Received REJECT message from remote federate (%d).", buffer[0]);
                 result = -1;
@@ -794,7 +802,7 @@ void* listen_to_federates(void *fed_id_ptr) {
 
     DEBUG_PRINT("Federate %d listening to federate %d.", __my_fed_id, fed_id);
 
-    int socket_id = federate_sockets[fed_id];
+    int socket_id = incoming_federate_sockets[fed_id];
 
     // Buffer for incoming messages.
     // This does not constrain the message size
