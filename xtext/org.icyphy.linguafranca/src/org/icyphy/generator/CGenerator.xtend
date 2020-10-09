@@ -567,9 +567,13 @@ class CGenerator extends GeneratorBase {
 
                     pr('''__my_fed_id = «federate.id»;''');
 
-                    pr('''// Initialize the array of sockets.''')
-                    pr('''federate_sockets = (int*)malloc(«federates.length» * sizeof(int));''')
-                    pr('''memset(federate_sockets, -1, «federates.length» * sizeof(int));''')
+                    pr('''// Initialize the array of sockets. The sockets have to be separated into incoming and outgoing to prevent an override in case of a two-way connection.''')
+                    pr('''incoming_federate_sockets = (int*)malloc(«federate.inboundPhysicalConnections.length» * sizeof(int));''')
+                    pr('''memset(incoming_federate_sockets, -1, «federate.inboundPhysicalConnections.length» * sizeof(int));''')
+                    pr('''outgoing_federate_sockets = (int*)malloc(«federate.outboundPhysicalConnections.length» * sizeof(int));''')
+                    pr('''memset(outgoing_federate_sockets, -1, «federate.outboundPhysicalConnections.length» * sizeof(int));''')
+                    
+                    
                     pr('''// Connect to the RTI. This sets rti_socket.''');
                     pr('''connect_to_rti(«federate.id», "«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);''')
 
@@ -3417,7 +3421,7 @@ class CGenerator extends GeneratorBase {
         var String socket;
         var String messageType;
         if (isPhysical) {
-            socket = '''federate_sockets[«receivingFed.id»]'''
+            socket = '''outgoing_federate_sockets[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         }
         else {
