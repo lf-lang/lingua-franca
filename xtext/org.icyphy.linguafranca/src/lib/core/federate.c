@@ -73,7 +73,7 @@ int *incoming_federate_sockets;
  * outgoing physical connections to each federate. The index will be the federate
  * ID. This is initialized at startup and is set by connect_to_federate().
  * The size will be assigned in generated code and will be the number of
- * anticipated outbound connections from this federate to remove federates.
+ * anticipated outbound connections from this federate to remote federates.
  */
 int *outgoing_federate_sockets;
 
