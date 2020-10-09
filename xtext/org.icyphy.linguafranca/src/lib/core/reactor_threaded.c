@@ -755,7 +755,7 @@ int main(int argc, char* argv[]) {
     pthread_mutex_init(&mutex, &attr);
 
     if (atexit(termination) != 0) {
-        error_print("WARNING: Failed to register termination function!");
+        fprintf(stderr, "WARNING: Failed to register termination function!");
     }
 
     if (process_args(default_argc, default_argv)
