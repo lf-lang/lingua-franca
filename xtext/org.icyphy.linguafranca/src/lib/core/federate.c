@@ -66,7 +66,7 @@ int rti_socket = -1;
  * ID. This is initialized at startup and is set by wait_for_p2p_connections_from_federates.
  * The size will be the anticipated number of inbound connections to this federate.
  */
-int *incoming_federate_sockets;
+int *federate_sockets_for_inbound_physical_connections;
 
 /**
  * A dynamically allocated array that holds the socket descriptor for
@@ -75,7 +75,7 @@ int *incoming_federate_sockets;
  * The size will be assigned in generated code and will be the number of
  * anticipated outbound connections from this federate to remote federates.
  */
-int *outgoing_federate_sockets;
+int *federate_sockets_for_outbound_physical_connections;
 
 
 /**
@@ -254,11 +254,12 @@ void __broadcast_stop() {
 /**
  * Thread to start a socket server to accept connections from other
  * federates that send this federate messages directly (not through the RTI).
- * @param arg An int giving the number of federates that this federate
- *  expects to receive direct messages from.
+ * @param expected_number_of_federates_ptr A pointer to an int giving the number of 
+ * federates that this federate expects to receive direct messages from.
+ * Freed at the end of this thread.
  */
-void* wait_for_p2p_connections_from_federates(void *arg) {
-    int expected_number_of_federates = *((int *)arg);
+void* wait_for_p2p_connections_from_federates(void *expected_number_of_federates_ptr) {
+    int expected_number_of_federates = *((int *)expected_number_of_federates_ptr);
     int received_federates = 0;
     while (received_federates < expected_number_of_federates) {
         // Wait for an incoming connection request.
@@ -308,7 +309,7 @@ void* wait_for_p2p_connections_from_federates(void *arg) {
         // Extract the ID of the sending federate.
         ushort remote_fed_id = extract_ushort((unsigned char*)&(buffer[1]));
         DEBUG_PRINT("Federate %d recieved sending federate ID %d.", __my_fed_id, remote_fed_id);
-        incoming_federate_sockets[remote_fed_id] = socket_id;
+        federate_sockets_for_inbound_physical_connections[remote_fed_id] = socket_id;
 
         // Send an ACK message.
         unsigned char response[1];
@@ -329,6 +330,7 @@ void* wait_for_p2p_connections_from_federates(void *arg) {
     }
 
     DEBUG_PRINT("All remote federates are connected to federate %d.", __my_fed_id);
+    free(expected_number_of_federates_ptr);
     return NULL;
 }
 
@@ -398,8 +400,8 @@ void connect_to_federate(ushort id) {
 
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        outgoing_federate_sockets[id] = socket(AF_INET , SOCK_STREAM , 0);
-        if (outgoing_federate_sockets[id] < 0) {
+        federate_sockets_for_outbound_physical_connections[id] = socket(AF_INET , SOCK_STREAM , 0);
+        if (federate_sockets_for_outbound_physical_connections[id] < 0) {
             error_print_and_exit("ERROR on federate %d creating socket to federate %d.", __my_fed_id, id);
         }
 
@@ -415,7 +417,7 @@ void connect_to_federate(ushort id) {
         // Convert the port number from host byte order to network byte order.
         server_fd.sin_port = htons(port);
         result = connect(
-            outgoing_federate_sockets[id],
+            federate_sockets_for_outbound_physical_connections[id],
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
         
@@ -450,16 +452,16 @@ void connect_to_federate(ushort id) {
             encode_ushort(__my_fed_id, (unsigned char *)&(buffer[1]));
             unsigned char federation_id_length = strnlen(federation_id, 255);
             buffer[sizeof(ushort) + 1] = federation_id_length;
-            write_to_socket(outgoing_federate_sockets[id], buffer_length, buffer,
+            write_to_socket(federate_sockets_for_outbound_physical_connections[id], buffer_length, buffer,
                             "Federate %d failed to send fed_id to federate %d.", __my_fed_id, id);
-            write_to_socket(outgoing_federate_sockets[id], federation_id_length, (unsigned char *)federation_id,
+            write_to_socket(federate_sockets_for_outbound_physical_connections[id], federation_id_length, (unsigned char *)federation_id,
                             "Federate %d failed to send federation id to federate %d.", __my_fed_id, id);
 
-            read_from_socket(outgoing_federate_sockets[id], 1, (unsigned char *)buffer,
+            read_from_socket(federate_sockets_for_outbound_physical_connections[id], 1, (unsigned char *)buffer,
                             "Federate %d failed to read ACK from federate %d in response to sending fed_id.", __my_fed_id, id);
             if (buffer[0] != ACK) {
                 // Get the error code.
-                read_from_socket(outgoing_federate_sockets[id], 1, (unsigned char *)buffer,
+                read_from_socket(federate_sockets_for_outbound_physical_connections[id], 1, (unsigned char *)buffer,
                                 "Federate %d failed to read error code from federate %d in response to sending fed_id.", __my_fed_id, id);
                 error_print("Received REJECT message from remote federate (%d).", buffer[0]);
                 result = -1;
@@ -805,7 +807,7 @@ void* listen_to_federates(void *fed_id_ptr) {
 
     DEBUG_PRINT("Federate %d listening to federate %d.", __my_fed_id, fed_id);
 
-    int socket_id = incoming_federate_sockets[fed_id];
+    int socket_id = federate_sockets_for_inbound_physical_connections[fed_id];
 
     // Buffer for incoming messages.
     // This does not constrain the message size
