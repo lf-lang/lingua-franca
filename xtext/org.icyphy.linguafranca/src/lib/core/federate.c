@@ -49,34 +49,52 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via RTI";
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
 
-/** The ID of this federate as assigned when synchronize_with_other_federates()
- *  is called.
+/**
+ * The ID of this federate as assigned when synchronize_with_other_federates()
+ * is called.
  */
 ushort __my_fed_id = 0;
 
-/** The socket descriptor for this federate to communicate with the RTI.
- *  This is set by connect_to_rti(), which must be called before other
- *  functions are called.
+/**
+ * The socket descriptor for this federate to communicate with the RTI.
+ * This is set by connect_to_rti(), which must be called before other
+ * functions are called.
  */
 int rti_socket = -1;
 
 /**
- * A dynamically allocated array that holds the socket descriptor for
- * incoming physical connections to each federate. The index will be the federate
- * ID. This is initialized at startup and is set by wait_for_p2p_connections_from_federates.
- * The size will be the anticipated number of inbound connections to this federate.
+ * Number of inbound physical connections to the federate.
  */
-int *federate_sockets_for_inbound_physical_connections;
+int _lf_number_of_inbound_physical_connections;
 
 /**
- * A dynamically allocated array that holds the socket descriptor for
- * outgoing physical connections to each federate. The index will be the federate
- * ID. This is initialized at startup and is set by connect_to_federate().
- * The size will be assigned in generated code and will be the number of
- * anticipated outbound connections from this federate to remote federates.
+ * Number of outbound physical connections to the federate.
  */
-int *federate_sockets_for_outbound_physical_connections;
+int _lf_number_of_outbound_physical_connections;
 
+/**
+ * An array that holds the socket descriptors for incoming physical
+ * connections to each federate. The index will be the federate
+ * ID of the remote sending federate. This is initialized at startup
+ * to -1 and is set to a socket ID by handle_p2p_connections_from_federates
+ * when the socket is opened.
+ */
+int _lf_federate_sockets_for_inbound_physical_connections[NUMBER_OF_FEDERATES];
+
+/**
+ * An array that holds the socket descriptors for outgoing physical
+ * connections from each federate. The index will be the federate
+ * ID of the remote receiving federate. This is initialized at startup
+ * to -1 and is set to a socket ID by connect_to_federate
+ * when the socket is opened.
+ */
+int _lf_federate_sockets_for_outbound_physical_connections[NUMBER_OF_FEDERATES];
+
+/**
+ * Thread ID for a thread that accepts sockets and then supervises
+ * listening to those sockets for incoming P2P (physical) connections.
+ */
+pthread_t _lf_inbound_p2p_handling_thread_id;
 
 /**
  * A socket descriptor for the socket server of the federate.
@@ -252,16 +270,16 @@ void __broadcast_stop() {
 }
 
 /**
- * Thread to start a socket server to accept connections from other
- * federates that send this federate messages directly (not through the RTI).
- * @param expected_number_of_federates_ptr A pointer to an int giving the number of 
- * federates that this federate expects to receive direct messages from.
- * Freed at the end of this thread.
+ * Thread to accept connections from other federates that send this federate
+ * messages directly (not through the RTI). This thread starts a thread for
+ * each accepted socket connection and then waits for all those threads to exit
+ * before exiting itself.
+ * @param ignored No argument needed for this thread.
  */
-void* wait_for_p2p_connections_from_federates(void *expected_number_of_federates_ptr) {
-    int expected_number_of_federates = *((int *)expected_number_of_federates_ptr);
+void* handle_p2p_connections_from_federates(void *ignored) {
     int received_federates = 0;
-    while (received_federates < expected_number_of_federates) {
+    pthread_t thread_ids[_lf_number_of_inbound_physical_connections];
+    while (received_federates < _lf_number_of_inbound_physical_connections) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
@@ -308,8 +326,8 @@ void* wait_for_p2p_connections_from_federates(void *expected_number_of_federates
 
         // Extract the ID of the sending federate.
         ushort remote_fed_id = extract_ushort((unsigned char*)&(buffer[1]));
-        DEBUG_PRINT("Federate %d recieved sending federate ID %d.", __my_fed_id, remote_fed_id);
-        federate_sockets_for_inbound_physical_connections[remote_fed_id] = socket_id;
+        DEBUG_PRINT("Federate %d received sending federate ID %d.", __my_fed_id, remote_fed_id);
+        _lf_federate_sockets_for_inbound_physical_connections[remote_fed_id] = socket_id;
 
         // Send an ACK message.
         unsigned char response[1];
@@ -317,20 +335,32 @@ void* wait_for_p2p_connections_from_federates(void *expected_number_of_federates
         write_to_socket(socket_id, 1, (unsigned char*)&response, "Federate %d failed to write ACK in response to federate %d.", __my_fed_id, remote_fed_id);
 
         // Start a thread to listen for incoming messages from other federates.
-        pthread_t thread_id;
         // We cannot pass a pointer to remote_fed_id to the thread we need to create
         // because that variable is on the stack. Instead, we malloc memory.
         // The created thread is responsible for calling free().
         ushort* remote_fed_id_copy = malloc(sizeof(ushort));
         if (remote_fed_id_copy == NULL) error_print("ERROR: malloc failed in federate %d.\n", __my_fed_id);
         *remote_fed_id_copy = remote_fed_id;
-        pthread_create(&thread_id, NULL, listen_to_federates, remote_fed_id_copy);
+        int result = pthread_create(&thread_ids[received_federates], NULL, listen_to_federates, remote_fed_id_copy);
+        if (result != 0) {
+            // Failed to create a listening thread.
+            close(socket_id);
+            error_print_and_exit(
+                    "Federate %d failed to create a thread to listen for incoming physical connection. Error code: %d.",
+                    __my_fed_id, result
+            );
+        }
 
         received_federates++;
     }
 
     DEBUG_PRINT("All remote federates are connected to federate %d.", __my_fed_id);
-    free(expected_number_of_federates_ptr);
+
+    void* thread_exit_status;
+    for (int i = 0; i < _lf_number_of_inbound_physical_connections; i++) {
+        pthread_join(thread_ids[i], &thread_exit_status);
+        DEBUG_PRINT("Federate %d: thread listening for incoming P2P messages exited.", __my_fed_id);
+    }
     return NULL;
 }
 
@@ -400,8 +430,8 @@ void connect_to_federate(ushort id) {
 
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        federate_sockets_for_outbound_physical_connections[id] = socket(AF_INET , SOCK_STREAM , 0);
-        if (federate_sockets_for_outbound_physical_connections[id] < 0) {
+        _lf_federate_sockets_for_outbound_physical_connections[id] = socket(AF_INET , SOCK_STREAM , 0);
+        if (_lf_federate_sockets_for_outbound_physical_connections[id] < 0) {
             error_print_and_exit("ERROR on federate %d creating socket to federate %d.", __my_fed_id, id);
         }
 
@@ -417,7 +447,7 @@ void connect_to_federate(ushort id) {
         // Convert the port number from host byte order to network byte order.
         server_fd.sin_port = htons(port);
         result = connect(
-            federate_sockets_for_outbound_physical_connections[id],
+            _lf_federate_sockets_for_outbound_physical_connections[id],
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
         
@@ -452,16 +482,16 @@ void connect_to_federate(ushort id) {
             encode_ushort(__my_fed_id, (unsigned char *)&(buffer[1]));
             unsigned char federation_id_length = strnlen(federation_id, 255);
             buffer[sizeof(ushort) + 1] = federation_id_length;
-            write_to_socket(federate_sockets_for_outbound_physical_connections[id], buffer_length, buffer,
+            write_to_socket(_lf_federate_sockets_for_outbound_physical_connections[id], buffer_length, buffer,
                             "Federate %d failed to send fed_id to federate %d.", __my_fed_id, id);
-            write_to_socket(federate_sockets_for_outbound_physical_connections[id], federation_id_length, (unsigned char *)federation_id,
+            write_to_socket(_lf_federate_sockets_for_outbound_physical_connections[id], federation_id_length, (unsigned char *)federation_id,
                             "Federate %d failed to send federation id to federate %d.", __my_fed_id, id);
 
-            read_from_socket(federate_sockets_for_outbound_physical_connections[id], 1, (unsigned char *)buffer,
+            read_from_socket(_lf_federate_sockets_for_outbound_physical_connections[id], 1, (unsigned char *)buffer,
                             "Federate %d failed to read ACK from federate %d in response to sending fed_id.", __my_fed_id, id);
             if (buffer[0] != ACK) {
                 // Get the error code.
-                read_from_socket(federate_sockets_for_outbound_physical_connections[id], 1, (unsigned char *)buffer,
+                read_from_socket(_lf_federate_sockets_for_outbound_physical_connections[id], 1, (unsigned char *)buffer,
                                 "Federate %d failed to read error code from federate %d in response to sending fed_id.", __my_fed_id, id);
                 error_print("Received REJECT message from remote federate (%d).", buffer[0]);
                 result = -1;
@@ -807,7 +837,7 @@ void* listen_to_federates(void *fed_id_ptr) {
 
     DEBUG_PRINT("Federate %d listening to federate %d.", __my_fed_id, fed_id);
 
-    int socket_id = federate_sockets_for_inbound_physical_connections[fed_id];
+    int socket_id = _lf_federate_sockets_for_inbound_physical_connections[fed_id];
 
     // Buffer for incoming messages.
     // This does not constrain the message size
@@ -824,10 +854,12 @@ void* listen_to_federates(void *fed_id_ptr) {
             // EOF occurred. This breaks the connection.
             DEBUG_PRINT("Federate %d received EOF from peer federate %d. Closing the socket.", __my_fed_id, fed_id);
             close(socket_id);
+            _lf_federate_sockets_for_inbound_physical_connections[fed_id] = -1;
             break;
         } else if (bytes_read < 0) {
             error_print("P2P socket between federate %d and %d broken.", __my_fed_id, fed_id);
             close(socket_id);
+            _lf_federate_sockets_for_inbound_physical_connections[fed_id] = -1;
             break;
         }
         switch(buffer[0]) {
@@ -838,6 +870,7 @@ void* listen_to_federates(void *fed_id_ptr) {
         default:
             error_print("Federate %d received erroneous message type: %d. Closing the socket.", __my_fed_id, buffer[0]);
             close(socket_id);
+            _lf_federate_sockets_for_inbound_physical_connections[fed_id] = -1;
             break;
         }
     }

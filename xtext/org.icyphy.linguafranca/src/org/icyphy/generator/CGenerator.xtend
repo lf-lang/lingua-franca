@@ -43,6 +43,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.InferredType
+import org.icyphy.Targets
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -63,7 +64,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Targets
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -557,72 +557,7 @@ class CGenerator extends GeneratorBase {
                 pr(startTimeStep.toString)
                 
                 setReactionPriorities(main, federate)
-                if (federates.length > 1) {
-                    if (federate.dependsOn.size > 0) {
-                        pr('__fed_has_upstream  = true;')
-                    }
-                    if (federate.sendsTo.size > 0) {
-                        pr('__fed_has_downstream = true;')
-                    }
-
-                    pr('''__my_fed_id = «federate.id»;''');
-                    
-                    // We keep separate record for incoming and outgoing physical connections to allow incoming traffic to be processed in a separate
-                    // thread without requiring a mutex lock.
-                    val numberOfInboundConnections = federate.inboundPhysicalConnections.length;
-                    val numberOfOutboundConnections  = federate.outboundPhysicalConnections.length;
-                    
-                    if (numberOfInboundConnections > 0) {
-                        pr('''
-                        // Initialize the array of socket for incoming connections.
-                        // The sockets have to be separated into inbound and outbound to prevent an override in case of a two-way connection.
-                        // Freed in __termination().''')
-                        pr('''int expected_number_of_inbound_physical_connections = «numberOfInboundConnections»;''')
-                        pr('''federate_sockets_for_inbound_physical_connections = (int*)malloc(expected_number_of_inbound_physical_connections * sizeof(int));''')
-                        pr('''memset(federate_sockets_for_inbound_physical_connections, -1, expected_number_of_inbound_physical_connections * sizeof(int));''')                    
-                    }
-                    if (numberOfOutboundConnections > 0) {                        
-                        pr('''
-                        // Initialize the array of socket for outgoing connections.
-                        // The sockets have to be separated into inbound and outbound to prevent an override in case of a two-way connection.
-                        // Freed in __termination().''')
-                        pr('''int expected_number_of_outbound_physical_connections = «numberOfOutboundConnections»;''')
-                        pr('''federate_sockets_for_outbound_physical_connections = (int*)malloc(expected_number_of_outbound_physical_connections * sizeof(int));''')
-                        pr('''memset(federate_sockets_for_outbound_physical_connections, -1, expected_number_of_outbound_physical_connections * sizeof(int));''')
-                    }
-                    
-                    
-                    pr('''// Connect to the RTI. This sets rti_socket.''');
-                    pr('''connect_to_rti(«federate.id», "«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);''')
-
-                    if (numberOfInboundConnections > 0) {
-                        pr('''// Create a socket server to listen to other federates.''')
-                        pr('''server_socket = create_server(«federate.port», «federationRTIProperties.get('port')», «federate.id»);''')
-                        pr('''// Connect to remote federates for each physical connection''')
-                        pr('''
-                        pthread_t thread_id;
-                        int *number_of_inbound_physical_connections_ptr = malloc(sizeof(*number_of_inbound_physical_connections_ptr)); // Freed inside wait_for_p2p_connections_from_federates() 
-                        if ( number_of_inbound_physical_connections_ptr == NULL ) {
-                            fprintf(stderr, "Could not allocate memory for the argument of wait_for_p2p_connections_from_federates().\n");
-                            exit(EXIT_FAILURE);
-                        }
-                        *number_of_inbound_physical_connections_ptr = expected_number_of_inbound_physical_connections;
-                        pthread_create(&thread_id, NULL, wait_for_p2p_connections_from_federates, number_of_inbound_physical_connections_ptr);''');
-                    }
-                                        
-                                    
-                    for (remoteFederate : federate.outboundPhysicalConnections) {
-                        pr('''connect_to_federate(«remoteFederate.id»);''')
-                    }
-                    
-                    if (numberOfInboundConnections > 0) {
-                        pr('''// Wait for all remote federates to connect''')
-                        pr('''
-                        void* thread_exit_status;
-                        pthread_join(thread_id, thread_exit_status);''')                        
-                    }
-
-                }
+                initializeFederate(federate)
                 unindent()
                 pr('}\n')
 
@@ -679,17 +614,15 @@ class CGenerator extends GeneratorBase {
                 ''')
                 
                 // Generate the termination function.
-                // If there are inbound physical connections, this will free the allocated federate_sockets_for_inbound_physical_connections array of socket IDs.
-                // If there are outbound physical connections, this will free the allocated federate_sockets_for_outbound_physical_connections array of socket IDs.
                 // If there are federates, this will resign from the federation.
                 if (federates.length > 1) {
+                    // FIXME: Send EOF on any open P2P sockets.
+                    // FIXME: Check return values.
                     pr('''
                         void __termination() {
                             «IF federate.inboundPhysicalConnections.length > 0»
-                            free(federate_sockets_for_inbound_physical_connections);
-                            «ENDIF»                            
-                            «IF federate.outboundPhysicalConnections.length > 0»
-                            free(federate_sockets_for_outbound_physical_connections);
+                                void* thread_return;
+                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
                             write_to_socket(rti_socket, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", __my_fed_id);
@@ -716,6 +649,74 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * If the number of federates is greater than one, then generate the code
+     * that initializes global variables that describe the federate.
+     * @param federate The federate instance.
+     */
+    protected def void initializeFederate(FederateInstance federate) {
+        if (federates.length > 1) {
+            // Set indicator variables that specify whether the federate has
+            // upstream logical connections.
+            if (federate.dependsOn.size > 0) {
+                pr('__fed_has_upstream  = true;')
+            }
+            if (federate.sendsTo.size > 0) {
+                pr('__fed_has_downstream = true;')
+            }
+            // Set global variable identifying the federate.
+            pr('''__my_fed_id = «federate.id»;''');
+            
+            // We keep separate record for incoming and outgoing physical connections to allow incoming traffic to be processed in a separate
+            // thread without requiring a mutex lock.
+            val numberOfInboundConnections = federate.inboundPhysicalConnections.length;
+            val numberOfOutboundConnections  = federate.outboundPhysicalConnections.length;
+            
+            pr('''
+                _lf_number_of_inbound_physical_connections = «numberOfInboundConnections»;
+                _lf_number_of_outbound_physical_connections = «numberOfOutboundConnections»;
+            ''')
+            if (numberOfInboundConnections > 0) {
+                pr('''
+                    // Initialize the array of socket for incoming connections to -1.
+                    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                        _lf_federate_sockets_for_inbound_physical_connections[i] = -1;
+                    }
+                ''')                    
+            }
+            if (numberOfOutboundConnections > 0) {                        
+                pr('''
+                    // Initialize the array of socket for outgoing connections to -1.
+                    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                        _lf_federate_sockets_for_outbound_physical_connections[i] = -1;
+                    }
+                ''')                    
+            }
+            
+            pr('''
+                // Connect to the RTI. This sets rti_socket.
+                connect_to_rti(«federate.id», "«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
+            ''');
+        
+            if (numberOfInboundConnections > 0) {
+                pr('''
+                    // Create a socket server to listen to other federates.
+                    server_socket = create_server(«federate.port», «federationRTIProperties.get('port')», «federate.id»);
+                    // Connect to remote federates for each physical connection.
+                    // This is done in a separate thread because this thread will call
+                    // connect_to_federate for each outbound physical connection at the same
+                    // time that the new thread is listening for such connections for inbound
+                    // physical connections. The thread will live until termination.
+                    pthread_create(&_lf_inbound_p2p_handling_thread_id, NULL, handle_p2p_connections_from_federates, NULL);
+                ''')
+            }
+                            
+            for (remoteFederate : federate.outboundPhysicalConnections) {
+                pr('''connect_to_federate(«remoteFederate.id»);''')
+            }
+        }
     }
     
     /** Invoke the compiler on the generated code. */
@@ -3444,10 +3445,9 @@ class CGenerator extends GeneratorBase {
         var String socket;
         var String messageType;
         if (isPhysical) {
-            socket = '''federate_sockets_for_outbound_physical_connections[«receivingFed.id»]'''
+            socket = '''_lf_federate_sockets_for_outbound_physical_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
-        }
-        else {
+        } else {
             // Logical connection
             // Send the message via rti
             socket = '''rti_socket'''
