@@ -50,9 +50,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 void error_print(char* format, ...) {
     va_list args;
-    char* new_format = strcat(strcat("ERROR: ", format), "\n");
+    // char* error_message = "ERROR: ";
+    // char* new_format = strcat(strcat(error_message, format), "\n");
     va_start (args, format);
-    vfprintf(stderr, new_format, args);
+    vfprintf(stderr, format, args);
     va_end (args);
 }
 
@@ -64,9 +65,9 @@ void error_print(char* format, ...) {
  */
 void error_print_and_exit(char* format, ...) {
     va_list args;
-    char* new_format = strcat(strcat("ERROR: ", format), "\n");
+    // char* new_format = strcat(strcat("ERROR: ", format), "\n");
     va_start (args, format);
-    vfprintf(stderr, new_format, args);
+    vfprintf(stderr, format, args);
     va_end (args);
     exit(EXIT_FAILURE);
 }
