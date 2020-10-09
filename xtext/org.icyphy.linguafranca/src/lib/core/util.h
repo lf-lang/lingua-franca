@@ -67,12 +67,26 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * A function that can be used in lieu of fprintf(stderr, ...).
  * The input to this function is exactly like printf: (format, ...).
+ * An "ERROR: " moniker is appended to the beginning of the error message
+ * using strcpy and the format and a new line are appended at the
+ * end of the printed message using strcat.
+ * The size of the error message depends on the size of the input format, which
+ * should be a null-terminated string.
+ * 
+ * FIXME: This function could be slow.
  */
 void error_print(char* format, ...);
 
 /**
  * A function that can be used in lieu of fprintf(stderr, ...) that also exits
  * the program. The input to this function is exactly like printf: (format, ...).
+ * An "ERROR: " moniker is appended to the beginning of the error message
+ * using strcpy and the format and a new line are appended at the
+ * end of the printed message using strcat.
+ * The size of the error message depends on the size of the input format, which
+ * should be a null-terminated string.
+ * 
+ * FIXME: This function could be slow.
  */
 void error_print_and_exit(char* format, ...);
 

@@ -45,30 +45,44 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * A function that can be used in lieu of fprintf(stderr, ...).
  * The input to this function is exactly like printf: (format, ...).
- * A "ERROR: " moniker is appended to the beginning of the message
- * as well a new line to the end of the message.
+ * An "ERROR: " moniker is appended to the beginning of the error message
+ * using strcpy and the format and a new line are appended at the
+ * end of the printed message using strcat.
+ * The size of the error message depends on the size of the input format, which
+ * should be a null-terminated string.
+ * 
+ * FIXME: This function could be slow.
  */
 void error_print(char* format, ...) {
     va_list args;
-    // char* error_message = "ERROR: ";
-    // char* new_format = strcat(strcat(error_message, format), "\n");
+    char error_message[strlen(format) + 8];
+    strcpy(error_message,  "ERROR: ");
+    strcat(error_message, format);
+    strcat(error_message, "\n");
     va_start (args, format);
-    vfprintf(stderr, format, args);
+    vfprintf(stderr, error_message, args);
     va_end (args);
 }
 
 /**
  * A function that can be used in lieu of fprintf(stderr, ...) that also exits
  * the program. The input to this function is exactly like printf: (format, ...).
- * A "ERROR: " moniker is appended to the beginning of the message
- * as well a new line to the end of the message.
+ * An "ERROR: " moniker is appended to the beginning of the error message
+ * using strcpy and the format and a new line are appended at the
+ * end of the printed message using strcat.
+ * The size of the error message depends on the size of the input format, which
+ * should be a null-terminated string.
+ * 
+ * FIXME: This function could be slow.
  */
 void error_print_and_exit(char* format, ...) {
     va_list args;
-    // char* new_format = strcat(strcat("ERROR: ", format), "\n");
+    char error_message[strlen(format) + 8];
+    strcpy(error_message,  "ERROR: ");
+    strcat(error_message, format);
+    strcat(error_message, "\n");
     va_start (args, format);
-    vfprintf(stderr, format, args);
-    va_end (args);
+    vfprintf(stderr, error_message, args);
     exit(EXIT_FAILURE);
 }
 
