@@ -63,7 +63,8 @@ int rti_socket = -1;
 /**
  * A dynamically allocated array that holds the socket descriptor for
  * incoming physical connections to each federate. The index will be the federate
- * ID. This is initialized at startup and is set by connect_to_federate().
+ * ID. This is initialized at startup and is set by wait_for_p2p_connections_from_federates.
+ * The size will be the anticipated number of inbound connections to this federate.
  */
 int *incoming_federate_sockets;
 
@@ -71,6 +72,8 @@ int *incoming_federate_sockets;
  * A dynamically allocated array that holds the socket descriptor for
  * outgoing physical connections to each federate. The index will be the federate
  * ID. This is initialized at startup and is set by connect_to_federate().
+ * The size will be assigned in generated code and will be the number of
+ * anticipated outbound connections from this federate to remove federates.
  */
 int *outgoing_federate_sockets;
 
