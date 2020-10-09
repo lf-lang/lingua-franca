@@ -120,12 +120,12 @@ class FederateInstance {
     /** 
      * A list of federates with which this federate has an inbound connection
      */
-    public var inboundPhysicalConnections = <FederateInstance>newArrayList()
+    public var inboundPhysicalConnections = new LinkedHashSet<FederateInstance>()
     
     /**
      * A list of federate with which this federate has an outbound physical connection
      */
-    public var outboundPhysicalConnections = <FederateInstance>newArrayList()
+    public var outboundPhysicalConnections = new LinkedHashSet<FederateInstance>()
 
     /////////////////////////////////////////////
     //// Public Methods
