@@ -754,6 +754,10 @@ int main(int argc, char* argv[]) {
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mutex, &attr);
 
+    if (atexit(termination) != 0) {
+        error_print("WARNING: Failed to register termination function!");
+    }
+
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
         // printf("DEBUG: pthread_mutex_lock main\n");
@@ -791,10 +795,8 @@ int main(int argc, char* argv[]) {
         free(__thread_ids);
 
         wrapup();
-        termination();
         return 0;
     } else {
-        termination();
         return -1;
     }
 }

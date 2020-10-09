@@ -569,7 +569,7 @@ void connect_to_rti(ushort id, char* hostname, int port) {
 
             // Next send the federation ID itself.
             // FIXME: Retry rather than exit.
-            write_to_socket(rti_socket, federation_id_length, federation_id,
+            write_to_socket(rti_socket, federation_id_length, (unsigned char*)federation_id,
                             "Federate %d failed to send federation ID to RTI.", __my_fed_id);
 
             // Wait for a response.
@@ -941,6 +941,13 @@ void __logical_time_complete(instant_t time) {
      if (!__fed_has_downstream && !__fed_has_upstream) {
          // This federate is not connected (except possibly by physical links)
          // so there is no need for the RTI to get involved.
+
+         // FIXME: If the event queue is empty, then the time argument is either
+         // the stop_time or FOREVER. In this case, it matters whether there are
+         // upstream federates connected by physical connections, which do not
+         // affect __fed_has_upstream. We should not return immediately because
+         // then the execution will hit its stop_time and fail to receive any
+         // messages sent by upstream federates.
          return time;
      }
 
@@ -963,13 +970,14 @@ void __logical_time_complete(instant_t time) {
      }
 
      send_time(NEXT_EVENT_TIME, time);
-     DEBUG_PRINT("Federate %d sent next event time %lld.", __my_fed_id, time - start_time);
+     DEBUG_PRINT("Federate %d sent next event time %lld to RTI.", __my_fed_id, time - start_time);
 
      // If there are no upstream federates, return immediately, without
      // waiting for a reply. This federate does not need to wait for
      // any other federate.
      // FIXME: If fast execution is being used, it may be necessary to
      // throttle upstream federates.
+     // FIXME: As noted above, this is not correct if the time is the stop_time.
      if (!__fed_has_upstream) {
          return time;
      }
