@@ -12,7 +12,7 @@
  * 
  * Unthreaded: 97 msec
  * Threaded: 265 msec
- * Distributed: 53 seconds
+ * Distributed: 6 seconds
  * 
  * There is no parallelism in this application, so it does not benefit from being
  * being distributed.
@@ -28,11 +28,7 @@ reactor Ping(count:int(10)) {
     output send:int;
     state pingsLeft:int(count);
     logical action serve;
-    reaction (startup) -> send {=
-        printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
-        SET(send, self->pingsLeft--);
-    =}
-    reaction (serve) -> send {= 
+    reaction (startup, serve) -> send {= 
         printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
         SET(send, self->pingsLeft--);
     =}
