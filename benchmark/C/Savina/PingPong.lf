@@ -29,10 +29,7 @@ reactor Ping(count:int(1000000)) {
     output send:int;
     state pingsLeft:int(count);
     logical action serve;
-    reaction (startup) -> send {=
-        SET(send, self->pingsLeft--);
-    =}
-    reaction (serve) -> send {= 
+    reaction (startup, serve) -> send {= 
         SET(send, self->pingsLeft--);
     =}
     reaction (receive) -> serve {=
