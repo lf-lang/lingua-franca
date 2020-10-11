@@ -441,6 +441,7 @@ struct reaction_t {
     index_t index; // Inverse priority determined by dependency analysis. INSTANCE.
     unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph. INSTANCE.
     size_t pos;       // Current position in the priority queue. RUNTIME.
+    reaction_t* last_enabling_reaction; // The last enabling reaction, or NULL if there is none. Used for optimization. INSTANCE.
     int num_outputs;  // Number of outputs that may possibly be produced by this function. COMMON.
     bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced. COMMON.
     int* triggered_sizes;     // Pointer to array of ints with number of triggers per output. INSTANCE.
