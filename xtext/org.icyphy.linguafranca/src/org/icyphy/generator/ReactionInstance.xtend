@@ -27,6 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.generator
 
 import java.util.LinkedHashSet
+import java.util.Set
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Port
@@ -191,6 +192,27 @@ class ReactionInstance extends NamedInstance<Reaction> {
      */
     override String getName() {
         return "reaction_" + this.reactionIndex;
+    }
+    
+    /**
+     * From the given set of reactions, return the subset that is
+     * maximal. A reaction in the set is maximal if there is no
+     * other reaction in the set that depends on it, directly or
+     * indirectly. If the argument is an empty set, return an
+     * empty set.
+     * @param reactions A set of reaction instances.
+     */
+    def Set<ReactionInstance> maximal(Set<ReactionInstance> reactions) {
+        // Construct a set containing the maximal reactions among
+        // the upstream reactions. This omits upstream reactions
+        // on which some other upstream reaction depends.
+        // Start with the full set, and remove elements.
+        var result = new LinkedHashSet(reactions)
+        for (upstream : reactions) {
+            result.removeAll(upstream.dependsOnReactions)
+            result.removeAll(maximal(upstream.dependsOnReactions))
+        }
+        return result
     }
 
     /**

@@ -2135,6 +2135,24 @@ class CGenerator extends GeneratorBase {
                 var Collection<PortInstance> destinationPorts = null
 
                 var portCount = 0
+                // Record the number of reactions that this reaction depends on.
+                // This is used for optimization. When that number is 1, the reaction can
+                // be executed immediately when its triggering reaction has completed.
+                val maximalUpstreamReactions = reaction.maximal(reaction.dependsOnReactions)
+                if (maximalUpstreamReactions.size == 1) {
+                    val upstreamReactionInstance = maximalUpstreamReactions.get(0)
+                    val upstreamReaction =
+                        '''«selfStructName(upstreamReactionInstance.parent)»->___reaction_«upstreamReactionInstance.reactionIndex»'''
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
+                        «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = &(«upstreamReaction»);
+                    ''')
+                } else {
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
+                        «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = NULL;
+                    ''')
+                }
                 for (port : reaction.dependentPorts) {
                     // The port to which the reaction writes may have dependent
                     // reactions in the container. If so, we list that port here.
