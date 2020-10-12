@@ -554,7 +554,7 @@ void handle_timestamp(federate_t *my_fed)
     // Read bytes from the socket. We need 8 bytes.
     int bytes_read = read_from_socket2(my_fed->socket, sizeof(long long), (unsigned char*)&buffer);
     if (bytes_read < 1) {
-        fprintf(stderr, "ERROR reading timestamp from federate %d.\n", my_fed->id);
+        error_print("ERROR reading timestamp from federate %d.\n", my_fed->id);
     }
 
 
@@ -583,7 +583,7 @@ void handle_timestamp(federate_t *my_fed)
     unsigned char message_marker = TIMESTAMP;
     int bytes_written = write_to_socket2(my_fed->socket, 1, &message_marker);
     if (bytes_written < 1) {
-        fprintf(stderr, "ERROR sending timestamp to federate %d.", my_fed->id);
+        error_print("ERROR sending timestamp to federate %d.", my_fed->id);
     }
 
     // Send the timestamp.
@@ -592,7 +592,7 @@ void handle_timestamp(federate_t *my_fed)
     long long message = swap_bytes_if_big_endian_ll(start_time);
     bytes_written = write_to_socket2(my_fed->socket, sizeof(long long), (unsigned char *)(&message));
     if (bytes_written < 1) {
-        fprintf(stderr, "ERROR sending starting time to federate %d.", my_fed->id);
+        error_print("ERROR sending starting time to federate %d.", my_fed->id);
     }
 
     // Update state for the federate to indicate that the TIMESTAMP
@@ -603,8 +603,6 @@ void handle_timestamp(federate_t *my_fed)
     pthread_mutex_unlock(&rti_mutex);
     DEBUG_PRINT("RTI sent start time %llx to federate %d.", start_time, my_fed->id);
 }
-
-char* ERROR_UNRECOGNIZED_MESSAGE_TYPE = "ERROR Received from federate an unrecognized message type";
 
 /** Thread handling communication with a federate.
  *  @param fed A pointer to an int that is the
@@ -625,8 +623,7 @@ void* federate(void* fed) {
         if (bytes_read == 0) {
             continue;
         } else if (bytes_read < 0) {
-            fprintf(stderr, "ERROR: RTI socket to federate %d broken.\n", my_fed->id);
-            exit(1);
+            error_print_and_exit("ERROR: RTI socket to federate %d broken.\n", my_fed->id);
         }
         switch(buffer[0]) {
         case TIMESTAMP:
@@ -673,7 +670,7 @@ void* federate(void* fed) {
             handle_stop_message(my_fed);
             break;
         default:
-            error(ERROR_UNRECOGNIZED_MESSAGE_TYPE);
+            error_print("Received from federate %d an unrecognized message type.", my_fed->id);
         }
     }
 
@@ -715,6 +712,8 @@ void connect_to_federates(int socket_descriptor) {
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {
             if(buffer[0] == P2P_SENDING_FED_ID || buffer[0] == P2P_TIMED_MESSAGE) {
+                // If the connection is a peer-to-peer connection between two
+                // federates, reject the connection with the WRONG_SERVER error.
                 error_code = WRONG_SERVER;
             } else {
                 error_code = UNEXPECTED_MESSAGE;
@@ -779,14 +778,16 @@ void connect_to_federates(int socket_descriptor) {
         }
 
         // Assign the address information for federate
-        // The IP address is stored here both as an in_addr struct (in .server_ip_addr) that can be useful
-        // to create sockets and can be efficiently sent over the network, and in a human readable format
+        // The IP address is stored here as an in_addr struct (in .server_ip_addr) that can be useful
+        // to create sockets and can be efficiently sent over the network. If VERBOSE is defined
+        // in the target LF program, the IP address is also stored in a human readable format
         // (stored in .server_hostname) that can be useful for log messages.
         // First, convert the sockaddr structure into a sockaddr_in that contains an internet address.
         struct sockaddr_in* pV4_addr = (struct sockaddr_in*)&client_fd;
         // Then extract the internet address (which is in IPv4 format) and assign it as the federate's socket server
         federates[fed_id].server_ip_addr = pV4_addr->sin_addr;
 
+#ifdef VERBOSE
         // Then create the human readable format and copy that into
         // the .server_hostname field of the federate.
         char str[INET_ADDRSTRLEN];
@@ -794,7 +795,7 @@ void connect_to_federates(int socket_descriptor) {
         strncpy (federates[fed_id].server_hostname, str, INET_ADDRSTRLEN);     
 
         DEBUG_PRINT("RTI got address %s from federate %d.", federates[fed_id].server_hostname, fed_id);
-
+#endif
         federates[fed_id].socket = socket_id;
 
         // Create a thread to communicate with the federate.
