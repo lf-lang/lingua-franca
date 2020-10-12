@@ -93,6 +93,8 @@ MultiportToReaction.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
+PingPong.lf
+PingPongThreaded.lf
 PingPongDistributed.lf
 Pipeline.lf
 Preamble.lf
