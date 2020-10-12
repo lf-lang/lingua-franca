@@ -109,9 +109,11 @@ pthread_t _lf_inbound_p2p_handling_thread_id;
 
 /**
  * A socket descriptor for the socket server of the federate.
- * This is assigned create_server().
+ * This is assigned in create_server().
  * This socket is used to listen to incoming physical connections from
- * remote federates.
+ * remote federates. Once an incoming connection is accepted, the
+ * opened socket will be stored in
+ * _lf_federate_sockets_for_inbound_physical_connections.
  */
 int _lf_server_socket;
 
@@ -228,7 +230,7 @@ void create_server(int specified_port) {
     encode_int(_lf_server_port, &(buffer[1]));
     write_to_socket(_lf_rti_socket, sizeof(int) + 1, (unsigned char*)buffer,
                                         "Federate %d failed to send address advertisement.", _lf_my_fed_id);
-    printf("Federate %d sent port %d to the RTI.\n", _lf_my_fed_id, _lf_server_port);
+    DEBUG_PRINT("Federate %d sent port %d to the RTI.\n", _lf_my_fed_id, _lf_server_port);
 
     // Set the global server socket
     _lf_server_socket = socket_descriptor;
@@ -244,7 +246,10 @@ void create_server(int specified_port) {
  * which it acquires to perform the send.
  * 
  * @param socket The socket to send the message on
- * @param mesasge_type The type of the mesasge being sent. Currently can be TIMED_MESSAG
+ * @param message_type The type of the message being sent. 
+ *  Currently can be TIMED_MESSAGE for messages sent via
+ *  RTI or P2P_TIMED_MESSAGE for messages sent between
+ *  federates.
  * @param port The ID of the destination port.
  * @param federate The ID of the destination federate.
  * @param length The message length.
@@ -301,7 +306,7 @@ void send_time(unsigned char type, instant_t time) {
  *  This function assumes the caller holds the mutex lock.
  */
 void __broadcast_stop() {
-    printf("Federate %d requesting a whole program stop.\n", _lf_my_fed_id);
+    DEBUG_PRINT("Federate %d requesting a whole program stop.\n", _lf_my_fed_id);
     send_time(STOP, current_time);
 }
 
@@ -401,13 +406,15 @@ void* handle_p2p_connections_from_federates(void *ignored) {
 }
 
 /**
- * Connect to the federate with the specified id. This is used for sending
- * messages directly to the specified federate. This function first sends
- * an ADDRESS_QUERY message to the RTI to obtain the IP address and port
- * number of the specified federate. It then attempts to establish a socket
- * connection to the specified federate. If this fails, the program exits.
- * If it succeeds, it sets element [id] of the federate_sockets global
- * array to refer to the socket for communicating directly with the federate.
+ * Connect to the federate with the specified id. This established
+ * connection will then be used in functions such as send_message_timed() 
+ * to send messages directly to the specified federate. 
+ * This function first sends an ADDRESS_QUERY message to the RTI to obtain 
+ * the IP address and port number of the specified federate. It then attempts 
+ * to establish a socket connection to the specified federate.
+ * If this fails, the program exits. If it succeeds, it sets element [id] of 
+ * the _lf_federate_sockets_for_outbound_physical_connections global array to 
+ * refer to the socket for communicating directly with the federate.
  * @param id The ID of the remote federate.
  */
 void connect_to_federate(ushort id) {
