@@ -35,15 +35,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOST_LITTLE_ENDIAN 1
 #define HOST_BIG_ENDIAN 2
 
-// Uncomment this to get all debug messages.
-// #define VERBOSE
-
-#ifdef VERBOSE
-#define DEBUG 1
-#else
-#define DEBUG 0
-#endif
-
 /**
  * A handy macro that can concatenate three strings.
  * Useful in the DEBUG_PRINT macro and error_print
@@ -59,10 +50,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * A "DEBUG: " moniker is appended to the beginning of the message
  * as well a new line to the end of the message.
  */ 
+#ifdef VERBOSE
 #define DEBUG_PRINT(format, ...) \
-            do { if (DEBUG) { \
+            do {  \
                     fprintf(stderr, CONCATENATE_THREE_STRINGS("DEBUG: ",format,"\n"), ##__VA_ARGS__); \
-                } } while (0)
+                } while (0)
+#else
+#define DEBUG_PRINT(format, ...) // Empty. This is in place to force the compiler to parse the predicate in
+                                 // () to ensure it does not fall out of sync with the rest of the code if 
+                                 // VERBOSE is not defined.
+#endif
 
 /**
  * A function that can be used in lieu of fprintf(stderr, ...).
