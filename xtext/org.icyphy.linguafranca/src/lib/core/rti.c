@@ -466,7 +466,7 @@ void handle_stop_message(federate_t* fed) {
 
 /** 
  * Handle address query messages.
- * This function reads the body of a @see ADDRESS_QUERY message
+ * This function reads the body of a ADDRESS_QUERY (@see rti.h) message
  * which is the requested destination federate ID and replies with the stored
  * port value for the socket server of that federate. The port values
  * are initialized to -1. If no ADDRESS_AD message has been received from
@@ -508,40 +508,40 @@ void handle_address_query(ushort fed_id) {
 }
 
 /**
- * Handle address advertisement messages. The federate
- * is expected to send its server port number as the next
+ * Handle address advertisement messages (@see ADDRESS_AD in rti.h).
+ * The federate is expected to send its server port number as the next
  * byte. The RTI will keep a record of this number in the .server_port
- * field of the federates[fed_id] array of structs.
+ * field of the federates[federate_id] array of structs.
  * 
  * The server_hostname and server_ip_addr fields are assigned
  * in connect_to_federates() upon accepting the socket
  * from the remote federate.
  * 
- * @param fed_id The id of the remote federate that is
+ * @param federate_id The id of the remote federate that is
  *  sending the address advertisement.
  */
-void handle_address_ad(ushort fed_id)
+void handle_address_ad(ushort federate_id)
 {   
-    DEBUG_PRINT("Received address advertisement from federate %d.", fed_id);
+    DEBUG_PRINT("Received address advertisement from federate %d.", federate_id);
     // Read the port number of the federate that can be used for physical
     // connections to other federates
     int server_port = -1;
-    unsigned char pb[sizeof(int)];
-    int bytes_written = read_from_socket2(federates[fed_id].socket, sizeof(int), (unsigned char *)pb);
+    unsigned char buffer[sizeof(int)];
+    int bytes_written = read_from_socket2(federates[federate_id].socket, sizeof(int), (unsigned char *)buffer);
 
     if (bytes_written == 0) {
-        DEBUG_PRINT("Error reading port data from federate %d.", federates[fed_id].id);
+        DEBUG_PRINT("Error reading port data from federate %d.", federates[federate_id].id);
     }
 
-    server_port = extract_int(pb);
+    server_port = extract_int(buffer);
 
     
     pthread_mutex_lock(&rti_mutex);
-    federates[fed_id].server_port = server_port;
+    federates[federate_id].server_port = server_port;
     pthread_mutex_unlock(&rti_mutex);
 
 
-    DEBUG_PRINT("Got physical connection server address %s:%d from federate %d.\n", federates[fed_id].server_hostname, federates[fed_id].server_port, federates[fed_id].id);
+    DEBUG_PRINT("Got physical connection server address %s:%d from federate %d.\n", federates[federate_id].server_hostname, federates[federate_id].server_port, federates[federate_id].id);
 }
 
 /**
