@@ -463,13 +463,15 @@ void connect_to_federate(ushort remote_federate_id) {
     }
     assert(port < 65536);
     
-    if(DEBUG) {
+#ifdef VERBOSE
         // Print the received IP address in a human readable format
         // Create the human readable format of the received address.
+        // This is avoided unless VERBOSE is defined by the user to 
+        // subdue the overhead caused by inet_ntop().
         char hostname[INET_ADDRSTRLEN];
         inet_ntop( AF_INET, &host_ip_addr , hostname, INET_ADDRSTRLEN );
         DEBUG_PRINT("Received address %s port %d for federate %d from RTI.", hostname, port, remote_federate_id);
-    }
+#endif
 
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
