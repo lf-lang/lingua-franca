@@ -115,8 +115,13 @@ int _lf_server_port = -1;
 
 
 /** 
- *  Thread that listens for inputs from other federates.
- *  This always calls schedule.
+ * Thread that listens for inputs from other federates.
+ * This thread listens for P2P_MESSAGE_TIMED messages from the specified
+ * peer federate and calls schedule to schedule an event.
+ * If an error occurs or an EOF is received from the peer, then this
+ * procedure returns, terminating the thread.
+ * @param fed_id_ptr A pointer to a ushort containing federate ID being listened to.
+ *  This procedure frees the memory pointed to before returning.
  */
 void* listen_to_federates(void *args);
 
@@ -144,7 +149,6 @@ void* listen_to_federates(void *args);
  * RTI informing it of the port.
  * 
  * @param specified_port The specified port by the user.
- * @return The socket descriptor on which to accept connections.
  */
 void create_server(int specified_port) {
     int port = specified_port;
@@ -207,6 +211,7 @@ void create_server(int specified_port) {
     _lf_server_port = port;
     
     // Send the server port number to the RTI
+    // on an ADDRESS_AD message (@see rti.h).
     unsigned char buffer[sizeof(int) + 1];
     buffer[0] = ADDRESS_AD;
     encode_int(_lf_server_port, &(buffer[1]));
