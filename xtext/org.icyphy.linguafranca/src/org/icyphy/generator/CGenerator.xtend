@@ -668,6 +668,9 @@ class CGenerator extends GeneratorBase {
      */
     protected def void initializeFederate(FederateInstance federate) {
         if (federates.length > 1) {
+            pr('''
+                // ***** Start initializing the federated execution. */
+            ''')
             // Set indicator variables that specify whether the federate has
             // upstream logical connections.
             if (federate.dependsOn.size > 0) {
@@ -707,7 +710,7 @@ class CGenerator extends GeneratorBase {
             
             pr('''
                 // Connect to the RTI. This sets _lf_rti_socket.
-                connect_to_rti(«federate.id», "«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
+                connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
             ''');
         
             if (numberOfInboundConnections > 0) {

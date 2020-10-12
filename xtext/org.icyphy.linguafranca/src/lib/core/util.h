@@ -45,7 +45,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONCATENATE_THREE_STRINGS(__string1, __string2, __string3) __string1 __string2 __string3
 /**
  * A macro used to print useful debug information. It can be enabled
- * by setting the @see DEBUG macro to 1.
+ * by defining VERBOSE in the top-level preamble.
  * The input to this macro is exactly like printf: (format, ...).
  * A "DEBUG: " moniker is appended to the beginning of the message
  * as well a new line to the end of the message.

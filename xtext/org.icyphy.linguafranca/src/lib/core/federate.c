@@ -551,13 +551,12 @@ void connect_to_federate(ushort remote_federate_id) {
 /**
  * Connect to the RTI at the specified host and port and return
  * the socket descriptor for the connection. If this fails, the
- * program exits. If it succeeds, it sets the rti_socket global
+ * program exits. If it succeeds, it sets the _lf_rti_socket global
  * variable to refer to the socket for communicating with the RTI.
- * @param id The assigned ID of the federate.
  * @param hostname A hostname, such as "localhost".
  * @param port A port number.
  */
-void connect_to_rti(ushort id, char* hostname, int port) {
+void connect_to_rti(char* hostname, int port) {
     // Repeatedly try to connect, one attempt every 2 seconds, until
     // either the program is killed, the sleep is interrupted,
     // or the connection succeeds.
@@ -646,7 +645,7 @@ void connect_to_rti(ushort id, char* hostname, int port) {
             // Send the message type first.
             buffer[0] = FED_ID;
             // Next send the federate ID.
-            encode_ushort(id, &buffer[1]);
+            encode_ushort(_lf_my_fed_id, &buffer[1]);
             // Next send the federation ID length.
             // The federation ID is limited to 255 bytes.
             size_t federation_id_length = strnlen(federation_id, 255);
@@ -869,10 +868,11 @@ void handle_incoming_stop_message() {
 
 /** 
  * Thread that listens for inputs from other federates.
- * This thread listens for P2P_TIMED_MESSAGE messages from the specified
- * peer federate and calls schedule to schedule an event.
- * If an error occurs or an EOF is received from the peer, then this
- * procedure sets the corresponding socket in _lf_federate_sockets_for_inbound_physical_connections 
+ * This thread listens for messages of type P2P_TIMED_MESSAGE 
+ * (@see rti.h) from the specified peer federate and calls schedule to 
+ * schedule an event. If an error occurs or an EOF is received 
+ * from the peer, then this procedure sets the corresponding 
+ * socket in _lf_federate_sockets_for_inbound_physical_connections 
  * to -1 and returns, terminating the thread.
  * @param fed_id_ptr A pointer to a ushort containing federate ID being listened to.
  *  This procedure frees the memory pointed to before returning.
