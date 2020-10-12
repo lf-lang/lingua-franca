@@ -415,9 +415,9 @@ void* handle_p2p_connections_from_federates(void *ignored) {
  * If this fails, the program exits. If it succeeds, it sets element [id] of 
  * the _lf_federate_sockets_for_outbound_physical_connections global array to 
  * refer to the socket for communicating directly with the federate.
- * @param id The ID of the remote federate.
+ * @param remote_federate_id The ID of the remote federate.
  */
-void connect_to_federate(ushort id) {
+void connect_to_federate(ushort remote_federate_id) {
     int result = -1;
     int count_retries = 0;
 
@@ -431,18 +431,18 @@ void connect_to_federate(ushort id) {
     while (port == -1) {
         buffer[0] = ADDRESS_QUERY;
         // NOTE: Sending messages in little endian.
-        encode_ushort(id, &(buffer[1]));
+        encode_ushort(remote_federate_id, &(buffer[1]));
 
-        // debug_print("Sending address query for federate %d.\n", id);
+        // debug_print("Sending address query for federate %d.\n", remote_federate_id);
 
-        write_to_socket(_lf_rti_socket, sizeof(ushort) + 1, buffer, "Federate %d failed to send address query for federate %d to RTI.", _lf_my_fed_id, id);
+        write_to_socket(_lf_rti_socket, sizeof(ushort) + 1, buffer, "Federate %d failed to send address query for federate %d to RTI.", _lf_my_fed_id, remote_federate_id);
 
         // Read RTI's response.
-        read_from_socket(_lf_rti_socket, sizeof(int), buffer, "Federate %d failed to read the requested port number for federate %d from RTI.", _lf_my_fed_id, id);
+        read_from_socket(_lf_rti_socket, sizeof(int), buffer, "Federate %d failed to read the requested port number for federate %d from RTI.", _lf_my_fed_id, remote_federate_id);
 
         port = extract_int(buffer);
 
-        read_from_socket(_lf_rti_socket, sizeof(host_ip_addr), (unsigned char *)&host_ip_addr, "Federate %d failed to read the ip address for federate %d from RTI.", _lf_my_fed_id, id);
+        read_from_socket(_lf_rti_socket, sizeof(host_ip_addr), (unsigned char *)&host_ip_addr, "Federate %d failed to read the ip address for federate %d from RTI.", _lf_my_fed_id, remote_federate_id);
 
         // A reply of -1 for the port means that the RTI does not know
         // the port number of the remote federate, presumably because the
@@ -450,7 +450,7 @@ void connect_to_federate(ushort id) {
         // Sleep for some time before retrying.
         if (port == -1) {
             if (count_tries++ >= CONNECT_NUM_RETRIES) {
-                fprintf(stderr, "TIMEOUT on federate %d obtaining IP/port for federate %d from the RTI.\n", _lf_my_fed_id, id);
+                fprintf(stderr, "TIMEOUT on federate %d obtaining IP/port for federate %d from the RTI.\n", _lf_my_fed_id, remote_federate_id);
                 exit(1);
             }
             struct timespec wait_time = {0L, ADDRESS_QUERY_RETRY_INTERVAL};
@@ -468,14 +468,14 @@ void connect_to_federate(ushort id) {
         // Create the human readable format of the received address.
         char hostname[INET_ADDRSTRLEN];
         inet_ntop( AF_INET, &host_ip_addr , hostname, INET_ADDRSTRLEN );
-        DEBUG_PRINT("Received address %s port %d for federate %d from RTI.", hostname, port, id);
+        DEBUG_PRINT("Received address %s port %d for federate %d from RTI.", hostname, port, remote_federate_id);
     }
 
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        _lf_federate_sockets_for_outbound_physical_connections[id] = socket(AF_INET , SOCK_STREAM , 0);
-        if (_lf_federate_sockets_for_outbound_physical_connections[id] < 0) {
-            error_print_and_exit("ERROR on federate %d creating socket to federate %d.", _lf_my_fed_id, id);
+        _lf_federate_sockets_for_outbound_physical_connections[remote_federate_id] = socket(AF_INET , SOCK_STREAM , 0);
+        if (_lf_federate_sockets_for_outbound_physical_connections[remote_federate_id] < 0) {
+            error_print_and_exit("ERROR on federate %d creating socket to federate %d.", _lf_my_fed_id, remote_federate_id);
         }
 
         // Server file descriptor.
@@ -490,12 +490,12 @@ void connect_to_federate(ushort id) {
         // Convert the port number from host byte order to network byte order.
         server_fd.sin_port = htons(port);
         result = connect(
-            _lf_federate_sockets_for_outbound_physical_connections[id],
+            _lf_federate_sockets_for_outbound_physical_connections[remote_federate_id],
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
         
         if (result != 0) {
-            error_print("Federate %d failed to connect to federate %d on port %d.", _lf_my_fed_id, id, port);
+            error_print("Federate %d failed to connect to federate %d on port %d.", _lf_my_fed_id, remote_federate_id, port);
 
             // Try again after some time if the connection failed.
             // Note that this should not really happen since the remote federate should be
@@ -506,11 +506,11 @@ void connect_to_federate(ushort id) {
                 // If the remote federate is not accepting the connection after CONNECT_NUM_RETRIES
                 // treat it as a soft error condition and return.
                 error_print("Federate %d failed to connect to federate %d after %d retries. Giving up.",
-                            _lf_my_fed_id, id, CONNECT_NUM_RETRIES);
+                            _lf_my_fed_id, remote_federate_id, CONNECT_NUM_RETRIES);
                 return;
             }
             printf("Federate %d could not connect to federate %d. Will try again every %d nanoseconds.\n",
-                    _lf_my_fed_id, id, ADDRESS_QUERY_RETRY_INTERVAL);
+                    _lf_my_fed_id, remote_federate_id, ADDRESS_QUERY_RETRY_INTERVAL);
             // Wait CONNECT_RETRY_INTERVAL seconds.
             struct timespec wait_time = {0L, ADDRESS_QUERY_RETRY_INTERVAL};
             struct timespec remaining_time;
@@ -525,22 +525,22 @@ void connect_to_federate(ushort id) {
             encode_ushort(_lf_my_fed_id, (unsigned char *)&(buffer[1]));
             unsigned char federation_id_length = strnlen(federation_id, 255);
             buffer[sizeof(ushort) + 1] = federation_id_length;
-            write_to_socket(_lf_federate_sockets_for_outbound_physical_connections[id], buffer_length, buffer,
-                            "Federate %d failed to send fed_id to federate %d.", _lf_my_fed_id, id);
-            write_to_socket(_lf_federate_sockets_for_outbound_physical_connections[id], federation_id_length, (unsigned char *)federation_id,
-                            "Federate %d failed to send federation id to federate %d.", _lf_my_fed_id, id);
+            write_to_socket(_lf_federate_sockets_for_outbound_physical_connections[remote_federate_id], buffer_length, buffer,
+                            "Federate %d failed to send fed_id to federate %d.", _lf_my_fed_id, remote_federate_id);
+            write_to_socket(_lf_federate_sockets_for_outbound_physical_connections[remote_federate_id], federation_id_length, (unsigned char *)federation_id,
+                            "Federate %d failed to send federation id to federate %d.", _lf_my_fed_id, remote_federate_id);
 
-            read_from_socket(_lf_federate_sockets_for_outbound_physical_connections[id], 1, (unsigned char *)buffer,
-                            "Federate %d failed to read ACK from federate %d in response to sending fed_id.", _lf_my_fed_id, id);
+            read_from_socket(_lf_federate_sockets_for_outbound_physical_connections[remote_federate_id], 1, (unsigned char *)buffer,
+                            "Federate %d failed to read ACK from federate %d in response to sending fed_id.", _lf_my_fed_id, remote_federate_id);
             if (buffer[0] != ACK) {
                 // Get the error code.
-                read_from_socket(_lf_federate_sockets_for_outbound_physical_connections[id], 1, (unsigned char *)buffer,
-                                "Federate %d failed to read error code from federate %d in response to sending fed_id.", _lf_my_fed_id, id);
+                read_from_socket(_lf_federate_sockets_for_outbound_physical_connections[remote_federate_id], 1, (unsigned char *)buffer,
+                                "Federate %d failed to read error code from federate %d in response to sending fed_id.", _lf_my_fed_id, remote_federate_id);
                 error_print("Received REJECT message from remote federate (%d).", buffer[0]);
                 result = -1;
                 continue;
             } else {
-                printf("Federate %d: connected to federate %d, port %d.\n", _lf_my_fed_id, id, port);
+                printf("Federate %d: connected to federate %d, port %d.\n", _lf_my_fed_id, remote_federate_id, port);
             }
         }
     }
