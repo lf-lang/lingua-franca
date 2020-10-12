@@ -129,10 +129,11 @@ int _lf_server_port = -1;
 
 /** 
  * Thread that listens for inputs from other federates.
- * This thread listens for P2P_TIMED_MESSAGE messages from the specified
- * peer federate and calls schedule to schedule an event.
- * If an error occurs or an EOF is received from the peer, then this
- * procedure returns, terminating the thread.
+ * This thread listens for messages of type P2P_TIMED_MESSAGE 
+ * from the specified peer federate and calls schedule to 
+ * schedule an event. If an error occurs or an EOF is received 
+ * from the peer, then this procedure returns, terminating the 
+ * thread.
  * @param fed_id_ptr A pointer to a ushort containing federate ID being listened to.
  *  This procedure frees the memory pointed to before returning.
  */
