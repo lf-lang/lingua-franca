@@ -129,7 +129,7 @@ int _lf_server_port = -1;
 
 /** 
  * Thread that listens for inputs from other federates.
- * This thread listens for P2P_MESSAGE_TIMED messages from the specified
+ * This thread listens for P2P_TIMED_MESSAGE messages from the specified
  * peer federate and calls schedule to schedule an event.
  * If an error occurs or an EOF is received from the peer, then this
  * procedure returns, terminating the thread.
@@ -549,11 +549,11 @@ void connect_to_federate(ushort remote_federate_id) {
 /**
  * Connect to the RTI at the specified host and port and return
  * the socket descriptor for the connection. If this fails, the
- *  program exits. If it succeeds, it sets the rti_socket global
- *  variable to refer to the socket for communicating with the RTI.
- *  @param id The assigned ID of the federate.
- *  @param hostname A hostname, such as "localhost".
- *  @param port A port number.
+ * program exits. If it succeeds, it sets the rti_socket global
+ * variable to refer to the socket for communicating with the RTI.
+ * @param id The assigned ID of the federate.
+ * @param hostname A hostname, such as "localhost".
+ * @param port A port number.
  */
 void connect_to_rti(ushort id, char* hostname, int port) {
     // Repeatedly try to connect, one attempt every 2 seconds, until
@@ -867,10 +867,11 @@ void handle_incoming_stop_message() {
 
 /** 
  * Thread that listens for inputs from other federates.
- * This thread listens for P2P_MESSAGE_TIMED messages from the specified
+ * This thread listens for P2P_TIMED_MESSAGE messages from the specified
  * peer federate and calls schedule to schedule an event.
  * If an error occurs or an EOF is received from the peer, then this
- * procedure returns, terminating the thread.
+ * procedure sets the corresponding socket in _lf_federate_sockets_for_inbound_physical_connections 
+ * to -1 and returns, terminating the thread.
  * @param fed_id_ptr A pointer to a ushort containing federate ID being listened to.
  *  This procedure frees the memory pointed to before returning.
  */
@@ -951,16 +952,17 @@ void* listen_to_rti(void* args) {
     return NULL;
 }
 
-/** Synchronize the start with other federates via the RTI.
- *  This initiates a connection with the RTI, then
- *  sends the current logical time to the RTI and waits for the
- *  RTI to respond with a specified time.
- *  It starts a thread to listen for messages from the RTI.
- *  It then waits for physical time to match the specified time,
- *  sets current logical time to the time returned by the RTI,
- *  and then returns. If --fast was specified, then this does
- *  not wait for physical time to match the logical start time
- *  returned by the RTI.
+/** 
+ * Synchronize the start with other federates via the RTI.
+ * This assumes that a connection to the RTI is already made 
+ * and _lf_rti_socket is valid. It then sends the current logical 
+ * time to the RTI and waits for the RTI to respond with a specified
+ * time. It starts a thread to listen for messages from the RTI.
+ * It then waits for physical time to match the specified time,
+ * sets current logical time to the time returned by the RTI,
+ * and then returns. If --fast was specified, then this does
+ * not wait for physical time to match the logical start time
+ * returned by the RTI.
  */
 void synchronize_with_other_federates() {
                 
