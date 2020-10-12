@@ -50,15 +50,16 @@ char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via R
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
 
 /**
- * The ID of this federate as assigned when synchronize_with_other_federates()
- * is called.
+ * The ID of this federate as assigned when the generated function
+ * __initialize_trigger_objects() is called
+ * (@see xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CGenerator.xtend).
  */
 ushort _lf_my_fed_id = 0;
 
 /**
  * The socket descriptor for this federate to communicate with the RTI.
  * This is set by connect_to_rti(), which must be called before other
- * functions are called.
+ * functions that communicate with the rti are called.
  */
 int _lf_rti_socket = -1;
 
@@ -68,25 +69,35 @@ int _lf_rti_socket = -1;
 int _lf_number_of_inbound_physical_connections;
 
 /**
- * Number of outbound physical connections to the federate.
+ * Number of outbound physical connections from the federate.
  */
 int _lf_number_of_outbound_physical_connections;
 
 /**
- * An array that holds the socket descriptors for incoming physical
- * connections to each federate. The index will be the federate
+ * An array that holds the socket descriptors for inbound physical
+ * connections from each federate. The index will be the federate
  * ID of the remote sending federate. This is initialized at startup
- * to -1 and is set to a socket ID by handle_p2p_connections_from_federates
+ * to -1 and is set to a socket ID by handle_p2p_connections_from_federates()
  * when the socket is opened.
+ * 
+ * @note There will not be an inbound socket unless a physical connection
+ * is specified in the Lingua Franca program where this federate is the
+ * destination. Multiple incoming physical connections from the same remote
+ * federate will use the same socket.
  */
 int _lf_federate_sockets_for_inbound_physical_connections[NUMBER_OF_FEDERATES];
 
 /**
- * An array that holds the socket descriptors for outgoing physical
- * connections from each federate. The index will be the federate
+ * An array that holds the socket descriptors for outbound physical
+ * connections to each remote federate. The index will be the federate
  * ID of the remote receiving federate. This is initialized at startup
- * to -1 and is set to a socket ID by connect_to_federate
+ * to -1 and is set to a socket ID by connect_to_federate()
  * when the socket is opened.
+ * 
+ * @note This federate will not open an outbound socket unless a physical
+ * connection is specified in the Lingua Franca program where this federate 
+ * acts as the source. Multiple outgoing physical connections to the same remote
+ * federate will use the same socket.
  */
 int _lf_federate_sockets_for_outbound_physical_connections[NUMBER_OF_FEDERATES];
 
