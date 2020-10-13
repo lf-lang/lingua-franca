@@ -207,10 +207,12 @@ void create_server(int specified_port) {
     }
     if (result != 0) {
         if (specified_port == 0) {
-            error_print_and_exit("ERROR on binding the socket for federate %d. Cannot find a usable port. Consider increasing PORT_RANGE_LIMIT in federate.c",
+            error_print_and_exit("ERROR on binding the socket for federate %d. Cannot find a usable port. \
+                                 Consider increasing PORT_RANGE_LIMIT in federate.c",
                                  _lf_my_fed_id);
         } else {
-            error_print_and_exit("ERROR on binding socket for federate %d. Specified port is not available. Consider leaving the port unspecified",
+            error_print_and_exit("ERROR on binding socket for federate %d. Specified port is not available. \
+                                 Consider leaving the port unspecified",
                                  _lf_my_fed_id);
         }
     }
@@ -230,7 +232,7 @@ void create_server(int specified_port) {
     buffer[0] = ADDRESS_AD;
     encode_int(_lf_server_port, &(buffer[1]));
     write_to_socket(_lf_rti_socket, sizeof(int) + 1, (unsigned char*)buffer,
-                                        "Federate %d failed to send address advertisement.", _lf_my_fed_id);
+                    "Federate %d failed to send address advertisement.", _lf_my_fed_id);
     DEBUG_PRINT("Federate %d sent port %d to the RTI.\n", _lf_my_fed_id, _lf_server_port);
 
     // Set the global server socket
@@ -327,7 +329,9 @@ void* handle_p2p_connections_from_federates(void *ignored) {
         uint32_t client_length = sizeof(client_fd);
         int socket_id = accept(_lf_server_socket, &client_fd, &client_length);
         // FIXME: Error handling here is too harsh maybe?
-        if (socket_id < 0) {
+        if (socket_id < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            error_print("A fatal error occurred while accepting a new socket. \
+                         Federate %d will not accept connections anymore.", _lf_my_fed_id);
             return NULL;
         }
         DEBUG_PRINT("Federate %d accepted new connection from remote federate.", _lf_my_fed_id);
