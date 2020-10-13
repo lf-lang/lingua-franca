@@ -5,7 +5,7 @@
 target C {
     flags: "-O2",
     fast: true,
-    threads: 1
+    threads: 8
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
     output y:int;
@@ -28,14 +28,18 @@ reactor Destination {
         }
         self->s++;
     =}
-}
-main reactor TimeLimit(period:time(1 usec)) {
-    timer stop(1 secs);
-    reaction(stop) {=
-        stop();
-    =}
     reaction(shutdown) {=
         printf("**** shutdown reaction invoked.\n");
+        if (self->s != 10000002) {
+            fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
+            exit(1);
+        }
+    =}
+}
+main reactor TimeLimit(period:time(1 usec)) {
+    timer stop(10 secs);
+    reaction(stop) {=
+        stop();
     =}
     c = new Clock(period = period);
     d = new Destination();
