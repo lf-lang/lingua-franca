@@ -67,7 +67,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * user-code. This is to ensure that the compiler will still parse
  * the predicate inside (...) to prevent DEBUG_PRINT statements
  * to fall out of sync with the rest of the code. This should have
- * a negligible impact on performance if compiler optimizations
+ * a negligible impact on performance if compiler optimization
  * (e.g., -O2 for gcc) is used.
  */ 
 #define DEBUG_PRINT(format, ...) \
