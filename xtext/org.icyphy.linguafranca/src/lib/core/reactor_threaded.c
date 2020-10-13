@@ -862,7 +862,7 @@ void wrapup() {
         // __wrapup() returns true if it has put shutdown events
         // onto the event queue.  We need to run reactions to those
         // events.
-        DEBUG_PRINT("Federate %d __wrapup returned true.", _lf_my_fed_id);
+        DEBUG_PRINT("__wrapup returned true.");
         
         // Execute one iteration of next(), which will process the next
         // timestamp on the event queue, moving its reactions to the reaction
@@ -870,7 +870,7 @@ void wrapup() {
         // queue. We have to acquire the mutex first.
         pthread_mutex_lock(&mutex);
         if (__next()) {
-            DEBUG_PRINT("Federate %d wrapup: next() returned", _lf_my_fed_id);
+            DEBUG_PRINT("wrapup: next() returned");
             __execute_reactions_during_wrapup();
         }
         pthread_mutex_unlock(&mutex);
