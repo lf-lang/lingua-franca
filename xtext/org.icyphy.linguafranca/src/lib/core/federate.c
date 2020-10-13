@@ -937,7 +937,26 @@ void* listen_to_rti(void* args) {
     // Listen for messages from the federate.
     while (1) {
         // Read one byte to get the message type.
-        read_from_socket(_lf_rti_socket, 1, buffer, "Federate %d failed to read message header coming from RTI.", _lf_my_fed_id);
+        int bytes_read = read_from_socket2(_lf_rti_socket, 1, buffer);
+        if (bytes_read == 0) {
+            // EOF received from the RTI. This breaks the connection to the RTI
+            // under the assumption that the RTI has sent an EOF by invoking
+            // shutdown(socket, SHUT_WR), which indicates that the RTI
+            // does not intend to send any more messages.
+            // We should not exit the federate here since there might be
+            // a termination in progress.
+            DEBUG_PRINT("Federate %d received EOF from RTI. Closing the socket.", _lf_my_fed_id);
+            close(_lf_rti_socket);
+            _lf_rti_socket = -1;
+            break;
+        } else if (bytes_read < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            // If the error condition was not indicating to try again, then
+            // the socket to the RTI is broken, which is an error condition.
+            error_print("P2P socket between federate %d and RTI broken.", _lf_my_fed_id);
+            close(_lf_rti_socket);
+            _lf_rti_socket = -1;
+            exit(1);
+        }
         switch(buffer[0]) {
         case TIMED_MESSAGE:
             handle_timed_message(_lf_rti_socket, buffer + 1);
