@@ -43,23 +43,37 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * new line format \n at the end.
  */
 #define CONCATENATE_THREE_STRINGS(__string1, __string2, __string3) __string1 __string2 __string3
+
+/**
+ * VERBOSE can be defined in user-code in a 
+ * top-level preamble
+ * (FIXME: or as a target property in the future).
+ * If defined, set DEBUG to level 1.
+ */
+#ifdef VERBOSE
+#define DEBUG 1
+#else
+#define DEBUG 0
+#endif
+
 /**
  * A macro used to print useful debug information. It can be enabled
  * by defining VERBOSE in the top-level preamble.
  * The input to this macro is exactly like printf: (format, ...).
  * A "DEBUG: " moniker is appended to the beginning of the message
  * as well a new line to the end of the message.
+ * 
+ * @note This macro is generated even if VERBOSE is not defined in
+ * user-code. This is to ensure that the compiler will still parse
+ * the predicate inside (...) to prevent DEBUG_PRINT statements
+ * to fall out of sync with the rest of the code. This should have
+ * a negligible impact on performance if compiler optimizations
+ * (e.g., -O2 for gcc) is used.
  */ 
-#ifdef VERBOSE
 #define DEBUG_PRINT(format, ...) \
-            do {  \
+            do { if(DEBUG) { \
                     fprintf(stderr, CONCATENATE_THREE_STRINGS("DEBUG: ",format,"\n"), ##__VA_ARGS__); \
-                } while (0)
-#else
-#define DEBUG_PRINT(format, ...) // Empty. This is in place to force the compiler to parse the predicate in
-                                 // () to ensure it does not fall out of sync with the rest of the code if 
-                                 // VERBOSE is not defined.
-#endif
+                } } while (0)
 
 /**
  * A function that can be used in lieu of fprintf(stderr, ...).
