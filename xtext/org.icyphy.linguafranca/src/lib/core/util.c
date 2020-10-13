@@ -137,7 +137,7 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* fo
     va_list args;
     while (bytes_read < num_bytes) {
         int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
-        if(errno == EAGAIN && errno == EWOULDBLOCK) {
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
             continue;
@@ -190,7 +190,7 @@ void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* for
     va_list args;
     while (bytes_written < num_bytes) {
         int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
-        if(errno == EAGAIN && errno == EWOULDBLOCK) {
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
             continue;
