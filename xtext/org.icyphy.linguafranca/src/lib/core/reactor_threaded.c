@@ -812,13 +812,13 @@ void __execute_reactions_during_wrapup() {
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         pthread_mutex_unlock(&mutex);
         // Invoke the reaction function.
-        // printf("DEBUG: wrapup(): Invoking reaction.\n");
+        DEBUG_PRINT("wrapup(): Invoking reaction.\n");
         reaction->function(reaction->self);
 
         // If the reaction produced outputs, insert the resulting triggered
         // reactions into the reaction queue.
         schedule_output_reactions(reaction);
-        // printf("DEBUG: wrapup(): Done invoking reaction.\n");
+        DEBUG_PRINT("wrapup(): Done invoking reaction.\n");
     }
 }
 
@@ -848,6 +848,8 @@ void wrapup() {
     current_time = wrapup_time;
 
     // Notify the RTI that the current logical time is complete.
+    // This function informs the RTI of the current_time in a 
+    // non-blocking manner.
     logical_time_complete(current_time);
 
     pthread_mutex_unlock(&mutex);
@@ -860,7 +862,7 @@ void wrapup() {
         // __wrapup() returns true if it has put shutdown events
         // onto the event queue.  We need to run reactions to those
         // events.
-         // printf("DEBUG: __wrapup returned true.\n");
+        DEBUG_PRINT("Federate %d __wrapup returned true.", _lf_my_fed_id);
         
         // Execute one iteration of next(), which will process the next
         // timestamp on the event queue, moving its reactions to the reaction
@@ -868,11 +870,12 @@ void wrapup() {
         // queue. We have to acquire the mutex first.
         pthread_mutex_lock(&mutex);
         if (__next()) {
-            // printf("DEBUG: wrapup: next() returned\n");
+            DEBUG_PRINT("Federate %d wrapup: next() returned", _lf_my_fed_id);
             __execute_reactions_during_wrapup();
         }
         pthread_mutex_unlock(&mutex);
     }
+
 }
 
 int main(int argc, char* argv[]) {

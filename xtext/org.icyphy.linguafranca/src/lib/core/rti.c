@@ -261,7 +261,9 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
  *  with the specified time.
  */
 void send_time_advance_grant(federate_t* fed, instant_t time) {
-    if (fed->state == NOT_CONNECTED) return;
+    if (fed->state == NOT_CONNECTED) {
+        return;
+    }
     unsigned char buffer[9];
     buffer[0] = TIME_ADVANCE_GRANT;
     encode_ll(time, &(buffer[1]));
@@ -452,7 +454,9 @@ void handle_stop_message(federate_t* fed) {
     // Iterate over federates and send each a STOP message.
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         if (i != fed->id) {
-            if (federates[i].state == NOT_CONNECTED) continue;
+            if (federates[i].state == NOT_CONNECTED) {
+                continue;
+            }
             unsigned char buffer[9];
             buffer[0] = STOP;
             encode_ll(stop_time, &(buffer[1]));
@@ -520,8 +524,7 @@ void handle_address_query(ushort fed_id) {
  * @param federate_id The id of the remote federate that is
  *  sending the address advertisement.
  */
-void handle_address_ad(ushort federate_id)
-{   
+void handle_address_ad(ushort federate_id) {   
     DEBUG_PRINT("Received address advertisement from federate %d.", federate_id);
     // Read the port number of the federate that can be used for physical
     // connections to other federates
@@ -548,8 +551,7 @@ void handle_address_ad(ushort federate_id)
  * A function to handle timestamp messages.
  * This function assumes the caller does not hold the mutex.
  */
-void handle_timestamp(federate_t *my_fed)
-{
+void handle_timestamp(federate_t *my_fed) {
     unsigned char buffer[8];
     // Read bytes from the socket. We need 8 bytes.
     int bytes_read = read_from_socket2(my_fed->socket, sizeof(long long), (unsigned char*)&buffer);
@@ -604,9 +606,47 @@ void handle_timestamp(federate_t *my_fed)
     DEBUG_PRINT("RTI sent start time %llx to federate %d.", start_time, my_fed->id);
 }
 
-/** Thread handling communication with a federate.
- *  @param fed A pointer to an int that is the
- *   socket descriptor for the federate.
+/**
+ * A function to handle messages labeled
+ * as RESIGN sent by a federate. This 
+ * message is sent at the time of termination
+ * after all shutdown events are processed
+ * on the federate. This function assumes
+ * that the caller does not hold the mutex
+ * lock.
+ * 
+ * @note At this point, the RTI might have
+ * outgoing messages to the federate. This
+ * function thus first performs a shutdown
+ * on the socket which sends an EOF. It then
+ * waits for the remote socket to be closed
+ * before closing the socket itself.
+ * 
+ * @param my_fed The federate sending a RESIGN message.
+ **/
+void handle_federate_resign(federate_t *my_fed) {
+    //Nothing more to do. Close the socket and exit.
+    unsigned char temporary_read_buffer[1];
+    pthread_mutex_lock(&rti_mutex);            
+    // Shut down the socket before closing
+    // it. This indicates to the receiver that
+    // there will be no more transmissions, therefore
+    // it is safe to close the socket.
+    shutdown(my_fed->socket, SHUT_WR);
+    int bytes_read = 0;
+    do { // Wait until the remote socket is closed
+        bytes_read = read_from_socket2(my_fed->socket, 1, temporary_read_buffer);
+    } while(bytes_read > 0 || errno == EAGAIN || errno == EWOULDBLOCK);
+    my_fed->state = NOT_CONNECTED;
+    close(my_fed->socket); //  from unistd.h
+    pthread_mutex_unlock(&rti_mutex);
+    printf("Federate %d has resigned.\n", my_fed->id);
+}
+
+/** 
+ * Thread handling communication with a federate.
+ * @param fed A pointer to an int that is the
+ *  socket descriptor for the federate.
  */
 void* federate(void* fed) {
     federate_t* my_fed = (federate_t*)fed;
@@ -640,33 +680,38 @@ void* federate(void* fed) {
             break;
         case TIMED_MESSAGE:
             DEBUG_PRINT("Handling timed message.");
-            if (my_fed->state == NOT_CONNECTED) return NULL;
+            if (my_fed->state == NOT_CONNECTED) {
+                return NULL;
+            }
             handle_timed_message(my_fed->socket, buffer);
             break;
         case RESIGN:
             DEBUG_PRINT("Handling resign.");
-            if (my_fed->state == NOT_CONNECTED) return NULL;
-            // Nothing more to do. Close the socket and exit.
-            printf("Federate %d has resigned.\n", my_fed->id);
-            pthread_mutex_lock(&rti_mutex);
-            my_fed->state = NOT_CONNECTED;
-            close(my_fed->socket); //  from unistd.h
-            pthread_mutex_unlock(&rti_mutex);
+            if (my_fed->state == NOT_CONNECTED) {
+                return NULL;
+            }
+            handle_federate_resign(my_fed);
             return NULL;
             break;
         case NEXT_EVENT_TIME:            
             DEBUG_PRINT("Handling next event time.");
-            if (my_fed->state == NOT_CONNECTED) return NULL;
+            if (my_fed->state == NOT_CONNECTED) {
+                return NULL;
+            }
             handle_next_event_time(my_fed);
             break;
         case LOGICAL_TIME_COMPLETE:            
             DEBUG_PRINT("Handling logical time completion.");
-            if (my_fed->state == NOT_CONNECTED) return NULL;
+            if (my_fed->state == NOT_CONNECTED) {
+                return NULL;
+            }
             handle_logical_time_complete(my_fed);
             break;
         case STOP:
             DEBUG_PRINT("Handling stop.");
-            if (my_fed->state == NOT_CONNECTED) return NULL;
+            if (my_fed->state == NOT_CONNECTED) {
+                return NULL;
+            }
             handle_stop_message(my_fed);
             break;
         default:
