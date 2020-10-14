@@ -15,12 +15,13 @@ set -euo pipefail
 
 # Print message explaining the arguments
 function usage() {
-    echo "Usage: measure-lf-time [options] [bins]"
-    echo "bins: binaries for a Lingua Franca program."
+    echo "Usage: measure-lf-time [options] [Binary files]"
+    echo "Binary files: binaries for Lingua Franca programs."
     echo "Options:"
     echo "  -n | --number-of-executions num    Run the [generated] binary num times (default is 10)."
     echo "  -l | --log                         Store the output of the commands in directory called \"logs\"."
     echo "  -h | --help                        Display this information."
+    echo "  -c | --command  cmd                Run a command a number of times instead of the binary."
 }
 
 # Exit with message and error code 1.
@@ -55,6 +56,7 @@ function missing_value() {
 number_of_executions=10
 files=()
 log=false
+commands=()
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -75,6 +77,16 @@ while [[ "$#" -gt 0 ]]; do
         -l | --log )
             log=true
             ;;
+        -c | --command )
+            opt=$1
+            shift
+            if [[ $1 == -* ]]; then
+                missing_value $opt
+                error_exit
+            else
+                commands+=( "$1" )
+            fi
+            ;;
         -* ) 
             1>&2 echo "Unknown parameter passed: $1"
             usage
@@ -92,13 +104,20 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Exit if no input files are given.
 entries=${#files[@]}
-if [[ ${entries} -lt 1 ]]; then
-    fatal_error "no input files"
-    usage
-    error_exit
+if [ ${#commands[@]} -lt 1 ]; then
+    # If command is not given by the user
+    # check if the given binary file exists.
+    # Exit if no input files are given.
+    if [[ ${entries} -lt 1 ]]; then
+        fatal_error "no input files"
+        usage
+        error_exit
+    fi
+else
+    entries=${#commands[@]}
 fi
+
 
 # Create a logs directory
 mkdir -p logs;
@@ -106,11 +125,18 @@ mkdir -p logs;
 echo -e "Benchmark (in nsecs)\tAverage\t\tMinimum\t\tMaximum\t\tMedian"
 # Run benchmark for the given file entries.
 for (( i=0; i<$entries; i++ )); do \
+    command_to_execute=""
+    if [ ! ${#commands[@]} -lt 1 ]; then
+        command_to_execute="${commands[$i]}"
+    else
+        command_to_execute="${files[$i]}"
+    fi
     benchmark=$(for k in $(eval echo {1..$number_of_executions}); do
-                    $"${files[$i]}"
+                    $command_to_execute
                 done)
     if [ "$log" = true ] ; then
-        echo "$benchmark" &> "logs/${files[$i]##*/}-`date +"%s-%d-%m-%Y"`"
+        name_with_spaces=${command_to_execute##*/}
+        echo "$benchmark" &> "logs/${name_with_spaces//[[:blank:]]/}-`date +"date-%m-%d-%Y-time-%H-%M-%S"`.log"
     fi
     # This script assumes that the 7th column on the line that contains "Elapsed physical time (in nsec):"
     # contains the elapse physical time.
@@ -157,5 +183,5 @@ for (( i=0; i<$entries; i++ )); do \
                 }
             }
         ')
-    echo -e "${files[$i]##*/}\t\t\t$results\t$median"
+    echo -e "$command_to_execute\t\t$results\t$median"
 done
