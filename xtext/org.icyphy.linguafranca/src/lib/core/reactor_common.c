@@ -832,6 +832,125 @@ token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) 
 }
 
 /**
+ * Put the specified reaction on the reaction queue.
+ * This version is just a template.
+ * @param reaction The reaction.
+ */
+void _lf_enqueue_reaction(reaction_t* reaction);
+
+/**
+ * For the specified reaction, if it has produced outputs, insert the
+ * resulting triggered reactions into the reaction queue.
+ * This procedure assumes the mutex lock is not held and grabs
+ * the lock only when it actually inserts something onto the reaction queue.
+ * @param reaction The reaction that has just executed.
+ */
+void schedule_output_reactions(reaction_t* reaction) {
+    // NOTE: This code is nearly identical to the function by the same name
+    // in reactor_threaded.c, but in order to perform scheduling optimizations,
+    // the code had to be duplicated to make minor changes in the threaded version.
+
+    // If the reaction produced outputs, put the resulting triggered
+    // reactions into the reaction queue. As an optimization, at most one
+    // downstream reaction may be executed immediately in this same thread
+    // without going through the reaction queue. This reaction is executed
+    // after all other downstream reactions have been put into the reaction queue.
+    reaction_t* downstream_to_execute_now = NULL;
+    // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
+    for (int i=0; i < reaction->num_outputs; i++) {
+        if (*(reaction->output_produced[i])) {
+            // printf("DEBUG: Output %d has been produced.\n", i);
+            trigger_t** triggerArray = (reaction->triggers)[i];
+            // printf("DEBUG: There are %d trigger arrays associated with output %d.\n", reaction->triggered_sizes[i], i);
+            for (int j=0; j < reaction->triggered_sizes[i]; j++) {
+                trigger_t* trigger = triggerArray[j];
+                if (trigger != NULL) {
+                    // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
+                    for (int k=0; k < trigger->number_of_reactions; k++) {
+                        reaction_t* downstream_reaction = trigger->reactions[k];
+                        if (downstream_reaction != NULL) {
+                            // If the downstream_reaction has no deadline and this reaction is its
+                            // last enabling reaction, and no other reaction has been selected for
+                            // immediate execution, then bypass the reaction queue and execute it
+                            // directly after this loop. We don't handle reactions with deadlines here because
+                            // that would require duplicating a bunch of code.
+
+                            // If there are multiple reactions that are candidates for this, select
+                            // the one with the earliest deadline. That deadline would have been
+                            // inherited by this reaction, however, some other worker thread may have
+                            // enabled a reaction with an earlier deadline.
+                            // FIXME: Check the earliest deadline on the reaction queue.
+
+                            // FIXME: If the only additional dependence is on a startup reaction,
+                            // then we could handle that here as well. Not sure how to do that.
+                            if (downstream_reaction->last_enabling_reaction == reaction   // This is the last reaction enabling downstream.
+                                    && (downstream_to_execute_now == NULL                 // We have not already chosen a reaction to execute.
+                                            || (downstream_reaction->deadline != 0LL      // If we have, the new one has a deadline
+                                                    && (downstream_to_execute_now->deadline == 0LL  // and the deadline is less than that of chosen.
+                                                            || downstream_reaction->deadline < downstream_to_execute_now->deadline
+                                                        )
+                                               )
+                                        )
+                            ) {
+                                if (downstream_to_execute_now != NULL && downstream_to_execute_now != downstream_reaction) {
+                                    // Changed our minds about executing this downstream reaction,
+                                    // so it needs to be put on the reaction queue.
+                                    _lf_enqueue_reaction(downstream_to_execute_now);
+                                }
+                                // Can execute the downstream reaction immediately.
+                                // No need to put on this executing queue because the reaction
+                                // that triggers this new reaction is still on the executing queue.
+                                downstream_to_execute_now = downstream_reaction;
+                            } else if (downstream_reaction != downstream_to_execute_now) { // Avoid queuing a reaction we will execute.
+                                // Queue the reaction.
+                                _lf_enqueue_reaction(downstream_reaction);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (downstream_to_execute_now != NULL) {
+        //  printf("DEBUG: Optimizing and executing downstream reaction now.\n");
+        bool violation = false;
+        if (downstream_to_execute_now->deadline > 0LL) {
+            // Get the current physical time.
+            struct timespec current_physical_time;
+            clock_gettime(CLOCK_REALTIME, &current_physical_time);
+            // Convert to instant_t.
+            instant_t physical_time =
+                    current_physical_time.tv_sec * BILLION
+                    + current_physical_time.tv_nsec;
+            // Check for deadline violation.
+            if (physical_time > current_time + downstream_to_execute_now->deadline) {
+                // Deadline violation has occurred.
+                violation = true;
+                // Invoke the local handler, if there is one.
+                reaction_function_t handler = downstream_to_execute_now->deadline_violation_handler;
+                if (handler != NULL) {
+                    // Assume the mutex is still not held.
+                    (*handler)(downstream_to_execute_now->self);
+
+                    // If the reaction produced outputs, put the resulting
+                    // triggered reactions into the queue or execute them directly if possible.
+                    schedule_output_reactions(downstream_to_execute_now);
+                }
+            }
+        }
+        if (!violation) {
+            // Invoke the downstream_reaction function.
+            // printf("DEBUG: worker: Invoking downstream reaction immediately, bypassing reaction queue.\n");
+            downstream_to_execute_now->function(downstream_to_execute_now->self);
+
+            // If the downstream_reaction produced outputs, put the resulting triggered
+            // reactions into the queue (or execute them directly, if possible).
+            schedule_output_reactions(downstream_to_execute_now);
+        }
+    }
+}
+
+/**
  * Return a writable copy of the specified token.
  * If the reference count is 1, this returns the original token rather than a copy.
  * The reference count will still be 1.

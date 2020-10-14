@@ -150,41 +150,15 @@ void print_snapshot() {
 }
 
 /**
- * For the specified reaction, if it has produced outputs, insert the
- * resulting triggered reactions into the reaction queue.
- * @param reaction The reaction that has just executed.
+ * Put the specified reaction on the reaction queue.
+ * This version does not acquire a mutex lock.
+ * @param reaction The reaction.
  */
-void schedule_output_reactions(reaction_t* reaction) {
-    // NOTE: This code is nearly identical to the function by the same name
-    // in reactor_threaded.c, but in order to perform scheduling optimizations,
-    // the code had to be duplicated to make minor changes in the threaded version.
-
-    // If the reaction produced outputs, put the resulting triggered
-    // reactions into the reaction queue.
-    // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
-    for(int i=0; i < reaction->num_outputs; i++) {
-        if (*(reaction->output_produced[i])) {
-            // printf("DEBUG: Output %d has been produced.\n", i);
-            trigger_t** triggerArray = (reaction->triggers)[i];
-            // printf("DEBUG: There are %d trigger arrays associated with output %d.\n", reaction->triggered_sizes[i], i);
-            for (int j=0; j < reaction->triggered_sizes[i]; j++) {
-                trigger_t* trigger = triggerArray[j];
-                if (trigger != NULL) {
-                    // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
-                    for (int k=0; k < trigger->number_of_reactions; k++) {
-                        reaction_t* reaction = trigger->reactions[k];
-                        if (reaction != NULL) {
-                            // Queue the reaction.
-                            // Do not enqueue this reaction twice.
-                            if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-                                // printf("DEBUG: Enqueing reaction %p.\n", reaction);
-                                pqueue_insert(reaction_q, reaction);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+void _lf_enqueue_reaction(reaction_t* reaction) {
+    // Do not enqueue this reaction twice.
+    if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+        // printf("DEBUG: Enqueing downstream reaction %p.\n", reaction);
+        pqueue_insert(reaction_q, reaction);
     }
 }
 

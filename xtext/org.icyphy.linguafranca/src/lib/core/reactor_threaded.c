@@ -486,138 +486,22 @@ reaction_t* first_ready_reaction() {
 volatile bool __advancing_time = false;
 
 /**
- * For the specified reaction, if it has produced outputs, insert the
- * resulting triggered reactions into the reaction queue.
- * This procedure assumes the mutex lock is not held and grabs
- * the lock only when it actually inserts something onto the reaction queue.
- * @param reaction The reaction that has just executed.
+ * Put the specified reaction on the reaction queue.
+ * This version acquires a mutex lock.
+ * @param reaction The reaction.
  */
-void schedule_output_reactions(reaction_t* reaction) {
-    // NOTE: This code is nearly identical to the function by the same name
-    // in reactor_threaded.c, but in order to perform scheduling optimizations,
-    // the code had to be duplicated to make minor changes in the threaded version.
-
-    // If the reaction produced outputs, put the resulting triggered
-    // reactions into the reaction queue. As an optimization, at most one
-    // downstream reaction may be executed immediately in this same thread
-    // without going through the reaction queue. This reaction is executed
-    // after all other downstream reactions have been put into the reaction queue.
-    reaction_t* downstream_to_execute_now = NULL;
-    // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
-    for (int i=0; i < reaction->num_outputs; i++) {
-        if (*(reaction->output_produced[i])) {
-            // printf("DEBUG: Output %d has been produced.\n", i);
-            trigger_t** triggerArray = (reaction->triggers)[i];
-            // printf("DEBUG: There are %d trigger arrays associated with output %d.\n", reaction->triggered_sizes[i], i);
-            for (int j=0; j < reaction->triggered_sizes[i]; j++) {
-                trigger_t* trigger = triggerArray[j];
-                if (trigger != NULL) {
-                    // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
-                    for (int k=0; k < trigger->number_of_reactions; k++) {
-                        reaction_t* downstream_reaction = trigger->reactions[k];
-                        if (downstream_reaction != NULL) {
-                            // If the downstream_reaction has no deadline and this reaction is its
-                            // last enabling reaction, and no other reaction has been selected for
-                            // immediate execution, then bypass the reaction queue and execute it
-                            // directly after this loop. We don't handle reactions with deadlines here because
-                            // that would require duplicating a bunch of code.
-                            // FIXME: Abstract out that duplicated code and handle reactions with
-                            // deadlines.
-
-                            // If there are multiple reactions that are candidates for this, select
-                            // the one with the earliest deadline. That deadline would have been
-                            // inherited by this reaction, however, some other worker thread may have
-                            // enabled a reaction with an earlier deadline.
-                            // FIXME: Check the earliest deadline on the reaction queue.
-
-                            // FIXME: If the only additional dependence is on a startup reaction,
-                            // then we could handle that here as well. Not sure how to do that.
-                            if (downstream_reaction->last_enabling_reaction == reaction   // This is the last reaction enabling downstream.
-                                    && (downstream_to_execute_now == NULL                 // We have not already chosen a reaction to execute.
-                                            || (downstream_reaction->deadline != 0LL      // If we have, the new one has a deadline
-                                                    && (downstream_to_execute_now->deadline == 0LL  // and the deadline is less than that of chosen.
-                                                            || downstream_reaction->deadline < downstream_to_execute_now->deadline
-                                                        )
-                                               )
-                                        )
-                            ) {
-                                if (downstream_to_execute_now != NULL && downstream_to_execute_now != downstream_reaction) {
-                                    // Changed our minds about executing this downstream reaction,
-                                    // so it needs to be put on the reaction queue.
-                                    // Reacquire the mutex lock.
-                                    // printf("DEBUG: pthread_mutex_lock worker to queue downstream reaction.\n");
-                                    pthread_mutex_lock(&mutex);
-                                    // printf("DEBUG: pthread_mutex_locked\n");
-                                    // Do not enqueue this reaction twice.
-                                    if (pqueue_find_equal_same_priority(reaction_q, downstream_to_execute_now) == NULL) {
-                                        // printf("DEBUG: Enqueing downstream reaction %p.\n", downstream_reaction);
-                                        pqueue_insert(reaction_q, downstream_to_execute_now);
-                                    }
-                                    pthread_mutex_unlock(&mutex);
-                                    // printf("DEBUG: pthread_mutex_unlock after queueing downstream reaction.\n");
-                                }
-                                // Can execute the downstream reaction immediately.
-                                // No need to put on this executing queue because the reaction
-                                // that triggers this new reaction is still on the executing queue.
-                                downstream_to_execute_now = downstream_reaction;
-                            } else if (downstream_reaction != downstream_to_execute_now) { // Avoid queuing a reaction we will execute.
-                                // Queue the reaction.
-                                // Reacquire the mutex lock.
-                                // printf("DEBUG: pthread_mutex_lock worker to queue downstream reaction.\n");
-                                pthread_mutex_lock(&mutex);
-                                // printf("DEBUG: pthread_mutex_locked\n");
-                                // Do not enqueue this reaction twice.
-                                if (pqueue_find_equal_same_priority(reaction_q, downstream_reaction) == NULL) {
-                                    // printf("DEBUG: Enqueing downstream reaction %p.\n", downstream_reaction);
-                                    pqueue_insert(reaction_q, downstream_reaction);
-                                }
-                                pthread_mutex_unlock(&mutex);
-                                // printf("DEBUG: pthread_mutex_unlock after queueing downstream reaction.\n");
-                            }
-                        }
-                    }
-                }
-            }
-        }
+void _lf_enqueue_reaction(reaction_t* reaction) {
+    // Acquire the mutex lock.
+    // printf("DEBUG: pthread_mutex_lock worker to queue downstream reaction.\n");
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: pthread_mutex_locked\n");
+    // Do not enqueue this reaction twice.
+    if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+        // printf("DEBUG: Enqueing downstream reaction %p.\n", reaction);
+        pqueue_insert(reaction_q, reaction);
     }
-    if (downstream_to_execute_now != NULL) {
-        //  printf("DEBUG: Optimizing and executing downstream reaction now.\n");
-        bool violation = false;
-        if (downstream_to_execute_now->deadline > 0LL) {
-            // Get the current physical time.
-            struct timespec current_physical_time;
-            clock_gettime(CLOCK_REALTIME, &current_physical_time);
-            // Convert to instant_t.
-            instant_t physical_time =
-                    current_physical_time.tv_sec * BILLION
-                    + current_physical_time.tv_nsec;
-            // Check for deadline violation.
-            if (physical_time > current_time + downstream_to_execute_now->deadline) {
-                // Deadline violation has occurred.
-                violation = true;
-                // Invoke the local handler, if there is one.
-                reaction_function_t handler = downstream_to_execute_now->deadline_violation_handler;
-                if (handler != NULL) {
-                    // Assume the mutex is still not held.
-                    (*handler)(downstream_to_execute_now->self);
-
-                    // If the reaction produced outputs, put the resulting
-                    // triggered reactions into the queue or execute them directly if possible.
-                    schedule_output_reactions(downstream_to_execute_now);
-                }
-            }
-        }
-        if (!violation) {
-            // Assume the mutex is still unlocked to run the reaction.
-            // Invoke the downstream_reaction function.
-            // printf("DEBUG: worker: Invoking downstream reaction immediately, bypassing reaction queue.\n");
-            downstream_to_execute_now->function(downstream_to_execute_now->self);
-
-            // If the downstream_reaction produced outputs, put the resulting triggered
-            // reactions into the queue (or execute them directly, if possible).
-            schedule_output_reactions(downstream_to_execute_now);
-        }
-    }
+    pthread_mutex_unlock(&mutex);
+    // printf("DEBUG: pthread_mutex_unlock after queueing downstream reaction.\n");
 }
 
 /**
