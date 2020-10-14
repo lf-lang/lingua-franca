@@ -20,7 +20,7 @@ function usage() {
     echo "Options:"
     echo "  -n | --number-of-executions num    Run the [generated] binary num times (default is 10)."
     echo "  -l | --log                         Store the output of the commands in directory called \"logs\"."
-    echo "  -h | --help             Display this information."
+    echo "  -h | --help                        Display this information."
 }
 
 # Exit with message and error code 1.
