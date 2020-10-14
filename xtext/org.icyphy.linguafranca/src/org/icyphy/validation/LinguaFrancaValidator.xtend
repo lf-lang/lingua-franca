@@ -1115,7 +1115,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
      */
     @Check(FAST)
     def checkTargetProperties(KeyValuePairs targetProperties) {
-        if (info.model.reactors.exists(reactor|reactor.isFederated)) {
+        if (info.model.reactors.exists(
+            reactor |
+            reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
+        )) {
             // Program has a federated reactor
             if (targetProperties.pairs.exists(
                 pair |
@@ -1126,7 +1129,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     // Check to see if timeout is defined
                     TargetProperties.get(pair.name) == TargetProperties.TIMEOUT
             )) {
-                warning("fast is incompatible with timeout.", Literals.KEY_VALUE_PAIRS__PAIRS)
+                warning("The fast target property is incompatible with the timeout target property.", Literals.KEY_VALUE_PAIRS__PAIRS)
             }
         }
     }
