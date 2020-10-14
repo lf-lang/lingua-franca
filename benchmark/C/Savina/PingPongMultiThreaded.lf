@@ -1,6 +1,7 @@
- /**
+/**
  * Basic benchmark from the Savina benchmark suite that is
  * intended to measure message-passing overhead.
+ * This version runs multiple independent Ping-Pong benchmarks simultaneously.
  * See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
  *
  * This is based on https://www.scala-lang.org/old/node/54
@@ -9,17 +10,7 @@
  * Ping introduces a microstep delay using a logical action
  * to break the causality loop.
  * 
- * To get a sense, some (informal) results for 1,000,000 ping-pongs
- * on my Mac:
- * 
- * Unthreaded: 97 msec
- * Threaded: 265 msec  (168 msec with optimization of executing immediately)
- * 
- * There is no parallelism in this application, so it does not benefit from being
- * being threaded, just some additional overhead.
- * 
- * These measurements are total execution time, including startup and shutdown.
- * These are about an order of magnitude faster than anything reported in the paper.
+ * This version instantiates multiple instances of Ping and Pong in a bank.
  * 
  * @author Edward A. Lee
  */
@@ -63,8 +54,8 @@ reactor Pong(expected:int(1000000)) {
 }
 
 main reactor PingPong {
-    ping = new Ping();
-    pong = new Pong();
+    ping = new[2] Ping();
+    pong = new[2] Pong();
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
 }
