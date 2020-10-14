@@ -1,18 +1,14 @@
 /**
  * Basic benchmark from the Savina benchmark suite that is
  * intended to measure message-passing overhead.
+ * This version is distributed, communicating using physical connections over sockets.
+ * See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
+
  * This is based on https://www.scala-lang.org/old/node/54
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
  * This is a distributed version, where Ping and Pong run in
  * separate programs and can be run on different machines.
- * 
- * To get a sense, some (informal) results for 1,000,000 ping-pongs
- * on my Mac:
- * 
- * Unthreaded: 97 msec
- * Threaded: 265 msec
- * Distributed: 6 seconds
  * 
  * There is no parallelism in this application, so it does not benefit from being
  * being distributed.
@@ -29,7 +25,7 @@ reactor Ping(count:int(10)) {
     state pingsLeft:int(count);
     logical action serve;
     reaction (startup, serve) -> send {= 
-        printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
+        // printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
         SET(send, self->pingsLeft--);
     =}
     reaction (receive) -> serve {=
@@ -46,7 +42,7 @@ reactor Pong(expected:int(10)) {
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
-        printf("At logical time %lld, Pong received %d.\n", get_elapsed_logical_time(), receive->value);
+        // printf("At logical time %lld, Pong received %d.\n", get_elapsed_logical_time(), receive->value);
         SET(send, receive->value);
         if (self->count == self->expected) stop();
     =}
@@ -60,7 +56,7 @@ reactor Pong(expected:int(10)) {
         printf("Pong received %d pings.\n", self->count);
     =}
 }
-federated reactor PingPong(count:int(100)) {
+federated reactor PingPong(count:int(1000000)) {
     ping = new Ping(count = count);
     pong = new Pong(expected = count);
     ping.send ~> pong.receive;
