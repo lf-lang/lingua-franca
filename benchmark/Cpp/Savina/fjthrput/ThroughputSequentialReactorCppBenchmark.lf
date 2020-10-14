@@ -1,0 +1,104 @@
+/**
+ * This variant only differs in how the producer sends messages
+ * to the workers. Instead of sending messages to all workers
+ * before rescheduling, this version sends only one message
+ * and reschedules. This increases the scheduling overhead
+ * and decreases parallelism. Only the producer and one of
+ * the workers could run in parallel but because of the dependencies
+ * they run sequentially.
+ * 
+ * Despite all that this version is faster in threaded execution.
+ * 
+ * @author Hannes Klein
+ */
+
+target Cpp;
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+import ThroughputReactor from "ThroughputReactorCppBenchmark.lf"
+
+reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
+    
+    state messagesSent:int(0);
+    state nextConsumer:int(0);
+    state numConsumerFinished:int(0);
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    //TODO parametrize multiports
+    output[60] outMessage:void;
+    input[60] inFinished:void;
+    output[60] outReset:void;
+    
+    logical action sendNextMessage;
+    
+    reaction(inStart) -> outReset, sendNextMessage {=
+        
+        // reset local state
+        messagesSent = 0;
+        nextConsumer = 0;
+        numConsumerFinished = 0;
+        for(int i = 0; i < outReset.size(); i++) {
+            outReset[i].set();
+        }
+        
+        // start execution
+        sendNextMessage.schedule();
+    =}
+    
+    reaction(sendNextMessage) -> outMessage, sendNextMessage {=
+        // instead of states the indexes could also be contained in a message contained in the action
+        if(messagesSent == totalMessages) {
+            return;
+        }
+        if(nextConsumer < numConsumer) {
+            outMessage[nextConsumer].set();
+            nextConsumer++;
+        }
+        if(nextConsumer == numConsumer) {
+            nextConsumer = 0;
+            messagesSent++;
+        }
+        if(messagesSent < totalMessages) {
+            sendNextMessage.schedule();
+        }
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        
+        for(int i = 0; i < inFinished.size(); i++) {
+            if(inFinished[i].is_present()) {
+                numConsumerFinished++;
+            }
+        }
+        if(numConsumerFinished == numConsumer) {
+            outFinished.set();
+        }
+    =}
+}
+
+
+main reactor ThroughputBenchmark(numIterations:int(12), totalMessages:int(10000)) {
+    
+    producer = new ThroughputProducer(totalMessages=totalMessages, numConsumer=60);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> producer.inStart;
+    producer.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ThroughputReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "totalMessages", totalMessages);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    //TODO parametrize
+    worker = new[60] ThroughputReactor(totalMessages=totalMessages);
+    
+    producer.outMessage -> worker.inMessage;
+    producer.outReset -> worker.inReset;
+    worker.outFinished -> producer.inFinished;
+    
+}

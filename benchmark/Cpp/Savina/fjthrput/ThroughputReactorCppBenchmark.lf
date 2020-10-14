@@ -1,0 +1,147 @@
+/**
+ * Micro-benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * According to the Savina paper performance can be achieved by
+ * batch processing messages in the worker actors.
+ * This is not possible with reactors because scheduling and
+ * advancing logical time occurs after each round of
+ * message delivery.
+ * 
+ * This version has a hard coded number of workers.
+ * 
+ * Informal results for 1,000,000 messages per worker
+ * on my PC with fast forward enabled:
+ * Unthreaded: 1740 ms
+ * Threaded: > 44 s
+ * 
+ * For comparison some informal results for 1,000,000 messages per worker
+ * on the same PC with the Savina Akka implementation:
+ * 
+ * Threaded: 7300 ms
+ * 
+ * @author Hannes Klein
+ */
+
+target Cpp;
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor ThroughputReactor(totalMessages:int(10000)) {
+    
+    private preamble {=
+        #include <cmath>
+    =}
+    
+    input inReset:void;
+    input inMessage:void;
+    output outFinished:void;
+    
+    state messagesProcessed:int(0);
+    
+    reaction(inReset) {=
+        messagesProcessed = 0;
+    =}
+    
+    reaction(inMessage) -> outFinished {=
+        messagesProcessed += 1;
+        performComputation(37.2);
+        
+        if(messagesProcessed == totalMessages) {
+            outFinished.set();
+        }
+    =}
+    
+    private preamble {=
+        
+        void performComputation(const double theta) {
+            const double sint = sin(theta);
+            const double res = sint * sint;
+            // defeat dead code elimination
+            if(res <= 0) {
+                throw "Benchmark exited with unrealistic res value.";
+            }
+        }
+    =}
+}
+
+
+reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
+    
+    state messagesSent:int(0);
+    state nextConsumer:int(0);
+    state numConsumerFinished:int(0);
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    //TODO parametrize multiports
+    output[60] outMessage:void;
+    input[60] inFinished:void;
+    output[60] outReset:void;
+    
+    logical action sendNextMessage;
+    
+    reaction(inStart) -> outReset, sendNextMessage {=
+        
+        // reset local state
+        messagesSent = 0;
+        nextConsumer = 0;
+        numConsumerFinished = 0;
+        for(int i = 0; i < outReset.size(); i++) {
+            outReset[i].set();
+        }
+        
+        // start execution
+        sendNextMessage.schedule();
+    =}
+    
+    reaction(sendNextMessage) -> outMessage, sendNextMessage {=
+        
+        if(messagesSent == totalMessages) return;
+        
+        for(int i = 0; i < outMessage.size(); i++) {
+            outMessage[i].set();
+        }
+        messagesSent += 1;
+        
+        if(messagesSent < totalMessages) sendNextMessage.schedule();
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        
+        for(int i = 0; i < inFinished.size(); i++) {
+            if(inFinished[i].is_present()) {
+                numConsumerFinished++;
+            }
+        }
+        if(numConsumerFinished == numConsumer) {
+            outFinished.set();
+        }
+    =}
+}
+
+
+main reactor ThroughputBenchmark(numIterations:int(12), numMessagesPerReactor:int(10000)) {
+    
+    producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=60);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> producer.inStart;
+    producer.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ThroughputReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    //TODO parametrize
+    worker = new[60] ThroughputReactor(totalMessages=numMessagesPerReactor);
+    
+    producer.outMessage -> worker.inMessage;
+    producer.outReset -> worker.inReset;
+    worker.outFinished -> producer.inFinished;
+    
+}

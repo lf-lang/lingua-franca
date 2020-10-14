@@ -1,0 +1,667 @@
+/**
+ * Code generator for a variable number of reactors
+ * using the python module cog.
+ * See https://nedbatchelder.com/code/cog/
+ * 
+ * Run 'cog -r -D numChameneos=100 this-file.lf'
+ * with the desired number of reactors and the name of this file as arguments.
+ * 
+ * @author Hannes Klein
+ */
+
+/* [[[cog
+  if 'numChameneos' in globals():
+    numChameneos = int(numChameneos)
+  else:
+    globals()['numChameneos'] = 100
+]]] */
+// [[[end]]]
+
+target Cpp {
+    cmake-include: "ChameneosReactorCpp.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor ChameneosMallReactor(numMeetings:int(200000), numChameneos:int(100)) {
+    
+    public preamble {=
+        #include "ChameneosCommon.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state sumMeetings:int(0);
+    state numFaded:int(0);
+    state meetings:int(numMeetings);
+    state messages:{=std::vector<reactor::ImmutableValuePtr<Message>>=};
+    
+    state inputs:{=std::vector<reactor::Input<Message>*>=};
+    state outputs:{=std::vector<reactor::Output<Message>*>=};
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    /* [[[cog
+      for i in range(numChameneos):
+        cog.outl('output outChameneo'+str(i)+':{=Message=};')
+    ]]] */
+    output outChameneo0:{=Message=};
+    output outChameneo1:{=Message=};
+    output outChameneo2:{=Message=};
+    output outChameneo3:{=Message=};
+    output outChameneo4:{=Message=};
+    output outChameneo5:{=Message=};
+    output outChameneo6:{=Message=};
+    output outChameneo7:{=Message=};
+    output outChameneo8:{=Message=};
+    output outChameneo9:{=Message=};
+    // [[[end]]]
+
+    /* [[[cog
+      for i in range(numChameneos):
+        cog.outl('input inChameneo'+str(i)+':{=Message=};')
+    ]]] */
+    input inChameneo0:{=Message=};
+    input inChameneo1:{=Message=};
+    input inChameneo2:{=Message=};
+    input inChameneo3:{=Message=};
+    input inChameneo4:{=Message=};
+    input inChameneo5:{=Message=};
+    input inChameneo6:{=Message=};
+    input inChameneo7:{=Message=};
+    input inChameneo8:{=Message=};
+    input inChameneo9:{=Message=};
+    // [[[end]]]
+    
+    // logical action to break causality loop
+    logical action pairChameneos:void;
+    
+    reaction(startup) {=
+        
+        // initializations
+        messages = std::vector<reactor::ImmutableValuePtr<Message>>(numChameneos);
+        
+        // organize inputs and outputs in vectors for easier access
+        
+        inputs.reserve(numChameneos);
+        /* [[[cog
+          for i in range(numChameneos):
+            cog.outl('inputs.push_back(&inChameneo'+str(i)+');')
+        ]]] */
+        inputs.push_back(&inChameneo0);
+        inputs.push_back(&inChameneo1);
+        inputs.push_back(&inChameneo2);
+        inputs.push_back(&inChameneo3);
+        inputs.push_back(&inChameneo4);
+        inputs.push_back(&inChameneo5);
+        inputs.push_back(&inChameneo6);
+        inputs.push_back(&inChameneo7);
+        inputs.push_back(&inChameneo8);
+        inputs.push_back(&inChameneo9);
+        // [[[end]]]
+        
+        outputs.reserve(numChameneos);
+        /* [[[cog
+          for i in range(numChameneos):
+            cog.outl('outputs.push_back(&outChameneo'+str(i)+');')
+        ]]] */
+        outputs.push_back(&outChameneo0);
+        outputs.push_back(&outChameneo1);
+        outputs.push_back(&outChameneo2);
+        outputs.push_back(&outChameneo3);
+        outputs.push_back(&outChameneo4);
+        outputs.push_back(&outChameneo5);
+        outputs.push_back(&outChameneo6);
+        outputs.push_back(&outChameneo7);
+        outputs.push_back(&outChameneo8);
+        outputs.push_back(&outChameneo9);
+        // [[[end]]]
+    =}
+    
+    reaction(inStart) ->
+      /* [[[cog
+        for i in range(numChameneos):
+          cog.out('outChameneo'+str(i))
+          if i < numChameneos-1:
+            cog.outl(',')
+          else:
+            cog.outl('')
+      ]]] */
+      outChameneo0,
+      outChameneo1,
+      outChameneo2,
+      outChameneo3,
+      outChameneo4,
+      outChameneo5,
+      outChameneo6,
+      outChameneo7,
+      outChameneo8,
+      outChameneo9
+      // [[[end]]]
+    {=
+        
+         // reset local state
+         sumMeetings = 0;
+         numFaded = 0;
+         meetings = numMeetings;
+         
+         // start execution
+         for(int i = 0; i < outputs.size(); i++) {
+            outputs[i]->set(Message{StartMsg});
+         }
+    
+    =}
+    
+    reaction(pairChameneos) ->
+      /* [[[cog
+        for i in range(numChameneos):
+          cog.out('outChameneo'+str(i))
+          if i < numChameneos-1:
+            cog.outl(',')
+          else:
+            cog.outl('')
+      ]]] */
+      outChameneo0,
+      outChameneo1,
+      outChameneo2,
+      outChameneo3,
+      outChameneo4,
+      outChameneo5,
+      outChameneo6,
+      outChameneo7,
+      outChameneo8,
+      outChameneo9
+      // [[[end]]]
+    {=
+        
+        int waitingChameneoIndex = -1;
+        
+        for(int i = 0; i < outputs.size(); ++i) {
+            if(messages[i] != nullptr) {
+                // Chameneo i present in mall
+                if(meetings > 0) {
+                    if(waitingChameneoIndex == -1) {
+                        waitingChameneoIndex = i;
+                    } else {
+                        meetings -= 1;
+                        reactor::log::Debug() << "setting up meeting " << meetings << " between: " << waitingChameneoIndex << ", " << i;
+                        outputs[waitingChameneoIndex]->set(messages[i]);
+                        messages[waitingChameneoIndex] = nullptr;
+                        messages[i] = nullptr;
+                        waitingChameneoIndex = -1;
+                    }
+               } else {
+                    outputs[i]->set(Message{ExitMsg});
+               }
+            }
+        }
+    =}
+    
+    reaction(
+        /* [[[cog
+          for i in range(numChameneos):
+            cog.out('inChameneo'+str(i))
+            if i < numChameneos-1:
+              cog.outl(',')
+            else:
+              cog.outl('')
+
+        ]]] */
+        inChameneo0,
+        inChameneo1,
+        inChameneo2,
+        inChameneo3,
+        inChameneo4,
+        inChameneo5,
+        inChameneo6,
+        inChameneo7,
+        inChameneo8,
+        inChameneo9
+        // [[[end]]]
+    ) -> outFinished {=
+        
+        // detect all chameneos that are present
+        for(int i = 0; i < inputs.size(); ++i) {
+            if(inputs[i]->is_present()) {
+                if(inputs[i]->get()->type == MeetingCountMsg) {
+                    numFaded += 1;
+                    sumMeetings = sumMeetings + inputs[i]->get()->id; // reuse id field
+                    if (numFaded == numChameneos) {
+                        outFinished.set();
+                        return;
+                    }
+                } else {
+                    messages[i] = inputs[i]->get();
+                }
+            }
+        }
+        
+        pairChameneos.schedule();
+    =}
+}
+
+reactor ChameneosChameneoReactor(startColor:{=Color=}({=RED=}), id:int(-1), numChameneos:int(100)) {
+    
+    public preamble {=
+        #include "ChameneosCommon.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state meetings:int(0);
+    state color:{=Color=}(startColor);
+    
+    state inputs:{=std::vector<reactor::Input<Message>*>=};
+    state outputs:{=std::vector<reactor::Output<Message>*>=};
+    
+    input inMall:{=Message=};
+    output outMall:{=Message=};
+    
+    /* [[[cog
+      for i in range(numChameneos):
+        cog.outl('output outChameneo'+str(i)+':{=Message=};')
+    ]]] */
+    output outChameneo0:{=Message=};
+    output outChameneo1:{=Message=};
+    output outChameneo2:{=Message=};
+    output outChameneo3:{=Message=};
+    output outChameneo4:{=Message=};
+    output outChameneo5:{=Message=};
+    output outChameneo6:{=Message=};
+    output outChameneo7:{=Message=};
+    output outChameneo8:{=Message=};
+    output outChameneo9:{=Message=};
+    // [[[end]]]
+    
+    /* [[[cog
+      for i in range(numChameneos):
+        cog.outl('input inChameneo'+str(i)+':{=Message=};')
+    ]]] */
+    input inChameneo0:{=Message=};
+    input inChameneo1:{=Message=};
+    input inChameneo2:{=Message=};
+    input inChameneo3:{=Message=};
+    input inChameneo4:{=Message=};
+    input inChameneo5:{=Message=};
+    input inChameneo6:{=Message=};
+    input inChameneo7:{=Message=};
+    input inChameneo8:{=Message=};
+    input inChameneo9:{=Message=};
+    // [[[end]]]
+    
+    logical action returnToMall:void;
+    
+    reaction(startup) {=
+        
+        // organize inputs and outputs in vectors for easier access
+        
+        inputs.reserve(numChameneos);
+        /* [[[cog
+          for i in range(numChameneos):
+            cog.outl('inputs.push_back(&inChameneo'+str(i)+');')
+        ]]] */
+        inputs.push_back(&inChameneo0);
+        inputs.push_back(&inChameneo1);
+        inputs.push_back(&inChameneo2);
+        inputs.push_back(&inChameneo3);
+        inputs.push_back(&inChameneo4);
+        inputs.push_back(&inChameneo5);
+        inputs.push_back(&inChameneo6);
+        inputs.push_back(&inChameneo7);
+        inputs.push_back(&inChameneo8);
+        inputs.push_back(&inChameneo9);
+        // [[[end]]]
+        
+        outputs.reserve(numChameneos);
+        /* [[[cog
+          for i in range(numChameneos):
+            cog.outl('outputs.push_back(&outChameneo'+str(i)+');')
+        ]]] */
+        outputs.push_back(&outChameneo0);
+        outputs.push_back(&outChameneo1);
+        outputs.push_back(&outChameneo2);
+        outputs.push_back(&outChameneo3);
+        outputs.push_back(&outChameneo4);
+        outputs.push_back(&outChameneo5);
+        outputs.push_back(&outChameneo6);
+        outputs.push_back(&outChameneo7);
+        outputs.push_back(&outChameneo8);
+        outputs.push_back(&outChameneo9);
+        // [[[end]]]
+    =}
+    
+    //TODO parametrize
+    reaction(inMall) -> returnToMall, outMall,
+      /* [[[cog
+        for i in range(numChameneos):
+          cog.out('outChameneo'+str(i))
+          if i < numChameneos-1:
+            cog.outl(',')
+          else:
+            cog.outl('')
+      ]]] */
+      outChameneo0,
+      outChameneo1,
+      outChameneo2,
+      outChameneo3,
+      outChameneo4,
+      outChameneo5,
+      outChameneo6,
+      outChameneo7,
+      outChameneo8,
+      outChameneo9
+      // [[[end]]]
+    {=
+        
+        if(inMall.get()->type == StartMsg) {
+            
+            // reset local state
+            meetings = 0;
+            color = startColor;
+            
+            // start execution
+            outMall.set(Message{MeetMsg, color, id});
+            
+        } else if(inMall.get()->type == MeetMsg) {
+            
+            Color otherColor = inMall.get()->color;
+            int senderId = inMall.get()->id;
+            color = complement(color, otherColor);
+            meetings += 1;
+            outputs[senderId]->set(Message{ChangeMsg, color, id});
+            outMall.set(Message{MeetMsg, color, id});
+            
+        } else if(inMall.get()->type == ExitMsg) {
+            
+            color = FADED;
+            outMall.set(Message{MeetingCountMsg, color, meetings});
+            
+        }
+    =}
+    
+    //TODO parametrize
+    reaction(
+        /* [[[cog
+          for i in range(numChameneos):
+            cog.out('inChameneo'+str(i))
+            if i < numChameneos-1:
+              cog.outl(',')
+            else:
+              cog.outl('')
+
+        ]]] */
+        inChameneo0,
+        inChameneo1,
+        inChameneo2,
+        inChameneo3,
+        inChameneo4,
+        inChameneo5,
+        inChameneo6,
+        inChameneo7,
+        inChameneo8,
+        inChameneo9
+        // [[[end]]]
+    ) -> outMall {=
+        
+        Message message;
+        
+        // find message
+        for(int i = 0; i < inputs.size(); i++) {
+            if(inputs[i]->is_present()) {
+                message = *(inputs[i]->get());
+            }
+        }
+        
+        if(message.type == ChangeMsg) {
+            color = message.color;
+            meetings += 1;
+            outMall.set(Message{MeetMsg, color, id}); // go back to mall
+        }
+        
+    =}
+    
+    private preamble {=
+        
+        Color complement(const Color color, const Color otherColor) {
+            switch(color) {
+              case RED:
+                switch(otherColor) {
+                  case RED:
+                    return RED;
+                  case YELLOW:
+                    return BLUE;
+                  case BLUE:
+                    return YELLOW;
+                  case FADED:
+                    return FADED;
+                }
+              case YELLOW:
+                switch(otherColor) {
+                  case RED:
+                    return BLUE;
+                  case YELLOW:
+                    return YELLOW;
+                  case BLUE:
+                    return RED;
+                  case FADED:
+                    return FADED;
+                }
+              case BLUE:
+                switch(otherColor) {
+                  case RED:
+                    return YELLOW;
+                  case YELLOW:
+                    return RED;
+                  case BLUE:
+                    return BLUE;
+                  case FADED:
+                    return FADED;
+                }
+              case FADED:
+                return FADED;
+            }
+            
+           reactor::log::Error() <<
+            "Error while calculating the color complement given the two colors " <<
+            color << ", " << otherColor << ".";
+           return FADED;
+        }
+        
+    =}
+}
+
+
+
+main reactor ChameneosBenchmark(numIterations:int(12), numMeetings:int(200000)) {
+    
+    /* [[[cog
+      cog.outl('mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos='+str(numChameneos)+');')
+    ]]] */
+    mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos=10);
+    // [[[end]]]
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> mall.inStart;
+    mall.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ChameneosReactorLFCppBenchmark");
+        /* [[[cog
+          cog.outl('printArgs("numIterations", numIterations, "numMeetings", numMeetings, "numChameneos", '+str(numChameneos)+');')
+        ]]] */
+        printArgs("numIterations", numIterations, "numMeetings", numMeetings, "numChameneos", 10);
+        /// [[[end]]]
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      for i in range(numChameneos):
+        cog.outl('chameneo'+str(i)+' = new ChameneosChameneoReactor(startColor={=static_cast<Color>('+str(i)+'%3)=}, id='+str(i)+', numChameneos='+str(numChameneos)+');')
+    ]]] */
+    chameneo0 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(0%3)=}, id=0, numChameneos=10);
+    chameneo1 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(1%3)=}, id=1, numChameneos=10);
+    chameneo2 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(2%3)=}, id=2, numChameneos=10);
+    chameneo3 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(3%3)=}, id=3, numChameneos=10);
+    chameneo4 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(4%3)=}, id=4, numChameneos=10);
+    chameneo5 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(5%3)=}, id=5, numChameneos=10);
+    chameneo6 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(6%3)=}, id=6, numChameneos=10);
+    chameneo7 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(7%3)=}, id=7, numChameneos=10);
+    chameneo8 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(8%3)=}, id=8, numChameneos=10);
+    chameneo9 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(9%3)=}, id=9, numChameneos=10);
+    // [[[end]]]
+    
+    // Connect chamaneos and the mall.
+    
+    /* [[[cog
+      for i in range(numChameneos):
+        cog.outl('chameneo'+str(i)+'.outMall -> mall.inChameneo'+str(i)+';')
+    ]]] */
+    chameneo0.outMall -> mall.inChameneo0;
+    chameneo1.outMall -> mall.inChameneo1;
+    chameneo2.outMall -> mall.inChameneo2;
+    chameneo3.outMall -> mall.inChameneo3;
+    chameneo4.outMall -> mall.inChameneo4;
+    chameneo5.outMall -> mall.inChameneo5;
+    chameneo6.outMall -> mall.inChameneo6;
+    chameneo7.outMall -> mall.inChameneo7;
+    chameneo8.outMall -> mall.inChameneo8;
+    chameneo9.outMall -> mall.inChameneo9;
+    // [[[end]]]
+
+    /* [[[cog
+      for i in range(numChameneos):
+        cog.outl('mall.outChameneo'+str(i)+' -> chameneo'+str(i)+'.inMall;')
+    ]]] */
+    mall.outChameneo0 -> chameneo0.inMall;
+    mall.outChameneo1 -> chameneo1.inMall;
+    mall.outChameneo2 -> chameneo2.inMall;
+    mall.outChameneo3 -> chameneo3.inMall;
+    mall.outChameneo4 -> chameneo4.inMall;
+    mall.outChameneo5 -> chameneo5.inMall;
+    mall.outChameneo6 -> chameneo6.inMall;
+    mall.outChameneo7 -> chameneo7.inMall;
+    mall.outChameneo8 -> chameneo8.inMall;
+    mall.outChameneo9 -> chameneo9.inMall;
+    // [[[end]]]
+    
+    // Connect every Chameneo with every Chameneo.
+    
+    /* [[[cog
+      for i in range(numChameneos):
+        for j in range(numChameneos):
+          cog.outl(f'chameneo{i}.outChameneo{j} -> chameneo{j}.inChameneo{i};')
+        cog.outl('')
+    ]]] */
+    chameneo0.outChameneo0 -> chameneo0.inChameneo0;
+    chameneo0.outChameneo1 -> chameneo1.inChameneo0;
+    chameneo0.outChameneo2 -> chameneo2.inChameneo0;
+    chameneo0.outChameneo3 -> chameneo3.inChameneo0;
+    chameneo0.outChameneo4 -> chameneo4.inChameneo0;
+    chameneo0.outChameneo5 -> chameneo5.inChameneo0;
+    chameneo0.outChameneo6 -> chameneo6.inChameneo0;
+    chameneo0.outChameneo7 -> chameneo7.inChameneo0;
+    chameneo0.outChameneo8 -> chameneo8.inChameneo0;
+    chameneo0.outChameneo9 -> chameneo9.inChameneo0;
+
+    chameneo1.outChameneo0 -> chameneo0.inChameneo1;
+    chameneo1.outChameneo1 -> chameneo1.inChameneo1;
+    chameneo1.outChameneo2 -> chameneo2.inChameneo1;
+    chameneo1.outChameneo3 -> chameneo3.inChameneo1;
+    chameneo1.outChameneo4 -> chameneo4.inChameneo1;
+    chameneo1.outChameneo5 -> chameneo5.inChameneo1;
+    chameneo1.outChameneo6 -> chameneo6.inChameneo1;
+    chameneo1.outChameneo7 -> chameneo7.inChameneo1;
+    chameneo1.outChameneo8 -> chameneo8.inChameneo1;
+    chameneo1.outChameneo9 -> chameneo9.inChameneo1;
+
+    chameneo2.outChameneo0 -> chameneo0.inChameneo2;
+    chameneo2.outChameneo1 -> chameneo1.inChameneo2;
+    chameneo2.outChameneo2 -> chameneo2.inChameneo2;
+    chameneo2.outChameneo3 -> chameneo3.inChameneo2;
+    chameneo2.outChameneo4 -> chameneo4.inChameneo2;
+    chameneo2.outChameneo5 -> chameneo5.inChameneo2;
+    chameneo2.outChameneo6 -> chameneo6.inChameneo2;
+    chameneo2.outChameneo7 -> chameneo7.inChameneo2;
+    chameneo2.outChameneo8 -> chameneo8.inChameneo2;
+    chameneo2.outChameneo9 -> chameneo9.inChameneo2;
+
+    chameneo3.outChameneo0 -> chameneo0.inChameneo3;
+    chameneo3.outChameneo1 -> chameneo1.inChameneo3;
+    chameneo3.outChameneo2 -> chameneo2.inChameneo3;
+    chameneo3.outChameneo3 -> chameneo3.inChameneo3;
+    chameneo3.outChameneo4 -> chameneo4.inChameneo3;
+    chameneo3.outChameneo5 -> chameneo5.inChameneo3;
+    chameneo3.outChameneo6 -> chameneo6.inChameneo3;
+    chameneo3.outChameneo7 -> chameneo7.inChameneo3;
+    chameneo3.outChameneo8 -> chameneo8.inChameneo3;
+    chameneo3.outChameneo9 -> chameneo9.inChameneo3;
+
+    chameneo4.outChameneo0 -> chameneo0.inChameneo4;
+    chameneo4.outChameneo1 -> chameneo1.inChameneo4;
+    chameneo4.outChameneo2 -> chameneo2.inChameneo4;
+    chameneo4.outChameneo3 -> chameneo3.inChameneo4;
+    chameneo4.outChameneo4 -> chameneo4.inChameneo4;
+    chameneo4.outChameneo5 -> chameneo5.inChameneo4;
+    chameneo4.outChameneo6 -> chameneo6.inChameneo4;
+    chameneo4.outChameneo7 -> chameneo7.inChameneo4;
+    chameneo4.outChameneo8 -> chameneo8.inChameneo4;
+    chameneo4.outChameneo9 -> chameneo9.inChameneo4;
+
+    chameneo5.outChameneo0 -> chameneo0.inChameneo5;
+    chameneo5.outChameneo1 -> chameneo1.inChameneo5;
+    chameneo5.outChameneo2 -> chameneo2.inChameneo5;
+    chameneo5.outChameneo3 -> chameneo3.inChameneo5;
+    chameneo5.outChameneo4 -> chameneo4.inChameneo5;
+    chameneo5.outChameneo5 -> chameneo5.inChameneo5;
+    chameneo5.outChameneo6 -> chameneo6.inChameneo5;
+    chameneo5.outChameneo7 -> chameneo7.inChameneo5;
+    chameneo5.outChameneo8 -> chameneo8.inChameneo5;
+    chameneo5.outChameneo9 -> chameneo9.inChameneo5;
+
+    chameneo6.outChameneo0 -> chameneo0.inChameneo6;
+    chameneo6.outChameneo1 -> chameneo1.inChameneo6;
+    chameneo6.outChameneo2 -> chameneo2.inChameneo6;
+    chameneo6.outChameneo3 -> chameneo3.inChameneo6;
+    chameneo6.outChameneo4 -> chameneo4.inChameneo6;
+    chameneo6.outChameneo5 -> chameneo5.inChameneo6;
+    chameneo6.outChameneo6 -> chameneo6.inChameneo6;
+    chameneo6.outChameneo7 -> chameneo7.inChameneo6;
+    chameneo6.outChameneo8 -> chameneo8.inChameneo6;
+    chameneo6.outChameneo9 -> chameneo9.inChameneo6;
+
+    chameneo7.outChameneo0 -> chameneo0.inChameneo7;
+    chameneo7.outChameneo1 -> chameneo1.inChameneo7;
+    chameneo7.outChameneo2 -> chameneo2.inChameneo7;
+    chameneo7.outChameneo3 -> chameneo3.inChameneo7;
+    chameneo7.outChameneo4 -> chameneo4.inChameneo7;
+    chameneo7.outChameneo5 -> chameneo5.inChameneo7;
+    chameneo7.outChameneo6 -> chameneo6.inChameneo7;
+    chameneo7.outChameneo7 -> chameneo7.inChameneo7;
+    chameneo7.outChameneo8 -> chameneo8.inChameneo7;
+    chameneo7.outChameneo9 -> chameneo9.inChameneo7;
+
+    chameneo8.outChameneo0 -> chameneo0.inChameneo8;
+    chameneo8.outChameneo1 -> chameneo1.inChameneo8;
+    chameneo8.outChameneo2 -> chameneo2.inChameneo8;
+    chameneo8.outChameneo3 -> chameneo3.inChameneo8;
+    chameneo8.outChameneo4 -> chameneo4.inChameneo8;
+    chameneo8.outChameneo5 -> chameneo5.inChameneo8;
+    chameneo8.outChameneo6 -> chameneo6.inChameneo8;
+    chameneo8.outChameneo7 -> chameneo7.inChameneo8;
+    chameneo8.outChameneo8 -> chameneo8.inChameneo8;
+    chameneo8.outChameneo9 -> chameneo9.inChameneo8;
+
+    chameneo9.outChameneo0 -> chameneo0.inChameneo9;
+    chameneo9.outChameneo1 -> chameneo1.inChameneo9;
+    chameneo9.outChameneo2 -> chameneo2.inChameneo9;
+    chameneo9.outChameneo3 -> chameneo3.inChameneo9;
+    chameneo9.outChameneo4 -> chameneo4.inChameneo9;
+    chameneo9.outChameneo5 -> chameneo5.inChameneo9;
+    chameneo9.outChameneo6 -> chameneo6.inChameneo9;
+    chameneo9.outChameneo7 -> chameneo7.inChameneo9;
+    chameneo9.outChameneo8 -> chameneo8.inChameneo9;
+    chameneo9.outChameneo9 -> chameneo9.inChameneo9;
+
+    // [[[end]]]
+}

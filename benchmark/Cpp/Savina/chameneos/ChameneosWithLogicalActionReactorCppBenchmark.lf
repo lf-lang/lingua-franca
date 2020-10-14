@@ -1,0 +1,384 @@
+/**
+ * This variant of the benchmark has no logical action in the
+ * mall reactor, but instead logical actions in the Chameneos
+ * reactor. That is slower in general but might be a
+ * design closer to structural similar workloads in practice.
+ * 
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    cmake-include: "ChameneosReactorCpp.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor ChameneosMallReactor(numMeetings:int(200000), numChameneos:int(100)) {
+    
+    public preamble {=
+        #include "ChameneosCommon.hh"
+    =}
+    
+    state sumMeetings:int(0);
+    state numFaded:int(0);
+    state meetings:int(numMeetings);
+    state messages:{=std::vector<reactor::ImmutableValuePtr<Message>>=};
+    
+    state inputs:{=std::vector<reactor::Input<Message>*>=};
+    state outputs:{=std::vector<reactor::Output<Message>*>=};
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    //TODO parametrize
+    output outChameneo0:Message;
+    output outChameneo1:Message;
+    output outChameneo2:Message;
+    output outChameneo3:Message;
+    output outChameneo4:Message;
+    output outChameneo5:Message;
+    
+    //TODO parametrize
+    input inChameneo0:Message;
+    input inChameneo1:Message;
+    input inChameneo2:Message;
+    input inChameneo3:Message;
+    input inChameneo4:Message;
+    input inChameneo5:Message;
+    
+    reaction(startup) {=
+        
+        // initializations
+        messages = std::vector<reactor::ImmutableValuePtr<Message>>(numChameneos);
+        
+        // initialize vectors for easier access
+        
+        //TODO parametrize
+        inputs.reserve(numChameneos);
+        inputs.push_back(&inChameneo0);
+        inputs.push_back(&inChameneo1);
+        inputs.push_back(&inChameneo2);
+        inputs.push_back(&inChameneo3);
+        inputs.push_back(&inChameneo4);
+        inputs.push_back(&inChameneo5);
+        
+        //TODO parametrize
+        outputs.reserve(numChameneos);
+        outputs.push_back(&outChameneo0);
+        outputs.push_back(&outChameneo1);
+        outputs.push_back(&outChameneo2);
+        outputs.push_back(&outChameneo3);
+        outputs.push_back(&outChameneo4);
+        outputs.push_back(&outChameneo5);
+    =}
+    
+    //TODO parametrize
+    reaction(inStart)
+     -> outChameneo0,outChameneo1,outChameneo2,outChameneo3,outChameneo4,outChameneo5 {=
+        
+        // reset state
+         sumMeetings = 0;
+         numFaded = 0;
+         meetings = numMeetings;
+         //presentChameneos.reset();
+         
+         for(int i = 0; i < outputs.size(); i++) {
+            outputs[i]->set(Message{StartMsg, FADED, -1});
+         }
+    
+    =}
+    
+    //TODO parametrize
+    reaction(inChameneo0,inChameneo1,inChameneo2,inChameneo3,inChameneo4,inChameneo5) -> outFinished,
+     outChameneo0,outChameneo1,outChameneo2,outChameneo3,outChameneo4,outChameneo5 {=
+        
+        // recognize all chameneos that are present
+        for(int i = 0; i < inputs.size(); ++i) {
+            if(inputs[i]->is_present()) {
+                if(inputs[i]->get()->type == MeetingCountMsg) {
+                    numFaded = numFaded + 1;
+                    sumMeetings = sumMeetings + inputs[i]->get()->id; // reuse id field
+                    if (numFaded == inputs.size()) { //TODO numChameneos instead of inputs.size()
+                        outFinished.set();
+                        return;
+                    }
+                    continue;
+                } else {
+                    //presentChameneos[i] = true;
+                    messages[i] = inputs[i]->get();
+                }
+            }
+        }
+        
+        int waitingChameneoIndex = -1;
+        
+        for(int i = 0; i < outputs.size(); ++i) {
+            if(messages[i] != nullptr) {
+                // Chameneo i present in mall
+                if(meetings > 0) {
+                    if(waitingChameneoIndex == -1) {
+                        waitingChameneoIndex = i;
+                    } else {
+                        --meetings;
+                        //std::cout << "setting up meeting " << meetings << " between: " << waitingChameneoIndex << ", " << i << std::endl;
+                        outputs[waitingChameneoIndex]->set(messages[i]);
+                        messages[waitingChameneoIndex] = nullptr;
+                        messages[i] = nullptr;
+                        waitingChameneoIndex = -1;
+                    }
+               } else {
+                    outputs[i]->set(Message{ExitMsg,RED,-1});
+               }
+            }
+        }
+    =}
+}
+
+reactor ChameneosChameneoReactor(startColor:{=Color=}({=RED=}), id:int(-1), numChameneos:int(100)) {
+    
+    public preamble {=
+        #include "ChameneosCommon.hh"
+    =}
+    
+    state meetings:int(0);
+    state color:{=Color=}(startColor);
+    
+    state inputs:{=std::vector<reactor::Input<Message>*>=};
+    state outputs:{=std::vector<reactor::Output<Message>*>=};
+    
+    input inMall:Message;
+    output outMall:Message;
+    
+    logical action meetPartner:int;
+    logical action goToMall:Message;
+    logical action exit:void;
+    
+    //COPY
+    output outChameneo0:Message;
+    output outChameneo1:Message;
+    output outChameneo2:Message;
+    output outChameneo3:Message;
+    output outChameneo4:Message;
+    output outChameneo5:Message;
+    
+    //COPY
+    input inChameneo0:Message;
+    input inChameneo1:Message;
+    input inChameneo2:Message;
+    input inChameneo3:Message;
+    input inChameneo4:Message;
+    input inChameneo5:Message;
+    
+    reaction(startup) {=
+        
+        //initialize vectors for easier multiport access
+        
+        inputs.reserve(numChameneos);
+        inputs.push_back(&inChameneo0);
+        inputs.push_back(&inChameneo1);
+        inputs.push_back(&inChameneo2);
+        inputs.push_back(&inChameneo3);
+        inputs.push_back(&inChameneo4);
+        inputs.push_back(&inChameneo5);
+        
+        outputs.reserve(numChameneos);
+        outputs.push_back(&outChameneo0);
+        outputs.push_back(&outChameneo1);
+        outputs.push_back(&outChameneo2);
+        outputs.push_back(&outChameneo3);
+        outputs.push_back(&outChameneo4);
+        outputs.push_back(&outChameneo5);
+    =}
+    
+    reaction(meetPartner) ->
+    outChameneo0,outChameneo1,outChameneo2,outChameneo3,outChameneo4,outChameneo5 {=
+        outputs[*meetPartner.get()]->set(Message{ChangeMsg, color, id});
+    =}
+    
+    reaction(goToMall) -> outMall {=
+        outMall.set(goToMall.get());
+    =}
+    
+    reaction(exit) -> outMall {=
+        outMall.set(Message{MeetingCountMsg, color, meetings});
+    =}
+    
+    reaction(inMall) -> goToMall, meetPartner, exit {=
+        Message message = *inMall.get(); // simple copy is ok here
+        
+        if(message.type == StartMsg) {
+            // reset internal state and go to mall
+            meetings = 0;
+            color = startColor;
+            
+            goToMall.schedule(Message{MeetMsg, color, id});
+            return;
+        }
+        
+        if(message.type == MeetMsg) {
+            Color otherColor = message.color;
+            int senderId = message.id;
+            color = complement(color, otherColor);
+            ++meetings;
+            meetPartner.schedule(senderId);
+            goToMall.schedule(Message{MeetMsg, color, id});
+            return;
+        }
+        
+        if(message.type == ExitMsg) {
+            int sender = message.id;
+            color = FADED;
+            exit.schedule();
+            return;
+        }
+    =}
+    
+    //COPY
+    reaction(inChameneo0,inChameneo1,inChameneo2,inChameneo3,inChameneo4,inChameneo5) -> goToMall {=
+        
+        Message message;
+        
+        // find message
+        for(int i = 0; i < inputs.size(); i++) {
+            if(inputs[i]->is_present()) {
+                message = *(inputs[i]->get());
+            }
+        }
+        
+        if(message.type == ChangeMsg) {
+            color = message.color;
+            ++meetings;
+            goToMall.schedule(Message{MeetMsg, color, id});
+            return;
+        }
+        
+    =}
+    
+    private preamble {=
+        
+        Color complement(const Color color, const Color otherColor) {
+            switch(color) {
+              case RED:
+                switch(otherColor) {
+                  case RED:
+                    return RED;
+                  case YELLOW:
+                    return BLUE;
+                  case BLUE:
+                    return YELLOW;
+                  case FADED:
+                    return FADED;
+                }
+              case YELLOW:
+                switch(otherColor) {
+                  case RED:
+                    return BLUE;
+                  case YELLOW:
+                    return YELLOW;
+                  case BLUE:
+                    return RED;
+                  case FADED:
+                    return FADED;
+                }
+              case BLUE:
+                switch(otherColor) {
+                  case RED:
+                    return YELLOW;
+                  case YELLOW:
+                    return RED;
+                  case BLUE:
+                    return BLUE;
+                  case FADED:
+                    return FADED;
+                }
+              case FADED:
+                return FADED;
+            }
+            
+           //TODO should not happen, throw error
+           return FADED;
+        }
+        
+    =}
+}
+
+
+
+main reactor ChameneosBenchmark(numIterations:int(12), numMeetings:int(200000)) {
+    
+    mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos=6);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> mall.inStart;
+    mall.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ChameneosReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numMeetings", numMeetings);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    chameneo0 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(0%3)=}, id=0, numChameneos=6);
+    chameneo1 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(1%3)=}, id=1, numChameneos=6);
+    chameneo2 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(2%3)=}, id=2, numChameneos=6);
+    chameneo3 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(3%3)=}, id=3, numChameneos=6);
+    chameneo4 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(4%3)=}, id=4, numChameneos=6);
+    chameneo5 = new ChameneosChameneoReactor(startColor={=static_cast<Color>(5%3)=}, id=5, numChameneos=6);
+    
+    chameneo0.outMall -> mall.inChameneo0;
+    chameneo1.outMall -> mall.inChameneo1;
+    chameneo2.outMall -> mall.inChameneo2;
+    chameneo3.outMall -> mall.inChameneo3;
+    chameneo4.outMall -> mall.inChameneo4;
+    chameneo5.outMall -> mall.inChameneo5;
+    
+    mall.outChameneo0 -> chameneo0.inMall;
+    mall.outChameneo1 -> chameneo1.inMall;
+    mall.outChameneo2 -> chameneo2.inMall;
+    mall.outChameneo3 -> chameneo3.inMall;
+    mall.outChameneo4 -> chameneo4.inMall;
+    mall.outChameneo5 -> chameneo5.inMall;
+    
+    chameneo0.outChameneo0 -> chameneo0.inChameneo0;
+    chameneo0.outChameneo1 -> chameneo1.inChameneo0;
+    chameneo0.outChameneo2 -> chameneo2.inChameneo0;
+    chameneo0.outChameneo3 -> chameneo3.inChameneo0;
+    chameneo0.outChameneo4 -> chameneo4.inChameneo0;
+    chameneo0.outChameneo5 -> chameneo5.inChameneo0;
+    
+    chameneo1.outChameneo0 -> chameneo0.inChameneo1;
+    chameneo1.outChameneo1 -> chameneo1.inChameneo1;
+    chameneo1.outChameneo2 -> chameneo2.inChameneo1;
+    chameneo1.outChameneo3 -> chameneo3.inChameneo1;
+    chameneo1.outChameneo4 -> chameneo4.inChameneo1;
+    chameneo1.outChameneo5 -> chameneo5.inChameneo1;
+    
+    chameneo2.outChameneo0 -> chameneo0.inChameneo2;
+    chameneo2.outChameneo1 -> chameneo1.inChameneo2;
+    chameneo2.outChameneo2 -> chameneo2.inChameneo2;
+    chameneo2.outChameneo3 -> chameneo3.inChameneo2;
+    chameneo2.outChameneo4 -> chameneo4.inChameneo2;
+    chameneo2.outChameneo5 -> chameneo5.inChameneo2;
+    
+    chameneo3.outChameneo0 -> chameneo0.inChameneo3;
+    chameneo3.outChameneo1 -> chameneo1.inChameneo3;
+    chameneo3.outChameneo2 -> chameneo2.inChameneo3;
+    chameneo3.outChameneo3 -> chameneo3.inChameneo3;
+    chameneo3.outChameneo4 -> chameneo4.inChameneo3;
+    chameneo3.outChameneo5 -> chameneo5.inChameneo3;
+    
+    chameneo4.outChameneo0 -> chameneo0.inChameneo4;
+    chameneo4.outChameneo1 -> chameneo1.inChameneo4;
+    chameneo4.outChameneo2 -> chameneo2.inChameneo4;
+    chameneo4.outChameneo3 -> chameneo3.inChameneo4;
+    chameneo4.outChameneo4 -> chameneo4.inChameneo4;
+    chameneo4.outChameneo5 -> chameneo5.inChameneo4;
+    
+    chameneo5.outChameneo0 -> chameneo0.inChameneo5;
+    chameneo5.outChameneo1 -> chameneo1.inChameneo5;
+    chameneo5.outChameneo2 -> chameneo2.inChameneo5;
+    chameneo5.outChameneo3 -> chameneo3.inChameneo5;
+    chameneo5.outChameneo4 -> chameneo4.inChameneo5;
+    chameneo5.outChameneo5 -> chameneo5.inChameneo5;
+}

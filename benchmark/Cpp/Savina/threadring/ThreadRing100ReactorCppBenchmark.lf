@@ -1,0 +1,260 @@
+/**
+ * A version of the thread ring benchmark with 100 reactors (hard coded).
+ * 
+ * @author Hannes Klein
+ */
+target Cpp {
+    cmake-include: "ThreadRingReactorCpp.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+import ThreadRingReactor from "ThreadRingReactorCppBenchmark.lf";
+import ThreadRingReactorLoopOpener from "ThreadRingReactorCppBenchmark.lf";
+
+reactor Initializer(numReactors:int(100), numPings:int(100000)) {
+    
+    public preamble {=
+        #include "ThreadRingCommon.hh"
+    =}
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    // benchmark internal start and finish
+    //TODO parametrize multiports
+    input[100] inFinished:void;
+    output outStart:{=PingMessage=};
+    
+    reaction(inStart) -> outStart {=
+        outStart.set(numPings);
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
+    =}
+}
+
+main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
+    
+    init = new Initializer(numReactors=100, numPings=numPings);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> init.inStart;
+    init.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ThreadRing100ReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numPings", numPings);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    // 99 worker + 1 loopOpener = 100 worker in total
+    loopOpener = new ThreadRingReactorLoopOpener();
+    worker_0 = new ThreadRingReactor();
+    worker_1 = new ThreadRingReactor();
+    worker_2 = new ThreadRingReactor();
+    worker_3 = new ThreadRingReactor();
+    worker_4 = new ThreadRingReactor();
+    worker_5 = new ThreadRingReactor();
+    worker_6 = new ThreadRingReactor();
+    worker_7 = new ThreadRingReactor();
+    worker_8 = new ThreadRingReactor();
+    worker_9 = new ThreadRingReactor();
+    worker_10 = new ThreadRingReactor();
+    worker_11 = new ThreadRingReactor();
+    worker_12 = new ThreadRingReactor();
+    worker_13 = new ThreadRingReactor();
+    worker_14 = new ThreadRingReactor();
+    worker_15 = new ThreadRingReactor();
+    worker_16 = new ThreadRingReactor();
+    worker_17 = new ThreadRingReactor();
+    worker_18 = new ThreadRingReactor();
+    worker_19 = new ThreadRingReactor();
+    worker_20 = new ThreadRingReactor();
+    worker_21 = new ThreadRingReactor();
+    worker_22 = new ThreadRingReactor();
+    worker_23 = new ThreadRingReactor();
+    worker_24 = new ThreadRingReactor();
+    worker_25 = new ThreadRingReactor();
+    worker_26 = new ThreadRingReactor();
+    worker_27 = new ThreadRingReactor();
+    worker_28 = new ThreadRingReactor();
+    worker_29 = new ThreadRingReactor();
+    worker_30 = new ThreadRingReactor();
+    worker_31 = new ThreadRingReactor();
+    worker_32 = new ThreadRingReactor();
+    worker_33 = new ThreadRingReactor();
+    worker_34 = new ThreadRingReactor();
+    worker_35 = new ThreadRingReactor();
+    worker_36 = new ThreadRingReactor();
+    worker_37 = new ThreadRingReactor();
+    worker_38 = new ThreadRingReactor();
+    worker_39 = new ThreadRingReactor();
+    worker_40 = new ThreadRingReactor();
+    worker_41 = new ThreadRingReactor();
+    worker_42 = new ThreadRingReactor();
+    worker_43 = new ThreadRingReactor();
+    worker_44 = new ThreadRingReactor();
+    worker_45 = new ThreadRingReactor();
+    worker_46 = new ThreadRingReactor();
+    worker_47 = new ThreadRingReactor();
+    worker_48 = new ThreadRingReactor();
+    worker_49 = new ThreadRingReactor();
+    worker_50 = new ThreadRingReactor();
+    worker_51 = new ThreadRingReactor();
+    worker_52 = new ThreadRingReactor();
+    worker_53 = new ThreadRingReactor();
+    worker_54 = new ThreadRingReactor();
+    worker_55 = new ThreadRingReactor();
+    worker_56 = new ThreadRingReactor();
+    worker_57 = new ThreadRingReactor();
+    worker_58 = new ThreadRingReactor();
+    worker_59 = new ThreadRingReactor();
+    worker_60 = new ThreadRingReactor();
+    worker_61 = new ThreadRingReactor();
+    worker_62 = new ThreadRingReactor();
+    worker_63 = new ThreadRingReactor();
+    worker_64 = new ThreadRingReactor();
+    worker_65 = new ThreadRingReactor();
+    worker_66 = new ThreadRingReactor();
+    worker_67 = new ThreadRingReactor();
+    worker_68 = new ThreadRingReactor();
+    worker_69 = new ThreadRingReactor();
+    worker_70 = new ThreadRingReactor();
+    worker_71 = new ThreadRingReactor();
+    worker_72 = new ThreadRingReactor();
+    worker_73 = new ThreadRingReactor();
+    worker_74 = new ThreadRingReactor();
+    worker_75 = new ThreadRingReactor();
+    worker_76 = new ThreadRingReactor();
+    worker_77 = new ThreadRingReactor();
+    worker_78 = new ThreadRingReactor();
+    worker_79 = new ThreadRingReactor();
+    worker_80 = new ThreadRingReactor();
+    worker_81 = new ThreadRingReactor();
+    worker_82 = new ThreadRingReactor();
+    worker_83 = new ThreadRingReactor();
+    worker_84 = new ThreadRingReactor();
+    worker_85 = new ThreadRingReactor();
+    worker_86 = new ThreadRingReactor();
+    worker_87 = new ThreadRingReactor();
+    worker_88 = new ThreadRingReactor();
+    worker_89 = new ThreadRingReactor();
+    worker_90 = new ThreadRingReactor();
+    worker_91 = new ThreadRingReactor();
+    worker_92 = new ThreadRingReactor();
+    worker_93 = new ThreadRingReactor();
+    worker_94 = new ThreadRingReactor();
+    worker_95 = new ThreadRingReactor();
+    worker_96 = new ThreadRingReactor();
+    worker_97 = new ThreadRingReactor();
+    worker_98 = new ThreadRingReactor();
+    
+    worker_0.outNextReactor -> worker_1.inPrevReactor;
+    worker_1.outNextReactor -> worker_2.inPrevReactor;
+    worker_2.outNextReactor -> worker_3.inPrevReactor;
+    worker_3.outNextReactor -> worker_4.inPrevReactor;
+    worker_4.outNextReactor -> worker_5.inPrevReactor;
+    worker_5.outNextReactor -> worker_6.inPrevReactor;
+    worker_6.outNextReactor -> worker_7.inPrevReactor;
+    worker_7.outNextReactor -> worker_8.inPrevReactor;
+    worker_8.outNextReactor -> worker_9.inPrevReactor;
+    worker_9.outNextReactor -> worker_10.inPrevReactor;
+    worker_10.outNextReactor -> worker_11.inPrevReactor;
+    worker_11.outNextReactor -> worker_12.inPrevReactor;
+    worker_12.outNextReactor -> worker_13.inPrevReactor;
+    worker_13.outNextReactor -> worker_14.inPrevReactor;
+    worker_14.outNextReactor -> worker_15.inPrevReactor;
+    worker_15.outNextReactor -> worker_16.inPrevReactor;
+    worker_16.outNextReactor -> worker_17.inPrevReactor;
+    worker_17.outNextReactor -> worker_18.inPrevReactor;
+    worker_18.outNextReactor -> worker_19.inPrevReactor;
+    worker_19.outNextReactor -> worker_20.inPrevReactor;
+    worker_20.outNextReactor -> worker_21.inPrevReactor;
+    worker_21.outNextReactor -> worker_22.inPrevReactor;
+    worker_22.outNextReactor -> worker_23.inPrevReactor;
+    worker_23.outNextReactor -> worker_24.inPrevReactor;
+    worker_24.outNextReactor -> worker_25.inPrevReactor;
+    worker_25.outNextReactor -> worker_26.inPrevReactor;
+    worker_26.outNextReactor -> worker_27.inPrevReactor;
+    worker_27.outNextReactor -> worker_28.inPrevReactor;
+    worker_28.outNextReactor -> worker_29.inPrevReactor;
+    worker_29.outNextReactor -> worker_30.inPrevReactor;
+    worker_30.outNextReactor -> worker_31.inPrevReactor;
+    worker_31.outNextReactor -> worker_32.inPrevReactor;
+    worker_32.outNextReactor -> worker_33.inPrevReactor;
+    worker_33.outNextReactor -> worker_34.inPrevReactor;
+    worker_34.outNextReactor -> worker_35.inPrevReactor;
+    worker_35.outNextReactor -> worker_36.inPrevReactor;
+    worker_36.outNextReactor -> worker_37.inPrevReactor;
+    worker_37.outNextReactor -> worker_38.inPrevReactor;
+    worker_38.outNextReactor -> worker_39.inPrevReactor;
+    worker_39.outNextReactor -> worker_40.inPrevReactor;
+    worker_40.outNextReactor -> worker_41.inPrevReactor;
+    worker_41.outNextReactor -> worker_42.inPrevReactor;
+    worker_42.outNextReactor -> worker_43.inPrevReactor;
+    worker_43.outNextReactor -> worker_44.inPrevReactor;
+    worker_44.outNextReactor -> worker_45.inPrevReactor;
+    worker_45.outNextReactor -> worker_46.inPrevReactor;
+    worker_46.outNextReactor -> worker_47.inPrevReactor;
+    worker_47.outNextReactor -> worker_48.inPrevReactor;
+    worker_48.outNextReactor -> worker_49.inPrevReactor;
+    worker_49.outNextReactor -> worker_50.inPrevReactor;
+    worker_50.outNextReactor -> worker_51.inPrevReactor;
+    worker_51.outNextReactor -> worker_52.inPrevReactor;
+    worker_52.outNextReactor -> worker_53.inPrevReactor;
+    worker_53.outNextReactor -> worker_54.inPrevReactor;
+    worker_54.outNextReactor -> worker_55.inPrevReactor;
+    worker_55.outNextReactor -> worker_56.inPrevReactor;
+    worker_56.outNextReactor -> worker_57.inPrevReactor;
+    worker_57.outNextReactor -> worker_58.inPrevReactor;
+    worker_58.outNextReactor -> worker_59.inPrevReactor;
+    worker_59.outNextReactor -> worker_60.inPrevReactor;
+    worker_60.outNextReactor -> worker_61.inPrevReactor;
+    worker_61.outNextReactor -> worker_62.inPrevReactor;
+    worker_62.outNextReactor -> worker_63.inPrevReactor;
+    worker_63.outNextReactor -> worker_64.inPrevReactor;
+    worker_64.outNextReactor -> worker_65.inPrevReactor;
+    worker_65.outNextReactor -> worker_66.inPrevReactor;
+    worker_66.outNextReactor -> worker_67.inPrevReactor;
+    worker_67.outNextReactor -> worker_68.inPrevReactor;
+    worker_68.outNextReactor -> worker_69.inPrevReactor;
+    worker_69.outNextReactor -> worker_70.inPrevReactor;
+    worker_70.outNextReactor -> worker_71.inPrevReactor;
+    worker_71.outNextReactor -> worker_72.inPrevReactor;
+    worker_72.outNextReactor -> worker_73.inPrevReactor;
+    worker_73.outNextReactor -> worker_74.inPrevReactor;
+    worker_74.outNextReactor -> worker_75.inPrevReactor;
+    worker_75.outNextReactor -> worker_76.inPrevReactor;
+    worker_76.outNextReactor -> worker_77.inPrevReactor;
+    worker_77.outNextReactor -> worker_78.inPrevReactor;
+    worker_78.outNextReactor -> worker_79.inPrevReactor;
+    worker_79.outNextReactor -> worker_80.inPrevReactor;
+    worker_80.outNextReactor -> worker_81.inPrevReactor;
+    worker_81.outNextReactor -> worker_82.inPrevReactor;
+    worker_82.outNextReactor -> worker_83.inPrevReactor;
+    worker_83.outNextReactor -> worker_84.inPrevReactor;
+    worker_84.outNextReactor -> worker_85.inPrevReactor;
+    worker_85.outNextReactor -> worker_86.inPrevReactor;
+    worker_86.outNextReactor -> worker_87.inPrevReactor;
+    worker_87.outNextReactor -> worker_88.inPrevReactor;
+    worker_88.outNextReactor -> worker_89.inPrevReactor;
+    worker_89.outNextReactor -> worker_90.inPrevReactor;
+    worker_90.outNextReactor -> worker_91.inPrevReactor;
+    worker_91.outNextReactor -> worker_92.inPrevReactor;
+    worker_92.outNextReactor -> worker_93.inPrevReactor;
+    worker_93.outNextReactor -> worker_94.inPrevReactor;
+    worker_94.outNextReactor -> worker_95.inPrevReactor;
+    worker_95.outNextReactor -> worker_96.inPrevReactor;
+    worker_96.outNextReactor -> worker_97.inPrevReactor;
+    worker_97.outNextReactor -> worker_98.inPrevReactor;
+    worker_98.outNextReactor -> loopOpener.inPrevReactor;
+    
+    loopOpener.outNextReactor -> worker_0.inPrevReactor;
+    
+    init.outStart -> loopOpener.start;
+    
+    (loopOpener.finished, worker_0.finished, worker_1.finished, worker_2.finished, worker_3.finished, worker_4.finished, worker_5.finished, worker_6.finished, worker_7.finished, worker_8.finished, worker_9.finished, worker_10.finished, worker_11.finished, worker_12.finished, worker_13.finished, worker_14.finished, worker_15.finished, worker_16.finished, worker_17.finished, worker_18.finished, worker_19.finished, worker_20.finished, worker_21.finished, worker_22.finished, worker_23.finished, worker_24.finished, worker_25.finished, worker_26.finished, worker_27.finished, worker_28.finished, worker_29.finished, worker_30.finished, worker_31.finished, worker_32.finished, worker_33.finished, worker_34.finished, worker_35.finished, worker_36.finished, worker_37.finished, worker_38.finished, worker_39.finished, worker_40.finished, worker_41.finished, worker_42.finished, worker_43.finished, worker_44.finished, worker_45.finished, worker_46.finished, worker_47.finished, worker_48.finished, worker_49.finished, worker_50.finished, worker_51.finished, worker_52.finished, worker_53.finished, worker_54.finished, worker_55.finished, worker_56.finished, worker_57.finished, worker_58.finished, worker_59.finished, worker_60.finished, worker_61.finished, worker_62.finished, worker_63.finished, worker_64.finished, worker_65.finished, worker_66.finished, worker_67.finished, worker_68.finished, worker_69.finished, worker_70.finished, worker_71.finished, worker_72.finished, worker_73.finished, worker_74.finished, worker_75.finished, worker_76.finished, worker_77.finished, worker_78.finished, worker_79.finished, worker_80.finished, worker_81.finished, worker_82.finished, worker_83.finished, worker_84.finished, worker_85.finished, worker_86.finished, worker_87.finished, worker_88.finished, worker_89.finished, worker_90.finished, worker_91.finished, worker_92.finished, worker_93.finished, worker_94.finished, worker_95.finished, worker_96.finished, worker_97.finished, worker_98.finished) -> init.inFinished;
+    
+}
