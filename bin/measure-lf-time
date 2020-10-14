@@ -20,6 +20,7 @@ function usage() {
     echo "Options:"
     echo "  -n | --number-of-executions num    Run the [generated] binary num times (default is 10)."
     echo "  -l | --log                         Store the output of the commands in directory called \"logs\"."
+    echo "  -h | --help             Display this information."
 }
 
 # Exit with message and error code 1.
@@ -84,6 +85,7 @@ while [[ "$#" -gt 0 ]]; do
                 files+=( $1 )
             else            
                 file_not_found $1
+                usage
                 error_exit
             fi
     esac
@@ -93,7 +95,8 @@ done
 # Exit if no input files are given.
 entries=${#files[@]}
 if [[ ${entries} -lt 1 ]]; then
-fatal_error "no input files"
+    fatal_error "no input files"
+    usage
     error_exit
 fi
 
