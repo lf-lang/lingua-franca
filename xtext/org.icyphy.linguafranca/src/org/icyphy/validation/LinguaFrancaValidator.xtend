@@ -80,6 +80,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.KeyValuePairs
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -1102,6 +1103,31 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.TARGET__NAME)
         } else {
             this.target = Targets.get(target.name);
+        }
+    }
+
+    /**
+     * Check for consistency of the target properties, which are
+     * defined as KeyValuePairs.
+     *
+     * @param targetProperties The target properties defined
+     *  in the current Lingua Franca program.
+     */
+    @Check(FAST)
+    def checkTargetProperties(KeyValuePairs targetProperties) {
+        if (info.model.reactors.exists(reactor|reactor.isFederated)) {
+            // Program has a federated reactor
+            if (targetProperties.pairs.exists(
+                pair |
+                    // Check to see if fast is defined
+                    TargetProperties.get(pair.name) == TargetProperties.FAST
+            ) && targetProperties.pairs.exists(
+                pair |
+                    // Check to see if timeout is defined
+                    TargetProperties.get(pair.name) == TargetProperties.TIMEOUT
+            )) {
+                warning("fast is incompatible with timeout.", Literals.KEY_VALUE_PAIRS__PAIRS)
+            }
         }
     }
 
