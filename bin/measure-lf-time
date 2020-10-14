@@ -111,48 +111,48 @@ for (( i=0; i<$entries; i++ )); do \
     fi
     # This script assumes that the 7th column on the line that contains "Elapsed physical time (in nsec):"
     # contains the elapse physical time.
-    results=$(echo "$benchmark" | grep "Elapsed physical time (in nsec):" | \
-        awk ' \
-            # In the beginning \
-            !i++{ \
-                # Remove the , in the number \
-                gsub(/,/,"",$7); \
-                # And set initial values of min and max \
-                min=$7; \
-                max=$7; \
-            } \
-            # Then \
-            { \
-                # Remove the , in the number \
-                gsub(/,/,"",$7); \
-                # Add numbers in each row to sum \
-                sum+=$7; \
-                # Calculate new min \
-                min=($7<=min) ? $7:min; \
-                # Calculate new max \
-                max=($7>=max) ? $7:max;
-            } \
-            # Print the results in the output \
-            END { \
-                printf "%d\t%d\t%d\n", sum/NR, min, max \
-            } \
+    results=$(echo "$benchmark" | grep "Elapsed physical time (in nsec):" |
+        awk '
+            # In the beginning
+            !i++{
+                # Remove the , in the number
+                gsub(/,/,"",$7);
+                # And set initial values of min and max
+                min=$7+0;
+                max=$7+0;
+            }
+            # Then
+            {
+                # Remove the , in the number
+                gsub(/,/,"",$7);
+                # Add numbers in each row to sum
+                sum+=$7;
+                # Calculate new min
+                min=($7+0<=0+min) ? $7:min;
+                # Calculate new max
+                max=($7+0>=0+max) ? $7:max;
+            }
+            # Print the results in the output
+            END {
+                printf "%d\t%d\t%d\n", sum/NR, min, max
+            }
         ')
-    median=$(echo "$benchmark" | grep "Elapsed physical time (in nsec):" | \
-        awk ' \
-            { \
-                # Remove the , in the number \
-                gsub(/,/,"",$7); \
-                # Store the physical execution time in result \
-                # for each row \
-                result[NR]=$7; \
-            } \
-            END { \
-                if (NR % 2) { \
-                    print result[(NR + 1) / 2]; \
-                } else { \
-                    print (result[(NR / 2)] + result[(NR / 2) + 1]) / 2.0; \
-                } \
-            } \
+    median=$(echo "$benchmark" | grep "Elapsed physical time (in nsec):" |
+        awk '
+            {
+                # Remove the , in the number
+                gsub(/,/,"",$7);
+                # Store the physical execution time in result
+                # for each row
+                result[NR]=$7;
+            }
+            END {
+                if (NR % 2) {
+                    print result[(NR + 1) / 2];
+                } else {
+                    print (result[(NR / 2)] + result[(NR / 2) + 1]) / 2.0;
+                }
+            }
         ')
     echo -e "${files[$i]##*/}\t\t\t$results\t$median"
 done
