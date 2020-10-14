@@ -1132,7 +1132,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
                 )) {
                     warning(
-                        "The fast target property is incompatible with the timeout target property.",
+                        "The fast target property is incompatible with the timeout target property " +
+                        "when physical connections are present.",
                         Literals.KEY_VALUE_PAIRS__PAIRS
                     )
                 }
