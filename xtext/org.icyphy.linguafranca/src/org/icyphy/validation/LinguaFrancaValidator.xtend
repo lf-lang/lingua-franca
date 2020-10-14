@@ -1115,25 +1115,29 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
      */
     @Check(FAST)
     def checkTargetProperties(KeyValuePairs targetProperties) {
-        if (info.model.reactors.exists(
-            reactor |
-            // Check to see if the program has a federated reactor and if there is a physical connection
-            // defined.
-            reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
+        if (targetProperties.pairs.exists(
+            pair |
+                // Check to see if fast is defined
+                TargetProperties.get(pair.name) == TargetProperties.FAST
         )) {
-            if (targetProperties.pairs.exists(
-                pair |
-                    // Check to see if fast is defined
-                    TargetProperties.get(pair.name) == TargetProperties.FAST
-            ) && targetProperties.pairs.exists(
-                pair |
-                    // Check to see if timeout is defined
-                    TargetProperties.get(pair.name) == TargetProperties.TIMEOUT
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a federated reactor and if there is a physical connection
+                    // defined.
+                    reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
             )) {
-                warning("The fast target property is incompatible with the timeout target property.",
-                    Literals.KEY_VALUE_PAIRS__PAIRS
-                )
+                if (targetProperties.pairs.exists(
+                    pair |
+                        // Check to see if timeout is defined
+                        TargetProperties.get(pair.name) == TargetProperties.TIMEOUT
+                )) {
+                    warning(
+                        "The fast target property is incompatible with the timeout target property.",
+                        Literals.KEY_VALUE_PAIRS__PAIRS
+                    )
+                }
             }
+
         }
     }
 
