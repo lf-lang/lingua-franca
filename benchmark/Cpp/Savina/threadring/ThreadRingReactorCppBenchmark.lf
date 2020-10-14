@@ -1,0 +1,173 @@
+/**
+ * Micro-benchmark from the Savina benchmark suite, intended
+ * to measure message passing overhead and switching between
+ * actors.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * To open the causality loop in the ring of reactors one
+ * reactor uses a logical action for message passing.
+ * 
+ * Informal results for 1,000,000 pings
+ * on my PC with fast forward enabled:
+ * Unthreaded: 160 ms
+ * Threaded: 175 ms
+ * 
+ * For comparison some informal results for 1,000,000 pings
+ * on the same PC with the Savina Akka implementation:
+ * Threaded: 487 ms
+ * 
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    cmake-include: "ThreadRingReactorCpp.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor ThreadRingReactor {
+    
+    public preamble {=
+        #include "ThreadRingCommon.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    output outNextReactor:{=PingMessage=};
+    input inPrevReactor:{=PingMessage=};
+    input start:{=PingMessage=};
+    output finished:void;
+    
+    reaction(inPrevReactor) -> outNextReactor, finished {=
+        if (inPrevReactor.get()->hasNext()) {
+            outNextReactor.set(inPrevReactor.get()->next());
+        } else {
+            finished.set();
+            reactor::log::Debug() << "Finished with count " << inPrevReactor.get()->getPingsLeft();
+        }
+    =}
+    
+    reaction(start) -> outNextReactor, finished {=
+        if (start.get()->hasNext()) {
+            outNextReactor.set(start.get()->next());
+            reactor::log::Debug() << "Starting with count " << start.get()->getPingsLeft();
+        } else {
+            finished.set();
+        }
+    =}
+}
+
+reactor ThreadRingReactorLoopOpener {
+    
+    public preamble {=
+        #include "ThreadRingCommon.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    output outNextReactor:{=PingMessage=};
+    input inPrevReactor:{=PingMessage=};
+    input start:{=PingMessage=};
+    output finished:void;
+    
+    logical action sendToNextReactor:{=PingMessage=};
+    
+    reaction(sendToNextReactor) -> outNextReactor {=
+        outNextReactor.set(sendToNextReactor.get());
+    =}
+    
+    reaction(inPrevReactor) -> sendToNextReactor, finished {=
+        if (inPrevReactor.get()->hasNext()) {
+            sendToNextReactor.schedule(inPrevReactor.get()->next());
+        } else {
+            finished.set();
+            reactor::log::Debug() << "Finished with count " << inPrevReactor.get()->getPingsLeft();
+        }
+    =}
+    
+    reaction(start) -> sendToNextReactor, finished {=
+        reactor::log::Debug() << "Starting with count " << start.get()->getPingsLeft();
+        if (start.get()->hasNext()) {
+            sendToNextReactor.schedule(start.get()->next());
+        } else {
+            finished.set();
+        }
+    =}
+}
+
+reactor Initializer(numReactors:int(10), numPings:int(100000)) {
+    
+    public preamble {=
+        #include "ThreadRingCommon.hh"
+    =}
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    // benchmark internal start and finish
+    //TODO parametrize multiports
+    input[10] inFinished:void;
+    output outStart:{=PingMessage=};
+    
+    reaction(inStart) -> outStart {=
+        outStart.set(numPings);
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        outFinished.set();
+    =}
+}
+
+main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
+    
+    //TODO parametrize
+    init = new Initializer(numReactors=10, numPings=numPings);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> init.inStart;
+    init.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ThreadRingReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numPings", numPings);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    // 9 worker + 1 loopOpener = 10 worker in total
+    loopOpener = new ThreadRingReactorLoopOpener();
+    worker_0 = new ThreadRingReactor();
+    worker_1 = new ThreadRingReactor();
+    worker_2 = new ThreadRingReactor();
+    worker_3 = new ThreadRingReactor();
+    worker_4 = new ThreadRingReactor();
+    worker_5 = new ThreadRingReactor();
+    worker_6 = new ThreadRingReactor();
+    worker_7 = new ThreadRingReactor();
+    worker_8 = new ThreadRingReactor();
+    
+    worker_0.outNextReactor -> worker_1.inPrevReactor;
+    worker_1.outNextReactor -> worker_2.inPrevReactor;
+    worker_2.outNextReactor -> worker_3.inPrevReactor;
+    worker_3.outNextReactor -> worker_4.inPrevReactor;
+    worker_4.outNextReactor -> worker_5.inPrevReactor;
+    worker_5.outNextReactor -> worker_6.inPrevReactor;
+    worker_6.outNextReactor -> worker_7.inPrevReactor;
+    worker_7.outNextReactor -> worker_8.inPrevReactor;
+    worker_8.outNextReactor -> loopOpener.inPrevReactor;
+    
+    loopOpener.outNextReactor -> worker_0.inPrevReactor;
+    
+    init.outStart -> loopOpener.start;
+    
+    (loopOpener.finished,
+        worker_0.finished,
+        worker_1.finished,
+        worker_2.finished,
+        worker_3.finished,
+        worker_4.finished,
+        worker_5.finished,
+        worker_6.finished,
+        worker_7.finished,
+        worker_8.finished
+        ) -> init.inFinished;
+    
+}
