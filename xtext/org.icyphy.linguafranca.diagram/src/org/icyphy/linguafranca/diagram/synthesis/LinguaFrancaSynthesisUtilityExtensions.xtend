@@ -203,10 +203,10 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
      * If this spacing does not yet exist, the properties are initialized.
      */
     def getPortMarginsInitIfAbsent(KNode node) {
-        var spacing = node.getProperty(CoreOptions.SPACING_INDIVIDUAL_OVERRIDE)
+        var spacing = node.getProperty(CoreOptions.SPACING_INDIVIDUAL)
         if (spacing === null) {
             spacing = new IndividualSpacings()
-            node.setProperty(CoreOptions.SPACING_INDIVIDUAL_OVERRIDE, spacing)
+            node.setProperty(CoreOptions.SPACING_INDIVIDUAL, spacing)
         }
         var margin = spacing.getProperty(CoreOptions.SPACING_PORTS_SURROUNDING)
         if (margin === null) {
