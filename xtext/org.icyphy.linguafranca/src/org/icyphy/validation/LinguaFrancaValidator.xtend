@@ -1120,16 +1120,16 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 // Check to see if fast is defined
                 TargetProperties.get(pair.name) == TargetProperties.FAST
         )) {
-            if (info.model.reactors.exists(
-                reactor |
-                    // Check to see if the program has a federated reactor and if there is a physical connection
-                    // defined.
-                    reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
+            if (targetProperties.pairs.exists(
+                pair |
+                    // Check to see if timeout is defined
+                    TargetProperties.get(pair.name) == TargetProperties.TIMEOUT
             )) {
-                if (targetProperties.pairs.exists(
-                    pair |
-                        // Check to see if timeout is defined
-                        TargetProperties.get(pair.name) == TargetProperties.TIMEOUT
+                if (info.model.reactors.exists(
+                    reactor |
+                        // Check to see if the program has a federated reactor and if there is a physical connection
+                        // defined.
+                        reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
                 )) {
                     warning(
                         "The fast target property is incompatible with the timeout target property.",
