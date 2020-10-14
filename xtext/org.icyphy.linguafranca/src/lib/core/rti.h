@@ -54,6 +54,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONNECT_NUM_RETRIES 500
 
 /**
+ * Number of nanoseconds that a federate waits before asking
+ * the RTI again for the port and IP address of a federate
+ * (an ADDRESS_QUERY message) when the RTI responds that it
+ * does not know.
+ */
+#define ADDRESS_QUERY_RETRY_INTERVAL 100000000
+
+/**
  * Default starting port number for the RTI's socket server.
  * Unless a specific port has been specified by the LF program,
  * the RTI, when it starts up, will attempt to open a socket server
@@ -119,6 +127,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  The next two bytes are the destination federate ID.
  *  The four bytes after that will be the length of the message.
  *  The remaining bytes are the message.
+ *  NOTE: This is currently not used. All messages are timed, even
+ *  on physical connections, because if "after" is used, the message
+ *  may preserve the logical timestamp rather than using the physical time.
  */
 #define MESSAGE 3
 
@@ -163,6 +174,53 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define STOP 9
 
+/**
+ * Byte identifying a address query message, sent by a federate to RTI
+ * to ask for another federate's address and port number.
+ * The next two bytes are the other federate's ID.
+ * The reply from the RTI will a port number (an int), which is -1
+ * if the RTI does not know yet (it has not received ADDRESS_AD from
+ * the other federate), followed by the IP address of the other
+ * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
+ */
+#define ADDRESS_QUERY 10
+
+/**
+ * Byte identifying a message advertising the port for the physical connection server
+ * of a federate.
+ * The next four bytes (or sizeof(int)) will be the port number.
+ * The sending federate will not wait for a response from the RTI and assumes its
+ * request will be processed eventually by the RTI.
+ */
+#define ADDRESS_AD 11
+
+/**
+ * Byte identifying a first message that is sent by a federate directly to another federate
+ * after establishing a socket connection to send messages directly to the federate. This
+ * first message contains two bytes identifying the sending federate (its ID), a byte
+ * giving the length of the federation ID, followed by the federation ID (a string).
+ * The response from the remote federate is expected to be ACK, but if the remote
+ * federate does not expect this federate or federation to connect, it will respond
+ * instead with REJECT.
+ */
+#define P2P_SENDING_FED_ID 12
+
+/**
+ * Byte identifying a timestamped message to send directly to another federate.
+ * This is a variant of @see TIMED_MESSAGE that is used in P2P connections between
+ * federates. Having a separate message type for P2P connections between federates
+ * will be useful in preventing crosstalk.
+ * 
+ * The next two bytes will be the ID of the destination port.
+ * The next two bytes are the destination federate ID. This is checked against
+ * the _lf_my_fed_id of the receiving federate to ensure the message was intended for
+ * the correct federate.
+ * The four bytes after will be the length of the message.
+ * The next eight bytes will be the timestamp.
+ * The ramaining bytes are the message.
+ */
+#define P2P_TIMED_MESSAGE 13
+
 /////////////////////////////////////////////
 //// Rejection codes
 
@@ -182,6 +240,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Incoming message is not expected. */
 #define UNEXPECTED_MESSAGE 4
+
+/** Connected to the wrong server. */
+#define WRONG_SERVER 5
 
 /////////////////////////////////////////////
 //// Data structures
@@ -219,6 +280,13 @@ typedef struct federate_t {
     int* downstream;        // Array of downstream federate ids.
     int num_downstream;     // Size of the array of downstream federates.
     execution_mode_t mode;  // FAST or REALTIME.
+    char server_hostname[INET_ADDRSTRLEN]; // Human-readable IP address and
+    int server_port;        // port number of the socket server of the federate
+                            // if it has any incoming direct connections from other federates.
+                            // The port number will be -1 if there is no server or if the
+                            // RTI has not been informed of the port number.
+    struct in_addr server_ip_addr; // Information about the IP address of the socket
+                                // server of the federate.
 } federate_t;
 
 

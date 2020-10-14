@@ -43,6 +43,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.InferredType
+import org.icyphy.Targets
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -63,7 +64,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Targets
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -406,13 +406,7 @@ class CGenerator extends GeneratorBase {
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
-                pr(startTimers, 'synchronize_with_other_federates('
-                    + federate.id
-                    + ', "'
-                    + federationRTIProperties.get('host') 
-                    + '", ' + federationRTIProperties.get('port')
-                    + ");"
-                )
+                pr(startTimers, "synchronize_with_other_federates();")
             }
         
             // Build the instantiation tree if a main reactor is present.
@@ -563,14 +557,7 @@ class CGenerator extends GeneratorBase {
                 pr(startTimeStep.toString)
                 
                 setReactionPriorities(main, federate)
-                if (federates.length > 1) {
-                    if (federate.dependsOn.size > 0) {
-                        pr('__fed_has_upstream  = true;')
-                    }
-                    if (federate.sendsTo.size > 0) {
-                        pr('__fed_has_downstream = true;')
-                    }
-                }
+                initializeFederate(federate)
                 unindent()
                 pr('}\n')
 
@@ -629,12 +616,26 @@ class CGenerator extends GeneratorBase {
                 // Generate the termination function.
                 // If there are federates, this will resign from the federation.
                 if (federates.length > 1) {
+                    // FIXME: Send EOF on any open P2P sockets.
+                    // FIXME: Check return values.
                     pr('''
                         void __termination() {
-                            unsigned char message_marker = RESIGN;
-                            if (write(rti_socket, &message_marker, 1) != 1) {
-                                fprintf(stderr, "WARNING: Failed to send RESIGN message to the RTI.\n");
+                            // Check for all outgoing physical connections in
+                            // _lf_federate_sockets_for_outbound_physical_connections and 
+                            // if the socket ID is not -1, the connection is still open. 
+                            // Send an EOF by closing the socket here.
+                            for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+                                if (_lf_federate_sockets_for_outbound_physical_connections[i] != -1) {
+                                    close(_lf_federate_sockets_for_outbound_physical_connections[i]);
+                                    _lf_federate_sockets_for_outbound_physical_connections[i] = -1;
+                                }
                             }
+                            «IF federate.inboundPhysicalConnections.length > 0»
+                                void* thread_return;
+                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                            «ENDIF»
+                            unsigned char message_marker = RESIGN;
+                            write_to_socket(_lf_rti_socket, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
                         }
                     ''')
                 } else {
@@ -658,6 +659,81 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * If the number of federates is greater than one, then generate the code
+     * that initializes global variables that describe the federate.
+     * @param federate The federate instance.
+     */
+    protected def void initializeFederate(FederateInstance federate) {
+        if (federates.length > 1) {
+            pr('''
+                // ***** Start initializing the federated execution. */
+            ''')
+            // Set indicator variables that specify whether the federate has
+            // upstream logical connections.
+            if (federate.dependsOn.size > 0) {
+                pr('__fed_has_upstream  = true;')
+            }
+            if (federate.sendsTo.size > 0) {
+                pr('__fed_has_downstream = true;')
+            }
+            // Set global variable identifying the federate.
+            pr('''_lf_my_fed_id = «federate.id»;''');
+            
+            // We keep separate record for incoming and outgoing physical connections to allow incoming traffic to be processed in a separate
+            // thread without requiring a mutex lock.
+            val numberOfInboundConnections = federate.inboundPhysicalConnections.length;
+            val numberOfOutboundConnections  = federate.outboundPhysicalConnections.length;
+            
+            pr('''
+                _lf_number_of_inbound_physical_connections = «numberOfInboundConnections»;
+                _lf_number_of_outbound_physical_connections = «numberOfOutboundConnections»;
+            ''')
+            if (numberOfInboundConnections > 0) {
+                pr('''
+                    // Initialize the array of socket for incoming connections to -1.
+                    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                        _lf_federate_sockets_for_inbound_physical_connections[i] = -1;
+                    }
+                ''')                    
+            }
+            if (numberOfOutboundConnections > 0) {                        
+                pr('''
+                    // Initialize the array of socket for outgoing connections to -1.
+                    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                        _lf_federate_sockets_for_outbound_physical_connections[i] = -1;
+                    }
+                ''')                    
+            }
+            
+            pr('''
+                // Connect to the RTI. This sets _lf_rti_socket.
+                connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
+            ''');
+        
+            if (numberOfInboundConnections > 0) {
+                pr('''
+                    // Create a socket server to listen to other federates.
+                    // If a port is specified by the user, that will be used
+                    // as the only possibility for the server. If not, the port
+                    // will start from STARTING_PORT. The function will
+                    // keep incrementing the port until the number of tries reaches PORT_RANGE_LIMIT.
+                    create_server(«federate.port»);
+                    // Connect to remote federates for each physical connection.
+                    // This is done in a separate thread because this thread will call
+                    // connect_to_federate for each outbound physical connection at the same
+                    // time that the new thread is listening for such connections for inbound
+                    // physical connections. The thread will live until termination.
+                    pthread_create(&_lf_inbound_p2p_handling_thread_id, NULL, handle_p2p_connections_from_federates, NULL);
+                ''')
+            }
+                            
+            for (remoteFederate : federate.outboundPhysicalConnections) {
+                pr('''connect_to_federate(«remoteFederate.id»);''')
+            }
+        }
     }
     
     /** Invoke the compiler on the generated code. */
@@ -2062,6 +2138,24 @@ class CGenerator extends GeneratorBase {
                 var Collection<PortInstance> destinationPorts = null
 
                 var portCount = 0
+                // Record the number of reactions that this reaction depends on.
+                // This is used for optimization. When that number is 1, the reaction can
+                // be executed immediately when its triggering reaction has completed.
+                val maximalUpstreamReactions = reaction.maximal(reaction.dependsOnReactions)
+                if (maximalUpstreamReactions.size == 1) {
+                    val upstreamReactionInstance = maximalUpstreamReactions.get(0)
+                    val upstreamReaction =
+                        '''«selfStructName(upstreamReactionInstance.parent)»->___reaction_«upstreamReactionInstance.reactionIndex»'''
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
+                        «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = &(«upstreamReaction»);
+                    ''')
+                } else {
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
+                        «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = NULL;
+                    ''')
+                }
                 for (port : reaction.dependentPorts) {
                     // The port to which the reaction writes may have dependent
                     // reactions in the container. If so, we list that port here.
@@ -3363,6 +3457,7 @@ class CGenerator extends GeneratorBase {
      * @param sendingFed The sending federate.
      * @param receivingFed The destination federate.
      * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
      */
     override generateNetworkSenderBody(
         VarRef sendingPort,
@@ -3370,7 +3465,8 @@ class CGenerator extends GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) { 
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -3378,14 +3474,27 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
-        // FIXME: Use send_via_rti if the physical keyword is supplied to the connection.
+        // If the connection is physical and the receiving federate is remote, send it directly on a socket.
+        // If the connection is physical and the receiving federate is local, send it via shared memory. FIXME: not implemented yet
+        // If the connection is logical, send via RTI.
+        var String socket;
+        var String messageType;
+        if (isPhysical) {
+            socket = '''_lf_federate_sockets_for_outbound_physical_connections[«receivingFed.id»]'''
+            messageType = "P2P_TIMED_MESSAGE"
+        } else {
+            // Logical connection
+            // Send the message via rti
+            socket = '''_lf_rti_socket'''
+            messageType = "TIMED_MESSAGE"
+        }
         if (isTokenType(type)) {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
-                send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                send_message_timed(«socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»->token);
             ''')
         } else {
@@ -3404,7 +3513,7 @@ class CGenerator extends GeneratorBase {
             }
             result.append('''
             size_t message_length = «lengthExpression»;
-            send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            send_message_timed(«socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             ''')
         }
         return result.toString
