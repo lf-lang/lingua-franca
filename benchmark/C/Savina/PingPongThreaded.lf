@@ -1,31 +1,38 @@
-/**
+ /**
  * Basic benchmark from the Savina benchmark suite that is
  * intended to measure message-passing overhead.
- * This version is distributed, communicating using physical connections over sockets.
  * See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
-
+ *
  * This is based on https://www.scala-lang.org/old/node/54
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
- * This is a distributed version, where Ping and Pong run in
- * separate programs and can be run on different machines.
+ * Ping introduces a microstep delay using a logical action
+ * to break the causality loop.
+ * 
+ * To get a sense, some (informal) results for 1,000,000 ping-pongs
+ * on my Mac:
+ * 
+ * Unthreaded: 97 msec
+ * Threaded: 265 msec  (168 msec with optimization of executing immediately)
  * 
  * There is no parallelism in this application, so it does not benefit from being
- * being distributed.
+ * being threaded, just some additional overhead.
  * 
- * These measurements are total execution time, including startup and shutdown, of
- * all three programs.
+ * These measurements are total execution time, including startup and shutdown.
+ * These are about an order of magnitude faster than anything reported in the paper.
  * 
  * @author Edward A. Lee
  */
-target C;
-reactor Ping(count:int(10)) {
+target C {
+    fast: true,
+    threads: 8
+};
+reactor Ping(count:int(1000000)) {
     input receive:int;
     output send:int;
     state pingsLeft:int(count);
     logical action serve;
-    reaction (startup, serve) -> send {= 
-        // printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
+    reaction (startup, serve) -> send {=
         SET(send, self->pingsLeft--);
     =}
     reaction (receive) -> serve {=
@@ -35,16 +42,14 @@ reactor Ping(count:int(10)) {
             stop();
         }
     =}
-} 
-reactor Pong(expected:int(10)) {
+}
+reactor Pong(expected:int(1000000)) {
     input receive:int;
     output send:int;
     state count:int(0);
     reaction(receive) -> send {=
         self->count++;
-        // printf("At logical time %lld, Pong received %d.\n", get_elapsed_logical_time(), receive->value);
-        SET(send, receive->value);
-        if (self->count == self->expected) stop();
+        SET(send, receive->value);   
     =}
     reaction(shutdown) {=
         if (self->count != self->expected) {
@@ -53,12 +58,13 @@ reactor Pong(expected:int(10)) {
             );
             exit(1);
         }
-        printf("Pong received %d pings.\n", self->count);
+        printf("Success.\n");
     =}
 }
-federated reactor PingPong(count:int(1000000)) {
-    ping = new Ping(count = count);
-    pong = new Pong(expected = count);
-    ping.send ~> pong.receive;
-    pong.send ~> ping.receive; 
+
+main reactor PingPong {
+    ping = new Ping();
+    pong = new Pong();
+    ping.send -> pong.receive;
+    pong.send -> ping.receive; 
 }

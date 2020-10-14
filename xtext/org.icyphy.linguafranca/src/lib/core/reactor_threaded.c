@@ -486,6 +486,25 @@ reaction_t* first_ready_reaction() {
 volatile bool __advancing_time = false;
 
 /**
+ * Put the specified reaction on the reaction queue.
+ * This version acquires a mutex lock.
+ * @param reaction The reaction.
+ */
+void _lf_enqueue_reaction(reaction_t* reaction) {
+    // Acquire the mutex lock.
+    // printf("DEBUG: pthread_mutex_lock worker to queue downstream reaction.\n");
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: pthread_mutex_locked\n");
+    // Do not enqueue this reaction twice.
+    if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+        // printf("DEBUG: Enqueing downstream reaction %p.\n", reaction);
+        pqueue_insert(reaction_q, reaction);
+    }
+    pthread_mutex_unlock(&mutex);
+    // printf("DEBUG: pthread_mutex_unlock after queueing downstream reaction.\n");
+}
+
+/**
  * Worker thread for the thread pool.
  */
 void* worker(void* arg) {
@@ -575,7 +594,7 @@ void* worker(void* arg) {
                         current_physical_time.tv_sec * BILLION
                         + current_physical_time.tv_nsec;
                 // Check for deadline violation.
-                if (reaction->deadline > 0LL && physical_time > current_time + reaction->deadline) {
+                if (physical_time > current_time + reaction->deadline) {
                     // Deadline violation has occurred.
                     violation = true;
                     // Invoke the local handler, if there is one.
@@ -585,13 +604,18 @@ void* worker(void* arg) {
                         // printf("DEBUG: pthread_mutex_unlock to run deadline handler.\n");
                         pthread_mutex_unlock(&mutex);
                         (*handler)(reaction->self);
+
+                        // If the reaction produced outputs, put the resulting
+                        // triggered reactions into the queue or execute them directly if possible.
+                        schedule_output_reactions(reaction);
+                        // Remove the reaction from the executing queue.
+
+                        // Need to acquire the mutex lock to remove this from the executing queue
+                        // and to obtain the next reaction to execute.
                         // printf("DEBUG: pthread_mutex_lock worker after running deadline handler\n");
                         pthread_mutex_lock(&mutex);
                         // printf("DEBUG: pthread_mutex_locked\n");
-                        // If the reaction produced outputs, put the resulting
-                        // triggered reactions into the queue.
-                        schedule_output_reactions(reaction);
-                        // Remove the reaction from the executing queue.
+
                         // This thread holds the mutex lock, so if this is the last
                         // reaction of the current time step, this thread will also
                         // be the one to advance time.
@@ -606,21 +630,23 @@ void* worker(void* arg) {
                 // Invoke the reaction function.
                  // printf("DEBUG: worker: Invoking reaction.\n");
                 reaction->function(reaction->self);
+                // If the reaction produced outputs, put the resulting triggered
+                // reactions into the queue while holding the mutex lock.
+                schedule_output_reactions(reaction);
+
                 // Reacquire the mutex lock.
                 // printf("DEBUG: pthread_mutex_lock worker after invoking reaction function\n");
                 pthread_mutex_lock(&mutex);
                 // printf("DEBUG: pthread_mutex_locked\n");
-                // If the reaction produced outputs, put the resulting triggered
-                // reactions into the queue while holding the mutex lock.
-                schedule_output_reactions(reaction);
+
                 // Remove the reaction from the executing queue.
                 // This thread holds the mutex lock, so if this is the last
                 // reaction of the current time step, this thread will also
                 // be the one to advance time.
                 pqueue_remove(executing_q, reaction);
-
-                 // printf("DEBUG: worker: Done invoking reaction.\n");
             }
+
+            // printf("DEBUG: worker: Done invoking reaction.\n");
         }
     } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
@@ -666,18 +692,17 @@ void __execute_reactions_during_wrapup() {
     // NOTE: deadlines on these reactions are ignored.
     // Is that the right thing to do?
     while (pqueue_size(reaction_q) > 0) {
-        reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
-
-        // Invoke the reaction function.
-        pthread_mutex_unlock(&mutex);
-        // printf("DEBUG: wrapup(): Invoking reaction.\n");
-        reaction->function(reaction->self);
         pthread_mutex_lock(&mutex);
+        reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
+        pthread_mutex_unlock(&mutex);
+        // Invoke the reaction function.
+        DEBUG_PRINT("wrapup(): Invoking reaction.\n");
+        reaction->function(reaction->self);
 
         // If the reaction produced outputs, insert the resulting triggered
         // reactions into the reaction queue.
         schedule_output_reactions(reaction);
-        // printf("DEBUG: wrapup(): Done invoking reaction.\n");
+        DEBUG_PRINT("wrapup(): Done invoking reaction.\n");
     }
 }
 
@@ -707,6 +732,8 @@ void wrapup() {
     current_time = wrapup_time;
 
     // Notify the RTI that the current logical time is complete.
+    // This function informs the RTI of the current_time in a 
+    // non-blocking manner.
     logical_time_complete(current_time);
 
     pthread_mutex_unlock(&mutex);
@@ -719,7 +746,7 @@ void wrapup() {
         // __wrapup() returns true if it has put shutdown events
         // onto the event queue.  We need to run reactions to those
         // events.
-         // printf("DEBUG: __wrapup returned true.\n");
+        DEBUG_PRINT("__wrapup returned true.");
         
         // Execute one iteration of next(), which will process the next
         // timestamp on the event queue, moving its reactions to the reaction
@@ -727,11 +754,12 @@ void wrapup() {
         // queue. We have to acquire the mutex first.
         pthread_mutex_lock(&mutex);
         if (__next()) {
-            // printf("DEBUG: wrapup: next() returned\n");
+            DEBUG_PRINT("wrapup: next() returned");
             __execute_reactions_during_wrapup();
         }
         pthread_mutex_unlock(&mutex);
     }
+
 }
 
 int main(int argc, char* argv[]) {
@@ -753,6 +781,10 @@ int main(int argc, char* argv[]) {
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mutex, &attr);
+
+    if (atexit(termination) != 0) {
+        fprintf(stderr, "WARNING: Failed to register termination function!");
+    }
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
@@ -791,10 +823,8 @@ int main(int argc, char* argv[]) {
         free(__thread_ids);
 
         wrapup();
-        termination();
         return 0;
     } else {
-        termination();
         return -1;
     }
 }

@@ -402,6 +402,8 @@ class ASTUtils {
         
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.physical) {
+            leftFederate.outboundPhysicalConnections.add(rightFederate)
+            rightFederate.inboundPhysicalConnections.add(leftFederate)
             action.origin = ActionOrigin.PHYSICAL
         } else {
             action.origin = ActionOrigin.LOGICAL
@@ -440,7 +442,8 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            action.inferredType
+            action.inferredType,
+            connection.isPhysical
         )
 
         // Configure the receiving reaction.

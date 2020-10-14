@@ -149,6 +149,19 @@ void print_snapshot() {
     printf(">>> END Snapshot\n");
 }
 
+/**
+ * Put the specified reaction on the reaction queue.
+ * This version does not acquire a mutex lock.
+ * @param reaction The reaction.
+ */
+void _lf_enqueue_reaction(reaction_t* reaction) {
+    // Do not enqueue this reaction twice.
+    if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+        // printf("DEBUG: Enqueing downstream reaction %p.\n", reaction);
+        pqueue_insert(reaction_q, reaction);
+    }
+}
+
 // Wait until physical time matches or exceeds the time of the least tag
 // on the event queue. If there is no event in the queue, return 0.
 // After this wait, advance current_time to match
