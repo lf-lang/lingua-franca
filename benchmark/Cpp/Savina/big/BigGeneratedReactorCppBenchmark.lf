@@ -111,6 +111,7 @@ reactor BigReactor(id:int(-1), numMessages:int(20000), numWorkers:int(120)) {
     
     public preamble {=
         #include "BigCommon.hh"
+        #include "PseudoRandom.hh"
     =}
     
     state numPings:int(0);
