@@ -104,7 +104,7 @@ class CppGenerator extends GeneratorBase {
     Reactor mainReactor
 
     /** Path to the Cpp lib directory (relative to class path)  */
-    val libDir = File.separator + "lib" + File.separator + "Cpp"
+    val libDir = "/lib/Cpp"
 
     def toDir(Resource r) {
         r.toPath.getFilename
@@ -147,11 +147,11 @@ class CppGenerator extends GeneratorBase {
             mainReactor.generateMain)
         fsa.generateFile(filename + File.separator + "CMakeLists.txt",
             generateCmake)
-        copyFileFromClassPath(libDir + File.separator + "lfutil.hh",
+        copyFileFromClassPath(libDir + "/lfutil.hh",
             fsa.getAbsolutePath('''/«filename»/__include__/lfutil.hh'''))
-        copyFileFromClassPath(libDir + File.separator + "time_parser.hh",
+        copyFileFromClassPath(libDir + "/time_parser.hh",
             fsa.getAbsolutePath('''/«filename»/__include__/time_parser.hh'''))
-        copyFileFromClassPath(libDir + File.separator + "3rd-party" + File.separator + "CLI11.hpp",
+        copyFileFromClassPath(libDir + "/3rd-party/CLI11.hpp",
             fsa.getAbsolutePath('''/«filename»/__include__/CLI/CLI11.hpp'''))
 
         for (r : reactors) {
