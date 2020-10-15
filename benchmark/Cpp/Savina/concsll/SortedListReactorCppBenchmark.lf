@@ -1,0 +1,212 @@
+/**
+ * Concurrency benchmark from the Savina benchmark suite.
+ * Intended to measure intra-actor parallelism if 
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ *
+ * Informal results for 8,000 messages per worker, write percentage 10,
+ * sizePercentage 1
+ * on my PC with fast forward enabled:
+ * Unthreaded: 550 ms
+ * Threaded: 870 ms
+ * 
+ * For comparison some informal results for 8,000 messages per worker,
+ * write percentage 10, sizePercentage 1,
+ * on the same PC with the Savina Akka implementation:
+ * Threaded: ~ 14 s
+ * 
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    cmake-include: "SortedListReactorCpp.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor Master(numWorkers:int(20)) {
+    
+    state numWorkersTerminated:int(0);
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    //TODO parametrize
+    output[20] outWorkers:void;
+    input[20] inWorkers:void;
+    output outSortedList:void;
+    
+    logical action startExecution:void;
+    logical action finish:void;
+    
+    reaction(startExecution) -> outWorkers {=
+        for(int i = 0; i < outWorkers.size(); ++i) {
+            outWorkers[i].set();
+        }
+    =}
+    
+    reaction(finish) -> outFinished {=
+        outFinished.set();
+        outSortedList.set();
+    =}
+    
+    reaction(inWorkers) -> finish {=
+        
+        for(int i = 0; i < inWorkers.size(); ++i) {
+            if(inWorkers[i].is_present()) {
+                numWorkersTerminated += 1;
+                
+                if(numWorkersTerminated == numWorkers) {
+                    finish.schedule();
+                }
+            }
+        }
+    =}
+    
+    reaction(inStart) -> startExecution {=
+        
+        // init local state
+        numWorkersTerminated = 0;
+        
+        // start execution
+        startExecution.schedule();
+    =}
+}
+
+
+reactor Worker(instance:int(0), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1)) {
+    
+    public preamble {=
+        #include "include/PseudoRandom.hh"
+        #include "SortedListCommon.hh"
+    =}
+    
+    state messageCount:int(0);
+    state random:{=PseudoRandom=};
+    
+    output outMaster:void;
+    input inMaster:void;
+    output outSortedList:{=Message=};
+    input inSortedList:void;
+    
+    reaction(startup) {=
+        // one time initialization
+        random = PseudoRandom(instance + numMessagesPerWorker + writePercentage + sizePercentage);
+    =}
+    
+    reaction(inMaster, inSortedList) -> outMaster, outSortedList {=
+        
+        messageCount += 1;
+        if(messageCount <= numMessagesPerWorker) {
+            int anInt = random.nextInt(100);
+            
+            if(anInt < sizePercentage) {
+                outSortedList.set(Message{SizeMsg, -1});
+            } else if(anInt < (sizePercentage + writePercentage)) {
+                outSortedList.set(Message{WriteMsg, random.nextInt()});
+            } else {
+                outSortedList.set(Message{ContainsMsg, random.nextInt()});
+            }
+        } else {
+            // reset local state
+            messageCount = 0;
+            random = PseudoRandom(instance + numMessagesPerWorker + writePercentage + sizePercentage);
+            
+            outMaster.set();
+        }
+    =}
+}
+
+
+reactor SortedList {
+    
+    public preamble {=
+        #include "SortedListCommon.hh"
+        #include "SortedLinkedList.hh"
+        #include "reactor-cpp/logging.hh"
+        #include <bitset>
+    =}
+    
+    state dataList:{=SortedLinkedList<int>=};
+    state workersToSend:{=std::bitset<20>=};
+    
+    input inMaster:void;
+    input[20] inWorkers:{=Message=};
+    output[20] outWorkers:void;
+    
+    logical action sendAnswers:void;
+    
+    reaction(inMaster) {=
+        // check result
+        reactor::log::Info() << "List Size = " << dataList.size();
+        
+        // reset local state
+        dataList = SortedLinkedList<int>();
+        workersToSend.reset();
+    =}
+    
+    reaction(sendAnswers) -> outWorkers {=
+        for(int i = 0; i < outWorkers.size(); ++i) {
+            if(workersToSend[i]) {
+                outWorkers[i].set();
+                workersToSend[i] = false;
+            }
+        }
+    =}
+    
+    reaction(inWorkers) -> sendAnswers {=
+        
+        sendAnswers.schedule();
+        
+        for(int i = 0; i < inWorkers.size(); ++i) {
+            if(inWorkers[i].is_present()) {
+                
+                if(inWorkers[i].get()->type == WriteMsg) {
+                    
+                    int value = inWorkers[i].get()->value;
+                    dataList.add(value);
+                    workersToSend[i] = true;
+                    
+                } else if(inWorkers[i].get()->type == ContainsMsg) {
+                    
+                    int value = inWorkers[i].get()->value;
+                    int result = dataList.contains(value) ? 1 : 0;
+                    workersToSend[i] = true;
+                    
+                } else if(inWorkers[i].get()->type == SizeMsg) {
+                    
+                    int value = dataList.size();
+                    workersToSend[i] = true;
+                    
+                }
+            }
+        }
+    =}
+}
+
+
+main reactor SortedListBenchmark(numIterations:int(12), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1)) {
+    
+    master = new Master(numWorkers=20);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> master.inStart;
+    master.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("SortedListReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker, "writePercentage", writePercentage, "sizePercentage", sizePercentage);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    workers = new[20] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
+    sortedList = new SortedList();
+    
+    master.outSortedList -> sortedList.inMaster;
+    master.outWorkers -> workers.inMaster;
+    sortedList.outWorkers -> workers.inSortedList;
+    workers.outMaster -> master.inWorkers;
+    workers.outSortedList -> sortedList.inWorkers;
+    
+}
