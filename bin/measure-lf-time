@@ -177,9 +177,9 @@ for (( i=0; i<$entries; i++ )); do \
             }
             END {
                 if (NR % 2) {
-                    print result[(NR + 1) / 2];
+                    printf "%d", result[(NR + 1) / 2];
                 } else {
-                    print (result[(NR / 2)] + result[(NR / 2) + 1]) / 2.0;
+                    printf "%d", (result[(NR / 2)] + result[(NR / 2) + 1]) / 2.0;
                 }
             }
         ')
