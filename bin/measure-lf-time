@@ -173,7 +173,7 @@ for (( i=0; i<$entries; i++ )); do \
                 gsub(/,/,"",$7);
                 # Store the physical execution time in result
                 # for each row
-                result[NR]=$7;
+                result[NR]=$7+0;
             }
             END {
                 if (NR % 2) {
