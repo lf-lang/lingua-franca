@@ -1,0 +1,195 @@
+/**
+ * Concurrency benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * @author Hannes Klein
+ */
+
+target Cpp {
+    cmake-include: "LogisticMap.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor RateComputer(instance:int(0), startRate:double(3.46), rateIncrement:double(0.0025)) {
+    
+    public preamble {=
+        #include "LogisticMapCommon.hh"
+    =}
+    
+    state rate:double;
+    
+    input inSeriesWorker:{=Message=};
+    output outSeriesWorker:{=Message=};
+    
+    reaction(startup) {=
+        rate = startRate + (instance * rateIncrement);
+    =}
+    
+    reaction(inSeriesWorker) -> outSeriesWorker {=
+        
+        if(inSeriesWorker.get()->type == ComputeMsg) {
+            
+            double result = computeNextTerm(inSeriesWorker.get()->term, rate);
+            outSeriesWorker.set(Message{ResultMsg, result});
+        }
+    =}
+    
+    private preamble {=
+        
+        static double computeNextTerm(const double curTerm, const double rate) {
+            return rate * curTerm * (1 - curTerm);
+        }
+    =}
+}
+
+reactor SeriesWorker(instance:int(0), termIncrement:double(0.0025)) {
+    
+    public preamble {=
+        #include "LogisticMapCommon.hh"
+    =}
+    
+    state curTerm:{=std::vector<double>=};
+    state startTerm:{=double=};
+    
+    input inMaster:{=Message=};
+    output outMaster:{=Message=};
+    output outRateComputer:{=Message=};
+    input inRateComputer:{=Message=};
+    
+    reaction(startup) {=
+        startTerm = instance * termIncrement;
+    =}
+    
+    reaction(inMaster) -> outRateComputer, outMaster {=
+        
+        if(inMaster.get()->type == ResetMsg) {
+            
+            //reset local state
+            curTerm = std::vector<double>{ startTerm };
+            
+        } else if(inMaster.get()->type == NextTermMsg) {
+            
+            outRateComputer.set(Message{ComputeMsg, curTerm[0]});
+            
+        } else if(inMaster.get()->type == GetTermMsg) {
+            
+            outMaster.set(Message{ResultMsg, curTerm[0]});
+        }
+    =}
+    
+    reaction(inRateComputer) {=
+        
+        if(inRateComputer.get()->type == ResultMsg) {
+            
+            curTerm[0] = inRateComputer.get()->term;
+        }
+    =}
+}
+
+
+reactor Master(numSeries:int(10), numTerms:int(25000)) {
+    
+    public preamble {=
+        #include "LogisticMapCommon.hh"
+    =}
+    
+    private preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state numWorkRequested:int(0);
+    state numWorkReceived:int(0);
+    state termsSum:double(0.0);
+    state currentTerm:int(0);
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    //TODO parametrize
+    output[10] outSeriesWorkers:{=Message=};
+    input[10] inSeriesWorkers:{=Message=};
+    
+    logical action nextTerms:void;
+    
+    reaction(inStart) -> nextTerms, outSeriesWorkers {=
+        
+        //reset local state
+        numWorkRequested = 0;
+        numWorkReceived = 0;
+        termsSum = 0.0;
+        currentTerm = 0;
+        
+        nextTerms.schedule();
+        auto msg = reactor::make_immutable_value<Message>(Message{ResetMsg, 0.0});
+        for(int i = 0; i < outSeriesWorkers.size(); i++) {
+            outSeriesWorkers[i].set(msg);
+        }
+        
+    =}
+    
+    reaction(nextTerms) -> outSeriesWorkers, nextTerms {=
+        
+        if(currentTerm == numTerms) {
+            auto msg = reactor::make_immutable_value<Message>(Message{GetTermMsg, 0.0});
+            for(int i = 0; i < outSeriesWorkers.size(); ++i) {
+                outSeriesWorkers[i].set(msg);
+                numWorkRequested += 1;
+            }
+            return;
+        }
+        auto msg = reactor::make_immutable_value<Message>(Message{NextTermMsg, 0.0});
+        for(int i = 0; i < outSeriesWorkers.size(); ++i) {
+            outSeriesWorkers[i].set(msg);
+        }
+        currentTerm += 1;
+        nextTerms.schedule();
+        
+    =}
+    
+    reaction(inSeriesWorkers) -> outFinished {=
+        
+        for(int i = 0; i < inSeriesWorkers.size(); ++i) {
+            if(inSeriesWorkers[i].is_present()) {
+                if(inSeriesWorkers[i].get()->type == ResultMsg) {
+                    
+                    termsSum += inSeriesWorkers[i].get()->term;
+                    numWorkReceived += 1;
+                    
+                    if(numWorkRequested == numWorkReceived) {
+                        
+                        reactor::log::Info() << "Terms sum: " << termsSum;
+                        outFinished.set();
+                    }
+                }
+            }
+        }
+    =}
+}
+
+
+main reactor DictionaryBenchmark(numIterations:int(12), numTerms:int(25000), startRate:double(3.46)) {
+    
+    master = new Master(numSeries=10, numTerms=numTerms);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> master.inStart;
+    master.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("LogisticMapReactorLFCppBenchmark");
+        printArgs("numIterations", numIterations, "numTerms", numTerms, "startRate", startRate, "numSeries", 10);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    rateComputers = new[10] RateComputer(startRate=startRate, rateIncrement=0.0025);
+    seriesWorkers = new[10] SeriesWorker(termIncrement=0.0025);
+    
+    master.outSeriesWorkers -> seriesWorkers.inMaster;
+    rateComputers.outSeriesWorker -> seriesWorkers.inRateComputer;
+    seriesWorkers.outRateComputer -> rateComputers.inSeriesWorker;
+    seriesWorkers.outMaster -> master.inSeriesWorkers;
+    
+}
