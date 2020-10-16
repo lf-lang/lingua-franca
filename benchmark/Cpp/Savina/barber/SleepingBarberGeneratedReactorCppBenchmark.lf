@@ -1,0 +1,373 @@
+/**
+ * Code generator for a variable number of reactors
+ * using the python module cog.
+ * See https://nedbatchelder.com/code/cog/
+ * 
+ * Run 'cog -r -D numHaircuts=2000 this-file.lf'
+ * with the desired number of reactors and the name of this file as arguments.
+ * 
+ * @author Hannes Klein
+ */
+
+/* [[[cog
+  if 'numHaircuts' in globals():
+    numHaircuts = int(numHaircuts)
+  else:
+    globals()['numHaircuts'] = 2000
+]]] */
+// [[[end]]]
+
+
+target Cpp {
+    keepalive : true,
+    cmake-include: "SleepingBarberReactorCpp.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:int(1000)) {
+    
+    public preamble {=
+        #include "include/PseudoRandom.hh"
+        #include "SleepingBarberCommon.hh"
+        #include <list>
+    =}
+    
+    private preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state numHairCutsSoFar:int(0);
+    state numAttempts:long(0); // idGenerator in Savina
+    state nextCustomerToSendFirstIdx:int(0);
+    state customersToReturn:{=std::list<int>=};
+    state random:{=PseudoRandom=};
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    output outRoom:{=Message=};
+    output outBarber:{=Message=}; // only needed to reset between iterations
+    /* [[[cog
+      cog.outl(f'input[{numHaircuts}] inCustomers:{{=Message=}};')
+    ]]] */
+    input[2001] inCustomers:{=Message=};
+    // [[[end]]]
+    
+    logical action sendCustomersFirstVisit:void;
+    logical action sendCustomersToReturn:void;
+    logical action exit:void;
+    
+    reaction(inStart) -> outRoom, outBarber, sendCustomersFirstVisit {=
+        
+        // reset local state
+        numHairCutsSoFar = 0;
+        numAttempts = 0;
+        nextCustomerToSendFirstIdx = 0;
+        customersToReturn.clear();
+        random = PseudoRandom();
+        
+        // send signals to reset
+        outBarber.set(Message{ResetMsg});
+        outRoom.set(Message{ResetMsg});
+        
+        // start execution
+        sendCustomersFirstVisit.schedule();
+    =}
+    
+    reaction(sendCustomersFirstVisit) -> outRoom, sendCustomersFirstVisit, sendCustomersToReturn {=
+        
+        if(nextCustomerToSendFirstIdx == numHaircuts) {
+            sendCustomersToReturn.schedule();
+            return;
+        }
+        
+        numAttempts += 1;
+        outRoom.set(Message{EnterMsg, nextCustomerToSendFirstIdx});
+        nextCustomerToSendFirstIdx += 1;
+        sendCustomersFirstVisit.schedule();
+        busyWait(random.nextInt(averageProductionRate) + 10);
+    =}
+    
+    reaction(sendCustomersToReturn) -> outRoom {=
+        
+        if(customersToReturn.empty()) {
+            // wait for finish
+            return;
+        }
+        
+        numAttempts += 1;
+        outRoom.set(Message{EnterMsg, customersToReturn.front()});
+        customersToReturn.pop_front();
+        sendCustomersToReturn.schedule();
+    =}
+    
+    reaction(exit) -> outRoom, outBarber, outFinished {=
+        
+        outRoom.set(Message{ExitMsg});
+        outBarber.set(Message{ExitMsg});
+        outFinished.set();
+    =}
+    
+    reaction(inCustomers) -> sendCustomersToReturn, exit {=
+        
+        for(int i = 0; i < inCustomers.size(); i++) {
+            if(inCustomers[i].is_present()) {
+                if(inCustomers[i].get()->type == ReturnedMsg) {
+                    
+                    customersToReturn.push_back(i);
+                    
+                } else if(inCustomers[i].get()->type == DoneMsg) {
+                    
+                    numHairCutsSoFar += 1;
+                    if(numHairCutsSoFar == numHaircuts) {
+                        reactor::log::Info() << "Hair cuts given: " << numHairCutsSoFar << "; Total attempts: " << numAttempts;
+                        exit.schedule();
+                    }
+                }
+            }
+        }
+        sendCustomersToReturn.schedule(); //accept to schedule the last time without reason
+    =}
+    
+    private preamble {=
+        
+        static int busyWait(const int limit) {
+            int test = 0;
+            
+            for(int k = 0; k < limit; ++k) {
+                rand();
+                ++test;
+            }
+            
+            return test;
+        }
+    =}
+}
+
+reactor CustomerReactor(instance:int(0)) {
+    
+    public preamble {=
+        #include "SleepingBarberCommon.hh"
+    =}
+    
+    output outController:{=Message=};
+    input inRoom:{=Message=};
+    input inBarber:{=Message=};
+    
+    reaction(inRoom) -> outController {=
+        
+        if(inRoom.get()->type == FullMsg) {
+            
+            outController.set(Message{ReturnedMsg, instance});
+            
+        } else if(inRoom.get()->type == WaitMsg) {
+            
+            // do nothing, just sit in the waiting room
+        }
+    =}
+    
+    reaction(inBarber) -> outController {=
+        
+        if(inBarber.get()->type == StartMsg) {
+            
+            // do nothing, the barber is barbering me now.
+            
+        } else if(inBarber.get()->type == DoneMsg) {
+            
+            outController.set(Message{DoneMsg});
+            // this reactor is finished and could be destroyed
+        }
+    =}
+}
+
+reactor BarberReactor(averageHaircutRate:int(1000)) {
+    
+    public preamble {=
+        #include "SleepingBarberCommon.hh"
+        #include "include/PseudoRandom.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state currentCustomerIdx:int(-1);
+    state random:{=PseudoRandom=};
+    
+    input inRoom:{=Message=};
+    input inController:{=Message=};
+    /* [[[cog
+      cog.outl(f'output[{numHaircuts}] outCustomers:{{=Message=}};')
+    ]]] */
+    output[2001] outCustomers:{=Message=};
+    // [[[end]]]
+    output outRoom:{=Message=};
+    
+    logical action cutHair:void;
+    
+    reaction(inController) {=
+        
+        if(inController.get()->type == ResetMsg) {
+            
+            // reset local state
+            currentCustomerIdx = -1;
+            random = PseudoRandom();
+            
+        }  else if(inController.get()->type == ExitMsg) {
+            
+            // do nothing
+        }
+    =}
+    
+    reaction(cutHair) -> outRoom, outCustomers {=
+        
+        reactor::log::Debug() << "Cutting hair of customer " << currentCustomerIdx;
+        busyWait(random.nextInt(averageHaircutRate) + 10); // doing work inline is overall faster in this benchmark
+        outCustomers[currentCustomerIdx].set(Message{DoneMsg});
+        currentCustomerIdx = -1;
+        outRoom.set(Message{NextMsg});
+    =}
+    
+    reaction(inRoom) -> outCustomers {=
+        
+        if(inRoom.get()->type == EnterMsg) {
+            
+            currentCustomerIdx = inRoom.get()->id;
+            reactor::log::Debug() << "Barber is serving customer " << currentCustomerIdx;
+            outCustomers[currentCustomerIdx].set(Message{StartMsg});
+            cutHair.schedule();
+            
+        } else if(inRoom.get()->type == WaitMsg) {
+            
+            // do nothing and to to sleep
+        }
+    =}
+    
+    private preamble{=
+        
+        static int busyWait(const int limit) {
+            int test = 0;
+            
+            for(int k = 0; k < limit; ++k) {
+                rand();
+                ++test;
+            }
+            
+            return test;
+        }
+    =}
+}
+
+reactor WaitingRoomReactor(capacity:int(1000), numCustomers:int(2000)) {
+    
+    public preamble {=
+        #include "SleepingBarberCommon.hh"
+        #include "reactor-cpp/logging.hh"
+        #include <queue>
+    =}
+    
+    state waitingCustomers:{=std::queue<int>=};
+    state barberAsleep:bool(true);
+    
+    /* [[[cog
+      cog.outl(f'output[{numHaircuts}] outCustomers:{{=Message=}};')
+    ]]] */
+    output[2001] outCustomers:{=Message=};
+    // [[[end]]]
+    input inBarber:{=Message=};
+    output outBarber:{=Message=};
+    input inController:{=Message=};
+    
+    logical action wakeBarber:{=Message=};
+    
+    reaction(inBarber, wakeBarber) -> outBarber {=
+        
+        if(wakeBarber.is_present() && wakeBarber.get()->type == NextMsg ||
+            inBarber.is_present() && inBarber.get()->type == NextMsg) {
+            
+            if(!waitingCustomers.empty()) {
+                int customerIdx = waitingCustomers.front();
+                reactor::log::Debug() << "Room is sending customer " << customerIdx << " to the barber.";
+                waitingCustomers.pop();
+                outBarber.set(Message{EnterMsg, customerIdx});
+            } else {
+                outBarber.set(Message{WaitMsg});
+                barberAsleep = true;
+            }
+        }
+    =}
+    
+    reaction(inController) -> outCustomers, wakeBarber, outBarber {=
+        
+        if(inController.get()->type == EnterMsg) {
+            
+            int customerIdx = inController.get()->id;
+            reactor::log::Debug() << "Customer " << customerIdx << " trying to enter.";
+            
+            if(waitingCustomers.size() == capacity) {
+                outCustomers[customerIdx].set(Message{FullMsg});
+            } else {
+                
+                waitingCustomers.push(customerIdx);
+                if(barberAsleep) {
+                    barberAsleep = false;
+                    wakeBarber.schedule(Message{NextMsg, customerIdx});
+                } else {
+                    outCustomers[customerIdx].set(Message{WaitMsg});
+                }
+            }
+            
+        } else if(inController.get()->type == ResetMsg) {
+            
+            // reset local state
+            waitingCustomers = std::queue<int>();
+            barberAsleep = true;
+            
+        } else if(inController.get()->type == ExitMsg) {
+            
+            // do nothing, controller sends exit msg to barber directly
+        }
+    =}
+}
+
+main reactor SleepingBarberBenchmark(numIterations:int(12), waitingRoomSize:int(1000), averageProductionRate:int(1000), averageHaircutRate:int(1000)) {
+    
+    /* [[[cog
+      cog.outl(f'controller = new CustomerControllerReactor(numHaircuts={numHaircuts}, averageProductionRate=averageProductionRate);')
+    ]]] */
+    controller = new CustomerControllerReactor(numHaircuts=2001, averageProductionRate=averageProductionRate);
+    // [[[end]]]
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> controller.inStart;
+    controller.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("SleepingBarberReactorLFCppBenchmark");
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", {numHaircuts});')
+        ]]] */
+        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", 2001);
+        /// [[[end]]]
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      cog.outl(f'room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers={numHaircuts});')
+      cog.outl(f'customers = new[{numHaircuts}] CustomerReactor();')
+    ]]] */
+    room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers=2001);
+    customers = new[2001] CustomerReactor();
+    // [[[end]]]
+    barber = new BarberReactor(averageHaircutRate=averageHaircutRate);
+    
+    controller.outRoom -> room.inController;
+    controller.outBarber -> barber.inController;
+    
+    room.outCustomers -> customers.inRoom;
+    room.outBarber -> barber.inRoom;
+    
+    barber.outCustomers -> customers.inBarber;
+    barber.outRoom -> room.inBarber;
+    
+    customers.outController -> controller.inCustomers;
+}
