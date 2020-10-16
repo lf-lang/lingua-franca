@@ -1,8 +1,9 @@
-/** Test a particularly simple form of a distributed deterministic system
- *  where a federation that receives timestamped messages has only those
- *  messages as triggers. Therefore, no additional coordination of the
- *  advancement of time (HLA or Ptides) is needed.
- *  @author Edward A. Lee
+/** 
+ * Test a particularly simple form of a distributed deterministic system
+ * where a federation that receives timestamped messages has a timer in addition to the messages
+ * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
     timeout: 5 sec,
@@ -16,15 +17,15 @@ reactor Print {
     input in:int;
     state success:bool(false);
     timer t(0, 10 msec); // Force a timer to be invoke periodically
-    					 // to ensure logical time will advance in the
-    					 // absense of incoming messages.
+                         // to ensure logical time will advance in the
+                         // absence of incoming messages.
     state c:int(0);
     reaction(in) {=
         interval_t current_time = get_logical_time();
         printf("At time %llu received %d.\n", get_elapsed_logical_time(), in->value);
         if (current_time != SEC(1) *  self->c) {
-        	self->success = false; // Message was not on-time
-        						   // but it wasn't detected
+            self->success = false; // Message was not on-time
+                                   // but it wasn't detected
         } else {
             self->success = true; // Message was on-time
         }

@@ -40,5 +40,5 @@ federated reactor DistributedCount {
     c = new Count();
     p = new Print();
     c.out -> p.in after 200 msec;    // Indicating a 'logical' connection
-    								 // with a large enough delay.
+                                     // with a large enough delay.
 }
