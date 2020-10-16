@@ -621,16 +621,16 @@ class CGenerator extends GeneratorBase {
                     pr('''
                         void __termination() {
                             // Check for all outgoing physical connections in
-                            // _lf_federate_sockets_for_outbound_physical_connections and 
+                            // _lf_federate_sockets_for_outbound_p2p_connections and 
                             // if the socket ID is not -1, the connection is still open. 
                             // Send an EOF by closing the socket here.
                             for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
-                                if (_lf_federate_sockets_for_outbound_physical_connections[i] != -1) {
-                                    close(_lf_federate_sockets_for_outbound_physical_connections[i]);
-                                    _lf_federate_sockets_for_outbound_physical_connections[i] = -1;
+                                if (_lf_federate_sockets_for_outbound_p2p_connections[i] != -1) {
+                                    close(_lf_federate_sockets_for_outbound_p2p_connections[i]);
+                                    _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
                                 }
                             }
-                            «IF federate.inboundPhysicalConnections.length > 0»
+                            «IF federate.inboundP2PConnections.length > 0»
                                 void* thread_return;
                                 pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
@@ -682,20 +682,20 @@ class CGenerator extends GeneratorBase {
             // Set global variable identifying the federate.
             pr('''_lf_my_fed_id = «federate.id»;''');
             
-            // We keep separate record for incoming and outgoing physical connections to allow incoming traffic to be processed in a separate
+            // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic to be processed in a separate
             // thread without requiring a mutex lock.
-            val numberOfInboundConnections = federate.inboundPhysicalConnections.length;
-            val numberOfOutboundConnections  = federate.outboundPhysicalConnections.length;
+            val numberOfInboundConnections = federate.inboundP2PConnections.length;
+            val numberOfOutboundConnections  = federate.outboundP2PConnections.length;
             
             pr('''
-                _lf_number_of_inbound_physical_connections = «numberOfInboundConnections»;
-                _lf_number_of_outbound_physical_connections = «numberOfOutboundConnections»;
+                _lf_number_of_inbound_p2p_connections = «numberOfInboundConnections»;
+                _lf_number_of_outbound_p2p_connections = «numberOfOutboundConnections»;
             ''')
             if (numberOfInboundConnections > 0) {
                 pr('''
                     // Initialize the array of socket for incoming connections to -1.
                     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                        _lf_federate_sockets_for_inbound_physical_connections[i] = -1;
+                        _lf_federate_sockets_for_inbound_p2p_connections[i] = -1;
                     }
                 ''')                    
             }
@@ -703,7 +703,7 @@ class CGenerator extends GeneratorBase {
                 pr('''
                     // Initialize the array of socket for outgoing connections to -1.
                     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                        _lf_federate_sockets_for_outbound_physical_connections[i] = -1;
+                        _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
                     }
                 ''')                    
             }
@@ -730,7 +730,7 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
                             
-            for (remoteFederate : federate.outboundPhysicalConnections) {
+            for (remoteFederate : federate.outboundP2PConnections) {
                 pr('''connect_to_federate(«remoteFederate.id»);''')
             }
         }
@@ -1956,6 +1956,22 @@ class CGenerator extends GeneratorBase {
         pr(body)
         unindent()
         pr("}")
+
+        // Now generate code for the late function, if there is one
+        // Note that this function can only be defined on reactions
+        // in federates that have inputs from a logical connection.
+        if (reaction.late !== null) {
+            val lateFunctionName = decl.name.toLowerCase + '_late_function' + reactionIndex
+
+            pr('void ' + lateFunctionName + '(void* instance_args) {')
+            indent();
+            generateInitializationForReaction(body, reaction, reactor)
+            // Code verbatim from 'late'
+            prSourceLineNumber(reaction.late.code)
+            pr(reaction.late.code.toText)
+            unindent()
+            pr("}")
+        }
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
@@ -3476,11 +3492,12 @@ class CGenerator extends GeneratorBase {
         ''')
         // If the connection is physical and the receiving federate is remote, send it directly on a socket.
         // If the connection is physical and the receiving federate is local, send it via shared memory. FIXME: not implemented yet
-        // If the connection is logical, send via RTI.
+        // If the connection is logical and the coordination mode is centralized, send via RTI.
+        // If the connection is logical and the coordination mode is distributed, send directly
         var String socket;
         var String messageType;
-        if (isPhysical) {
-            socket = '''_lf_federate_sockets_for_outbound_physical_connections[«receivingFed.id»]'''
+        if (isPhysical || targetCoordination == "distributed") {
+            socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
             // Logical connection

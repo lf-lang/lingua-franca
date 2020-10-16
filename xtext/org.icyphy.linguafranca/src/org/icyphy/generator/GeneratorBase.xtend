@@ -326,6 +326,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected boolean targetFast = false
     
     /**
+     * The coordination target parameter. Default is
+     * centralized.
+     */
+    protected String targetCoordination = "centralized"
+    
+    /**
      * List of files to be copied to src-gen.
      */
     protected List<File> targetFiles = newLinkedList
@@ -398,6 +404,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
+    def String getTargetCoordination() {
+        return targetCoordination
+    }
+    
     /**
      * Store the given reactor in the collection of generated delay classes
      * and insert it in the AST under the top-level reactors node.
@@ -457,6 +467,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetFast = true
                         }
+                    case TargetProperties.COORDINATION.name:
+                        // Set the target coordination if assigned
+                        // by the user. Values can only be
+                        // 'centralized' or 'distributed'.
+                        this.targetCoordination = param.value.id
                     case TargetProperties.FILES.name:
                         this.targetFiles.addAll(this.collectFiles(param.value))
                     case TargetProperties.PROTOBUFS.name: 

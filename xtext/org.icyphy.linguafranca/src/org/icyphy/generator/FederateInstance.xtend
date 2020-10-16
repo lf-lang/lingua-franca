@@ -124,7 +124,7 @@ class FederateInstance {
      * responsible for including the appropriate information in the message header (such as port ID)
      * to help the receiver distinguish different events.
      */
-    public var inboundPhysicalConnections = new LinkedHashSet<FederateInstance>()
+    public var inboundP2PConnections = new LinkedHashSet<FederateInstance>()
     
     /**
      * A list of federate with which this federate has an outbound physical connection. 
@@ -133,7 +133,7 @@ class FederateInstance {
      * responsible for distinguishing the incoming messages by parsing their header and
      * scheduling the appropriate action.
      */
-    public var outboundPhysicalConnections = new LinkedHashSet<FederateInstance>()
+    public var outboundP2PConnections = new LinkedHashSet<FederateInstance>()
 
     /////////////////////////////////////////////
     //// Public Methods

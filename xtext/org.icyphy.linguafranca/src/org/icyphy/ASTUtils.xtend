@@ -402,10 +402,17 @@ class ASTUtils {
         
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.physical) {
-            leftFederate.outboundPhysicalConnections.add(rightFederate)
-            rightFederate.inboundPhysicalConnections.add(leftFederate)
+            leftFederate.outboundP2PConnections.add(rightFederate)
+            rightFederate.inboundP2PConnections.add(leftFederate)
             action.origin = ActionOrigin.PHYSICAL
         } else {
+            // If the connection is logical but coordination
+            // is distributed (decentralized), we would need
+            // to make P2P connections
+            if (generator.targetCoordination == "distributed") {
+                leftFederate.outboundP2PConnections.add(rightFederate)
+                rightFederate.inboundP2PConnections.add(leftFederate)                
+            }            
             action.origin = ActionOrigin.LOGICAL
         }
         
