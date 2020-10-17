@@ -499,6 +499,7 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
         // printf("DEBUG: Enqueing downstream reaction %p.\n", reaction);
         pqueue_insert(reaction_q, reaction);
+        pthread_cond_signal(&reaction_q_changed);
     }
     pthread_mutex_unlock(&mutex);
     // printf("DEBUG: pthread_mutex_unlock after queueing downstream reaction.\n");
