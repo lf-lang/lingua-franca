@@ -2096,7 +2096,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             
             // For each connection between federates, replace it in the
             // AST with an action (which inherits the delay) and two reactions.
-            // The action will be physical.
+            // The action will be physical for physical connections and logical
+            // for logical connections.
             var connectionsToRemove = new LinkedList<Connection>()
             for (connection : mainDefn.connections) {
                 // FIXME: Connections between federates do not support parallel connections.
@@ -2110,7 +2111,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     // Connection spans federates.
                     // First, update the dependencies in the FederateInstances.
                     // Exclude physical connections because these do not create real dependencies.
-                    if (leftFederate !== rightFederate && !connection.physical) {
+                    if (leftFederate !== rightFederate && !connection.physical && (targetCoordination != "distributed")) {
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
                             dependsOn = new LinkedHashSet<Value>()

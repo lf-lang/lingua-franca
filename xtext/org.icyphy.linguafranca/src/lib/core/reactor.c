@@ -229,13 +229,43 @@ int next() {
         // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
         // printf("DEBUG: Address of reaction: %p\n", reaction);
 
+        bool violation = false;
+        // If the tardiness amount for the reaction is larger than zero,
+        // an input trigger to this reaction has been triggered at a later
+        // logical time than originally anticipated. In this case, a special
+        // tardy reaction will be invoked.             
+        // FIXME: Note that the tardy reaction will be invoked
+        // at most once per logical time value. If the tardy reaction triggers the
+        // same reaction at the current time value, even if at a future superdense time,
+        // then the reaction will be invoked and the tardy reaction will not be invoked again.
+        // However, inputs ports to a federate reactor are network port types so this possibly should
+        // be disallowed.
+        // @note The tardy handler and the deadline handler are not mutually exclusive.
+        //  In other words, both can be invoked for a reaction if it is triggered late
+        //  in logical time (tardy) and also misses the constraint on physical time (deadline).
+        // @note The tardy handler currently can only be invoked in a special circumstance in
+        //  the federated execution. Since federated execution uses the threaded runtime, this
+        //  condition currently will not occur here (in the unthreaded runtime). However, tardiness
+        //  handling is replicated here for future compatibility.
+        // if (reaction->tardiness > 0LL) {
+        //     // There is a violation
+        //     violation = true;
+        //     reaction_function_t handler = reaction->tardy_handler;
+        //     if (handler != NULL) {
+        //         (*handler)(reaction->self);
+
+        //         // If the reaction produced outputs, put the resulting
+        //         // triggered reactions into the queue or execute them directly if possible.
+        //         schedule_output_reactions(reaction);
+        //     }
+        // }
+
         // If the reaction has a deadline, compare to current physical time
         // and invoke the deadline violation reaction instead of the reaction function
         // if a violation has occurred. Note that the violation reaction will be invoked
         // at most once per logical time value. If the violation reaction triggers the
         // same reaction at the current time value, even if at a future superdense time,
         // then the reaction will be invoked and the violation reaction will not be invoked again.
-        bool violation = false;
         if (reaction->deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;

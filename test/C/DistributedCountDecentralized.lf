@@ -6,11 +6,14 @@
  */
 target C {
     timeout: 5 sec,
-    fast: true,
     coordination: distributed
 };
 
 import Count from "lib/Count.lf";
+
+preamble {=
+  // #define VERBOSE
+=}
 
 reactor Print {
     input in:int;

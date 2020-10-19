@@ -261,7 +261,9 @@ bool __next() {
         }
 
         // If the event queue has changed, return to iterate.
-        if ((event_t*)pqueue_peek(event_q) != event) return true;
+        if ((event_t*)pqueue_peek(event_q) != event) {
+            return true;
+        }
 
         // If the event time was past the stop time, it is now safe to stop execution.
         if (event->time != next_time) {
@@ -579,13 +581,47 @@ void* worker(void* arg) {
                 pthread_cond_signal(&reaction_q_changed);
             }
         
+
+            bool violation = false;
+            // If the tardiness amount for the reaction is larger than zero,
+            // an input trigger to this reaction has been triggered at a later
+            // logical time than originally anticipated. In this case, a special
+            // tardy reaction will be invoked.             
+            // FIXME: Note that the tardy reaction will be invoked
+            // at most once per logical time value. If the tardy reaction triggers the
+            // same reaction at the current time value, even if at a future superdense time,
+            // then the reaction will be invoked and the tardy reaction will not be invoked again.
+            // However, inputs ports to a federate reactor are network port types so this possibly should
+            // be disallowed.
+            // @note The tardy handler and the deadline handler are not mutually exclusive.
+            //  In other words, both can be invoked for a reaction if it is triggered late
+            //  in logical time (tardy) and also misses the constraint on physical time (deadline).
+            if (reaction->tardiness > 0LL) {
+                reaction_function_t handler = reaction->tardy_handler;
+                DEBUG_PRINT("Invoking tardiness handler %p.", handler);
+                // Invoke the tardy handler if there is one.
+                if (handler != NULL) {
+                    // There is a violation
+                    violation = true;
+                    // Unlock the mutex to run the reaction.
+                    DEBUG_PRINT("pthread_mutex_unlock to run tardiness handler.\n");
+                    pthread_mutex_unlock(&mutex);
+                    (*handler)(reaction->self);
+
+                    // If the reaction produced outputs, put the resulting
+                    // triggered reactions into the queue or execute them directly if possible.
+                    schedule_output_reactions(reaction);
+                    
+                    // Reset the tardiness because it has been dealt with
+                    reaction->tardiness = 0LL;
+                }
+            }
             // If the reaction has a deadline, compare to current physical time
             // and invoke the deadline violation reaction instead of the reaction function
             // if a violation has occurred. Note that the violation reaction will be invoked
             // at most once per logical time value. If the violation reaction triggers the
             // same reaction at the current time value, even if at a future superdense time,
             // then the reaction will be invoked and the violation reaction will not be invoked again.
-            bool violation = false;
             if (reaction->deadline > 0LL) {
                 // Get the current physical time.
                 struct timespec current_physical_time;
@@ -610,21 +646,22 @@ void* worker(void* arg) {
                         // triggered reactions into the queue or execute them directly if possible.
                         schedule_output_reactions(reaction);
                         // Remove the reaction from the executing queue.
-
-                        // Need to acquire the mutex lock to remove this from the executing queue
-                        // and to obtain the next reaction to execute.
-                        // printf("DEBUG: pthread_mutex_lock worker after running deadline handler\n");
-                        pthread_mutex_lock(&mutex);
-                        // printf("DEBUG: pthread_mutex_locked\n");
-
-                        // This thread holds the mutex lock, so if this is the last
-                        // reaction of the current time step, this thread will also
-                        // be the one to advance time.
-                        pqueue_remove(executing_q, reaction);
                     }
                 }
             }
-            if (!violation) {
+            if (violation) {
+                // Need to acquire the mutex lock to remove this from the executing queue
+                // and to obtain the next reaction to execute.
+                // printf("DEBUG: pthread_mutex_lock worker after running deadline handler\n");
+                pthread_mutex_lock(&mutex);
+                // printf("DEBUG: pthread_mutex_locked\n");
+
+                // The reaction is not going to be executed. However,
+                // this thread holds the mutex lock, so if this is the last
+                // reaction of the current time step, this thread will also
+                // be the one to advance time.
+                pqueue_remove(executing_q, reaction);
+            } else {
                 // Unlock the mutex to run the reaction.
                 // printf("DEBUG: pthread_mutex_unlock to invoke reaction function\n");
                 pthread_mutex_unlock(&mutex);
@@ -646,6 +683,9 @@ void* worker(void* arg) {
                 // be the one to advance time.
                 pqueue_remove(executing_q, reaction);
             }
+            // Reset the tardiness because it has been passed
+            // down the chain
+            reaction->tardiness = 0LL;
 
             // printf("DEBUG: worker: Done invoking reaction.\n");
         }

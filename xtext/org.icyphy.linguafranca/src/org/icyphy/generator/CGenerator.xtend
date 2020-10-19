@@ -1265,6 +1265,18 @@ class CGenerator extends GeneratorBase {
         ReactorDecl decl, FederateInstance federate
     ) {
         val reactor = decl.toDefinition
+        // In the case where there are incoming
+        // p2p connections (physical and logical)
+        // there will be a tardiness field added
+        // to accommodate the case where a reaction
+        // triggered by a port or action is late due
+        // to network latency, etc..
+        var tardiness = ''        
+        if (targetCoordination == "distributed") {
+            tardiness = '''
+                «targetTimeType» tardiness;
+            '''
+        }
         // First, handle inputs.
         for (input : reactor.allInputs) {
             var token = ''
@@ -1280,6 +1292,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
+                    «tardiness»
                 } «variableStructType(input, decl)»;
             ''')
             
@@ -1299,6 +1312,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
+                    «tardiness»
                 } «variableStructType(output, decl)»;
             ''')
 
@@ -1315,6 +1329,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     bool has_value;
                     token_t* token;
+                    «tardiness»
                 } «variableStructType(action, decl)»;
             ''')
             
@@ -1744,6 +1759,14 @@ class CGenerator extends GeneratorBase {
                     val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionCount
                     deadlineFunctionPointer = "&" + deadlineFunctionName
                 }
+                
+                // Assign the tardiness handler
+                var tardyFunctionPointer = "NULL"
+                if (reaction.tardy !== null) {
+                    // The following has to match the name chosen in generateReactions
+                    val tardyFunctionName = decl.name.toLowerCase + '_tardy_function' + reactionCount
+                    tardyFunctionPointer = "&" + tardyFunctionName
+                }
 
                 // Set the defaults of the reaction_t struct in the constructor.
                 // Since the self struct is allocated using calloc, there is no need to set:
@@ -1756,6 +1779,7 @@ class CGenerator extends GeneratorBase {
                     self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
+                    self->___reaction_«reactionCount».tardy_handler = «tardyFunctionPointer»;
                 ''')
 
             }
@@ -1960,15 +1984,15 @@ class CGenerator extends GeneratorBase {
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
-        if (reaction.late !== null) {
-            val lateFunctionName = decl.name.toLowerCase + '_late_function' + reactionIndex
+        if (reaction.tardy !== null) {
+            val lateFunctionName = decl.name.toLowerCase + '_tardy_function' + reactionIndex
 
             pr('void ' + lateFunctionName + '(void* instance_args) {')
             indent();
             generateInitializationForReaction(body, reaction, reactor)
             // Code verbatim from 'late'
-            prSourceLineNumber(reaction.late.code)
-            pr(reaction.late.code.toText)
+            prSourceLineNumber(reaction.tardy.code)
+            pr(reaction.tardy.code.toText)
             unindent()
             pr("}")
         }
@@ -3449,6 +3473,8 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+            «receiveRef»->tardiness = «action.name»->trigger->tardiness;
+            DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
         ''')
         if (isTokenType(type)) {
             result.append('''
