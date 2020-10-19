@@ -1272,7 +1272,7 @@ class CGenerator extends GeneratorBase {
         // triggered by a port or action is late due
         // to network latency, etc..
         var tardiness = ''        
-        if (targetCoordination == "distributed") {
+        if (targetCoordination === "distributed") {
             tardiness = '''
                 «targetTimeType» tardiness;
             '''
@@ -3473,8 +3473,10 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-            «receiveRef»->tardiness = «action.name»->trigger->tardiness;
-            DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
+            «IF targetCoordination === "distributed"»
+                «receiveRef»->tardiness = «action.name»->trigger->tardiness;
+                DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
+            «ENDIF»
         ''')
         if (isTokenType(type)) {
             result.append('''
@@ -3522,7 +3524,7 @@ class CGenerator extends GeneratorBase {
         // If the connection is logical and the coordination mode is distributed, send directly
         var String socket;
         var String messageType;
-        if (isPhysical || targetCoordination == "distributed") {
+        if (isPhysical || targetCoordination === "distributed") {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
