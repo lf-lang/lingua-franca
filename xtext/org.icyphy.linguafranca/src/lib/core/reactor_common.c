@@ -498,7 +498,7 @@ void __pop_events() {
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
                 // Pass down the tardiness from the trigger to the reaction.
-                // This will help the runtime decide wheter or not to execute the tardy
+                // This will help the runtime decide whether or not to execute the tardy
                 // reaction instead of the main reaction
                 reaction->tardiness = event->trigger->tardiness;
                 // printf("DEBUG: Enqueing reaction %p.\n", reaction);
