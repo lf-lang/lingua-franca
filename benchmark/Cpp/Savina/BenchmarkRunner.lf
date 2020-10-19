@@ -46,7 +46,7 @@ reactor BenchmarkRunner(numIterations:int(12),
     output outIterationStart:void;
     input inIterationFinish:void;
     
-    /** Signals for initializations that are not part of the kernel that is measured. */
+    /** Signals for initializations that are not part of the measured kernel. */
     output outInitializeStart:void;
     input inInitializeFinish:void;
     
