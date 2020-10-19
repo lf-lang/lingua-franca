@@ -448,7 +448,19 @@ struct reaction_t {
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
     interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
+    interval_t tardiness;     // Tardiness of input triggers to this reaction. Since each input trigger
+                              // can have a different tardiness amount, the maximum is always stored here.
+                              // This value indicates to the runtime that this reaction contains trigger(s)
+                              // that are triggered at a later logical time that was originally anticipated.
+                              // Currently, this is only possible if logical
+                              // connections are used in a decentralized federated
+                              // execution. COMMON.
     reaction_function_t deadline_violation_handler; // Deadline violation handler. COMMON.
+    reaction_function_t tardy_handler; // Tardiness handler. Invoked when a trigger to this reaction
+                                       // was triggered at a later logical time than originally
+                                       // intended. Currently, this is only possible if logical
+                                       // connections are used in a decentralized federated
+                                       // execution. COMMON.
 };
 
 /** Event activation record to push onto the event queue. */
@@ -477,6 +489,10 @@ struct trigger_t {
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
+    interval_t tardiness;     // The amount of discrepency in logical time between the original intended
+                              // trigger time of this trigger and the actual trigger time. This currently
+                              // can only happen when logical connections are used using a decentralized coordination
+                              // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
 };
 //  ======== Function Declarations ========  //
 

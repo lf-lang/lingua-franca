@@ -497,6 +497,10 @@ void __pop_events() {
             reaction_t* reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                // Pass down the tardiness from the trigger to the reaction.
+                // This will help the runtime decide wheter or not to execute the tardy
+                // reaction instead of the main reaction
+                reaction->tardiness = event->trigger->tardiness;
                 // printf("DEBUG: Enqueing reaction %p.\n", reaction);
                 pqueue_insert(reaction_q, reaction);
             }
@@ -865,9 +869,18 @@ void schedule_output_reactions(reaction_t* reaction) {
             for (int j=0; j < reaction->triggered_sizes[i]; j++) {
                 trigger_t* trigger = triggerArray[j];
                 if (trigger != NULL) {
+                    // Pass on the tardiness from the reaction to downstream triggers.
+                    // If the upstream reaction had a tardy handler, the tardiness will
+                    // be zero. If not, this value will be passed to downstream triggers
+                    // and reactions.
+                    trigger->tardiness = reaction->tardiness;
+                    DEBUG_PRINT("Passing tardiness of %llu to the downstream trigger.", trigger->tardiness);
                     // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
+                        // Set the tardiness for the downstream reaction
+                        downstream_reaction->tardiness = trigger->tardiness;
+                        DEBUG_PRINT("Passing tardiness of %llu to the downstream reaction.", downstream_reaction->tardiness);
                         if (downstream_reaction != NULL) {
                             // If the downstream_reaction has no deadline and this reaction is its
                             // last enabling reaction, and no other reaction has been selected for
@@ -914,6 +927,29 @@ void schedule_output_reactions(reaction_t* reaction) {
     if (downstream_to_execute_now != NULL) {
         //  printf("DEBUG: Optimizing and executing downstream reaction now.\n");
         bool violation = false;
+        if (downstream_to_execute_now->tardiness > 0LL) {
+            DEBUG_PRINT("Invoking tardiness handler.");
+            reaction_function_t handler = downstream_to_execute_now->tardy_handler;
+            // Invoke the tardy handler if there is one.
+            if (handler != NULL) {
+                // There is a violation and it is being handled here
+                // If there is no tardy handler, pass the tardiness
+                // to downstream reactions.
+                violation = true;
+                DEBUG_PRINT("Tardiness handler %p.", handler);
+                // Unlock the mutex to run the reaction.
+                // printf("DEBUG: pthread_mutex_unlock to run deadline handler.\n");
+                (*handler)(downstream_to_execute_now->self);
+
+                // If the reaction produced outputs, put the resulting
+                // triggered reactions into the queue or execute them directly if possible.
+                schedule_output_reactions(downstream_to_execute_now);
+                
+                // Reset the tardiness because it has been dealt with in the
+                // tardy handler
+                downstream_to_execute_now->tardiness = 0LL;
+            }
+        }
         if (downstream_to_execute_now->deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;
@@ -947,6 +983,10 @@ void schedule_output_reactions(reaction_t* reaction) {
             // reactions into the queue (or execute them directly, if possible).
             schedule_output_reactions(downstream_to_execute_now);
         }
+            
+        // Reset the tardiness because it has been dealt with in the
+        // tardy handler
+        downstream_to_execute_now->tardiness = 0LL;
     }
 }
 

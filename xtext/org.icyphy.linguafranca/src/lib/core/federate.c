@@ -743,8 +743,10 @@ trigger_t* __action_for_port(int port_id);
 
 
 /**
- * Version of schedule_value() identical to that in reactor_common.c
+ * Version of schedule_value() similar to that in reactor_common.c
  * except that it does not acquire the mutex lock.
+ * It is also responsible for setting the tardiness of the 
+ * network message based on the calculated delay.
  * @param action The action or timer to be triggered.
  * @param extra_delay Extra offset of the event release.
  * @param value Dynamically allocated memory containing the value to send.
@@ -752,11 +754,27 @@ trigger_t* __action_for_port(int port_id);
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_value_already_locked(
+handle_t schedule_value_received_from_network_already_locked(
     trigger_t* trigger, interval_t extra_delay, void* value, int length) {
     token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
+    // In the case where the extra_delay is negative,
+    // we pad the extra_delay to 1 nsec (the smallest
+    // possible delay) and set the
+    // tardiness property to be equal
+    // to the padding.
+
+    // FIXME: currently, it is not possible
+    // to tolerate an extra_delay of zero
+    // because federates only send the timestamp
+    // and not the microstep delay.
+    trigger->tardiness = 0LL;
+    if (extra_delay < 1LL) {
+        trigger->tardiness = 1LL - extra_delay;
+        extra_delay = 1LL;
+    }
+    DEBUG_PRINT("Calling schedule with delay %llu and tardiness %llu.", extra_delay, trigger->tardiness);
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     DEBUG_PRINT("Federate %d pthread_cond_broadcast(&event_q_changed).", _lf_my_fed_id);
@@ -775,7 +793,13 @@ handle_t schedule_value_already_locked(
  * @param buffer The buffer to read.
  */
 void handle_timed_message(int socket, unsigned char* buffer) {
-    // Read the header.
+    // Acquire the one mutex lock to prevent logical time from advancing
+    // between the time we read the timestamp and the time we call schedule().
+    DEBUG_PRINT("Federate %d pthread_mutex_lock handle_timed_message.", _lf_my_fed_id);
+    pthread_mutex_lock(&mutex);
+    DEBUG_PRINT("Federate %d pthread_mutex_locked.", _lf_my_fed_id);
+
+    // Read the header which contains the timestamp.
     read_from_socket(socket, 16, buffer, "Federate %d failed to read timed message header.", _lf_my_fed_id);
     // Extract the header information.
     unsigned short port_id;
@@ -788,7 +812,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 
     // Read the timestamp.
     instant_t timestamp = extract_ll(buffer + 8);
-    DEBUG_PRINT("Message timestamp: %lld.", timestamp - start_time);
+    DEBUG_PRINT("Message timestamp: %lld, Current logical time: %lld.", timestamp - start_time, get_elapsed_logical_time());
 
     // Read the payload.
     // Allocate memory for the message contents.
@@ -796,18 +820,14 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     read_from_socket(socket, length, message_contents, "Federate %d failed to read timed message body.", _lf_my_fed_id);
     DEBUG_PRINT("Message received by federate: %s.", message_contents);
 
-    // Acquire the one mutex lock to prevent logical time from advancing
-    // between the time we get logical time and the time we call schedule().
-    DEBUG_PRINT("Federate %d pthread_mutex_lock handle_timed_message.", _lf_my_fed_id);
-    pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("Federate %d pthread_mutex_locked.", _lf_my_fed_id);
 
     interval_t delay = timestamp - get_logical_time();
     // NOTE: Cannot call schedule_value(), which is what we really want to call,
     // because pthreads is too incredibly stupid and deadlocks trying to acquire
     // a lock that the calling thread already holds.
-    schedule_value_already_locked(__action_for_port(port_id), delay, message_contents, length);
-    DEBUG_PRINT("Called schedule with delay %lld.", delay);
+    DEBUG_PRINT("Calling schedule with delay %lld.", delay);
+    schedule_value_received_from_network_already_locked(__action_for_port(port_id), delay, message_contents, length);
+    // DEBUG_PRINT("Called schedule with delay %lld.", delay);
 
     DEBUG_PRINT("Federate %d pthread_mutex_unlock.", _lf_my_fed_id);
     pthread_mutex_unlock(&mutex);
