@@ -22,7 +22,7 @@ reactor Print {
             printf("Expected to receive %d.\n", self->c);
             exit(1);
         }
-        if (elapsed_time != MSEC(200) + SEC(1) * (self->c - 1)) {
+        if (elapsed_time < MSEC(200) + SEC(1) * (self->c - 1) ) {
             printf("Expected received time to be %lld.\n", MSEC(200) * self->c);
             exit(3);
         }
