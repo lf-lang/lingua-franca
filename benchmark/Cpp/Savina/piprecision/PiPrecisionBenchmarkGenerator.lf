@@ -1,0 +1,216 @@
+/**
+ * Parallelism benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * This version uses the library GMP with C++ bindings and depends on it.
+ * 
+ * @author Hannes Klein
+ */
+
+/** [[[cog
+# * Code generator for a variable number of reactors
+# * using the python module cog.
+# * See https://nedbatchelder.com/code/cog/
+# * 
+# * Run 'cog -r -D numWorkers=20 this-file.lf'
+# * with the desired number of reactors and the name of this file as arguments.
+# * 
+# * @author Hannes Klein
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  if 'numWorkers' in globals():
+    numWorkers = int(numWorkers)
+  else:
+    globals()['numWorkers'] = 20
+]]] */
+// [[[end]]]
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "PiPrecision.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor Master(numWorkers:int(20), scale:int(5000)) {
+    
+    public preamble {=
+        #include "PiPrecisionCommon.hh"
+        #include "reactor-cpp/logging.hh"
+        #include <gmpxx.h>
+        #include <bitset>
+        #include <iomanip>
+        #include <sstream>
+    =}
+    
+    state result:{=mpf_class=};
+    state tolerance:{=mpf_class=};
+    /* [[[cog
+      cog.outl(f'state workersNeedWork:{{=std::bitset<{numWorkers}>=}};')
+    ]]] */
+    state workersNeedWork:{=std::bitset<20>=};
+    // [[[end]]]
+    state numTermsRequested:int(0);
+    state numTermsReceived:int(0);
+    state stopRequests:bool(false);
+    state scaleBinary:int;
+    state resultString:{=std::ostringstream=};
+    
+    input inStart:void;
+    output outFinished:void;
+    input inCleanupStart:void;
+    output outCleanupFinished:void;
+    
+    /* [[[cog
+      cog.outl(f'input[{numWorkers}] inWorkers:{{=mpf_class=}};')
+      cog.outl(f'output[{numWorkers}] outWorkers:{{=WorkMessage=}};')
+    ]]] */
+    input[20] inWorkers:{=mpf_class=};
+    output[20] outWorkers:{=WorkMessage=};
+    // [[[end]]]
+    
+    logical action generateWork:void;
+    
+    reaction(inCleanupStart) -> outCleanupFinished {=
+        solution = solution.substr(0, resultString.str().size());
+        bool correct = resultString.str().compare(solution);
+        reactor::log::Info() << "Result correct: " << std::boolalpha << (correct == 0) << std::noboolalpha;
+        outCleanupFinished.set();
+    =}
+    
+    reaction(startup) {=
+        // initialization
+        scaleBinary = 16610; // result of ld(10^scale) with scale = 5000
+        tolerance = mpf_class(0, scaleBinary);
+        mpf_pow_ui(tolerance.get_mpf_t(), mpf_class(10, scaleBinary).get_mpf_t(), scale);
+        tolerance = 1 / tolerance;
+    =}
+    
+    reaction(inStart) -> generateWork {=
+        
+        // reset local state
+        result = mpf_class(0, scaleBinary);
+        workersNeedWork.set();
+        numTermsRequested = 0;
+        numTermsReceived = 0;
+        stopRequests = false;
+        resultString = std::ostringstream();
+        resultString.precision(scale);
+        
+        // start execution
+        generateWork.schedule();
+    =}
+    
+    reaction(generateWork) -> outWorkers {=
+        
+        if(stopRequests) return;
+        
+        for(int i = 0; i < outWorkers.size(); ++i) {
+            if(workersNeedWork[i]) {
+                outWorkers[i].set(WorkMessage{scaleBinary, numTermsRequested});
+                numTermsRequested += 1;
+            }
+        }
+    =}
+    
+    reaction(inWorkers) -> outFinished {=
+        
+        for(int i = 0; i < inWorkers.size(); ++i) {
+            if(inWorkers[i].is_present()) {
+                numTermsReceived += 1;
+                result = result + (*inWorkers[i].get());
+                workersNeedWork[i] = true;
+                if(*inWorkers[i].get() - tolerance < 0) {
+                    stopRequests = true;
+                } else {
+                    generateWork.schedule();
+                }
+                if(stopRequests && numTermsReceived == numTermsRequested) {
+                    reactor::log::Debug() << "Number of terms calculated: " << numTermsReceived;
+                    resultString << result;
+                    outFinished.set();
+                }
+            }
+        }
+    =}
+}
+
+
+reactor Worker {
+    
+    public preamble {=
+        #include <gmpxx.h>
+        #include "PiPrecisionCommon.hh"
+    =}
+    
+    input inMaster:{=WorkMessage=};
+    output outMaster:{=mpf_class=};
+    
+    reaction(inMaster) -> outMaster {=
+        
+        mpf_class result = calculateBbpTerm(inMaster.get()->scale, inMaster.get()->term);
+        outMaster.set(result);
+    =}
+    
+    private preamble {=
+        
+        mpf_class calculateBbpTerm(int scale, int k) {
+            
+            int eightK = 8 * k;
+            mpf_class sixteen(16, scale);
+            mpf_class four(4, scale);
+            mpf_class two(2, scale);
+            mpf_class one(1, scale);
+            mpf_class term(0, scale);
+            term = four / (eightK + 1);
+            term = term - (two / (eightK + 4));
+            term = term - (one / (eightK + 5));
+            term = term - (one / (eightK + 6));
+            mpf_class sixteenpow(sixteen, scale);
+            mpf_pow_ui(sixteenpow.get_mpf_t(), sixteenpow.get_mpf_t(), k);
+            term = term / sixteenpow;
+            
+            return term;
+        }
+    =}
+}
+
+
+main reactor ProdConsBenchmark(numIterations:int(12), precision:int(5000)) {
+    
+    /* [[[cog
+      cog.outl(f'master = new Master(numWorkers={numWorkers}, scale=precision);')
+    ]]] */
+    master = new Master(numWorkers=20, scale=precision);
+    // [[[end]]]
+    runner = new BenchmarkRunner(numIterations=numIterations, useCleanupIteration=true);
+    
+    runner.outCleanupIterationStart -> master.inCleanupStart;
+    master.outCleanupFinished -> runner.inCleanupIterationFinish;
+    
+    runner.outIterationStart -> master.inStart;
+    master.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("PiPrecisionBenchmark");
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "precision", precision, "numWorkers", {numWorkers});')
+        ]]] */
+        printArgs("numIterations", numIterations, "precision", precision, "numWorkers", 20);
+        /// [[[end]]]
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      cog.outl(f'workers = new[{numWorkers}] Worker();')
+    ]]] */
+    workers = new[20] Worker();
+    // [[[end]]]
+    
+    master.outWorkers -> workers.inMaster;
+    workers.outMaster -> master.inWorkers;
+}
