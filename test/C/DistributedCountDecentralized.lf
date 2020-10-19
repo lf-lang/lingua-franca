@@ -30,6 +30,9 @@ reactor Print {
             exit(3);
         }
         self->c++;
+    =} tardy {=
+        printf("The message was %lld nsecs late.\n", in->tardiness);
+        self->c++;
     =}
     reaction(shutdown) {=
         if (self->c != 6) {
