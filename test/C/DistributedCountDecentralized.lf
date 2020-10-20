@@ -12,7 +12,7 @@ target C {
 import Count from "lib/Count.lf";
 
 preamble {=
-  // #define VERBOSE
+    // #define VERBOSE
 =}
 
 reactor Print {
@@ -29,9 +29,6 @@ reactor Print {
             printf("Expected received time to be %lld.\n", MSEC(200) * self->c);
             exit(3);
         }
-        self->c++;
-    =} tardy {=
-        printf("The message was %lld nsecs late.\n", in->tardiness);
         self->c++;
     =}
     reaction(shutdown) {=

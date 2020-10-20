@@ -248,12 +248,16 @@ void create_server(int specified_port) {
 /** 
  * Send the specified timestamped message to the specified port in the
  * specified federate via the RTI or directly to a federate depending on
- * the given socket. The port should be an input port of a reactor in 
+ * the given socket. The timestamp is calculated as current_logical_time +
+ * additional delay which is greater than or equal to zero.
+ * The port should be an input port of a reactor in 
  * the destination federate. This version does include the timestamp 
  * in the message. The caller can reuse or free the memory after this returns.
  * This method assumes that the caller does not hold the mutex lock,
  * which it acquires to perform the send.
  * 
+ * @param additional_delay The offset applied to the timestamp
+ *  using after. Greater or equal to zero.
  * @param socket The socket to send the message on
  * @param message_type The type of the message being sent. 
  *  Currently can be TIMED_MESSAGE for messages sent via
@@ -264,7 +268,7 @@ void create_server(int specified_port) {
  * @param length The message length.
  * @param message The message.
  */
-void send_message_timed(int socket, int message_type, unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
+void send_message_timed(interval_t additional_delay, int socket, int message_type, unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
     assert(port < 65536);
     assert(federate < 65536);
     unsigned char buffer[17];
@@ -280,8 +284,9 @@ void send_message_timed(int socket, int message_type, unsigned int port, unsigne
     // The next four bytes are the message length.
     encode_int(length, &(buffer[5]));
 
-    // Next 8 bytes are the timestamp.
-    instant_t current_time = get_logical_time();
+    // Next 8 bytes are the timestamp which includes the optional
+    // additional delay imposed using after.
+    instant_t current_time = get_logical_time() + additional_delay;
 
     encode_ll(current_time, &(buffer[9]));
     DEBUG_PRINT("Federate %d sending message with timestamp %lld to federate %d.", _lf_my_fed_id, current_time - start_time, federate);

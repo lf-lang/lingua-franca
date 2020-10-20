@@ -53,6 +53,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Value
 
 /** Generator for TypeScript target.
  *
@@ -1012,6 +1013,7 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param receivingFed The destination federate.
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
      * @throws UnsupportedOperationException If the target does not support this operation.
      */
     override String generateNetworkSenderBody(
@@ -1021,7 +1023,8 @@ class TypeScriptGenerator extends GeneratorBase {
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         InferredType type,
-        boolean isPhysical
+        boolean isPhysical,
+        Value delay
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
