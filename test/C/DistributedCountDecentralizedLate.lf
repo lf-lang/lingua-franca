@@ -13,12 +13,13 @@ target C {
 import Count from "lib/Count.lf";
 
 preamble {=
-   #define VERBOSE
+   // #define VERBOSE
 =}
 
 reactor Print {
     input in:int;
-    state success:bool(false);
+    state success:int(0);
+    state success_tardy:int(0);
     timer t(0, 10 msec); // Force a timer to be invoke periodically
                          // to ensure logical time will advance in the
                          // absence of incoming messages.
@@ -26,27 +27,24 @@ reactor Print {
     reaction(in) {=
         interval_t current_time = get_logical_time();
         printf("At time %llu received %d. Tardiness is %llu.\n", get_elapsed_logical_time(), in->value, in->tardiness);
-        if (current_time != SEC(1) *  self->c) {
-            self->success = false; // Message was not on-time
-                                   // but it wasn't detected
-        } else {
-            self->success = true; // Message was on-time
+        if (current_time == SEC(1) *  self->c) {
+            self->success++; // Message was on-time
         }
         self->c++;
     =} tardy {=
         printf("Message is late by %llu nsec.\n", in->tardiness);
-        self->success = true;
+        self->success_tardy++;
     =}
     reaction(t) {=
         // Do nothing.
     =}
     
     reaction(shutdown) {=
-        if (self->success != true) {
-            printf("Failed to detect lateness of the message.\n");
+        if (self->success +  self->success_tardy != 5) {
+            fprintf(stderr, "Failed to detect tardiness of messages.\n");
             exit(1);
         } else {
-            printf("Successfully detected lateness.\n");
+            printf("Successfully detected tardiness (%d tardy, %d on-time).\n", self->success_tardy, self->success);
         }
     =}
 }
