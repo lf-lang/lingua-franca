@@ -1,6 +1,6 @@
 /** 
- * Test a particularly simple form of a distributed deterministic system
- * where a federation that receives timestamped messages has a timer in addition to the messages
+ * Test a form of a distributed deterministic system
+ * where a federate that receives timestamped messages has a timer in addition to the messages
  * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
  * @author Edward A. Lee
  * @author Soroush Bateni
@@ -13,7 +13,7 @@ target C {
 import Count from "lib/Count.lf";
 
 preamble {=
-   // #define VERBOSE
+    #define VERBOSE
 =}
 
 reactor Print {
