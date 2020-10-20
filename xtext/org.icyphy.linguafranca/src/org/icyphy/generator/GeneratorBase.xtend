@@ -1181,6 +1181,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param receivingFed The destination federate.
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
      * @throws UnsupportedOperationException If the target does not support this operation.
      */
     def String generateNetworkSenderBody(
@@ -1190,7 +1191,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         InferredType type,
-        boolean isPhysical
+        boolean isPhysical,
+        Value delay
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -2111,7 +2113,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     // Connection spans federates.
                     // First, update the dependencies in the FederateInstances.
                     // Exclude physical connections because these do not create real dependencies.
-                    if (leftFederate !== rightFederate && !connection.physical && (targetCoordination != "distributed")) {
+                    if (leftFederate !== rightFederate && !connection.physical && (!targetCoordination.equals("distributed"))) {
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
                             dependsOn = new LinkedHashSet<Value>()

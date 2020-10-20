@@ -64,6 +64,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Value
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -1272,7 +1273,7 @@ class CGenerator extends GeneratorBase {
         // triggered by a port or action is late due
         // to network latency, etc..
         var tardiness = ''        
-        if (targetCoordination === "distributed") {
+        if (targetCoordination.equals("distributed")) {
             tardiness = '''
                 «targetTimeType» tardiness;
             '''
@@ -3473,7 +3474,7 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-            «IF targetCoordination === "distributed"»
+            «IF targetCoordination.equals("distributed")»
                 «receiveRef»->tardiness = «action.name»->trigger->tardiness;
                 DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
             «ENDIF»
@@ -3502,6 +3503,7 @@ class CGenerator extends GeneratorBase {
      * @param receivingFed The destination federate.
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
      */
     override generateNetworkSenderBody(
         VarRef sendingPort,
@@ -3510,7 +3512,8 @@ class CGenerator extends GeneratorBase {
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         InferredType type,
-        boolean isPhysical
+        boolean isPhysical,
+        Value delay
     ) { 
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -3524,7 +3527,25 @@ class CGenerator extends GeneratorBase {
         // If the connection is logical and the coordination mode is distributed, send directly
         var String socket;
         var String messageType;
-        if (isPhysical || targetCoordination === "distributed") {
+        
+        // The additional delay is 0 by default.
+        // In this case, the sender will send
+        // its current logical time as the timestamp
+        // of the outgoing message. If the user
+        // has assigned an after either as a time
+        // value (e.g., 200 msec) or as a literal
+        // (e.g., a parameter), that will be passed
+        // to send_message_timed and added to 
+        // the current timestamp.
+        var String additionalDelayString = '0';
+        if (delay != null) {
+            if (delay.time != null) {
+                additionalDelayString = (new TimeValue(delay.time.interval, delay.time.unit)).toNanoSeconds.toString;
+            } else {
+                additionalDelayString = delay.literal
+            }
+        }
+        if (isPhysical || targetCoordination.equals("distributed")) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
@@ -3539,7 +3560,7 @@ class CGenerator extends GeneratorBase {
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
-                send_message_timed(«socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                send_message_timed(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»->token);
             ''')
         } else {
@@ -3558,7 +3579,7 @@ class CGenerator extends GeneratorBase {
             }
             result.append('''
             size_t message_length = «lengthExpression»;
-            send_message_timed(«socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            send_message_timed(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             ''')
         }
         return result.toString
