@@ -257,7 +257,9 @@ void create_server(int specified_port) {
  * which it acquires to perform the send.
  * 
  * @param additional_delay The offset applied to the timestamp
- *  using after. Greater or equal to zero.
+ *  using after. The additional delay will be greater or equal to zero
+ *  if an after is used on the connection. If no after is given in the
+ *  program, -1 is passed.
  * @param socket The socket to send the message on
  * @param message_type The type of the message being sent. 
  *  Currently can be TIMED_MESSAGE for messages sent via
@@ -284,10 +286,30 @@ void send_message_timed(interval_t additional_delay, int socket, int message_typ
     // The next four bytes are the message length.
     encode_int(length, &(buffer[5]));
 
-    // Next 8 bytes are the timestamp which includes the optional
-    // additional delay imposed using after.
-    instant_t current_time = get_logical_time() + additional_delay;
+    // Get current logical time
+    instant_t current_time = get_logical_time();
+    if (additional_delay == 0LL) {
+        // After was specified by the user
+        // on the connection with a delay of 0.
+        // FIXME: in this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time(), get_microstep() + 1).
+    } else if (additional_delay > 0LL) {
+        // After was specified by the user
+        // on the connection with a positive delay.
+        // FIXME: in this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time() + additional_delay, get_microstep())
 
+        current_time += additional_delay;
+    } else if (additional_delay == -1LL) {
+        // No after delay is given by the user
+        // FIXME: in this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time(), get_microstep())
+    }
+    
+    // Next 8 bytes are the timestamp.
     encode_ll(current_time, &(buffer[9]));
     DEBUG_PRINT("Federate %d sending message with timestamp %lld to federate %d.", _lf_my_fed_id, current_time - start_time, federate);
 

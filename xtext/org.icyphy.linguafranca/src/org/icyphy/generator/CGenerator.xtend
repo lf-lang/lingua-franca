@@ -3528,18 +3528,27 @@ class CGenerator extends GeneratorBase {
         var String socket;
         var String messageType;
         
-        // The additional delay is 0 by default.
+        // The additional delay in absence of after
+        // is  -1. This has a special meaning
+        // in send_message_timed
+        // (@see send_message_timed in lib/core/federate.c).
         // In this case, the sender will send
-        // its current logical time as the timestamp
-        // of the outgoing message. If the user
-        // has assigned an after either as a time
+        // its current tag as the timestamp
+        // of the outgoing message without adding a microstep delay.
+        // If the user has assigned an after delay 
+        // (that can be zero) either as a time
         // value (e.g., 200 msec) or as a literal
-        // (e.g., a parameter), that will be passed
-        // to send_message_timed and added to 
-        // the current timestamp.
-        var String additionalDelayString = '0';
-        if (delay != null) {
-            if (delay.time != null) {
+        // (e.g., a parameter), that delay in nsec
+        // will be passed to send_message_timed and added to 
+        // the current timestamp. If after delay is 0,
+        // send_message_timed will use the current tag +
+        // a microstep as the timestamp of the outgoing message.
+        // FIXME: implementation of tag is currently incomplete
+        // in the C target. Therefore, the nuances regarding
+        // the microstep delay are currently not implemented.
+        var String additionalDelayString = '-1';
+        if (delay !== null) {
+            if (delay.time !== null) {
                 additionalDelayString = (new TimeValue(delay.time.interval, delay.time.unit)).toNanoSeconds.toString;
             } else {
                 additionalDelayString = delay.literal
