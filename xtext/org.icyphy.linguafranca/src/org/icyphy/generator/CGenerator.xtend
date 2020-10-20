@@ -3787,121 +3787,124 @@ class CGenerator extends GeneratorBase {
             // Moreover, if the eventual source is an input and it is NOT
             // written to by a reaction, then it is dangling, so we skip it.
             if (reactorBelongsToFederate(eventualSource.parent, federate)
-                && eventualSource.isOutput
-                || eventualSource.dependsOnReactions.size > 0
+                && (eventualSource.isOutput
+                || eventualSource.dependsOnReactions.size > 0)
             ) {
                 val destinations = instance.destinations.get(source)
                 // For multiports, need to count the channels in case there are multiple
                 // destinations.
                 var sourceChannelCount = 0
                 for (destination : destinations) {
-                    // If the destination is an output, then skip this step.
-                    // Outputs are handled by finding the transitive closure
-                    // (finding the eventual inputs).
-                    if (destination.isInput) {
-                        var comment = ''
-                        if (source !== eventualSource) {
-                            comment = ''' (eventual source is «eventualSource.getFullName»)'''
-                        }
-                        val destStructType = variableStructType(
-                            destination.definition as TypedVariable,
-                            destination.parent.definition.reactorClass
-                        )
-                        // There are four cases, depending on whether the source or
-                        // destination or both are multiports.
-                        if (eventualSource instanceof MultiportInstance) {
-                            // Source is a multiport. 
-                            // Number of available channels:
-                            var width = eventualSource.instances.size - sourceChannelCount
-                            // If there are no more available channels, there is nothing to do.
-                            if (width > 0) {
-                                if (destination instanceof MultiportInstance) {
-                                    // Source and destination are both multiports.
-                                    // First, get the first available destination channel.
-                                    var destinationChannel = destinationChannelCount.get(destination)
-                                    if (destinationChannel === null) {
-                                        destinationChannel = 0
-                                        destinationChannelCount.put(destination, 1)
-                                    } else {
-                                        // Add the width of the source to the index of the destination's
-                                        // next available channel. This may be out of bounds for the
-                                        // destination.
-                                        destinationChannelCount.put(destination, destinationChannel + width)
-                                    }
-                                    // There will be nothing to do if the destination channel index
-                                    // is out of bounds.
-                                    if (destinationChannel < destination.instances.size) {
-                                        // There is at least one available channel at the destination.
-                                        // The number of connections now will be the minimum of the
-                                        // source width and the number of remaining channels at the
-                                        // destination.
-                                        if (destination.instances.size - destinationChannel < width) {
-                                            width = destination.instances.size - destinationChannel
+                    // Check to see if the destination reactor belongs to the federate.
+                    if (reactorBelongsToFederate(destination.parent, federate)) {
+                        // If the destination is an output, then skip this step.
+                        // Outputs are handled by finding the transitive closure
+                        // (finding the eventual inputs).
+                        if (destination.isInput) {
+                            var comment = ''
+                            if (source !== eventualSource) {
+                                comment = ''' (eventual source is «eventualSource.getFullName»)'''
+                            }
+                            val destStructType = variableStructType(
+                                destination.definition as TypedVariable,
+                                destination.parent.definition.reactorClass
+                            )
+                            // There are four cases, depending on whether the source or
+                            // destination or both are multiports.
+                            if (eventualSource instanceof MultiportInstance) {
+                                // Source is a multiport. 
+                                // Number of available channels:
+                                var width = eventualSource.instances.size - sourceChannelCount
+                                // If there are no more available channels, there is nothing to do.
+                                if (width > 0) {
+                                    if (destination instanceof MultiportInstance) {
+                                        // Source and destination are both multiports.
+                                        // First, get the first available destination channel.
+                                        var destinationChannel = destinationChannelCount.get(destination)
+                                        if (destinationChannel === null) {
+                                            destinationChannel = 0
+                                            destinationChannelCount.put(destination, 1)
+                                        } else {
+                                            // Add the width of the source to the index of the destination's
+                                            // next available channel. This may be out of bounds for the
+                                            // destination.
+                                            destinationChannelCount.put(destination, destinationChannel + width)
                                         }
-                                        // Finally, we can generate the code to make the connections.
+                                        // There will be nothing to do if the destination channel index
+                                        // is out of bounds.
+                                        if (destinationChannel < destination.instances.size) {
+                                            // There is at least one available channel at the destination.
+                                            // The number of connections now will be the minimum of the
+                                            // source width and the number of remaining channels at the
+                                            // destination.
+                                            if (destination.instances.size - destinationChannel < width) {
+                                                width = destination.instances.size - destinationChannel
+                                            }
+                                            // Finally, we can generate the code to make the connections.
+                                            pr('''
+                                                // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                                int j = «sourceChannelCount»;
+                                                for (int i = «destinationChannel»; i < «destinationChannel» + «width»; i++) {
+                                                    «destinationReference(destination)»[i]
+                                                        = («destStructType»*)«sourceReference(eventualSource)»[j++];
+                                                }
+                                            ''')
+                                            sourceChannelCount += width
+                                        } else {
+                                            pr('''
+                                                // No destination channels available for connection from
+                                                // «source.getFullName»«comment» to input port «destination.getFullName».
+                                            ''')
+                                        }
+                                    } else {
+                                        // Source is a multiport, destination is a single port.
                                         pr('''
                                             // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                            int j = «sourceChannelCount»;
-                                            for (int i = «destinationChannel»; i < «destinationChannel» + «width»; i++) {
-                                                «destinationReference(destination)»[i]
-                                                    = («destStructType»*)«sourceReference(eventualSource)»[j++];
-                                            }
+                                            «destinationReference(destination)»
+                                                    = («destStructType»*)«sourceReference(eventualSource)»[«sourceChannelCount»];
                                         ''')
-                                        sourceChannelCount += width
-                                    } else {
-                                        pr('''
-                                            // No destination channels available for connection from
-                                            // «source.getFullName»«comment» to input port «destination.getFullName».
-                                        ''')
+                                        sourceChannelCount++
                                     }
                                 } else {
-                                    // Source is a multiport, destination is a single port.
+                                    pr('''
+                                        // No source channels available for connection from
+                                        // «source.getFullName»«comment» to input port «destination.getFullName».
+                                    ''')
+                                }
+                            } else if (destination instanceof MultiportInstance) {
+                                // Source is a single port, Destination is a multiport.
+                                // First, get the first available destination channel.
+                                var destinationChannel = destinationChannelCount.get(destination)
+                                if (destinationChannel === null) {
+                                    destinationChannel = 0
+                                    destinationChannelCount.put(destination, 1)
+                                } else {
+                                    // Add the width of the source to the index of the destination's
+                                    // next available channel. This may be out of bounds for the
+                                    // destination.
+                                    destinationChannelCount.put(destination, destinationChannel + 1)
+                                }
+                                // There will be nothing to do if the destination channel index
+                                // is out of bounds.
+                                if (destinationChannel < destination.instances.size) {
                                     pr('''
                                         // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                        «destinationReference(destination)»
-                                                = («destStructType»*)«sourceReference(eventualSource)»[«sourceChannelCount»];
+                                        «destinationReference(destination)»[«destinationChannel»]
+                                                = («destStructType»*)«sourceReference(eventualSource)»;
                                     ''')
-                                    sourceChannelCount++
+                                } else {
+                                    pr('''
+                                        // No destination channels available for connection from
+                                        // «source.getFullName»«comment» to input port «destination.getFullName».
+                                    ''')
                                 }
                             } else {
-                                pr('''
-                                    // No source channels available for connection from
-                                    // «source.getFullName»«comment» to input port «destination.getFullName».
-                                ''')
-                            }
-                        } else if (destination instanceof MultiportInstance) {
-                            // Source is a single port, Destination is a multiport.
-                            // First, get the first available destination channel.
-                            var destinationChannel = destinationChannelCount.get(destination)
-                            if (destinationChannel === null) {
-                                destinationChannel = 0
-                                destinationChannelCount.put(destination, 1)
-                            } else {
-                                // Add the width of the source to the index of the destination's
-                                // next available channel. This may be out of bounds for the
-                                // destination.
-                                destinationChannelCount.put(destination, destinationChannel + 1)
-                            }
-                            // There will be nothing to do if the destination channel index
-                            // is out of bounds.
-                            if (destinationChannel < destination.instances.size) {
+                                // Both ports are single ports.
                                 pr('''
                                     // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                    «destinationReference(destination)»[«destinationChannel»]
-                                            = («destStructType»*)«sourceReference(eventualSource)»;
-                                ''')
-                            } else {
-                                pr('''
-                                    // No destination channels available for connection from
-                                    // «source.getFullName»«comment» to input port «destination.getFullName».
+                                    «destinationReference(destination)» = («destStructType»*)«sourceReference(eventualSource)»;
                                 ''')
                             }
-                        } else {
-                            // Both ports are single ports.
-                            pr('''
-                                // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                «destinationReference(destination)» = («destStructType»*)«sourceReference(eventualSource)»;
-                            ''')
                         }
                     }
                 }
