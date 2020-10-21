@@ -497,13 +497,11 @@ void __pop_events() {
             reaction_t* reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-                // Pass down the tardiness from the trigger to the reaction.
+                // Transfer the tardiness from the trigger to the reaction.
                 // This will help the runtime decide whether or not to execute the tardy
-                // reaction instead of the main reaction
-                // If the reaction is triggered by multiple events, the highest
-                // tardiness will be assigned to the reaction
-                if (event->trigger->tardiness > reaction->tardiness) {
-                    reaction->tardiness = event->trigger->tardiness;
+                // reaction instead of the main reaction.
+                if (event->trigger->tardiness > 0LL) {
+                    reaction->tardiness = true;
                 }
                 // printf("DEBUG: Enqueing reaction %p.\n", reaction);
                 pqueue_insert(reaction_q, reaction);
@@ -865,7 +863,7 @@ void schedule_output_reactions(reaction_t* reaction) {
     // after all other downstream reactions have been put into the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
     // Extract the inherited tardiness
-    interval_t inherited_tardiness = reaction->tardiness;
+    bool inherited_tardiness = reaction->tardiness;
     // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
     for (int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
@@ -875,18 +873,12 @@ void schedule_output_reactions(reaction_t* reaction) {
             for (int j=0; j < reaction->triggered_sizes[i]; j++) {
                 trigger_t* trigger = triggerArray[j];
                 if (trigger != NULL) {
-                    // Pass on the tardiness from the reaction to downstream triggers.
-                    // If the upstream reaction had a tardy handler, the tardiness will
-                    // be zero. If not, this value will be passed to downstream triggers
-                    // and reactions.
-                    trigger->tardiness = inherited_tardiness;
-                    DEBUG_PRINT("Passing tardiness of %llu to the downstream trigger.", trigger->tardiness);
                     // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
                         // Set the tardiness for the downstream reaction
                         downstream_reaction->tardiness = inherited_tardiness;
-                        DEBUG_PRINT("Passing tardiness of %llu to the downstream reaction.", downstream_reaction->tardiness);
+                        DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->tardiness);
                         if (downstream_reaction != NULL) {
                             // If the downstream_reaction has no deadline and this reaction is its
                             // last enabling reaction, and no other reaction has been selected for
@@ -933,7 +925,23 @@ void schedule_output_reactions(reaction_t* reaction) {
     if (downstream_to_execute_now != NULL) {
         //  printf("DEBUG: Optimizing and executing downstream reaction now.\n");
         bool violation = false;
-        if (downstream_to_execute_now->tardiness > 0LL) {
+        // If the tardiness for the reaction is true,
+        // an input trigger to this reaction has been triggered at a later
+        // logical time than originally anticipated. In this case, a special
+        // tardy reaction will be invoked.             
+        // FIXME: Note that the tardy reaction will be invoked
+        // at most once per logical time value. If the tardy reaction triggers the
+        // same reaction at the current time value, even if at a future superdense time,
+        // then the reaction will be invoked and the tardy reaction will not be invoked again.
+        // However, inputs ports to a federate reactor are network port types so this possibly should
+        // be disallowed.
+        // @note The tardy handler and the deadline handler are not mutually exclusive.
+        //  In other words, both can be invoked for a reaction if it is triggered late
+        //  in logical time (tardy) and also misses the constraint on physical time (deadline).
+        // @note In absence of a tardy handler, the tardiness will be passed down the reaction
+        //  chain until it is dealt with in a downstream tardy handler.
+        if (downstream_to_execute_now->tardiness == true) {
+            // Tardiness has occurred
             DEBUG_PRINT("Invoking tardiness handler.");
             reaction_function_t handler = downstream_to_execute_now->tardy_handler;
             // Invoke the tardy handler if there is one.
@@ -953,8 +961,8 @@ void schedule_output_reactions(reaction_t* reaction) {
                 
                 // Reset the tardiness because it has been dealt with in the
                 // tardy handler
-                downstream_to_execute_now->tardiness = 0LL;
-                DEBUG_PRINT("Reset reaction tardiness to zero.");
+                downstream_to_execute_now->tardiness = false;
+                DEBUG_PRINT("Reset reaction tardiness to false.");
             }
         }
         if (downstream_to_execute_now->deadline > 0LL) {
@@ -991,10 +999,10 @@ void schedule_output_reactions(reaction_t* reaction) {
             schedule_output_reactions(downstream_to_execute_now);
         }
             
-        // Reset the tardiness because it has been dealt with in the
-        // tardy handler
-        downstream_to_execute_now->tardiness = 0LL;
-        DEBUG_PRINT("Finally, reset reaction tardiness to zero.");
+        // Reset the tardiness because it has been passed
+        // down the chain
+        downstream_to_execute_now->tardiness = false;
+        DEBUG_PRINT("Finally, reset reaction tardiness to false.");
     }
 }
 

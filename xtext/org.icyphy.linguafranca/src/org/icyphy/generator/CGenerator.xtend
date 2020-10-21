@@ -1595,6 +1595,7 @@ class CGenerator extends GeneratorBase {
                     // self->__«containedReactor.name».«port.name»_trigger.is_physical = false;
                     // self->__«containedReactor.name».«port.name»_trigger.drop = false;
                     // self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
+                    // self->__«containedReactor.name».«port.name»_trigger.tardiness = 0;
                     pr(port, constructorCode, '''
                         self->__«containedReactor.name».«port.name»_trigger.last = NULL;
                         self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
@@ -1776,6 +1777,7 @@ class CGenerator extends GeneratorBase {
                 // self->___reaction_«reactionCount».pos = 0;
                 // self->___reaction_«reactionCount».running = false;
                 // self->___reaction_«reactionCount».deadline = 0LL;
+                // self->___reaction_«reactionCount».tardiness = false;
                 pr(reaction, constructorCode, '''
                     self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
@@ -2015,9 +2017,9 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code that passes the reaction's tardiness to all output ports
-     * and actions. The reaction's tardiness is the maximum tardiness of its 
-     * triggering inputs.
+     * Generate code that passes existing tardiness to all output ports
+     * and actions. This tardiness is the maximum tardiness of the 
+     * triggering inputs of the reaction.
      * 
      * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
      * @param reaction The initialization code will be generated for this specific reaction
@@ -2029,22 +2031,89 @@ class CGenerator extends GeneratorBase {
         // the body of the function.
         var StringBuilder tardinessInheritenceCode = new StringBuilder()
         if (targetCoordination.equals("distributed")) {
+            pr(tardinessInheritenceCode, '''
+                if (self->___reaction_«reactionIndex».tardiness == true) {
+            ''')
+            indent(tardinessInheritenceCode);            
+            pr(tardinessInheritenceCode, '''            
+                // The following operations are expensive and must
+                // only be done if the reaction has unhandled tardiness.
+                // Otherwise, all tardiness values are 0 by default.
+                
+                // Inherited tardiness. This will take the maximum
+                // tardiness of all input triggers
+                «targetTimeType» inherited_max_tardiness = 0LL;
+            ''')
+            pr(tardinessInheritenceCode, '''
+                // Find the maximum tardiness
+            ''')
+            // Go through every trigger of the reaction and check the
+            // value of tardiness to choose the maximum.
+            for (TriggerRef inputTrigger : reaction.triggers ?: emptyList) {
+                if (inputTrigger instanceof VarRef) {
+                    if (inputTrigger.variable instanceof Output) {
+                        // Output from a contained reactor
+                        pr(tardinessInheritenceCode, '''
+                            if («inputTrigger.container.name».«inputTrigger.variable.name»->tardiness > inherited_max_tardiness) {
+                                inherited_max_tardiness = «inputTrigger.container.name».«inputTrigger.variable.name»->tardiness;
+                            }
+                        ''')
+                    } else if (inputTrigger.variable instanceof Port) {
+                        pr(tardinessInheritenceCode, '''
+                            if («inputTrigger.variable.name»->tardiness > inherited_max_tardiness) {
+                                inherited_max_tardiness = «inputTrigger.variable.name»->tardiness;
+                            }
+                        ''')
+                    } else if (inputTrigger.variable instanceof Action) {
+                        pr(tardinessInheritenceCode, '''
+                            if («inputTrigger.variable.name»->trigger->tardiness > inherited_max_tardiness) {
+                                inherited_max_tardiness = «inputTrigger.variable.name»->trigger->tardiness;
+                            }
+                        ''')
+                    }
+
+                }
+            }
+            if (reaction.triggers === null || reaction.triggers.size === 0) {
+                // No triggers are given, which means the reaction would react to any input.
+                // We need to check tardiness for every input.
+                // NOTE: this does not include contained outputs. 
+                for (input : reaction.sources) {
+                    pr(tardinessInheritenceCode, '''
+                        if («input.variable.name»->tardiness > inherited_max_tardiness) {
+                            inherited_max_tardiness = «input.variable.name»->tardiness;
+                        }
+                    ''')
+                }
+            }
+            
+            // Once the maximum tardiness has been found,
+            // it will be passed down to the port effects
+            // of the reaction. Note that the tardiness
+            // will not pass on to actions downstream.
             for (effect : reaction.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
                     // Input to a contained reaction
                     pr(tardinessInheritenceCode, '''
-                        // All effects inherit the tardiness of the reaction
-                        «effect.container.name».«effect.variable.name»->tardiness = self->___reaction_«reactionIndex».tardiness;
+                        // All effects inherit the maximum tardiness of input triggers
+                        «effect.container.name».«effect.variable.name»->tardiness = inherited_max_tardiness;
                     ''')                    
                 } else if (effect.variable instanceof Output) {
                     // Everything else
                     pr(tardinessInheritenceCode, '''
-                        // All effects inherit the tardiness of the reaction
-                        «effect.variable.name»->tardiness = self->___reaction_«reactionIndex».tardiness;
+                        // All effects inherit the maximum tardiness of input triggers
+                        «effect.variable.name»->tardiness = inherited_max_tardiness;
                     ''')                    
                 }
             }
-            pr(tardinessInheritenceCode.toString)      
+            unindent(tardinessInheritenceCode);
+            pr(tardinessInheritenceCode,'''
+            }
+            ''')
+            
+            // Write the the tardiness inheritance initialization
+            // to the main code.
+            pr(tardinessInheritenceCode.toString) 
         }
         return tardinessInheritenceCode
     }
