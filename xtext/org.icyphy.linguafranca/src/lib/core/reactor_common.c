@@ -500,7 +500,11 @@ void __pop_events() {
                 // Pass down the tardiness from the trigger to the reaction.
                 // This will help the runtime decide whether or not to execute the tardy
                 // reaction instead of the main reaction
-                reaction->tardiness = event->trigger->tardiness;
+                // If the reaction is triggered by multiple events, the highest
+                // tardiness will be assigned to the reaction
+                if (event->trigger->tardiness > reaction->tardiness) {
+                    reaction->tardiness = event->trigger->tardiness;
+                }
                 // printf("DEBUG: Enqueing reaction %p.\n", reaction);
                 pqueue_insert(reaction_q, reaction);
             }
@@ -860,6 +864,8 @@ void schedule_output_reactions(reaction_t* reaction) {
     // without going through the reaction queue. This reaction is executed
     // after all other downstream reactions have been put into the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
+    // Extract the inherited tardiness
+    interval_t inherited_tardiness = reaction->tardiness;
     // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
     for (int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
@@ -873,13 +879,13 @@ void schedule_output_reactions(reaction_t* reaction) {
                     // If the upstream reaction had a tardy handler, the tardiness will
                     // be zero. If not, this value will be passed to downstream triggers
                     // and reactions.
-                    trigger->tardiness = reaction->tardiness;
+                    trigger->tardiness = inherited_tardiness;
                     DEBUG_PRINT("Passing tardiness of %llu to the downstream trigger.", trigger->tardiness);
                     // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
                         // Set the tardiness for the downstream reaction
-                        downstream_reaction->tardiness = trigger->tardiness;
+                        downstream_reaction->tardiness = inherited_tardiness;
                         DEBUG_PRINT("Passing tardiness of %llu to the downstream reaction.", downstream_reaction->tardiness);
                         if (downstream_reaction != NULL) {
                             // If the downstream_reaction has no deadline and this reaction is its
@@ -948,6 +954,7 @@ void schedule_output_reactions(reaction_t* reaction) {
                 // Reset the tardiness because it has been dealt with in the
                 // tardy handler
                 downstream_to_execute_now->tardiness = 0LL;
+                DEBUG_PRINT("Reset reaction tardiness to zero.");
             }
         }
         if (downstream_to_execute_now->deadline > 0LL) {
@@ -987,6 +994,7 @@ void schedule_output_reactions(reaction_t* reaction) {
         // Reset the tardiness because it has been dealt with in the
         // tardy handler
         downstream_to_execute_now->tardiness = 0LL;
+        DEBUG_PRINT("Finally, reset reaction tardiness to zero.");
     }
 }
 

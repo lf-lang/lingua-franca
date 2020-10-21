@@ -14,7 +14,7 @@ target C {
 import Count from "lib/Count.lf";
 
 preamble {=
-    #define VERBOSE
+    // #define VERBOSE
 =}
 
 reactor ImportantActuator {
@@ -26,7 +26,9 @@ reactor ImportantActuator {
         }
     =} tardy {=
         printf("Message is tardy by %llu nsec.\n", in->tardiness);
-        self->success = true;
+        if (in->tardiness > 0) {
+            self->success = true;
+        }
     =}
     reaction(shutdown) {=
         if (!self->success) {
