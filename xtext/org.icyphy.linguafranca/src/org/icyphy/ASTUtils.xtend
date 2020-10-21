@@ -413,9 +413,9 @@ class ASTUtils {
             action.origin = ActionOrigin.PHYSICAL
         } else {
             // If the connection is logical but coordination
-            // is distributed (decentralized), we would need
+            // is decentralized, we would need
             // to make P2P connections
-            if (generator.targetCoordination.equals("distributed")) {
+            if (generator.targetCoordination.equals("decentralized")) {
                 leftFederate.outboundP2PConnections.add(rightFederate)
                 rightFederate.inboundP2PConnections.add(leftFederate)                
             }            

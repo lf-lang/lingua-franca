@@ -654,9 +654,9 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 case COORDINATION:
                     if (param.value.id.isNullOrEmpty || 
                         !(param.value.id.equals("centralized") || 
-                        param.value.id.equals("distributed"))) {
+                        param.value.id.equals("decentralized"))) {
                         error("Target property 'coordination' can either be " +
-                            "'centralized' or 'distributed'.",
+                            "'centralized' or 'decentralized'.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     } 
                 case FLAGS:
