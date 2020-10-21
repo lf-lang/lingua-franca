@@ -979,7 +979,6 @@ class CGenerator extends GeneratorBase {
             # Set a trap to kill all background jobs on error or control-C
             trap 'echo "#### Received ERR. Killing federates."; kill ${pids[*]}; exit 1' ERR
             trap 'echo "#### Received SIGINT. Killing federates."; kill ${pids[*]}; exit 1' SIGINT
-            trap 'echo "#### Received EXIT."; exit $?' EXIT
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
