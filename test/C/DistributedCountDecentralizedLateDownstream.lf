@@ -8,14 +8,14 @@
  */
 target C {
     timeout: 1 sec,
-    coordination: distributed
+    coordination: decentralized
 };
 
 import Count from "lib/Count.lf";
 
 preamble {=
    // #define VERBOSE
-=} 
+=}
 
 reactor ImportantActuator {
     input in:int;

@@ -1288,7 +1288,7 @@ class CGenerator extends GeneratorBase {
         // triggered by a port or action is late due
         // to network latency, etc..
         var tardiness = ''        
-        if (targetCoordination.equals("distributed")) {
+        if (targetCoordination.equals("decentralized")) {
             tardiness = '''
                 «targetTimeType» tardiness;
             '''
@@ -2045,7 +2045,7 @@ class CGenerator extends GeneratorBase {
         // Construct the tardiness inheritance code to go into
         // the body of the function.
         var StringBuilder tardinessInheritenceCode = new StringBuilder()
-        if (targetCoordination.equals("distributed")) {
+        if (targetCoordination.equals("decentralized")) {
             pr(tardinessInheritenceCode, '''
                 if (self->___reaction_«reactionIndex».tardiness == true) {
             ''')
@@ -3601,7 +3601,7 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-            «IF targetCoordination.equals("distributed")»
+            «IF targetCoordination.equals("decentralized")»
                 DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
             «ENDIF»
         ''')
@@ -3650,14 +3650,14 @@ class CGenerator extends GeneratorBase {
         // If the connection is physical and the receiving federate is remote, send it directly on a socket.
         // If the connection is physical and the receiving federate is local, send it via shared memory. FIXME: not implemented yet
         // If the connection is logical and the coordination mode is centralized, send via RTI.
-        // If the connection is logical and the coordination mode is distributed, send directly
+        // If the connection is logical and the coordination mode is decentralized, send directly
         var String socket;
         var String messageType;
         
         // The additional delay in absence of after
         // is  -1. This has a special meaning
-        // in send_message_timed
-        // (@see send_message_timed in lib/core/federate.c).
+        // in send_timed_message
+        // (@see send_timed_message in lib/core/federate.c).
         // In this case, the sender will send
         // its current tag as the timestamp
         // of the outgoing message without adding a microstep delay.
@@ -3665,9 +3665,9 @@ class CGenerator extends GeneratorBase {
         // (that can be zero) either as a time
         // value (e.g., 200 msec) or as a literal
         // (e.g., a parameter), that delay in nsec
-        // will be passed to send_message_timed and added to 
+        // will be passed to send_timed_message and added to 
         // the current timestamp. If after delay is 0,
-        // send_message_timed will use the current tag +
+        // send_timed_message will use the current tag +
         // a microstep as the timestamp of the outgoing message.
         // FIXME: implementation of tag is currently incomplete
         // in the C target. Therefore, the nuances regarding
@@ -3680,7 +3680,7 @@ class CGenerator extends GeneratorBase {
                 additionalDelayString = delay.literal
             }
         }
-        if (isPhysical || targetCoordination.equals("distributed")) {
+        if (isPhysical || targetCoordination.equals("decentralized")) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
@@ -3695,7 +3695,7 @@ class CGenerator extends GeneratorBase {
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
-                send_message_timed(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                send_timed_message(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»->token);
             ''')
         } else {
@@ -3714,7 +3714,7 @@ class CGenerator extends GeneratorBase {
             }
             result.append('''
             size_t message_length = «lengthExpression»;
-            send_message_timed(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            send_timed_message(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             ''')
         }
         return result.toString

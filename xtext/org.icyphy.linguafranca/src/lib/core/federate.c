@@ -270,7 +270,7 @@ void create_server(int specified_port) {
  * @param length The message length.
  * @param message The message.
  */
-void send_message_timed(interval_t additional_delay, int socket, int message_type, unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
+void send_timed_message(interval_t additional_delay, int socket, int message_type, unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
     assert(port < 65536);
     assert(federate < 65536);
     unsigned char buffer[17];
@@ -445,7 +445,7 @@ void* handle_p2p_connections_from_federates(void *ignored) {
 
 /**
  * Connect to the federate with the specified id. This established
- * connection will then be used in functions such as send_message_timed() 
+ * connection will then be used in functions such as send_timed_message() 
  * to send messages directly to the specified federate. 
  * This function first sends an ADDRESS_QUERY message to the RTI to obtain 
  * the IP address and port number of the specified federate. It then attempts 

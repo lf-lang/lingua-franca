@@ -470,7 +470,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case TargetProperties.COORDINATION.name:
                         // Set the target coordination if assigned
                         // by the user. Values can only be
-                        // 'centralized' or 'distributed'.
+                        // 'centralized' or 'decentralized'.
                         this.targetCoordination = param.value.id
                     case TargetProperties.FILES.name:
                         this.targetFiles.addAll(this.collectFiles(param.value))
@@ -2113,7 +2113,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     // Connection spans federates.
                     // First, update the dependencies in the FederateInstances.
                     // Exclude physical connections because these do not create real dependencies.
-                    if (leftFederate !== rightFederate && !connection.physical && (!targetCoordination.equals("distributed"))) {
+                    if (leftFederate !== rightFederate && !connection.physical && (!targetCoordination.equals("decentralized"))) {
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
                             dependsOn = new LinkedHashSet<Value>()
