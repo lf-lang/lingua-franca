@@ -977,8 +977,9 @@ class CGenerator extends GeneratorBase {
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
             # Set a trap to kill all background jobs on error or control-C
-            trap 'echo "#### Killing federates."; kill $(jobs -p)' ERR
-            trap 'kill $(jobs -p)' SIGINT
+            trap 'echo "#### Received ERR. Killing federates."; kill ${pids[*]}; exit 1' ERR
+            trap 'echo "#### Received SIGINT. Killing federates."; kill ${pids[*]}; exit 1' SIGINT
+            trap 'echo "#### Received EXIT."; exit $?' EXIT
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
@@ -1001,6 +1002,8 @@ class CGenerator extends GeneratorBase {
         if (user !== null) {
             target = user + '@' + host
         }
+        // Index used for storing pids of federates
+        var federateIndex = 0
         for (federate : federates) {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
@@ -1044,6 +1047,7 @@ class CGenerator extends GeneratorBase {
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name»."
                     «outPath»«File.separator»«filename»_«federate.name» -i $FEDERATION_ID &
+                    pids[«federateIndex++»]=$!
                 ''')                
             }
         }
@@ -1052,6 +1056,7 @@ class CGenerator extends GeneratorBase {
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI)."
                 «outPath»«File.separator»«filename»_RTI -i $FEDERATION_ID
+                pids[«federateIndex++»]=$!
             ''')
         } else {
             // Start the RTI on the remote machine.
@@ -1108,8 +1113,19 @@ class CGenerator extends GeneratorBase {
                     date >> «logFileName»; \
                     echo "In «path», executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
                     «executeCommand» 2>&1 | tee -a «logFileName»' &
+                pids[«federateIndex++»]=$!
             ''')
         }
+        
+        // Wait for launched processes to finish
+        pr(shCode, '''
+        
+            # Wait for launched processes to finish.
+            # The errors are handled separately via trap.
+            for pid in ${pids[*]}; do
+                wait $pid
+            done
+        ''')
 
         // Write the launcher file.
         // Delete file previously produced, if any.
