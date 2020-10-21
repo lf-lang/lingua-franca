@@ -46,6 +46,8 @@ DeterminismThreaded.lf
 DistributedCount.lf
 DistributedCountDecentralized.lf
 DistributedCountDecentralizedLate.lf
+DistributedCountDecentralizedLateDownstream.lf
+DistributedCountDecentralizedLateHierarchy.lf
 DistributedCountPhysical.lf
 DistributedToken.lf
 DoubleInvocation.lf

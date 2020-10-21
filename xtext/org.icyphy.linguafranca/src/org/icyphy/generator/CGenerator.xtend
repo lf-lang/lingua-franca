@@ -1974,7 +1974,7 @@ class CGenerator extends GeneratorBase {
         indent()
         var body = reaction.code.toText
         
-        generateInitializationForReaction(body, reaction, decl)
+        generateInitializationForReaction(body, reaction, decl, reactionIndex)
         
         // Code verbatim from 'reaction'
         prSourceLineNumber(reaction.code)
@@ -1990,7 +1990,7 @@ class CGenerator extends GeneratorBase {
 
             pr('void ' + lateFunctionName + '(void* instance_args) {')
             indent();
-            generateInitializationForReaction(body, reaction, reactor)
+            generateInitializationForReaction(body, reaction, decl, reactionIndex)
             // Code verbatim from 'late'
             prSourceLineNumber(reaction.tardy.code)
             pr(reaction.tardy.code.toText)
@@ -2005,7 +2005,7 @@ class CGenerator extends GeneratorBase {
 
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
-            generateInitializationForReaction(body, reaction, reactor)
+            generateInitializationForReaction(body, reaction, decl, reactionIndex)
             // Code verbatim from 'deadline'
             prSourceLineNumber(reaction.deadline.code)
             pr(reaction.deadline.code.toText)
@@ -2015,13 +2015,49 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
+     * Generate code that passes the reaction's tardiness to all output ports
+     * and actions. The reaction's tardiness is the maximum tardiness of its 
+     * triggering inputs.
+     * 
+     * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
+     * @param reaction The initialization code will be generated for this specific reaction
+     * @param decl The reactor that has the reaction
+     * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
+     */
+    def generateTardinessInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
+        // Construct the tardiness inheritance code to go into
+        // the body of the function.
+        var StringBuilder tardinessInheritenceCode = new StringBuilder()
+        if (targetCoordination.equals("distributed")) {
+            for (effect : reaction.effects ?: emptyList) {
+                if (effect.variable instanceof Input) {
+                    // Input to a contained reaction
+                    pr(tardinessInheritenceCode, '''
+                        // All effects inherit the tardiness of the reaction
+                        «effect.container.name».«effect.variable.name»->tardiness = self->___reaction_«reactionIndex».tardiness;
+                    ''')                    
+                } else if (effect.variable instanceof Output) {
+                    // Everything else
+                    pr(tardinessInheritenceCode, '''
+                        // All effects inherit the tardiness of the reaction
+                        «effect.variable.name»->tardiness = self->___reaction_«reactionIndex».tardiness;
+                    ''')                    
+                }
+            }
+            pr(tardinessInheritenceCode.toString)      
+        }
+        return tardinessInheritenceCode
+    }
+    
+    /**
      * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.
      * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
      * @param reaction The initialization code will be generated for this specific reaction
      * @param decl The reactor that has the reaction
+     * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
      * @return The reaction initialization code for reusability.
      */
-    def generateInitializationForReaction(String body, Reaction reaction, ReactorDecl decl) {
+    def generateInitializationForReaction(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
         val reactor = decl.toDefinition
         
         // Construct the reactionInitialization code to go into
@@ -2145,6 +2181,13 @@ class CGenerator extends GeneratorBase {
             }
             // Next generate all the collected setup code.
             pr(reactionInitialization.toString)
+            
+            if (reaction.tardy === null) {
+                // Pass down the tardiness to all input and output effects
+                // downstream if the current reaction does not have a tardy
+                // handler.
+                generateTardinessInheritence(body, reaction, decl, reactionIndex)                
+            }
         } else {
             pr(structType + "* self = (" + structType + "*)instance_args;")
         }
@@ -3475,7 +3518,6 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
             «IF targetCoordination.equals("distributed")»
-                «receiveRef»->tardiness = «action.name»->trigger->tardiness;
                 DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
             «ENDIF»
         ''')
@@ -3781,6 +3823,9 @@ class CGenerator extends GeneratorBase {
      *   if there is no federation.
      */
     private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
+        if (!reactorBelongsToFederate(instance, federate)) {
+            return;
+        }
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
         // For destinations that are multiports, need to count channels
         // in case there is more than one connection.
