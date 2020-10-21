@@ -583,7 +583,7 @@ void* worker(void* arg) {
         
 
             bool violation = false;
-            // If the tardiness amount for the reaction is larger than zero,
+            // If the tardiness for the reaction is true,
             // an input trigger to this reaction has been triggered at a later
             // logical time than originally anticipated. In this case, a special
             // tardy reaction will be invoked.             
@@ -596,7 +596,9 @@ void* worker(void* arg) {
             // @note The tardy handler and the deadline handler are not mutually exclusive.
             //  In other words, both can be invoked for a reaction if it is triggered late
             //  in logical time (tardy) and also misses the constraint on physical time (deadline).
-            if (reaction->tardiness > 0LL) {
+            // @note In absence of a tardy handler, the tardiness will be passed down the reaction
+            //  chain until it is dealt with in a downstream tardy handler.
+            if (reaction->tardiness == true) {
                 reaction_function_t handler = reaction->tardy_handler;
                 DEBUG_PRINT("Invoking tardiness handler %p.", handler);
                 // Invoke the tardy handler if there is one.
@@ -613,7 +615,7 @@ void* worker(void* arg) {
                     schedule_output_reactions(reaction);
                     
                     // Reset the tardiness because it has been dealt with
-                    reaction->tardiness = 0LL;
+                    reaction->tardiness = false;
                 }
             }
             // If the reaction has a deadline, compare to current physical time
@@ -685,7 +687,7 @@ void* worker(void* arg) {
             }
             // Reset the tardiness because it has been passed
             // down the chain
-            reaction->tardiness = 0LL;
+            reaction->tardiness = false;
 
             // printf("DEBUG: worker: Done invoking reaction.\n");
         }

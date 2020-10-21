@@ -448,9 +448,8 @@ struct reaction_t {
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
     interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
-    interval_t tardiness;     // Tardiness of input triggers to this reaction. Since each input trigger
-                              // can have a different tardiness amount, the maximum is always stored here.
-                              // This value indicates to the runtime that this reaction contains trigger(s)
+    bool tardiness;           // Indicator of tardiness in one of the input triggers to this reaction. default = 0.
+                              // Value of True indicates to the runtime that this reaction contains trigger(s)
                               // that are triggered at a later logical time that was originally anticipated.
                               // Currently, this is only possible if logical
                               // connections are used in a decentralized federated
