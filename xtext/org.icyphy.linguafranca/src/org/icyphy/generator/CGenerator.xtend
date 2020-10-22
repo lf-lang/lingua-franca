@@ -346,6 +346,17 @@ class CGenerator extends GeneratorBase {
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
         
+        if (isFederated) {
+            pr('''
+                // Definition to help guide code generation
+                // for the core library. Certain parts of
+                // the core that are explicitly related to
+                // federated exection are not compiled if 
+                // this flag is present.
+                #define FEDERATED
+            ''')
+        }
+
         // Generate code for each reactor.
         val names = newLinkedHashSet
         for (r : reactors) {
@@ -1288,7 +1299,7 @@ class CGenerator extends GeneratorBase {
         // triggered by a port or action is late due
         // to network latency, etc..
         var tardiness = ''        
-        if (targetCoordination.equals("decentralized")) {
+        if (isFederated) {
             tardiness = '''
                 «targetTimeType» tardiness;
             '''
@@ -2045,7 +2056,7 @@ class CGenerator extends GeneratorBase {
         // Construct the tardiness inheritance code to go into
         // the body of the function.
         var StringBuilder tardinessInheritenceCode = new StringBuilder()
-        if (targetCoordination.equals("decentralized")) {
+        if (isFederated) {
             pr(tardinessInheritenceCode, '''
                 if (self->___reaction_«reactionIndex».tardiness == true) {
             ''')
@@ -3601,7 +3612,7 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-            «IF targetCoordination.equals("decentralized")»
+            «IF isFederated»
                 DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
             «ENDIF»
         ''')

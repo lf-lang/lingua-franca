@@ -642,6 +642,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             // Do we want another kind of action, say a ptides action,
             // that is physical but flags or handles this error here
             // in some way?
+
+            // Update the tardiness of the trigger to reflect
+            // the descrepency between physical_time and the
+            // requested tag
+            trigger->tardiness = physical_time - tag;
+
             tag = physical_time;
         }
     } else {

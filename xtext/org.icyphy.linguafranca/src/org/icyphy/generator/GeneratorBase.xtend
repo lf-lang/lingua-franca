@@ -250,6 +250,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var Set<Reaction> unorderedReactions = null
     
+    
+    /**
+     * Indicates whether or not the current Lingua Franca program
+     * contains a federation.
+     */
+     protected var boolean isFederated = false
+    
     ////////////////////////////////////////////
     //// Target properties, if they are included.
     
@@ -2025,7 +2032,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             federates.add(federateInstance)
             federateByName.put("", federateInstance)
             federateByID.put(0, federateInstance)
-        } else {            
+        } else {
+            // The Lingua Franca program is federated
+            isFederated = true            
             if (mainDefn.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
