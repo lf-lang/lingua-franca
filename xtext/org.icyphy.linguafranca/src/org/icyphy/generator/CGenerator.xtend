@@ -345,17 +345,6 @@ class CGenerator extends GeneratorBase {
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
-        
-        if (isFederated) {
-            pr('''
-                // Definition to help guide code generation
-                // for the core library. Certain parts of
-                // the core that are explicitly related to
-                // federated exection are not compiled if 
-                // this flag is present.
-                #define FEDERATED
-            ''')
-        }
 
         // Generate code for each reactor.
         val names = newLinkedHashSet
@@ -1349,6 +1338,11 @@ class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
+            if (action.origin === ActionOrigin.PHYSICAL) {
+                tardiness = '''
+                    «targetTimeType» tardiness;
+                '''
+            }
             pr(action, code, '''
                 typedef struct {
                     trigger_t* trigger;
