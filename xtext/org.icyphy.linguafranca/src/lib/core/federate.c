@@ -287,7 +287,7 @@ void send_timed_message(interval_t additional_delay, int socket, int message_typ
     encode_int(length, &(buffer[5]));
 
     // Get current logical time
-    instant_t current_time = get_logical_time();
+    instant_t current_message_timestamp = get_logical_time();
     if (additional_delay == 0LL) {
         // After was specified by the user
         // on the connection with a delay of 0.
@@ -301,7 +301,7 @@ void send_timed_message(interval_t additional_delay, int socket, int message_typ
         // the tag of the outgoing message
         // should be (get_logical_time() + additional_delay, get_microstep())
 
-        current_time += additional_delay;
+        current_message_timestamp += additional_delay;
     } else if (additional_delay == -1LL) {
         // No after delay is given by the user
         // FIXME: in this case,
@@ -310,8 +310,8 @@ void send_timed_message(interval_t additional_delay, int socket, int message_typ
     }
     
     // Next 8 bytes are the timestamp.
-    encode_ll(current_time, &(buffer[9]));
-    DEBUG_PRINT("Federate %d sending message with timestamp %lld to federate %d.", _lf_my_fed_id, current_time - start_time, federate);
+    encode_ll(current_message_timestamp, &(buffer[9]));
+    DEBUG_PRINT("Federate %d sending message with timestamp %lld to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, federate);
 
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     DEBUG_PRINT("Federate %d pthread_mutex_lock send_timed", _lf_my_fed_id);
@@ -814,8 +814,13 @@ handle_t schedule_value_received_from_network_already_locked(
  * or directly from other federates.
  * This will read the timestamp, which is appended to the header,
  * and calculate an offset to pass to the schedule function.
- * This function assumes the caller does not hold the mutex lock,
- * which it acquires to call schedule.
+ * This function assumes the caller does not hold the mutex lock.
+ * Instead of holding the mutex lock, this function calls 
+ * _lf_increment_global_logical_time_barrier with the timestamp
+ * of the message as an argument. This ensures that the logical
+ * time will not advance to timestamp if it is in the future, or
+ * the logical time will not advance at all if the timestamp is
+ * now or in the past.
  * @param socket The socket to read the message from.
  * @param buffer The buffer to read.
  */
@@ -823,9 +828,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // Acquire the one mutex lock to prevent logical time from advancing
     // between the time we read the timestamp and the time we call schedule().
     DEBUG_PRINT("Federate %d pthread_mutex_lock handle_timed_message.", _lf_my_fed_id);
-    pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("Federate %d pthread_mutex_locked.", _lf_my_fed_id);
-
+    
     // Read the header which contains the timestamp.
     read_from_socket(socket, 16, buffer, "Federate %d failed to read timed message header.", _lf_my_fed_id);
     // Extract the header information.
@@ -839,6 +842,12 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 
     // Read the timestamp.
     instant_t timestamp = extract_ll(buffer + 8);
+
+    // Increment the barrier to prevent advancement of logical time
+    // Suggest that the logical time barrier be raised at the timestamp provided
+    // by the message. If this timestamp is in the past, this effectively
+    // freezes the logical time at the current level.
+    _lf_increment_global_logical_time_barrier(timestamp);
     DEBUG_PRINT("Message timestamp: %lld, Current logical time: %lld.", timestamp - start_time, get_elapsed_logical_time());
 
     // Read the payload.
@@ -847,17 +856,21 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     read_from_socket(socket, length, message_contents, "Federate %d failed to read timed message body.", _lf_my_fed_id);
     DEBUG_PRINT("Message received by federate: %s.", message_contents);
 
-
+    // Increment the barrier to prevent advancement of logical time
+    // The 0 argument freezes the logical time at current level
+    // to allow for accurate calculation of delay.
+    _lf_increment_global_logical_time_barrier(0);
     interval_t delay = timestamp - get_logical_time();
     // NOTE: Cannot call schedule_value(), which is what we really want to call,
     // because pthreads is too incredibly stupid and deadlocks trying to acquire
     // a lock that the calling thread already holds.
-    DEBUG_PRINT("Calling schedule with delay %lld.", delay);
+    DEBUG_PRINT("Federate %d calling schedule with delay %lld.", _lf_my_fed_id, delay);
     schedule_value_received_from_network_already_locked(__action_for_port(port_id), delay, message_contents, length);
     // DEBUG_PRINT("Called schedule with delay %lld.", delay);
 
-    DEBUG_PRINT("Federate %d pthread_mutex_unlock.", _lf_my_fed_id);
-    pthread_mutex_unlock(&mutex);
+    // Decrement the barrier on logical time advancement
+    _lf_decrement_global_logical_time_barrier();
+    _lf_decrement_global_logical_time_barrier();
 }
 
 /** Most recent TIME_ADVANCE_GRANT received from the RTI, or NEVER if none
