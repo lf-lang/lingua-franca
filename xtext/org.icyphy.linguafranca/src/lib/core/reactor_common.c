@@ -786,6 +786,104 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 }
 
 /**
+ * A variant of __schedule() that will not incur a microstep delay when called.
+ * This function can only be used at tag (0,0) (i.e., startup) to insert
+ * events in the event queue directly. This function is only appropriate
+ * for logical actions, not timers nor physical actions. Timers are handled 
+ * separately in the __schedule() function. For convenience, physical
+ * actions are accepted but forwarded directly to the __schedule() function.
+ * 
+ * @param trigger The trigger to be invoked at a later logical time.
+ * @param extra_delay The logical time delay, which gets added to the
+ *  trigger's minimum delay, if it has one. If this number is negative,
+ *  then zero is used instead.
+ * @param token The token wrapping the payload or NULL for no payload.
+ * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
+ */
+handle_t _lf_startup_schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+    // Check to see if we are actually at startup
+    // FIXME: add microsteps
+    if (current_time != start_time) {
+        return 0;
+    }
+
+    // The trigger argument could be null, meaning that nothing is triggered.
+    // Doing this after incrementing the reference count ensures that the
+    // payload will be freed, if there is one.
+	if (trigger == NULL) {
+	    __done_using(token);
+	    return 0;
+	}
+
+    // Check to see if the intended event will actually be scheduled at (0,0)
+    if ((trigger->offset + extra_delay) != 0LL) {
+        return 0;
+    }
+    // Check to see if the trigger is not a timer
+    if (trigger->is_timer) {
+        return 0;
+    } else if (trigger->is_physical) {
+        // Physical actions by definition will always
+        // be assigned tag (T,0) at t=(0, 0) if extra_delay is 0.
+        // The __schedule() function can handle that 
+        // scenario.
+        return __schedule(trigger, extra_delay, token);
+    }
+
+    // Check if the reaction queue is empty.
+    // This means that the execution has not
+    // started yet.
+    if (pqueue_size(reaction_q) != 0) {
+        DEBUG_PRINT("Reaction queue is not empty.");
+        return 0;
+    }
+
+    // Increment the reference count of the token.
+	if (token != NULL) {
+	    token->ref_count++;
+	}
+
+    // Get an event_t struct to put on the event queue.
+    // Recycle event_t structs, if possible.    
+    event_t* e = (event_t*)pqueue_pop(recycle_q);
+    if (e == NULL) {
+        e = (event_t*)malloc(sizeof(struct event_t));
+    }
+    
+    // Set the payload.
+    e->token = token;
+
+    // Make sure the event points to this trigger so when it is
+    // dequeued, it will trigger this trigger.
+    e->trigger = trigger;
+
+    // Set the tag of the event.
+    e->time = current_time;
+
+    interval_t min_spacing = trigger->period;
+    if (min_spacing > 0) {
+        // Store a pointer to the current event in order to check the min spacing
+        // between this and the following event. Only necessary for actions
+        // that actually specify a min spacing.
+        trigger->last = (event_t*)e;
+    }
+
+    // Queue the event.
+    // NOTE: There will not be a microstep because
+    // when this is called, no event on the event queue
+    // has been processed and the reaction queue is empty.
+    // printf("DEBUG: Inserting event in the event queue with elapsed time %lld.\n", e->time - start_time);
+    pqueue_insert(event_q, e);
+    // FIXME: make a record of handle and implement unschedule.
+    // NOTE: Rather than wrapping around to get a negative number,
+    // we reset the handle on the assumption that much earlier
+    // handles are irrelevant.
+    int return_value = __handle++;
+    if (__handle < 0) __handle = 1;
+    return return_value;
+}
+
+/**
  * Utility function to convert a pointer to action struct into
  * a pointer to the corresponding trigger struct.  The type of the
  * action struct is defined by a generated typedef and differs for different
