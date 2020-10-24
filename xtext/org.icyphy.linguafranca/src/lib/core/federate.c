@@ -781,31 +781,62 @@ trigger_t* __action_for_port(int port_id);
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_value_received_from_network_already_locked(
-    trigger_t* trigger, interval_t extra_delay, void* value, int length) {
+handle_t schedule_message_received_from_network(
+    trigger_t* trigger, instant_t timestamp, void* value, int length) {
     token_t* token = create_token(trigger->element_size);
+    // Return value of the function
+    int return_value = 0;
+    
+    // Set up the token
     token->value = value;
     token->length = length;
-    // In the case where the extra_delay is negative,
-    // we pad the extra_delay to 1 nsec (the smallest
-    // possible delay) and set the
-    // tardiness property to be equal
-    // to the padding.
 
-    // FIXME: currently, it is not possible
-    // to tolerate an extra_delay of zero
-    // because federates only send the timestamp
-    // and not the microstep delay.
+    // Assume tardiness is initially 0
     trigger->tardiness = 0LL;
-    if (extra_delay < 1LL) {
-        trigger->tardiness = 1LL - extra_delay;
-        extra_delay = 1LL;
+
+    // Calculate the extra_delay required to be passed
+    // to the schedule function.
+    interval_t extra_delay = timestamp - get_logical_time();
+
+    if (extra_delay == 0 && timestamp == start_time && !trigger->is_physical) {
+        // FIXME: add microsteps
+        // This is a special case where a message has
+        // arrived on a logical connection with a tag 
+        // (0, 0) when this federate
+        // is at tag (0, 0). In this case, the schedule
+        // function cannot be called since it will
+        // incur a microstep (i.e., it will insert an
+        // event with tag (0,1)). Instead, we call
+        // startup_schedule, which is a special kind
+        // of schedule that does not incur a microstep.
+        return_value = _lf_startup_schedule(trigger, extra_delay, token);
+
+
+        DEBUG_PRINT("Startup schedule returned %d.", return_value);
+        
+        // We don't need to call pthread_cond_broadcast(&event_q_changed)
+        // because (0,0) is guaranteed to execute.
+    } else {
+        // In the case where the extra_delay is not positive,
+        // we pad the extra_delay to 1 nsec (the smallest
+        // possible delay) and set the
+        // tardiness property to be equal
+        // to the padding.
+
+        // FIXME: currently, it is not possible
+        // to tolerate an extra_delay of zero
+        // because federates only send the timestamp
+        // and not the microstep delay.
+        if (extra_delay < 1LL) {
+            trigger->tardiness = 1LL - extra_delay;
+            extra_delay = 1LL;
+        }
+        DEBUG_PRINT("Calling schedule with delay %llu and tardiness %llu.", extra_delay, trigger->tardiness);
+        return_value = __schedule(trigger, extra_delay, token);
+        // Notify the main thread in case it is waiting for physical time to elapse.
+        DEBUG_PRINT("Federate %d pthread_cond_broadcast(&event_q_changed).", _lf_my_fed_id);
+        pthread_cond_broadcast(&event_q_changed);
     }
-    DEBUG_PRINT("Calling schedule with delay %llu and tardiness %llu.", extra_delay, trigger->tardiness);
-    int return_value = __schedule(trigger, extra_delay, token);
-    // Notify the main thread in case it is waiting for physical time to elapse.
-    DEBUG_PRINT("Federate %d pthread_cond_broadcast(&event_q_changed).", _lf_my_fed_id);
-    pthread_cond_broadcast(&event_q_changed);
     return return_value;
 }
 
@@ -860,12 +891,11 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // The 0 argument freezes the logical time at current level
     // to allow for accurate calculation of delay.
     _lf_increment_global_logical_time_barrier(0);
-    interval_t delay = timestamp - get_logical_time();
     // NOTE: Cannot call schedule_value(), which is what we really want to call,
     // because pthreads is too incredibly stupid and deadlocks trying to acquire
     // a lock that the calling thread already holds.
-    DEBUG_PRINT("Federate %d calling schedule with delay %lld.", _lf_my_fed_id, delay);
-    schedule_value_received_from_network_already_locked(__action_for_port(port_id), delay, message_contents, length);
+    DEBUG_PRINT("Federate %d calling schedule with timestamp %lld.", _lf_my_fed_id, timestamp);
+    schedule_message_received_from_network(__action_for_port(port_id), timestamp, message_contents, length);
     // DEBUG_PRINT("Called schedule with delay %lld.", delay);
 
     // Decrement the barrier on logical time advancement
@@ -1061,6 +1091,11 @@ void synchronize_with_other_federates() {
     DEBUG_PRINT("Federate %d synchronizing with other federates.", _lf_my_fed_id);
 
     // Reset the start time to the coordinated start time for all federates.
+    // Note that this does not grant execution to this federate. In the centralized
+    // coordination, the tag (0,0) should be explicitly sent to the RTI on a Time
+    // Advance Grant message to request for permission to execute. In the decentralized
+    // coordination, either the after delay on the connection must be sufficiently large
+    // enough or the STP offset must be set globally to an accurate value.
     current_time = get_start_time_from_rti(get_physical_time());
 
     start_time = current_time;
