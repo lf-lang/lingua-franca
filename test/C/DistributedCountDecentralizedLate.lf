@@ -34,13 +34,14 @@ reactor Print {
     =} tardy {=
         printf("Message is late by %llu nsec.\n", in->tardiness);
         self->success_tardy++;
+        self->c++;
     =}
     reaction(t) {=
         // Do nothing.
     =}
     
     reaction(shutdown) {=
-        if (self->success +  self->success_tardy != 5) {
+        if ((self->success +  self->success_tardy) != 5) {
             fprintf(stderr, "Failed to detect tardiness of messages.\n");
             exit(1);
         } else {

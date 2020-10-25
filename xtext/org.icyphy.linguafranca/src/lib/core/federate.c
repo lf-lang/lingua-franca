@@ -799,6 +799,9 @@ handle_t schedule_message_received_from_network(
     interval_t extra_delay = timestamp - get_logical_time();
 
     if (extra_delay == 0 && timestamp == start_time && !trigger->is_physical) {
+        DEBUG_PRINT("Calling startup schedule at time %lld with delay %lld.",
+                    get_logical_time(), extra_delay);
+
         // FIXME: add microsteps
         // This is a special case where a message has
         // arrived on a logical connection with a tag 
@@ -807,15 +810,13 @@ handle_t schedule_message_received_from_network(
         // function cannot be called since it will
         // incur a microstep (i.e., it will insert an
         // event with tag (0,1)). Instead, we call
-        // startup_schedule, which is a special kind
+        // _lf_schedule_init_reactions, which is a special kind
         // of schedule that does not incur a microstep.
-        return_value = _lf_startup_schedule(trigger, extra_delay, token);
-
+        return_value = _lf_schedule_init_reactions(trigger, extra_delay, token);
 
         DEBUG_PRINT("Startup schedule returned %d.", return_value);
         
-        // We don't need to call pthread_cond_broadcast(&event_q_changed)
-        // because (0,0) is guaranteed to execute.
+        pthread_cond_broadcast(&reaction_q_changed);
     } else {
         // In the case where the extra_delay is not positive,
         // we pad the extra_delay to 1 nsec (the smallest
