@@ -354,6 +354,13 @@ token_freed __done_using(token_t* token) {
 }
 
 /**
+ * Put the specified reaction on the reaction queue.
+ * This version is just a template.
+ * @param reaction The reaction.
+ */
+void _lf_enqueue_reaction(reaction_t* reaction);
+
+/**
  * Use tables to reset is_present fields to false and decrement reference
  * counts between time steps and at the end of execution.
  */
@@ -787,10 +794,16 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
 /**
  * A variant of __schedule() that will not incur a microstep delay when called.
- * This function can only be used at tag (0,0) (i.e., startup) to insert
- * events in the event queue directly. This function is only appropriate
- * for logical actions, not timers nor physical actions. Timers are handled 
- * separately in the __schedule() function. For convenience, physical
+ * This is achieved by bypassing the event queue and scheduling reactions
+ * directly on the reaction queue.
+ * This function can only be used at tag (0,0) (i.e., startup) for triggers that
+ * are not startup and not timers, but are still triggered at tag (0,0).
+ * This situation arises when an upstream federate sends a message with tag
+ * (0,0), and is received at tag (0,0). The message handling reactions thus
+ * need to be triggered at (0,0).
+ * 
+ * This function is only appropriate for logical actions, not timers nor 
+ * physical actions. Timers are handled separately. For convenience, physical
  * actions are accepted but forwarded directly to the __schedule() function.
  * 
  * @param trigger The trigger to be invoked at a later logical time.
@@ -800,7 +813,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  * @param token The token wrapping the payload or NULL for no payload.
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
-handle_t _lf_startup_schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay, token_t* token) {
     // Check to see if we are actually at startup
     // FIXME: add microsteps
     if (current_time != start_time) {
@@ -819,6 +832,7 @@ handle_t _lf_startup_schedule(trigger_t* trigger, interval_t extra_delay, token_
     if ((trigger->offset + extra_delay) != 0LL) {
         return 0;
     }
+    
     // Check to see if the trigger is not a timer
     if (trigger->is_timer) {
         return 0;
@@ -841,45 +855,45 @@ handle_t _lf_startup_schedule(trigger_t* trigger, interval_t extra_delay, token_
     // Increment the reference count of the token.
 	if (token != NULL) {
 	    token->ref_count++;
-	}
+	}    
 
-    // Get an event_t struct to put on the event queue.
-    // Recycle event_t structs, if possible.    
-    event_t* e = (event_t*)pqueue_pop(recycle_q);
-    if (e == NULL) {
-        e = (event_t*)malloc(sizeof(struct event_t));
+    // Copy the token pointer into the trigger struct so that the
+    // reactions can access it. This overwrites the previous template token,
+    // for which we decrement the reference count.
+    if (trigger->token != token && trigger->token != NULL) {
+        // Mark the previous one ok_to_free so we don't get a memory leak.
+        trigger->token->ok_to_free = OK_TO_FREE;
+        // Free the token if its reference count is zero. Since __done_using
+        // decrements the reference count, first increment it here.
+        trigger->token->ref_count++;
+        __done_using(trigger->token);
     }
-    
-    // Set the payload.
-    e->token = token;
-
-    // Make sure the event points to this trigger so when it is
-    // dequeued, it will trigger this trigger.
-    e->trigger = trigger;
-
-    // Set the tag of the event.
-    e->time = current_time;
-
-    interval_t min_spacing = trigger->period;
-    if (min_spacing > 0) {
-        // Store a pointer to the current event in order to check the min spacing
-        // between this and the following event. Only necessary for actions
-        // that actually specify a min spacing.
-        trigger->last = (event_t*)e;
+    trigger->token = token;
+    // Prevent this token from being freed. It is the new template.
+    // This might be null if there are no reactions to the action.
+    if (token != NULL) {
+        token->ok_to_free = no;
     }
 
-    // Queue the event.
+    // Queue the reactions for this trigger.
     // NOTE: There will not be a microstep because
-    // when this is called, no event on the event queue
-    // has been processed and the reaction queue is empty.
-    // printf("DEBUG: Inserting event in the event queue with elapsed time %lld.\n", e->time - start_time);
-    pqueue_insert(event_q, e);
+    // when this is called, the reaction queue is empty
+    // Push the corresponding reactions onto the reaction queue.
+    for (int i = 0; i < trigger->number_of_reactions; i++) {
+        // printf("DEBUG: Pushed onto reaction_q: %p\n", event->trigger->reactions[i]);
+        reaction_t* reaction = trigger->reactions[i];
+        _lf_enqueue_reaction(reaction);
+        DEBUG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
+    }
+
     // FIXME: make a record of handle and implement unschedule.
     // NOTE: Rather than wrapping around to get a negative number,
     // we reset the handle on the assumption that much earlier
     // handles are irrelevant.
     int return_value = __handle++;
-    if (__handle < 0) __handle = 1;
+    if (__handle < 0) { 
+        __handle = 1;
+    }
     return return_value;
 }
 
@@ -940,13 +954,6 @@ token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) 
     // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
     return new_token;
 }
-
-/**
- * Put the specified reaction on the reaction queue.
- * This version is just a template.
- * @param reaction The reaction.
- */
-void _lf_enqueue_reaction(reaction_t* reaction);
 
 /**
  * For the specified reaction, if it has produced outputs, insert the

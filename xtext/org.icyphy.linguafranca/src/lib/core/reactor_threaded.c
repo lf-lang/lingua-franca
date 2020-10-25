@@ -355,12 +355,16 @@ bool __next() {
     if (event != NULL) {
         // There is an event in the event queue.
         next_time = event->time;
-        
+        DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
         // If a stop time was given, adjust the next_time from the
         // event time to that stop time.
         if (stop_time > 0LL && next_time > stop_time) {
             next_time = stop_time;
-        }
+        }       
+        
+        // Wait until the global barrier semaphore on logical time is zero
+        // and the next_time is smaller than the logical time barrier (horizon).
+        _lf_wait_on_global_logical_time_barrier(next_time);
         
         // In case this is in a federation, check whether time can advance
         // to the next time. If there are upstream federates, then this call
@@ -403,14 +407,10 @@ bool __next() {
             return false;
         }
         
-        // Wait until the global barrier semaphore on logical time is zero
-        // and the next_time is smaller than the logical time barrier (horizon).
-        _lf_wait_on_global_logical_time_barrier(next_time);
-        
         // At this point, finally, we have an event to process.
         // Advance current time to match that of the first event on the queue.
         current_time = next_time;
-        // printf("DEBUG: __next(): ********* Advanced logical time to %lld.\n", current_time - start_time);
+        DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_time - start_time);
 
         // Invoke code that must execute before starting a new logical time round,
         // such as initializing outputs to be absent.
@@ -429,6 +429,11 @@ bool __next() {
         if (stop_time > 0LL) {
             next_time = stop_time;
         }
+
+
+        // Wait until the global barrier semaphore on logical time is zero
+        // and the next_time is smaller than the logical time barrier (horizon).
+        _lf_wait_on_global_logical_time_barrier(next_time);
 
         // Ask the RTI to advance time to either stop_time or FOREVER.
         // This will be granted if there are no upstream federates.
@@ -459,11 +464,6 @@ bool __next() {
             // the event queue. Continue executing.
             return true;
         }
-
-
-        // Wait until the global barrier semaphore on logical time is zero
-        // and the next_time is smaller than the logical time barrier (horizon).
-        _lf_wait_on_global_logical_time_barrier(next_time);
 
         // If we get here, the RTI has granted time advance to the stop time
         // (or there is only federate, or to FOREVER is there is no stop time)
