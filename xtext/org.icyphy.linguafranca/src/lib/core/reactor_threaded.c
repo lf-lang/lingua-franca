@@ -172,6 +172,7 @@ void _lf_wait_on_global_logical_time_barrier(instant_t proposed_time) {
     // and the proposed_time is larger than the horizon.
     if (proposed_time > _lf_global_logical_time_advancement_barrier.horizon
        && _lf_global_logical_time_advancement_barrier.semaphore > 0) {
+        DEBUG_PRINT("Waiting on barrier for time %lld.", proposed_time);
         // Wait until semaphore reaches zero
         pthread_cond_wait(&global_logical_time_barrier_semaphore_reached_zero, &mutex);
     }
@@ -355,17 +356,13 @@ bool __next() {
     if (event != NULL) {
         // There is an event in the event queue.
         next_time = event->time;
-        DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
+        // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
         // If a stop time was given, adjust the next_time from the
         // event time to that stop time.
         if (stop_time > 0LL && next_time > stop_time) {
             next_time = stop_time;
         }       
-        
-        // Wait until the global barrier semaphore on logical time is zero
-        // and the next_time is smaller than the logical time barrier (horizon).
-        _lf_wait_on_global_logical_time_barrier(next_time);
-        
+
         // In case this is in a federation, check whether time can advance
         // to the next time. If there are upstream federates, then this call
         // will block waiting for a response from the RTI.
@@ -406,11 +403,26 @@ bool __next() {
             pthread_cond_broadcast(&reaction_q_changed);
             return false;
         }
-        
+                
+        // Wait until the global barrier semaphore on logical time is zero
+        // and the next_time is smaller than the logical time barrier (horizon).
+        _lf_wait_on_global_logical_time_barrier(next_time);
+        // Check to see if reaction queue has been populated
+        // while the barrier was up.
+        // This might happen because of a call
+        // to _lf_schedule_init_reactions (@see reactor_common.c).
+        if (pqueue_size(reaction_q) != 0) {
+            DEBUG_PRINT("Reaction queue has changed after the logical time barrier. "
+                        "Returning from __next().");
+            // Do not allow advancing time
+            // until all reactions are executed.
+            return true;
+        }
+
         // At this point, finally, we have an event to process.
         // Advance current time to match that of the first event on the queue.
         current_time = next_time;
-        DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_time - start_time);
+        // DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_time - start_time);
 
         // Invoke code that must execute before starting a new logical time round,
         // such as initializing outputs to be absent.
@@ -429,7 +441,6 @@ bool __next() {
         if (stop_time > 0LL) {
             next_time = stop_time;
         }
-
 
         // Wait until the global barrier semaphore on logical time is zero
         // and the next_time is smaller than the logical time barrier (horizon).

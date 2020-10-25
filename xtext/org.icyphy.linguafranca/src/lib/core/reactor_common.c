@@ -852,11 +852,6 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
         return 0;
     }
 
-    // Increment the reference count of the token.
-	if (token != NULL) {
-	    token->ref_count++;
-	}    
-
     // Copy the token pointer into the trigger struct so that the
     // reactions can access it. This overwrites the previous template token,
     // for which we decrement the reference count.
