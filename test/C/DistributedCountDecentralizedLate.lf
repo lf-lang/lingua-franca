@@ -13,7 +13,7 @@ target C {
 import Count from "lib/Count.lf";
 
 preamble {=
-    #define VERBOSE
+    // #define VERBOSE
 =}
 
 reactor Print {
@@ -25,7 +25,7 @@ reactor Print {
                          // absence of incoming messages.
     state c:int(0);
     reaction(in) {=
-        interval_t current_time = get_logical_time();
+        interval_t current_time = get_elapsed_logical_time();
         printf("At time %llu received %d. Tardiness is %llu.\n", get_elapsed_logical_time(), in->value, in->tardiness);
         if (current_time == SEC(1) *  self->c) {
             self->success++; // Message was on-time
