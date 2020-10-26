@@ -182,6 +182,8 @@ pqueue_t* event_q;     // For sorting by time.
 
 pqueue_t* reaction_q;  // For sorting by deadline.
 pqueue_t* recycle_q;   // For recycling malloc'd events.
+pqueue_t* next_q;      // For temporarily storing the next event lined 
+                       // up in superdense time.
 
 handle_t __handle = 1;
 
@@ -192,6 +194,13 @@ handle_t __handle = 1;
  */
 static int in_reverse_order(pqueue_pri_t thiz, pqueue_pri_t that) {
     return (thiz > that);
+}
+
+/**
+ * Return whether the first and second argument are given in reverse order.
+ */
+static int in_no_particular_order(pqueue_pri_t thiz, pqueue_pri_t that) {
+    return false;
 }
 
 /**
@@ -537,7 +546,13 @@ void __pop_events() {
 
         if (event->trigger == NULL) {
             // Handle dummy event.
-            // FIXME
+            unsigned int count = *((unsigned int*)event->token->value);
+            if (count > 0) {
+                // Decrement the counter in the payload.
+                // Once the count reaches zero, it won't be reinserted
+                // into the event queue.
+                *((unsigned int*)event->token->value) = --count;
+            }
         } else {
             // Copy the token pointer into the trigger struct so that the
             // reactions can access it. This overwrites the previous template token,
@@ -560,7 +575,15 @@ void __pop_events() {
         }
         
         // If this event points to a next event, insert it into the next queue.
-        // FIXME
+        if (event->next != NULL) {
+            if (event->trigger == NULL && *((unsigned int*)event->token->value) > 0) {
+                // Insert the dummy event into the next queue.
+                pqueue_insert(next_q, event);
+            } else {
+                // Insert the next event into the next queue.
+                pqueue_insert(next_q, event->next);
+            }
+        }
 
         // Recycle the event.
         // So that sorting doesn't cost anything,
@@ -574,6 +597,9 @@ void __pop_events() {
         event = (event_t*)pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
 
+    // After populating the reaction queue, see if there are things on the
+    // next queue to put back into the event queue.
+    // FIXME
 }
 
 /**
@@ -1367,8 +1393,10 @@ void initialize() {
 
     event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
-	// NOTE: The recycle queue does not need to be sorted. But here it is.
-    recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
+	// NOTE: The recycle and next queue does not need to be sorted. But here it is.
+    recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_no_particular_order, get_event_time,
+            get_event_position, set_event_position, event_matches, print_event);
+    next_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_no_particular_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
 
     // Initialize the trigger table.
