@@ -780,7 +780,7 @@ trigger_t* __action_for_port(int port_id);
  * 
  * 
  * @param action The action or timer to be triggered.
- * @param extra_delay Extra offset of the event release.
+ * @param timestamp The timestamp of the message received over the network.
  * @param value Dynamically allocated memory containing the value to send.
  * @param length The length of the array, if it is an array, or 1 for a
  *  scalar and 0 for no payload.
@@ -804,20 +804,24 @@ handle_t schedule_message_received_from_network_already_locked(
     interval_t extra_delay = timestamp - get_logical_time();
 
 
-    // FIXME: add microsteps
-    // This could be a special case where a message has
-    // arrived on a logical connection with a tag 
-    // (0, 0) when this federate
-    // is at tag (0, 0) and has not started execution yet.
-    // In this case, the schedule
-    // function cannot be called since it will
-    // incur a microstep (i.e., it will insert an
-    // event with tag (0,1)). To check, we call
-    // _lf_schedule_init_reactions, which is a special kind
-    // of schedule that does not incur a microstep. If the above-mentioned
-    // conditions are not met, the return value will be 0.
-    return_value = _lf_schedule_init_reactions(trigger, extra_delay, token);
-    DEBUG_PRINT("Startup schedule returned %d.", return_value);
+    if (!_lf_execution_started) {
+        // FIXME: add microsteps
+        // If execution has not started yet,
+        // there could be a special case where a message has
+        // arrived on a logical connection with a tag 
+        // (0, 0) when this federate
+        // is at tag (0, 0).
+        // In this case, the schedule
+        // function cannot be called since it will
+        // incur a microstep (i.e., it will insert an
+        // event with tag (0,1)). To check, we call
+        // _lf_schedule_init_reactions, which is a special kind
+        // of schedule that does not incur a microstep. This function will first
+        // check the appropriate conditions and if the above-mentioned
+        // conditions are not met, the return value will be 0.
+        return_value = _lf_schedule_init_reactions(trigger, extra_delay, token);
+        DEBUG_PRINT("Startup schedule returned %d.", return_value);
+    }
 
     // If return_value remains 0, it means that the special startup procedure
     // does not apply or the call to _lf_schedule_init_reactions() has failed.

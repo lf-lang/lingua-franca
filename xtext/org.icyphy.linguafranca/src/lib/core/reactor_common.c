@@ -828,16 +828,16 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
 handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay, token_t* token) {
-    // Check to see if we are actually at startup
-    // FIXME: add microsteps
-    if (current_time != start_time) {
-        return 0;
-    }
-
     // Check to see if the execution
     // has not started yet.
     if (_lf_execution_started) {
         DEBUG_PRINT("Execution has already started.");
+        return 0;
+    }
+    
+    // Check to see if we are actually at startup
+    // FIXME: add microsteps
+    if (current_time != start_time) {
         return 0;
     }
 
