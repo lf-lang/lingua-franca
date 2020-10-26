@@ -667,8 +667,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
             // Update the tardiness of the trigger to reflect
             // the descrepency between physical_time and the
-            // requested tag
-            trigger->tardiness = physical_time - tag;
+            // requested tag. Since the tardiness can be externally
+            // set (initially, it is zero), we only add to it here.
+            trigger->tardiness += physical_time - tag;
 
             tag = physical_time;
         }
@@ -811,16 +812,18 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  * A variant of __schedule() that will not incur a microstep delay when called.
  * This is achieved by bypassing the event queue and scheduling reactions
  * directly on the reaction queue.
- * This function can only be used at tag (0,0) (i.e., startup) for triggers that
+ * This function should only be used at tag (0,0) (i.e., startup) when execution 
+ * has not started yet for triggers that
  * are not timers or physical actions, but are still triggered at tag (0,0).
  * This situation arises when an upstream federate sends a message with tag
  * (0,0), and is received at tag (0,0) while the federate has not started execution
  * yet. The message handling reactions thus need to be triggered at (0,0).
- * 
  * This function is only appropriate for logical actions, not timers nor 
  * physical actions. Timers and physical actions should be handled separately.
+ * If these conditions are not met, it will not schedule anything and return 0.
  * 
- * @param trigger The trigger to be invoked at a later logical time.
+ * 
+ * @param trigger The trigger to 
  * @param extra_delay The logical time delay, which gets added to the
  *  trigger's minimum delay, if it has one. If this number is negative,
  *  then zero is used instead.

@@ -180,8 +180,8 @@ void _lf_decrement_global_logical_time_barrier() {
  * 
  * 
  * This function assumes the mutex is already locked.
- * Thus, it unlocks the mutex to allow the semaphore to
- * change.
+ * Thus, it unlocks the mutex while it's waiting to allow
+ * the logical time barrier to change.
  * 
  * @param proposed_time The timestamp that the runtime wants
  *  to advance to.
@@ -189,7 +189,7 @@ void _lf_decrement_global_logical_time_barrier() {
 void _lf_wait_on_global_logical_time_barrier(instant_t proposed_time) {
     // Wait if the global barrier semaphore on logical time is zero
     // and the proposed_time is larger than the horizon.
-    if (proposed_time > _lf_global_logical_time_advancement_barrier.horizon) {
+    while (proposed_time > _lf_global_logical_time_advancement_barrier.horizon) {
         DEBUG_PRINT("Waiting on barrier for time %lld.", proposed_time);
         // Wait until no requestor remains for the barrier on logical time
         pthread_cond_wait(&global_logical_time_barrier_requestors_reached_zero, &mutex);

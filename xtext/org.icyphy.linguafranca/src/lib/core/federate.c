@@ -778,6 +778,8 @@ trigger_t* __action_for_port(int port_id);
  * network message based on the calculated delay.
  * This function assumes that the caller holds the mutex lock.
  * 
+ * This is used for handling incoming timed messages to a federate.
+ * 
  * 
  * @param action The action or timer to be triggered.
  * @param timestamp The timestamp of the message received over the network.
@@ -826,17 +828,26 @@ handle_t schedule_message_received_from_network_already_locked(
     // If return_value remains 0, it means that the special startup procedure
     // does not apply or the call to _lf_schedule_init_reactions() has failed.
     if (return_value == 0) {
-        // In the case where the extra_delay is not positive,
-        // we pad the extra_delay to 1 nsec (the smallest
-        // possible delay) and set the
-        // tardiness property to be equal
-        // to the padding.
+        if (trigger->is_physical) {
+            // For physical connection, the schedule function will
+            // add to the tardiness according to the current physical time.
+            // However, the schedule function cannot take a negative delay.
+            // Thus, here we pad the tardiness to the appropriate amount.
+            if (extra_delay < 0LL) {
+                trigger->tardiness = 0LL - extra_delay;
+                extra_delay = 0LL;
+            }
+        } else if (extra_delay < 1LL) {
+            // In the case where the extra_delay is not positive,
+            // we pad the extra_delay to 1 nsec (the smallest
+            // possible delay) and set the
+            // tardiness property to be equal
+            // to the padding.
 
-        // FIXME: currently, it is not possible
-        // to tolerate an extra_delay of zero
-        // because federates only send the timestamp
-        // and not the microstep delay.
-        if (extra_delay < 1LL) {
+            // FIXME: currently, it is not possible
+            // to tolerate an extra_delay of zero
+            // because federates only send the timestamp
+            // and not the microstep delay.
             trigger->tardiness = 1LL - extra_delay;
             extra_delay = 1LL;
         }
