@@ -462,6 +462,7 @@ struct reaction_t {
                                        // execution. COMMON.
 };
 
+/** Typedef for event_t struct, used for storing activation records. */
 typedef struct event_t event_t;
 
 /** Event activation record to push onto the event queue. */
@@ -485,7 +486,6 @@ struct trigger_t {
     interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
     token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action.
-//    instant_t scheduled;      // Tag of the last event that was scheduled for this action.
     event_t* last;            // Pointer to the last event that was scheduled for this action.
     policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
