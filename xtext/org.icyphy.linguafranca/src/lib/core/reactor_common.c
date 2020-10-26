@@ -977,8 +977,10 @@ void schedule_output_reactions(reaction_t* reaction) {
     // without going through the reaction queue. This reaction is executed
     // after all other downstream reactions have been put into the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
+#ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
     // Extract the inherited tardiness
     bool inherited_tardiness = reaction->tardiness;
+#endif
     // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
     for (int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
@@ -991,9 +993,11 @@ void schedule_output_reactions(reaction_t* reaction) {
                     // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
+#ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
                         // Set the tardiness for the downstream reaction
                         downstream_reaction->tardiness = inherited_tardiness;
                         DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->tardiness);
+#endif
                         if (downstream_reaction != NULL) {
                             // If the downstream_reaction has no deadline and this reaction is its
                             // last enabling reaction, and no other reaction has been selected for
@@ -1040,6 +1044,7 @@ void schedule_output_reactions(reaction_t* reaction) {
     if (downstream_to_execute_now != NULL) {
         //  printf("DEBUG: Optimizing and executing downstream reaction now.\n");
         bool violation = false;
+#ifdef _LF_IS_FEDERATED // Only use the Tardy handler for federated LF programs
         // If the tardiness for the reaction is true,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
@@ -1080,6 +1085,7 @@ void schedule_output_reactions(reaction_t* reaction) {
                 DEBUG_PRINT("Reset reaction tardiness to false.");
             }
         }
+#endif
         if (downstream_to_execute_now->deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;

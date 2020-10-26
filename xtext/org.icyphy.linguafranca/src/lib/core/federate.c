@@ -774,6 +774,10 @@ trigger_t* __action_for_port(int port_id);
  * except that it does not acquire the mutex lock.
  * It is also responsible for setting the tardiness of the 
  * network message based on the calculated delay.
+ * This function assumes that the caller holds the mutex lock.
+ * 
+ * FIXME: added startup logic
+ * 
  * @param action The action or timer to be triggered.
  * @param extra_delay Extra offset of the event release.
  * @param value Dynamically allocated memory containing the value to send.
@@ -781,7 +785,7 @@ trigger_t* __action_for_port(int port_id);
  *  scalar and 0 for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t schedule_message_received_from_network(
+handle_t schedule_message_received_from_network_already_locked(
     trigger_t* trigger, instant_t timestamp, void* value, int length) {
     token_t* token = create_token(trigger->element_size);
     // Return value of the function
@@ -872,36 +876,71 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     assert (_lf_my_fed_id == federate_id);
     DEBUG_PRINT("Federate receiving message to port %d to federate %d of length %d.", port_id, federate_id, length);
 
+    // Get the triggering action for the corerponding port
+    trigger_t* action = __action_for_port(port_id);
+
     // Read the timestamp.
     instant_t timestamp = extract_ll(buffer + 8);
 
-    // Increment the barrier to prevent advancement of logical time
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
+                               // with decentralized coordination
+    // For logical connections in decentralized coordination,
+    // increment the barrier to prevent advancement of logical time
     // Suggest that the logical time barrier be raised at the timestamp provided
     // by the message. If this timestamp is in the past, this effectively
     // freezes the logical time at the current level.
-    _lf_increment_global_logical_time_barrier(timestamp);
+    if (!action->is_physical) {
+        _lf_increment_global_logical_time_barrier(timestamp);
+    }
+#endif
     DEBUG_PRINT("Message timestamp: %lld, Current logical time: %lld.", timestamp - start_time, get_elapsed_logical_time());
 
     // Read the payload.
     // Allocate memory for the message contents.
     unsigned char* message_contents = (unsigned char*)malloc(length);
-    read_from_socket(socket, length, message_contents, "Federate %d failed to read timed message body.", _lf_my_fed_id);
+    int bytes_read = read_from_socket2(socket, length, message_contents);
+    if (bytes_read < length) {
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
+                               // with decentralized coordination
+            // For logical connections in decentralized coordination,
+            // increment the barrier to prevent advancement of logical time
+            // Suggest that the logical time barrier be raised at the timestamp provided
+            // by the message. If this timestamp is in the past, this effectively
+            // freezes the logical time at the current level.
+            if (!action->is_physical) {
+                _lf_decrement_global_logical_time_barrier_already_locked();
+            }
+#endif
+        // Placeholder
+        error_print_and_exit( "Federate %d failed to read timed message body.", _lf_my_fed_id);
+    }
+    
+    // If something happens, make sure to release the barrier.
     DEBUG_PRINT("Message received by federate: %s.", message_contents);
 
-    // Increment the barrier to prevent advancement of logical time
-    // The 0 argument freezes the logical time at current level
-    // to allow for accurate calculation of delay.
-    _lf_increment_global_logical_time_barrier(0);
     // NOTE: Cannot call schedule_value(), which is what we really want to call,
     // because pthreads is too incredibly stupid and deadlocks trying to acquire
     // a lock that the calling thread already holds.
-    DEBUG_PRINT("Federate %d calling schedule with timestamp %lld.", _lf_my_fed_id, timestamp);
-    schedule_message_received_from_network(__action_for_port(port_id), timestamp, message_contents, length);
-    // DEBUG_PRINT("Called schedule with delay %lld.", delay);
+     pthread_mutex_lock(&mutex);
 
-    // Decrement the barrier on logical time advancement
-    _lf_decrement_global_logical_time_barrier();
-    _lf_decrement_global_logical_time_barrier();
+    DEBUG_PRINT("Federate %d calling schedule with timestamp %lld.", _lf_my_fed_id, timestamp);
+    schedule_message_received_from_network_already_locked(action, timestamp, message_contents, length);
+    // DEBUG_PRINT("Called schedule with delay %lld.", delay);
+    
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
+                               // with decentralized coordination
+    // For logical connections in decentralized coordination,
+    // increment the barrier to prevent advancement of logical time
+    // Suggest that the logical time barrier be raised at the timestamp provided
+    // by the message. If this timestamp is in the past, this effectively
+    // freezes the logical time at the current level.
+    if (!action->is_physical) {
+        _lf_decrement_global_logical_time_barrier_already_locked();
+    }
+#endif
+
+    // FIXME: explain
+    pthread_mutex_unlock(&mutex);
 }
 
 /** Most recent TIME_ADVANCE_GRANT received from the RTI, or NEVER if none
