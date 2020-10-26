@@ -81,7 +81,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * limits the number of RTIs that can be simultaneously
  * running on any given machine.
  */
-#define PORT_RANGE_LIMIT 8
+#define PORT_RANGE_LIMIT 1024
 
 ////////////////////////////////////////////
 //// Message types

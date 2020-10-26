@@ -60,6 +60,12 @@ unsigned int number_of_threads;
  */
 instant_t current_time = 0LL;
 
+/**
+ * Current microstep.
+ * This is not in scope for reactors.
+ */
+unsigned int current_microstep = 0;
+
 /** 
  * The logical time to elapse during execution, or -1 if no timeout time has
  * been given. When the logical equal to start_time + duration has been
@@ -629,6 +635,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         e = (event_t*)malloc(sizeof(struct event_t));
     }
     
+    // FIXME
+    e->next = NULL;
+
     // Set the payload.
     e->token = token;
 
