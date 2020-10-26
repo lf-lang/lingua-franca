@@ -771,12 +771,13 @@ trigger_t* __action_for_port(int port_id);
 
 /**
  * Version of schedule_value() similar to that in reactor_common.c
- * except that it does not acquire the mutex lock.
+ * except that it does not acquire the mutex lock and has a special
+ * behavior during startup where it can inject reactions to the reaction
+ * queue if execution has not started yet.
  * It is also responsible for setting the tardiness of the 
  * network message based on the calculated delay.
  * This function assumes that the caller holds the mutex lock.
  * 
- * FIXME: added startup logic
  * 
  * @param action The action or timer to be triggered.
  * @param extra_delay Extra offset of the event release.
@@ -802,26 +803,25 @@ handle_t schedule_message_received_from_network_already_locked(
     // to the schedule function.
     interval_t extra_delay = timestamp - get_logical_time();
 
-    if (extra_delay == 0 && timestamp == start_time && !trigger->is_physical) {
-        DEBUG_PRINT("Calling startup schedule at time %lld with delay %lld.",
-                    get_logical_time(), extra_delay);
 
-        // FIXME: add microsteps
-        // This is a special case where a message has
-        // arrived on a logical connection with a tag 
-        // (0, 0) when this federate
-        // is at tag (0, 0). In this case, the schedule
-        // function cannot be called since it will
-        // incur a microstep (i.e., it will insert an
-        // event with tag (0,1)). Instead, we call
-        // _lf_schedule_init_reactions, which is a special kind
-        // of schedule that does not incur a microstep.
-        return_value = _lf_schedule_init_reactions(trigger, extra_delay, token);
+    // FIXME: add microsteps
+    // This could be a special case where a message has
+    // arrived on a logical connection with a tag 
+    // (0, 0) when this federate
+    // is at tag (0, 0) and has not started execution yet.
+    // In this case, the schedule
+    // function cannot be called since it will
+    // incur a microstep (i.e., it will insert an
+    // event with tag (0,1)). To check, we call
+    // _lf_schedule_init_reactions, which is a special kind
+    // of schedule that does not incur a microstep. If the above-mentioned
+    // conditions are not met, the return value will be 0.
+    return_value = _lf_schedule_init_reactions(trigger, extra_delay, token);
+    DEBUG_PRINT("Startup schedule returned %d.", return_value);
 
-        DEBUG_PRINT("Startup schedule returned %d.", return_value);
-        
-        pthread_cond_broadcast(&reaction_q_changed);
-    } else {
+    // If return_value remains 0, it means that the special startup procedure
+    // does not apply or the call to _lf_schedule_init_reactions() has failed.
+    if (return_value == 0) {
         // In the case where the extra_delay is not positive,
         // we pad the extra_delay to 1 nsec (the smallest
         // possible delay) and set the
