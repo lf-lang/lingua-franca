@@ -84,6 +84,12 @@ instant_t physical_start_time = 0LL;
 interval_t start_time = 0LL;
 
 /**
+ * Indicates whether or not the execution 
+ * has started.
+ */
+bool _lf_execution_started = false;
+
+/**
  * Indicator that the execution should stop after the completion of the
  * current logical time. This can be set to true by calling the `stop()`
  * function in a reaction.
@@ -806,14 +812,13 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  * This is achieved by bypassing the event queue and scheduling reactions
  * directly on the reaction queue.
  * This function can only be used at tag (0,0) (i.e., startup) for triggers that
- * are not startup and not timers, but are still triggered at tag (0,0).
+ * are not timers or physical actions, but are still triggered at tag (0,0).
  * This situation arises when an upstream federate sends a message with tag
- * (0,0), and is received at tag (0,0). The message handling reactions thus
- * need to be triggered at (0,0).
+ * (0,0), and is received at tag (0,0) while the federate has not started execution
+ * yet. The message handling reactions thus need to be triggered at (0,0).
  * 
  * This function is only appropriate for logical actions, not timers nor 
- * physical actions. Timers are handled separately. For convenience, physical
- * actions are accepted but forwarded directly to the __schedule() function.
+ * physical actions. Timers and physical actions should be handled separately.
  * 
  * @param trigger The trigger to be invoked at a later logical time.
  * @param extra_delay The logical time delay, which gets added to the
@@ -826,6 +831,13 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     // Check to see if we are actually at startup
     // FIXME: add microsteps
     if (current_time != start_time) {
+        return 0;
+    }
+
+    // Check to see if the execution
+    // has not started yet.
+    if (_lf_execution_started) {
+        DEBUG_PRINT("Execution has already started.");
         return 0;
     }
 
@@ -843,21 +855,8 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     }
     
     // Check to see if the trigger is not a timer
-    if (trigger->is_timer) {
-        return 0;
-    } else if (trigger->is_physical) {
-        // Physical actions by definition will always
-        // be assigned tag (T,0) at t=(0, 0) if extra_delay is 0.
-        // The __schedule() function can handle that 
-        // scenario.
-        return __schedule(trigger, extra_delay, token);
-    }
-
-    // Check if the reaction queue is empty.
-    // This means that the execution has not
-    // started yet.
-    if (pqueue_size(reaction_q) != 0) {
-        DEBUG_PRINT("Reaction queue is not empty.");
+    // and not a physical action
+    if (trigger->is_timer || trigger->is_physical) {
         return 0;
     }
 
@@ -879,14 +878,20 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
         token->ok_to_free = no;
     }
 
-    // Queue the reactions for this trigger.
-    // NOTE: There will not be a microstep because
-    // when this is called, the reaction queue is empty
-    // Push the corresponding reactions onto the reaction queue.
+    
+    // Push the corresponding reactions for this trigger
+    // onto the reaction queue.
+    // NOTE: This is allowed because
+    // when this is called, the execution has not started
+    // and the (0,0) tag has not been acquired yet.
     for (int i = 0; i < trigger->number_of_reactions; i++) {
         // printf("DEBUG: Pushed onto reaction_q: %p\n", event->trigger->reactions[i]);
         reaction_t* reaction = trigger->reactions[i];
-        _lf_enqueue_reaction(reaction);
+        // Do not enqueue this reaction twice.
+        if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+            // printf("DEBUG: Enqueing reaction %p.\n", reaction);
+            pqueue_insert(reaction_q, reaction);
+        }
         DEBUG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
     }
 

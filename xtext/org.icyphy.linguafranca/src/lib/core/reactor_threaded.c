@@ -348,22 +348,6 @@ bool wait_until(instant_t logical_time_ns) {
     // This can effectively add to the STP offset in certain cases, for example,
     // when a message with timestamp (0,0) has arrived at (0,0).
     _lf_wait_on_global_logical_time_barrier(logical_time_ns);
-    // At tag (0,0), a call to _lf_schedule_init_reactions()
-    // might have occurred during the wait.
-    if (current_time == start_time) {
-        // FIXME: check for microsteps as well
-        if (pqueue_size(reaction_q) != 0) {
-            // Check to see if reaction queue has been populated
-            // while the barrier was up.
-            // This might happen because of a call
-            // to _lf_schedule_init_reactions (@see reactor_common.c).
-            DEBUG_PRINT("Reaction queue has changed after the wait on logical time barrier. "
-                        "wait_until() returning false.");
-            // Do not allow advancing time
-            // until all reactions are executed.
-            return_value = false;
-        }
-    }
 #endif
     return return_value;
 }
@@ -720,6 +704,9 @@ void* worker(void* arg) {
             {
                 if (!__first_invocation) {
                     logical_time_complete(current_time);
+                    if (!_lf_execution_started) {
+                        _lf_execution_started = true;
+                    }
                 }
                 __first_invocation = false;
                 // The following will set stop_requested if there are

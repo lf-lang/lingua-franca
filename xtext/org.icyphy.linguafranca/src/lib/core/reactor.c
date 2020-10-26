@@ -338,6 +338,7 @@ int main(int argc, char* argv[]) {
             && process_args(argc, argv)) {
         initialize();
         __start_timers();
+        _lf_execution_started = true;
         while (next() != 0 && !stop_requested);
         wrapup();
         termination();
