@@ -342,9 +342,31 @@ class CGenerator extends GeneratorBase {
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
+                
+        // Assume the program is federated first
+        pr('''
+            #define _LF_IS_FEDERATED
+            #define _LF_COORD_CENTRALIZED
+        ''')
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
+        
+        // After the work of GeneratorBase is done
+        // (e.g., model is analyzed and federates
+        // are populated), check to see if the
+        // program is actually federated
+        if (!isFederated) {
+            // Remove the _LF_IS_FEDERATED
+            // definition if the program
+            // is not federated
+            var indexToDelete = code.indexOf('''#define _LF_IS_FEDERATED''')
+            code.delete(indexToDelete, indexToDelete + 55)
+        } else if (targetCoordination.equals("decentralized")) {
+            // Replace _LF_COORD_CENTRALIZED with _LF_COORD_DECENTRALIZED
+            var indexToReplace = code.indexOf('''#define _LF_COORD_CENTRALIZED''')
+            code.replace(indexToReplace, indexToReplace + 30 , "#define _LF_COORD_DECENTRALIZED")
+        }
 
         // Generate code for each reactor.
         val names = newLinkedHashSet

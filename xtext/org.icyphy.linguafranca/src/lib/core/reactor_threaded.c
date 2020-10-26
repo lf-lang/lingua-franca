@@ -41,22 +41,18 @@ volatile int number_of_idle_threads = 0;
  * A struct representing a barrier in threaded 
  * Lingua Franca programs that can prevent advancement 
  * of logical time if
- * 1- semaphore is larger than 0
- * 2- horizon is not FOREVER
+ * 1- Number of requestors is larger than 0
+ * 2- Value of horizon is not FOREVER
  */
 typedef struct _lf_logical_time_advancement_barrier {
-    int semaphore; // Used to indicate that there
-                   // is currenty a barrier in place
-                   // that would put restrictions
-                   // on advancement of logical time.
+    int requestors; // Used to indicate the number of
+                    // requestors that have asked
+                    // for a barrier to be raised
+                    // on logical time.
     instant_t horizon; // If semaphore is larger than 0
-                       // then the runtime should only
-                       // advance its logical time until
-                       // just before horizon. If the runtime 
-                       // has a logical time that is equal or
-                       // larger than horizon, then it should 
-                       // hold its current logical time
-                       // until semaphore reaches 0.
+                       // then the runtime should not
+                       // advance its logical time beyond
+                       // the horizon.
 } _lf_logical_time_advancement_barrier;
 
 
@@ -76,14 +72,25 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t event_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t reaction_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
-pthread_cond_t global_logical_time_barrier_semaphore_reached_zero = PTHREAD_COND_INITIALIZER;
+// A condition variable that notifies threads whenever the number
+// of requestors on the logical time barrier reach zero.
+pthread_cond_t global_logical_time_barrier_requestors_reached_zero = PTHREAD_COND_INITIALIZER;
 
 /**
- * A function that increments the _lf_global_logical_time_advancement_barrier.semaphore.
+ * Raise a barrier on logical time at future_tag if possible (or freeze 
+ * the current logical time) and increment the total number of requestors 
+ * waiting on the barrier. There should always be a subsequent
+ * call to _lf_decrement_global_logical_time_barrier() or 
+ * _lf_decrement_global_logical_time_barrier_already_locked() to release
+ * the barrier.
  * 
- * As an optimization, we keep track of an expected tag (horizon), which will be
- * the smallest future logical time that can be safely obtained by the runtime
- * without violating the _lf_global_logical_time_advancement_barrier requirement.
+ * If there is already a barrier raised at a later logical time, this 
+ * function will move it to future_tag or the current logical time, whichever
+ * is larger. If the existing barrier is earlier 
+ * than future_tag, this function will not move the barrier. If there are 
+ * no existing barriers and future_tag is in the past relative to current 
+ * logical time, this function will raise a barrier at the current logical 
+ * time.
  * 
  * This function assumes the mutex lock is not held, thus, it will acquire it itself.
  * 
@@ -91,44 +98,69 @@ pthread_cond_t global_logical_time_barrier_semaphore_reached_zero = PTHREAD_COND
  *  certain non-blocking functionalities such as receiving timed messages
  *  over the network or handling stop in the federated execution.
  * 
- * @param future_tag A desired tag for the barrier, which should be
- *  in the future. A value of 0 indicates that the runtime should
- *  hold the current logical time.
+ * @param future_tag A desired tag for the barrier. This function will guarantee
+ * that current logical time will not go past future_tag if it is in the future.
+ * If future_tag is in the past (or equals to current logical time), the runtime
+ * will freeze advancement of logical time.
  */
 void _lf_increment_global_logical_time_barrier(instant_t future_tag) {
-    pthread_mutex_lock(&mutex);        
-    instant_t just_before_future_tag = future_tag - 1;
-    if (just_before_future_tag <= 0) {
-        // Hold the current logical time
-        _lf_global_logical_time_advancement_barrier.horizon = get_logical_time();
-        DEBUG_PRINT("future_tag <= 0. Raised barrier at current logical time %lld.", _lf_global_logical_time_advancement_barrier.horizon);
-    } else if (just_before_future_tag < _lf_global_logical_time_advancement_barrier.horizon) {
-        // The expected tag is smaller than the current horizon in the barrier.
-        // Therefore, we should try to prevent current_time from reaching the
-        // expected tag.
-        if (get_logical_time() < just_before_future_tag) {
-            // future_tag is actually in the future
-            _lf_global_logical_time_advancement_barrier.horizon = just_before_future_tag;
+    pthread_mutex_lock(&mutex);
+    instant_t current_logical_time = get_logical_time();
+    // Check to see if future_tag is actually in the future
+    if (current_logical_time < future_tag) {
+        if (future_tag < _lf_global_logical_time_advancement_barrier.horizon) {
+            // The future tag is smaller than the current horizon of the barrier.
+            // Therefore, we should prevent logical time from reaching the
+            // expected tag.
+            _lf_global_logical_time_advancement_barrier.horizon = future_tag - 1; // Just before the requested tag.
             DEBUG_PRINT("Raised barrier on logical time at %lld.", _lf_global_logical_time_advancement_barrier.horizon);
-        } else {
-            // Hold the current logical time
-            _lf_global_logical_time_advancement_barrier.horizon = get_logical_time();
+        } 
+    } else {
+            // future_tag is not in the future.
+            // Therefore, hold the current logical time.
+            _lf_global_logical_time_advancement_barrier.horizon = current_logical_time;
             DEBUG_PRINT("Raised barrier at current logical time %lld.", _lf_global_logical_time_advancement_barrier.horizon);
-        }
     }
-    _lf_global_logical_time_advancement_barrier.semaphore++;
+    // Increment the number of requestors
+    _lf_global_logical_time_advancement_barrier.requestors++;
     pthread_mutex_unlock(&mutex);
 }
 
 /**
- * A function that decrements the _lf_global_logical_time_advancement_barrier.semaphore.
- * A negative value for _lf_global_logical_time_advancement_barrier.semaphore indicates an incorrect
- * usage of the function and is an error condition.
+ * Decrement the total number of requestors for the global logical time barrier.
+ * If the total number of requestors reaches zero, this function resets the
+ * logical time barrier to FOREVER and notifies all threads that are waiting 
+ * on the barrier that the number of requestors has reached zero.
  * 
- * This function also resets the _lf_global_logical_time_advancement_barrier.horizon to FOREVER
- * whenever the semaphore reaches zero.
+ * This function assumes that the caller already holds the mutex lock.
  * 
- * This function assumes the mutex lock is not held, thus, it will acquire it itself.
+ * @note This function is only useful in threaded applications to facilitate
+ *  certain non-blocking functionalities such as receiving timed messages
+ *  over the network or handling stop in the federated execution.
+ */
+void _lf_decrement_global_logical_time_barrier_already_locked() {
+    // Decrement the number of requestors for the logical time barrier.
+    _lf_global_logical_time_advancement_barrier.requestors--;
+    // Check to see if the semaphore is negative, which indicates that
+    // a mismatched call was placed for this function.
+    if (_lf_global_logical_time_advancement_barrier.requestors < 0) {
+        fprintf(stderr, "Mismatched use of _lf_increment_global_logical_time_barrier()"
+         "and  _lf_decrement_global_logical_time_barrier().");
+        exit(1);
+    } else if (_lf_global_logical_time_advancement_barrier.requestors == 0) {
+        // When the semaphore reaches zero, reset the horizon to forever.
+        _lf_global_logical_time_advancement_barrier.horizon = FOREVER;
+        // Notify waiting threads that the semaphore has reached zero.
+        pthread_cond_broadcast(&global_logical_time_barrier_requestors_reached_zero);
+    }
+    DEBUG_PRINT("Barrier is at logical time %lld.", _lf_global_logical_time_advancement_barrier.horizon);
+}
+
+/**
+ * @see _lf_decrement_global_logical_time_barrier_already_locked()
+ * A variant of _lf_decrement_global_logical_time_barrier_already_locked() that
+ * assumes the caller does not hold the mutex lock, thus, it will acquire it
+ * itself.
  * 
  * @note This function is only useful in threaded applications to facilitate
  *  certain non-blocking functionalities such as receiving timed messages
@@ -136,29 +168,16 @@ void _lf_increment_global_logical_time_barrier(instant_t future_tag) {
  */
 void _lf_decrement_global_logical_time_barrier() {
     pthread_mutex_lock(&mutex);
-    _lf_global_logical_time_advancement_barrier.semaphore--;
-    if (_lf_global_logical_time_advancement_barrier.semaphore < 0) {
-        fprintf(stderr, "Mismatched use of _lf_increment_global_logical_time_barrier()"
-         "and  _lf_decrement_global_logical_time_barrier().");
-        exit(1);
-    } else if (_lf_global_logical_time_advancement_barrier.semaphore == 0) {
-        _lf_global_logical_time_advancement_barrier.horizon = FOREVER;
-        pthread_cond_broadcast(&global_logical_time_barrier_semaphore_reached_zero);
-    }
-    DEBUG_PRINT("Barrier is at logical time %lld.", _lf_global_logical_time_advancement_barrier.horizon);
+    // Call the original function
+    _lf_decrement_global_logical_time_barrier_already_locked();
     pthread_mutex_unlock(&mutex);
 }
 
-/*
- * A function that blocks execution until
- * the semaphore in _lf_global_logical_time_advancement_barrier
- * reaches zero and the horizon in
- * _lf_global_logical_time_advancement_barrier is bigger
- * or equal to the proposed_time provided to the function.
+/**
+ * A function that will wait if the proposed time
+ * is larger than a requested barrier on logical time until
+ * that barrier is lifted.
  * 
- * This effectively blocks execution if the proposed_time
- * is unacceptable due to a raised barrier at an earlier
- * logical time.
  * 
  * This function assumes the mutex is already locked.
  * Thus, it unlocks the mutex to allow the semaphore to
@@ -170,11 +189,10 @@ void _lf_decrement_global_logical_time_barrier() {
 void _lf_wait_on_global_logical_time_barrier(instant_t proposed_time) {
     // Wait if the global barrier semaphore on logical time is zero
     // and the proposed_time is larger than the horizon.
-    if (proposed_time > _lf_global_logical_time_advancement_barrier.horizon
-       && _lf_global_logical_time_advancement_barrier.semaphore > 0) {
+    if (proposed_time > _lf_global_logical_time_advancement_barrier.horizon) {
         DEBUG_PRINT("Waiting on barrier for time %lld.", proposed_time);
-        // Wait until semaphore reaches zero
-        pthread_cond_wait(&global_logical_time_barrier_semaphore_reached_zero, &mutex);
+        // Wait until no requestor remains for the barrier on logical time
+        pthread_cond_wait(&global_logical_time_barrier_requestors_reached_zero, &mutex);
     }
 }
 
@@ -272,21 +290,27 @@ void logical_time_complete(instant_t time);
  */
 instant_t next_event_time(instant_t time);
 
-/** Wait until physical time matches or exceeds the specified logical time,
- *  unless -fast is given.
+/**
+ * Wait until physical time matches or exceeds the specified logical time,
+ * unless -fast is given. If a barrier on logical time is raised at an earlier
+ * logical time, wait until the barrier is removed.
  *
- *  If an event is put on the event queue during the wait, then the wait is
- *  interrupted and this function returns false. It also returns false if the
- *  timeout time is reached before the wait has completed.
+ * If an event is put on the event queue during the wait, then the wait is
+ * interrupted and this function returns false. It also returns false if the
+ * timeout time is reached before the wait has completed.
+ * 
+ * In certain cases, if a reaction is added to the reaction queue during the
+ * wait, this function returns false to allow for execution of those reactions.
+ * 
  *
- *  The mutex lock is assumed to be held by the calling thread.
- *  Note this this could return true even if the a new event
- *  was placed on the queue if that event time matches or exceeds
- *  the specified time.
+ * The mutex lock is assumed to be held by the calling thread.
+ * Note this this could return true even if the a new event
+ * was placed on the queue if that event time matches or exceeds
+ * the specified time.
  *
- *  @return False if the wait is interrupted either because of an event
- *   queue signal or if the wait time was interrupted early by reaching
- *   the stop time, if one was specified.
+ * @return False if the wait is interrupted either because of an event
+ *  queue signal or if the wait time was interrupted early by reaching
+ *  the stop time, if one was specified.
  */
 bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
@@ -316,7 +340,31 @@ bool wait_until(instant_t logical_time_ns) {
             return_value = false;
         }
         // printf("DEBUG: -------- Returned from wait.\n");
+
     }
+#ifdef _LF_IS_FEDERATED // Only wait on the logical time barrier in federated LF programs
+    // Wait until the global barrier on logical time (horizon) is larger
+    // than the logical_time_ns.
+    // This can effectively add to the STP offset in certain cases, for example,
+    // when a message with timestamp (0,0) has arrived at (0,0).
+    _lf_wait_on_global_logical_time_barrier(logical_time_ns);
+    // At tag (0,0), a call to _lf_schedule_init_reactions()
+    // might have occurred during the wait.
+    if (current_time == start_time) {
+        // FIXME: check for microsteps as well
+        if (pqueue_size(reaction_q) != 0) {
+            // Check to see if reaction queue has been populated
+            // while the barrier was up.
+            // This might happen because of a call
+            // to _lf_schedule_init_reactions (@see reactor_common.c).
+            DEBUG_PRINT("Reaction queue has changed after the wait on logical time barrier. "
+                        "wait_until() returning false.");
+            // Do not allow advancing time
+            // until all reactions are executed.
+            return_value = false;
+        }
+    }
+#endif
     return return_value;
 }
 
@@ -404,21 +452,6 @@ bool __next() {
             return false;
         }
                 
-        // Wait until the global barrier semaphore on logical time is zero
-        // and the next_time is smaller than the logical time barrier (horizon).
-        _lf_wait_on_global_logical_time_barrier(next_time);
-        // Check to see if reaction queue has been populated
-        // while the barrier was up.
-        // This might happen because of a call
-        // to _lf_schedule_init_reactions (@see reactor_common.c).
-        if (pqueue_size(reaction_q) != 0) {
-            DEBUG_PRINT("Reaction queue has changed after the logical time barrier. "
-                        "Returning from __next().");
-            // Do not allow advancing time
-            // until all reactions are executed.
-            return true;
-        }
-
         // At this point, finally, we have an event to process.
         // Advance current time to match that of the first event on the queue.
         current_time = next_time;
@@ -441,10 +474,6 @@ bool __next() {
         if (stop_time > 0LL) {
             next_time = stop_time;
         }
-
-        // Wait until the global barrier semaphore on logical time is zero
-        // and the next_time is smaller than the logical time barrier (horizon).
-        _lf_wait_on_global_logical_time_barrier(next_time);
 
         // Ask the RTI to advance time to either stop_time or FOREVER.
         // This will be granted if there are no upstream federates.
