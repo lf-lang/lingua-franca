@@ -11,4 +11,3 @@ src-gen/
 xtend-gen/
 /*/target/
 /.gradle
-org.icyphy.linguafranca/.launch
