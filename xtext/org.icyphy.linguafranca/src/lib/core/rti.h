@@ -62,9 +62,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ADDRESS_QUERY_RETRY_INTERVAL 100000000
 
 /**
- * Default starting port number for the RTI's socket server.
+ * Default starting port number for the RTI and federates' socket server.
  * Unless a specific port has been specified by the LF program,
- * the RTI, when it starts up, will attempt to open a socket server
+ * the RTI or the federates, when they starts up, will attempt to open a socket server
  * on this port, and, if this fails, increment the port number and
  * try again. The number of increments is limited by PORT_RANGE_LIMIT.
  */
@@ -72,13 +72,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * Number of ports to try to connect to. Unless the LF program specifies
- * a specific port number to use, the RTI will attempt to start
+ * a specific port number to use, the RTI or federates will attempt to start
  * a socket server on port 15045. If that port is not available (e.g.,
  * another RTI is running or has recently exited), then it will try the
  * next port, 15046, and keep incrementing the port number up to this
  * limit. If no port between 15045 and 15045 + PORT_RANGE_LIMIT
- * is available, then the RTI will fail to start. This number, therefore,
- * limits the number of RTIs that can be simultaneously
+ * is available, then the RTI or the federate will fail to start. This number, therefore,
+ * limits the number of RTIs and federates that can be simultaneously
  * running on any given machine.
  */
 #define PORT_RANGE_LIMIT 1024
