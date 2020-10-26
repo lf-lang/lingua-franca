@@ -462,13 +462,16 @@ struct reaction_t {
                                        // execution. COMMON.
 };
 
+typedef struct event_t event_t;
+
 /** Event activation record to push onto the event queue. */
-typedef struct event_t {
+struct event_t {
     instant_t time;           // Time of release.
-    trigger_t* trigger;       // Associated trigger.
+    trigger_t* trigger;       // Associated trigger, NULL if this is a dummy event.
     size_t pos;               // Position in the priority queue.
     token_t* token;           // Pointer to the token wrapping the value.
-} event_t;
+    event_t* next;            // Pointer to the next event lined up in superdense time.
+};
 
 /**
  * Trigger struct representing an output, timer, action, or input.
