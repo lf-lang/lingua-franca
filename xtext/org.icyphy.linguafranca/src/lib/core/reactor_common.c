@@ -599,7 +599,9 @@ void __pop_events() {
 
     // After populating the reaction queue, see if there are things on the
     // next queue to put back into the event queue.
-    // FIXME
+    while(pqueue_peek(next_q) != NULL) {
+        pqueue_insert(event_q, pqueue_pop(next_q));
+    }
 }
 
 /**
