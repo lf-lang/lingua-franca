@@ -139,6 +139,13 @@ instant_t get_logical_time() {
     return current_time;
 }
 
+/**
+ * Return the current microstep.
+ */
+unsigned int get_microstep() {
+    return current_microstep;
+}
+
 /** 
  * Return the current physical time in nanoseconds since January 1, 1970.
  */
@@ -591,6 +598,7 @@ void __pop_events() {
         event->time = 0LL;
         // Also remove pointers that will be replaced.
         event->token = NULL;
+        event->next = NULL;
         pqueue_insert(recycle_q, event);
 
         // Peek at the next event in the event queue.
@@ -602,6 +610,7 @@ void __pop_events() {
     while(pqueue_peek(next_q) != NULL) {
         pqueue_insert(event_q, pqueue_pop(next_q));
     }
+
 }
 
 /**
@@ -644,9 +653,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     }
 
     // printf("DEBUG: __schedule: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
-    if (token != NULL) {
-        // printf("DEBUG: __schedule: payload at %p.\n", token->value);
-    }
+    // if (token != NULL) {
+    //     printf("DEBUG: __schedule: integer payload at %d.\n", *(int *)token->value);
+    // }
     
 	// The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
@@ -732,10 +741,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // rely on the tag of the existing event to determine whether or not
     // it has been recycled.
     event_t* existing = (event_t*)(trigger->last);
-    if (existing == NULL) {
+    if (trigger->period < 0) {
+        // No minimum spacing defined.
         e->time = intended_time;
         event_t* found = pqueue_find_equal_same_priority(event_q, e);
-        // Check for conflicts.
+        // Check for conflicts. Let events pile up in super dense time.
         if (found != NULL) {
             // Skip to the last node in the linked list.
             while(found->next != NULL) {
@@ -748,7 +758,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         // If there are not conflicts, schedule as usual. If intended time is
         // equal to the current logical time, the event will effectively be 
         // scheduled at the next microstep.
-    } else { 
+    } else if (existing != NULL) { 
         // There exists a previously scheduled event. It determines the
         // earliest time at which the new event can be scheduled.
         instant_t earliest_time = existing->time + min_spacing;
@@ -978,6 +988,20 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
  */
 trigger_t* _lf_action_to_trigger(void* action) {
     return *((trigger_t**)action);
+}
+
+/**
+ * Advance from the current tag to the next. If the given next_time is equal to
+ * the current time, then increase the microstep. Otherwise, update the current
+ * time and set the microstep to zero.
+ */ 
+void _lf_advance_logical_time(instant_t next_time) {
+    if (current_time != next_time) {
+        current_time = next_time;
+        current_microstep = 0;
+    } else {
+        current_microstep++;
+    }
 }
 
 /**

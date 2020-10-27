@@ -56,7 +56,6 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.ReactorDecl
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.TypedVariable
@@ -2616,10 +2615,14 @@ class CGenerator extends GeneratorBase {
                 startTimersCount++
             } else if (trigger instanceof Action) {
                 var minDelay = (triggerInstance as ActionInstance).minDelay
-                var minInterArrival = (triggerInstance as ActionInstance).minInterArrival
+                var minSpacing = (triggerInstance as ActionInstance).minSpacing
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
-                    «triggerStructName».period = «timeInTargetLanguage(minInterArrival)»;
+                    «IF minSpacing !== null»
+                    «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
+                    «ELSE»
+                    «triggerStructName».period = «org.icyphy.generator.CGenerator.UNDEFINED_MIN_SPACING»;
+                    «ENDIF»
                 ''')               
             } else if (triggerInstance instanceof PortInstance) {
                 // Nothing to do in initialize_trigger_objects
@@ -4607,7 +4610,7 @@ class CGenerator extends GeneratorBase {
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
-    public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    public static var UNDEFINED_MIN_SPACING = -1
     
        
     /** Returns the Target enum for this generator */

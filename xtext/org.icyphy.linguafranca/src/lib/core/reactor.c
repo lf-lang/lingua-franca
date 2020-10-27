@@ -79,17 +79,20 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     return schedule_token(action, offset, token);
 }
 
-// Advance logical time to the lesser of the specified time or the
-// timeout time, if a timeout time has been given. If the -fast command-line option
-// was not given, then wait until physical time matches or exceeds the start time of
-// execution plus the current_time plus the specified logical time.  If this is not
-// interrupted, then advance current_time by the specified logical_delay. 
-// Return 0 if time advanced to the time of the event and -1 if the wait
-// was interrupted or if the timeout time was reached.
+/**
+ * Advance logical time to the lesser of the specified time or the
+ * timeout time, if a timeout time has been given. If the -fast command-line option
+ * was not given, then wait until physical time matches or exceeds the start time of
+ * execution plus the current_time plus the specified logical time.  If this is not
+ * interrupted, then advance current_time by the specified logical_delay. 
+ * Return 0 if time advanced to the time of the event and -1 if the wait
+ * was interrupted or if the timeout time was reached.
+ */ 
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (stop_time > 0LL && logical_time_ns > stop_time) {
         logical_time_ns = stop_time;
+        current_microstep = 0;
         // Indicate on return that the time of the event was not reached.
         // We still wait for time to elapse in case asynchronous events come in.
         return_value = -1;
@@ -107,7 +110,7 @@ int wait_until(instant_t logical_time_ns) {
     
         if (ns_to_wait <= 0) {
             // Advance current time.
-            current_time = logical_time_ns;
+            _lf_advance_logical_time(logical_time_ns);
             return return_value;
         }
     
@@ -128,7 +131,8 @@ int wait_until(instant_t logical_time_ns) {
                     + current_physical_time.tv_nsec;
             if (current_physical_time_ns > current_time) {
                 if (current_physical_time_ns < logical_time_ns) {
-                    current_time = current_physical_time_ns;
+                    // Advance current time.
+                    _lf_advance_logical_time(current_physical_time_ns);
                     return -1;
                 }
             } else {
@@ -139,7 +143,7 @@ int wait_until(instant_t logical_time_ns) {
         }
     }
     // Advance current time.
-    current_time = logical_time_ns;
+    _lf_advance_logical_time(logical_time_ns);
     return return_value;
 }
 
@@ -213,7 +217,7 @@ int next() {
             // printf("DEBUG: New event at (elapsed) time %lld.\n", next_time - start_time);
         }
     }
-    
+
     // Invoke code that must execute before starting a new logical time round,
     // such as initializing outputs to be absent.
     __start_time_step();
