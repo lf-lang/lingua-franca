@@ -60,6 +60,12 @@ unsigned int number_of_threads;
  */
 instant_t current_time = 0LL;
 
+/**
+ * Current microstep.
+ * This is not in scope for reactors.
+ */
+unsigned int current_microstep = 0;
+
 /** 
  * The logical time to elapse during execution, or -1 if no timeout time has
  * been given. When the logical equal to start_time + duration has been
@@ -76,6 +82,12 @@ instant_t physical_start_time = 0LL;
  * Logical time at the start of execution.
  */
 interval_t start_time = 0LL;
+
+/**
+ * Indicates whether or not the execution 
+ * has started.
+ */
+bool _lf_execution_started = false;
 
 /**
  * Indicator that the execution should stop after the completion of the
@@ -127,6 +139,13 @@ instant_t get_logical_time() {
     return current_time;
 }
 
+/**
+ * Return the current microstep.
+ */
+unsigned int get_microstep() {
+    return current_microstep;
+}
+
 /** 
  * Return the current physical time in nanoseconds since January 1, 1970.
  */
@@ -170,6 +189,8 @@ pqueue_t* event_q;     // For sorting by time.
 
 pqueue_t* reaction_q;  // For sorting by deadline.
 pqueue_t* recycle_q;   // For recycling malloc'd events.
+pqueue_t* next_q;      // For temporarily storing the next event lined 
+                       // up in superdense time.
 
 handle_t __handle = 1;
 
@@ -180,6 +201,13 @@ handle_t __handle = 1;
  */
 static int in_reverse_order(pqueue_pri_t thiz, pqueue_pri_t that) {
     return (thiz > that);
+}
+
+/**
+ * Return whether the first and second argument are given in reverse order.
+ */
+static int in_no_particular_order(pqueue_pri_t thiz, pqueue_pri_t that) {
+    return false;
 }
 
 /**
@@ -354,6 +382,13 @@ token_freed __done_using(token_t* token) {
 }
 
 /**
+ * Put the specified reaction on the reaction queue.
+ * This version is just a template.
+ * @param reaction The reaction.
+ */
+void _lf_enqueue_reaction(reaction_t* reaction);
+
+/**
  * Use tables to reset is_present fields to false and decrement reference
  * counts between time steps and at the end of execution.
  */
@@ -516,24 +551,46 @@ void __pop_events() {
             __schedule(event->trigger, event->trigger->period - event->trigger->offset, NULL);
         }
 
-        // Copy the token pointer into the trigger struct so that the
-        // reactions can access it. This overwrites the previous template token,
-        // for which we decrement the reference count.
-        if (event->trigger->token != event->token && event->trigger->token != NULL) {
-            // Mark the previous one ok_to_free so we don't get a memory leak.
-            event->trigger->token->ok_to_free = OK_TO_FREE;
-            // Free the token if its reference count is zero. Since __done_using
-            // decrements the reference count, first increment it here.
-            event->trigger->token->ref_count++;
-            __done_using(event->trigger->token);
-        }
-        event->trigger->token = token;
-        // Prevent this token from being freed. It is the new template.
-        // This might be null if there are no reactions to the action.
-        if (token != NULL) token->ok_to_free = no;
+        if (event->trigger == NULL) {
+            // Handle dummy event.
+            unsigned int count = *((unsigned int*)event->token->value);
+            if (count > 0) {
+                // Decrement the counter in the payload.
+                // Once the count reaches zero, it won't be reinserted
+                // into the event queue.
+                *((unsigned int*)event->token->value) = --count;
+            }
+        } else {
+            // Copy the token pointer into the trigger struct so that the
+            // reactions can access it. This overwrites the previous template token,
+            // for which we decrement the reference count.
+            if (event->trigger->token != event->token && event->trigger->token != NULL) {
+                // Mark the previous one ok_to_free so we don't get a memory leak.
+                event->trigger->token->ok_to_free = OK_TO_FREE;
+                // Free the token if its reference count is zero. Since __done_using
+                // decrements the reference count, first increment it here.
+                event->trigger->token->ref_count++;
+                __done_using(event->trigger->token);
+            }
+            event->trigger->token = token;
+            // Prevent this token from being freed. It is the new template.
+            // This might be null if there are no reactions to the action.
+            if (token != NULL) token->ok_to_free = no;
 
-        // Mark the trigger present.
-        event->trigger->is_present = true;
+            // Mark the trigger present.
+            event->trigger->is_present = true;
+        }
+        
+        // If this event points to a next event, insert it into the next queue.
+        if (event->next != NULL) {
+            if (event->trigger == NULL && *((unsigned int*)event->token->value) > 0) {
+                // Insert the dummy event into the next queue.
+                pqueue_insert(next_q, event);
+            } else {
+                // Insert the next event into the next queue.
+                pqueue_insert(next_q, event->next);
+            }
+        }
 
         // Recycle the event.
         // So that sorting doesn't cost anything,
@@ -541,11 +598,18 @@ void __pop_events() {
         event->time = 0LL;
         // Also remove pointers that will be replaced.
         event->token = NULL;
+        event->next = NULL;
         pqueue_insert(recycle_q, event);
 
         // Peek at the next event in the event queue.
         event = (event_t*)pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
+
+    // After populating the reaction queue, see if there are things on the
+    // next queue to put back into the event queue.
+    while(pqueue_peek(next_q) != NULL) {
+        pqueue_insert(event_q, pqueue_pop(next_q));
+    }
 
 }
 
@@ -589,9 +653,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     }
 
     // printf("DEBUG: __schedule: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
-    if (token != NULL) {
-        // printf("DEBUG: __schedule: payload at %p.\n", token->value);
-    }
+    // if (token != NULL) {
+    //     printf("DEBUG: __schedule: integer payload at %d.\n", *(int *)token->value);
+    // }
     
 	// The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
@@ -610,7 +674,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 	// We first do this assuming it is logical action and then, if it is a
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
-    interval_t tag = current_time + delay;
+    interval_t intended_time = current_time + delay;
     // printf("DEBUG: __schedule: current_time = %lld.\n", current_time);
     // printf("DEBUG: __schedule: total logical delay = %lld.\n", delay);
     interval_t min_spacing = trigger->period;
@@ -622,6 +686,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         e = (event_t*)malloc(sizeof(struct event_t));
     }
     
+    // Initialize the next pointer.
+    e->next = NULL;
+
     // Set the payload.
     e->token = token;
 
@@ -630,12 +697,13 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     e->trigger = trigger;
 
     // If the trigger is physical, then we need to check whether
-    // physical time is larger than the tag and, if so, update the tag.
+    // physical time is larger than the intended time and, if so,
+    // modify the intended time.
     if (trigger->is_physical) {
         // Get the current physical time.
         instant_t physical_time = get_physical_time();
 
-        if (physical_time > tag) {
+        if (physical_time > intended_time) {
             // printf("DEBUG: Physical time %lld is larger than the tag by %lld. Using physical time.\n", physical_time, physical_time - tag);
             // FIXME: In some circumstances (like Ptides), this is an
             // error condition because it introduces nondeterminism.
@@ -645,35 +713,56 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
             // Update the tardiness of the trigger to reflect
             // the descrepency between physical_time and the
-            // requested tag
-            trigger->tardiness = physical_time - tag;
+            // requested tag. Since the tardiness can be externally
+            // set (initially, it is zero), we only add to it here.
+            trigger->tardiness = physical_time - intended_time;
 
-            tag = physical_time;
+            intended_time = physical_time;
         }
     } else {
         // FIXME: We need to verify that we are executing within a reaction?
         // See reactor_threaded.
+        // If a logical action is scheduled asynchronously (which should never be
+        // done) the computed tag can be smaller than the current tag, in which case
+        // it needs to be adjusted.
+        // FIXME: This can go away once:
+        // - we have eliminated the possibility to have a negative additional delay; and
+        // - we detect the asynchronous use of logical actions
+        if (intended_time < current_time) {
+            fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
+                    "Revising request to the current time %lld.\n", current_time - intended_time, current_time);
+            intended_time = current_time;
+        }
     }
 
-    // Check to see whether the event is early based on the minimum
-    // spacing requirement. This check is not needed if this action has
-    // had no event, or if no min spacing has been specified (it has to be
-    // strictly greater than zero).
-    // NOTE: This pointer to the prior event gets used only if that event
-    // is still on the event queue and hence has not been recycled.
-    // WARNING: If provide a mechanism for unscheduling, we can no longer
-    // rely on the tag of the existing event to determine whether or not
-    // it has been recycled.
     event_t* existing = (event_t*)(trigger->last);
-    
-    if (existing != NULL && min_spacing > 0) {
-        // The earliest time at which the event can be scheduled depends
-        // on the tag of the last event
+    // Check for conflicts (a queued event with the same trigger and time).
+    if (trigger->period < 0) {
+        // No minimum spacing defined.
+        e->time = intended_time;
+        event_t* found = pqueue_find_equal_same_priority(event_q, e);
+        // Check for conflicts. Let events pile up in super dense time.
+        if (found != NULL) {
+            // Skip to the last node in the linked list.
+            while(found->next != NULL) {
+                found = found->next;
+            }
+            // Hook the event into the list.
+            found->next = e;
+            return(0); // FIXME: return value
+        }
+        // If there are not conflicts, schedule as usual. If intended time is
+        // equal to the current logical time, the event will effectively be 
+        // scheduled at the next microstep.
+    } else if (existing != NULL) { 
+        // There exists a previously scheduled event. It determines the
+        // earliest time at which the new event can be scheduled.
+        // Check to see whether the event is too early. 
         instant_t earliest_time = existing->time + min_spacing;
         //printf("DEBUG: >>> check min spacing <<<\n");
         //printf("DEBUG: earliest: %lld, tag: %lld\n", earliest_time, tag);
         // If the event is early, see which policy applies.
-        if (earliest_time > tag) {
+        if (earliest_time >= intended_time) {
             //printf("DEBUG: >>> early <<<\n");
             switch(trigger->policy) {
                 case drop:
@@ -685,14 +774,15 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                     return(0);
                 case replace:
                     //printf("DEBUG: >>> replace <<<\n");
-                    // If the existing event has not been handled yet, update it.
-                    //
+                    // If the existing event has not been handled yet, update
+                    // it. WARNING: If provide a mechanism for unscheduling, we
+                    // can no longer rely on the tag of the existing event to
+                    // determine whether or not it has been recycled (the
+                    // existing->time < current_time case below).
                     // NOTE: Because microsteps are not explicit, if the tag of
                     // the preceding event is equal to the current time, then
-                    // we cannot determine solely based on the tag whether the
-                    // event has been pulled off the event queue or not. Only
-                    // if we can find it in the queue can be we certain that
-                    // it hasn't yet been handled.
+                    // we search the event queue to figure out whether it has
+                    // been handled yet.
                     if (existing->time > current_time || 
                             (existing->time == current_time &&
                             pqueue_find_equal_same_priority(event_q, existing) != NULL)) {
@@ -703,35 +793,32 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                         pqueue_insert(recycle_q, e);
                         return(0);
                     }
-                    // If the preceding event _has_ been handled, then fall
-                    // through this case and adjust the tag to defer the event.
+                    // If the preceding event _has_ been handled, the adjust
+                    // the tag to defer the event.
+                    intended_time = earliest_time;
+                    break;
                 default:
-                    //printf("DEBUG: >>> defer <<<\n");
-                    // Adjust the tag.
-                    tag = earliest_time;
+                    if (existing->time == current_time &&
+                            pqueue_find_equal_same_priority(event_q, existing) != NULL) {
+                        // If the last event hasn't been handled yet, insert
+                        // the new event right behind.
+                        existing->next = e;
+                    } else {
+                         // Adjust the tag.
+                        intended_time = earliest_time;
+                    }
                     break;
             }
         }
     }
 
-    // If a logical action is scheduled asynchronously (which should never be
-    // done) the computed tag can be smaller than the current tag, in which case
-    // it needs to be adjusted.
-    // FIXME: This can go away once:
-    // - we have eliminated the possibility to have a negative additional delay; and
-    // - we detect the asynchronous use of logical actions
-    if (tag < current_time) {
-        fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
-                "Revising request to the current time %lld.\n", current_time - tag, current_time);
-        tag = current_time;
-    }
-
     // Set the tag of the event.
-    e->time = tag;
+    e->time = intended_time;
 
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
     // allowed), or if the event time is past the requested stop time.
+    // FIXME: I think microsteps should not be allowed either
     // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
     if ((stop_requested && e->time != current_time)
             || (stop_time > 0LL && e->time > stop_time)) {
@@ -742,30 +829,10 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         return(0);
     }
 
-    // Check for collisions only if no min spacing is specified.
-    // If this event collides with an existing event in the queue,
-    // then update its payload using that of the new event.
-    // FIXME: Alternatively, we could make the default spacing be zero,
-    // which would enforce monotonic behavior, and if you give a negative
-    // spacing, then this would allow for (limited) nonmonotonic behavior.
-    // QUESTION: what does it mean to have a defer policy with zero spacing?
-    if (!(trigger->is_timer || min_spacing > 0)) {
-        event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
-        if (existing != NULL) {
-            // Free the previous payload.
-            if (existing->token != token) __done_using(existing->token);
-            existing->token = token;
-            // Recycle the new event.
-            e->token = NULL;
-            pqueue_insert(recycle_q, e);
-            return(0);
-        }
-    } else {
-        // Store a pointer to the current event in order to check the min spacing
-        // between this and the following event. Only necessary for actions
-        // that actually specify a min spacing.
-        trigger->last = (event_t*)e;
-    }
+    // Store a pointer to the current event in order to check the min spacing
+    // between this and the following event. Only necessary for actions
+    // that actually specify a min spacing.
+    trigger->last = (event_t*)e;
 
     // Queue the event.
     // NOTE: There is no need for an explicit microstep because
@@ -786,6 +853,107 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 }
 
 /**
+ * A variant of __schedule() that will not incur a microstep delay when called.
+ * This is achieved by bypassing the event queue and scheduling reactions
+ * directly on the reaction queue.
+ * This function should only be used at tag (0,0) (i.e., startup) when execution 
+ * has not started yet for triggers that
+ * are not timers or physical actions, but are still triggered at tag (0,0).
+ * This situation arises when an upstream federate sends a message with tag
+ * (0,0), and is received at tag (0,0) while the federate has not started execution
+ * yet. The message handling reactions thus need to be triggered at (0,0).
+ * This function is only appropriate for logical actions, not timers nor 
+ * physical actions. Timers and physical actions should be handled separately.
+ * If these conditions are not met, it will not schedule anything and return 0.
+ * 
+ * 
+ * @param trigger The trigger to 
+ * @param extra_delay The logical time delay, which gets added to the
+ *  trigger's minimum delay, if it has one. If this number is negative,
+ *  then zero is used instead.
+ * @param token The token wrapping the payload or NULL for no payload.
+ * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
+ */
+handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+    // Check to see if the execution
+    // has not started yet.
+    if (_lf_execution_started) {
+        DEBUG_PRINT("Execution has already started.");
+        return 0;
+    }
+    
+    // Check to see if we are actually at startup
+    // FIXME: add microsteps
+    if (current_time != start_time) {
+        return 0;
+    }
+
+    // The trigger argument could be null, meaning that nothing is triggered.
+    // Doing this after incrementing the reference count ensures that the
+    // payload will be freed, if there is one.
+	if (trigger == NULL) {
+	    __done_using(token);
+	    return 0;
+	}
+
+    // Check to see if the intended event will actually be scheduled at (0,0)
+    if ((trigger->offset + extra_delay) != 0LL) {
+        return 0;
+    }
+    
+    // Check to see if the trigger is not a timer
+    // and not a physical action
+    if (trigger->is_timer || trigger->is_physical) {
+        return 0;
+    }
+
+    // Copy the token pointer into the trigger struct so that the
+    // reactions can access it. This overwrites the previous template token,
+    // for which we decrement the reference count.
+    if (trigger->token != token && trigger->token != NULL) {
+        // Mark the previous one ok_to_free so we don't get a memory leak.
+        trigger->token->ok_to_free = OK_TO_FREE;
+        // Free the token if its reference count is zero. Since __done_using
+        // decrements the reference count, first increment it here.
+        trigger->token->ref_count++;
+        __done_using(trigger->token);
+    }
+    trigger->token = token;
+    // Prevent this token from being freed. It is the new template.
+    // This might be null if there are no reactions to the action.
+    if (token != NULL) {
+        token->ok_to_free = no;
+    }
+
+    
+    // Push the corresponding reactions for this trigger
+    // onto the reaction queue.
+    // NOTE: This is allowed because
+    // when this is called, the execution has not started
+    // and the (0,0) tag has not been acquired yet.
+    for (int i = 0; i < trigger->number_of_reactions; i++) {
+        // printf("DEBUG: Pushed onto reaction_q: %p\n", event->trigger->reactions[i]);
+        reaction_t* reaction = trigger->reactions[i];
+        // Do not enqueue this reaction twice.
+        if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+            // printf("DEBUG: Enqueing reaction %p.\n", reaction);
+            pqueue_insert(reaction_q, reaction);
+        }
+        DEBUG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
+    }
+
+    // FIXME: make a record of handle and implement unschedule.
+    // NOTE: Rather than wrapping around to get a negative number,
+    // we reset the handle on the assumption that much earlier
+    // handles are irrelevant.
+    int return_value = __handle++;
+    if (__handle < 0) { 
+        __handle = 1;
+    }
+    return return_value;
+}
+
+/**
  * Utility function to convert a pointer to action struct into
  * a pointer to the corresponding trigger struct.  The type of the
  * action struct is defined by a generated typedef and differs for different
@@ -799,6 +967,20 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  */
 trigger_t* _lf_action_to_trigger(void* action) {
     return *((trigger_t**)action);
+}
+
+/**
+ * Advance from the current tag to the next. If the given next_time is equal to
+ * the current time, then increase the microstep. Otherwise, update the current
+ * time and set the microstep to zero.
+ */ 
+void _lf_advance_logical_time(instant_t next_time) {
+    if (current_time != next_time) {
+        current_time = next_time;
+        current_microstep = 0;
+    } else {
+        current_microstep++;
+    }
 }
 
 /**
@@ -844,13 +1026,6 @@ token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) 
 }
 
 /**
- * Put the specified reaction on the reaction queue.
- * This version is just a template.
- * @param reaction The reaction.
- */
-void _lf_enqueue_reaction(reaction_t* reaction);
-
-/**
  * For the specified reaction, if it has produced outputs, insert the
  * resulting triggered reactions into the reaction queue.
  * This procedure assumes the mutex lock is not held and grabs
@@ -868,8 +1043,10 @@ void schedule_output_reactions(reaction_t* reaction) {
     // without going through the reaction queue. This reaction is executed
     // after all other downstream reactions have been put into the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
+#ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
     // Extract the inherited tardiness
     bool inherited_tardiness = reaction->tardiness;
+#endif
     // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
     for (int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
@@ -882,9 +1059,11 @@ void schedule_output_reactions(reaction_t* reaction) {
                     // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
+#ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
                         // Set the tardiness for the downstream reaction
                         downstream_reaction->tardiness = inherited_tardiness;
                         DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->tardiness);
+#endif
                         if (downstream_reaction != NULL) {
                             // If the downstream_reaction has no deadline and this reaction is its
                             // last enabling reaction, and no other reaction has been selected for
@@ -931,6 +1110,7 @@ void schedule_output_reactions(reaction_t* reaction) {
     if (downstream_to_execute_now != NULL) {
         //  printf("DEBUG: Optimizing and executing downstream reaction now.\n");
         bool violation = false;
+#ifdef _LF_IS_FEDERATED // Only use the Tardy handler for federated LF programs
         // If the tardiness for the reaction is true,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
@@ -971,6 +1151,7 @@ void schedule_output_reactions(reaction_t* reaction) {
                 DEBUG_PRINT("Reset reaction tardiness to false.");
             }
         }
+#endif
         if (downstream_to_execute_now->deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;
@@ -1217,8 +1398,10 @@ void initialize() {
 
     event_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
-	// NOTE: The recycle queue does not need to be sorted. But here it is.
-    recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_reverse_order, get_event_time,
+	// NOTE: The recycle and next queue does not need to be sorted. But here it is.
+    recycle_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_no_particular_order, get_event_time,
+            get_event_position, set_event_position, event_matches, print_event);
+    next_q = pqueue_init(INITIAL_EVENT_QUEUE_SIZE, in_no_particular_order, get_event_time,
             get_event_position, set_event_position, event_matches, print_event);
 
     // Initialize the trigger table.

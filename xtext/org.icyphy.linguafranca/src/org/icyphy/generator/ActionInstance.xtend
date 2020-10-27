@@ -31,7 +31,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.ActionOrigin
 
 import static extension org.icyphy.ASTUtils.*
 
@@ -46,7 +45,7 @@ class ActionInstance extends TriggerInstance<Variable> {
     
     public TimeValue minDelay = new TimeValue(0, TimeUnit.NONE)
     
-    public TimeValue minInterArrival = new TimeValue(0, TimeUnit.NONE)
+    public TimeValue minSpacing = null;
     
     new(Action definition, ReactorInstance parent) {
         super(definition, parent)
@@ -54,12 +53,7 @@ class ActionInstance extends TriggerInstance<Variable> {
             throw new Exception('Cannot create an ActionInstance with no parent.')
         }
         if (definition.name.equals(LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name)) {
-        	this.shutdown = true
-        }
-        // For physical actions, if no MIT is specified, set it to something
-        // non-zero.
-        if (definition.origin == ActionOrigin.PHYSICAL) {
-            this.minInterArrival = CGenerator.DEFAULT_MIN_INTER_ARRIVAL
+            this.shutdown = true
         }
         
         if (definition.minDelay !== null) {
@@ -74,15 +68,15 @@ class ActionInstance extends TriggerInstance<Variable> {
         if (definition.minSpacing !== null) {
             if (definition.minSpacing.parameter !== null) {
                 val parm = definition.minSpacing.parameter
-                this.minInterArrival = parent.lookupParameterInstance(parm).init.
+                this.minSpacing = parent.lookupParameterInstance(parm).init.
                     get(0).getTimeValue
             } else {
-                this.minInterArrival = definition.minSpacing.timeValue
+                this.minSpacing = definition.minSpacing.timeValue
             }
         }
     }
     
     def isShutdown() {
-    	this.shutdown
+        this.shutdown
     }
 }
