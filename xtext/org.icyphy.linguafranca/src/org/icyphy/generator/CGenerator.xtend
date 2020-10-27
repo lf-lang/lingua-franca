@@ -1155,7 +1155,7 @@ class CGenerator extends GeneratorBase {
             }
         }
         pr(shCode, '''
-            echo "### Bringing the RTI back to foreground"
+            echo "#### Bringing the RTI back to foreground"
             fg 1
         ''')
         // Wait for launched processes to finish
