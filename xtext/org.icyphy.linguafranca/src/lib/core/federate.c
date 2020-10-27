@@ -656,7 +656,6 @@ void connect_to_rti(char* hostname, int port) {
                 // Sleep was interrupted.
                 continue;
             }
-            continue;
         }
         if (failure_message) {
             printf("\n");
