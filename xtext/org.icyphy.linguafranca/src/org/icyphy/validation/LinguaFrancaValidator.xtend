@@ -625,7 +625,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 warning(
                     "The target parameter: " + param.name +
                         " is not supported by the " + this.target +
-                        " and will thus be ignored.",
+                        " target and will thus be ignored.",
                     Literals.KEY_VALUE_PAIR__NAME)
             }
 
