@@ -56,7 +56,6 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.ReactorDecl
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.TypedVariable
@@ -342,9 +341,31 @@ class CGenerator extends GeneratorBase {
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
+                
+        // Assume the program is federated first
+        pr('''
+            #define _LF_IS_FEDERATED
+            #define _LF_COORD_CENTRALIZED
+        ''')
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
+        
+        // After the work of GeneratorBase is done
+        // (e.g., model is analyzed and federates
+        // are populated), check to see if the
+        // program is actually federated
+        if (!isFederated) {
+            // Remove the _LF_IS_FEDERATED
+            // definition if the program
+            // is not federated
+            var indexToDelete = code.indexOf('''#define _LF_IS_FEDERATED''')
+            code.delete(indexToDelete, indexToDelete + 55)
+        } else if (targetCoordination.equals("decentralized")) {
+            // Replace _LF_COORD_CENTRALIZED with _LF_COORD_DECENTRALIZED
+            var indexToReplace = code.indexOf('''#define _LF_COORD_CENTRALIZED''')
+            code.replace(indexToReplace, indexToReplace + 30 , "#define _LF_COORD_DECENTRALIZED")
+        }
 
         // Generate code for each reactor.
         val names = newLinkedHashSet
@@ -2594,10 +2615,14 @@ class CGenerator extends GeneratorBase {
                 startTimersCount++
             } else if (trigger instanceof Action) {
                 var minDelay = (triggerInstance as ActionInstance).minDelay
-                var minInterArrival = (triggerInstance as ActionInstance).minInterArrival
+                var minSpacing = (triggerInstance as ActionInstance).minSpacing
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
-                    «triggerStructName».period = «timeInTargetLanguage(minInterArrival)»;
+                    «IF minSpacing !== null»
+                    «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
+                    «ELSE»
+                    «triggerStructName».period = «org.icyphy.generator.CGenerator.UNDEFINED_MIN_SPACING»;
+                    «ENDIF»
                 ''')               
             } else if (triggerInstance instanceof PortInstance) {
                 // Nothing to do in initialize_trigger_objects
@@ -4585,7 +4610,7 @@ class CGenerator extends GeneratorBase {
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
-    public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    public static var UNDEFINED_MIN_SPACING = -1
     
        
     /** Returns the Target enum for this generator */

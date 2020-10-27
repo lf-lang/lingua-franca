@@ -25,7 +25,7 @@ reactor Print {
                          // absence of incoming messages.
     state c:int(0);
     reaction(in) {=
-        interval_t current_time = get_logical_time();
+        interval_t current_time = get_elapsed_logical_time();
         printf("At time %llu received %d. Tardiness is %llu.\n", get_elapsed_logical_time(), in->value, in->tardiness);
         if (current_time == SEC(1) *  self->c) {
             self->success++; // Message was on-time
@@ -34,13 +34,14 @@ reactor Print {
     =} tardy {=
         printf("Message is late by %llu nsec.\n", in->tardiness);
         self->success_tardy++;
+        self->c++;
     =}
     reaction(t) {=
         // Do nothing.
     =}
     
     reaction(shutdown) {=
-        if (self->success +  self->success_tardy != 5) {
+        if ((self->success +  self->success_tardy) != 5) {
             fprintf(stderr, "Failed to detect tardiness of messages.\n");
             exit(1);
         } else {

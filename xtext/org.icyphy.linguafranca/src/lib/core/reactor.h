@@ -462,13 +462,17 @@ struct reaction_t {
                                        // execution. COMMON.
 };
 
+/** Typedef for event_t struct, used for storing activation records. */
+typedef struct event_t event_t;
+
 /** Event activation record to push onto the event queue. */
-typedef struct event_t {
+struct event_t {
     instant_t time;           // Time of release.
-    trigger_t* trigger;       // Associated trigger.
+    trigger_t* trigger;       // Associated trigger, NULL if this is a dummy event.
     size_t pos;               // Position in the priority queue.
     token_t* token;           // Pointer to the token wrapping the value.
-} event_t;
+    event_t* next;            // Pointer to the next event lined up in superdense time.
+};
 
 /**
  * Trigger struct representing an output, timer, action, or input.
@@ -482,7 +486,6 @@ struct trigger_t {
     interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
     token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action.
-//    instant_t scheduled;      // Tag of the last event that was scheduled for this action.
     event_t* last;            // Pointer to the last event that was scheduled for this action.
     policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
@@ -509,6 +512,11 @@ interval_t get_elapsed_logical_time();
  * @return A time instant.
  */
 instant_t get_logical_time();
+
+/**
+ * Return the current microstep.
+ */
+unsigned int get_microstep();
 
 /**
  * Return the current physical time in nanoseconds.
@@ -693,6 +701,13 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  * For a federated execution, broadcast stop() to all federates.
  */
 void __broadcast_stop();
+
+/**
+ * Advance from the current tag to the next. If the given next_time is equal to
+ * the current time, then increase the microstep. Otherwise, update the current
+ * time and set the microstep to zero.
+ */ 
+void _lf_advance_logical_time(instant_t next_time);
 
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.
