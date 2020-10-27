@@ -649,7 +649,7 @@ void connect_to_rti(char* hostname, int port) {
                 printf(", %d", port);
             }
             port++;
-            // Wait CONNECT_RETRY_INTERVAL seconds.
+            // Wait PORT_KNOCKING_RETRY_INTERVAL seconds.
             struct timespec wait_time = {0L, PORT_KNOCKING_RETRY_INTERVAL};
             struct timespec remaining_time;
             if (nanosleep(&wait_time, &remaining_time) != 0) {
