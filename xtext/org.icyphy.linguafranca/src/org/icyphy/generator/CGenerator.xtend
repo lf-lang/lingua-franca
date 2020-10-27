@@ -1157,6 +1157,7 @@ class CGenerator extends GeneratorBase {
         pr(shCode, '''
             echo "#### Bringing the RTI back to foreground"
             fg 1
+            RTI=$! # Store the new pid of the RTI
         ''')
         // Wait for launched processes to finish
         pr(shCode, '''
@@ -1166,6 +1167,7 @@ class CGenerator extends GeneratorBase {
             for pid in ${pids[*]}; do
                 wait $pid
             done
+            wait $RTI
         ''')
 
         // Write the launcher file.
