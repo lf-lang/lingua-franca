@@ -820,6 +820,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
     // allowed), or if the event time is past the requested stop time.
+    // FIXME: I think microsteps should not be allowed either
     // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
     if ((stop_requested && e->time != current_time)
             || (stop_time > 0LL && e->time > stop_time)) {
@@ -830,30 +831,10 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         return(0);
     }
 
-    // Check for collisions only if no min spacing is specified.
-    // If this event collides with an existing event in the queue,
-    // then update its payload using that of the new event.
-    // FIXME: Alternatively, we could make the default spacing be zero,
-    // which would enforce monotonic behavior, and if you give a negative
-    // spacing, then this would allow for (limited) nonmonotonic behavior.
-    // QUESTION: what does it mean to have a defer policy with zero spacing?
-    if (!(trigger->is_timer || min_spacing > 0)) {
-        event_t* existing = (event_t*)pqueue_find_equal_same_priority(event_q, e);
-        if (existing != NULL) {
-            // Free the previous payload.
-            if (existing->token != token) __done_using(existing->token);
-            existing->token = token;
-            // Recycle the new event.
-            e->token = NULL;
-            pqueue_insert(recycle_q, e);
-            return(0);
-        }
-    } else {
-        // Store a pointer to the current event in order to check the min spacing
-        // between this and the following event. Only necessary for actions
-        // that actually specify a min spacing.
-        trigger->last = (event_t*)e;
-    }
+    // Store a pointer to the current event in order to check the min spacing
+    // between this and the following event. Only necessary for actions
+    // that actually specify a min spacing.
+    trigger->last = (event_t*)e;
 
     // Queue the event.
     // NOTE: There is no need for an explicit microstep because
