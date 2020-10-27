@@ -438,8 +438,9 @@ bool __next() {
                 
         // At this point, finally, we have an event to process.
         // Advance current time to match that of the first event on the queue.
-        current_time = next_time;
-        // DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_time - start_time);
+        _lf_advance_logical_time(next_time);
+
+        DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_time - start_time);
 
         // Invoke code that must execute before starting a new logical time round,
         // such as initializing outputs to be absent.

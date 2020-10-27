@@ -514,6 +514,11 @@ interval_t get_elapsed_logical_time();
 instant_t get_logical_time();
 
 /**
+ * Return the current microstep.
+ */
+unsigned int get_microstep();
+
+/**
  * Return the current physical time in nanoseconds.
  * On many platforms, this is the number of nanoseconds
  * since January 1, 1970, but it is actually platform dependent.
@@ -696,6 +701,13 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  * For a federated execution, broadcast stop() to all federates.
  */
 void __broadcast_stop();
+
+/**
+ * Advance from the current tag to the next. If the given next_time is equal to
+ * the current time, then increase the microstep. Otherwise, update the current
+ * time and set the microstep to zero.
+ */ 
+void _lf_advance_logical_time(instant_t next_time);
 
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.
