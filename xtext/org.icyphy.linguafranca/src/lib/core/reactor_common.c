@@ -735,12 +735,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         }
     }
 
-    // Check to see whether the event is early based on the minimum
-    // spacing requirement. 
-    // WARNING: If provide a mechanism for unscheduling, we can no longer
-    // rely on the tag of the existing event to determine whether or not
-    // it has been recycled.
     event_t* existing = (event_t*)(trigger->last);
+    // Check for conflicts (a queued event with the same trigger and time).
     if (trigger->period < 0) {
         // No minimum spacing defined.
         e->time = intended_time;
@@ -761,6 +757,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     } else if (existing != NULL) { 
         // There exists a previously scheduled event. It determines the
         // earliest time at which the new event can be scheduled.
+        // Check to see whether the event is too early. 
         instant_t earliest_time = existing->time + min_spacing;
         //printf("DEBUG: >>> check min spacing <<<\n");
         //printf("DEBUG: earliest: %lld, tag: %lld\n", earliest_time, tag);
@@ -777,14 +774,15 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                     return(0);
                 case replace:
                     //printf("DEBUG: >>> replace <<<\n");
-                    // If the existing event has not been handled yet, update it.
-                    //
+                    // If the existing event has not been handled yet, update
+                    // it. WARNING: If provide a mechanism for unscheduling, we
+                    // can no longer rely on the tag of the existing event to
+                    // determine whether or not it has been recycled (the
+                    // existing->time < current_time case below).
                     // NOTE: Because microsteps are not explicit, if the tag of
                     // the preceding event is equal to the current time, then
-                    // we cannot determine solely based on the tag whether the
-                    // event has been pulled off the event queue or not. Only
-                    // if we can find it in the queue can be we certain that
-                    // it hasn't yet been handled.
+                    // we search the event queue to figure out whether it has
+                    // been handled yet.
                     if (existing->time > current_time || 
                             (existing->time == current_time &&
                             pqueue_find_equal_same_priority(event_q, existing) != NULL)) {
