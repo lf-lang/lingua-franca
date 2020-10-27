@@ -2027,9 +2027,6 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        
-        val reactor = decl.toDefinition
-        
         // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(decl, reactionIndex)
         
