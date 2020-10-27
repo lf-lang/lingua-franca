@@ -998,6 +998,8 @@ class CGenerator extends GeneratorBase {
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
             # Set a trap to kill all background jobs on error or control-C
+            # Enable job control
+            set -m
             trap 'echo "#### Received ERR. Killing federates."; kill ${pids[*]}; exit 1' ERR
             trap 'echo "#### Received SIGINT. Killing federates."; kill ${pids[*]}; exit 1' SIGINT
             # Create a random 48-byte text ID for this federation.
@@ -1022,61 +1024,22 @@ class CGenerator extends GeneratorBase {
         if (user !== null) {
             target = user + '@' + host
         }
-        // Index used for storing pids of federates
-        var federateIndex = 0
-        for (federate : federates) {
-            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
-                if(distCode.length === 0) pr(distCode, distHeader)
-                val logFileName = '''log/«filename»_«federate.name».log'''
-                val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'''
-                // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-                pr(distCode, '''
-                    echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
-                    # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
-                    ssh «federate.host» '\
-                        mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core; \
-                        echo "--------------" >> «path»/«logFileName»; \
-                        date >> «path»/«logFileName»;
-                    '
-                    pushd src-gen/core > /dev/null
-                    echo "Copying LF core files to host «federate.host»"
-                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
-                    popd > /dev/null
-                    pushd src-gen > /dev/null
-                    echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
-                    popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «compileCommand»"
-                    ssh «federate.host» '\
-                        cd «path»; \
-                        echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
-                        # Capture the output in the log file and stdout.
-                        «compileCommand» 2>&1 | tee -a «logFileName»;'
-                ''')
-                val executeCommand = '''bin/«filename»_«federate.name» -i '$FEDERATION_ID' '''
-                pr(shCode, '''
-                    echo "#### Launching the federate «federate.name» on host «federate.host»"
-                    ssh «federate.host» '\
-                        cd «path»; \
-                        echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
-                        date >> «logFileName»; \
-                        echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
-                        «executeCommand» 2>&1 | tee -a «logFileName»' &
-                ''')                
-            } else {
-                pr(shCode, '''
-                    echo "#### Launching the federate «federate.name»."
-                    «outPath»«File.separator»«filename»_«federate.name» -i $FEDERATION_ID &
-                    pids[«federateIndex++»]=$!
-                ''')                
-            }
-        }
         // Launch the RTI in the foreground.
         if (host == 'localhost' || host == '0.0.0.0') {
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI)."
-                «outPath»«File.separator»«filename»_RTI -i $FEDERATION_ID
-                pids[«federateIndex++»]=$!
+                # The RTI is started first to allow proper boot-up
+                # before federates will try to connect.
+                # The RTI will be brought back to foreground
+                # to be responsive to user inputs after all federates
+                # are launched.
+                «outPath»«File.separator»«filename»_RTI -i $FEDERATION_ID &
+                # Store the PID of the RTI
+                RTI=$!
+                # Wait for the RTI to boot up before
+                # starting federates (this could be done by waiting for a specific output
+                # from the RTI, but here we use sleep)
+                sleep 1
             ''')
         } else {
             // Start the RTI on the remote machine.
@@ -1133,13 +1096,71 @@ class CGenerator extends GeneratorBase {
                     date >> «logFileName»; \
                     echo "In «path», executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
                     «executeCommand» 2>&1 | tee -a «logFileName»' &
-                pids[«federateIndex++»]=$!
+                # Store the PID of the channel to RTI
+                RTI=$!
+                # Wait for the RTI to boot up before
+                # starting federates (this could be done by waiting for a specific output
+                # from the RTI, but here we use sleep)
+                sleep 1
             ''')
         }
-        
+                
+        // Index used for storing pids of federates
+        var federateIndex = 0
+        for (federate : federates) {
+            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
+                if(distCode.length === 0) pr(distCode, distHeader)
+                val logFileName = '''log/«filename»_«federate.name».log'''
+                val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'''
+                // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
+                pr(distCode, '''
+                    echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
+                    # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
+                    ssh «federate.host» '\
+                        mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core; \
+                        echo "--------------" >> «path»/«logFileName»; \
+                        date >> «path»/«logFileName»;
+                    '
+                    pushd src-gen/core > /dev/null
+                    echo "Copying LF core files to host «federate.host»"
+                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    popd > /dev/null
+                    pushd src-gen > /dev/null
+                    echo "Copying source files to host «federate.host»"
+                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
+                    popd > /dev/null
+                    echo "Compiling on host «federate.host» using: «compileCommand»"
+                    ssh «federate.host» '\
+                        cd «path»; \
+                        echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
+                        # Capture the output in the log file and stdout.
+                        «compileCommand» 2>&1 | tee -a «logFileName»;'
+                ''')
+                val executeCommand = '''bin/«filename»_«federate.name» -i '$FEDERATION_ID' '''
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    ssh «federate.host» '\
+                        cd «path»; \
+                        echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
+                        date >> «logFileName»; \
+                        echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
+                        «executeCommand» 2>&1 | tee -a «logFileName»' &
+                ''')                
+            } else {
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name»."
+                    «outPath»«File.separator»«filename»_«federate.name» -i $FEDERATION_ID &
+                    pids[«federateIndex++»]=$!
+                ''')                
+            }
+        }
+        pr(shCode, '''
+            echo "### Bringing the RTI back to foreground"
+            fg 1
+        ''')
         // Wait for launched processes to finish
         pr(shCode, '''
-        
+            
             # Wait for launched processes to finish.
             # The errors are handled separately via trap.
             for pid in ${pids[*]}; do
