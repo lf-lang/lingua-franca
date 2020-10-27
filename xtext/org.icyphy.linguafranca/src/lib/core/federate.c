@@ -649,6 +649,13 @@ void connect_to_rti(char* hostname, int port) {
                 printf(", %d", port);
             }
             port++;
+            // Wait CONNECT_RETRY_INTERVAL seconds.
+            struct timespec wait_time = {(time_t)CONNECT_RETRY_INTERVAL, 0L};
+            struct timespec remaining_time;
+            if (nanosleep(&wait_time, &remaining_time) != 0) {
+                // Sleep was interrupted.
+                continue;
+            }
             continue;
         }
         if (failure_message) {
@@ -900,10 +907,11 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
                                // with decentralized coordination
     // For logical connections in decentralized coordination,
-    // increment the barrier to prevent advancement of logical time
-    // Suggest that the logical time barrier be raised at the timestamp provided
-    // by the message. If this timestamp is in the past, this effectively
-    // freezes the logical time at the current level.
+    // increment the barrier to prevent advancement of logical time beyond
+    // the received timestamp if possible. The following function call
+    // suggests that the logical time barrier be raised at the timestamp provided
+    // by the message. If this timestamp is in the past, the function will cause
+    // the logical time to freeze at the current level.
     if (!action->is_physical) {
         _lf_increment_global_logical_time_barrier(timestamp);
     }

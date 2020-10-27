@@ -62,6 +62,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ADDRESS_QUERY_RETRY_INTERVAL 100000000
 
 /**
+ * Number of nanoseconds that a federate waits before trying
+ * another port for the RTI. This is to avoid overwhelming
+ * the OS and the socket with too many calls.
+ */
+#define PORT_KNOCKING_RETRY_INTERVAL 10000
+
+/**
  * Default starting port number for the RTI and federates' socket server.
  * Unless a specific port has been specified by the LF program,
  * the RTI or the federates, when they starts up, will attempt to open a socket server
