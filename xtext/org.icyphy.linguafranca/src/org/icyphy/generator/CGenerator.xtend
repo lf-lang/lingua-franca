@@ -2059,11 +2059,6 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-<<<<<<< HEAD
-=======
-        
->>>>>>> a41a666f... Fixed test that was failing due to startup reactions being executed twice. Also broke all federated tests :-)
-        // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(decl, reactionIndex)
         
         
