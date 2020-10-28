@@ -25,7 +25,7 @@
 target C;
 
 preamble {=
-    #define VERBOSE
+    // #define VERBOSE
 =}
 
 reactor Ping(count:int(10)) {
