@@ -607,7 +607,9 @@ class CGenerator extends GeneratorBase {
                 if (startupReactionCount > 0) {
                     pr('''
                        for (int i = 0; i < __startup_reactions_size; i++) {
-                           _lf_enqueue_reaction(__startup_reactions[i]);
+                           if (__startup_reactions[i] != NULL) {
+                               _lf_enqueue_reaction(__startup_reactions[i]);
+                           }
                        }
                     ''')
                 }
