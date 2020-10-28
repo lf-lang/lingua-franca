@@ -166,70 +166,12 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
     }
 }
 
-// Wait until physical time matches or exceeds the time of the least tag
-// on the event queue. If there is no event in the queue, return 0.
-// After this wait, advance current_time to match
-// this tag. Then pop the next event(s) from the
-// event queue that all have the same tag, and extract from those events
-// the reactions that are to be invoked at this logical time.
-// Sort those reactions by index (determined by a topological sort)
-// and then execute the reactions in order. Each reaction may produce
-// outputs, which places additional reactions into the index-ordered
-// priority queue. All of those will also be executed in order of indices.
-// If the -timeout option has been given on the command line, then return
-// 0 when the logical time duration matches the specified duration.
-// Also return 0 if there are no more events in the queue and
-// the keepalive command-line option has not been given.
-// Otherwise, return 1.
-int next() {
-    event_t* event = (event_t*)pqueue_peek(event_q);
-    // If there is no next event and -keepalive has been specified
-    // on the command line, then we will wait the maximum time possible.
-    instant_t next_time = LLONG_MAX;
-    if (event == NULL) {
-        // No event in the queue.
-        if (!keepalive_specified) {
-            return 0;
-        }
-    } else {
-        next_time = event->time;
-    }
-    // printf("DEBUG: Next event (elapsed) time is %lld.\n", next_time - start_time);
-    // Wait until physical time >= event.time.
-    // The wait_until function will advance current_time.
-    if (wait_until(next_time) < 0) {
-        // Sleep was interrupted or the timeout time has been reached.
-        // Time has not advanced to the time of the event.
-        // There may be a new earlier event on the queue.
-        event_t* new_event = (event_t*)pqueue_peek(event_q);
-        if (new_event == event) {
-            // There is no new event. If the timeout time has been reached,
-            // or if the maximum time has been reached (unlikely), then return.
-            if (new_event == NULL || (stop_time > 0LL && current_time >= stop_time)) {
-                stop_requested = true;
-                return 0;
-            }
-            // printf("DEBUG: Setting current (elapsed) time to %lld.\n", next_time - start_time);
-        } else {
-            // Handle the new event.
-            event = new_event;
-            next_time = event->time;
-            // printf("DEBUG: New event at (elapsed) time %lld.\n", next_time - start_time);
-        }
-    }
-
-    // Invoke code that must execute before starting a new logical time round,
-    // such as initializing outputs to be absent.
-    __start_time_step();
-    
-    // Pop all events from event_q with timestamp equal to current_time,
-    // extract all the reactions triggered by these events, and
-    // stick them into the reaction queue.
-    __pop_events();
-    
-    // Invoke reactions.
+int __do_step() {
+        // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
+        //print_snapshot();
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
+        
         // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
         // printf("DEBUG: Address of reaction: %p\n", reaction);
 
@@ -319,6 +261,72 @@ int next() {
     return 1;
 }
 
+// Wait until physical time matches or exceeds the time of the least tag
+// on the event queue. If there is no event in the queue, return 0.
+// After this wait, advance current_time to match
+// this tag. Then pop the next event(s) from the
+// event queue that all have the same tag, and extract from those events
+// the reactions that are to be invoked at this logical time.
+// Sort those reactions by index (determined by a topological sort)
+// and then execute the reactions in order. Each reaction may produce
+// outputs, which places additional reactions into the index-ordered
+// priority queue. All of those will also be executed in order of indices.
+// If the -timeout option has been given on the command line, then return
+// 0 when the logical time duration matches the specified duration.
+// Also return 0 if there are no more events in the queue and
+// the keepalive command-line option has not been given.
+// Otherwise, return 1.
+int next() {
+    event_t* event = (event_t*)pqueue_peek(event_q);
+    //pqueue_dump(event_q, stdout, event_q->prt);
+    // If there is no next event and -keepalive has been specified
+    // on the command line, then we will wait the maximum time possible.
+    instant_t next_time = LLONG_MAX;
+    if (event == NULL) {
+        // No event in the queue.
+        if (!keepalive_specified) {
+            return 0;
+        }
+    } else {
+        next_time = event->time;
+    }
+    //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_time - start_time);
+    // Wait until physical time >= event.time.
+    // The wait_until function will advance current_time.
+    if (wait_until(next_time) < 0) {
+        // Sleep was interrupted or the timeout time has been reached.
+        // Time has not advanced to the time of the event.
+        // There may be a new earlier event on the queue.
+        event_t* new_event = (event_t*)pqueue_peek(event_q);
+        printf("HERE\n");
+        if (new_event == event) {
+            // There is no new event. If the timeout time has been reached,
+            // or if the maximum time has been reached (unlikely), then return.
+            if (new_event == NULL || (stop_time > 0LL && current_time >= stop_time)) {
+                stop_requested = true;
+                return 0;
+            }
+            printf("DEBUG: Setting current (elapsed) time to %lld.\n", next_time - start_time);
+        } else {
+            // Handle the new event.
+            event = new_event;
+            next_time = event->time;
+            printf("DEBUG: New event at (elapsed) time %lld.\n", next_time - start_time);
+        }
+    }
+
+    // Invoke code that must execute before starting a new logical time round,
+    // such as initializing outputs to be absent.
+    __start_time_step();
+    
+    // Pop all events from event_q with timestamp equal to current_time,
+    // extract all the reactions triggered by these events, and
+    // stick them into the reaction queue.
+    __pop_events();
+    
+    return __do_step();
+}
+
 // Stop execution at the conclusion of the current logical time.
 void stop() {
     stop_requested = true;
@@ -341,8 +349,11 @@ int main(int argc, char* argv[]) {
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
         initialize();
-        __start_timers();
         _lf_execution_started = true;
+        __trigger_startup_reactions();
+        __initialize_timers();
+        // Handle reactions triggered at time (T,0).
+        __do_step();
         while (next() != 0 && !stop_requested);
         wrapup();
         termination();

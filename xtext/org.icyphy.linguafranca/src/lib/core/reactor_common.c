@@ -389,6 +389,13 @@ token_freed __done_using(token_t* token) {
 void _lf_enqueue_reaction(reaction_t* reaction);
 
 /**
+ * If this timer is to trigger reactions at a _future_ tag, 
+ * schedule it accordingly. Calling this function will not cause any reactions
+ * to be triggered at the current tag.
+ */
+void _lf_initialize_timer(trigger_t* timer);
+
+/**
  * Use tables to reset is_present fields to false and decrement reference
  * counts between time steps and at the end of execution.
  */
@@ -591,7 +598,7 @@ void __pop_events() {
                 pqueue_insert(next_q, event->next);
             }
         }
-
+        
         // Recycle the event.
         // So that sorting doesn't cost anything,
         // give all recycled events the same zero time stamp.
@@ -611,6 +618,43 @@ void __pop_events() {
         pqueue_insert(event_q, pqueue_pop(next_q));
     }
 
+}
+
+/**
+ * Initialize the given timer.
+ * If this timer has a zero offset, enqueue the reactions it triggers.
+ * If this timer is to trigger reactions at a _future_ tag as well, 
+ * schedule it accordingly. 
+ */
+void _lf_initialize_timer(trigger_t* timer) {
+    interval_t delay = 0;
+    if (timer->offset == 0) {
+        for (int i = 0; i < timer->number_of_reactions; i++) {
+            _lf_enqueue_reaction(timer->reactions[i]);
+        }
+        if (timer->period == 0) {
+            return;
+        } else {
+            // Schedule at t + period.
+            delay = timer->period;
+        }
+    } else {
+        // Schedule at t + offset.
+        delay = timer->offset;
+    }
+
+    // Get an event_t struct to put on the event queue.
+    // Recycle event_t structs, if possible.    
+    event_t* e = (event_t*)pqueue_pop(recycle_q);
+    if (e == NULL) {
+        e = (event_t*)malloc(sizeof(struct event_t));
+    }
+    e->trigger = timer;
+    e->token = NULL;
+    e->next = NULL;
+    e->time = get_logical_time() + delay;
+    // NOTE: No lock is being held. Assuming this only happens at startup.
+    pqueue_insert(event_q, e);
 }
 
 /**
@@ -647,12 +691,12 @@ void __pop_events() {
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
 
-    if (extra_delay < 0LL) {
-        DEBUG_PRINT("WARNING: schedule called with a negative extra_delay. Replacing with zero.\n");
-        extra_delay = 0LL;
-    }
+    // if (extra_delay < 0LL) {
+    //     DEBUG_PRINT("WARNING: schedule called with a negative extra_delay. Replacing with zero.\n");
+    //     extra_delay = 0LL;
+    // }
 
-    // printf("DEBUG: __schedule: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
+    //printf("DEBUG: __schedule: scheduling trigger %p with delay %lld and token %p.\n", trigger, extra_delay, token);
     // if (token != NULL) {
     //     printf("DEBUG: __schedule: integer payload at %d.\n", *(int *)token->value);
     // }
@@ -734,7 +778,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             intended_time = current_time;
         }
     }
-
+    
     event_t* existing = (event_t*)(trigger->last);
     // Check for conflicts (a queued event with the same trigger and time).
     if (trigger->period < 0) {
@@ -754,7 +798,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         // If there are not conflicts, schedule as usual. If intended time is
         // equal to the current logical time, the event will effectively be 
         // scheduled at the next microstep.
-    } else if (existing != NULL) { 
+    } else if (!trigger->is_timer && existing != NULL) { 
         // There exists a previously scheduled event. It determines the
         // earliest time at which the new event can be scheduled.
         // Check to see whether the event is too early. 
@@ -828,7 +872,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         pqueue_insert(recycle_q, e);
         return(0);
     }
-
+    
     // Store a pointer to the current event in order to check the min spacing
     // between this and the following event. Only necessary for actions
     // that actually specify a min spacing.
@@ -843,6 +887,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // same time will automatically be executed at the next microstep.
     // printf("DEBUG: Inserting event in the event queue with elapsed time %lld.\n", e->time - start_time);
     pqueue_insert(event_q, e);
+    
     // FIXME: make a record of handle and implement unschedule.
     // NOTE: Rather than wrapping around to get a negative number,
     // we reset the handle on the assumption that much earlier
