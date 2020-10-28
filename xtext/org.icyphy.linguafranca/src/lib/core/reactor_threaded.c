@@ -704,7 +704,7 @@ void* worker(void* arg) {
                     && !__advancing_time)
             {
                 //if (!__first_invocation) {
-                    logical_time_complete(current_time);
+                logical_time_complete(current_time);
                 //}
                 //__first_invocation = false;
                 // The following will set stop_requested if there are
@@ -1009,37 +1009,19 @@ int main(int argc, char* argv[]) {
 
         __trigger_startup_reactions();
         __initialize_timers();
-        
-        // In case this is in a federation, check whether time can advance
-        // to the next time. If there are upstream federates, then this call
-        // will block waiting for a response from the RTI.
-        // If an action triggers during that wait, it will unblock
-        // and return with a time (typically) less than the next_time.
-        instant_t grant_time = next_event_time(start_time);
-        // if (grant_time != start_time) {
-        //     // FIXME: this should not happen.
-        printf(">>>> Grant time obtained from RTI: %lld\n", grant_time);
-        //     exit(1);
-        // }
-        
-        // Wait for physical time to advance to the next event time (or stop time).
-        // This can be interrupted if a physical action triggers (e.g., a message
-        // arrives from an upstream federate or a local physical action triggers).
-        // printf("DEBUG: next(): Waiting until time %lld.\n", (next_time - start_time));
-        // if (!wait_until(start_time)) {
-        //     // printf("DEBUG: __next(): Wait until time interrupted.\n");
-        //     // Sleep was interrupted or the stop time has been reached.
-        //     // Time has not advanced to the time of the event.
-        //     // There may be a new earlier event on the queue.
-        //     // Mutex lock was reacquired by wait_until.
-        //     return true;
-        // }
 
+        // At this time, reactions (startup, etc.) are added to the 
+        // reaction queue that will be executed at tag (0,0).
+        // Before we could do so, we need to ask the RTI if it is 
+        // okay.
+        instant_t grant_time = next_event_time(start_time);
+        if (grant_time != start_time) {
+            // This is a critical condition
+            fprintf(stderr, "Federate received a grant time earlier than start time.\n");
+            exit(1);
+        }
         
         _lf_execution_started = true;
-        
-        
-        
 
         start_threads();
         // printf("DEBUG: pthread_mutex_unlock main\n");
