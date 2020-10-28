@@ -752,7 +752,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             // the descrepency between physical_time and the
             // requested tag. Since the tardiness can be externally
             // set (initially, it is zero), we only add to it here.
-            trigger->tardiness = physical_time - intended_time;
+            trigger->tardiness += physical_time - intended_time;
 
             intended_time = physical_time;
         }
