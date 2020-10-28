@@ -34,8 +34,8 @@ env:
   - TEST=Unit
   - TEST=C
   - TEST=Cpp
-  - TEST=TS
   - TEST=Python
+  - TEST=TS
 # global:  
 #  - DISPLAY=:99.0  
 #before_install:
