@@ -1022,6 +1022,7 @@ int main(int argc, char* argv[]) {
         }
         
         _lf_execution_started = true;
+        DEBUG_PRINT("Started execution.");
 
         start_threads();
         // printf("DEBUG: pthread_mutex_unlock main\n");
