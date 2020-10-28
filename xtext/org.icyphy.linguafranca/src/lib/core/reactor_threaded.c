@@ -703,13 +703,10 @@ void* worker(void* arg) {
                     && pqueue_size(executing_q) == 0
                     && !__advancing_time)
             {
-                if (!__first_invocation) {
+                //if (!__first_invocation) {
                     logical_time_complete(current_time);
-                    if (!_lf_execution_started) {
-                        _lf_execution_started = true;
-                    }
-                }
-                __first_invocation = false;
+                //}
+                //__first_invocation = false;
                 // The following will set stop_requested if there are
                 // no events to process. It may block waiting for events
                 // to appear on the event queue, but in any case, it will
@@ -1012,6 +1009,37 @@ int main(int argc, char* argv[]) {
 
         __trigger_startup_reactions();
         __initialize_timers();
+        
+        // In case this is in a federation, check whether time can advance
+        // to the next time. If there are upstream federates, then this call
+        // will block waiting for a response from the RTI.
+        // If an action triggers during that wait, it will unblock
+        // and return with a time (typically) less than the next_time.
+        instant_t grant_time = next_event_time(start_time);
+        // if (grant_time != start_time) {
+        //     // FIXME: this should not happen.
+        printf(">>>> Grant time obtained from RTI: %lld\n", grant_time);
+        //     exit(1);
+        // }
+        
+        // Wait for physical time to advance to the next event time (or stop time).
+        // This can be interrupted if a physical action triggers (e.g., a message
+        // arrives from an upstream federate or a local physical action triggers).
+        // printf("DEBUG: next(): Waiting until time %lld.\n", (next_time - start_time));
+        // if (!wait_until(start_time)) {
+        //     // printf("DEBUG: __next(): Wait until time interrupted.\n");
+        //     // Sleep was interrupted or the stop time has been reached.
+        //     // Time has not advanced to the time of the event.
+        //     // There may be a new earlier event on the queue.
+        //     // Mutex lock was reacquired by wait_until.
+        //     return true;
+        // }
+
+        
+        _lf_execution_started = true;
+        
+        
+        
 
         start_threads();
         // printf("DEBUG: pthread_mutex_unlock main\n");
