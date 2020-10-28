@@ -340,7 +340,7 @@ void send_timed_message(interval_t additional_delay, int socket, int message_typ
  *  @param time The time of this federate's next event.
  */
 void send_time(unsigned char type, instant_t time) {
-    DEBUG_PRINT("Sending time %lld to the RTI.", time);
+    DEBUG_PRINT("Federate %d sending time %lld to the RTI.", _lf_my_fed_id,time);
     unsigned char buffer[9];
     buffer[0] = type;
     encode_ll(time, &(buffer[1]));

@@ -620,7 +620,9 @@ class CGenerator extends GeneratorBase {
                 if (timerCount > 0) {
                     pr('''
                        for (int i = 0; i < __timer_triggers_size; i++) {
-                           _lf_initialize_timer(__timer_triggers[i]);
+                           if (__timer_triggers[i] != NULL) {
+                               _lf_initialize_timer(__timer_triggers[i]);
+                           }
                        }
                     ''')
                 }
