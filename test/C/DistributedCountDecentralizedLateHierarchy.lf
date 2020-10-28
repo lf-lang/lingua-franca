@@ -14,7 +14,7 @@ target C {
 import Count from "lib/Count.lf";
 
 preamble {=
-    // #define VERBOSE
+    #define VERBOSE
 =}
 
 reactor ImportantActuator {
