@@ -804,11 +804,14 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             switch(trigger->policy) {
                 case drop:
                     //printf("DEBUG: >>> drop <<<\n");
-                    // Recycle the new event and the token.
-                    if (existing->token != token) __done_using(token);
-                    e->token = NULL;
-                    pqueue_insert(recycle_q, e);
-                    return(0);
+                    if (min_spacing > 0 || 
+                            pqueue_find_equal_same_priority(event_q, existing) != NULL) {
+                        // Recycle the new event and the token.
+                        if (existing->token != token) __done_using(token);
+                        e->token = NULL;
+                        pqueue_insert(recycle_q, e);
+                        return(0);
+                    }
                 case replace:
                     //printf("DEBUG: >>> replace <<<\n");
                     // If the existing event has not been handled yet, update
