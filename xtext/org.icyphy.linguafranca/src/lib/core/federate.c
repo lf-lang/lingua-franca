@@ -288,12 +288,18 @@ void send_timed_message(interval_t additional_delay, int socket, int message_typ
 
     // Get current logical time
     instant_t current_message_timestamp = get_logical_time();
+
+    // Note that we are getting the microstep here directly
+    // under the assumption that it does not change while
+    // this function is executing.
+    unsigned int current_message_microstep = get_microstep();
     if (additional_delay == 0LL) {
         // After was specified by the user
         // on the connection with a delay of 0.
         // FIXME: in this case,
         // the tag of the outgoing message
         // should be (get_logical_time(), get_microstep() + 1).
+        current_message_microstep += 1;
     } else if (additional_delay > 0LL) {
         // After was specified by the user
         // on the connection with a positive delay.
@@ -311,13 +317,17 @@ void send_timed_message(interval_t additional_delay, int socket, int message_typ
     
     // Next 8 bytes are the timestamp.
     encode_ll(current_message_timestamp, &(buffer[9]));
+    // Next 4 bytes are the microstep.
+    encode_int(current_message_microstep, &(buffer[9 + sizeof(instant_t)]));
     DEBUG_PRINT("Federate %d sending message with timestamp %lld to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, federate);
 
+    // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
+    const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(unsigned int);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     DEBUG_PRINT("Federate %d pthread_mutex_lock send_timed", _lf_my_fed_id);
     pthread_mutex_lock(&mutex);
     DEBUG_PRINT("Federate %d pthread_mutex_locked", _lf_my_fed_id);
-    write_to_socket(socket, 17, buffer, "Federate %d failed to send timed message header to the RTI.", _lf_my_fed_id);
+    write_to_socket(socket, header_length, buffer, "Federate %d failed to send timed message header to the RTI.", _lf_my_fed_id);
     write_to_socket(socket, length, message, "Federate %d failed to send timed message body to the RTI.", _lf_my_fed_id);
     DEBUG_PRINT("Federate %d pthread_mutex_unlock", _lf_my_fed_id);
     pthread_mutex_unlock(&mutex);
@@ -789,16 +799,41 @@ trigger_t* __action_for_port(int port_id);
  * 
  * @param action The action or timer to be triggered.
  * @param timestamp The timestamp of the message received over the network.
+ * @param microstep The microstep of the sender received over the network.
+ *  It can be used to deduce if the message is in the future
  * @param value Dynamically allocated memory containing the value to send.
  * @param length The length of the array, if it is an array, or 1 for a
  *  scalar and 0 for no payload.
+ * @param remote_fed_id The Fed ID of the sender.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule_message_received_from_network_already_locked(
-    trigger_t* trigger, instant_t timestamp, void* value, int length) {
+    trigger_t* trigger, 
+    instant_t timestamp, 
+    unsigned int microstep, 
+    void* value, 
+    int length, 
+    unsigned short sender_fed_id) {
+
     token_t* token = create_token(trigger->element_size);
     // Return value of the function
     int return_value = 0;
+    // Current logical time
+    instant_t current_logical_time = get_logical_time();
+
+    // Indicates whether or not the intended tag
+    // of the message (timestamp, microstep) is 
+    // in the future relative to the tag of this
+    // federate. By default, assume it is not.
+    bool message_tag_is_in_the_future = false;
+
+    // Check to see if the intended tag is in 
+    // the future.
+    if ((timestamp >  current_logical_time) ||
+        (timestamp == current_logical_time && microstep > get_microstep())) {
+            // The intended tag is in the future
+            message_tag_is_in_the_future = true;
+    }
     
     // Set up the token
     token->value = value;
@@ -809,11 +844,10 @@ handle_t schedule_message_received_from_network_already_locked(
 
     // Calculate the extra_delay required to be passed
     // to the schedule function.
-    interval_t extra_delay = timestamp - get_logical_time();
+    interval_t extra_delay = timestamp - current_logical_time;
 
 
-    if (!_lf_execution_started) {
-        // FIXME: add microsteps
+    if (!_lf_execution_started && !message_tag_is_in_the_future) {
         // If execution has not started yet,
         // there could be a special case where a message has
         // arrived on a logical connection with a tag 
@@ -833,31 +867,61 @@ handle_t schedule_message_received_from_network_already_locked(
 
     // If return_value remains 0, it means that the special startup procedure
     // does not apply or the call to _lf_schedule_init_reactions() has failed.
+    // Thus, call __schedule() instead.
     if (return_value == 0) {
         if (trigger->is_physical) {
-            // For physical connection, the schedule function will
+            // For physical connections, the schedule function will
             // add to the tardiness according to the current physical time.
             // However, the schedule function cannot take a negative delay.
-            // Thus, here we pad the tardiness to the appropriate amount.
+            // Thus, here, we pad the tardiness to the appropriate amount.
             if (extra_delay < 0LL) {
                 trigger->tardiness = 0LL - extra_delay;
                 extra_delay = 0LL;
             }
-        } else if (extra_delay < 1LL) {
-            // In the case where the extra_delay is not positive,
-            // we pad the extra_delay to 1 nsec (the smallest
-            // possible delay) and set the
-            // tardiness property to be equal
-            // to the padding.
-
-            // FIXME: currently, it is not possible
-            // to tolerate an extra_delay of zero
-            // because federates only send the timestamp
-            // and not the microstep delay.
-            trigger->tardiness = 1LL - extra_delay;
-            extra_delay = 1LL;
+        } else if (!message_tag_is_in_the_future) {
+#ifdef _LF_COORD_CENTRALIZED
+            // If the coordination is centralized, receiving a message
+            // that does not carry a timestamp that is in the future 
+            // would indicate a critical condition, showing that the 
+            // time advance mechanism is not working correctly.
+            error_print_and_exit("CRITICAL: Federate %d received a message from federate %d that"
+                                 " has a tag that is in the past.", _lf_my_fed_id, sender_fed_id);
+#else
+            if (timestamp < current_logical_time) {
+                // For decentralized execution, in the case where the message
+                // carrying the tag (timestamp, microstep) is not in the future 
+                // because timestamp < current_logical_time, we can directly call 
+                // __schedule() with 0 delay which will 
+                // incur one microstep relative to the current tag. We will set
+                // a tardiness accordingly here to 
+                // trigger the Tardy handler downstream, if any exists.
+                trigger->tardiness = 0LL - extra_delay;
+                // Set the delay back to 0
+                extra_delay = 0LL;
+            } else {
+                // In the case where the microstep is in the past
+                // but timestamp == current_logical_time, we will
+                // call schedule with a delay of 0, but set tardiness
+                // to ??, meaning the microstep was missed.
+                // FIXME: how to show tardiness in microsteps?
+                trigger->tardiness = 1;
+                extra_delay = 1LL;
+            }
+#endif
+        } else if (extra_delay == 0) {
+            // In case the message is in the future but at the
+            // current timestamp (i.e., the microstep is ahead)
+            // call __schedule() with 0 delay and pass a non-zero
+            // microstep delay, which shall be used to calculate the
+            // desired microstep for the message.
+            // FIXME: not implemented
+        } else {
+            // Message has a timestamp that is in the future
+            // microstep = 0
+            // FIXME: should we also honor the microstep (if any)?
         }
         DEBUG_PRINT("Calling schedule with delay %llu and tardiness %llu.", extra_delay, trigger->tardiness);
+        // FIXME: pass microstep to the __schedule() function
         return_value = __schedule(trigger, extra_delay, token);
         // Notify the main thread in case it is waiting for physical time to elapse.
         DEBUG_PRINT("Federate %d pthread_cond_broadcast(&event_q_changed).", _lf_my_fed_id);
@@ -887,7 +951,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     DEBUG_PRINT("Federate %d pthread_mutex_lock handle_timed_message.", _lf_my_fed_id);
     
     // Read the header which contains the timestamp.
-    read_from_socket(socket, 16, buffer, "Federate %d failed to read timed message header.", _lf_my_fed_id);
+    read_from_socket(socket, 20, buffer, "Federate %d failed to read timed message header.", _lf_my_fed_id);
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
@@ -902,6 +966,8 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 
     // Read the timestamp.
     instant_t timestamp = extract_ll(buffer + 8);
+
+    unsigned int microstep = extract_int(buffer + 8 + sizeof(instant_t));
 
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
                                // with decentralized coordination
@@ -943,10 +1009,11 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // NOTE: Cannot call schedule_value(), which is what we really want to call,
     // because pthreads is too incredibly stupid and deadlocks trying to acquire
     // a lock that the calling thread already holds.
-     pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
 
     DEBUG_PRINT("Federate %d calling schedule with timestamp %lld.", _lf_my_fed_id, timestamp);
-    schedule_message_received_from_network_already_locked(action, timestamp, message_contents, length);
+    schedule_message_received_from_network_already_locked(action, timestamp, microstep, message_contents,
+                                                          length, federate_id);
     // DEBUG_PRINT("Called schedule with delay %lld.", delay);
     
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs

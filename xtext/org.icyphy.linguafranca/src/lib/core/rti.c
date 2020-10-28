@@ -193,7 +193,7 @@ int create_server(int specified_port, int port) {
  *  @param buffer The buffer to read into (the first byte is already there).
  */
 void handle_timed_message(int sending_socket, unsigned char* buffer) {
-    int header_size = 17;
+    int header_size = 21;
     // Read the header, minus the first byte which is already there.
     read_from_socket(sending_socket, header_size - 1, buffer + 1, "RTI failed to read the timed message header from remote federate.");
     // Extract the header information.

@@ -148,6 +148,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  The next two bytes are the destination federate ID.
  *  The four bytes after that will be the length of the message.
  *  The next eight bytes will be the timestamp.
+ *  The next four bytes will be the microstep of the sender.
  *  The remaining bytes are the message.
  */
 #define TIMED_MESSAGE 5
@@ -224,6 +225,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * the correct federate.
  * The four bytes after will be the length of the message.
  * The next eight bytes will be the timestamp.
+ * The next four bytes will be the microstep of the sender.
  * The ramaining bytes are the message.
  */
 #define P2P_TIMED_MESSAGE 13
