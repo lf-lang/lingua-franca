@@ -48,6 +48,6 @@ script:
         ./gradlew test || travis_terminate 1;
         popd;
     else
-        bin/build-lfc || travis_terminate 1; 
+        bin/build-lfc --stacktrace || travis_terminate 1; 
         bin/run-lf-tests $TEST || travis_terminate 1;
     fi'
