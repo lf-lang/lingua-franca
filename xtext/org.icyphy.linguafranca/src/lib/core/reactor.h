@@ -572,9 +572,15 @@ void __pop_events();
 handle_t __schedule(trigger_t* trigger, interval_t delay, token_t* token);
 
 /**
- * Function (to be code generated) to start timers.
+ * Function (to be code generated) to schedule timers.
  */
-void __start_timers();
+void __initialize_timers();
+
+/**
+ * Function (to be code generated) to trigger startup reactions.
+ */
+void __trigger_startup_reactions();
+
 
 /**
  * Function (to be code generated) to terminate execution.

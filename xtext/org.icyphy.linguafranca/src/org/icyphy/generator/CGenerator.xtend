@@ -314,7 +314,8 @@ class CGenerator extends GeneratorBase {
 
     // Place to collect code to initialize timers for all reactors.
     protected var startTimers = new StringBuilder()
-    var startTimersCount = 0
+    var timerCount = 0
+    var startupReactionCount = 0
     var shutdownCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
@@ -477,20 +478,36 @@ class CGenerator extends GeneratorBase {
                 pr('}\n')
                 
                 // If there are timers, create a table of timers to be initialized.
-                if (startTimersCount > 0) {
+                if (timerCount > 0) {
                     pr('''
-                        // Array of pointers to timer and startup triggers to start the timers in __start_timers().
-                        trigger_t* __timer_triggers[«startTimersCount»];
+                        // Array of pointers to timer triggers to be scheduled in __initialize_timers().
+                        trigger_t* __timer_triggers[«timerCount»];
                     ''')
                 } else {
                     pr('''
-                        // Array of pointers to timer and startup triggers to start the timers in __start_timers().
+                        // Array of pointers to timer triggers to be scheduled in __initialize_timers().
                         trigger_t** __timer_triggers = NULL;
                     ''')
                 }
                 pr('''
-                    int __timer_triggers_size = «startTimersCount»;
+                    int __timer_triggers_size = «timerCount»;
                 ''')
+                // If there are startup reactions, store them in an array.
+                if (startupReactionCount > 0) {
+                    pr('''
+                        // Array of pointers to timer triggers to be scheduled in __trigger_startup_reactions().
+                        reaction_t* __startup_reactions[«startupReactionCount»];
+                    ''')
+                } else {
+                    pr('''
+                        // Array of pointers to reactions to be scheduled in __trigger_startup_reactions().
+                        reaction_t** __startup_reactions = NULL;
+                    ''')
+                }
+                pr('''
+                    int __startup_reactions_size = «startupReactionCount»;
+                ''')
+                
                 // If there are shutdown reactions, create a table of triggers.
                 if (shutdownCount > 0) {
                     pr('''
@@ -499,7 +516,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 } else {
                     pr('''
-                        // Empty rray of pointers to shutdown triggers.
+                        // Empty array of pointers to shutdown triggers.
                         trigger_t** __shutdown_triggers = NULL;
                     ''')
                 }
@@ -583,14 +600,27 @@ class CGenerator extends GeneratorBase {
                 unindent()
                 pr('}\n')
 
-                // Generate function to start timers for all reactors.
-                pr("void __start_timers() {")
+                // Generate function to trigger startup reactions for all reactors.
+                pr("void __trigger_startup_reactions() {")
                 indent()
-                pr(startTimers.toString)
-                if (startTimersCount > 0) {
+                pr(startTimers.toString) // FIXME: these are actually startup actions, not timers.
+                if (startupReactionCount > 0) {
+                    pr('''
+                       for (int i = 0; i < __startup_reactions_size; i++) {
+                           _lf_enqueue_reaction(__startup_reactions[i]);
+                       }
+                    ''')
+                }
+                unindent()
+                pr("}")
+
+                // Generate function to schedule timers for all reactors.
+                pr("void __initialize_timers() {")
+                indent()
+                if (timerCount > 0) {
                     pr('''
                        for (int i = 0; i < __timer_triggers_size; i++) {
-                           __schedule(__timer_triggers[i], 0LL, NULL);
+                           _lf_initialize_timer(__timer_triggers[i]);
                        }
                     ''')
                 }
@@ -2029,6 +2059,10 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+<<<<<<< HEAD
+=======
+        
+>>>>>>> a41a666f... Fixed test that was failing due to startup reactions being executed twice. Also broke all federated tests :-)
         // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(decl, reactionIndex)
         
@@ -2630,9 +2664,9 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «offset»;
                     «triggerStructName».period = «period»;
-                    __timer_triggers[«startTimersCount»] = &«triggerStructName»;
+                    __timer_triggers[«timerCount»] = &«triggerStructName»;
                 ''')
-                startTimersCount++
+                timerCount++
             } else if (trigger instanceof Action) {
                 var minDelay = (triggerInstance as ActionInstance).minDelay
                 var minSpacing = (triggerInstance as ActionInstance).minSpacing
@@ -3029,7 +3063,7 @@ class CGenerator extends GeneratorBase {
                     }
                     if (trigger.isStartup) {
                         pr(initializeTriggerObjects, '''
-                            __timer_triggers[«startTimersCount++»] = &«nameOfSelfStruct»->___startup;
+                            __startup_reactions[«startupReactionCount++»] = &«nameOfSelfStruct»->___reaction_«reactionCount»;
                         ''')
                     } else if (trigger.isShutdown) {
                         pr(initializeTriggerObjects, '''

@@ -1010,7 +1010,9 @@ int main(int argc, char* argv[]) {
         executing_q = pqueue_init(number_of_threads, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
 
-        __start_timers();
+        __trigger_startup_reactions();
+        __initialize_timers();
+
         start_threads();
         // printf("DEBUG: pthread_mutex_unlock main\n");
         pthread_mutex_unlock(&mutex);
