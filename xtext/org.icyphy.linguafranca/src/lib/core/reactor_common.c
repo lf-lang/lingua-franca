@@ -389,13 +389,6 @@ token_freed __done_using(token_t* token) {
 void _lf_enqueue_reaction(reaction_t* reaction);
 
 /**
- * If this timer is to trigger reactions at a _future_ tag, 
- * schedule it accordingly. Calling this function will not cause any reactions
- * to be triggered at the current tag.
- */
-void _lf_initialize_timer(trigger_t* timer);
-
-/**
  * Use tables to reset is_present fields to false and decrement reference
  * counts between time steps and at the end of execution.
  */
