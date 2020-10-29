@@ -592,15 +592,8 @@ void __pop_events() {
             }
         }
         
-        // Recycle the event.
-        // So that sorting doesn't cost anything,
-        // give all recycled events the same zero time stamp.
-        event->time = 0LL;
-        // Also remove pointers that will be replaced.
-        event->token = NULL;
-        event->next = NULL;
-        pqueue_insert(recycle_q, event);
-
+        _lf_recycle_event(event);
+        
         // Peek at the next event in the event queue.
         event = (event_t*)pqueue_peek(event_q);
     } while(event != NULL && event->time == current_time);
@@ -638,16 +631,41 @@ void _lf_initialize_timer(trigger_t* timer) {
 
     // Get an event_t struct to put on the event queue.
     // Recycle event_t structs, if possible.    
-    event_t* e = (event_t*)pqueue_pop(recycle_q);
-    if (e == NULL) {
-        e = (event_t*)malloc(sizeof(struct event_t));
-    }
+    event_t* e = _lf_get_new_event();
     e->trigger = timer;
-    e->token = NULL;
-    e->next = NULL;
     e->time = get_logical_time() + delay;
     // NOTE: No lock is being held. Assuming this only happens at startup.
     pqueue_insert(event_q, e);
+}
+
+/**
+ * Get a new event. If there is a recycled event available, use that.
+ * If not, allocate a new one. In either case, all fields will be zero'ed out.
+ */
+event_t* _lf_get_new_event() {
+    // Recycle event_t structs, if possible.    
+    event_t* e = (event_t*)pqueue_pop(recycle_q);
+    if (e == NULL) {
+        e = (event_t*)calloc(1, sizeof(struct event_t));
+    }
+    return e;
+}
+
+/**
+ * Recycle the given event.
+ * Zero it out and pushed it onto the recycle queue.
+ */
+void _lf_recycle_event(event_t* e) {
+    e->time = 0LL;
+    e->trigger = NULL;
+    e->pos = 0;
+    e->token = NULL;
+    e->next = NULL;
+    pqueue_insert(recycle_q, e);
+}
+
+void _lf_schedule_at_tag(instant_t time, unsigned int microstep, trigger_t* trigger, token_t* token) {
+    event_t* e = _lf_get_new_event();
 }
 
 /**
@@ -716,12 +734,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // printf("DEBUG: __schedule: total logical delay = %lld.\n", delay);
     interval_t min_spacing = trigger->period;
 
-    // Get an event_t struct to put on the event queue.
-    // Recycle event_t structs, if possible.    
-    event_t* e = (event_t*)pqueue_pop(recycle_q);
-    if (e == NULL) {
-        e = (event_t*)malloc(sizeof(struct event_t));
-    }
+    event_t* e = _lf_get_new_event();
     
     // Initialize the next pointer.
     e->next = NULL;
@@ -808,8 +821,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                             pqueue_find_equal_same_priority(event_q, existing) != NULL) {
                         // Recycle the new event and the token.
                         if (existing->token != token) __done_using(token);
-                        e->token = NULL;
-                        pqueue_insert(recycle_q, e);
+                        _lf_recycle_event(e);
                         return(0);
                     }
                 case replace:
@@ -830,7 +842,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                         if (existing->token != token) __done_using(existing->token);
                         // Update the token of the existing event.
                         existing->token = token;
-                        pqueue_insert(recycle_q, e);
+                        _lf_recycle_event(e);
                         return(0);
                     }
                     // If the preceding event _has_ been handled, the adjust
@@ -864,8 +876,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             || (stop_time > 0LL && e->time > stop_time)) {
         // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
-        e->token = NULL;
-        pqueue_insert(recycle_q, e);
+        _lf_recycle_event(e);
         return(0);
     }
     

@@ -623,6 +623,20 @@ token_t* create_token(size_t element_size);
 handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value);
 
 /**
+ * Get a new event. If there is a recycled event available, use that.
+ * If not, allocate a new one. In either case, all fields will be zero'ed out.
+ */
+event_t* _lf_get_new_event();
+
+/**
+ * Recycle the given event.
+ * Zero it out and pushed it onto the recycle queue.
+ */
+void _lf_recycle_event(event_t* e);
+
+void _lf_schedule_at_tag(instant_t time, unsigned int microstep, trigger_t* trigger, token_t* token);
+
+/**
  * Schedule the specified action with the specified token as a payload.
  * This will trigger an event at a later logical time that depends
  * on whether the action is logical or physical and what its parameter
