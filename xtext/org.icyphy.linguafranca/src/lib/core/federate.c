@@ -1360,5 +1360,6 @@ void __logical_time_complete(instant_t time) {
              // Keep waiting for the TAG.
          }
      }
+     DEBUG_PRINT("RTI granted time %lld to federate %d.", __tag, _lf_my_fed_id);
      return __tag;
 }
