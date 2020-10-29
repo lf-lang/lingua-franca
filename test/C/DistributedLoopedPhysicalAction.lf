@@ -10,7 +10,7 @@ target C {
 };
 
 preamble {=
-    #define VERBOSE
+    // #define VERBOSE
 =}
 
 reactor Sender(take_a_break_after:int(10), break_interval:time(400 msec)) {
@@ -34,6 +34,7 @@ reactor Sender(take_a_break_after:int(10), break_interval:time(400 msec)) {
 reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     input in:int;
     state received_messages:int(0);
+    state total_received_messages:int(0);
     state breaks:int(0);
     timer t(0, 1 msec); // This will impact the performance
                         // but forces the logical time to advance
@@ -45,18 +46,11 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
             in->value,
             in->tardiness
         );
+        self->total_received_messages++;
         if (in->value != self->received_messages++) {
             fprintf(stderr,"ERROR: received messages out of order.\n");
             exit(1);
-        }        
-        if (get_elapsed_logical_time() != self->breaks * self->break_interval) {
-            fprintf(stderr,"ERROR: received messages at an incorrect time.\n");
-            exit(2);
         }
-        if (in->tardiness != 0) {
-            fprintf(stderr,"ERROR: received tardy messages.\n");
-            exit(3);
-        }  
 
         if (self->received_messages == self->take_a_break_after) {
             // Sender is taking a break;
@@ -70,8 +64,10 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     =}
     
     reaction(shutdown) {=
-        if ((self->received_messages * self->breaks) != 2 * 10) {
-            fprintf(stderr,"ERROR: test failed.\n");
+        if (self->breaks != 3 ||
+            (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
+        ) {
+            fprintf(stderr,"ERROR: test failed. Breaks: %d, Messages: %d.\n", self->breaks, self->total_received_messages);
             exit(4);
         }
         printf("SUCCESS: Successfully received all messages from the sender.\n");
