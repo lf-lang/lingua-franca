@@ -346,7 +346,7 @@ void send_timed_message(interval_t additional_delay,
  *  @param time The time of this federate's next event.
  */
 void send_time(unsigned char type, instant_t time) {
-    DEBUG_PRINT("Federate %d sending time %lld to the RTI.", _lf_my_fed_id,time);
+    DEBUG_PRINT("Federate %d sending time %lld to the RTI.", _lf_my_fed_id,time - start_time);
     unsigned char buffer[9];
     buffer[0] = type;
     encode_ll(time, &(buffer[1]));
@@ -1065,7 +1065,7 @@ void handle_time_advance_grant() {
 
     DEBUG_PRINT("Federate %d pthread_mutex_lock handle_time_advance_grant.", _lf_my_fed_id);
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("Federate %d pthread_mutex_locked\n", _lf_my_fed_id);
+    DEBUG_PRINT("Federate %d pthread_mutex_locked", _lf_my_fed_id);
     __tag = swap_bytes_if_big_endian_ll(result.ull);
     __tag_pending = false;
     DEBUG_PRINT("Federate %d received TAG %lld.", _lf_my_fed_id, __tag - start_time);
@@ -1360,6 +1360,6 @@ void __logical_time_complete(instant_t time) {
              // Keep waiting for the TAG.
          }
      }
-     DEBUG_PRINT("RTI granted time %lld to federate %d.", __tag, _lf_my_fed_id);
+     DEBUG_PRINT("RTI granted time %lld to federate %d.", __tag - start_time, _lf_my_fed_id);
      return __tag;
 }

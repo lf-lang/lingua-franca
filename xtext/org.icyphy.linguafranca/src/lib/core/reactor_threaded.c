@@ -393,7 +393,7 @@ bool __next() {
         // event time to that stop time.
         if (stop_time > 0LL && next_time > stop_time) {
             next_time = stop_time;
-        }       
+        }
 
         // In case this is in a federation, check whether time can advance
         // to the next time. If there are upstream federates, then this call
