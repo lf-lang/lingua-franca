@@ -270,7 +270,13 @@ void create_server(int specified_port) {
  * @param length The message length.
  * @param message The message.
  */
-void send_timed_message(interval_t additional_delay, int socket, int message_type, unsigned int port, unsigned int federate, size_t length, unsigned char* message) {
+void send_timed_message(interval_t additional_delay,
+                        int socket,
+                        int message_type,
+                        unsigned int port,
+                        unsigned int federate,
+                        size_t length,
+                        unsigned char* message) {
     assert(port < 65536);
     assert(federate < 65536);
     unsigned char buffer[17];
@@ -292,7 +298,7 @@ void send_timed_message(interval_t additional_delay, int socket, int message_typ
     // Note that we are getting the microstep here directly
     // under the assumption that it does not change while
     // this function is executing.
-    unsigned int current_message_microstep = get_microstep();
+    microstep_t current_message_microstep = get_microstep();
     if (additional_delay == 0LL) {
         // After was specified by the user
         // on the connection with a delay of 0.
@@ -322,7 +328,7 @@ void send_timed_message(interval_t additional_delay, int socket, int message_typ
     DEBUG_PRINT("Federate %d sending message with timestamp %lld to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, federate);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
-    const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(unsigned int);
+    const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     DEBUG_PRINT("Federate %d pthread_mutex_lock send_timed", _lf_my_fed_id);
     pthread_mutex_lock(&mutex);
@@ -810,7 +816,7 @@ trigger_t* __action_for_port(int port_id);
 handle_t schedule_message_received_from_network_already_locked(
     trigger_t* trigger, 
     instant_t timestamp, 
-    unsigned int microstep, 
+    microstep_t microstep, 
     void* value, 
     int length, 
     unsigned short sender_fed_id) {
@@ -967,7 +973,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // Read the timestamp.
     instant_t timestamp = extract_ll(buffer + 8);
 
-    unsigned int microstep = extract_int(buffer + 8 + sizeof(instant_t));
+    microstep_t microstep = extract_int(buffer + 8 + sizeof(instant_t));
 
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
                                // with decentralized coordination

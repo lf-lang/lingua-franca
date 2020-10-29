@@ -354,6 +354,11 @@ typedef long long instant_t;
 typedef long long interval_t;
 
 /**
+ * Microstep instant.
+ */
+typedef unsigned int microstep_t;
+
+/**
  * String type so that we don't have to use {= char* =}.
  * Use this for strings that are not dynamically allocated.
  * For dynamically allocated strings that have to be freed after
@@ -635,7 +640,22 @@ event_t* _lf_get_new_event();
  */
 void _lf_recycle_event(event_t* e);
 
-void _lf_schedule_at_tag(instant_t time, unsigned int microstep, trigger_t* trigger, token_t* token);
+/**
+ * Schedule events at a specific tag (time, microstep), provided
+ * that the tag is in the future relative to the current tag.
+ * The input time values are absolute.
+ * 
+ * If there is an event found at the requested tag, the payload
+ * is replaced and 0 is returned.
+ *
+ * @param time Logical time of the event
+ * @param microstep The microstep of the event in the given logical time
+ * @param trigger The trigger to be invoked at a later logical time.
+ * @param token The token wrapping the payload or NULL for no payload.
+ * 
+ * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
+ */
+int _lf_schedule_at_tag(instant_t time, unsigned int microstep, trigger_t* trigger, token_t* token);
 
 /**
  * Create a dummy event to be used as a spacer in the event queue.
