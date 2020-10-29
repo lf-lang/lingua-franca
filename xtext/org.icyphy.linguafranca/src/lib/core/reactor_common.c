@@ -551,7 +551,7 @@ void __pop_events() {
             __schedule(event->trigger, event->trigger->period - event->trigger->offset, NULL);
         }
 
-        if (event->trigger == NULL) {
+        if (event->is_dummy) {
             // Handle dummy event.
             unsigned int count = *((unsigned int*)event->token->value);
             if (count > 0) {
@@ -583,7 +583,7 @@ void __pop_events() {
         
         // If this event points to a next event, insert it into the next queue.
         if (event->next != NULL) {
-            if (event->trigger == NULL && *((unsigned int*)event->token->value) > 0) {
+            if (event->is_dummy && *((unsigned int*)event->token->value) > 0) {
                 // Insert the dummy event into the next queue.
                 pqueue_insert(next_q, event);
             } else {
@@ -660,12 +660,94 @@ void _lf_recycle_event(event_t* e) {
     e->trigger = NULL;
     e->pos = 0;
     e->token = NULL;
+    e->is_dummy = false;
     e->next = NULL;
     pqueue_insert(recycle_q, e);
 }
 
+/**
+ * Create a dummy event to be used as a spacer in the event queue.
+ */
+event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* next, unsigned int offset) {
+    event_t* dummy = _lf_get_new_event();
+    dummy->time = time;
+    dummy->trigger = trigger;
+    dummy->is_dummy = true;
+    dummy->next = next;
+    // Use the payload to store the step counter.
+    unsigned int* value = (unsigned int*)malloc(sizeof(unsigned int));
+    *value = offset;
+    token_t* token = create_token(sizeof(unsigned int));
+    token->value = value;
+    token->length = 1;
+    dummy->token = token;
+    return dummy;
+}
+
 void _lf_schedule_at_tag(instant_t time, unsigned int microstep, trigger_t* trigger, token_t* token) {
     event_t* e = _lf_get_new_event();
+    e->time = time;
+    e->trigger = trigger;
+    e->token = token;
+    event_t* found = pqueue_find_equal_same_priority(event_q, e);
+    if (found != NULL) {
+        if (microstep == 0) {
+            if (found->is_dummy) {
+                // This is a dummy event. Convert it to a 
+                // regular event and update the payload.
+                found->is_dummy = false;
+                found->token = token;
+                return;
+            } else {
+                // There is an existing event, replace the payload.
+                found->token = token;
+                return;
+            }
+        } else {
+            unsigned int steps = 0;
+            while (found->next != NULL) {
+                if (found->trigger == NULL) {
+                    steps += *((unsigned int*)found->token->value) + 1;
+                } else {
+                    steps++;
+                }
+                if (steps < microstep-1) {
+                    found = found->next;
+                } else {
+                    break;
+                }
+            }
+            // We've either reached the microstep or surpassed it.
+            if (steps == microstep-1) {
+                e->next = found->next;
+                found->next = e;
+            } else if (steps == microstep) {
+                // There is an existing event, replace the payload. 
+                // Also make sure that is marked as a regular event.
+                found->token = token;
+                found->is_dummy = false;
+                return;
+            } else {
+                // We overshot. Break up the interval into two.
+                // Insert an extra dummy.
+                unsigned int* steps_found = (unsigned int*)found->token->value;
+                //unsigned int diff = microstep - (steps - *steps_found); // FIXME: off by one?
+                event_t* dummy = _lf_create_dummy_event(trigger, time, found, microstep); // FIXME: offset is wrong here; calculate it
+                e->next = dummy;
+                found->next = e;
+                // FIXME: also adjust the step counter of the found event.
+            }
+        }
+    } else {
+        // No existing event queued.
+        if (microstep == 0) {
+            pqueue_insert(event_q, e);
+        } else {
+            // Create a dummy event. Insert it into the queue, and let its next
+            // pointer point to the actual event.
+            pqueue_insert(event_q, _lf_create_dummy_event(trigger, time, e, microstep-1));
+        }
+    }
 }
 
 /**
