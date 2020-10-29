@@ -655,7 +655,7 @@ void _lf_recycle_event(event_t* e);
  * 
  * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
  */
-int _lf_schedule_at_tag(instant_t time, unsigned int microstep, trigger_t* trigger, token_t* token);
+int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigger, token_t* token);
 
 /**
  * Create a dummy event to be used as a spacer in the event queue.
