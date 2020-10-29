@@ -859,6 +859,9 @@ class CGenerator extends GeneratorBase {
         
         val rtiCode = new StringBuilder()
         pr(rtiCode, '''
+            «IF targetLoggingLevel?.equals("DEBUG")»
+                #define VERBOSE
+            «ENDIF»
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES
             #endif
@@ -3809,7 +3812,13 @@ class CGenerator extends GeneratorBase {
      *  private variables if such commands are specified in the target directive.
      */
     override generatePreamble() {
-        super.generatePreamble()
+        super.generatePreamble()        
+        
+        if (targetLoggingLevel?.equals("DEBUG")) {
+            pr('''
+                #define VERBOSE
+            ''')
+        }
         
         includeTargetLanguageHeaders()
         
@@ -3880,7 +3889,7 @@ class CGenerator extends GeneratorBase {
      *  uniformly across all target languages.
      */
     protected def includeTargetLanguageHeaders()
-    {    	
+    {
         pr('#include "ctarget.h"')
     }
     
