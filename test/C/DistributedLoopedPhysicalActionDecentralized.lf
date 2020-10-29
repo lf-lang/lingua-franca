@@ -7,14 +7,11 @@
 
 target C {
     timeout: 1 sec,
-    coordination: decentralized
+    coordination: decentralized,
+    logging: DEBUG
 };
 
 import Sender, Receiver from "DistributedLoopedPhysicalAction.lf"
-
-preamble {=
-    // #define VERBOSE
-=}
 
 federated reactor DistributedLoopedActionDecentralized {
     sender = new Sender();

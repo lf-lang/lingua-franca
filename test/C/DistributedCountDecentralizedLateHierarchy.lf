@@ -13,10 +13,6 @@ target C {
 
 import Count from "lib/Count.lf";
 
-preamble {=
-    #define VERBOSE
-=}
-
 reactor ImportantActuator {
     input in:int;
     state success:bool(false);

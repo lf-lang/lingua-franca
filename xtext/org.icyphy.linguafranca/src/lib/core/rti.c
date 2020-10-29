@@ -292,6 +292,7 @@ instant_t transitive_next_event(federate_t* fed, instant_t candidate, bool visit
     visited[fed->id] = true;
     instant_t result = fed->next_event;
     if (fed->state == NOT_CONNECTED) {
+        // DEBUG_PRINT("Federate %d not connected to RTI.", fed->id);
         // Federate has stopped executing.
         // No point in checking upstream federates.
         return candidate;
@@ -363,12 +364,23 @@ bool send_time_advance_if_appropriate(federate_t* fed) {
             // Find the (transitive) next event time upstream.
             instant_t upstream_next_event = transitive_next_event(
                     upstream, upstream->next_event, visited);
-            if (upstream_next_event != NEVER) upstream_next_event += delay;
-            if (upstream_next_event <= candidate_time_advance) {
-                // Cannot advance the federate to the upstream
-                // next event time because that event has presumably not yet
-                // been produced.
-                candidate_time_advance = upstream_completion_time;
+            DEBUG_PRINT("Upstream next event: %lld. Upstream completion time: %lld. Candidate time: %lld.",
+                    upstream_next_event - start_time,
+                    upstream_completion_time - start_time,
+                    candidate_time_advance - start_time );
+            if (upstream_next_event != NEVER) {
+                upstream_next_event += delay;
+            }
+            // If the upstream federate has disconnected,
+            // it will not produce further events. Thus,
+            // the next assignment will be unnecessary.
+            if (upstream->state != NOT_CONNECTED) {
+                if (upstream_next_event <= candidate_time_advance) {
+                    // Cannot advance the federate to the upstream
+                    // next event time because that event has presumably not yet
+                    // been produced.
+                    candidate_time_advance = upstream_completion_time;
+                }
             }
         }
     }
@@ -638,6 +650,7 @@ void handle_federate_resign(federate_t *my_fed) {
         bytes_read = read_from_socket2(my_fed->socket, 1, temporary_read_buffer);
     } while(bytes_read > 0 || errno == EAGAIN || errno == EWOULDBLOCK);
     my_fed->state = NOT_CONNECTED;
+    my_fed->next_event = NEVER;
     close(my_fed->socket); //  from unistd.h
     pthread_mutex_unlock(&rti_mutex);
     printf("Federate %d has resigned.\n", my_fed->id);
