@@ -471,6 +471,7 @@ struct event_t {
     trigger_t* trigger;       // Associated trigger, NULL if this is a dummy event.
     size_t pos;               // Position in the priority queue.
     token_t* token;           // Pointer to the token wrapping the value.
+    bool is_dummy;            // Flag to indicate whether this event is merely a placeholder or an actual event.
     event_t* next;            // Pointer to the next event lined up in superdense time.
 };
 
@@ -635,6 +636,11 @@ event_t* _lf_get_new_event();
 void _lf_recycle_event(event_t* e);
 
 void _lf_schedule_at_tag(instant_t time, unsigned int microstep, trigger_t* trigger, token_t* token);
+
+/**
+ * Create a dummy event to be used as a spacer in the event queue.
+ */
+event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* next, unsigned int offset);
 
 /**
  * Schedule the specified action with the specified token as a payload.
