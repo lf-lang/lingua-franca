@@ -7,16 +7,72 @@
 
 target C {
     timeout: 1 sec,
-    coordination: decentralized,
-    logging: DEBUG
+    coordination: decentralized
 };
 
-import Sender, Receiver from "DistributedLoopedAction.lf"
+import Sender from "DistributedLoopedAction.lf"
 
+reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
+    input in:int;
+    state received_messages:int(0);
+    state total_received_messages:int(0);
+    state breaks:int(0);
+    reaction(in) {=
+        printf("At time %lld received value %d with tardiness %lld.\n",
+            get_elapsed_logical_time(),
+            in->value,
+            in->tardiness
+        );
+        self->total_received_messages++;
+        if (in->value != self->received_messages++) {
+            fprintf(stderr,"ERROR: received messages out of order.\n");
+            exit(1);
+        }
 
-federated reactor DistributedLoopedActionDecentralized {
-    sender = new Sender();
-    receiver = new Receiver();
+        if (self->received_messages == self->take_a_break_after) {
+            // Sender is taking a break;
+            self->breaks++;
+            self->received_messages = 0;
+        }
+    =}
     
-    sender.out -> receiver.in;
+	reaction(shutdown) {=
+        if (self->breaks != 3 ||
+            (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
+        ) {
+            fprintf(stderr,"ERROR: test failed. Breaks: %d, Messages: %d.\n", self->breaks, self->total_received_messages);
+            exit(4);
+        }
+        printf("SUCCESS: Successfully received all messages from the sender.\n");
+    =}
+}
+
+reactor TardyReceiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
+    input in:int;
+    receiver = new Receiver(take_a_break_after = 1, break_interval = 10 msec);
+    timer t (0, 1 msec); // Force advancement of logical time
+    
+    reaction (in) -> receiver.in {=
+        SET(receiver.in, in->value);
+    =} tardy {=
+        printf("Tardiness %lld perceived on the input. "
+               "Adjusting the STP offset by %lld ns.\n",
+               in->tardiness,
+               MSEC(1));
+        SET(receiver.in, in->value);
+        interval_t current_stp_offset = get_stp_offset();
+        set_stp_offset(current_stp_offset + MSEC(1));
+    =}
+    
+    reaction (t) {=
+        // Do nothing
+    =}
+}
+
+
+federated reactor DistributedLoopedActionDecentralized {    
+    sender = new Sender(take_a_break_after = 1, break_interval = 10 msec);
+    tardyReceiver = new TardyReceiver(take_a_break_after = 1, break_interval = 10 msec);
+    
+    sender.out -> tardyReceiver.in;
 }

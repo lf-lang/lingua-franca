@@ -110,6 +110,12 @@ bool keepalive_specified = false;
 bool** __is_present_fields = NULL;
 int __is_present_fields_size = 0;
 
+// Define the array of pointers to the tardiness fields of all
+// ports and actions that need to be reinitialized at the start
+// of each time step.
+interval_t** __tardiness_fields = NULL;
+int __tardiness_fields_size = 0;
+
 // Define the array of pointers to the token fields of all the
 // actions and inputs that need to have their reference counts
 // decremented at the start of each time step.
@@ -172,6 +178,27 @@ instant_t get_elapsed_physical_time() {
  */
 instant_t get_start_time() {
     return start_time;
+}
+
+/**
+ * Return the global STP offset on advancement of logical
+ * time for federated execution.
+ */
+interval_t get_stp_offset() {
+    return _lf_global_time_STP_offset;
+}
+
+/**
+ * Set the global STP offset on advancement of logical
+ * time for federated execution.
+ * 
+ * @param offset A positive time value to be applied
+ *  as the STP offset.
+ */
+void set_stp_offset(interval_t offset) {
+    if (offset > 0) {
+        _lf_global_time_STP_offset = offset;
+    }
 }
 
 /**
@@ -419,6 +446,9 @@ void __start_time_step() {
     }
     for(int i = 0; i < __is_present_fields_size; i++) {
         *__is_present_fields[i] = false;
+#ifdef _LF_IS_FEDERATED
+        *__tardiness_fields[i] = 0LL;
+#endif
     }
 }
 
@@ -532,24 +562,29 @@ void __pop_events() {
     do {
         event = (event_t*)pqueue_pop(event_q);
 
-        if (event == NULL) continue;
+        if (event == NULL) {
+            continue;
+        }
 
         token_t* token = event->token;
 
-        // Push the corresponding reactions onto the reaction queue.
-        for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            // printf("DEBUG: Pushed onto reaction_q: %p\n", event->trigger->reactions[i]);
-            reaction_t* reaction = event->trigger->reactions[i];
-            // Do not enqueue this reaction twice.
-            if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-                // Transfer the tardiness from the trigger to the reaction.
-                // This will help the runtime decide whether or not to execute the tardy
-                // reaction instead of the main reaction.
-                if (event->trigger->tardiness > 0LL) {
-                    reaction->tardiness = true;
+        if (!event->is_dummy) {
+            // If event is not a dummy event, put the corresponding reactions onto 
+            // the reaction queue.
+            for (int i = 0; i < event->trigger->number_of_reactions; i++) {
+                // printf("DEBUG: Pushed onto reaction_q: %p\n", event->trigger->reactions[i]);
+                reaction_t* reaction = event->trigger->reactions[i];
+                // Do not enqueue this reaction twice.
+                if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                    // Transfer the tardiness from the trigger to the reaction.
+                    // This will help the runtime decide whether or not to execute the tardy
+                    // reaction instead of the main reaction.
+                    if (event->trigger->tardiness > 0LL) {
+                        reaction->is_tardy = true;
+                    }
+                    // printf("DEBUG: Enqueing reaction %p.\n", reaction);
+                    pqueue_insert(reaction_q, reaction);
                 }
-                // printf("DEBUG: Enqueing reaction %p.\n", reaction);
-                pqueue_insert(reaction_q, reaction);
             }
         }
         // If the trigger is a periodic timer, create a new event for its next execution.
@@ -594,15 +629,28 @@ void __pop_events() {
         // If this event points to a next event, insert it into the next queue.
         if (event->next != NULL) {
             if (event->is_dummy && *((microstep_t*)event->token->value) > 0) {
-                // Insert the dummy event into the next queue.
-                pqueue_insert(next_q, event);
+                    // Insert the dummy event into the next queue.
+                    pqueue_insert(next_q, event);
             } else {
+                if (event->is_dummy) {
+                    // Free the token if its reference count is zero. Since __done_using
+                    // decrements the reference count, first increment it here.
+                    token->ref_count++;
+                    __done_using(token);
+                }
+                // Not a dummy event or the counter on the dummy event
+                // has reached zero.
                 // Insert the next event into the next queue.
                 pqueue_insert(next_q, event->next);
+                // Recycle the current event.        
+                _lf_recycle_event(event);
             }
+        } else {
+            // The next event is null
+            // We are done with the current event,
+            // so recycle it.
+            _lf_recycle_event(event);
         }
-        
-        _lf_recycle_event(event);
         
         // Peek at the next event in the event queue.
         event = (event_t*)pqueue_peek(event_q);
@@ -702,14 +750,14 @@ event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* nex
  * If there is an event found at the requested tag, the payload
  * is replaced and 0 is returned.
  *
+ * @param trigger The trigger to be invoked at a later logical time.
  * @param time Logical time of the event
  * @param microstep The microstep of the event in the given logical time
- * @param trigger The trigger to be invoked at a later logical time.
  * @param token The token wrapping the payload or NULL for no payload.
  * 
  * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
  */
-int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigger, token_t* token) {
+int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microstep, token_t* token) {
     instant_t current_logical_time = get_logical_time();
     if (time < current_logical_time) {
         DEBUG_PRINT("_lf_schedule_at_tag(): requested to schedule an event in the past.");
@@ -720,11 +768,35 @@ int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigge
             return -1;
         }
     }
+
+    // Increment the reference count of the token.
+    if (token != NULL) {
+        token->ref_count++;
+    }
+
+    // Do not schedule events if a stop has been requested
+    // and the event is strictly in the future (current microsteps are
+    // allowed), or if the event time is past the requested stop time.
+    // FIXME: I think microsteps should not be allowed either
+    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
+    if ((stop_requested && time != current_time)
+            || (stop_time > 0LL && time > stop_time)) {
+        // printf("DEBUG: _lf_schedule_at_tag: event time is past the timeout. Discarding event.\n");
+        __done_using(token);
+        return -1;
+    }
     
     event_t* e = _lf_get_new_event();
+    // Set the event time
     e->time = time;
+    
+    // Make sure the event points to this trigger so when it is
+    // dequeued, it will trigger this trigger.
     e->trigger = trigger;
+
+    // Set the payload.
     e->token = token;
+
     event_t* found = pqueue_find_equal_same_priority(event_q, e);
     if (found != NULL) {
         if (microstep == 0) {
@@ -732,10 +804,18 @@ int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigge
                 // This is a dummy event. Convert it to a 
                 // regular event and update the payload.
                 found->is_dummy = false;
+                if (found->token != token) {
+                    // Free the existing token, if any
+                    __done_using(found->token);
+                }
                 found->token = token;
                 return 0;
             } else {
-                // There is an existing event, replace the payload.
+                // There is an existing event, replace the payload.                
+                if (found->token != token) {
+                    // Free the existing token, if any
+                    __done_using(found->token);
+                }
                 found->token = token;
                 return 0;
             }
@@ -761,6 +841,10 @@ int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigge
             } else if (steps == microstep) {
                 // There is an existing event, replace the payload. 
                 // Also make sure that is marked as a regular event.
+                if (found->token != token) {
+                    // Free the existing token, if any
+                    __done_using(found->token);
+                }
                 found->token = token;
                 found->is_dummy = false;
                 return 0;
@@ -1237,7 +1321,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     int num_downstream_reactions = 0;
 #ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
     // Extract the inherited tardiness
-    bool inherited_tardiness = reaction->tardiness;
+    bool inherited_tardiness = reaction->is_tardy;
 #endif
     // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
     for (int i=0; i < reaction->num_outputs; i++) {
@@ -1253,8 +1337,8 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
 #ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
                         // Set the tardiness for the downstream reaction
-                        downstream_reaction->tardiness = inherited_tardiness;
-                        DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->tardiness);
+                        downstream_reaction->is_tardy = inherited_tardiness;
+                        DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->is_tardy);
 #endif
                         if (downstream_reaction != NULL && downstream_reaction != downstream_to_execute_now) {
                             num_downstream_reactions++;
@@ -1293,7 +1377,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         //  printf("DEBUG: Optimizing and executing downstream reaction now.\n");
         bool violation = false;
 #ifdef _LF_IS_FEDERATED // Only use the Tardy handler for federated LF programs
-        // If the tardiness for the reaction is true,
+        // If the is_tardy for the reaction is true,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
         // tardy reaction will be invoked.             
@@ -1306,16 +1390,16 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         // @note The tardy handler and the deadline handler are not mutually exclusive.
         //  In other words, both can be invoked for a reaction if it is triggered late
         //  in logical time (tardy) and also misses the constraint on physical time (deadline).
-        // @note In absence of a tardy handler, the tardiness will be passed down the reaction
+        // @note In absence of a tardy handler, the is_tardy will be passed down the reaction
         //  chain until it is dealt with in a downstream tardy handler.
-        if (downstream_to_execute_now->tardiness == true) {
+        if (downstream_to_execute_now->is_tardy == true) {
             // Tardiness has occurred
             DEBUG_PRINT("Invoking tardiness handler.");
             reaction_function_t handler = downstream_to_execute_now->tardy_handler;
             // Invoke the tardy handler if there is one.
             if (handler != NULL) {
                 // There is a violation and it is being handled here
-                // If there is no tardy handler, pass the tardiness
+                // If there is no tardy handler, pass the is_tardy
                 // to downstream reactions.
                 violation = true;
                 DEBUG_PRINT("Tardiness handler %p.", handler);
@@ -1329,8 +1413,8 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                 
                 // Reset the tardiness because it has been dealt with in the
                 // tardy handler
-                downstream_to_execute_now->tardiness = false;
-                DEBUG_PRINT("Reset reaction tardiness to false.");
+                downstream_to_execute_now->is_tardy = false;
+                DEBUG_PRINT("Reset reaction is_tardy to false.");
             }
         }
 #endif
@@ -1370,10 +1454,10 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
             schedule_output_reactions(downstream_to_execute_now, worker);
         }
             
-        // Reset the tardiness because it has been passed
+        // Reset the is_tardy because it has been passed
         // down the chain
-        downstream_to_execute_now->tardiness = false;
-        DEBUG_PRINT("Finally, reset reaction tardiness to false.");
+        downstream_to_execute_now->is_tardy = false;
+        DEBUG_PRINT("Finally, reset reaction is_tardy to false.");
     }
 }
 

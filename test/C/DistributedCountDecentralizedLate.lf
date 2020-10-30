@@ -12,15 +12,11 @@ target C {
 
 import Count from "lib/Count.lf";
 
-preamble {=
-    // #define VERBOSE
-=}
-
 reactor Print {
     input in:int;
     state success:int(0);
     state success_tardy:int(0);
-    timer t(0, 10 msec); // Force a timer to be invoke periodically
+    timer t(0, 100 usec); // Force a timer to be invoke periodically
                          // to ensure logical time will advance in the
                          // absence of incoming messages.
     state c:int(0);
@@ -32,7 +28,7 @@ reactor Print {
         }
         self->c++;
     =} tardy {=
-        printf("Message is late by %llu nsec.\n", in->tardiness);
+        printf("At time %llu received %d. Message is late by %llu nsec.\n", get_elapsed_logical_time(), in->value, in->tardiness);
         self->success_tardy++;
         self->c++;
     =}
@@ -41,7 +37,9 @@ reactor Print {
     =}
     
     reaction(shutdown) {=
-        if ((self->success +  self->success_tardy) != 5) {
+        if ((self->success +  self->success_tardy) != 6) { // At timeout (e.g., t = 5000000000), we allow
+                                                           // for arbitrary microsteps. Therefore, we get
+                                                           // 6 messages rather than 5.
             fprintf(stderr, "Failed to detect tardiness of messages.\n");
             exit(1);
         } else {

@@ -388,6 +388,14 @@ typedef void(*reaction_function_t)(void*);
 typedef struct trigger_t trigger_t;
 
 /**
+ * Global STP offset uniformly applied to advancement of each 
+ * time step in federated execution. This can be retrieved in 
+ * user code by calling get_stp_offset() and adjusted by 
+ * calling set_stp_offset(interval_t offset).
+ */
+interval_t _lf_global_time_STP_offset = 0LL;
+
+/**
  * Token type for dynamically allocated arrays and structs sent as messages.
  *
  * In the C LF target, a type for an output that ends in '*' is
@@ -458,7 +466,7 @@ struct reaction_t {
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
     interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
-    bool tardiness;           // Indicator of tardiness in one of the input triggers to this reaction. default = 0.
+    bool is_tardy;           // Indicator of tardiness in one of the input triggers to this reaction. default = false.
                               // Value of True indicates to the runtime that this reaction contains trigger(s)
                               // that are triggered at a later logical time that was originally anticipated.
                               // Currently, this is only possible if logical
@@ -545,6 +553,21 @@ instant_t get_physical_time();
  * @return A time instant.
  */
 instant_t get_start_time();
+
+/**
+ * Return the global STP offset on advancement of logical
+ * time for federated execution.
+ */
+interval_t get_stp_offset();
+
+/**
+ * Set the global STP offset on advancement of logical
+ * time for federated execution.
+ * 
+ * @param offset A positive time value to be applied
+ *  as the STP offset.
+ */
+void set_stp_offset(interval_t offset);
 
 /**
  * Print a snapshot of the priority queues used during execution
@@ -662,14 +685,14 @@ void _lf_recycle_event(event_t* e);
  * If there is an event found at the requested tag, the payload
  * is replaced and 0 is returned.
  *
+ * @param trigger The trigger to be invoked at a later logical time.
  * @param time Logical time of the event
  * @param microstep The microstep of the event in the given logical time
- * @param trigger The trigger to be invoked at a later logical time.
  * @param token The token wrapping the payload or NULL for no payload.
  * 
  * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
  */
-int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigger, token_t* token);
+int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microstep, token_t* token);
 
 /**
  * Create a dummy event to be used as a spacer in the event queue.

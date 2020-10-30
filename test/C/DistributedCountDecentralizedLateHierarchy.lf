@@ -7,7 +7,7 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 5 sec,
+    timeout: 1 sec,
     coordination: decentralized
 };
 

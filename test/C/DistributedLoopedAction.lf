@@ -48,7 +48,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
             exit(1);
         }        
         if (get_elapsed_logical_time() != self->breaks * self->break_interval) {
-            fprintf(stderr,"ERROR: received messages at an incorrect time.\n");
+            fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", get_elapsed_logical_time());
             exit(2);
         }
         if (in->tardiness != 0) {

@@ -176,7 +176,7 @@ int __do_step() {
         // printf("DEBUG: Address of reaction: %p\n", reaction);
 
         bool violation = false;
-        // If the tardiness amount for the reaction is larger than zero,
+        // If the reaction is tardy,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
         // tardy reaction will be invoked.             
@@ -193,7 +193,7 @@ int __do_step() {
         //  the federated execution. Since federated execution uses the threaded runtime, this
         //  condition currently will not occur here (in the unthreaded runtime). However, tardiness
         //  handling is replicated here for future compatibility.
-        // if (reaction->tardiness > 0LL) {
+        // if (reaction->is_tardy > 0LL) {
         //     // There is a violation
         //     violation = true;
         //     reaction_function_t handler = reaction->tardy_handler;

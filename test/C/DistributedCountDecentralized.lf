@@ -20,7 +20,7 @@ reactor Print {
     state c:int(1);
     reaction(in) {=
         interval_t elapsed_time = get_elapsed_logical_time();
-        printf("At time %lld, received %d."
+        printf("At time %lld, received %d. "
                "The original intended timestamp of the message was %lld.\n",
                 elapsed_time, in->value, elapsed_time - in->tardiness);
         if (in->value != self->c) {
