@@ -883,7 +883,9 @@ handle_t schedule_message_received_from_network_already_locked(
             if (extra_delay < 0LL) {
                 trigger->tardiness = 0LL - extra_delay;
                 extra_delay = 0LL;
-            }
+            }               
+            DEBUG_PRINT("Federate %d calling schedule with delay %llu and tardiness %llu.", _lf_my_fed_id, extra_delay, trigger->tardiness);
+            return_value = __schedule(trigger, extra_delay, token);
         } else if (!message_tag_is_in_the_future) {
 #ifdef _LF_COORD_CENTRALIZED
             // If the coordination is centralized, receiving a message
@@ -904,31 +906,35 @@ handle_t schedule_message_received_from_network_already_locked(
                 trigger->tardiness = 0LL - extra_delay;
                 // Set the delay back to 0
                 extra_delay = 0LL;
+                DEBUG_PRINT("Federate %d calling schedule with delay %llu and tardiness %llu.", _lf_my_fed_id, extra_delay, trigger->tardiness);
+                return_value = __schedule(trigger, extra_delay, token);
             } else {
                 // In the case where the microstep is in the past
                 // but timestamp == current_logical_time, we will
-                // call schedule with a delay of 0, but set tardiness
-                // to ??, meaning the microstep was missed.
+                // call schedule with a delay of 1 microstep, but 
+                // set tardiness to ??, meaning the microstep was 
+                // missed.
                 // FIXME: how to show tardiness in microsteps?
-                trigger->tardiness = 1;
-                extra_delay = 1LL;
+                trigger->tardiness = 1LL;
+                extra_delay = 0LL;
+                DEBUG_PRINT("Federate %d received a message that is %u microsteps late.", _lf_my_fed_id, get_microstep() - microstep);
+                return_value = __schedule(trigger, extra_delay, token);
             }
-#endif
+#endif   
         } else if (extra_delay == 0) {
             // In case the message is in the future but at the
             // current timestamp (i.e., the microstep is ahead)
             // call __schedule() with 0 delay and pass a non-zero
             // microstep delay, which shall be used to calculate the
             // desired microstep for the message.
-            // FIXME: not implemented
+            DEBUG_PRINT("Federate %d received a message that is %u microsteps in the future.", _lf_my_fed_id, microstep - get_microstep());
+            return_value = _lf_schedule_at_tag(trigger, timestamp, microstep, token);
         } else {
             // Message has a timestamp that is in the future
             // microstep = 0
-            // FIXME: should we also honor the microstep (if any)?
+            DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, microstep - get_microstep());
+            return_value = _lf_schedule_at_tag(trigger, timestamp, microstep, token);
         }
-        DEBUG_PRINT("Calling schedule with delay %llu and tardiness %llu.", extra_delay, trigger->tardiness);
-        // FIXME: pass microstep to the __schedule() function
-        return_value = __schedule(trigger, extra_delay, token);
         // Notify the main thread in case it is waiting for physical time to elapse.
         DEBUG_PRINT("Federate %d pthread_cond_broadcast(&event_q_changed).", _lf_my_fed_id);
         pthread_cond_broadcast(&event_q_changed);

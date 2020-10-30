@@ -7,22 +7,19 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 5 sec,
+    timeout: 1 sec,
     coordination: decentralized
 };
 
 import Count from "lib/Count.lf";
-
-preamble {=
-   // #define VERBOSE
-=}
 
 reactor ImportantActuator {
     input in:int;
     state success:bool(false);
     reaction(in) {=
         if (in->tardiness > 0) {
-            self->success = false; // tardiness was not handled correctly
+            self->success = false; // tardiness was not handled correctly            
+        	fprintf(stderr, "ERROR: Message is tardy by %llu nsec.\n", in->tardiness);
         }
     =} tardy {=
         printf("Message is tardy by %llu nsec.\n", in->tardiness);

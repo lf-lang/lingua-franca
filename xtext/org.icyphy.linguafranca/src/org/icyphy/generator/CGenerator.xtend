@@ -590,6 +590,20 @@ class CGenerator extends GeneratorBase {
                         __is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
                     ''')
                 }
+                
+                // Create the table to initialize tardiness fields to 0 between time steps.
+                if (isFederated) {
+                    // Tardiness is only applicable to ports in federated execution.
+                    // Allocate the initial (before mutations) array of pointers to tardiness fields.
+                    // There is a 1-1 map between structs containing is_present and tardiness fields,
+                    // thus, we reuse startTimeStepIsPresentCount as the counter.
+                    pr('''
+                        // Create the array that will contain pointers to tardiness fields to reset on each step.
+                        __tardiness_fields_size = «startTimeStepIsPresentCount»;
+                        __tardiness_fields = (interval_t**)malloc(«startTimeStepIsPresentCount» * sizeof(interval_t*));
+                    ''')
+                }
+                
                 pr(initializeTriggerObjects.toString)
                 pr('// Populate arrays of trigger pointers.')
                 pr(initializeTriggerObjectsEnd.toString)
@@ -2140,12 +2154,12 @@ class CGenerator extends GeneratorBase {
         var StringBuilder tardinessInheritenceCode = new StringBuilder()
         if (isFederated) {
             pr(tardinessInheritenceCode, '''
-                if (self->___reaction_«reactionIndex».tardiness == true) {
+                if (self->___reaction_«reactionIndex».is_tardy == true) {
             ''')
             indent(tardinessInheritenceCode);            
             pr(tardinessInheritenceCode, '''            
-                // The following operations are expensive and must
-                // only be done if the reaction has unhandled tardiness.
+                // The operations inside this if (if any exists) are expensive 
+                // and must only be done if the reaction has unhandled tardiness.
                 // Otherwise, all tardiness values are 0 by default.
                 
                 // Inherited tardiness. This will take the maximum
@@ -2595,6 +2609,14 @@ class CGenerator extends GeneratorBase {
                                 __is_present_fields[«startTimeStepIsPresentCount»] 
                                         = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»is_present;
                             ''')
+                            if (isFederated) {
+                                // Tardiness is only applicable to ports in federated execution.
+                                pr(startTimeStep, '''
+                                    // Add port «sourcePort.getFullName» to array of is_present fields.
+                                    __tardiness_fields[«startTimeStepIsPresentCount»] 
+                                            = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»tardiness;
+                                ''')
+                            }
                             startTimeStepIsPresentCount++
                         }
                     }
@@ -2628,6 +2650,13 @@ class CGenerator extends GeneratorBase {
                                 // Add port «output.getFullName» to array of is_present fields.
                                 __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "is_present")»;
                             ''')
+                            if (isFederated) {
+                                // Tardiness is only applicable to ports in federated execution.
+                                pr(startTimeStep, '''
+                                    // Add port «output.getFullName» to array of tardiness fields.
+                                    __tardiness_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "tardiness")»;
+                                ''')
+                            }
                             startTimeStepIsPresentCount++
                             j++
                         }
@@ -2636,6 +2665,13 @@ class CGenerator extends GeneratorBase {
                             // Add port «output.getFullName» to array of is_present fields.
                             __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "is_present")»;
                         ''')
+                        if (isFederated) {                            
+                            // Tardiness is only applicable to ports in federated execution.
+                            pr(startTimeStep, '''
+                                // Add port «output.getFullName» to array of tardiness fields.
+                                __tardiness_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "tardiness")»;
+                            ''')                            
+                        }
                         startTimeStepIsPresentCount++
                     }
                 }
@@ -2647,6 +2683,14 @@ class CGenerator extends GeneratorBase {
                 __is_present_fields[«startTimeStepIsPresentCount»] 
                         = &«containerSelfStructName»->__«action.name».is_present;
             ''')
+            if (isFederated) {
+                // Tardiness is only applicable to actions in federated execution.
+                pr(startTimeStep, '''
+                    // Add action «action.getFullName» to array of is_present fields.
+                    __tardiness_fields[«startTimeStepIsPresentCount»] 
+                            = &«containerSelfStructName»->__«action.name».tardiness;
+                ''')
+            }
             startTimeStepIsPresentCount++
         }
     }
