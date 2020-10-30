@@ -453,7 +453,7 @@ public enum Targets {
         /**
          * Directive to let the runtime produce execution traces.
          */
-        TRACING("tracing", Arrays.asList(Targets.CPP));
+        TRACING("tracing", Arrays.asList(Targets.C, Targets.CPP));
 
         /**
          * List of targets that support this property. If a property is used for

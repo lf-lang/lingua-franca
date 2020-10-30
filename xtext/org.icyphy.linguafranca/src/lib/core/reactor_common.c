@@ -165,6 +165,16 @@ instant_t get_elapsed_physical_time() {
 }
 
 /**
+ * Return the physical time of the start of execution in nanoseconds.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
+ * @return A time instant.
+ */
+instant_t get_start_time() {
+    return start_time;
+}
+
+/**
  * Print a non-negative time value in nanoseconds with commas separating thousands
  * followed by a carriage return. Ideally, this would use the locale to
  * use periods if appropriate, but I haven't found a sufficiently portable

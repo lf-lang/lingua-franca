@@ -533,6 +533,15 @@ unsigned int get_microstep();
 instant_t get_physical_time();
 
 /**
+ * Return the time of the start of execution in nanoseconds.
+ * This is both the starting physical and starting logical time.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
+ * @return A time instant.
+ */
+instant_t get_start_time();
+
+/**
  * Print a snapshot of the priority queues used during execution
  * (for debugging).
  */
