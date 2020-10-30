@@ -396,6 +396,15 @@ class CGenerator extends GeneratorBase {
         } else {
             files.add("reactor_threaded.c")
         }
+        
+        // Handle tracing, if used.
+        if (targetTracing) {
+            // Provide the implementation of the tracing functions.
+            files.add("trace.c")
+        } else {
+            // Provide empty tracing functions as macros.
+            files.add("trace.h")
+        }
         // If there are federates, copy the required files for that.
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
@@ -619,6 +628,9 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule timers for all reactors.
                 pr("void __initialize_timers() {")
                 indent()
+                if (targetTracing) {
+                    pr('start_trace();')
+                }
                 if (timerCount > 0) {
                     pr('''
                        for (int i = 0; i < __timer_triggers_size; i++) {
@@ -676,6 +688,7 @@ class CGenerator extends GeneratorBase {
                     // FIXME: Check return values.
                     pr('''
                         void __termination() {
+                            stop_trace();
                             // Check for all outgoing physical connections in
                             // _lf_federate_sockets_for_outbound_p2p_connections and 
                             // if the socket ID is not -1, the connection is still open. 
@@ -695,7 +708,7 @@ class CGenerator extends GeneratorBase {
                         }
                     ''')
                 } else {
-                    pr("void __termination() {}");
+                    pr("void __termination() {stop_trace();}");
                 }
             }
             writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
@@ -3888,14 +3901,17 @@ class CGenerator extends GeneratorBase {
      *  Note. The core files always need to be (and will be) copied 
      *  uniformly across all target languages.
      */
-    protected def includeTargetLanguageHeaders()
-    {
+    protected def includeTargetLanguageHeaders() {    	
         pr('#include "ctarget.h"')
+        if (targetTracing) {
+            pr('#include "core/trace.c"')            
+        } else {
+            pr('#include "core/trace.h"')            
+        }
     }
     
     /** Add necessary source files specific to the target language.  */
-    protected def includeTargetLanguageSourceFiles()
-    {
+    protected def includeTargetLanguageSourceFiles() {
         if (targetThreads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
