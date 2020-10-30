@@ -17,16 +17,13 @@ before_install:
 addons:
   apt:
     packages:
-      - python3
       - python3-pip
       - python3-setuptools
-      - gcc
-      - g++
+      - python3-googleapi
       - libprotobuf-dev
       - libprotobuf-c-dev
       - protobuf-compiler
       - protobuf-c-compiler
-      - python3-googleapi
 env:
   - TEST=Unit
   - TEST=C
