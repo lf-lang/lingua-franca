@@ -21,7 +21,12 @@ reactor ImportantActuator {
             self->success = false; // tardiness was not handled correctly
         }
     =} tardy {=
-        printf("Message is tardy by %llu nsec.\n", in->tardiness);
+        if (in->tardiness == 0) {
+            // A microstep tardiness has occurred            
+        	printf("A microstep tardiness has occurred.\n", get_elapsed_logical_time(), in->value);
+        } else {
+        	printf("Message is tardy by %llu nsec.\n", get_elapsed_logical_time(), in->value, in->tardiness);        
+        }
         if (in->tardiness > 0) {
             self->success = true;
         }
