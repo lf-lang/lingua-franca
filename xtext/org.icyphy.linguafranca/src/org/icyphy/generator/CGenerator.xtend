@@ -1829,7 +1829,7 @@ class CGenerator extends GeneratorBase {
                 // in the _lf_trace_object_descriptions table that is used to generate
                 // the header information in the trace file.
                 if (targetTracing) {
-                    val description = "FIXME"
+                    val description = "FIXME: This has to go where the constructor is invoked!"
                     pr(constructorCode, '''
                         _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
                                 = &self->___reaction_«reactionCount»;
