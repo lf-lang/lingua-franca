@@ -281,6 +281,7 @@ typedef struct federate_t {
     pthread_t thread_id;    // The ID of the thread handling communication with this federate.
     int socket;             // The socket descriptor for communicating with this federate.
     instant_t completed;    // The largest logical time completed by the federate (or NEVER).
+    microstep_t microsteps_completed; // The largest microstep completed by the federate for the completed logical time
     instant_t next_event;   // Most recent NET received from the federate (or NEVER).
     fed_state_t state;      // State of the federate.
     int* upstream;          // Array of upstream federate ids.

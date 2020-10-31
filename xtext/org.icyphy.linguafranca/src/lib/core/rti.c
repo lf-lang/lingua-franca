@@ -387,7 +387,8 @@ bool send_time_advance_if_appropriate(federate_t* fed) {
 
     // If the resulting time will advance time
     // in the federate, send it a time advance grant.
-    if (candidate_time_advance > fed->completed) {
+    if (candidate_time_advance > fed->completed) {        
+        DEBUG_PRINT("Sending TAG to fed %d of %lld because it is greater than the completed %lld.", fed->id, candidate_time_advance - start_time, fed->completed - start_time);
         send_time_advance_grant(fed, candidate_time_advance);
         return true;
     } else {
@@ -410,8 +411,15 @@ void handle_logical_time_complete(federate_t* fed) {
     // message is transport or being used to determine a TAG.
     pthread_mutex_lock(&rti_mutex);
 
-    fed->completed = swap_bytes_if_big_endian_ll(buffer.ull);
-    DEBUG_PRINT("RTI received from federate %d the logical time complete %lld.", fed->id, fed->completed - start_time);
+    instant_t completed_timestamp = swap_bytes_if_big_endian_ll(buffer.ull);
+    if (fed->completed == completed_timestamp) {
+        // Increment the microsteps
+        fed->microsteps_completed++;
+    } else {
+        fed->completed = completed_timestamp;
+    }
+    DEBUG_PRINT("RTI received from federate %d the logical time complete %lld and microstep %u.",
+                fed->id, fed->completed - start_time, fed->microsteps_completed);
 
     // Check downstream federates to see whether they should now be granted a TAG.
     for (int i = 0; i < fed->num_downstream; i++) {

@@ -325,17 +325,17 @@ void send_timed_message(interval_t additional_delay,
     encode_ll(current_message_timestamp, &(buffer[9]));
     // Next 4 bytes are the microstep.
     encode_int(current_message_microstep, &(buffer[9 + sizeof(instant_t)]));
-    DEBUG_PRINT("Federate %d sending message with timestamp %lld to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, federate);
+    DEBUG_PRINT("Federate %d sending message with tag (%lld, %u) to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, current_message_microstep,  federate);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
-    DEBUG_PRINT("Federate %d pthread_mutex_lock send_timed", _lf_my_fed_id);
+    // DEBUG_PRINT("Federate %d pthread_mutex_lock send_timed", _lf_my_fed_id);
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("Federate %d pthread_mutex_locked", _lf_my_fed_id);
+    // DEBUG_PRINT("Federate %d pthread_mutex_locked", _lf_my_fed_id);
     write_to_socket(socket, header_length, buffer, "Federate %d failed to send timed message header to the RTI.", _lf_my_fed_id);
     write_to_socket(socket, length, message, "Federate %d failed to send timed message body to the RTI.", _lf_my_fed_id);
-    DEBUG_PRINT("Federate %d pthread_mutex_unlock", _lf_my_fed_id);
+    // DEBUG_PRINT("Federate %d pthread_mutex_unlock", _lf_my_fed_id);
     pthread_mutex_unlock(&mutex);
 }
 
@@ -790,6 +790,24 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
  */
 trigger_t* __action_for_port(int port_id);
 
+/**
+ * Handle the case where the tardiness of an incoming message
+ * is only in microsteps. In this case, the tardiness of the 
+ * trigger will indicate 0 but the tardy handler will be invoked.
+ * 
+ * @param trigger The trigger of the action corresponding to the
+ *  input port
+ */
+void _lf_fd_handle_microstep_tardiness(trigger_t* trigger) {
+    // Go through all triggered reaction of the trigger and
+    // set their tardiness to true.
+    for (int i = 0; i < trigger->number_of_reactions;  i++) {
+        trigger->reactions[i]->is_tardy = true;
+    }
+    // Set the tardiness of the trigger to 0;
+    trigger->tardiness = 0LL;
+}
+
 
 /**
  * Version of schedule_value() similar to that in reactor_common.c
@@ -915,7 +933,7 @@ handle_t schedule_message_received_from_network_already_locked(
                 // set tardiness to ??, meaning the microstep was 
                 // missed.
                 // FIXME: how to show tardiness in microsteps?
-                trigger->tardiness = 1LL;
+                _lf_fd_handle_microstep_tardiness(trigger);
                 extra_delay = 0LL;
                 DEBUG_PRINT("Federate %d received a message that is %u microsteps late.", _lf_my_fed_id, get_microstep() - microstep);
                 return_value = __schedule(trigger, extra_delay, token);
@@ -993,7 +1011,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
         _lf_increment_global_logical_time_barrier(timestamp);
     }
 #endif
-    DEBUG_PRINT("Message timestamp: %lld, Current logical time: %lld.", timestamp - start_time, get_elapsed_logical_time());
+    DEBUG_PRINT("Message tag: (%lld, %u), Current tag: (%lld, %u).", timestamp - start_time, microstep, get_elapsed_logical_time(), get_microstep());
 
     // Read the payload.
     // Allocate memory for the message contents.
@@ -1023,7 +1041,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // a lock that the calling thread already holds.
     pthread_mutex_lock(&mutex);
 
-    DEBUG_PRINT("Federate %d calling schedule with timestamp %lld.", _lf_my_fed_id, timestamp);
+    DEBUG_PRINT("Federate %d calling schedule with tag (%lld, %u).", _lf_my_fed_id, timestamp - start_time, microstep);
     schedule_message_received_from_network_already_locked(action, timestamp, microstep, message_contents,
                                                           length, federate_id);
     // DEBUG_PRINT("Called schedule with delay %lld.", delay);

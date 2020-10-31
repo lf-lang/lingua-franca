@@ -28,7 +28,12 @@ reactor Print {
         }
         self->c++;
     =} tardy {=
-        printf("At time %llu received %d. Message is late by %llu nsec.\n", get_elapsed_logical_time(), in->value, in->tardiness);
+        if (in->tardiness == 0) {
+            // A microstep tardiness has occurred            
+        	printf("At time %llu received %d. A microstep tardiness has occurred.\n", get_elapsed_logical_time(), in->value);
+        } else {
+        	printf("At time %llu received %d. Message is tardy by %llu nsec.\n", get_elapsed_logical_time(), in->value, in->tardiness);        
+        }
         self->success_tardy++;
         self->c++;
     =}

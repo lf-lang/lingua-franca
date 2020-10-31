@@ -579,6 +579,9 @@ void __pop_events() {
                     // Transfer the tardiness from the trigger to the reaction.
                     // This will help the runtime decide whether or not to execute the tardy
                     // reaction instead of the main reaction.
+                    // Note that it is important that we do not override the is_tardy feild
+                    // of a reaction if the tardiness of the trigger is 0 because this situation
+                    // could indicate a microstep tardiness.
                     if (event->trigger->tardiness > 0LL) {
                         reaction->is_tardy = true;
                     }
