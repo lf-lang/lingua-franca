@@ -59,6 +59,32 @@ object_description_t* object_descriptions;
 int object_descriptions_size = 0;
 
 /**
+ * Get the object description corresponding to the specified pointer.
+ * If there is no such object, return "NO DESCRIPTION FOUND".
+ * @param object The pointer.
+ */
+char* get_description(void* object) {
+    // FIXME: Replace with a hash table implementation.
+    for (int i = 0; i < object_descriptions_size; i++) {
+        if (object_descriptions[i].object == object) {
+            return object_descriptions[i].description;
+        }
+    }
+    return "NO DESCRIPTION FOUND";
+}
+
+/**
+ * Print the object to description table.
+ */
+void print_table() {
+    printf("------- objects traced:\n");
+    for (int i = 0; i < object_descriptions_size; i++) {
+        printf("%p: %s\n", object_descriptions[i].object, object_descriptions[i].description);
+    } 
+    printf("-------\n");
+}
+
+/**
  * Read header information.
  * @return The number of objects in the object table or -1 for failure.
  */
@@ -87,7 +113,7 @@ size_t read_header(FILE* trace_file) {
         void* object;
         items_read = fread(&object, sizeof(void*), 1, trace_file);
         if (items_read != 1) _LF_TRACE_FAILURE(trace_file);
-        object_descriptions->object = object;
+        object_descriptions[i].object = object;
 
         // Next, read the string description into the buffer.
         int description_length = 0;
@@ -103,9 +129,10 @@ size_t read_header(FILE* trace_file) {
         buffer[description_length++] = 0;
 
         // Allocate memory to store the description.
-        object_descriptions->description = malloc(description_length);
-        strcpy(object_descriptions->description, buffer);
+        object_descriptions[i].description = malloc(description_length);
+        strcpy(object_descriptions[i].description, buffer);
     }
+    print_table();
     return object_descriptions_size;
 }
 
@@ -130,10 +157,12 @@ size_t read_trace(FILE* trace_file, FILE* csv_file) {
     items_read += fread(&trace, sizeof(trace_record_t), trace_length, trace_file);
     // Write a header line into the CSV file.
     fprintf(csv_file, "Event, Pointer, Elapsed Logical Time, Elapsed Physical Time\n");
+    // Write each line.
     for (int i = 0; i < trace_length; i++) {
-        fprintf(csv_file, "%s, %p, %lld, %lld\n",
+        printf("DEBUG: Event object: %p\n", (trace[i].traced_object));
+        fprintf(csv_file, "%s, %s, %lld, %lld\n",
                 trace_event_names[trace[i].event_type],
-                trace[i].traced_object,
+                get_description(trace[i].traced_object),
                 trace[i].logical_time - start_time,
                 trace[i].physical_time - start_time
         );
@@ -170,6 +199,10 @@ int main(int argc, char* argv[]) {
 
     if (read_header(trace_file) >= 0) {
         read_trace(trace_file, csv_file);
+    }
+    // Free memory in object description table.
+    for (int i = 0; i < object_descriptions_size; i++) {
+        free(object_descriptions[i].description);
     }
     fclose(trace_file);
     fclose(csv_file);
