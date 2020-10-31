@@ -390,7 +390,7 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
+        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "trace.h", "util.h", "util.c")
         if (targetThreads === 0) {
             files.add("reactor.c")
         } else {
@@ -401,9 +401,6 @@ class CGenerator extends GeneratorBase {
         if (targetTracing) {
             // Provide the implementation of the tracing functions.
             files.add("trace.c")
-        } else {
-            // Provide empty tracing functions as macros.
-            files.add("trace.h")
         }
         // If there are federates, copy the required files for that.
         // Also, create two RTI C files, one that launches the federates
@@ -1111,7 +1108,7 @@ class CGenerator extends GeneratorBase {
                 '
                 pushd src-gen/core > /dev/null
                 echo "Copying LF core files for RTI to host «target»"
-                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/core
+                scp rti.c rti.h util.h util.c reactor.h pqueue.h trace.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"
@@ -1173,7 +1170,7 @@ class CGenerator extends GeneratorBase {
                     '
                     pushd src-gen/core > /dev/null
                     echo "Copying LF core files to host «federate.host»"
-                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    scp reactor_common.c reactor.h pqueue.c pqueue.h trace.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
                     popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
@@ -1827,6 +1824,19 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.containsReaction(reactor, reaction)) {
                 // Create the reaction_t struct.
                 pr(reaction, body, '''reaction_t ___reaction_«reactionCount»;''')
+                
+                // If tracing is turned on, record the address of this reaction
+                // in the _lf_trace_object_descriptions table that is used to generate
+                // the header information in the trace file.
+                if (targetTracing) {
+                    val description = "FIXME"
+                    pr(constructorCode, '''
+                        _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                                = &self->___reaction_«reactionCount»;
+                        _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                                = "«description»";
+                    ''')
+                }
 
                 // Create the map of triggers to reactions.
                 for (trigger : reaction.triggers) {
@@ -3901,12 +3911,14 @@ class CGenerator extends GeneratorBase {
      *  Note. The core files always need to be (and will be) copied 
      *  uniformly across all target languages.
      */
-    protected def includeTargetLanguageHeaders() {    	
+    protected def includeTargetLanguageHeaders() {
+        if (targetTracing) {
+            pr('#define LINGUA_FRANCA_TRACE')
+        }
         pr('#include "ctarget.h"')
+        pr('#include "core/trace.h"')
         if (targetTracing) {
             pr('#include "core/trace.c"')            
-        } else {
-            pr('#include "core/trace.h"')            
         }
     }
     

@@ -1,5 +1,5 @@
 target C {
-    tracing: true 
+    tracing: true
 };
 reactor HelloWorld {
     state success:bool(false);
