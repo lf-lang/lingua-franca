@@ -243,9 +243,9 @@ int __do_step() {
         
         if (!violation) {
             // Invoke the reaction function.
-            tracepoint(reaction_starts, reaction, NULL);
+            tracepoint_reaction_starts(reaction);
             reaction->function(reaction->self);
-            tracepoint(reaction_ends, reaction, NULL);
+            tracepoint_reaction_ends(reaction);
 
             // If the reaction produced outputs, put the resulting triggered
             // reactions into the queue.

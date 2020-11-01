@@ -1825,19 +1825,6 @@ class CGenerator extends GeneratorBase {
                 // Create the reaction_t struct.
                 pr(reaction, body, '''reaction_t ___reaction_«reactionCount»;''')
                 
-                // If tracing is turned on, record the address of this reaction
-                // in the _lf_trace_object_descriptions table that is used to generate
-                // the header information in the trace file.
-                if (targetTracing) {
-                    val description = "FIXME: This has to go where the constructor is invoked!"
-                    pr(constructorCode, '''
-                        _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
-                                = &self->___reaction_«reactionCount»;
-                        _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
-                                = "«description»";
-                    ''')
-                }
-
                 // Create the map of triggers to reactions.
                 for (trigger : reaction.triggers) {
                     // trigger may not be a VarRef (it could be "startup" or "shutdown").
@@ -1903,6 +1890,7 @@ class CGenerator extends GeneratorBase {
                 // self->___reaction_«reactionCount».deadline = 0LL;
                 // self->___reaction_«reactionCount».tardiness = false;
                 pr(reaction, constructorCode, '''
+                    self->___reaction_«reactionCount».number = «reactionCount»;
                     self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
@@ -2948,6 +2936,29 @@ class CGenerator extends GeneratorBase {
     def getStackPortMember(String portName, String member) '''
         «portName».«member»
     '''
+    
+    /**
+     * If tracing is turned on, then generate code that records
+     * the full name of the specified reactor instance in the
+     * trace table. If tracing is not turned on, do nothing.
+     * @param instance The reactor instance.
+     * @param builder The place to put the generated code.
+     */
+    def void generateTraceTableEntry(ReactorInstance instance, StringBuilder builder) {
+        // If tracing is turned on, record the address of this reaction
+        // in the _lf_trace_object_descriptions table that is used to generate
+        // the header information in the trace file.
+        if (targetTracing) {
+            val description = instance.getFullName
+            var nameOfSelfStruct = selfStructName(instance)
+            pr(builder, '''
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                        = «nameOfSelfStruct»;
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                        = "«description»";
+            ''')
+        }
+    } 
 
     /** Generate code to instantiate the specified reactor instance and
      *  initialize it.
@@ -2988,8 +2999,6 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjectsEnd, '''
                 «nameOfSelfStruct»->«targetBankIndex» = «instance.bankIndex»;
             ''')
-                
-            
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
@@ -2999,7 +3008,8 @@ class CGenerator extends GeneratorBase {
                 «nameOfSelfStruct»->«targetBankIndex» = 0;
             ''')
         }
-        
+        generateTraceTableEntry(instance, initializeTriggerObjects)
+              
         generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
 
         // Generate code to initialize the "self" struct in the
