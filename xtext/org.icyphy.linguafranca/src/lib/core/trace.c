@@ -150,15 +150,20 @@ void start_trace() {
 }
 
 /**
- * Trace an event identified by a type and a pointer.
- * The pointer's meaning will be defined by the trace table.
+ * Trace an event identified by a type and a pointer to the self struct of the reactor instance.
+ * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
- * @param traced_object The pointer to the traced object in the trace table.
+ * @param reaction_number The number of the reaction or -1 if the trace is not of a reaction.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
  */
-void tracepoint(trace_event_t event_type, void* traced_object, instant_t* physical_time) {
+void tracepoint(
+            trace_event_t event_type,
+            void* self_struct,
+            int reaction_number,
+            instant_t* physical_time
+) {
     // printf("DEBUG: Creating trace record.\n");
     // Flush the buffer if it is full.
     if (_lf_trace_buffer_size >= TRACE_BUFFER_CAPACITY) {
@@ -167,7 +172,8 @@ void tracepoint(trace_event_t event_type, void* traced_object, instant_t* physic
     }
     // Write to memory buffer.
     _lf_trace_buffer[_lf_trace_buffer_size].event_type = event_type;
-    _lf_trace_buffer[_lf_trace_buffer_size].traced_object = traced_object;
+    _lf_trace_buffer[_lf_trace_buffer_size].self_struct = self_struct;
+    _lf_trace_buffer[_lf_trace_buffer_size].reaction_number = reaction_number;
     _lf_trace_buffer[_lf_trace_buffer_size].logical_time = get_logical_time();
     if (physical_time != NULL) {
         _lf_trace_buffer[_lf_trace_buffer_size].physical_time = *physical_time;
@@ -175,6 +181,22 @@ void tracepoint(trace_event_t event_type, void* traced_object, instant_t* physic
         _lf_trace_buffer[_lf_trace_buffer_size].physical_time = get_physical_time();
     }
     _lf_trace_buffer_size++;
+}
+
+/**
+ * Trace the start of a reaction execution.
+ * @param reaction Pointer to the reaction_t struct for the reaction.
+ */
+void tracepoint_reaction_starts(reaction_t* reaction) {
+    tracepoint(reaction_starts, reaction->self, reaction->number, NULL);
+}
+
+/**
+ * Trace the end of a reaction execution.
+ * @param reaction Pointer to the reaction_t struct for the reaction.
+ */
+void tracepoint_reaction_ends(reaction_t* reaction) {
+    tracepoint(reaction_ends, reaction->self, reaction->number, NULL);
 }
 
 /**

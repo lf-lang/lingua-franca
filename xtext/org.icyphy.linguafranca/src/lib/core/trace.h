@@ -49,7 +49,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * Trace event types. If you update this, be sure to update the
- * string representation below.
+ * string representation below. Also, create a tracepoint function
+ * for each event type.
  */
 typedef enum {
     reaction_starts,
@@ -80,7 +81,8 @@ static const char* trace_event_names[] = {
 
 typedef struct trace_record_t {
     trace_event_t event_type;
-    void* traced_object;
+    void* self_struct;
+    int reaction_number;
     instant_t logical_time;
     instant_t physical_time;
 } trace_record_t;
@@ -97,15 +99,28 @@ struct object_description_t {
 void start_trace();
 
 /**
- * Trace an event identified by a type and a pointer.
- * The pointer's meaning will be defined by the trace table.
+ * Trace an event identified by a type and a pointer to the self struct of the reactor instance.
+ * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
- * @param traced_object The pointer to the traced object in the trace table.
+ * @param self_struct The pointer to the self struct of the reactor instance in the trace table.
+ * @param reaction_index The index of the reaction or -1 if the trace is not of a reaction.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
  */
-void tracepoint(trace_event_t event_type, void* traced_object, instant_t* physical_time);
+void tracepoint(trace_event_t event_type, void* self_struct, int reaction_index, instant_t* physical_time);
+
+/**
+ * Trace the start of a reaction execution.
+ * @param reaction Pointer to the reaction_t struct for the reaction.
+ */
+void tracepoint_reaction_starts(reaction_t* reaction);
+
+/**
+ * Trace the end of a reaction execution.
+ * @param reaction Pointer to the reaction_t struct for the reaction.
+ */
+void tracepoint_reaction_ends(reaction_t* reaction);
 
 void stop_trace();
 

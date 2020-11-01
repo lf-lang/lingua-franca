@@ -443,6 +443,7 @@ typedef struct reaction_t reaction_t;
 struct reaction_t {
     reaction_function_t function; // The reaction function. COMMON.
     void* self;    // Pointer to a struct with the reactor's state. INSTANCE.
+    int number;    // The number of the reaction in the reactor (0 is the first reaction).
     index_t index; // Inverse priority determined by dependency analysis. INSTANCE.
     unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph. INSTANCE.
     size_t pos;       // Current position in the priority queue. RUNTIME.

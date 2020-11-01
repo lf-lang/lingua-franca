@@ -156,13 +156,19 @@ size_t read_trace(FILE* trace_file, FILE* csv_file) {
     trace_record_t trace[trace_length];
     items_read += fread(&trace, sizeof(trace_record_t), trace_length, trace_file);
     // Write a header line into the CSV file.
-    fprintf(csv_file, "Event, Pointer, Elapsed Logical Time, Elapsed Physical Time\n");
+    fprintf(csv_file, "Event, Reactor, Reaction, Elapsed Logical Time, Elapsed Physical Time\n");
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
-        printf("DEBUG: Event object: %p\n", (trace[i].traced_object));
-        fprintf(csv_file, "%s, %s, %lld, %lld\n",
+        char* reaction_name = "none";
+        if (trace[i].reaction_number >= 0) {
+            reaction_name = (char*)malloc(4);
+            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
+        }
+        printf("DEBUG: self_struct pointer: %p\n", trace[i].self_struct);
+        fprintf(csv_file, "%s, %s, %s, %lld, %lld\n",
                 trace_event_names[trace[i].event_type],
-                get_description(trace[i].traced_object),
+                get_description(trace[i].self_struct),
+                reaction_name,
                 trace[i].logical_time - start_time,
                 trace[i].physical_time - start_time
         );
