@@ -44,18 +44,24 @@ class Experiment:
                 shell = True
             if commandIdx < len(sequenceSpec)-1:
                 # run command with log output
-                result = subprocess.run(
-                    args=sequenceSpec[commandIdx],
-                    shell=shell,
-                    stdout=logOutput,
-                    stderr=logOutput)
+                try:
+                    result = subprocess.run(
+                        args=sequenceSpec[commandIdx],
+                        shell=shell,
+                        stdout=logOutput,
+                        stderr=logOutput)
+                except:
+                    print(f'Error: Failed to run the command: {sequenceSpec[commandIdx].join()}', file=sys.stderr)
             else:
                 # run the last command and store output in output file
-                result = subprocess.run(
-                    args=sequenceSpec[commandIdx],
-                    shell=shell,
-                    stdout=resultOutput,
-                    stderr=resultOutput)
+                try:
+                    result = subprocess.run(
+                        args=sequenceSpec[commandIdx],
+                        shell=shell,
+                        stdout=resultOutput,
+                        stderr=resultOutput)
+                except:
+                    print(f'Error: Failed to run the command: {sequenceSpec[commandIdx].join()}', file=sys.stderr)
     
     def _writePlotHeaderData(self, gnuplotFile, outputFileName, additionalCommands=None):
         # For details see the gnuplot manual.
@@ -221,7 +227,10 @@ class Experiment:
                     plot_commands[-1] += f' linecolor {sequenceColors["sequenceName"]}'
             
             print("plot " + ",\\\n".join(plot_commands), file=gnuPlotFile)
-        subprocess.run(args=['gnuplot', gnuplotFileName], cwd=self.outputPath)
+        try:
+            subprocess.run(args=['gnuplot', gnuplotFileName], cwd=self.outputPath)
+        except:
+            print('Failed to run "gnuplot".', file=sys.stderr)
     
     
     def runExperiment(self, logOutput=sys.stdout):
@@ -452,7 +461,10 @@ def main():
                     dataFileName = globalPlotFileName,
                     globalPlotConfig = config.globalPlot )
             
-            subprocess.run(args=['gnuplot', gnuplotFileName], cwd=basePath)
+            try:
+                subprocess.run(args=['gnuplot', gnuplotFileName], cwd=basePath)
+            except:
+                print('Failed to run "gnuplot".', file=sys.stderr)
 
 if __name__ == "__main__":
     main()
