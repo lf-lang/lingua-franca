@@ -128,6 +128,8 @@ void stop_trace();
 
 // empty definition in case we compile without tracing
 #define tracepoint(...)
+#define tracepoint_reaction_starts(...)
+#define tracepoint_reaction_ends(...)
 #define start_trace(...)
 #define stop_trace(...)
 
