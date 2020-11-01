@@ -1,6 +1,6 @@
 import re
 
-def parse(inputFile):
+def parse(inputFile, resultFileName):
     
     results = []
     for line in inputFile:
