@@ -5,24 +5,40 @@
  * @author Hannes Klein
  */
 
-/** [[[cog
-# * Code generator for a variable number of reactors
-# * using the python module cog.
-# * See https://nedbatchelder.com/code/cog/
-# * 
-# * Run 'cog -r -D numChannels=8 this-file.lf'
-# * with the desired number of reactors and the name of this file as arguments.
-# * 
-# * @author Hannes Klein
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numChannels=8
 ]]] */
 // [[[end]]]
 
 /* [[[cog
+  # force existence, type and default values of generator parameters
   if 'numChannels' in globals():
     numChannels = int(numChannels)
   else:
     globals()['numChannels'] = 8
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numChannels = {numChannels}')
 ]]] */
+// Generated file with the following parameters:
+// numChannels = 12
 // [[[end]]]
 
 target Cpp {
@@ -135,8 +151,8 @@ reactor BranchesReactor(numChannels:int(8), numColumns:int(16384)) {
       cog.outl(f'output[{numChannels}] outBanksValue:{{=double=}};')
       cog.outl(f'output[{numChannels}] outBanksControl:{{=Message=}};')
     ]]] */
-    output[8] outBanksValue:{=double=};
-    output[8] outBanksControl:{=Message=};
+    output[12] outBanksValue:{=double=};
+    output[12] outBanksControl:{=Message=};
     // [[[end]]]
     input inPredecessorValue:{=double=};
     input inPredecessorControl:{=Message=};
@@ -386,8 +402,8 @@ reactor IntegratorReactor(numChannels:int(8)) {
       cog.outl(f'input[{numChannels}] inPredecessorsValue:{{=double=}};')
       cog.outl(f'input[{numChannels}] inPredecessorsControl:{{=Message=}};')
     ]]] */
-    input[8] inPredecessorsValue:{=double=};
-    input[8] inPredecessorsControl:{=Message=};
+    input[12] inPredecessorsValue:{=double=};
+    input[12] inPredecessorsControl:{=Message=};
     // [[[end]]]
     output outSuccessorCollection:{=std::vector<double>=};
     output outSuccessorControl:{=Message=};
@@ -517,9 +533,9 @@ reactor SinkReactor(printRate:int(100)) {
 main reactor FilterBankBenchmark(numIterations:int(12), numSimulations:int(34816), numColumns:int(16384)) {
     
     /* [[[cog
-      cog.outl(f'producer = new ProducerReactor(numSimulations=34816, numChannels={numChannels}, numColumns=numColumns);')
+      cog.outl(f'producer = new ProducerReactor(numSimulations=numSimulations, numChannels={numChannels}, numColumns=numColumns);')
     ]]] */
-    producer = new ProducerReactor(numSimulations=34816, numChannels=8, numColumns=numColumns);
+    producer = new ProducerReactor(numSimulations=numSimulations, numChannels=12, numColumns=numColumns);
     // [[[end]]]
     runner = new BenchmarkRunner(numIterations=numIterations, useInit=true);
     sink = new SinkReactor(printRate=100);
@@ -535,7 +551,7 @@ main reactor FilterBankBenchmark(numIterations:int(12), numSimulations:int(34816
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", {numChannels});')
         ]]] */
-        printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", 8);
+        printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", 12);
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
@@ -549,9 +565,9 @@ main reactor FilterBankBenchmark(numIterations:int(12), numSimulations:int(34816
       cog.outl(f'branches = new BranchesReactor(numChannels={numChannels}, numColumns=numColumns);')
       cog.outl(f'banks = new[{numChannels}] BankReactor(numColumns=numColumns);')
     ]]] */
-    integrator = new IntegratorReactor(numChannels=8);
-    branches = new BranchesReactor(numChannels=8, numColumns=numColumns);
-    banks = new[8] BankReactor(numColumns=numColumns);
+    integrator = new IntegratorReactor(numChannels=12);
+    branches = new BranchesReactor(numChannels=12, numColumns=numColumns);
+    banks = new[12] BankReactor(numColumns=numColumns);
     // [[[end]]]
     
     producer.outSource -> source.inProducer;

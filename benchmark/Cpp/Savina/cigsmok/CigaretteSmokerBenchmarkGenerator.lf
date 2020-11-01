@@ -1,24 +1,52 @@
 /**
- * Code generator for a variable number of reactors
- * using the python module cog.
- * See https://nedbatchelder.com/code/cog/
+ * Concurrency benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
- * Run 'cog -r -D numSmokers=200 -D numConsumers=40 this-file.lf'
- * with the desired number of reactors and the name of this file as arguments.
+ * This implementation uses a thread to simulate a smoker
+ * smoking to catch the original Savina implementation closely.
  * 
  * @author Hannes Klein
  */
 
 /* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numSmokers=200
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
   if 'numSmokers' in globals():
     numSmokers = int(numSmokers)
   else:
     globals()['numSmokers'] = 200
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numSmokers = {numSmokers}')
 ]]] */
+// Generated file with the following parameters:
+// numSmokers = 200
 // [[[end]]]
 
-
 target Cpp {
+    build-type : RelWithDebInfo,
     cmake-include: "CigaretteSmoker.cmake"
 };
 
@@ -28,9 +56,6 @@ reactor ArbiterReactor(numRounds:int(1000), numSmokers:int(200)) {
     
     public preamble {=
         #include "include/PseudoRandom.hh"
-    =}
-    
-    private preamble {=
         #include "reactor-cpp/logging.hh"
     =}
     
@@ -46,10 +71,10 @@ reactor ArbiterReactor(numRounds:int(1000), numSmokers:int(200)) {
       cog.outl(f'output[{numSmokers}] outSmokersStart:void;')
       cog.outl(f'output[{numSmokers}] outSmokersStop:void;')
     ]]] */
-    output[201] outSmokers:int;
-    input[201] inSmokers:void;
-    output[201] outSmokersStart:void;
-    output[201] outSmokersStop:void;
+    output[200] outSmokers:int;
+    input[200] inSmokers:void;
+    output[200] outSmokersStart:void;
+    output[200] outSmokersStop:void;
     // [[[end]]]
     
     logical action chooseSmoker:void;
@@ -193,7 +218,7 @@ main reactor CigaretteSmokerBenchmark(numIterations:int(12), numRounds:int(1000)
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", {numSmokers});')
         ]]] */
-        printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", 201);
+        printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", 200);
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
@@ -202,7 +227,7 @@ main reactor CigaretteSmokerBenchmark(numIterations:int(12), numRounds:int(1000)
     /* [[[cog
       cog.outl(f'smokers = new[{numSmokers}] SmokerReactor();')
     ]]] */
-    smokers = new[201] SmokerReactor();
+    smokers = new[200] SmokerReactor();
     // [[[end]]]
     
     smokers.outArbiter -> arbiter.inSmokers;

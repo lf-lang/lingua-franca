@@ -24,7 +24,9 @@
  * @author Hannes Klein
  */
 
-target Cpp;
+target Cpp {
+    build-type : RelWithDebInfo
+};
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
@@ -35,8 +37,8 @@ reactor Ping(count:unsigned(40000)) {
     input inStart:void;
     output outFinished:void;
     
-    output ping:void;
-    input pong:void;
+    output outPing:void;
+    input inPong:void;
 
     logical action serve;
     
@@ -49,12 +51,12 @@ reactor Ping(count:unsigned(40000)) {
         serve.schedule();
     =}
     
-    reaction(serve) -> ping {=
+    reaction(serve) -> outPing {=
         pings_left -= 1;
-        ping.set();
+        outPing.set();
     =}
     
-    reaction (pong) -> serve, outFinished {=
+    reaction (inPong) -> serve, outFinished {=
         if (pings_left == 0) {
             outFinished.set();
         } else {
@@ -66,10 +68,10 @@ reactor Ping(count:unsigned(40000)) {
 
 reactor Pong {
     
-    input ping:void;
-    output pong:void;
+    input inPing:void;
+    output outPong:void;
     
-    reaction(ping) -> pong {=
+    reaction(inPing) -> outPong {=
         pong.set();   
     =}
 }
@@ -84,7 +86,7 @@ main reactor PingPong(numIterations:int(12), count:unsigned(40000)) {
     ping.outFinished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("PingPongReactorLFCppBenchmark");
+        printBenchmarkInfo("PingPongBenchmark");
         printArgs("numIterations", numIterations, "count", count);
         printSystemInfo();
         runner.inStart.set();
@@ -92,7 +94,6 @@ main reactor PingPong(numIterations:int(12), count:unsigned(40000)) {
     
     pong = new Pong();
     
-    ping.ping -> pong.ping;
-    pong.pong -> ping.pong;
-    
+    ping.outPing -> pong.inPing;
+    pong.outPong -> ping.inPong;
 }

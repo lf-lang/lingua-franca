@@ -1,37 +1,155 @@
 /**
- * Code generator for a variable number of reactors in the thread ring
- * using the python module cog.
- * See https://nedbatchelder.com/code/cog/
+ * Micro-benchmark from the Savina benchmark suite, intended
+ * to measure message passing overhead and switching between
+ * actors.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
- * Run 'cog -r -D numReactors=100 this-file.lf'
- * with the desired number of actors and the name of this file as arguments.
+ * To open the causality loop in the ring of reactors one
+ * reactor uses a logical action for message passing.
  * 
  * @author Hannes Klein
  */
 
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numReactors=100
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'numReactors' in globals():
+    numReactors = int(numReactors)
+  else:
+    globals()['numReactors'] = 100
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numReactors = {numReactors}')
+]]] */
+// Generated file with the following parameters:
+// numReactors = 100
+// [[[end]]]
+
 target Cpp {
-    cmake-include: "ThreadRingReactorCpp.cmake"
+    build-type : RelWithDebInfo
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
-import ThreadRingReactor from "ThreadRingReactorCppBenchmark.lf";
-import ThreadRingReactorLoopOpener from "ThreadRingReactorCppBenchmark.lf";
 
-reactor Initializer(numReactors:int(100), numPings:int(100000)) {
+public preamble {=
+    class PingMessage {
+    private:
+      const int mPingsLeft;
+    public:
+      PingMessage(const int pingsLeft):
+        mPingsLeft(pingsLeft) {}
+    
+      bool hasNext() const {
+        return mPingsLeft > 0;
+      }
+    
+      int getPingsLeft() const {
+        return mPingsLeft;
+      }
+    
+      reactor::ImmutableValuePtr<PingMessage> next() const {
+        return reactor::make_immutable_value<PingMessage>(mPingsLeft-1);
+      }
+    };
+=}
+
+reactor ThreadRingReactor {
     
     public preamble {=
-        #include "ThreadRingCommon.hh"
+        #include "reactor-cpp/logging.hh"
     =}
+    
+    output outNextReactor:{=PingMessage=};
+    input inPrevReactor:{=PingMessage=};
+    input start:{=PingMessage=};
+    output finished:void;
+    
+    reaction(inPrevReactor) -> outNextReactor, finished {=
+        if (inPrevReactor.get()->hasNext()) {
+            outNextReactor.set(inPrevReactor.get()->next());
+        } else {
+            finished.set();
+            reactor::log::Debug() << "Finished with count " << inPrevReactor.get()->getPingsLeft();
+        }
+    =}
+    
+    reaction(start) -> outNextReactor, finished {=
+        if (start.get()->hasNext()) {
+            outNextReactor.set(start.get()->next());
+            reactor::log::Debug() << "Starting with count " << start.get()->getPingsLeft();
+        } else {
+            finished.set();
+        }
+    =}
+}
+
+reactor ThreadRingReactorLoopOpener {
+    
+    public preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    output outNextReactor:{=PingMessage=};
+    input inPrevReactor:{=PingMessage=};
+    input start:{=PingMessage=};
+    output finished:void;
+    
+    logical action sendToNextReactor:{=PingMessage=};
+    
+    reaction(sendToNextReactor) -> outNextReactor {=
+        outNextReactor.set(sendToNextReactor.get());
+    =}
+    
+    reaction(inPrevReactor) -> sendToNextReactor, finished {=
+        if (inPrevReactor.get()->hasNext()) {
+            sendToNextReactor.schedule(inPrevReactor.get()->next());
+        } else {
+            finished.set();
+            reactor::log::Debug() << "Finished with count " << inPrevReactor.get()->getPingsLeft();
+        }
+    =}
+    
+    reaction(start) -> sendToNextReactor, finished {=
+        reactor::log::Debug() << "Starting with count " << start.get()->getPingsLeft();
+        if (start.get()->hasNext()) {
+            sendToNextReactor.schedule(start.get()->next());
+        } else {
+            finished.set();
+        }
+    =}
+}
+
+reactor Initializer(numReactors:int(100), numPings:int(100000)) {
     
     input inStart:void;
     output outFinished:void;
     
     // benchmark internal start and finish
-    //TODO parametrize multiports
     /* [[[cog
-      cog.outl("input[" + numReactors + "] inFinished:void;")
+      cog.outl(f'input[{numReactors}] inFinished:void;')
     ]]] */
-    input[105] inFinished:void;
+    input[100] inFinished:void;
     // [[[end]]]
     output outStart:{=PingMessage=};
     
@@ -47,9 +165,9 @@ reactor Initializer(numReactors:int(100), numPings:int(100000)) {
 main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
     
     /* [[[cog
-      cog.outl("init = new Initializer(numReactors=" + numReactors + ", numPings=numPings);")
+      cog.outl(f'init = new Initializer(numReactors={numReactors}, numPings=numPings);')
     ]]] */
-    init = new Initializer(numReactors=105, numPings=numPings);
+    init = new Initializer(numReactors=100, numPings=numPings);
     /// [[[end]]]
     runner = new BenchmarkRunner(numIterations=numIterations);
     
@@ -57,11 +175,11 @@ main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
     init.outFinished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("ThreadRingVarReactorLFCppBenchmark");
+        printBenchmarkInfo("ThreadRingBenchmark");
         /* [[[cog
-          cog.outl('printArgs("numIterations", numIterations, "numPings", numPings, "numReactors", ' + numReactors + ');')
+          cog.outl(f'printArgs("numIterations", numIterations, "numPings", numPings, "numReactors", {numReactors});')
         ]]] */
-        printArgs("numIterations", numIterations, "numPings", numPings, "numReactors", 105);
+        printArgs("numIterations", numIterations, "numPings", numPings, "numReactors", 100);
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
@@ -72,7 +190,7 @@ main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
 
     /* [[[cog
       for i in range(int(numReactors)-1):
-        cog.outl("worker"+str(i)+" = new ThreadRingReactor();")
+        cog.outl(f'worker{i} = new ThreadRingReactor();')
     ]]] */
     worker0 = new ThreadRingReactor();
     worker1 = new ThreadRingReactor();
@@ -173,17 +291,12 @@ main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
     worker96 = new ThreadRingReactor();
     worker97 = new ThreadRingReactor();
     worker98 = new ThreadRingReactor();
-    worker99 = new ThreadRingReactor();
-    worker100 = new ThreadRingReactor();
-    worker101 = new ThreadRingReactor();
-    worker102 = new ThreadRingReactor();
-    worker103 = new ThreadRingReactor();
     // [[[end]]]
     
     /* [[[cog
-      for i in range(int(numReactors)-2):
-        cog.outl("worker"+str(i)+".outNextReactor -> worker"+str(i+1)+".inPrevReactor;")
-      cog.outl("worker"+str(int(numReactors)-2)+".outNextReactor -> loopOpener.inPrevReactor;")
+      for i in range(numReactors-2):
+        cog.outl(f'worker{i}.outNextReactor -> worker{i+1}.inPrevReactor;')
+      cog.outl(f'worker{numReactors-2}.outNextReactor -> loopOpener.inPrevReactor;')
     ]]] */
     worker0.outNextReactor -> worker1.inPrevReactor;
     worker1.outNextReactor -> worker2.inPrevReactor;
@@ -283,12 +396,7 @@ main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
     worker95.outNextReactor -> worker96.inPrevReactor;
     worker96.outNextReactor -> worker97.inPrevReactor;
     worker97.outNextReactor -> worker98.inPrevReactor;
-    worker98.outNextReactor -> worker99.inPrevReactor;
-    worker99.outNextReactor -> worker100.inPrevReactor;
-    worker100.outNextReactor -> worker101.inPrevReactor;
-    worker101.outNextReactor -> worker102.inPrevReactor;
-    worker102.outNextReactor -> worker103.inPrevReactor;
-    worker103.outNextReactor -> loopOpener.inPrevReactor;
+    worker98.outNextReactor -> loopOpener.inPrevReactor;
     // [[[end]]]
     
     loopOpener.outNextReactor -> worker0.inPrevReactor;
@@ -296,14 +404,14 @@ main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
     init.outStart -> loopOpener.start;
     
     /* [[[cog
-      cog.outl("(loopOpener.finished,")
-      for i in range(int(numReactors)-1):
-        cog.out("worker"+str(i)+".finished")
-        if i < int(numReactors)-2:
-          cog.outl(",")
+      cog.outl(f'(loopOpener.finished,')
+      for i in range(numReactors-1):
+        cog.out(f'worker{i}.finished')
+        if i < numReactors-2:
+          cog.outl(',')
         else:
-          cog.outl("")
-      cog.outl(") -> init.inFinished;")
+          cog.outl('')
+      cog.outl(f') -> init.inFinished;')
     ]]] */
     (loopOpener.finished,
     worker0.finished,
@@ -404,12 +512,7 @@ main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
     worker95.finished,
     worker96.finished,
     worker97.finished,
-    worker98.finished,
-    worker99.finished,
-    worker100.finished,
-    worker101.finished,
-    worker102.finished,
-    worker103.finished
+    worker98.finished
     ) -> init.inFinished;
     // [[[end]]]
     

@@ -20,18 +20,81 @@
  * @author Hannes Klein
  */
 
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numHaircuts=2000
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'numHaircuts' in globals():
+    numHaircuts = int(numHaircuts)
+  else:
+    globals()['numHaircuts'] = 2000
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numHaircuts = {numHaircuts}')
+]]] */
+// Generated file with the following parameters:
+// numHaircuts = 3000
+// [[[end]]]
+
 target Cpp {
-    keepalive : true,
-    cmake-include: "SleepingBarberReactorCpp.cmake"
+    build-type : RelWithDebInfo,
+    cmake-include: "../include/IncludeHeaders.cmake"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+public preamble {=
+    enum MsgType {
+      ResetMsg,
+      StartMsg,
+      EnterMsg,
+      NextMsg,
+      ExitMsg,
+      FullMsg,
+      WaitMsg,
+      ReturnedMsg,
+      DoneMsg
+    };
+    
+    struct Message {
+    
+      MsgType type;
+      int id;
+    
+      Message(MsgType _type):
+        type(_type) {}
+    
+      Message(MsgType _type, int _id):
+        type(_type), id(_id) {}
+    };
+=}
 
 reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:int(1000)) {
     
     public preamble {=
         #include "include/PseudoRandom.hh"
-        #include "SleepingBarberCommon.hh"
         #include <list>
     =}
     
@@ -48,10 +111,13 @@ reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:i
     input inStart:void;
     output outFinished:void;
     
-    //TODO  parametrize
     output outRoom:{=Message=};
     output outBarber:{=Message=}; // only needed to reset between iterations
-    input[2000] inCustomers:{=Message=};
+    /* [[[cog
+      cog.outl(f'input[{numHaircuts}] inCustomers:{{=Message=}};')
+    ]]] */
+    input[3000] inCustomers:{=Message=};
+    // [[[end]]]
     
     logical action sendCustomersFirstVisit:void;
     logical action sendCustomersToReturn:void;
@@ -146,10 +212,6 @@ reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:i
 
 reactor CustomerReactor(instance:int(0)) {
     
-    public preamble {=
-        #include "SleepingBarberCommon.hh"
-    =}
-    
     output outController:{=Message=};
     input inRoom:{=Message=};
     input inBarber:{=Message=};
@@ -183,7 +245,6 @@ reactor CustomerReactor(instance:int(0)) {
 reactor BarberReactor(averageHaircutRate:int(1000)) {
     
     public preamble {=
-        #include "SleepingBarberCommon.hh"
         #include "include/PseudoRandom.hh"
         #include "reactor-cpp/logging.hh"
     =}
@@ -191,10 +252,13 @@ reactor BarberReactor(averageHaircutRate:int(1000)) {
     state currentCustomerIdx:int(-1);
     state random:{=PseudoRandom=};
     
-    //TODO parametrize
     input inRoom:{=Message=};
     input inController:{=Message=};
-    output[2000] outCustomers:{=Message=};
+    /* [[[cog
+      cog.outl(f'output[{numHaircuts}] outCustomers:{{=Message=}};')
+    ]]] */
+    output[3000] outCustomers:{=Message=};
+    // [[[end]]]
     output outRoom:{=Message=};
     
     logical action cutHair:void;
@@ -255,7 +319,6 @@ reactor BarberReactor(averageHaircutRate:int(1000)) {
 reactor WaitingRoomReactor(capacity:int(1000), numCustomers:int(2000)) {
     
     public preamble {=
-        #include "SleepingBarberCommon.hh"
         #include "reactor-cpp/logging.hh"
         #include <queue>
     =}
@@ -263,8 +326,11 @@ reactor WaitingRoomReactor(capacity:int(1000), numCustomers:int(2000)) {
     state waitingCustomers:{=std::queue<int>=};
     state barberAsleep:bool(true);
     
-    //TODO parametrize
-    output[2000] outCustomers:{=Message=};
+    /* [[[cog
+      cog.outl(f'output[{numHaircuts}] outCustomers:{{=Message=}};')
+    ]]] */
+    output[3000] outCustomers:{=Message=};
+    // [[[end]]]
     input inBarber:{=Message=};
     output outBarber:{=Message=};
     input inController:{=Message=};
@@ -323,7 +389,11 @@ reactor WaitingRoomReactor(capacity:int(1000), numCustomers:int(2000)) {
 
 main reactor SleepingBarberBenchmark(numIterations:int(12), waitingRoomSize:int(1000), averageProductionRate:int(1000), averageHaircutRate:int(1000)) {
     
-    controller = new CustomerControllerReactor(numHaircuts=2000, averageProductionRate=averageProductionRate);
+    /* [[[cog
+      cog.outl(f'controller = new CustomerControllerReactor(numHaircuts={numHaircuts}, averageProductionRate=averageProductionRate);')
+    ]]] */
+    controller = new CustomerControllerReactor(numHaircuts=3000, averageProductionRate=averageProductionRate);
+    // [[[end]]]
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> controller.inStart;
@@ -331,15 +401,23 @@ main reactor SleepingBarberBenchmark(numIterations:int(12), waitingRoomSize:int(
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("SleepingBarberReactorLFCppBenchmark");
-        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", 2000);
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", {numHaircuts});')
+        ]]] */
+        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", 3000);
+        /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
     =}
     
-    //TODO parametrize
-    room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers=2000);
+    /* [[[cog
+      cog.outl(f'room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers={numHaircuts});')
+      cog.outl(f'customers = new[{numHaircuts}] CustomerReactor();')
+    ]]] */
+    room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers=3000);
+    customers = new[3000] CustomerReactor();
+    // [[[end]]]
     barber = new BarberReactor(averageHaircutRate=averageHaircutRate);
-    customers = new[2000] CustomerReactor();
     
     controller.outRoom -> room.inController;
     controller.outBarber -> barber.inController;

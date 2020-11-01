@@ -2,6 +2,8 @@
  * Parallelism benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
+ * TODO evaluate the maxValue parameter and create the pipeline accordingly.
+ * 
  * @author Hannes Klein
  */
 

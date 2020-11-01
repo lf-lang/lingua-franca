@@ -1,33 +1,77 @@
 /**
- * Code generator for a variable number of reactors
- * using the python module cog.
- * See https://nedbatchelder.com/code/cog/
+ * Concurrency benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
- * Run 'cog -r -D numPhilosophers=20 -D this-file.lf'
- * with the desired number of reactors and the name of this file as arguments.
+ * This implementation stays close to the Savina implementation
+ * with Akka. There is no notion of time and there is no delay
+ * or work done when a philosopher is thinking or eating.
  * 
  * @author Hannes Klein
  */
 
 /* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numPhilosophers=20
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
   if 'numPhilosophers' in globals():
     numPhilosophers = int(numPhilosophers)
   else:
     globals()['numPhilosophers'] = 20
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numPhilosophers = {numPhilosophers}')
 ]]] */
+// Generated file with the following parameters:
+// numPhilosophers = 20
 // [[[end]]]
 
 target Cpp {
-    cmake-include: "PhilosopherReactorCpp.cmake"
+    build-type : RelWithDebInfo
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
+public preamble {=
+    enum MsgType {
+      StartMsg,
+      HungryMsg,
+      DoneMsg,
+      ExitMsg,
+      DeniedMsg,
+      EatMsg
+    };
+    
+    struct Message {
+    
+      MsgType type;
+    };
+=}
+
 reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
     
     public preamble {=
-        #include "PhilosopherCommon.hh"
         #include <bitset>
     =}
     
@@ -35,7 +79,7 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
     /* [[[cog
       cog.outl(f'state forks:{{=std::bitset<{numPhilosophers}>=}};')
     ]]] */
-    state forks:{=std::bitset<21>=};
+    state forks:{=std::bitset<20>=};
     // [[[end]]]
     state numExitedPhilosophers:int(0);
     
@@ -46,8 +90,8 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
       cog.outl(f'output[{numPhilosophers}] outPhilosophers:{{=Message=}};')
       cog.outl(f'input[{numPhilosophers}] inPhilosophers:{{=Message=}};')
     ]]] */
-    output[21] outPhilosophers:{=Message=};
-    input[21] inPhilosophers:{=Message=};
+    output[20] outPhilosophers:{=Message=};
+    input[20] inPhilosophers:{=Message=};
     // [[[end]]]
     output outCounter:void;
     
@@ -121,10 +165,6 @@ reactor ArbitratorReactor(numPhilosophers:int(20), numForks:int(20)) {
 
 reactor PhilosopherReactor(instance:int(0), rounds:int(10000)) {
     
-    public preamble {=
-        #include "PhilosopherCommon.hh"
-    =}
-    
     state localCounter:long(0); // count failed tries
     state roundsSoFar:int(0); // count successful tries
     
@@ -182,7 +222,7 @@ reactor CounterReactor(numLocalCounters:int(20)) {
     /* [[[cog
       cog.outl(f'input[{numPhilosophers}] inLocalCounters:long;')
     ]]] */
-    input[21] inLocalCounters:long;
+    input[20] inLocalCounters:long;
     // [[[end]]]
     input inController:void;
     
@@ -211,7 +251,7 @@ main reactor PhilosopherBenchmark(numIterations:int(12), numEatingRounds:int(100
     /* [[[cog
       cog.outl(f'arbitrator = new ArbitratorReactor(numPhilosophers={numPhilosophers}, numForks={numPhilosophers});')
     ]]] */
-    arbitrator = new ArbitratorReactor(numPhilosophers=21, numForks=21);
+    arbitrator = new ArbitratorReactor(numPhilosophers=20, numForks=20);
     // [[[end]]]
     runner = new BenchmarkRunner(numIterations=numIterations);
     
@@ -223,7 +263,7 @@ main reactor PhilosopherBenchmark(numIterations:int(12), numEatingRounds:int(100
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", {numPhilosophers});')
         ]]] */
-        printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", 21);
+        printArgs("numIterations", numIterations, "numEatingRounds", numEatingRounds, "numPhilosophers", 20);
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
@@ -232,7 +272,7 @@ main reactor PhilosopherBenchmark(numIterations:int(12), numEatingRounds:int(100
     /* [[[cog
       cog.outl(f'philosophers = new[{numPhilosophers}] PhilosopherReactor(rounds=numEatingRounds);')
     ]]] */
-    philosophers = new[21] PhilosopherReactor(rounds=numEatingRounds);
+    philosophers = new[20] PhilosopherReactor(rounds=numEatingRounds);
     // [[[end]]]
     counter = new CounterReactor(numLocalCounters=20);
     
