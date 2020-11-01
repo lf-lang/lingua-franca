@@ -5,38 +5,61 @@
  * @author Hannes Klein
  */
 
-/** [[[cog
-# * Code generator for a variable number of reactors
-# * using the python module cog.
-# * See https://nedbatchelder.com/code/cog/
-# * 
-# * Run 'cog -r -D numWorkers=100 this-file.lf'
-# * with the desired number of reactors and the name of this file as arguments.
-# * 
-# * @author Hannes Klein
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numWorkers=100
 ]]] */
 // [[[end]]]
 
 /* [[[cog
+  # force existence, type and default values of generator parameters
   if 'numWorkers' in globals():
     numWorkers = int(numWorkers)
   else:
     globals()['numWorkers'] = 100
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numWorkers = {numWorkers}')
 ]]] */
+// Generated file with the following parameters:
+// numWorkers = 100
 // [[[end]]]
 
 target Cpp {
-    build-type : RelWithDebInfo,
-    cmake-include: "Trapezoidal.cmake"
+    build-type : RelWithDebInfo
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 
+public preamble {=
+    struct WorkMessage {
+    
+      double l;
+      double r;
+      double h;
+    };
+=}
+
 reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000)) {
     
     public preamble {=
-        #include "TrapezoidalCommon.hh"
         #include "reactor-cpp/logging.hh"
     =}
     
@@ -97,13 +120,12 @@ reactor Master(numWorkers:int(100), L:double(1.0), R:double(5.0), N:int(10000000
 
 reactor Worker(instance:int(0)) {
     
+    private preamble {=
+        #include <cmath>
+    =}
+    
     input inMaster:{=WorkMessage=};
     output outMaster:{=double=};
-    
-    public preamble {=
-        #include <cmath>
-        #include "TrapezoidalCommon.hh"
-    =}
     
     reaction(inMaster) -> outMaster {=
         

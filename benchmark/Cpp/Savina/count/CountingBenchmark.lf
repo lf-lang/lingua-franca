@@ -22,7 +22,9 @@
  * @author Hannes Klein
  */
 
-target Cpp;
+target Cpp {
+    build-type : RelWithDebInfo
+};
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
@@ -105,7 +107,7 @@ main reactor CountingBenchmark(numIterations:int(12), countTo:int(1000000)) {
     producer.outFinishedCounting -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("CountingReactorLFCppBenchmark");
+        printBenchmarkInfo("CountingBenchmark");
         printArgs("numIterations", numIterations, "countTo", countTo);
         printSystemInfo();
         runner.inStart.set();

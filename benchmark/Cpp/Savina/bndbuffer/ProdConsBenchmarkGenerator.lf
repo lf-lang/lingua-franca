@@ -1,38 +1,90 @@
 /**
- * Code generator for a variable number of reactors
- * using the python module cog.
- * See https://nedbatchelder.com/code/cog/
+ * Concurrency benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
- * Run 'cog -r -D numProducers=40 -D numConsumers=40 this-file.lf'
- * with the desired number of reactors and the name of this file as arguments.
+ * @author Hannes Klein
+ */
+ 
+ /**
+ * Micro-benchmark from the Savina benchmark suite, intended
+ * to measure message passing overhead and switching between
+ * actors.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * To open the causality loop in the ring of reactors one
+ * reactor uses a logical action for message passing.
  * 
  * @author Hannes Klein
  */
 
 /* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numProducers=40
+# -D numConsumers=40
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
   if 'numProducers' in globals():
     numProducers = int(numProducers)
   else:
     globals()['numProducers'] = 40
-
   if 'numConsumers' in globals():
     numConsumers = int(numConsumers)
   else:
     globals()['numConsumers'] = 40
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numProducers = {numProducers}')
+  cog.outl(f'// numConsumers = {numConsumers}')
 ]]] */
+// Generated file with the following parameters:
+// numProducers = 40
+// numConsumers = 40
 // [[[end]]]
 
 target Cpp {
-    cmake-include: "ProdConsReactorCpp.cmake"
+    build-type : RelWithDebInfo,
+    cmake-include: "../include/IncludeHeaders.cmake"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:int(40)) {
+
+public preamble {=
+    enum MsgType {
+      DataItemMsg,
+      ProduceDataMsg,
+      ProducerExitMsg,
+      ConsumerAvailableMsg,
+      ConsumerExitMsg
+    };
     
-    public preamble {=
-        #include "ProdConsCommon.hh"
-    =}
+    struct Message {
+      MsgType type;
+      double data;
+    };
+=}
+
+reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:int(40)) {
     
     state adjustedBufferSize:int({=bufferSize-numProducers=});
     state availableProducers:{=std::vector<int>=};
@@ -162,7 +214,6 @@ reactor ManagerReactor(bufferSize:int(50), numProducers:int(40), numConsumers:in
 reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
     
     public preamble {=
-        #include "ProdConsCommon.hh"
         #include "include/PseudoRandom.hh"
     =}
     
@@ -216,10 +267,6 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
 }
 
 reactor ConsumerReactor(consCost:int(25)) {
-    
-    public preamble {=
-        #include "ProdConsCommon.hh"
-    =}
     
     private preamble {=
         #include <cmath>
@@ -278,7 +325,7 @@ main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCo
     manager.outFinished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("SortedListReactorLFCppBenchmark");
+        printBenchmarkInfo("ProdConsBenchmark");
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "bufferSize", bufferSize, "prodCost", prodCost, "consCost", consCost, "numItemsPerProducer", numItemsPerProducer, "numProducers", {numProducers}, "numConsumers", {numConsumers});')
         ]]] */

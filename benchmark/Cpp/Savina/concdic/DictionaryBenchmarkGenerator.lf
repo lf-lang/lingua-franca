@@ -6,29 +6,85 @@
  * To break the causality loop the dictionary reactor contains a logical
  * action.
  * 
- * Informal results for 100,000 messages per worker (write percentage 10)
- * on my PC with fast forward enabled:
- * Unthreaded: 2500 ms
- * Threaded: 5400 ms
- * 
- * For comparison some informal results for 100,000 messages per worker
- * (write percentage 10, 20 workers)
- * on the same PC with the Savina Akka implementation:
- * Threaded: 1300 ms
- * 
  * @author Hannes Klein
  */
 
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numWorkers=20
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'numWorkers' in globals():
+    numWorkers = int(numWorkers)
+  else:
+    globals()['numWorkers'] = 20
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numWorkers = {numWorkers}')
+]]] */
+// Generated file with the following parameters:
+// numWorkers = 20
+// [[[end]]]
+
 target Cpp {
-    cmake-include: "DictionaryReactorCpp.cmake"
+    build-type : RelWithDebInfo
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
+
+public preamble {=
+    enum MsgType {
+      DoWorkMsg,
+      EndWorkMsg,
+      ResultMsg,
+      ReadMsg,
+      WriteMsg
+    };
+    
+    struct Message {
+    
+      MsgType type;
+      int key;
+      int value;
+    
+      Message() {}
+    
+      Message(MsgType _type, int _key, int _value):
+        type(_type), key(_key), value(_value) {}
+    
+      Message(MsgType _type):
+        type(_type) {}
+    
+      Message(MsgType _type, int _key):
+        type(_type), key(_key) {}
+    };
+=}
+
+
 reactor Master(numWorkers:int(20)) {
     
     public preamble {=
-        #include "DictionaryCommon.hh"
         #include "reactor-cpp/logging.hh"
     =}
     
@@ -37,9 +93,13 @@ reactor Master(numWorkers:int(20)) {
     input inStart:void;
     output outFinished:void;
     
-    //TODO parametrize with numWorkers
+    /* [[[cog
+      cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
+      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
+    ]]] */
     output[20] outWorkers:{=Message=};
     input[20] inWorkers:{=Message=};
+    // [[[end]]]
     output outDictionary:void;
     
     reaction(inStart) -> outWorkers {=
@@ -69,9 +129,7 @@ reactor Master(numWorkers:int(20)) {
 reactor Dictionary(numWorkers:int(20), initialState:{=std::map<int,int>=}({=std::map<int,int>()=})) {
     
     public preamble {=
-        #include "DictionaryCommon.hh"
         #include "reactor-cpp/logging.hh"
-        #include <bitset>
     =}
     
     state dataMap:{=std::map<int,int>=}(initialState);
@@ -79,9 +137,13 @@ reactor Dictionary(numWorkers:int(20), initialState:{=std::map<int,int>=}({=std:
     
     logical action sendAnswers:void;
     
-    //TODO parametrize with numWorkers
+    /* [[[cog
+      cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
+      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
+    ]]] */
     output[20] outWorkers:{=Message=};
     input[20] inWorkers:{=Message=};
+    // [[[end]]] 
     input inMaster:void;
     
     reaction(startup) {=
@@ -137,7 +199,6 @@ reactor Dictionary(numWorkers:int(20), initialState:{=std::map<int,int>=}({=std:
 reactor Worker(instance:int(0), numMessagesPerWorker:int(10000), writePercentage:int(10)) {
     
     public preamble {=
-        #include "DictionaryCommon.hh"
         #include <random>
     =}
     
@@ -187,7 +248,11 @@ reactor Worker(instance:int(0), numMessagesPerWorker:int(10000), writePercentage
 
 main reactor DictionaryBenchmark(numIterations:int(12), numMessagesPerWorker:int(10000), writePercentage:int(10)) {
     
+    /* [[[cog
+      cog.outl(f'master = new Master(numWorkers={numWorkers});')
+    ]]] */
     master = new Master(numWorkers=20);
+    // [[[end]]]
     runner = new BenchmarkRunner(numIterations=numIterations);
     
     runner.outIterationStart -> master.inStart;
@@ -195,13 +260,22 @@ main reactor DictionaryBenchmark(numIterations:int(12), numMessagesPerWorker:int
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("DictionaryReactorLFCppBenchmark");
-        printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker, "writePercentage", writePercentage);
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker, "writePercentage", writePercentage, "numWorkers", {numWorkers});')
+        ]]] */
+        printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker, "writePercentage", writePercentage, "numWorkers", 20);
+        /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
     =}
     
+    /* [[[cog
+      cog.outl(f'dict = new Dictionary(numWorkers={numWorkers});')
+      cog.outl(f'workers = new[{numWorkers}] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);')
+    ]]] */
     dict = new Dictionary(numWorkers=20);
     workers = new[20] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);
+    // [[[end]]]
     
     dict.outWorkers -> workers.inDict;
     workers.outDict -> dict.inWorkers;
