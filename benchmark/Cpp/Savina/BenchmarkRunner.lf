@@ -36,8 +36,11 @@ target Cpp;
  * 
  * @author Hannes Klein
  */
-reactor BenchmarkRunner(numIterations:int(12),
-    useInit:bool(false), useCleanupIteration:bool(false)) {
+reactor BenchmarkRunner(numIterations:int(12), useInit:bool(false), useCleanupIteration:bool(false)) {
+    
+    private preamble {=
+        #include <algorithm>
+    =}
     
     /** Signal to start execution. Set this input from a startup reaction in the main reactor. */
     input inStart:void;
@@ -55,9 +58,10 @@ reactor BenchmarkRunner(numIterations:int(12),
     input inCleanupIterationFinish:void;
     
     /** Events to switch between the phases of running the iterations. */
-    logical action initBenchmark;
-    logical action cleanupIteration;
+    logical action initBenchmark:void;
+    logical action cleanupIteration:void;
     logical action nextIteration:void;
+    logical action finish:void;
     
     /** Number of iterations already executed. */
     state count:unsigned(0);
@@ -97,13 +101,13 @@ reactor BenchmarkRunner(numIterations:int(12),
         nextIteration.schedule();
     =}
     
-    reaction(nextIteration) -> outIterationStart {=
+    reaction(nextIteration) -> outIterationStart, finish {=
         
         if (count < numIterations) { 
             startTime = get_physical_time();
             outIterationStart.set();
         } else {
-            environment()->sync_shutdown();
+            finish.schedule();
         }
     =}
     
@@ -124,10 +128,44 @@ reactor BenchmarkRunner(numIterations:int(12),
         }
     =}
     
+    reaction(finish) {=
+        
+        std::vector<double> measuredMillis;
+        for(auto& t: measuredTimes) {
+            measuredMillis.push_back(std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(t).count());
+        } 
+        std::sort(begin(measuredMillis), end(measuredMillis));
+        
+        std::cout << std::endl << "Execution - Summary:" << std::endl;
+        printf(execTimeOutputFormat.c_str(), "Best Time", measuredMillis.front());
+        printf(execTimeOutputFormat.c_str(), "Worst Time", measuredMillis.back());
+        printf(execTimeOutputFormat.c_str(), "Median", median(measuredMillis));
+        
+        environment()->sync_shutdown();
+    =}
+    
+    private preamble {=
+        
+        static double median(std::vector<double> execTimes) {
+            if(execTimes.empty()) {
+                return 0.0;
+            }
+            
+            int size = execTimes.size();
+            int middle = size / 2;
+            if(size % 2 == 1) {
+                return execTimes[middle];
+            } else {
+                return (execTimes[middle-1] + execTimes[middle]) / 2;
+            }
+        }
+    =}
+    
     public preamble {=
         
         static std::string argOutputFormat = "%25s = ";
-        static std::string argsLine = "Arguments of the main reactor:";
+        static std::string argsLine = "Arguments:";
+        static std::string execTimeOutputFormat = "%20s: %9.3f ms\n";
         
         /**
          * Global functions to print info about the benchmark that are supposed
