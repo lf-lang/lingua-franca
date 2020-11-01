@@ -72,7 +72,7 @@ reactor Pong {
     output outPong:void;
     
     reaction(inPing) -> outPong {=
-        pong.set();   
+        outPong.set();   
     =}
 }
 
