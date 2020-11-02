@@ -988,7 +988,11 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def void doCompile(IFileSystemAccess2 fsa) {
-        val srcGenPath = fsa.getAbsolutePath('/')
+        // Cmake can only handle unix-style paths. Therefore, we replace `\' by '/' in the
+        // absolute path in case we are running on Windows. All other platforms should not
+        // be affected.
+        val srcGenPath = fsa.getAbsolutePath('/').replace('\\', '/')
+
         val rootPath = srcGenPath.substring(0, srcGenPath.length() - "/src-gen".length())
 
         val srcPath = fsa.getAbsolutePath('''«filename»/''')
