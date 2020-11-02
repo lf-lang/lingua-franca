@@ -52,7 +52,7 @@ int _lf_trace_object_descriptions_size = 0;
  * @return The number of items written or -1 for failure.
  */
 int flush_trace_to_file() {
-    printf("DEBUG: Writing %d trace records.\n", _lf_trace_buffer_size);
+    // printf("DEBUG: Writing %d trace records.\n", _lf_trace_buffer_size);
     if (_lf_trace_file != NULL) {
         // Write first the length of the array.
         size_t items_written = fwrite(
@@ -102,7 +102,7 @@ int write_trace_header() {
 
         // The next item in the header is the size of the
         // _lf_trace_object_descriptions table.
-        printf("DEBUG: Table size written to trace file is %d.\n", _lf_trace_object_descriptions_size);
+        // printf("DEBUG: Table size written to trace file is %d.\n", _lf_trace_object_descriptions_size);
         items_written = fwrite(
                 &_lf_trace_object_descriptions_size,
                 sizeof(int),
@@ -113,7 +113,7 @@ int write_trace_header() {
 
         // Next we write the table.
         for (int i = 0; i < _lf_trace_object_descriptions_size; i++) {
-            printf("DEBUG: Object pointer: %p.\n", _lf_trace_object_descriptions[i].object);
+            // printf("DEBUG: Object pointer: %p.\n", _lf_trace_object_descriptions[i].object);
             items_written = fwrite(
                         &_lf_trace_object_descriptions[i].object, // Write the pointer value.
                         sizeof(void*),
@@ -123,7 +123,7 @@ int write_trace_header() {
             if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
 
             int description_size = strlen(_lf_trace_object_descriptions[i].description);
-            printf("DEBUG: Object description: %s.\n", _lf_trace_object_descriptions[i].description);
+            // printf("DEBUG: Object description: %s.\n", _lf_trace_object_descriptions[i].description);
             items_written = fwrite(
                         _lf_trace_object_descriptions[i].description,
                         sizeof(char),
@@ -154,6 +154,7 @@ void start_trace() {
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
  * @param reaction_number The number of the reaction or -1 if the trace is not of a reaction.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
@@ -162,6 +163,7 @@ void tracepoint(
             trace_event_t event_type,
             void* self_struct,
             int reaction_number,
+            int worker,
             instant_t* physical_time
 ) {
     // printf("DEBUG: Creating trace record.\n");
@@ -174,7 +176,9 @@ void tracepoint(
     _lf_trace_buffer[_lf_trace_buffer_size].event_type = event_type;
     _lf_trace_buffer[_lf_trace_buffer_size].self_struct = self_struct;
     _lf_trace_buffer[_lf_trace_buffer_size].reaction_number = reaction_number;
+    _lf_trace_buffer[_lf_trace_buffer_size].worker = worker;
     _lf_trace_buffer[_lf_trace_buffer_size].logical_time = get_logical_time();
+    _lf_trace_buffer[_lf_trace_buffer_size].microstep = get_microstep();
     if (physical_time != NULL) {
         _lf_trace_buffer[_lf_trace_buffer_size].physical_time = *physical_time;
     } else {
@@ -186,17 +190,19 @@ void tracepoint(
 /**
  * Trace the start of a reaction execution.
  * @param reaction Pointer to the reaction_t struct for the reaction.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
-void tracepoint_reaction_starts(reaction_t* reaction) {
-    tracepoint(reaction_starts, reaction->self, reaction->number, NULL);
+void tracepoint_reaction_starts(reaction_t* reaction, int worker) {
+    tracepoint(reaction_starts, reaction->self, reaction->number, worker, NULL);
 }
 
 /**
  * Trace the end of a reaction execution.
  * @param reaction Pointer to the reaction_t struct for the reaction.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
-void tracepoint_reaction_ends(reaction_t* reaction) {
-    tracepoint(reaction_ends, reaction->self, reaction->number, NULL);
+void tracepoint_reaction_ends(reaction_t* reaction, int worker) {
+    tracepoint(reaction_ends, reaction->self, reaction->number, worker, NULL);
 }
 
 /**

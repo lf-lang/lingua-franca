@@ -1221,8 +1221,9 @@ token_t* __set_new_array_impl(token_t* token, int length, int num_destinations) 
  * This procedure assumes the mutex lock is not held and grabs
  * the lock only when it actually inserts something onto the reaction queue.
  * @param reaction The reaction that has just executed.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution (for tracing).
  */
-void schedule_output_reactions(reaction_t* reaction) {
+void schedule_output_reactions(reaction_t* reaction, int worker) {
     // NOTE: This code is nearly identical to the function by the same name
     // in reactor_threaded.c, but in order to perform scheduling optimizations,
     // the code had to be duplicated to make minor changes in the threaded version.
@@ -1333,7 +1334,7 @@ void schedule_output_reactions(reaction_t* reaction) {
 
                 // If the reaction produced outputs, put the resulting
                 // triggered reactions into the queue or execute them directly if possible.
-                schedule_output_reactions(downstream_to_execute_now);
+                schedule_output_reactions(downstream_to_execute_now, worker);
                 
                 // Reset the tardiness because it has been dealt with in the
                 // tardy handler
@@ -1362,18 +1363,20 @@ void schedule_output_reactions(reaction_t* reaction) {
 
                     // If the reaction produced outputs, put the resulting
                     // triggered reactions into the queue or execute them directly if possible.
-                    schedule_output_reactions(downstream_to_execute_now);
+                    schedule_output_reactions(downstream_to_execute_now, worker);
                 }
             }
         }
         if (!violation) {
             // Invoke the downstream_reaction function.
             // printf("DEBUG: worker: Invoking downstream reaction immediately, bypassing reaction queue.\n");
+            tracepoint_reaction_starts(reaction, worker);
             downstream_to_execute_now->function(downstream_to_execute_now->self);
+            tracepoint_reaction_ends(reaction, worker);
 
             // If the downstream_reaction produced outputs, put the resulting triggered
             // reactions into the queue (or execute them directly, if possible).
-            schedule_output_reactions(downstream_to_execute_now);
+            schedule_output_reactions(downstream_to_execute_now, worker);
         }
             
         // Reset the tardiness because it has been passed

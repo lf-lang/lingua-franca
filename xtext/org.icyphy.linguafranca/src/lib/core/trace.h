@@ -83,7 +83,9 @@ typedef struct trace_record_t {
     trace_event_t event_type;
     void* self_struct;
     int reaction_number;
+    int worker;
     instant_t logical_time;
+    microstep_t microstep;
     instant_t physical_time;
 } trace_record_t;
 
@@ -104,23 +106,26 @@ void start_trace();
  * @param event_type The type of event (see trace_event_t in trace.h)
  * @param self_struct The pointer to the self struct of the reactor instance in the trace table.
  * @param reaction_index The index of the reaction or -1 if the trace is not of a reaction.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
  */
-void tracepoint(trace_event_t event_type, void* self_struct, int reaction_index, instant_t* physical_time);
+void tracepoint(trace_event_t event_type, void* self_struct, int reaction_index, int worker, instant_t* physical_time);
 
 /**
  * Trace the start of a reaction execution.
  * @param reaction Pointer to the reaction_t struct for the reaction.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
-void tracepoint_reaction_starts(reaction_t* reaction);
+void tracepoint_reaction_starts(reaction_t* reaction, int worker);
 
 /**
  * Trace the end of a reaction execution.
  * @param reaction Pointer to the reaction_t struct for the reaction.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
-void tracepoint_reaction_ends(reaction_t* reaction);
+void tracepoint_reaction_ends(reaction_t* reaction, int worker);
 
 void stop_trace();
 

@@ -33,6 +33,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reactor.h"
 #include "trace.h"
 
+/** Buffer for reading trace records. */
+trace_record_t trace[TRACE_BUFFER_CAPACITY];
+
 /** Buffer for reading object descriptions. Size limit is BUFFER_SIZE bytes. */
 #define BUFFER_SIZE 1024
 char buffer[BUFFER_SIZE];
@@ -138,12 +141,16 @@ size_t read_header(FILE* trace_file) {
 
 /**
  * Read the trace and write to a CSV file.
+ * @param trace_file The file to read.
+ * @param csv_file The file to write.
+ * @return The number of records read or 0 upon seeing an EOF.
  */
 size_t read_trace(FILE* trace_file, FILE* csv_file) {
     // Read first the int giving the length of the trace.
     int trace_length;
     int items_read = fread(&trace_length, sizeof(int), 1, trace_file);
     if (items_read != 1) {
+        if (feof(trace_file)) return 0;
         fprintf(stderr, "Failed to read trace length.\n");
         exit(3);
     }
@@ -151,12 +158,11 @@ size_t read_trace(FILE* trace_file, FILE* csv_file) {
         fprintf(stderr, "ERROR: Trace length exceeds capacity. File is garbled.\n");
         exit(4);
     }
-    printf("Trace of length %d being converted.\n", trace_length);
+    // printf("DEBUG: Trace of length %d being converted.\n", trace_length);
 
-    trace_record_t trace[trace_length];
     items_read += fread(&trace, sizeof(trace_record_t), trace_length, trace_file);
     // Write a header line into the CSV file.
-    fprintf(csv_file, "Event, Reactor, Reaction, Elapsed Logical Time, Elapsed Physical Time\n");
+    fprintf(csv_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time\n");
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "none";
@@ -164,12 +170,14 @@ size_t read_trace(FILE* trace_file, FILE* csv_file) {
             reaction_name = (char*)malloc(4);
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
         }
-        printf("DEBUG: self_struct pointer: %p\n", trace[i].self_struct);
-        fprintf(csv_file, "%s, %s, %s, %lld, %lld\n",
+        // printf("DEBUG: self_struct pointer: %p\n", trace[i].self_struct);
+        fprintf(csv_file, "%s, %s, %s, %d, %lld, %d, %lld\n",
                 trace_event_names[trace[i].event_type],
                 get_description(trace[i].self_struct),
                 reaction_name,
+                trace[i].worker,
                 trace[i].logical_time - start_time,
+                trace[i].microstep,
                 trace[i].physical_time - start_time
         );
     }
@@ -204,7 +212,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (read_header(trace_file) >= 0) {
-        read_trace(trace_file, csv_file);
+        while (read_trace(trace_file, csv_file) != 0) {};
     }
     // Free memory in object description table.
     for (int i = 0; i < object_descriptions_size; i++) {
