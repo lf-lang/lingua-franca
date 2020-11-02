@@ -835,7 +835,7 @@ void* worker(void* arg) {
                  // printf("DEBUG: worker: Invoking reaction.\n");
                 reaction->function(reaction->self);
                 // If the reaction produced outputs, put the resulting triggered
-                // reactions into the queue while holding the mutex lock.
+                // reactions into the queue or execute them immediately.
                 schedule_output_reactions(reaction);
 
                 // Reacquire the mutex lock.
