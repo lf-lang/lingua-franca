@@ -3926,7 +3926,6 @@ class CGenerator extends GeneratorBase {
             pr('#define LINGUA_FRANCA_TRACE')
         }
         pr('#include "ctarget.h"')
-        pr('#include "core/trace.h"')
         if (targetTracing) {
             pr('#include "core/trace.c"')            
         }
