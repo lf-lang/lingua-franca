@@ -110,25 +110,15 @@ class CppGenerator extends GeneratorBase {
         r.toPath.getFilename
     }
 
-    def preambleHeaderFile(Resource r) {
-        r.toDir + File.separator + "preamble.hh"
-    }
+    def preambleHeaderFile(Resource r) '''«r.toDir»/preamble.hh'''
 
-    def preambleSourceFile(Resource r) {
-        r.toDir + File.separator + "preamble.cc"
-    }
+    def preambleSourceFile(Resource r) '''«r.toDir»/preamble.cc'''
 
-    def headerFile(Reactor r) {
-        r.eResource.toDir + File.separator + r.name + ".hh"
-    }
+    def headerFile(Reactor r) '''«r.eResource.toDir»/«r.name».hh'''
 
-    def headerImplFile(Reactor r) {
-        r.eResource.toDir + File.separator + r.name + "_impl.hh"
-    }
+    def headerImplFile(Reactor r) '''«r.eResource.toDir»/«r.name»_impl.hh'''
 
-    def sourceFile(Reactor r) {
-        r.eResource.toDir + File.separator + r.name + ".cc"
-    }
+    def sourceFile(Reactor r) '''«r.eResource.toDir»/«r.name».cc'''
 
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
@@ -143,29 +133,29 @@ class CppGenerator extends GeneratorBase {
             reactors.add(mainReactor)
         }
 
-        fsa.generateFile(filename + File.separator + "main.cc",
+        fsa.generateFile('''«filename»/main.cc''',
             mainReactor.generateMain)
-        fsa.generateFile(filename + File.separator + "CMakeLists.txt",
+        fsa.generateFile('''«filename»/CMakeLists.txt''',
             generateCmake)
-        copyFileFromClassPath(libDir + "/lfutil.hh",
+        copyFileFromClassPath('''«libDir»/lfutil.hh''',
             fsa.getAbsolutePath('''/«filename»/__include__/lfutil.hh'''))
-        copyFileFromClassPath(libDir + "/time_parser.hh",
+        copyFileFromClassPath('''«libDir»/time_parser.hh''',
             fsa.getAbsolutePath('''/«filename»/__include__/time_parser.hh'''))
-        copyFileFromClassPath(libDir + "/3rd-party/CLI11.hpp",
+        copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''',
             fsa.getAbsolutePath('''/«filename»/__include__/CLI/CLI11.hpp'''))
 
         for (r : reactors) {
-            fsa.generateFile(filename + File.separator + r.toDefinition.headerFile,
+            fsa.generateFile('''«filename»/«r.toDefinition.headerFile»''',
                 r.toDefinition.generateReactorHeader)
             val implFile = r.toDefinition.isGeneric ? r.toDefinition.headerImplFile : r.toDefinition.sourceFile
-            fsa.generateFile(filename + File.separator + implFile,
+            fsa.generateFile('''«filename»/«implFile»''',
                 r.toDefinition.generateReactorSource)
         }
 
         for (r : this.resources ?: emptyList) {
-            fsa.generateFile(filename + File.separator + r.preambleSourceFile,
+            fsa.generateFile('''«filename»/«r.preambleSourceFile»''',
                 r.generatePreambleSource)
-            fsa.generateFile(filename + File.separator + r.preambleHeaderFile,
+            fsa.generateFile('''«filename»/«r.preambleHeaderFile»''',
                 r.generatePreambleHeader)
         }
 
@@ -993,7 +983,7 @@ class CppGenerator extends GeneratorBase {
         install(TARGETS «filename» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
         
         «IF targetCmakeInclude !== null»
-            include("«directory»«File.separator»«targetCmakeInclude»")
+            include("«directory»/«targetCmakeInclude»")
         «ENDIF»
     '''
 
