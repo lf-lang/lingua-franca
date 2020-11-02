@@ -950,12 +950,23 @@ class CppGenerator extends GeneratorBase {
             «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
         )
         
-        set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
         set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-        
+        set(REACTOR_CPP_BIN_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}")
+        set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        set(REACTOR_CPP_IMPLIB_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+        ««« Unfortunately, we cannot use find_package() here. At the time when this file is processed, the
+        ««« reactor-cpp library is not build yet and find_package() would not work. Therefore, we need to
+        ««« setup the reactor-cpp dependency manually. This also means that we have to check for the
+        ««« platform and set the correct paths accordingly.
         add_library(reactor-cpp SHARED IMPORTED)
         add_dependencies(reactor-cpp dep-reactor-cpp)
-        set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
+        if(WIN32)
+            set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_IMPLIB_NAME}")
+            set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_BIN_DIR}/${REACTOR_CPP_LIB_NAME}")
+        else()
+            set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
+        endif()
         
         if (APPLE)
           set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
