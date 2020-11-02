@@ -999,9 +999,13 @@ class CppGenerator extends GeneratorBase {
         var buildDir = new File(buildPath)
         if (!buildDir.exists()) buildDir.mkdirs()
 
-        val makeBuilder = createCommand("make", #[
-            '''-j«Runtime.getRuntime().availableProcessors()»''',
-            "install"])
+        val makeBuilder = createCommand("cmake", #[
+            "--build",
+            ".",
+            "--target",
+            "install",
+            "--config",
+            '''«IF targetBuildType === null»"Release"«ELSE»"«targetBuildType»"«ENDIF»'''])
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
             '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
