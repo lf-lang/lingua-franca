@@ -671,6 +671,9 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
     // printf("DEBUG: pthread_mutex_unlock after queueing downstream reaction.\n");
 }
 
+/** For logging and debugging, each worker thread is numbered. */
+int worker_thread_count = 0;
+
 /**
  * Worker thread for the thread pool.
  */
@@ -680,6 +683,9 @@ void* worker(void* arg) {
     bool have_been_busy = false;
     // printf("DEBUG: pthread_mutex_lock worker\n");
     pthread_mutex_lock(&mutex);
+
+    int worker_number = ++worker_thread_count;
+
     // printf("DEBUG: pthread_mutex_locked\n");
     // Iterate until stop is requested and the reaction_q is empty (signaling
     // that the current time instant is done).
@@ -716,17 +722,17 @@ void* worker(void* arg) {
                 __advancing_time = true;
                 __next();
                 __advancing_time = false;
-                // printf("DEBUG: worker: Done waiting for __next().\n");
+                // printf("DEBUG: worker %d: Done waiting for __next().\n", worker_number);
             } else {
                 // Wait for something to change (either a stop request or
                 // something went on the reaction queue.
-                // printf("DEBUG: worker: Waiting for items on the reaction queue.\n");
+                // printf("DEBUG: worker %d: Waiting for items on the reaction queue.\n", worker_number);
                 pthread_cond_wait(&reaction_q_changed, &mutex);
-                // printf("DEBUG: worker: Done waiting.\n");
+                // printf("DEBUG: worker %d: Done waiting.\n", worker_number);
             }
         } else {
             // Got a reaction that is ready to run.
-            // printf("DEBUG: worker: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", reaction->index, reaction->deadline);
+            // printf("DEBUG: worker %d: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", worker_number, reaction->index, reaction->deadline);
 
             // This thread will no longer be idle.
             if (!have_been_busy) {
@@ -764,19 +770,19 @@ void* worker(void* arg) {
             //  chain until it is dealt with in a downstream tardy handler.
             if (reaction->tardiness == true) {
                 reaction_function_t handler = reaction->tardy_handler;
-                DEBUG_PRINT("Invoking tardiness handler %p.", handler);
+                DEBUG_PRINT("Worker %d: Invoking tardiness handler %p.", worker_number, handler);
                 // Invoke the tardy handler if there is one.
                 if (handler != NULL) {
                     // There is a violation
                     violation = true;
                     // Unlock the mutex to run the reaction.
-                    DEBUG_PRINT("pthread_mutex_unlock to run tardiness handler.\n");
+                    DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run tardiness handler.\n", worker_number);
                     pthread_mutex_unlock(&mutex);
                     (*handler)(reaction->self);
 
                     // If the reaction produced outputs, put the resulting
                     // triggered reactions into the queue or execute them directly if possible.
-                    schedule_output_reactions(reaction);
+                    schedule_output_reactions(reaction, worker_number);
                     
                     // Reset the tardiness because it has been dealt with
                     reaction->tardiness = false;
@@ -804,13 +810,13 @@ void* worker(void* arg) {
                     reaction_function_t handler = reaction->deadline_violation_handler;
                     if (handler != NULL) {
                         // Unlock the mutex to run the reaction.
-                        // printf("DEBUG: pthread_mutex_unlock to run deadline handler.\n");
+                        // printf("DEBUG: Worker %d: pthread_mutex_unlock to run deadline handler.\n", worker_number);
                         pthread_mutex_unlock(&mutex);
                         (*handler)(reaction->self);
 
                         // If the reaction produced outputs, put the resulting
                         // triggered reactions into the queue or execute them directly if possible.
-                        schedule_output_reactions(reaction);
+                        schedule_output_reactions(reaction, worker_number);
                         // Remove the reaction from the executing queue.
                     }
                 }
@@ -818,9 +824,9 @@ void* worker(void* arg) {
             if (violation) {
                 // Need to acquire the mutex lock to remove this from the executing queue
                 // and to obtain the next reaction to execute.
-                // printf("DEBUG: pthread_mutex_lock worker after running deadline handler\n");
+                // printf("DEBUG: Worker %d: pthread_mutex_lock worker after running deadline handler\n", worker_number);
                 pthread_mutex_lock(&mutex);
-                // printf("DEBUG: pthread_mutex_locked\n");
+                // printf("DEBUG: Worker %d: pthread_mutex_locked\n", worker_number);
 
                 // The reaction is not going to be executed. However,
                 // this thread holds the mutex lock, so if this is the last
@@ -829,19 +835,19 @@ void* worker(void* arg) {
                 pqueue_remove(executing_q, reaction);
             } else {
                 // Unlock the mutex to run the reaction.
-                // printf("DEBUG: pthread_mutex_unlock to invoke reaction function\n");
+                // printf("DEBUG: Worker %d: pthread_mutex_unlock to invoke reaction function\n", worker_number);
                 pthread_mutex_unlock(&mutex);
                 // Invoke the reaction function.
-                 // printf("DEBUG: worker: Invoking reaction.\n");
+                 // printf("DEBUG: Worker %d: Invoking reaction.\n", worker_number);
                 reaction->function(reaction->self);
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
-                schedule_output_reactions(reaction);
+                schedule_output_reactions(reaction, worker_number);
 
                 // Reacquire the mutex lock.
-                // printf("DEBUG: pthread_mutex_lock worker after invoking reaction function\n");
+                // printf("DEBUG: Worker %d: pthread_mutex_lock worker after invoking reaction function\n", worker_number);
                 pthread_mutex_lock(&mutex);
-                // printf("DEBUG: pthread_mutex_locked\n");
+                // printf("DEBUG: Worker %d: pthread_mutex_locked\n", worker_number);
 
                 // Remove the reaction from the executing queue.
                 // This thread holds the mutex lock, so if this is the last
@@ -853,14 +859,14 @@ void* worker(void* arg) {
             // down the chain
             reaction->tardiness = false;
 
-            // printf("DEBUG: worker: Done invoking reaction.\n");
+            // printf("DEBUG: Worker %d: Done invoking reaction.\n", worker_number);
         }
     } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
     number_of_threads--;
 
-    // printf("DEBUG: worker: Stop requested. Exiting.\n");
-    // printf("DEBUG: pthread_mutex_unlock worker\n");
+    // printf("DEBUG: Worker %d: Stop requested. Exiting.\n", worker_number);
+    // printf("DEBUG: Worker %d: pthread_mutex_unlock\n", worker_number);
     // Signal the main thread.
     pthread_cond_signal(&executing_q_emptied);
     pthread_mutex_unlock(&mutex);
@@ -908,7 +914,7 @@ void __execute_reactions_during_wrapup() {
 
         // If the reaction produced outputs, insert the resulting triggered
         // reactions into the reaction queue.
-        schedule_output_reactions(reaction);
+        schedule_output_reactions(reaction, 0); // Worker threads have exited, so 0 thread.
         DEBUG_PRINT("wrapup(): Done invoking reaction.\n");
     }
 }

@@ -202,7 +202,7 @@ int __do_step() {
 
         //         // If the reaction produced outputs, put the resulting
         //         // triggered reactions into the queue or execute them directly if possible.
-        //         schedule_output_reactions(reaction);
+        //         schedule_output_reactions(reaction, 0);
         //     }
         // }
 
@@ -236,20 +236,20 @@ int __do_step() {
                     (*handler)(reaction->self);
                     // If the reaction produced outputs, put the resulting
                     // triggered reactions into the queue.
-                    schedule_output_reactions(reaction);
+                    schedule_output_reactions(reaction, 0);
                 }
             }
         }
         
         if (!violation) {
             // Invoke the reaction function.
-            tracepoint_reaction_starts(reaction);
+            tracepoint_reaction_starts(reaction, 0); // 0 indicates unthreaded.
             reaction->function(reaction->self);
-            tracepoint_reaction_ends(reaction);
+            tracepoint_reaction_ends(reaction, 0);
 
             // If the reaction produced outputs, put the resulting triggered
             // reactions into the queue.
-            schedule_output_reactions(reaction);
+            schedule_output_reactions(reaction, 0);
         }
     }
     
