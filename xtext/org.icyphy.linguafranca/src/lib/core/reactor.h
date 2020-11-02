@@ -59,6 +59,10 @@
 #include <errno.h>
 #include "pqueue.h"
 #include "util.h"
+// The following file is also included, but must be included
+// after its requirements are met, so the #include appears at
+// then end.
+// #include "trace.h"
 
 //  ======== Macros ========  //
 #define CONSTRUCTOR(classname) (new_ ## classname)
@@ -801,6 +805,8 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp);
 int nanosleep(const struct timespec *req, struct timespec *rem);
 #endif
 //  ******** End Windows Support ********  //
+
+#include "trace.h"
 
 #endif /* REACTOR_H */
 /** @} */
