@@ -3937,8 +3937,8 @@ class CGenerator extends GeneratorBase {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             pr(startTimers, '''
-                if (number_of_threads == 0) {
-                   number_of_threads = «targetThreads»;
+                if (_lf_number_of_threads == 0) {
+                   _lf_number_of_threads = «targetThreads»;
                 }
             ''')
             pr("#include \"core/reactor_threaded.c\"")

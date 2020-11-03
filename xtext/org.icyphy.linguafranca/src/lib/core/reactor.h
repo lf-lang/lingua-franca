@@ -769,6 +769,15 @@ void __broadcast_stop();
  */ 
 void _lf_advance_logical_time(instant_t next_time);
 
+//  ******** Global Variables ********  //
+
+/**
+ * The number of worker threads for threaded execution.
+ * By default, execution is not threaded and this variable will have value 0,
+ * meaning that the execution is not threaded.
+ */
+extern unsigned int _lf_number_of_threads;
+
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.
 #if _WIN32 || WIN32

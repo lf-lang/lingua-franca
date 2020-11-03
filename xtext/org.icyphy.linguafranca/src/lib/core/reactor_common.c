@@ -52,7 +52,7 @@ bool fast = false;
  * By default, execution is not threaded and this variable will have value 0,
  * meaning that the execution is not threaded.
  */
-unsigned int number_of_threads;
+unsigned int _lf_number_of_threads;
 
 /**
  * Current time in nanoseconds since January 1, 1970.
@@ -1543,8 +1543,8 @@ int process_args(int argc, char* argv[]) {
     	   }
     	   i++;
     	   char* threads_spec = argv[i++];
-    	   number_of_threads = atoi(threads_spec);
-    	   if (number_of_threads <= 0) {
+    	   _lf_number_of_threads = atoi(threads_spec);
+    	   if (_lf_number_of_threads <= 0) {
     		   fprintf(stderr,"Error: Invalid value for --threads: %s\n", threads_spec);
     	   }
        } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {

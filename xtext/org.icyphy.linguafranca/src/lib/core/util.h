@@ -1,6 +1,7 @@
 /**
  * @file
- * @author Edward A. Lee (eal@berkeley.edu)
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  *
  * @section LICENSE
 Copyright (c) 2020, The University of California at Berkeley.
