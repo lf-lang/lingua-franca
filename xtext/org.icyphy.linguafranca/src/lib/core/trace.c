@@ -44,6 +44,8 @@ pthread_mutex_t _lf_trace_mutex = PTHREAD_MUTEX_INITIALIZER;
  */
 trace_record_t** _lf_trace_buffer;
 int* _lf_trace_buffer_size;
+trace_record_t** _lf_trace_buffer_to_flush = NULL;
+int* _lf_trace_buffer_size;
 
 /** The number of trace buffers allocated when tracing starts. */
 int _lf_number_of_trace_buffers;
@@ -195,12 +197,13 @@ void tracepoint(
             instant_t* physical_time
 ) {
     // printf("DEBUG: Creating trace record.\n");
-    int i = _lf_trace_buffer_size[worker];
     // Flush the buffer if it is full.
-    if (i >= TRACE_BUFFER_CAPACITY) {
+    if (_lf_trace_buffer_size[worker] >= TRACE_BUFFER_CAPACITY) {
         // No more room in the buffer. Write the buffer to the file.
         flush_trace_to_file(worker);
     }
+    // The above flush_trace_to_file resets the write pointer.
+    int i = _lf_trace_buffer_size[worker];
     // Write to memory buffer.
     _lf_trace_buffer[worker][i].event_type = event_type;
     _lf_trace_buffer[worker][i].self_struct = self_struct;
