@@ -1370,9 +1370,9 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         if (!violation) {
             // Invoke the downstream_reaction function.
             // printf("DEBUG: worker: Invoking downstream reaction immediately, bypassing reaction queue.\n");
-            tracepoint_reaction_starts(reaction, worker);
+            tracepoint_reaction_starts(downstream_to_execute_now, worker);
             downstream_to_execute_now->function(downstream_to_execute_now->self);
-            tracepoint_reaction_ends(reaction, worker);
+            tracepoint_reaction_ends(downstream_to_execute_now, worker);
 
             // If the downstream_reaction produced outputs, put the resulting triggered
             // reactions into the queue (or execute them directly, if possible).
