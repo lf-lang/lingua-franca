@@ -827,7 +827,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
             while (found->next != NULL) {
                 if (found->is_dummy) {
                     // The payload of a dummy event is the steps
-                    steps += *((microstep_t*)found->token->value) + 1;
+                    steps += *((microstep_t*)found->token->value);
                 } else {
                     steps++;
                 }
@@ -1250,6 +1250,8 @@ trigger_t* _lf_action_to_trigger(void* action) {
  * Advance from the current tag to the next. If the given next_time is equal to
  * the current time, then increase the microstep. Otherwise, update the current
  * time and set the microstep to zero.
+ * 
+ * @param next_time The time step to advance to.
  */ 
 void _lf_advance_logical_time(instant_t next_time) {
     if (current_time != next_time) {
@@ -1258,6 +1260,7 @@ void _lf_advance_logical_time(instant_t next_time) {
     } else {
         current_microstep++;
     }
+    DEBUG_PRINT("Advanced logical tag to (%lld, %u)", next_time - start_time, current_microstep);
 }
 
 /**

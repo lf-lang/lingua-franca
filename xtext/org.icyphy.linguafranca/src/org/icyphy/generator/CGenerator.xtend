@@ -659,9 +659,9 @@ class CGenerator extends GeneratorBase {
                 // downstream federates, will notify the RTI
                 // that the specified logical time is complete.
                 pr('''
-                    void logical_time_complete(instant_t time) {
+                    void logical_time_complete(instant_t timestep, microstep_t microstep) {
                         «IF federates.length > 1»
-                            __logical_time_complete(time);
+                            __logical_time_complete(timestep, microstep);
                         «ENDIF»
                     }
                 ''')
@@ -670,11 +670,11 @@ class CGenerator extends GeneratorBase {
                 // if there is only one federate or will notify the RTI,
                 // if necessary, of the next event time.
                 pr('''
-                    instant_t next_event_time(instant_t time) {
+                    _lf_fd_tag next_event_time(instant_t time, microstep_t microstep) {
                         «IF federates.length > 1»
-                            return __next_event_time(time);
+                            return __next_event_time(time, microstep);
                         «ELSE»
-                            return time;
+                            return (_lf_fd_tag) {  .timestep = time, .microstep = microstep };
                         «ENDIF»
                     }
                 ''')

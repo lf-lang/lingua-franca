@@ -153,21 +153,29 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define TIMED_MESSAGE 5
 
-/** Byte identifying a next event time (NET) message sent from a federate.
- *  The next eight bytes will be the timestamp. This message from a
- *  federate tells the RTI the time of the earliest event on that federate's
- *  event queue. In other words, absent any further inputs from other federates,
- *  this will be the logical time of the next set of reactions on that federate.
+/** 
+ * Byte identifying a next event tag (NET) message sent from a federate.
+ * The next eight bytes will be the timestep.
+ * The next four bytes will be the microstep.
+ * This message from a federate tells the RTI the tag of the earliest event 
+ * on that federate's event queue. In other words, absent any further inputs 
+ * from other federates, this will be the logical time of the next set of
+ * reactions on that federate.
  */
 #define NEXT_EVENT_TIME 6
 
-/** Byte identifying a time advance grant (TAG) sent to a federate.
- *  The next eight bytes will be the timestamp.
+/** 
+ * Byte identifying a time advance grant (TAG) sent to a federate.
+ * The next eight bytes will be the timestamp.
+ * The next four bytes will be the microstep.
  */
 #define TIME_ADVANCE_GRANT 7
 
-/** Byte identifying a logical time complete (LTC) message sent by a federate
- *  to the RTI. The next eight bytes will be the timestamp.
+/** 
+ * Byte identifying a logical tag complete (LTC) message sent by a federate
+ * to the RTI.
+ * The next eight bytes will be the timestep of the completed tag.
+ * The next four bytes will be the microsteps of the completed tag.
  */
 #define LOGICAL_TIME_COMPLETE 8
 
@@ -280,9 +288,8 @@ typedef struct federate_t {
     int id;                 // ID of this federate.
     pthread_t thread_id;    // The ID of the thread handling communication with this federate.
     int socket;             // The socket descriptor for communicating with this federate.
-    instant_t completed;    // The largest logical time completed by the federate (or NEVER).
-    microstep_t microsteps_completed; // The largest microstep completed by the federate for the completed logical time
-    instant_t next_event;   // Most recent NET received from the federate (or NEVER).
+    _lf_fd_tag completed;    // The largest logical tag completed by the federate (or NEVER).
+    _lf_fd_tag next_event;   // Most recent NET received from the federate (or NEVER).
     fed_state_t state;      // State of the federate.
     int* upstream;          // Array of upstream federate ids.
     interval_t* upstream_delay;    // Minimum delay on connections from upstream federates.
