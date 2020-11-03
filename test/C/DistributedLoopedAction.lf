@@ -6,8 +6,7 @@
  */
 
 target C {
-    timeout: 1 sec,
-    logging: DEBUG
+    timeout: 1 sec
 };
 
 reactor Sender(take_a_break_after:int(10), break_interval:time(400 msec)) {

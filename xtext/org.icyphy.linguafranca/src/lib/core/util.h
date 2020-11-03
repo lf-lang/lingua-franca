@@ -233,4 +233,14 @@ void extract_header(
         unsigned int* length
 );
 
+
+/**
+ * A handy struct used to handle tags sent and received over the
+ * network.
+ */
+typedef struct {
+    long long timestep;
+    unsigned int microstep;
+} _lf_fd_tag;
+
 #endif /* UTIL_H */

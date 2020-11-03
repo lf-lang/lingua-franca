@@ -266,29 +266,33 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
     return return_value;
 }
 
-/** Placeholder for code-generated function that will, in a federated
- *  execution, be used to coordinate the advancement of time.  It will notify
- *  the runtime infrastructure (RTI) that all reactions at the specified
- *  logical time have completed. This function should be called only while
- *  holding the mutex lock.
- *  @param time The logical time that has been completed.
+/** 
+ * Placeholder for code-generated function that will, in a federated
+ * execution, be used to coordinate the advancement of tag. It will notify
+ * the runtime infrastructure (RTI) that all reactions at the specified
+ * logical tag have completed. This function should be called only while
+ * holding the mutex lock.
+ * @param timestep The logical time that has been completed.
+ * @param microstep The logical microstep that has been completed.
  */
-void logical_time_complete(instant_t time);
+void logical_time_complete(instant_t timestep, microstep_t microstep);
 
-/** Placeholder for code-generated function that will, in a federated
- *  execution, be used to coordinate the advancement of time.  It will notify
- *  the runtime infrastructure (RTI) of the logical time of the next event
- *  on the event queue (or the stop time, if that is less than any event on the
- *  event queue). An implementation of this function may block until
- *  it is safe for logical time to advance to the specified time.
- *  This function returns either the specified time or a lesser time.
- *  It will return a lesser time if its blocking was interrupted by
- *  either a new event on the event queue (e.g. a physical action) or
- *  if the RTI grants advancement to a lesser time.
- *  @param time The time to which to advance.
- *  @return The time to which it is safe to advance.
+/** 
+ * Placeholder for code-generated function that will, in a federated
+ * execution, be used to coordinate the advancement of time.  It will notify
+ * the runtime infrastructure (RTI) of the logical time of the next event
+ * on the event queue (or the stop time, if that is less than any event on the
+ * event queue). An implementation of this function may block until
+ * it is safe for logical time to advance to the specified time.
+ * This function returns either the specified time or a lesser time.
+ * It will return a lesser time if its blocking was interrupted by
+ * either a new event on the event queue (e.g. a physical action) or
+ * if the RTI grants advancement to a lesser time.
+ * @param time The time to which to advance.
+ * @param microstep The microstep to which to advance.
+ * @return The time to which it is safe to advance.
  */
-instant_t next_event_time(instant_t time);
+_lf_fd_tag next_event_time(instant_t time, microstep_t microstep);
 
 /**
  * Wait until physical time matches or exceeds the specified logical time,
@@ -390,9 +394,13 @@ bool __next() {
     // Peek at the earliest event in the event queue.
     event_t* event = (event_t*)pqueue_peek(event_q);
     instant_t next_time = FOREVER;
+    microstep_t next_microstep =  0;
     if (event != NULL) {
         // There is an event in the event queue.
         next_time = event->time;
+        if (next_time == current_time) {
+            next_microstep =  get_microstep() + 1;
+        }
         // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
         // If a stop time was given, adjust the next_time from the
         // event time to that stop time.
@@ -405,8 +413,9 @@ bool __next() {
         // will block waiting for a response from the RTI.
         // If an action triggers during that wait, it will unblock
         // and return with a time (typically) less than the next_time.
-        instant_t grant_time = next_event_time(next_time);
-        if (grant_time != next_time) {
+        _lf_fd_tag grant_tag = next_event_time(next_time, next_microstep);
+        if (grant_tag.timestep != next_time || 
+            (grant_tag.microstep != next_microstep)) {
             // RTI has granted time advance to an earlier time or the wait
             // for the RTI response was interrupted by a local physical action.
             // Continue executing. The event queue may have changed.
@@ -472,9 +481,9 @@ bool __next() {
         // and in that case, the returned grant may be less than the
         // requested advance.
         // printf("DEBUG: __next(): next event time to RTI %lld.\n", next_time - start_time);
-        instant_t grant_time = next_event_time(next_time);
+        _lf_fd_tag grant_tag = next_event_time(next_time, next_microstep);
         // printf("DEBUG: __next(): RTI grants time advance to %lld.\n", grant_time - start_time);
-        if (grant_time == next_time) {
+        if (grant_tag.timestep == next_time && grant_tag.microstep == next_microstep) {
             // RTI is OK with advancing time to stop_time or FOREVER.
             // Note that keepalive is always set for a federated execution.
             if (!keepalive_specified) {
@@ -547,7 +556,7 @@ void stop() {
 #endif
     stop_requested = true;
     // Notify the RTI that nothing more will happen.
-    next_event_time(FOREVER);
+    next_event_time(FOREVER, 0);
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);
@@ -715,7 +724,7 @@ void* worker(void* arg) {
                     && !__advancing_time)
             {
                 //if (!__first_invocation) {
-                logical_time_complete(current_time);
+                logical_time_complete(current_time, current_microstep);
                 //}
                 //__first_invocation = false;
                 // The following will set stop_requested if there are
@@ -966,7 +975,7 @@ void wrapup() {
     // Notify the RTI that the current logical time is complete.
     // This function informs the RTI of the current_time in a 
     // non-blocking manner.
-    logical_time_complete(current_time);
+    logical_time_complete(current_time, current_microstep);
 
     pthread_mutex_unlock(&mutex);
 
@@ -1038,10 +1047,10 @@ int main(int argc, char* argv[]) {
         // reaction queue that will be executed at tag (0,0).
         // Before we could do so, we need to ask the RTI if it is 
         // okay.
-        instant_t grant_time = next_event_time(start_time);
-        if (grant_time != start_time) {
+        _lf_fd_tag grant_time = next_event_time(start_time, 0u);
+        if (grant_time.timestep != start_time || grant_time.microstep != 0u) {
             // This is a critical condition
-            fprintf(stderr, "Federate received a grant time earlier than start time.\n");
+            fprintf(stderr, "Federate received a grant time earlier than start time or with an incorrect starting microstep (%lld, %u).\n", grant_time.timestep - start_time, grant_time.microstep);
             exit(1);
         }
         
