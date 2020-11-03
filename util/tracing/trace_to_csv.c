@@ -33,6 +33,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reactor.h"
 #include "trace.h"
 
+// Mutex used to provent collisions between threads writing to the file.
+pthread_mutex_t _lf_trace_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /** Buffer for reading trace records. */
 trace_record_t trace[TRACE_BUFFER_CAPACITY];
 
@@ -155,14 +158,12 @@ size_t read_trace(FILE* trace_file, FILE* csv_file) {
         exit(3);
     }
     if (trace_length > TRACE_BUFFER_CAPACITY) {
-        fprintf(stderr, "ERROR: Trace length exceeds capacity. File is garbled.\n");
+        fprintf(stderr, "ERROR: Trace length %d exceeds capacity. File is garbled.\n", trace_length);
         exit(4);
     }
     // printf("DEBUG: Trace of length %d being converted.\n", trace_length);
 
     items_read += fread(&trace, sizeof(trace_record_t), trace_length, trace_file);
-    // Write a header line into the CSV file.
-    fprintf(csv_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time\n");
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "none";
@@ -212,6 +213,8 @@ int main(int argc, char* argv[]) {
     }
 
     if (read_header(trace_file) >= 0) {
+        // Write a header line into the CSV file.
+        fprintf(csv_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time\n");
         while (read_trace(trace_file, csv_file) != 0) {};
     }
     // Free memory in object description table.

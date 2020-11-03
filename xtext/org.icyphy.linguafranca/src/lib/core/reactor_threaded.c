@@ -838,8 +838,11 @@ void* worker(void* arg) {
                 // printf("DEBUG: Worker %d: pthread_mutex_unlock to invoke reaction function\n", worker_number);
                 pthread_mutex_unlock(&mutex);
                 // Invoke the reaction function.
-                 // printf("DEBUG: Worker %d: Invoking reaction.\n", worker_number);
+                DEBUG_PRINT("Worker %d: Invoking reaction.", worker_number);
+                tracepoint_reaction_starts(reaction, worker_number);
                 reaction->function(reaction->self);
+                tracepoint_reaction_ends(reaction, worker_number);
+                DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(reaction, worker_number);
@@ -863,7 +866,7 @@ void* worker(void* arg) {
         }
     } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
-    number_of_threads--;
+    _lf_number_of_threads--;
 
     // printf("DEBUG: Worker %d: Stop requested. Exiting.\n", worker_number);
     // printf("DEBUG: Worker %d: pthread_mutex_unlock\n", worker_number);
@@ -888,10 +891,10 @@ pthread_t* __thread_ids;
 
 // Start threads in the thread pool.
 void start_threads() {
-    // printf("DEBUG: Starting %d worker threads.\n", number_of_threads);
-    __thread_ids = (pthread_t*)malloc(number_of_threads * sizeof(pthread_t));
-    number_of_idle_threads = number_of_threads;
-    for (int i = 0; i < number_of_threads; i++) {
+    // printf("DEBUG: Starting %d worker threads.\n", _lf_number_of_threads);
+    __thread_ids = (pthread_t*)malloc(_lf_number_of_threads * sizeof(pthread_t));
+    number_of_idle_threads = _lf_number_of_threads;
+    for (int i = 0; i < _lf_number_of_threads; i++) {
         pthread_create(&__thread_ids[i], NULL, worker, NULL);
     }
 }
@@ -909,13 +912,15 @@ void __execute_reactions_during_wrapup() {
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         pthread_mutex_unlock(&mutex);
         // Invoke the reaction function.
-        DEBUG_PRINT("wrapup(): Invoking reaction.\n");
+        DEBUG_PRINT("wrapup(): Invoking reaction.");
+        tracepoint_reaction_starts(reaction, 0); // 0 indicates main thread.
         reaction->function(reaction->self);
+        tracepoint_reaction_ends(reaction, 0); // 0 indicates main thread.
 
         // If the reaction produced outputs, insert the resulting triggered
         // reactions into the reaction queue.
         schedule_output_reactions(reaction, 0); // Worker threads have exited, so 0 thread.
-        DEBUG_PRINT("wrapup(): Done invoking reaction.\n");
+        DEBUG_PRINT("wrapup(): Done invoking reaction.");
     }
 }
 
@@ -1010,7 +1015,7 @@ int main(int argc, char* argv[]) {
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
 
         // Create a queue on which to put reactions that are currently executing.
-        executing_q = pqueue_init(number_of_threads, in_reverse_order, get_reaction_index,
+        executing_q = pqueue_init(_lf_number_of_threads, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
 
         __trigger_startup_reactions();
@@ -1037,10 +1042,10 @@ int main(int argc, char* argv[]) {
 
         // Wait for the worker threads to exit.
         void* worker_thread_exit_status;
-        // printf("DEBUG: number of threads: %d\n", number_of_threads);
+        // printf("DEBUG: number of threads: %d\n", _lf_number_of_threads);
         
         int ret = 0;
-        for (int i = 0; i < number_of_threads; i++) {
+        for (int i = 0; i < _lf_number_of_threads; i++) {
             ret = MAX(pthread_join(__thread_ids[i], &worker_thread_exit_status), ret);
         }
 

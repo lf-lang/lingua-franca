@@ -30,12 +30,23 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * See trace.h file for instructions.
  */
 
+#include "util.h"
+
+// Mutex used to provent collisions between threads writing to the file.
+pthread_mutex_t _lf_trace_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /**
- * Buffer into which traces are written. When this gets full,
- * the trace is flushed to the trace file.
+ * Array of buffers into which traces are written.
+ * When each buffer gets full, the trace is flushed to the trace file.
+ * We use a double buffering strategy. When a buffer becomes full,
+ * tracing continues in a new buffer while a separate thread writes
+ * the old buffer to the file.
  */
-trace_record_t _lf_trace_buffer[TRACE_BUFFER_CAPACITY];
-int _lf_trace_buffer_size = 0;
+trace_record_t** _lf_trace_buffer;
+int* _lf_trace_buffer_size;
+
+/** The number of trace buffers allocated when tracing starts. */
+int _lf_number_of_trace_buffers;
 
 /** The file into which traces are written. */
 FILE* _lf_trace_file;
@@ -49,14 +60,16 @@ int _lf_trace_object_descriptions_size = 0;
 
 /**
  * Flush trace so far to the trace file.
+ * @param worker The worker thread or 0 for the main (or only) thread.
  * @return The number of items written or -1 for failure.
  */
-int flush_trace_to_file() {
-    // printf("DEBUG: Writing %d trace records.\n", _lf_trace_buffer_size);
+int flush_trace_to_file(int worker) {
     if (_lf_trace_file != NULL) {
+        // printf("DEBUG: Writing %d trace records.\n", _lf_trace_buffer_size[worker]);
+        pthread_mutex_lock(&_lf_trace_mutex);
         // Write first the length of the array.
         size_t items_written = fwrite(
-                &_lf_trace_buffer_size,
+                &_lf_trace_buffer_size[worker],
                 sizeof(int),
                 1,
                 _lf_trace_file
@@ -66,19 +79,21 @@ int flush_trace_to_file() {
         } else {
             // Write the contents.
             items_written = fwrite(
-                    _lf_trace_buffer,
+                    _lf_trace_buffer[worker],
                     sizeof(trace_record_t),
-                    _lf_trace_buffer_size,
+                    _lf_trace_buffer_size[worker],
                     _lf_trace_file
             );
-            if (items_written != _lf_trace_buffer_size) {
+            if (items_written != _lf_trace_buffer_size[worker]) {
                 _LF_TRACE_FAILURE(_lf_trace_file);
             }
         }
+        int result = _lf_trace_buffer_size[worker];
+        _lf_trace_buffer_size[worker] = 0;
+        pthread_mutex_unlock(&_lf_trace_mutex);
+        return result;
     }
-    int result = _lf_trace_buffer_size;
-    _lf_trace_buffer_size = 0;
-    return result;
+    return -1;
 }
 
 /**
@@ -88,6 +103,7 @@ int flush_trace_to_file() {
  */
 int write_trace_header() {
     if (_lf_trace_file != NULL) {
+        pthread_mutex_lock(&_lf_trace_mutex);
         // The first item in the header is the start time.
         // This is both the starting physical time and the starting logical time.
         instant_t start_time = get_start_time();
@@ -132,6 +148,7 @@ int write_trace_header() {
             );
             if (items_written != description_size + 1) _LF_TRACE_FAILURE(_lf_trace_file);
         }
+        pthread_mutex_unlock(&_lf_trace_mutex);
     }
     return _lf_trace_object_descriptions_size;
 }
@@ -147,6 +164,17 @@ void start_trace() {
                 "No log will be written.\n", errno);
     }
     write_trace_header();
+
+    // Allocate an array of arrays of trace records, one per worker thread plus one
+    // for the 0 thread (the main thread, or in an unthreaded program, the only thread).
+    _lf_number_of_trace_buffers = _lf_number_of_threads + 1;
+    _lf_trace_buffer = malloc(sizeof(trace_record_t*) * _lf_number_of_trace_buffers);
+    for (int i = 0; i < _lf_number_of_trace_buffers; i++) {
+        _lf_trace_buffer[i] = malloc(sizeof(trace_record_t) * TRACE_BUFFER_CAPACITY);
+    }
+    // Array of counters that track the size of each trace record (per thread).
+    _lf_trace_buffer_size = calloc(sizeof(int), _lf_number_of_trace_buffers);
+    DEBUG_PRINT("Started tracing.");
 }
 
 /**
@@ -167,24 +195,25 @@ void tracepoint(
             instant_t* physical_time
 ) {
     // printf("DEBUG: Creating trace record.\n");
+    int i = _lf_trace_buffer_size[worker];
     // Flush the buffer if it is full.
-    if (_lf_trace_buffer_size >= TRACE_BUFFER_CAPACITY) {
+    if (i >= TRACE_BUFFER_CAPACITY) {
         // No more room in the buffer. Write the buffer to the file.
-        flush_trace_to_file();
+        flush_trace_to_file(worker);
     }
     // Write to memory buffer.
-    _lf_trace_buffer[_lf_trace_buffer_size].event_type = event_type;
-    _lf_trace_buffer[_lf_trace_buffer_size].self_struct = self_struct;
-    _lf_trace_buffer[_lf_trace_buffer_size].reaction_number = reaction_number;
-    _lf_trace_buffer[_lf_trace_buffer_size].worker = worker;
-    _lf_trace_buffer[_lf_trace_buffer_size].logical_time = get_logical_time();
-    _lf_trace_buffer[_lf_trace_buffer_size].microstep = get_microstep();
+    _lf_trace_buffer[worker][i].event_type = event_type;
+    _lf_trace_buffer[worker][i].self_struct = self_struct;
+    _lf_trace_buffer[worker][i].reaction_number = reaction_number;
+    _lf_trace_buffer[worker][i].worker = worker;
+    _lf_trace_buffer[worker][i].logical_time = get_logical_time();
+    _lf_trace_buffer[worker][i].microstep = get_microstep();
     if (physical_time != NULL) {
-        _lf_trace_buffer[_lf_trace_buffer_size].physical_time = *physical_time;
+        _lf_trace_buffer[worker][i].physical_time = *physical_time;
     } else {
-        _lf_trace_buffer[_lf_trace_buffer_size].physical_time = get_physical_time();
+        _lf_trace_buffer[worker][i].physical_time = get_physical_time();
     }
-    _lf_trace_buffer_size++;
+    _lf_trace_buffer_size[worker]++;
 }
 
 /**
@@ -210,10 +239,20 @@ void tracepoint_reaction_ends(reaction_t* reaction, int worker) {
  * close the file.
  */
 void stop_trace() {
-    // Flush the buffer if it has data.
-    if (_lf_trace_buffer_size > 0) {
-        flush_trace_to_file();
+    // In multithreaded execution, thread 0 invokes wrapup reactions, so we
+    // put that trace last. However, it could also include some startup events.
+    // In any case, the trace file does not guarantee any ordering.
+    for (int i = 1; i < _lf_number_of_trace_buffers; i++) {
+        // Flush the buffer if it has data.
+        // printf("DEBUG: Trace buffer %d has %d records.\n", i, _lf_trace_buffer_size[i]);
+        if (_lf_trace_buffer_size[i] > 0) {
+            flush_trace_to_file(i);
+        }
+    }
+    if (_lf_trace_buffer_size[0] > 0) {
+        flush_trace_to_file(0);
     }
     fclose(_lf_trace_file);
     _lf_trace_file = NULL;
+    DEBUG_PRINT("Stopped tracing.");
 }
