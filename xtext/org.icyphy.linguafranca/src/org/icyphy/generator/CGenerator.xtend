@@ -2949,7 +2949,12 @@ class CGenerator extends GeneratorBase {
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
         if (targetTracing) {
-            val description = instance.getFullName
+            var description = instance.getFullName
+            // If not at the top level, strip off the name of the top level.
+            val period = description.indexOf(".")
+            if (period > 0) {
+                description = description.substring(period + 1)
+            }
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
                 _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object

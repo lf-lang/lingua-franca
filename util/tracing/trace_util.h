@@ -60,6 +60,9 @@ extern instant_t start_time;
 extern object_description_t* object_descriptions;
 extern int object_descriptions_size;
 
+/** Name of the top-level reactor (first entry in symbol table). */
+extern char* top_level;
+
 /**
  * Get the object description corresponding to the specified pointer.
  * If there is no such object, return "NO DESCRIPTION FOUND".

@@ -43,6 +43,9 @@ trace_record_t trace[TRACE_BUFFER_CAPACITY];
 /** The start time read from the trace file. */
 instant_t start_time;
 
+/** Name of the top-level reactor (first entry in symbol table). */
+char* top_level = NULL;
+
 /** Table of pointers to a description of the object. */
 // FIXME: Replace with hash table implementation.
 object_description_t* object_descriptions;
@@ -121,6 +124,10 @@ size_t read_header(FILE* trace_file) {
         // Allocate memory to store the description.
         object_descriptions[i].description = malloc(description_length);
         strcpy(object_descriptions[i].description, buffer);
+
+        if (top_level == NULL) {
+            top_level = object_descriptions[i].description;
+        }
     }
     print_table();
     return object_descriptions_size;
