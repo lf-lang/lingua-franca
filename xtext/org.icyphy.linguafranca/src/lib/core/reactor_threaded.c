@@ -551,8 +551,8 @@ void stop() {
 }
 
 /**
- * Return `true` if there is currently another reaction on either
- * the executing queue or the transfer queue that is blocking the given
+ * Return `true` if there is currently another reaction on
+ * the executing queue that is blocking the given
  * reaction. A reaction blocks the specified reaction if it has a
  * level less than that of the specified reaction and it also has
  * an overlapping chain ID, meaning that it is (possibly) upstream
