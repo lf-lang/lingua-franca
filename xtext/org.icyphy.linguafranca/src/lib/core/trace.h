@@ -67,19 +67,6 @@ static const char* trace_event_names[] = {
 
 #ifdef LINGUA_FRANCA_TRACE
 
-#include <pthread.h>
-extern pthread_mutex_t _lf_trace_mutex;
-
-/** Macro to use when access to trace file fails. */
-#define _LF_TRACE_FAILURE(trace_file) \
-    do { \
-        fprintf(stderr, "WARNING: Access to trace file failed.\n"); \
-        fclose(trace_file); \
-        trace_file = NULL; \
-        pthread_mutex_unlock(&_lf_trace_mutex); \
-        return -1; \
-    } while(0)
-
 // FIXME: Target property should specify the capacity of the trace buffer.
 #define TRACE_BUFFER_CAPACITY 2048
 

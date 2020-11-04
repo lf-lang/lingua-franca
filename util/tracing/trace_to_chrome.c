@@ -26,19 +26,23 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
- * Standalone program to convert a Lingua Franca trace file to a comma-separated values
- * text file.
+ * Standalone program to convert a Lingua Franca trace file to a JSON file suitable
+ * for viewing in Chrome's event visualizer. To visualize the resulting file,
+ * point your chrome browser to chrome://tracing/ and the load the .json file.
  */
 #define LINGUA_FRANCA_TRACE
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"
 
+/** Buffer for reading trace records. */
+trace_record_t trace[TRACE_BUFFER_CAPACITY];
+
 /**
  * Print a usage message.
  */
 void usage() {
-    printf("\nUsage: trace_to_csv [options] trace_file_root (without .lft extension)\n\n");
+    printf("\nUsage: trace_to_chrome [options] trace_file_root (without .lft extension)\n\n");
     /* No options yet:
     printf("\nOptions: \n\n");
     printf("  -f, --fast [true | false]\n");
@@ -48,12 +52,12 @@ void usage() {
 }
 
 /**
- * Read a trace in the specified file and write it to the specified CSV file.
+ * Read a trace in the specified file and write it to the specified json file.
  * @param trace_file The file to read.
- * @param csv_file The file to write.
+ * @param json_file The file to write.
  * @return The number of records read or 0 upon seeing an EOF.
  */
-size_t read_and_write_trace(FILE* trace_file, FILE* csv_file) {
+size_t read_and_write_trace(FILE* trace_file, FILE* json_file) {
     int trace_length = read_trace(trace_file);
     if (trace_length == 0) return 0;
     // Write each line.
@@ -63,15 +67,41 @@ size_t read_and_write_trace(FILE* trace_file, FILE* csv_file) {
             reaction_name = (char*)malloc(4);
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
         }
+        char* phase;
+        switch(trace[i].event_type) {
+            case reaction_starts:
+                phase = "B";
+                break;
+            case reaction_ends:
+                phase = "E";
+                break;
+            default:
+                phase = "X";
+        }
+        char* comma = ",\n";
+        if (i == trace_length - 1) comma = "";
         // printf("DEBUG: self_struct pointer: %p\n", trace[i].self_struct);
-        fprintf(csv_file, "%s, %s, %s, %d, %lld, %d, %lld\n",
-                trace_event_names[trace[i].event_type],
+        fprintf(json_file, "{"
+                    "\"name\": \"%s\", "   // name is the reactor name.
+                    "\"cat\": \"%s\", "    // category is the type of event.
+                    "\"ph\": \"%s\", "     // phase is "B" (begin), "E" (end), or "X" (complete).
+                    "\"tid\": %d, "        // thread ID.
+                    "\"pid\": 1234, "      // process ID is required.
+                    "\"ts\": %lld, "       // timestamp is physical time in microseconds
+                    "\"args\": {"
+                        "\"reaction\": %s,"          // reaction number.
+                        "\"logical time\": %lld,"    // logical time.
+                        "\"microstep\": %d"          // microstep.
+                    "}}%s",
                 get_description(trace[i].self_struct),
-                reaction_name,
+                trace_event_names[trace[i].event_type],
+                phase,
                 trace[i].worker,
-                trace[i].logical_time - start_time,
+                (trace[i].physical_time - start_time)/1000,
+                reaction_name,
+                (trace[i].logical_time - start_time)/1000,
                 trace[i].microstep,
-                trace[i].physical_time - start_time
+                comma
         );
     }
     return trace_length;
@@ -94,25 +124,35 @@ int main(int argc, char* argv[]) {
     }
 
     // Open the output file for writing.
-    char csv_file_name[strlen(argv[1]) + 4];
-    strcpy(csv_file_name, argv[1]);
-    strcat(csv_file_name, ".csv");
-    FILE* csv_file = fopen(csv_file_name, "w");
-    if (csv_file == NULL) {
-        fprintf(stderr, "Could not create output file named %s.\n", csv_file_name);
+    char json_file_name[strlen(argv[1]) + 4];
+    strcpy(json_file_name, argv[1]);
+    strcat(json_file_name, ".json");
+    FILE* json_file = fopen(json_file_name, "w");
+    if (json_file == NULL) {
+        fprintf(stderr, "Could not create output file named %s.\n", json_file_name);
         usage();
         exit(2);
     }
 
     if (read_header(trace_file) >= 0) {
-        // Write a header line into the CSV file.
-        fprintf(csv_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time\n");
-        while (read_and_write_trace(trace_file, csv_file) != 0) {};
-    }
+        // Write the opening bracket into the json file.
+        fprintf(json_file, "[\n");
+        while (read_and_write_trace(trace_file, json_file) != 0) {
+            // If the next character in the input file is not EOF, append a comma.
+            int c = fgetc(trace_file);
+            if (c != EOF) {
+                fprintf(json_file, ",\n");
+                ungetc(c, trace_file);
+            } else {
+                fprintf(json_file, "\n");
+            }
+        };
+        fprintf(json_file, "]\n");
+   }
     // Free memory in object description table.
     for (int i = 0; i < object_descriptions_size; i++) {
         free(object_descriptions[i].description);
     }
     fclose(trace_file);
-    fclose(csv_file);
+    fclose(json_file);
 }
