@@ -84,7 +84,7 @@ instant_t physical_start_time = 0LL;
 interval_t start_time = 0LL;
 
 /**
- * Indicates whether or not the execution 
+ * Indicates whether or not the execution
  * has started.
  */
 bool _lf_execution_started = false;
@@ -770,6 +770,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
             DEBUG_PRINT("_lf_schedule_at_tag(): requested to schedule an event in the past.");
             return -1;
         }
+        microstep = microstep - get_microstep();
     }
 
     // Increment the reference count of the token.
@@ -804,15 +805,20 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
     if (found != NULL) {
         if (microstep == 0) {
             if (found->is_dummy) {
-                // This is a dummy event. Convert it to a 
-                // regular event and update the payload.
-                found->is_dummy = false;
-                if (found->token != token) {
-                    // Free the existing token, if any
-                    __done_using(found->token);
+                // This is a dummy event.
+                microstep_t steps = *((microstep_t*)found->token->value);
+                if (steps == 1) {
+                    found->is_dummy = false;
+                    if (found->token != token) {
+                        // Free the existing token, if any
+                        __done_using(found->token);
+                    }
+                    found->token = token;
+                    e->next = found->next;
+                } else {
+                    e->next = found;
+                    *((microstep_t*)found->token->value) -= 1;
                 }
-                found->token = token;
-                return 0;
             } else {
                 // There is an existing event, replace the payload.                
                 if (found->token != token) {
@@ -820,37 +826,58 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
                     __done_using(found->token);
                 }
                 found->token = token;
+                _lf_recycle_event(e);
                 return 0;
             }
         } else {
             microstep_t steps = 0;
-            while (found->next != NULL) {
+            while (found->next != NULL && (steps < microstep - 1)) {
                 if (found->is_dummy) {
                     // The payload of a dummy event is the steps
                     steps += *((microstep_t*)found->token->value);
                 } else {
                     steps++;
                 }
-                if (steps < microstep-1) {
-                    found = found->next;
-                } else {
-                    break;
-                }
+                found = found->next;
             }
             // We've either reached the microstep or surpassed it.
+            //(..., dummy, e, ...)
             if (steps == microstep-1) {
+                // The next pointer of our found event
+                // can be used directly (either it is null
+                // where we can assign it or not null which
+                // has to be reassigned).
+                if (found->next) {
+                    // There is already an event after found
+                    // which we need to replace
+                    if (found->next->token != token) {
+                        // Free the existing token, if any
+                        __done_using(found->next->token);
+                    }
+                    found->next->token = token;
+                    _lf_recycle_event(e);
+                } else {
+                    // Next pointer is NULL.
+                    // Reassign it.
+                    found->next = e;
+                }
+            } else if (steps == microstep) {
+                // We overshot. This can only happen if the last payload was a dummy
+                // payload with steps that were larger than what we wanted.
+                if (!found->is_dummy) {
+                    DEBUG_PRINT("_lf_schedule_at_tag(): incorrect logic.");
+                    return -1;
+                }
+
+                // We would want to insert the new event right at the end
+                // of the microstep interval of the dummy event.
+                // The event queue now looks like
+                // (..., found(space), e', ...).   
+                // The event queue after we are done should
+                // look like (..., found(space-1), e, e', ...)                
+                *((microstep_t*)found->token->value) -= 1;
                 e->next = found->next;
                 found->next = e;
-            } else if (steps == microstep) {
-                // There is an existing event, replace the payload. 
-                // Also make sure that is marked as a regular event.
-                if (found->token != token) {
-                    // Free the existing token, if any
-                    __done_using(found->token);
-                }
-                found->token = token;
-                found->is_dummy = false;
-                return 0;
             } else {
                 // We overshot. This can only happen if the last payload was a dummy
                 // payload with steps that were larger than what we wanted.
@@ -858,36 +885,47 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
                     DEBUG_PRINT("_lf_schedule_at_tag(): incorrect logic.");
                     return -1;
                 }
-                // We need to break up the steps in the dummy event into
-                // two intervals. 
+                // The steps are larger than 1. Therefore, we need to break up the 
+                // steps in the dummy event into two intervals. 
                 // The event queue after we are done should
                 // look like (..., found, e, new_dummy, ...)
                 // First, find out how much we overshot by
                 microstep_t overshot_by = steps - microstep;
                 
                 // Then, find the steps in the dummy event
-                microstep_t* steps_found = (microstep_t*)found->token->value;
+                microstep_t* steps_found = (microstep_t*)found->token->value;                
+
+                // Finally, create a new dummy event with the correct microsteps
+                //event_t* new_dummy = _lf_create_dummy_event(trigger, time, found, steps_found - microstep); // FIXME
+                event_t* new_dummy = _lf_create_dummy_event(trigger, time, found, overshot_by);
+
+                // Point the new_dummy's next event to the previous
+                // found dummy's next event
+                new_dummy->next = found->next;
 
                 // We will replace the payload of the found dummy event with the microsteps
                 // we need for e. We will then add another dummy event
                 // after e is inserted to correct the interval.
-                *steps_found = microstep - 1;
+                *steps_found -= overshot_by + 1;
                 // Insert e after the found dummy event
                 found->next = e;
-
-                // Finally, create a new dummy event with the correct microsteps
-                event_t* new_dummy = _lf_create_dummy_event(trigger, time, found, overshot_by);
                 e->next = new_dummy;
             }
         }
     } else {
         // No existing event queued.
-        if (microstep == 0) {
+        if (((time == current_logical_time) && (microstep == 1)) || // Can't rely on a dummy event
+            microstep == 0) {
             pqueue_insert(event_q, e);
+        } else if (time == current_logical_time) {
+            // Create a dummy event. Insert it into the queue, and let its next
+            // pointer point to the actual event. The tag (x,0) has already been
+            // seen
+            pqueue_insert(event_q, _lf_create_dummy_event(trigger, time, e, microstep-1));            
         } else {
             // Create a dummy event. Insert it into the queue, and let its next
             // pointer point to the actual event.
-            pqueue_insert(event_q, _lf_create_dummy_event(trigger, time, e, microstep-1));
+            pqueue_insert(event_q, _lf_create_dummy_event(trigger, time, e, microstep));
         }
     }
     return 1;
