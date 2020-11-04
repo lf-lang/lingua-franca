@@ -1229,11 +1229,12 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     // the code had to be duplicated to make minor changes in the threaded version.
 
     // If the reaction produced outputs, put the resulting triggered
-    // reactions into the reaction queue. As an optimization, at most one
-    // downstream reaction may be executed immediately in this same thread
-    // without going through the reaction queue. This reaction is executed
-    // after all other downstream reactions have been put into the reaction queue.
+    // reactions into the reaction queue. As an optimization, if exactly one
+    // downstream reaction is enabled by this reaction, then it may be
+    // executed immediately in this same thread
+    // without going through the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
+    int num_downstream_reactions = 0;
 #ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
     // Extract the inherited tardiness
     bool inherited_tardiness = reaction->tardiness;
@@ -1255,40 +1256,30 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                         downstream_reaction->tardiness = inherited_tardiness;
                         DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->tardiness);
 #endif
-                        if (downstream_reaction != NULL) {
-                            // If the downstream_reaction has no deadline and this reaction is its
-                            // last enabling reaction, and no other reaction has been selected for
-                            // immediate execution, then bypass the reaction queue and execute it
-                            // directly after this loop. We don't handle reactions with deadlines here because
-                            // that would require duplicating a bunch of code.
-
-                            // If there are multiple reactions that are candidates for this, select
-                            // the one with the earliest deadline. That deadline would have been
-                            // inherited by this reaction, however, some other worker thread may have
-                            // enabled a reaction with an earlier deadline.
+                        if (downstream_reaction != NULL && downstream_reaction != downstream_to_execute_now) {
+                            num_downstream_reactions++;
+                            // If there is exactly one downstream reaction that is enabled by this
+                            // reaction, then we can execute that reaction immediately without
+                            // going through the reaction queue. In multithreaded execution, this
+                            // avoids acquiring a mutex lock.
                             // FIXME: Check the earliest deadline on the reaction queue.
-
-                            // FIXME: If the only additional dependence is on a startup reaction,
-                            // then we could handle that here as well. Not sure how to do that.
-                            if (downstream_reaction->last_enabling_reaction == reaction   // This is the last reaction enabling downstream.
-                                    && (downstream_to_execute_now == NULL                 // We have not already chosen a reaction to execute.
-                                            || (downstream_reaction->deadline != 0LL      // If we have, the new one has a deadline
-                                                    && (downstream_to_execute_now->deadline == 0LL  // and the deadline is less than that of chosen.
-                                                            || downstream_reaction->deadline < downstream_to_execute_now->deadline
-                                                        )
-                                               )
-                                        )
-                            ) {
-                                if (downstream_to_execute_now != NULL && downstream_to_execute_now != downstream_reaction) {
-                                    // Changed our minds about executing this downstream reaction,
-                                    // so it needs to be put on the reaction queue.
-                                    _lf_enqueue_reaction(downstream_to_execute_now);
-                                }
-                                // Can execute the downstream reaction immediately.
-                                // No need to put on this executing queue because the reaction
-                                // that triggers this new reaction is still on the executing queue.
+                            // This optimization could violate EDF scheduling otherwise.
+                            if (num_downstream_reactions == 1 && downstream_reaction->last_enabling_reaction == reaction) {
+                                // So far, this downstream reaction is a candidate to execute now.
                                 downstream_to_execute_now = downstream_reaction;
-                            } else if (downstream_reaction != downstream_to_execute_now) { // Avoid queuing a reaction we will execute.
+                            } else {
+                                // If there is a previous candidate reaction to execute now,
+                                // it is no longer a candidate.
+                                if (downstream_to_execute_now != NULL) {
+                                    // More than one downstream reaction is enabled.
+                                    // In this case, if we were to execute the downstream reaction
+                                    // immediately without changing any queues, then the second
+                                    // downstream reaction would be blocked because this reaction
+                                    // remains on the executing queue. Hence, the optimization
+                                    // is not valid. Put the candidate reaction on the queue.
+                                    _lf_enqueue_reaction(downstream_to_execute_now);
+                                    downstream_to_execute_now = NULL;
+                                }
                                 // Queue the reaction.
                                 _lf_enqueue_reaction(downstream_reaction);
                             }
