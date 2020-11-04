@@ -30,7 +30,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * See trace.h file for instructions.
  */
 
+#include <pthread.h>
 #include "util.h"
+
+/** Macro to use when access to trace file fails. */
+#define _LF_TRACE_FAILURE(trace_file) \
+    do { \
+        fprintf(stderr, "WARNING: Access to trace file failed.\n"); \
+        fclose(trace_file); \
+        trace_file = NULL; \
+        pthread_mutex_unlock(&_lf_trace_mutex); \
+        return -1; \
+    } while(0)
 
 // Mutex used to provent collisions between threads writing to the file.
 pthread_mutex_t _lf_trace_mutex = PTHREAD_MUTEX_INITIALIZER;

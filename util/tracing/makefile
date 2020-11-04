@@ -9,11 +9,15 @@ DEPS=
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-trace_to_csv: trace_to_csv.o
-	$(CC) -o trace_to_csv trace_to_csv.o
+trace_to_csv: trace_to_csv.o trace_util.o
+	$(CC) -o trace_to_csv trace_to_csv.o trace_util.o
 	
-install: trace_to_csv
+trace_to_chrome: trace_to_chrome.o trace_util.o
+	$(CC) -o trace_to_chrome trace_to_chrome.o trace_util.o
+
+install: trace_to_csv trace_to_chrome
 	mv trace_to_csv ../../bin
+	mv trace_to_chrome ../../bin
 	
 clean:
 	rm *.o
