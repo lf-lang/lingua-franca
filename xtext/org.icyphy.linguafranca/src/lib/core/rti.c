@@ -261,7 +261,7 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
  * Send a tag advance grant (TAG) message to the specified socket
  *  with the specified time and microstep.
  */
-void send_tag_advance_grant(federate_t* fed, _lf_fd_tag tag) {
+void send_tag_advance_grant(federate_t* fed, _lf_fd_tag_t tag) {
     if (fed->state == NOT_CONNECTED) {
         return;
     }
@@ -290,7 +290,7 @@ void send_tag_advance_grant(federate_t* fed, _lf_fd_tag tag) {
  *  have been visited (for the first invocation, this should be
  *  an array of falses of size NUMBER_OF_FEDERATES).
  */
-_lf_fd_tag transitive_next_event(federate_t* fed, _lf_fd_tag candidate, bool visited[]) {
+_lf_fd_tag_t transitive_next_event(federate_t* fed, _lf_fd_tag_t candidate, bool visited[]) {
     if (visited[fed->id] || fed->state == NOT_CONNECTED) {
         // DEBUG_PRINT("Federate %d not connected to RTI.", fed->id);
         // Federate has stopped executing or we have visited it before.
@@ -299,7 +299,7 @@ _lf_fd_tag transitive_next_event(federate_t* fed, _lf_fd_tag candidate, bool vis
     }
 
     visited[fed->id] = true;
-    _lf_fd_tag result = fed->next_event;
+    _lf_fd_tag_t result = fed->next_event;
     if (candidate.timestep < result.timestep ||
         (candidate.timestep == result.timestep &&
                candidate.microstep < result.microstep)) {
@@ -308,7 +308,7 @@ _lf_fd_tag transitive_next_event(federate_t* fed, _lf_fd_tag candidate, bool vis
     // Check upstream federates to see whether any of them might send
     // an event that would result in an earlier next event.
     for (int i = 0; i < fed->num_upstream; i++) {
-        _lf_fd_tag upstream_result = transitive_next_event(
+        _lf_fd_tag_t upstream_result = transitive_next_event(
                 &federates[fed->upstream[i]], result, visited);
         if (upstream_result.timestep != NEVER && fed->upstream_delay[i] > 0) {
             upstream_result.timestep += fed->upstream_delay[i];
@@ -350,7 +350,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     // The first candidate is its next event time. But we may need to advance
     // it to a lesser time.
 
-    _lf_fd_tag candidate_tag_advance = fed->next_event;
+    _lf_fd_tag_t candidate_tag_advance = fed->next_event;
 
     // Look at its upstream federates (including this one).
     for (int j = 0; j < fed->num_upstream; j++) {
@@ -359,7 +359,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         federate_t* upstream = &federates[fed->upstream[j]];
         // There may be a delay on the connection. Add that to the candidate.
         interval_t delay = fed->upstream_delay[j];
-        _lf_fd_tag upstream_completion_tag = upstream->completed;
+        _lf_fd_tag_t upstream_completion_tag = upstream->completed;
         upstream_completion_tag.timestep += delay;
         if (delay > 0) {
             // If a positive delay is given, then the event will be processed
@@ -387,7 +387,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
             }
 
             // Find the (transitive) next event tag upstream.
-            _lf_fd_tag upstream_next_event = transitive_next_event(
+            _lf_fd_tag_t upstream_next_event = transitive_next_event(
                     upstream, upstream->next_event, visited);
             DEBUG_PRINT("Upstream next event: (%lld, %u). Upstream completion time: (%lld, %u). Candidate time: (%lld, %u).",
                     upstream_next_event.timestep - start_time,

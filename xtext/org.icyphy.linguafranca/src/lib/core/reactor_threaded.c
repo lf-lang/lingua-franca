@@ -292,7 +292,7 @@ void logical_time_complete(instant_t timestep, microstep_t microstep);
  * @param microstep The microstep to which to advance.
  * @return The time to which it is safe to advance.
  */
-_lf_fd_tag next_event_time(instant_t time, microstep_t microstep);
+_lf_fd_tag_t next_event_time(instant_t time, microstep_t microstep);
 
 /**
  * Wait until physical time matches or exceeds the specified logical time,
@@ -394,7 +394,7 @@ bool __next() {
     // Peek at the earliest event in the event queue.
     event_t* event = (event_t*)pqueue_peek(event_q);
     instant_t next_time = FOREVER;
-    microstep_t next_microstep =  0;
+    microstep_t next_microstep = 0;
     if (event != NULL) {
         // There is an event in the event queue.
         next_time = event->time;
@@ -413,7 +413,7 @@ bool __next() {
         // will block waiting for a response from the RTI.
         // If an action triggers during that wait, it will unblock
         // and return with a time (typically) less than the next_time.
-        _lf_fd_tag grant_tag = next_event_time(next_time, next_microstep);
+        _lf_fd_tag_t grant_tag = next_event_time(next_time, next_microstep);
         if (grant_tag.timestep != next_time || 
             (grant_tag.microstep != next_microstep)) {
             // RTI has granted time advance to an earlier time or the wait
@@ -472,6 +472,7 @@ bool __next() {
         // to that stop time.
         if (stop_time > 0LL) {
             next_time = stop_time;
+            next_microstep = 0;
         }
 
         // Ask the RTI to advance time to either stop_time or FOREVER.
@@ -481,7 +482,8 @@ bool __next() {
         // and in that case, the returned grant may be less than the
         // requested advance.
         // printf("DEBUG: __next(): next event time to RTI %lld.\n", next_time - start_time);
-        _lf_fd_tag grant_tag = next_event_time(next_time, next_microstep);
+        // FIXME: verify
+        _lf_fd_tag_t grant_tag = next_event_time(next_time, next_microstep);
         // printf("DEBUG: __next(): RTI grants time advance to %lld.\n", grant_time - start_time);
         if (grant_tag.timestep == next_time && grant_tag.microstep == next_microstep) {
             // RTI is OK with advancing time to stop_time or FOREVER.
@@ -1047,7 +1049,7 @@ int main(int argc, char* argv[]) {
         // reaction queue that will be executed at tag (0,0).
         // Before we could do so, we need to ask the RTI if it is 
         // okay.
-        _lf_fd_tag grant_time = next_event_time(start_time, 0u);
+        _lf_fd_tag_t grant_time = next_event_time(start_time, 0u);
         if (grant_time.timestep != start_time || grant_time.microstep != 0u) {
             // This is a critical condition
             fprintf(stderr, "Federate received a grant time earlier than start time or with an incorrect starting microstep (%lld, %u).\n", grant_time.timestep - start_time, grant_time.microstep);
