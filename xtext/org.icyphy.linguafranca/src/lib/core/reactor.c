@@ -300,7 +300,6 @@ int next() {
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
         event_t* new_event = (event_t*)pqueue_peek(event_q);
-        printf("HERE\n");
         if (new_event == event) {
             // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.

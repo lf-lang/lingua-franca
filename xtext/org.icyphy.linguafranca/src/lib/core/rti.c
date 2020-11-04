@@ -310,8 +310,9 @@ _lf_fd_tag transitive_next_event(federate_t* fed, _lf_fd_tag candidate, bool vis
     for (int i = 0; i < fed->num_upstream; i++) {
         _lf_fd_tag upstream_result = transitive_next_event(
                 &federates[fed->upstream[i]], result, visited);
-        if (upstream_result.timestep != NEVER) {
+        if (upstream_result.timestep != NEVER && fed->upstream_delay[i] > 0) {
             upstream_result.timestep += fed->upstream_delay[i];
+            upstream_result.microstep = 0;
         }
         if (upstream_result.timestep < result.timestep ||
             (upstream_result.timestep == result.timestep &&
@@ -360,11 +361,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         interval_t delay = fed->upstream_delay[j];
         _lf_fd_tag upstream_completion_tag = upstream->completed;
         upstream_completion_tag.timestep += delay;
-        if (delay == 0) {
-            // If no delay is given, then the last completed microstep of the
-            // upstream federate should be taken into consideration.
-            upstream_completion_tag.microstep = upstream->completed.microstep;
-        } else {
+        if (delay > 0) {
             // If a positive delay is given, then the event will be processed
             // at microstep 0 in a future timestep
             upstream_completion_tag.microstep = 0;
@@ -372,6 +369,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         // Preserve NEVER.
         if (upstream->completed.timestep == NEVER) {
             upstream_completion_tag.timestep = NEVER;
+            upstream_completion_tag.microstep = 0;
         }
         // If the completion tag of the upstream federate
         // is less than the candidate tag, then we will need to use that
@@ -388,7 +386,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
                 visited[i] = false;
             }
 
-            // Find the (transitive) next event time upstream.
+            // Find the (transitive) next event tag upstream.
             _lf_fd_tag upstream_next_event = transitive_next_event(
                     upstream, upstream->next_event, visited);
             DEBUG_PRINT("Upstream next event: (%lld, %u). Upstream completion time: (%lld, %u). Candidate time: (%lld, %u).",
@@ -408,21 +406,13 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
             if (upstream->state != NOT_CONNECTED) {
                 if (upstream_next_event.timestep < candidate_tag_advance.timestep ||
                     (upstream_next_event.timestep == candidate_tag_advance.timestep &&
-                    upstream_next_event.microstep < candidate_tag_advance.microstep)) {
+                    upstream_next_event.microstep <= candidate_tag_advance.microstep)) {
                     // Cannot advance the federate to the upstream
                     // next event time because that event has presumably not yet
                     // been produced.
                     candidate_tag_advance = upstream_completion_tag;
                 }
             }
-        } else if (upstream_completion_tag.timestep == candidate_tag_advance.timestep &&
-                    upstream_completion_tag.microstep == candidate_tag_advance.microstep &&
-                    candidate_tag_advance.microstep == 0) {
-            // Note that if the next event for this federate has
-            // the tag (0, 0), it should wait for all upstream federates
-            // to process tag (0, 0) first. This startup procedure has
-            // to be handled separately.
-            return false; 
         }
     }
 
