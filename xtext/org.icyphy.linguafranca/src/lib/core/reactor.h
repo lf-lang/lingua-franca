@@ -351,14 +351,22 @@ typedef int handle_t;
  * be used.
  * WARNING: If this code is used after about the year 2262,
  * then representing time as a long long will be insufficient.
+ * 
+ * @note This type is also duplicated in util.h
  */
 typedef long long instant_t;
 
-/** Interval of time. */
+/**
+ * Interval of time.
+ * 
+ * @note This type is also duplicated in util.h
+ */
 typedef long long interval_t;
 
 /**
  * Microstep instant.
+ * 
+ * @note This type is also duplicated in util.h
  */
 typedef unsigned int microstep_t;
 

@@ -799,7 +799,7 @@ trigger_t* __action_for_port(int port_id);
  * @param trigger The trigger of the action corresponding to the
  *  input port
  */
-void _lf_fd_handle_microstep_tardiness(trigger_t* trigger) {
+void _lf_fd_mark_reactions_tardy(trigger_t* trigger) {
     // Go through all triggered reaction of the trigger and
     // set their tardiness to true.
     for (int i = 0; i < trigger->number_of_reactions;  i++) {
@@ -898,7 +898,7 @@ handle_t schedule_message_received_from_network_already_locked(
             // However, the schedule function cannot take a negative delay.
             // Thus, here, we pad the tardiness to the appropriate amount.
             if (extra_delay < 0LL) {
-                trigger->tardiness = 0LL - extra_delay;
+                // trigger->tardiness = 0LL - extra_delay;
                 extra_delay = 0LL;
             }               
             DEBUG_PRINT("Federate %d calling schedule with delay %llu and tardiness %llu.", _lf_my_fed_id, extra_delay, trigger->tardiness);
@@ -920,7 +920,8 @@ handle_t schedule_message_received_from_network_already_locked(
                 // incur one microstep relative to the current tag. We will set
                 // a tardiness accordingly here to 
                 // trigger the Tardy handler downstream, if any exists.
-                trigger->tardiness = 0LL - extra_delay;
+                // (current_logical_time, current_microstep + 1)
+                trigger->tardiness = -extra_delay;
                 // Set the delay back to 0
                 extra_delay = 0LL;
                 DEBUG_PRINT("Federate %d calling schedule with delay %llu and tardiness %llu.", _lf_my_fed_id, extra_delay, trigger->tardiness);
@@ -929,26 +930,21 @@ handle_t schedule_message_received_from_network_already_locked(
                 // In the case where the microstep is in the past
                 // but timestamp == current_logical_time, we will
                 // call schedule with a delay of 1 microstep, but 
-                // set tardiness to ??, meaning the microstep was 
+                // set tardiness to 0, meaning the microstep was 
                 // missed.
                 // FIXME: how to show tardiness in microsteps?
-                _lf_fd_handle_microstep_tardiness(trigger);
+                _lf_fd_mark_reactions_tardy(trigger);
                 extra_delay = 0LL;
                 DEBUG_PRINT("Federate %d received a message that is %u microsteps late.", _lf_my_fed_id, get_microstep() - microstep);
                 return_value = __schedule(trigger, extra_delay, token);
             }
 #endif   
-        } else if (extra_delay == 0) {
-            // In case the message is in the future but at the
-            // current timestamp (i.e., the microstep is ahead)
-            // call __schedule() with 0 delay and pass a non-zero
+        } else {
+            // FIXME: fix comment
+            // In case the message is in the future 
+            // call _lf_schedule_at_tag pass a non-zero
             // microstep delay, which shall be used to calculate the
             // desired microstep for the message.
-            DEBUG_PRINT("Federate %d received a message that is %u microsteps in the future.", _lf_my_fed_id, microstep - get_microstep());
-            return_value = _lf_schedule_at_tag(trigger, timestamp, microstep, token);
-        } else {
-            // Message has a timestamp that is in the future
-            // microstep = 0
             DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, microstep - get_microstep());
             return_value = _lf_schedule_at_tag(trigger, timestamp, microstep, token);
         }
@@ -1067,7 +1063,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
  * This is used to communicate between the listen_to_rti thread and the
  * main federate thread.
  */
-volatile _lf_fd_tag __tag = { .timestep = NEVER, .microstep = 0u };
+volatile _lf_fd_tag_t __tag = { .timestep = NEVER, .microstep = 0u };
 
 /** Indicator of whether a NET has been sent to the RTI and no TAG
  *  yet received in reply.
@@ -1323,7 +1319,7 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
  *  change in the event queue.
  *  This function assumes the caller holds the mutex lock.
  */
- _lf_fd_tag __next_event_time(instant_t timestep, microstep_t microstep) {
+ _lf_fd_tag_t __next_event_time(instant_t timestep, microstep_t microstep) {
      if (!__fed_has_downstream && !__fed_has_upstream) {
          // This federate is not connected (except possibly by physical links)
          // so there is no need for the RTI to get involved.
@@ -1334,7 +1330,7 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
          // affect __fed_has_upstream. We should not return immediately because
          // then the execution will hit its stop_time and fail to receive any
          // messages sent by upstream federates.
-        return (_lf_fd_tag) {  .timestep = timestep, .microstep = microstep };
+        return (_lf_fd_tag_t) {  .timestep = timestep, .microstep = microstep };
      }
 
      // FIXME: The returned value t is a promise that, absent inputs from
@@ -1354,7 +1350,7 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
      if (__tag.timestep > timestep || 
         (__tag.timestep == timestep &&
          __tag.microstep > microstep)) {
-         return (_lf_fd_tag) {  .timestep = timestep, .microstep = microstep };
+         return (_lf_fd_tag_t) {  .timestep = timestep, .microstep = microstep };
      }
 
      send_tag(NEXT_EVENT_TIME, timestep, microstep);
@@ -1367,7 +1363,7 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
      // throttle upstream federates.
      // FIXME: As noted above, this is not correct if the time is the stop_time.
      if (!__fed_has_upstream) {
-         return (_lf_fd_tag) {  .timestep = timestep, .microstep = microstep };
+         return (_lf_fd_tag_t) {  .timestep = timestep, .microstep = microstep };
      }
 
      __tag_pending = true;
@@ -1393,7 +1389,7 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
                      microstep = 0u;
                  }
 
-                 return (_lf_fd_tag) { .timestep = head_event->time, .microstep = microstep };
+                 return (_lf_fd_tag_t) { .timestep = head_event->time, .microstep = microstep };
              }
              // If we get here, any activity on the event queue is not relevant.
              // Either the queue is empty or whatever appeared on it
