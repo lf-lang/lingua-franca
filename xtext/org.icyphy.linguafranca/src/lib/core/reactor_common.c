@@ -758,7 +758,8 @@ event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* nex
  * @param microstep The microstep of the event in the given logical time
  * @param token The token wrapping the payload or NULL for no payload.
  * 
- * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
+ * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated),
+ *  or -1 for error (the tag is equal to or less than the current tag).
  */
 int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microstep, token_t* token) {
     instant_t current_logical_time = get_logical_time();

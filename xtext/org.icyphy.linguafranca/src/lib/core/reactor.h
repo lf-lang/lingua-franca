@@ -59,6 +59,8 @@
 #include <errno.h>
 #include "pqueue.h"
 #include "util.h"
+#include "tag.h"    // Time-related types and functions.
+
 // The following file is also included, but must be included
 // after its requirements are met, so the #include appears at
 // then end.
@@ -68,36 +70,9 @@
 #define CONSTRUCTOR(classname) (new_ ## classname)
 #define SELF_STRUCT_T(classname) (classname ## _self_t)
 
-
-// Commonly used time values.
-#define NEVER -0xFFFFFFFFFFFFFFFFLL
-#define FOREVER 0x7FFFFFFFFFFFFFFFLL
-
-// Convenience for converting times
-#define BILLION 1000000000LL
-
 // FIXME: May want these to application dependent, hence code generated.
 #define INITIAL_EVENT_QUEUE_SIZE 10
 #define INITIAL_REACT_QUEUE_SIZE 10
-
-/* Conversion of time to nanoseconds. */
-#define NSEC(t) (t * 1LL)
-#define NSECS(t) (t * 1LL)
-#define USEC(t) (t * 1000LL)
-#define USECS(t) (t * 1000LL)
-#define MSEC(t) (t * 1000000LL)
-#define MSECS(t) (t * 1000000LL)
-#define SEC(t)  (t * 1000000000LL)
-#define SECS(t) (t * 1000000000LL)
-#define MINUTE(t)   (t * 60000000000LL)
-#define MINUTES(t)  (t * 60000000000LL)
-#define HOUR(t)  (t * 3600000000000LL)
-#define HOURS(t) (t * 3600000000000LL)
-#define DAY(t)   (t * 86400000000000LL)
-#define DAYS(t)  (t * 86400000000000LL)
-#define WEEK(t)  (t * 604800000000000LL)
-#define WEEKS(t) (t * 604800000000000LL)
-
 
 ////////////////////////////////////////////////////////////
 //// Macros for producing outputs.
@@ -344,31 +319,6 @@ typedef enum {no=0, token_and_value, token_only} ok_to_free_t;
  * implemented yet.
  */
 typedef int handle_t;
-
-/**
- * Time instant. Both physical and logical times are represented
- * using this typedef. FIXME: Perhaps distinct typedefs should
- * be used.
- * WARNING: If this code is used after about the year 2262,
- * then representing time as a long long will be insufficient.
- * 
- * @note This type is also duplicated in util.h
- */
-typedef long long instant_t;
-
-/**
- * Interval of time.
- * 
- * @note This type is also duplicated in util.h
- */
-typedef long long interval_t;
-
-/**
- * Microstep instant.
- * 
- * @note This type is also duplicated in util.h
- */
-typedef unsigned int microstep_t;
 
 /**
  * String type so that we don't have to use {= char* =}.
