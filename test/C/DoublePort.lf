@@ -44,6 +44,7 @@ main reactor DoublePort {
     c = new Count();
     cm = new CountMicrostep();
     p = new Print();
-    c.out -> p.in after 10 msec;
-    cm.out -> p.in2 after 10 msec;
+    c.out -> p.in;
+    cm.out -> p.in2;
 }
+

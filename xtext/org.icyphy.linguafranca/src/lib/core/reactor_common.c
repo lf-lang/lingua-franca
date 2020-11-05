@@ -685,6 +685,21 @@ event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* nex
 }
 
 /**
+ * Replace the token on the specified event with the specified
+ * token and free the old token.
+ * @param event The event.
+ * @param token The token.
+ */
+void _lf_replace_token(event_t* event, token_t* token) {
+    if (event->token != token) {
+        // Free the existing token, if any
+        __done_using(event->token);
+    }
+    // Replace the token with ours.
+    event->token = token;
+}
+
+/**
  * Schedule events at a specific tag (time, microstep), provided
  * that the tag is in the future relative to the current tag.
  * The input time values are absolute.
@@ -706,7 +721,8 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
         return -1;
     }
     // If the time matches current time, find the difference in microsteps, which
-    // is at least 1.
+    // is at least 1. We will set up this number of dummy events to skip
+    // to the desired microstep.
     if (tag.time == current_logical_tag.time) {
         tag.microstep -= get_microstep();
     }
@@ -745,36 +761,43 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
             // The microstep is 0, which means that the event is being scheduled
             // a future time.
             if (found->is_dummy) {
-                // The found event is a dummy event, meaning that it is scheduled
-                // at a future time with a microstep larger than 0.
-                // Replace that event.
-                // FIXME: Why??? THIS LOOKS WRONG to me.
-                microstep_t steps = *((microstep_t*)found->token->value);
-                if (steps == 1) {
-                    found->is_dummy = false;
-                    if (found->token != token) {
-                        // Free the existing token, if any
-                        __done_using(found->token);
-                    }
-                    found->token = token;
-                    e->next = found->next;
-                } else {
-                    e->next = found;
-                    *((microstep_t*)found->token->value) -= 1;
+                // The found event is a dummy event, meaning that it is a placeholder
+                // for another event to be scheduled
+                // at the future time with a microstep larger than 0.
+                // We need to insert our event in place of the dummy
+                // event, chain our event to the dummy event or its real
+                // event, depending on its offset. First, get the offset
+                // of the dummy event.
+                microstep_t dummy_microstep_offset = *((microstep_t*)found->token->value);
+
+                // Here, we repurpose the found event to make it our real event.
+                _lf_replace_token(found, token);
+                found->is_dummy = false;
+
+                // If the offset is 1, we leave the next pointer alone, since that points
+                // to its real event. That will cause that real event
+                // to trigger at microstep 1, after the event we are scheduling now.
+                // Otherwise, we create a new dummy event to skip some microsteps.
+                if (dummy_microstep_offset > 1) {
+                    found->next = _lf_create_dummy_event(
+                            trigger, tag.time, found->next, dummy_microstep_offset - 1);
                 }
+                _lf_recycle_event(e);
             } else {
                 // There is an existing event at the specified time.
                 // Since it is not a dummy event, its microstep is 0.
                 // Replace it.
-                if (found->token != token) {
-                    // Free the existing token, if any
-                    __done_using(found->token);
-                }
-                found->token = token;
+                _lf_replace_token(found, token);
                 _lf_recycle_event(e);
                 return 0;
             }
         } else {
+            // We are requesting a microstep greater than 0
+            // where there is already an event for this trigger on the event queue.
+            // That event may itself be a dummy event for a real event that is
+            // also at a microstep greater than 0.
+            // We have to insert our event into the chain or append it
+            // to the end of the chain, depending on which microstep is lesser.s
             microstep_t steps = 0;
             while (found->next != NULL && (steps < tag.microstep - 1)) {
                 if (found->is_dummy) {
