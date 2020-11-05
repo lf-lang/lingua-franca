@@ -124,9 +124,9 @@ interval_t get_elapsed_logical_time();
 instant_t get_logical_time();
 
 /**
- * Return the current logical tag, a time, microstep pair.
+ * Return the current tag, a logical time, microstep pair.
  */
-tag_t get_logical_tag();
+tag_t get_current_tag();
 
 /**
  * Return the current microstep.
