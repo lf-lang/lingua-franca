@@ -37,31 +37,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HOST_BIG_ENDIAN 2
 
 /**
- * Time instant. Both physical and logical times are represented
- * using this typedef. FIXME: Perhaps distinct typedefs should
- * be used.
- * WARNING: If this code is used after about the year 2262,
- * then representing time as a long long will be insufficient.
- * 
- * @note This type is also duplicated in reactor.h
- */
-typedef long long instant_t;
-
-/**
- * Interval of time.
- * 
- * @note This type is also duplicated in reactor.h
- */
-typedef long long interval_t;
-
-/**
- * Microstep instant.
- * 
- * @note This type is also duplicated in reactor.h
- */
-typedef unsigned int microstep_t;
-
-/**
  * A handy macro that can concatenate three strings.
  * Useful in the DEBUG_PRINT macro and error_print
  * functions that want to concatenate a "DEBUG: " or
@@ -257,15 +232,5 @@ void extract_header(
         unsigned short* federate_id,
         unsigned int* length
 );
-
-
-/**
- * A handy struct used to handle tags sent and received over the
- * network.
- */
-typedef struct {
-    instant_t timestep;
-    microstep_t microstep;
-} _lf_fd_tag_t;
 
 #endif /* UTIL_H */
