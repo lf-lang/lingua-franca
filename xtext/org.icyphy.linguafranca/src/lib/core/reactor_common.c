@@ -716,8 +716,8 @@ void _lf_replace_token(event_t* event, token_t* token) {
  */
 int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
     tag_t current_logical_tag = get_current_tag();
-    // DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).",
-    //             tag.time, tag.microstep, current_logical_tag.time, current_logical_tag.microstep);
+    // printf("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).\n",
+    //             tag.time - start_time, tag.microstep, current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {
         DEBUG_PRINT("_lf_schedule_at_tag(): requested to schedule an event in the past.");
         return -1;
@@ -785,66 +785,68 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
                             trigger, tag.time, found->next, dummy_microstep_offset - 1);
                 }
                 _lf_recycle_event(e);
-                printf("<<<<<< _lf_schedule_at_tag: 1\n");
+                // printf("<<<<<< _lf_schedule_at_tag: 1\n");
             } else {
                 // There is an existing event at the specified time.
                 // Since it is not a dummy event, its microstep is 0.
                 // Replace it.
                 _lf_replace_token(found, token);
                 _lf_recycle_event(e);
-                printf("<<<<<< _lf_schedule_at_tag: 2\n");
+                // printf("<<<<<< _lf_schedule_at_tag: 2\n");
                 return 0;
             }
         } else {
-            printf("<<<<<< _lf_schedule_at_tag: 3\n");
+            // printf("<<<<<< _lf_schedule_at_tag: 3\n");
             // We are requesting a microstep greater than 0
             // where there is already an event for this trigger on the event queue.
             // That event may itself be a dummy event for a real event that is
             // also at a microstep greater than 0.
             // We have to insert our event into the chain or append it
-            // to the end of the chain, depending on which microstep is lesser.s
+            // to the end of the chain, depending on which microstep is lesser.
             microstep_t steps = 0;
-            while (found->next != NULL && (steps < tag.microstep - 1)) {
+            while (steps < tag.microstep - 1) {
                 if (found->is_dummy) {
                     // The payload of a dummy event is the steps               
-                    printf("<<<<<< _lf_schedule_at_tag: 4\n");
+                    // printf("<<<<<< _lf_schedule_at_tag: 4\n");
                     steps += *((microstep_t*)found->token->value);
                 } else {
-                    printf("<<<<<< _lf_schedule_at_tag: 5\n");
+                    // printf("<<<<<< _lf_schedule_at_tag: 5\n");
                     steps++;
+                }
+                // If we match or surpass the microsteps we
+                // were looking for, break the loop.
+                if (found->next == NULL) {
+                    break;
                 }
                 found = found->next;
             }
             // We've either reached the microstep or surpassed it.
             //(..., dummy, e, ...)
             if (steps == tag.microstep-1) {                                
-                printf("<<<<<< _lf_schedule_at_tag: 6\n");
+                // printf("<<<<<< _lf_schedule_at_tag: 6\n");
                 // The next pointer of our found event
                 // can be used directly (either it is null
                 // where we can assign it or not null which
                 // has to be reassigned).
                 if (found->next) {
-                    printf("<<<<<< _lf_schedule_at_tag: 7\n");
+                    // printf("<<<<<< _lf_schedule_at_tag: 7\n");
                     // There is already an event after found
                     // which we need to replace
-                    if (found->next->token != token) {
-                        // Free the existing token, if any
-                        __done_using(found->next->token);
-                    }
-                    found->next->token = token;
+                    _lf_replace_token(found->next, token);
                     _lf_recycle_event(e);
+                    return 0;
                 } else {
-                    printf("<<<<<< _lf_schedule_at_tag: 8\n");
+                    // printf("<<<<<< _lf_schedule_at_tag: 8\n");
                     // Next pointer is NULL.
                     // Reassign it.
                     found->next = e;
                 }
             } else if (steps == tag.microstep) {
-                printf("<<<<<< _lf_schedule_at_tag: 9\n");
+                // printf("<<<<<< _lf_schedule_at_tag: 9\n");
                 // We overshot. This can only happen if the last payload was a dummy
                 // payload with steps that were larger than what we wanted.
                 if (!found->is_dummy) {
-                    DEBUG_PRINT("_lf_schedule_at_tag(): incorrect logic.");
+                    fprintf(stderr, "_lf_schedule_at_tag(): incorrect logic.\n");
                     return -1;
                 }
 
@@ -858,11 +860,11 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
                 e->next = found->next;
                 found->next = e;
             } else {
-                printf("<<<<<< _lf_schedule_at_tag: 10\n");
+                // printf("<<<<<< _lf_schedule_at_tag: 10\n");
                 // We overshot. This can only happen if the last payload was a dummy
                 // payload with steps that were larger than what we wanted.
                 if (!found->is_dummy) {
-                    DEBUG_PRINT("_lf_schedule_at_tag(): incorrect logic.");
+                    fprintf(stderr, "_lf_schedule_at_tag(): incorrect logic.\n");
                     return -1;
                 }
                 // The steps are larger than 1. Therefore, we need to break up the 
@@ -876,12 +878,10 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
                 microstep_t* steps_found = (microstep_t*)found->token->value;                
 
                 // Finally, create a new dummy event with the correct microsteps
-                //event_t* new_dummy = _lf_create_dummy_event(trigger, tag.time, found, steps_found - microstep); // FIXME
-                event_t* new_dummy = _lf_create_dummy_event(trigger, tag.time, found, overshot_by);
-
-                // Point the new_dummy's next event to the previous
+                // and point the new_dummy's next event to the previous
                 // found dummy's next event
-                new_dummy->next = found->next;
+                //event_t* new_dummy = _lf_create_dummy_event(trigger, tag.time, found, steps_found - microstep); // FIXME
+                event_t* new_dummy = _lf_create_dummy_event(trigger, tag.time, found->next, overshot_by);
 
                 // We will replace the payload of the found dummy event with the microsteps
                 // we need for e. We will then add another dummy event
@@ -894,20 +894,18 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
         }
     } else {
         // No existing event queued.
-        if ((tag.time == current_logical_tag.time) && (tag.microstep == 1)) {
-            printf("<<<<<< _lf_schedule_at_tag: 11\n");
+        if (((tag.time == current_logical_tag.time) && (tag.microstep == 1)) ||
+             tag.microstep == 0) {
+            // Do not need a dummy event if we are scheduling at 1 microstep
+            // in the future at current time or at microstep 0 in a future time.
+            // printf("<<<<<< _lf_schedule_at_tag: 11\n");
             pqueue_insert(event_q, e);
-        } else if (tag.time == current_logical_tag.time) {
-            printf("<<<<<< _lf_schedule_at_tag: 12\n");
+        } else {
+            // printf("<<<<<< _lf_schedule_at_tag: 12\n");
             // Create a dummy event. Insert it into the queue, and let its next
             // pointer point to the actual event. The tag (x,0) has already been
             // seen
             pqueue_insert(event_q, _lf_create_dummy_event(trigger, tag.time, e, tag.microstep-1));
-        } else {
-            printf("<<<<<< _lf_schedule_at_tag: 13\n");
-            // Create a dummy event. Insert it into the queue, and let its next
-            // pointer point to the actual event.
-            pqueue_insert(event_q, _lf_create_dummy_event(trigger, tag.time, e, tag.microstep));
         }
     }
     return 1;
