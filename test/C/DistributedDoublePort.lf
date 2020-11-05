@@ -40,6 +40,10 @@ reactor Print {
             exit(1);
         }
     =}
+    
+    reaction(shutdown) {=
+        printf("SUCCESS: messages were at least one microstep apart.\n");
+    =}
 }
 
 federated reactor DistributedDoublePort {
