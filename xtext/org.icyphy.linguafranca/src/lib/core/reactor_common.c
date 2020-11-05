@@ -34,6 +34,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  @author{Mehrdad Niknami <mniknami@berkeley.edu>}
  */
 #include "reactor.h"
+#include "tag.c"
 
 /**
  * Indicator for the absence of values for ports that remain disconnected.

@@ -55,6 +55,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/wait.h>   // Defines wait() for process to change state.
 #include "util.c"       // Defines error() and swap_bytes_if_big_endian().
 #include "rti.h"        // Defines TIMESTAMP. Includes <pthread.h> and "reactor.h".
+#include "tag.c"        // Time-related types and functions.
 
 /** Delay the start of all federates by this amount. */
 #define DELAY_START SEC(1)
@@ -261,16 +262,16 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
  * Send a tag advance grant (TAG) message to the specified socket
  *  with the specified time and microstep.
  */
-void send_tag_advance_grant(federate_t* fed, _lf_fd_tag_t tag) {
+void send_tag_advance_grant(federate_t* fed, tag_t tag) {
     if (fed->state == NOT_CONNECTED) {
         return;
     }
     unsigned char buffer[1 + sizeof(instant_t) + sizeof(microstep_t)];
     buffer[0] = TIME_ADVANCE_GRANT;
-    encode_ll(tag.timestep, &(buffer[1]));
+    encode_ll(tag.time, &(buffer[1]));
     encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
     write_to_socket(fed->socket, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer, "RTI failed to send time advance grant to federate %d.", fed->id);
-    DEBUG_PRINT("RTI sent to federate %d the TAG (%lld, %u).", fed->id, tag.timestep - start_time, tag.microstep);
+    DEBUG_PRINT("RTI sent to federate %d the TAG (%lld, %u).", fed->id, tag.time - start_time, tag.microstep);
 }
 
 /** 
@@ -290,7 +291,7 @@ void send_tag_advance_grant(federate_t* fed, _lf_fd_tag_t tag) {
  *  have been visited (for the first invocation, this should be
  *  an array of falses of size NUMBER_OF_FEDERATES).
  */
-_lf_fd_tag_t transitive_next_event(federate_t* fed, _lf_fd_tag_t candidate, bool visited[]) {
+tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
     if (visited[fed->id] || fed->state == NOT_CONNECTED) {
         // DEBUG_PRINT("Federate %d not connected to RTI.", fed->id);
         // Federate has stopped executing or we have visited it before.
@@ -299,28 +300,24 @@ _lf_fd_tag_t transitive_next_event(federate_t* fed, _lf_fd_tag_t candidate, bool
     }
 
     visited[fed->id] = true;
-    _lf_fd_tag_t result = fed->next_event;
-    if (candidate.timestep < result.timestep ||
-        (candidate.timestep == result.timestep &&
-               candidate.microstep < result.microstep)) {
+    tag_t result = fed->next_event;
+    if (compare_tags(candidate, result) < 0) {
         result = candidate;
     }
     // Check upstream federates to see whether any of them might send
     // an event that would result in an earlier next event.
     for (int i = 0; i < fed->num_upstream; i++) {
-        _lf_fd_tag_t upstream_result = transitive_next_event(
+        tag_t upstream_result = transitive_next_event(
                 &federates[fed->upstream[i]], result, visited);
-        if (upstream_result.timestep != NEVER && fed->upstream_delay[i] > 0) {
-            upstream_result.timestep += fed->upstream_delay[i];
+        if (upstream_result.time != NEVER && fed->upstream_delay[i] > 0) {
+            upstream_result.time += fed->upstream_delay[i];
             upstream_result.microstep = 0;
         }
-        if (upstream_result.timestep < result.timestep ||
-            (upstream_result.timestep == result.timestep &&
-             upstream_result.microstep < result.microstep)) {
+        if (compare_tags(upstream_result, result) < 0) {
             result = upstream_result;
         }
     }
-    if (result.timestep == NEVER) {
+    if (result.time == NEVER) {
         result = fed->completed;
     }
     return result;
@@ -350,7 +347,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     // The first candidate is its next event time. But we may need to advance
     // it to a lesser time.
 
-    _lf_fd_tag_t candidate_tag_advance = fed->next_event;
+    tag_t candidate_tag_advance = fed->next_event;
 
     // Look at its upstream federates (including this one).
     for (int j = 0; j < fed->num_upstream; j++) {
@@ -359,16 +356,16 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         federate_t* upstream = &federates[fed->upstream[j]];
         // There may be a delay on the connection. Add that to the candidate.
         interval_t delay = fed->upstream_delay[j];
-        _lf_fd_tag_t upstream_completion_tag = upstream->completed;
-        upstream_completion_tag.timestep += delay;
+        tag_t upstream_completion_tag = upstream->completed;
+        upstream_completion_tag.time += delay;
         if (delay > 0) {
             // If a positive delay is given, then the event will be processed
-            // at microstep 0 in a future timestep
+            // at microstep 0 in a future time
             upstream_completion_tag.microstep = 0;
         }
         // Preserve NEVER.
-        if (upstream->completed.timestep == NEVER) {
-            upstream_completion_tag.timestep = NEVER;
+        if (upstream->completed.time == NEVER) {
+            upstream_completion_tag.time = NEVER;
             upstream_completion_tag.microstep = 0;
         }
         // If the completion tag of the upstream federate
@@ -376,9 +373,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         // completion tag unless the (transitive) next_event tag of the
         // upstream federate (plus the delay) is larger than the
         // current candidate completion tag.
-        if (upstream_completion_tag.timestep < candidate_tag_advance.timestep || 
-            (upstream_completion_tag.timestep == candidate_tag_advance.timestep &&
-             upstream_completion_tag.microstep < candidate_tag_advance.microstep)) {
+        if (compare_tags(upstream_completion_tag, candidate_tag_advance) < 0) {
             // To handle cycles, need to create a boolean array to keep
             // track of which upstream federates have been visited.
             bool visited[NUMBER_OF_FEDERATES];
@@ -387,25 +382,25 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
             }
 
             // Find the (transitive) next event tag upstream.
-            _lf_fd_tag_t upstream_next_event = transitive_next_event(
+            tag_t upstream_next_event = transitive_next_event(
                     upstream, upstream->next_event, visited);
             DEBUG_PRINT("Upstream next event: (%lld, %u). Upstream completion time: (%lld, %u). Candidate time: (%lld, %u).",
-                    upstream_next_event.timestep - start_time,
+                    upstream_next_event.time - start_time,
                     upstream_next_event.microstep,
-                    upstream_completion_tag.timestep - start_time,
+                    upstream_completion_tag.time - start_time,
                     upstream_completion_tag.microstep,
-                    candidate_tag_advance.timestep - start_time,
+                    candidate_tag_advance.time - start_time,
                     candidate_tag_advance.microstep);
-            if (upstream_next_event.timestep != NEVER && delay > 0) {
-                upstream_next_event.timestep += delay;
+            if (upstream_next_event.time != NEVER && delay > 0) {
+                upstream_next_event.time += delay;
                 upstream_next_event.microstep = 0;
             }
             // If the upstream federate has disconnected,
             // it will not produce further events. Thus,
             // the next assignment will be unnecessary.
             if (upstream->state != NOT_CONNECTED) {
-                if (upstream_next_event.timestep < candidate_tag_advance.timestep ||
-                    (upstream_next_event.timestep == candidate_tag_advance.timestep &&
+                if (upstream_next_event.time < candidate_tag_advance.time ||
+                    (upstream_next_event.time == candidate_tag_advance.time &&
                     upstream_next_event.microstep <= candidate_tag_advance.microstep)) {
                     // Cannot advance the federate to the upstream
                     // next event time because that event has presumably not yet
@@ -418,14 +413,14 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
 
     // If the resulting time will advance time
     // in the federate, send it a time advance grant.
-    if (candidate_tag_advance.timestep > fed->completed.timestep || 
-        (candidate_tag_advance.timestep == fed->completed.timestep &&
+    if (candidate_tag_advance.time > fed->completed.time ||
+        (candidate_tag_advance.time == fed->completed.time &&
         candidate_tag_advance.microstep > fed->completed.microstep)) {
-        DEBUG_PRINT("Sending TAG to fed %d of (%lld, %u) because it is greater than the completed (%lld, %u).", fed->id, candidate_tag_advance.timestep - start_time, candidate_tag_advance.microstep, fed->completed.timestep - start_time, fed->completed.microstep);
+        DEBUG_PRINT("Sending TAG to fed %d of (%lld, %u) because it is greater than the completed (%lld, %u).", fed->id, candidate_tag_advance.time - start_time, candidate_tag_advance.microstep, fed->completed.time - start_time, fed->completed.microstep);
         send_tag_advance_grant(fed, candidate_tag_advance);
         return true;
     } else {
-        DEBUG_PRINT("Not sending TAG to fed %d of %lld because it is not greater than the completed %lld.", fed->id, candidate_tag_advance.timestep - start_time, fed->completed.timestep - start_time);
+        DEBUG_PRINT("Not sending TAG to fed %d of %lld because it is not greater than the completed %lld.", fed->id, candidate_tag_advance.time - start_time, fed->completed.time - start_time);
     }
     return false;
 }
@@ -436,18 +431,18 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
  */
 void handle_logical_time_complete(federate_t* fed) {
     unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
-    read_from_socket(fed->socket, sizeof(instant_t), buffer, "RTI failed to read the content of the logical tag complete timestep from federate %d.", fed->id);
+    read_from_socket(fed->socket, sizeof(instant_t), buffer, "RTI failed to read the content of the logical tag complete time from federate %d.", fed->id);
     read_from_socket(fed->socket, sizeof(microstep_t), buffer + sizeof(instant_t), "RTI failed to read the content of the logical tag complete microstep from federate %d.", fed->id);
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
     pthread_mutex_lock(&rti_mutex);
 
-    fed->completed.timestep = extract_ll(buffer);
+    fed->completed.time = extract_ll(buffer);
     fed->completed.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
     DEBUG_PRINT("RTI received from federate %d the logical tag complete (%lld, %u).",
-                fed->id, fed->completed.timestep - start_time, fed->completed.microstep);
+                fed->id, fed->completed.time - start_time, fed->completed.microstep);
 
     // Check downstream federates to see whether they should now be granted a TAG.
     for (int i = 0; i < fed->num_downstream; i++) {
@@ -462,16 +457,16 @@ void handle_logical_time_complete(federate_t* fed) {
  */
 void handle_next_event_time(federate_t* fed) {
     unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
-    read_from_socket(fed->socket, sizeof(instant_t), buffer, "RTI failed to read the content of the next event tag timestep from federate %d.", fed->id);
+    read_from_socket(fed->socket, sizeof(instant_t), buffer, "RTI failed to read the content of the next event tag's time from federate %d.", fed->id);
     read_from_socket(fed->socket, sizeof(microstep_t), buffer + sizeof(instant_t), "RTI failed to read the content of the next event tag microstep from federate %d.", fed->id);
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
     pthread_mutex_lock(&rti_mutex);
 
-    fed->next_event.timestep = extract_ll(buffer);
+    fed->next_event.time = extract_ll(buffer);
     fed->next_event.microstep = extract_int(&(buffer[sizeof(instant_t)]));
-    DEBUG_PRINT("RTI received from federate %d the NET (%lld, %u).", fed->id, fed->next_event.timestep - start_time, fed->next_event.microstep);
+    DEBUG_PRINT("RTI received from federate %d the NET (%lld, %u).", fed->id, fed->next_event.time - start_time, fed->next_event.microstep);
 
     // Check to see whether we can reply now with a time advance grant.
     // If the federate has no upstream federates, then it does not wait for
@@ -686,7 +681,7 @@ void handle_federate_resign(federate_t *my_fed) {
         bytes_read = read_from_socket2(my_fed->socket, 1, temporary_read_buffer);
     } while(bytes_read > 0 || errno == EAGAIN || errno == EWOULDBLOCK);
     my_fed->state = NOT_CONNECTED;
-    my_fed->next_event.timestep = NEVER;
+    my_fed->next_event.time = NEVER;
     my_fed->next_event.microstep = 0;
     close(my_fed->socket); //  from unistd.h
     pthread_mutex_unlock(&rti_mutex);
@@ -935,9 +930,9 @@ void* respond_to_erroneous_connections(void* nothing) {
 void initialize_federate(int id) {
     federates[id].id = id;
     federates[id].socket = -1;      // No socket.
-    federates[id].completed.timestep = NEVER;
+    federates[id].completed.time = NEVER;
     federates[id].completed.microstep = 0u;
-    federates[id].next_event.timestep = NEVER;
+    federates[id].next_event.time = NEVER;
     federates[id].next_event.microstep = 0u;
     federates[id].state = NOT_CONNECTED;
     federates[id].upstream = NULL;

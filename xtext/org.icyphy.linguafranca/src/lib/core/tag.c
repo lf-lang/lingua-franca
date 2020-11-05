@@ -79,5 +79,3 @@ int compare_tags2(instant_t time1, microstep_t microstep1, instant_t time2, micr
         return 0;
     }
 }
-
-#endif // TAG_H
