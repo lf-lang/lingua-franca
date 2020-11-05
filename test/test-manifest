@@ -52,8 +52,10 @@ DistributedCountPhysical.lf
 DistributedCountPhysicalLate.lf
 DistributedCountPhysicalDecentralized.lf
 DistributedCountPhysicalDecentralizedLate.lf
+DistributedDoublePort.lf
 DistributedToken.lf
 DoubleInvocation.lf
+DoublePort.lf
 DoubleReaction.lf
 DoubleReactionThreaded.lf
 DoubleTrigger.lf
