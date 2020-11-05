@@ -46,6 +46,6 @@ federated reactor DistributedDoublePort {
     c = new Count();
     cm = new CountMicrostep();
     p = new Print();
-    c.out -> p.in after 10 msec;    // Indicating a 'logical' connection.
-    cm.out -> p.in2 after 10 msec;
+    c.out -> p.in;    // Indicating a 'logical' connection.
+    cm.out -> p.in2;
 }
