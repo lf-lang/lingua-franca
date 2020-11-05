@@ -6,7 +6,7 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 5 sec,
+    timeout: 4900 msec,
     coordination: decentralized
 };
 
@@ -42,7 +42,7 @@ reactor Print {
     =}
     
     reaction(shutdown) {=
-        if ((self->success +  self->success_tardy) != 6) { // At timeout (e.g., t = 5000000000), we allow
+        if ((self->success +  self->success_tardy) != 5) { // At timeout (e.g., t = 5000000000), we allow
                                                            // for arbitrary microsteps. Therefore, we get
                                                            // 6 messages rather than 5.
             fprintf(stderr, "Failed to detect tardiness of messages.\n");
