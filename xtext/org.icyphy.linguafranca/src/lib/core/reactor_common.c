@@ -1131,9 +1131,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
  *  trigger's minimum delay, if it has one. If this number is negative,
  *  then zero is used instead.
  * @param token The token wrapping the payload or NULL for no payload.
- * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
- * 
- * // FIXME: error handling is inconsistent
+ * @return A handle to the event, or 0 if no new event was scheduled because the function
+ *  was called incorrectly.
  */
 handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay, token_t* token) {
     // Check to see if the execution

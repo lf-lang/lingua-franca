@@ -302,21 +302,21 @@ void send_timed_message(interval_t additional_delay,
     if (additional_delay == 0LL) {
         // After was specified by the user
         // on the connection with a delay of 0.
-        // FIXME: in this case,
+        // In this case,
         // the tag of the outgoing message
         // should be (get_logical_time(), get_microstep() + 1).
         current_message_microstep += 1;
     } else if (additional_delay > 0LL) {
         // After was specified by the user
         // on the connection with a positive delay.
-        // FIXME: in this case,
+        // In this case,
         // the tag of the outgoing message
         // should be (get_logical_time() + additional_delay, get_microstep())
 
         current_message_timestamp += additional_delay;
     } else if (additional_delay == -1LL) {
         // No after delay is given by the user
-        // FIXME: in this case,
+        // In this case,
         // the tag of the outgoing message
         // should be (get_logical_time(), get_microstep())
     }
@@ -921,8 +921,8 @@ handle_t schedule_message_received_from_network_already_locked(
                 // but timestamp == current_logical_time, we will
                 // call schedule with a delay of 1 microstep, but 
                 // set tardiness to 0, meaning the microstep was 
-                // missed.
-                // FIXME: how to show tardiness in microsteps?
+                // missed. The tardy handler, if any, will be
+                // invoked.
                 _lf_fd_mark_reactions_tardy(trigger);
                 extra_delay = 0LL;
                 DEBUG_PRINT("Federate %d received a message that is %u microsteps late.", _lf_my_fed_id, get_microstep() - tag.microstep);
@@ -930,11 +930,9 @@ handle_t schedule_message_received_from_network_already_locked(
             }
 #endif   
         } else {
-            // FIXME: fix comment
             // In case the message is in the future 
-            // call _lf_schedule_at_tag pass a non-zero
-            // microstep delay, which shall be used to calculate the
-            // desired microstep for the message.
+            // call _lf_schedule_at_tag() and pass the tag
+            // of the message.
             DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, tag.microstep - get_microstep());
             return_value = _lf_schedule_at_tag(trigger, tag, token);
         }
@@ -979,7 +977,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // Get the triggering action for the corerponding port
     trigger_t* action = __action_for_port(port_id);
 
-    // Read the timestamp.
+    // Read the tag of the message.
     tag_t tag;
     tag.time = extract_ll(buffer + 8);
     tag.microstep = extract_int(buffer + 8 + sizeof(instant_t));
@@ -1043,7 +1041,10 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     }
 #endif
 
-    // FIXME: explain
+    // The mutex is unlocked here after the barrier on
+    // logical time has been removed to avoid
+    // the need for unecessary lock and unlock
+    // operations.
     pthread_mutex_unlock(&mutex);
 }
 

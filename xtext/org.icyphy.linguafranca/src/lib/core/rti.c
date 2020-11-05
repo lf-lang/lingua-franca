@@ -397,9 +397,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
             // it will not produce further events. Thus,
             // the next assignment will be unnecessary.
             if (upstream->state != NOT_CONNECTED) {
-                if (upstream_next_event.time < candidate_tag_advance.time ||
-                    (upstream_next_event.time == candidate_tag_advance.time &&
-                    upstream_next_event.microstep <= candidate_tag_advance.microstep)) {
+                if (compare_tags(upstream_next_event, candidate_tag_advance) <= 0) {
                     // Cannot advance the federate to the upstream
                     // next event time because that event has presumably not yet
                     // been produced.
@@ -411,9 +409,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
 
     // If the resulting time will advance time
     // in the federate, send it a time advance grant.
-    if (candidate_tag_advance.time > fed->completed.time ||
-        (candidate_tag_advance.time == fed->completed.time &&
-        candidate_tag_advance.microstep > fed->completed.microstep)) {
+    if (compare_tags(candidate_tag_advance, fed->completed) > 0) {
         DEBUG_PRINT("Sending TAG to fed %d of (%lld, %u) because it is greater than the completed (%lld, %u).", fed->id, candidate_tag_advance.time - start_time, candidate_tag_advance.microstep, fed->completed.time - start_time, fed->completed.microstep);
         send_tag_advance_grant(fed, candidate_tag_advance);
         return true;
