@@ -846,7 +846,7 @@ handle_t schedule_message_received_from_network_already_locked(
     // of the message (timestamp, microstep) is 
     // in the future relative to the tag of this
     // federate. By default, assume it is not.
-    bool message_tag_is_in_the_future = compare_tags(tag, get_logical_tag()) > 0;
+    bool message_tag_is_in_the_future = compare_tags(tag, get_current_tag()) > 0;
     
     // Set up the token
     token->value = value;

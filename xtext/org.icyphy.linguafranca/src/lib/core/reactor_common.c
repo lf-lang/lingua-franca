@@ -700,7 +700,7 @@ event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* nex
  *  or -1 for error (the tag is equal to or less than the current tag).
  */
 int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
-    tag_t current_logical_tag = get_logical_tag();
+    tag_t current_logical_tag = get_current_tag();
     if (compare_tags(tag, current_logical_tag) <= 0) {
         DEBUG_PRINT("_lf_schedule_at_tag(): requested to schedule an event in the past.");
         return -1;
