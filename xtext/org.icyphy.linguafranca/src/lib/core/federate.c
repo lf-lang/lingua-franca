@@ -360,7 +360,7 @@ void send_tag(unsigned char type, instant_t time, microstep_t microstep) {
  */
 void __broadcast_stop() {
     DEBUG_PRINT("Federate %d requesting a whole program stop.\n", _lf_my_fed_id);
-    send_tag(STOP, current_time, current_microstep);
+    send_tag(STOP, current_tag.time, current_tag.microstep);
 }
 
 /**
@@ -832,11 +832,12 @@ void _lf_fd_mark_reactions_tardy(trigger_t* trigger) {
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t schedule_message_received_from_network_already_locked(
-    trigger_t* trigger, 
-    instant_t timestamp, 
-    microstep_t microstep, 
-    void* value, 
-    int length) {
+        trigger_t* trigger,
+        instant_t timestamp,
+        microstep_t microstep,
+        void* value,
+        int length
+) {
 
     token_t* token = create_token(trigger->element_size);
     // Return value of the function
@@ -920,7 +921,7 @@ handle_t schedule_message_received_from_network_already_locked(
                 // incur one microstep relative to the current tag. We will set
                 // a tardiness accordingly here to 
                 // trigger the Tardy handler downstream, if any exists.
-                // (current_logical_time, current_microstep + 1)
+                // (current_logical_time, current_tag.microstep + 1)
                 trigger->tardiness = -extra_delay;
                 // Set the delay back to 0
                 extra_delay = 0LL;
@@ -1256,13 +1257,13 @@ void synchronize_with_other_federates() {
     // Advance Grant message to request for permission to execute. In the decentralized
     // coordination, either the after delay on the connection must be sufficiently large
     // enough or the STP offset must be set globally to an accurate value.
-    current_time = get_start_time_from_rti(get_physical_time());
+    current_tag.time = get_start_time_from_rti(get_physical_time());
 
-    start_time = current_time;
+    start_time = current_tag.time;
 
     if (duration >= 0LL) {
         // A duration has been specified. Recalculate the stop time.
-        stop_time = current_time + duration;
+        stop_time = current_tag.time + duration;
     }
 
     // Start a thread to listen for incoming messages from the RTI.
@@ -1271,9 +1272,9 @@ void synchronize_with_other_federates() {
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time.
-    wait_until(current_time);
-    DEBUG_PRINT("Done waiting for start time %lld.", current_time);
-    DEBUG_PRINT("Physical time is ahead of current time by %lld.", get_physical_time() - current_time);
+    wait_until(current_tag.time);
+    DEBUG_PRINT("Done waiting for start time %lld.", current_tag.time);
+    DEBUG_PRINT("Physical time is ahead of current time by %lld.", get_physical_time() - current_tag.time);
 
     // Reinitialize the physical start time to match the current physical time.
     // This will be different on each federate. If --fast was given, it could
@@ -1381,7 +1382,7 @@ void __logical_time_complete(instant_t time, microstep_t microstep) {
              // then we should return with the time of that event.
              event_t* head_event = (event_t*)pqueue_peek(event_q);
              if (head_event != NULL && head_event->time < time) {
-                 if (head_event->time == current_time) {
+                 if (head_event->time == current_tag.time) {
                      microstep = get_microstep() + 1;
                  } else {
                      microstep = 0u;

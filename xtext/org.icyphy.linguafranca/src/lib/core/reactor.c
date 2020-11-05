@@ -35,7 +35,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include <assert.h>
 
 /**
- * Schedule the specified trigger at current_time plus the offset of the
+ * Schedule the specified trigger at current_tag.time plus the offset of the
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
@@ -83,8 +83,8 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  * Advance logical time to the lesser of the specified time or the
  * timeout time, if a timeout time has been given. If the -fast command-line option
  * was not given, then wait until physical time matches or exceeds the start time of
- * execution plus the current_time plus the specified logical time.  If this is not
- * interrupted, then advance current_time by the specified logical_delay. 
+ * execution plus the current_tag.time plus the specified logical time.  If this is not
+ * interrupted, then advance current_tag.time by the specified logical_delay.
  * Return 0 if time advanced to the time of the event and -1 if the wait
  * was interrupted or if the timeout time was reached.
  */ 
@@ -92,7 +92,7 @@ int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (stop_time > 0LL && logical_time_ns > stop_time) {
         logical_time_ns = stop_time;
-        current_microstep = 0;
+        current_tag.microstep = 0;
         // Indicate on return that the time of the event was not reached.
         // We still wait for time to elapse in case asynchronous events come in.
         return_value = -1;
@@ -129,7 +129,7 @@ int wait_until(instant_t logical_time_ns) {
             long long current_physical_time_ns 
                     = current_physical_time.tv_sec * BILLION
                     + current_physical_time.tv_nsec;
-            if (current_physical_time_ns > current_time) {
+            if (current_physical_time_ns > current_tag.time) {
                 if (current_physical_time_ns < logical_time_ns) {
                     // Advance current time.
                     _lf_advance_logical_time(current_physical_time_ns);
@@ -226,7 +226,7 @@ int __do_step() {
             // container deadlines are defined in the container.
             // They can have different deadlines, so we have to check both.
             // Handle the local deadline first.
-            if (reaction->deadline > 0LL && physical_time > current_time + reaction->deadline) {
+            if (reaction->deadline > 0LL && physical_time > current_tag.time + reaction->deadline) {
                 printf("Deadline violation.\n");
                 // Deadline violation has occurred.
                 violation = true;
@@ -256,7 +256,7 @@ int __do_step() {
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
 
-    if (stop_time > 0LL && current_time >= stop_time) {
+    if (stop_time > 0LL && current_tag.time >= stop_time) {
         stop_requested = true;
         return 0;
     }
@@ -265,7 +265,7 @@ int __do_step() {
 
 // Wait until physical time matches or exceeds the time of the least tag
 // on the event queue. If there is no event in the queue, return 0.
-// After this wait, advance current_time to match
+// After this wait, advance current_tag.time to match
 // this tag. Then pop the next event(s) from the
 // event queue that all have the same tag, and extract from those events
 // the reactions that are to be invoked at this logical time.
@@ -294,7 +294,7 @@ int next() {
     }
     //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_time - start_time);
     // Wait until physical time >= event.time.
-    // The wait_until function will advance current_time.
+    // The wait_until function will advance current_tag.time.
     if (wait_until(next_time) < 0) {
         // Sleep was interrupted or the timeout time has been reached.
         // Time has not advanced to the time of the event.
@@ -303,7 +303,7 @@ int next() {
         if (new_event == event) {
             // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
-            if (new_event == NULL || (stop_time > 0LL && current_time >= stop_time)) {
+            if (new_event == NULL || (stop_time > 0LL && current_tag.time >= stop_time)) {
                 stop_requested = true;
                 return 0;
             }
@@ -320,7 +320,7 @@ int next() {
     // such as initializing outputs to be absent.
     __start_time_step();
     
-    // Pop all events from event_q with timestamp equal to current_time,
+    // Pop all events from event_q with timestamp equal to current_tag.time,
     // extract all the reactions triggered by these events, and
     // stick them into the reaction queue.
     __pop_events();

@@ -108,4 +108,37 @@ int compare_tags(tag_t tag1, tag_t tag2);
  */
 int compare_tags2(instant_t time1, microstep_t microstep1, instant_t time2, microstep_t microstep2);
 
+/**
+ * Return the elapsed logical time in nanoseconds
+ * since the start of execution.
+ * @return A time interval.
+ */
+interval_t get_elapsed_logical_time();
+
+/**
+ * Return the current logical time in nanoseconds.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
+ * @return A time instant.
+ */
+instant_t get_logical_time();
+
+/**
+ * Return the current logical tag, a time, microstep pair.
+ */
+tag_t get_logical_tag();
+
+/**
+ * Return the current microstep.
+ */
+unsigned int get_microstep();
+
+/**
+ * Return the current physical time in nanoseconds.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
+ * @return A time instant.
+ */
+instant_t get_physical_time();
+
 #endif // TAG_H

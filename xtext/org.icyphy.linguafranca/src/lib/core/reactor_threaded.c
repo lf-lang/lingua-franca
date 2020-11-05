@@ -197,7 +197,7 @@ void _lf_wait_on_global_logical_time_barrier(instant_t proposed_time) {
 }
 
 /**
- * Schedule the specified trigger at current_time plus the offset of the
+ * Schedule the specified trigger at current_tag.time plus the offset of the
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
@@ -343,9 +343,9 @@ bool wait_until(instant_t logical_time_ns) {
 
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule().
-            // Do not adjust current_time here. If there was an asynchronous
+            // Do not adjust current_tag.time here. If there was an asynchronous
             // call to schedule(), it will have put an event on the event queue,
-            // and current_time will be set to that time when that event is pulled.
+            // and current_tag.time will be set to that time when that event is pulled.
             return_value = false;
         }
         // printf("DEBUG: -------- Returned from wait.\n");
@@ -398,7 +398,7 @@ bool __next() {
     if (event != NULL) {
         // There is an event in the event queue.
         next_time = event->time;
-        if (next_time == current_time) {
+        if (next_time == current_tag.time) {
             next_microstep =  get_microstep() + 1;
         }
         // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
@@ -454,12 +454,12 @@ bool __next() {
         // Advance current time to match that of the first event on the queue.
         _lf_advance_logical_time(next_time);
 
-        // DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_time - start_time);
+        // DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_tag.time - start_time);
 
         // Invoke code that must execute before starting a new logical time round,
         // such as initializing outputs to be absent.
         __start_time_step();
-        // Pop all events from event_q with timestamp equal to current_time,
+        // Pop all events from event_q with timestamp equal to current_tag.time,
         // extract all the reactions triggered by these events, and
         // stick them into the reaction queue.
         __pop_events();
@@ -726,7 +726,7 @@ void* worker(void* arg) {
                     && !__advancing_time)
             {
                 //if (!__first_invocation) {
-                logical_time_complete(current_time, current_microstep);
+                logical_time_complete(current_tag.time, current_tag.microstep);
                 //}
                 //__first_invocation = false;
                 // The following will set stop_requested if there are
@@ -819,7 +819,7 @@ void* worker(void* arg) {
                         current_physical_time.tv_sec * BILLION
                         + current_physical_time.tv_nsec;
                 // Check for deadline violation.
-                if (physical_time > current_time + reaction->deadline) {
+                if (physical_time > current_tag.time + reaction->deadline) {
                     // Deadline violation has occurred.
                     violation = true;
                     // Invoke the local handler, if there is one.
@@ -965,19 +965,19 @@ void wrapup() {
     keepalive_specified = false;
     pthread_mutex_lock(&mutex);
     // Copy the current time so that we don't advance time even if __next() does.
-    instant_t wrapup_time = current_time;
+    instant_t wrapup_time = current_tag.time;
     event_t* event = (event_t*)pqueue_peek(event_q);
     while (event != NULL && event->time == wrapup_time) {
         __next(); // Ignore return value. We already know we need to terminate.
         __execute_reactions_during_wrapup();
     }
     
-    current_time = wrapup_time;
+    current_tag.time = wrapup_time;
 
     // Notify the RTI that the current logical time is complete.
-    // This function informs the RTI of the current_time in a 
+    // This function informs the RTI of the current_tag.time in a
     // non-blocking manner.
-    logical_time_complete(current_time, current_microstep);
+    logical_time_complete(current_tag.time, current_tag.microstep);
 
     pthread_mutex_unlock(&mutex);
 

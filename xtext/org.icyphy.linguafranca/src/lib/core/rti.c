@@ -1,6 +1,7 @@
 /**
  * @file
  * @author Edward A. Lee (eal@berkeley.edu)
+ * @author Soroush Bateni
  *
  * @section LICENSE
 Copyright (c) 2020, The University of California at Berkeley.
@@ -77,9 +78,6 @@ instant_t max_start_time = 0LL;
 
 // Number of federates that have proposed start times.
 int num_feds_proposed_start = 0;
-
-// The start time for an execution.
-instant_t start_time = NEVER;
 
 // Boolean indicating that all federates have exited.
 volatile bool all_federates_exited = false;
