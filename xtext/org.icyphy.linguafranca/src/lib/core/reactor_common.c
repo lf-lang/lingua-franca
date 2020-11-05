@@ -55,34 +55,12 @@ bool fast = false;
  */
 unsigned int _lf_number_of_threads;
 
-/**
- * Current time in nanoseconds since January 1, 1970.
- * This is not in scope for reactors.
- */
-instant_t current_time = 0LL;
-
-/**
- * Current microstep.
- * This is not in scope for reactors.
- */
-microstep_t current_microstep = 0;
-
 /** 
  * The logical time to elapse during execution, or -1 if no timeout time has
  * been given. When the logical equal to start_time + duration has been
  * reached, execution will terminate.
  */
 instant_t duration = -1LL;
-
-/**
- * Physical time at the start of the execution.
- */
-instant_t physical_start_time = 0LL;
-
-/**
- * Logical time at the start of execution.
- */
-interval_t start_time = 0LL;
 
 /**
  * Indicates whether or not the execution
@@ -130,46 +108,6 @@ int __tokens_with_ref_count_size = 0;
 
 /////////////////////////////
 // The following functions are in scope for all reactors:
-
-/**
- * Return the elapsed logical time in nanoseconds since the start of execution.
- */
-interval_t get_elapsed_logical_time() {
-    return current_time - start_time;
-}
-
-/**
- * Return the current logical time in nanoseconds since January 1, 1970.
- */
-instant_t get_logical_time() {
-    // FIXME: Does this need acquire the mutex?
-    return current_time;
-}
-
-/**
- * Return the current microstep.
- */
-microstep_t get_microstep() {
-    return current_microstep;
-}
-
-/** 
- * Return the current physical time in nanoseconds since January 1, 1970.
- */
-instant_t get_physical_time() {
-    struct timespec physicalTime;
-    clock_gettime(CLOCK_REALTIME, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec;
-}
-
-/** 
- * Return the elapsed physical time in nanoseconds.
- */
-instant_t get_elapsed_physical_time() {
-    struct timespec physicalTime;
-    clock_gettime(CLOCK_REALTIME, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
-}
 
 /**
  * Return the physical time of the start of execution in nanoseconds.
@@ -554,7 +492,7 @@ token_t* __initialize_token(token_t* token, int length) {
 }
 
 /**
- * Pop all events from event_q with timestamp equal to current_time, extract all
+ * Pop all events from event_q with timestamp equal to current_tag.time, extract all
  * the reactions triggered by these events, and stick them into the reaction
  * queue.
  */
@@ -658,7 +596,7 @@ void __pop_events() {
         
         // Peek at the next event in the event queue.
         event = (event_t*)pqueue_peek(event_q);
-    } while(event != NULL && event->time == current_time);
+    } while(event != NULL && event->time == current_tag.time);
 
     // After populating the reaction queue, see if there are things on the
     // next queue to put back into the event queue.
@@ -785,7 +723,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
     // allowed), or if the event time is past the requested stop time.
     // FIXME: I think microsteps should not be allowed either
     // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
-    if ((stop_requested && time != current_time)
+    if ((stop_requested && time != current_tag.time)
             || (stop_time > 0LL && time > stop_time)) {
         // printf("DEBUG: _lf_schedule_at_tag: event time is past the timeout. Discarding event.\n");
         __done_using(token);
@@ -934,7 +872,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
 }
 
 /**
- * Schedule the specified trigger at current_time plus the offset of the
+ * Schedule the specified trigger at current_tag.time plus the offset of the
  * specified trigger plus the delay. See schedule_token() in reactor.h for details.
  * This is the internal implementation shared by both the threaded
  * and non-threaded versions.
@@ -994,8 +932,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 	// We first do this assuming it is logical action and then, if it is a
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
-    interval_t intended_time = current_time + delay;
-    // printf("DEBUG: __schedule: current_time = %lld.\n", current_time);
+    interval_t intended_time = current_tag.time + delay;
+    // printf("DEBUG: __schedule: current_tag.time = %lld.\n", current_tag.time);
     // printf("DEBUG: __schedule: total logical delay = %lld.\n", delay);
     interval_t min_spacing = trigger->period;
 
@@ -1043,10 +981,10 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         // FIXME: This can go away once:
         // - we have eliminated the possibility to have a negative additional delay; and
         // - we detect the asynchronous use of logical actions
-        if (intended_time < current_time) {
+        if (intended_time < current_tag.time) {
             fprintf(stderr, "WARNING: Attempting to schedule an event earlier than current logical time by %lld nsec!\n"
-                    "Revising request to the current time %lld.\n", current_time - intended_time, current_time);
-            intended_time = current_time;
+                    "Revising request to the current time %lld.\n", current_tag.time - intended_time, current_tag.time);
+            intended_time = current_tag.time;
         }
     }
     
@@ -1095,13 +1033,13 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                     // it. WARNING: If provide a mechanism for unscheduling, we
                     // can no longer rely on the tag of the existing event to
                     // determine whether or not it has been recycled (the
-                    // existing->time < current_time case below).
+                    // existing->time < current_tag.time case below).
                     // NOTE: Because microsteps are not explicit, if the tag of
                     // the preceding event is equal to the current time, then
                     // we search the event queue to figure out whether it has
                     // been handled yet.
-                    if (existing->time > current_time || 
-                            (existing->time == current_time &&
+                    if (existing->time > current_tag.time ||
+                            (existing->time == current_tag.time &&
                             pqueue_find_equal_same_priority(event_q, existing) != NULL)) {
                         // Recycle the existing token and the new event
                         if (existing->token != token) __done_using(existing->token);
@@ -1115,7 +1053,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                     intended_time = earliest_time;
                     break;
                 default:
-                    if (existing->time == current_time &&
+                    if (existing->time == current_tag.time &&
                             pqueue_find_equal_same_priority(event_q, existing) != NULL) {
                         // If the last event hasn't been handled yet, insert
                         // the new event right behind.
@@ -1137,7 +1075,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // allowed), or if the event time is past the requested stop time.
     // FIXME: I think microsteps should not be allowed either
     // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
-    if ((stop_requested && e->time != current_time)
+    if ((stop_requested && e->time != current_tag.time)
             || (stop_time > 0LL && e->time > stop_time)) {
         // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
@@ -1203,7 +1141,7 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     
     // Check to see if we are actually at startup
     // FIXME: add microsteps
-    if (current_time != start_time) {
+    if (current_tag.time != start_time) {
         return 0;
     }
 
@@ -1296,13 +1234,13 @@ trigger_t* _lf_action_to_trigger(void* action) {
  * @param next_time The time step to advance to.
  */ 
 void _lf_advance_logical_time(instant_t next_time) {
-    if (current_time != next_time) {
-        current_time = next_time;
-        current_microstep = 0;
+    if (current_tag.time != next_time) {
+        current_tag.time = next_time;
+        current_tag.microstep = 0;
     } else {
-        current_microstep++;
+        current_tag.microstep++;
     }
-    DEBUG_PRINT("Advanced logical tag to (%lld, %u)", next_time - start_time, current_microstep);
+    DEBUG_PRINT("Advanced logical tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
 }
 
 /**
@@ -1475,7 +1413,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                     current_physical_time.tv_sec * BILLION
                     + current_physical_time.tv_nsec;
             // Check for deadline violation.
-            if (physical_time > current_time + downstream_to_execute_now->deadline) {
+            if (physical_time > current_tag.time + downstream_to_execute_now->deadline) {
                 // Deadline violation has occurred.
                 violation = true;
                 // Invoke the local handler, if there is one.
@@ -1730,12 +1668,12 @@ void initialize() {
 
     printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
             ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);
-    current_time = physical_start_time;
-    start_time = current_time;
+    current_tag.time = physical_start_time;
+    start_time = current_tag.time;
     
     if (duration >= 0LL) {
         // A duration has been specified. Calculate the stop time.
-        stop_time = current_time + duration;
+        stop_time = current_tag.time + duration;
     }
 }
 

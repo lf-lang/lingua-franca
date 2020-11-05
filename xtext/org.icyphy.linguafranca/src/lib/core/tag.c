@@ -33,6 +33,22 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tag.h"
 
 /**
+ * Current time in nanoseconds since January 1, 1970.
+ * This is not in scope for reactors.
+ */
+tag_t current_tag = {.time = 0LL, .microstep = 0};
+
+/**
+ * Physical time at the start of the execution.
+ */
+instant_t physical_start_time = NEVER;
+
+/**
+ * Logical time at the start of execution.
+ */
+instant_t start_time = NEVER;
+
+/**
  * Compare two tags. Return -1 if the first is less than
  * the second, 0 if they are equal, and +1 if the first is
  * greater than the second. A tag is greater than another if
@@ -78,4 +94,50 @@ int compare_tags2(instant_t time1, microstep_t microstep1, instant_t time2, micr
     } else {
         return 0;
     }
+}
+
+/**
+ * Return the elapsed logical time in nanoseconds since the start of execution.
+ */
+interval_t get_elapsed_logical_time() {
+    return current_tag.time - start_time;
+}
+
+/**
+ * Return the current logical tag, a time, microstep pair.
+ */
+tag_t get_logical_tag() {
+    return current_tag;
+}
+
+/**
+ * Return the current logical time in nanoseconds since January 1, 1970.
+ */
+instant_t get_logical_time() {
+    return current_tag.time;
+}
+
+/**
+ * Return the current microstep.
+ */
+microstep_t get_microstep() {
+    return current_tag.microstep;
+}
+
+/**
+ * Return the current physical time in nanoseconds since January 1, 1970.
+ */
+instant_t get_physical_time() {
+    struct timespec physicalTime;
+    clock_gettime(CLOCK_REALTIME, &physicalTime);
+    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec;
+}
+
+/**
+ * Return the elapsed physical time in nanoseconds.
+ */
+instant_t get_elapsed_physical_time() {
+    struct timespec physicalTime;
+    clock_gettime(CLOCK_REALTIME, &physicalTime);
+    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
 }

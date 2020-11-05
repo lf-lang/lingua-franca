@@ -476,34 +476,6 @@ struct trigger_t {
 //  ======== Function Declarations ========  //
 
 /**
- * Return the elapsed logical time in nanoseconds
- * since the start of execution.
- * @return A time interval.
- */
-interval_t get_elapsed_logical_time();
-
-/**
- * Return the current logical time in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
- * @return A time instant.
- */
-instant_t get_logical_time();
-
-/**
- * Return the current microstep.
- */
-unsigned int get_microstep();
-
-/**
- * Return the current physical time in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
- * @return A time instant.
- */
-instant_t get_physical_time();
-
-/**
  * Return the time of the start of execution in nanoseconds.
  * This is both the starting physical and starting logical time.
  * On many platforms, this is the number of nanoseconds
