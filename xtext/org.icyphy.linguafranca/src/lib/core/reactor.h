@@ -616,13 +616,12 @@ void _lf_recycle_event(event_t* e);
  * is replaced and 0 is returned.
  *
  * @param trigger The trigger to be invoked at a later logical time.
- * @param time Logical time of the event
- * @param microstep The microstep of the event in the given logical time
+ * @param tag Logical tag of the event
  * @param token The token wrapping the payload or NULL for no payload.
  * 
  * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
  */
-int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microstep, token_t* token);
+int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token);
 
 /**
  * Create a dummy event to be used as a spacer in the event queue.

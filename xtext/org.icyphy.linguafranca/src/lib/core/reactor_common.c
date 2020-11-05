@@ -693,24 +693,22 @@ event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* nex
  * is replaced and 0 is returned.
  *
  * @param trigger The trigger to be invoked at a later logical time.
- * @param time Logical time of the event
- * @param microstep The microstep of the event in the given logical time
+ * @param tag Logical tag of the event
  * @param token The token wrapping the payload or NULL for no payload.
  * 
  * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated),
  *  or -1 for error (the tag is equal to or less than the current tag).
  */
-int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microstep, token_t* token) {
-    instant_t current_logical_time = get_logical_time();
-    if (time < current_logical_time) {
+int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
+    tag_t current_logical_tag = get_logical_tag();
+    if (compare_tags(tag, current_logical_tag) <= 0) {
         DEBUG_PRINT("_lf_schedule_at_tag(): requested to schedule an event in the past.");
         return -1;
-    } else if (time == current_logical_time) {
-        if (microstep <= get_microstep()) {
-            DEBUG_PRINT("_lf_schedule_at_tag(): requested to schedule an event in the past.");
-            return -1;
-        }
-        microstep = microstep - get_microstep();
+    }
+    // If the time matches current time, find the difference in microsteps, which
+    // is at least 1.
+    if (tag.time == current_logical_tag.time) {
+        tag.microstep -= get_microstep();
     }
 
     // Increment the reference count of the token.
@@ -723,8 +721,8 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
     // allowed), or if the event time is past the requested stop time.
     // FIXME: I think microsteps should not be allowed either
     // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
-    if ((stop_requested && time != current_tag.time)
-            || (stop_time > 0LL && time > stop_time)) {
+    if ((stop_requested && tag.time != current_tag.time)
+            || (stop_time > 0LL && tag.time > stop_time)) {
         // printf("DEBUG: _lf_schedule_at_tag: event time is past the timeout. Discarding event.\n");
         __done_using(token);
         return -1;
@@ -732,7 +730,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
     
     event_t* e = _lf_get_new_event();
     // Set the event time
-    e->time = time;
+    e->time = tag.time;
     
     // Make sure the event points to this trigger so when it is
     // dequeued, it will trigger this trigger.
@@ -743,9 +741,14 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
 
     event_t* found = pqueue_find_equal_same_priority(event_q, e);
     if (found != NULL) {
-        if (microstep == 0) {
+        if (tag.microstep == 0) {
+            // The microstep is 0, which means that the event is being scheduled
+            // a future time.
             if (found->is_dummy) {
-                // This is a dummy event.
+                // The found event is a dummy event, meaning that it is scheduled
+                // at a future time with a microstep larger than 0.
+                // Replace that event.
+                // FIXME: Why??? THIS LOOKS WRONG to me.
                 microstep_t steps = *((microstep_t*)found->token->value);
                 if (steps == 1) {
                     found->is_dummy = false;
@@ -760,7 +763,9 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
                     *((microstep_t*)found->token->value) -= 1;
                 }
             } else {
-                // There is an existing event, replace the payload.                
+                // There is an existing event at the specified time.
+                // Since it is not a dummy event, its microstep is 0.
+                // Replace it.
                 if (found->token != token) {
                     // Free the existing token, if any
                     __done_using(found->token);
@@ -771,7 +776,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
             }
         } else {
             microstep_t steps = 0;
-            while (found->next != NULL && (steps < microstep - 1)) {
+            while (found->next != NULL && (steps < tag.microstep - 1)) {
                 if (found->is_dummy) {
                     // The payload of a dummy event is the steps
                     steps += *((microstep_t*)found->token->value);
@@ -782,7 +787,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
             }
             // We've either reached the microstep or surpassed it.
             //(..., dummy, e, ...)
-            if (steps == microstep-1) {
+            if (steps == tag.microstep-1) {
                 // The next pointer of our found event
                 // can be used directly (either it is null
                 // where we can assign it or not null which
@@ -801,7 +806,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
                     // Reassign it.
                     found->next = e;
                 }
-            } else if (steps == microstep) {
+            } else if (steps == tag.microstep) {
                 // We overshot. This can only happen if the last payload was a dummy
                 // payload with steps that were larger than what we wanted.
                 if (!found->is_dummy) {
@@ -830,14 +835,14 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
                 // The event queue after we are done should
                 // look like (..., found, e, new_dummy, ...)
                 // First, find out how much we overshot by
-                microstep_t overshot_by = steps - microstep;
+                microstep_t overshot_by = steps - tag.microstep;
                 
                 // Then, find the steps in the dummy event
                 microstep_t* steps_found = (microstep_t*)found->token->value;                
 
                 // Finally, create a new dummy event with the correct microsteps
-                //event_t* new_dummy = _lf_create_dummy_event(trigger, time, found, steps_found - microstep); // FIXME
-                event_t* new_dummy = _lf_create_dummy_event(trigger, time, found, overshot_by);
+                //event_t* new_dummy = _lf_create_dummy_event(trigger, tag.time, found, steps_found - microstep); // FIXME
+                event_t* new_dummy = _lf_create_dummy_event(trigger, tag.time, found, overshot_by);
 
                 // Point the new_dummy's next event to the previous
                 // found dummy's next event
@@ -854,18 +859,17 @@ int _lf_schedule_at_tag(trigger_t* trigger, instant_t time, microstep_t microste
         }
     } else {
         // No existing event queued.
-        if (((time == current_logical_time) && (microstep == 1)) || // Can't rely on a dummy event
-            microstep == 0) {
+        if ((tag.time == current_logical_tag.time) && (tag.microstep == 1)) {
             pqueue_insert(event_q, e);
-        } else if (time == current_logical_time) {
+        } else if (tag.time == current_logical_tag.time) {
             // Create a dummy event. Insert it into the queue, and let its next
             // pointer point to the actual event. The tag (x,0) has already been
             // seen
-            pqueue_insert(event_q, _lf_create_dummy_event(trigger, time, e, microstep-1));            
+            pqueue_insert(event_q, _lf_create_dummy_event(trigger, tag.time, e, tag.microstep-1));
         } else {
             // Create a dummy event. Insert it into the queue, and let its next
             // pointer point to the actual event.
-            pqueue_insert(event_q, _lf_create_dummy_event(trigger, time, e, microstep));
+            pqueue_insert(event_q, _lf_create_dummy_event(trigger, tag.time, e, tag.microstep));
         }
     }
     return 1;
