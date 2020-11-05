@@ -272,10 +272,10 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
  * the runtime infrastructure (RTI) that all reactions at the specified
  * logical tag have completed. This function should be called only while
  * holding the mutex lock.
- * @param timestep The logical time that has been completed.
+ * @param time The logical time that has been completed.
  * @param microstep The logical microstep that has been completed.
  */
-void logical_time_complete(instant_t timestep, microstep_t microstep);
+void logical_time_complete(instant_t time, microstep_t microstep);
 
 /** 
  * Placeholder for code-generated function that will, in a federated
@@ -292,7 +292,7 @@ void logical_time_complete(instant_t timestep, microstep_t microstep);
  * @param microstep The microstep to which to advance.
  * @return The time to which it is safe to advance.
  */
-_lf_fd_tag_t next_event_time(instant_t time, microstep_t microstep);
+tag_t next_event_time(instant_t time, microstep_t microstep);
 
 /**
  * Wait until physical time matches or exceeds the specified logical time,
@@ -413,8 +413,8 @@ bool __next() {
         // will block waiting for a response from the RTI.
         // If an action triggers during that wait, it will unblock
         // and return with a time (typically) less than the next_time.
-        _lf_fd_tag_t grant_tag = next_event_time(next_time, next_microstep);
-        if (grant_tag.timestep != next_time || 
+        tag_t grant_tag = next_event_time(next_time, next_microstep);
+        if (grant_tag.time != next_time ||
             (grant_tag.microstep != next_microstep)) {
             // RTI has granted time advance to an earlier time or the wait
             // for the RTI response was interrupted by a local physical action.
@@ -483,9 +483,9 @@ bool __next() {
         // requested advance.
         // printf("DEBUG: __next(): next event time to RTI %lld.\n", next_time - start_time);
         // FIXME: verify
-        _lf_fd_tag_t grant_tag = next_event_time(next_time, next_microstep);
+        tag_t grant_tag = next_event_time(next_time, next_microstep);
         // printf("DEBUG: __next(): RTI grants time advance to %lld.\n", grant_time - start_time);
-        if (grant_tag.timestep == next_time && grant_tag.microstep == next_microstep) {
+        if (grant_tag.time == next_time && grant_tag.microstep == next_microstep) {
             // RTI is OK with advancing time to stop_time or FOREVER.
             // Note that keepalive is always set for a federated execution.
             if (!keepalive_specified) {
@@ -1049,10 +1049,10 @@ int main(int argc, char* argv[]) {
         // reaction queue that will be executed at tag (0,0).
         // Before we could do so, we need to ask the RTI if it is 
         // okay.
-        _lf_fd_tag_t grant_time = next_event_time(start_time, 0u);
-        if (grant_time.timestep != start_time || grant_time.microstep != 0u) {
+        tag_t grant_time = next_event_time(start_time, 0u);
+        if (grant_time.time != start_time || grant_time.microstep != 0u) {
             // This is a critical condition
-            fprintf(stderr, "Federate received a grant time earlier than start time or with an incorrect starting microstep (%lld, %u).\n", grant_time.timestep - start_time, grant_time.microstep);
+            fprintf(stderr, "Federate received a grant time earlier than start time or with an incorrect starting microstep (%lld, %u).\n", grant_time.time - start_time, grant_time.microstep);
             exit(1);
         }
         

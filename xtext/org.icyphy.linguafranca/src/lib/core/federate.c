@@ -345,13 +345,13 @@ void send_timed_message(interval_t additional_delay,
  *  @param type The message type (NEXT_EVENT_TIME or LOGICAL_TIME_COMPLETE).
  *  @param time The time of this federate's next event.
  */
-void send_tag(unsigned char type, instant_t timestep, microstep_t microstep) {
-    DEBUG_PRINT("Federate %d sending tag (%lld, %u) to the RTI.", _lf_my_fed_id,timestep - start_time, microstep);
+void send_tag(unsigned char type, instant_t time, microstep_t microstep) {
+    DEBUG_PRINT("Federate %d sending tag (%lld, %u) to the RTI.", _lf_my_fed_id, time - start_time, microstep);
     unsigned char buffer[1 + sizeof(instant_t) + sizeof(microstep_t)];
     buffer[0] = type;
-    encode_ll(timestep, &(buffer[1]));
+    encode_ll(time, &(buffer[1]));
     encode_int(microstep, &(buffer[1 + sizeof(instant_t)]));
-    write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer, "Federate %d failed to send tag (%lld, %u) to the RTI.", _lf_my_fed_id, timestep - start_time, microstep);
+    write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer, "Federate %d failed to send tag (%lld, %u) to the RTI.", _lf_my_fed_id, time - start_time, microstep);
 }
 
 /** Send a STOP message to the RTI, which will then broadcast
@@ -1063,7 +1063,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
  * This is used to communicate between the listen_to_rti thread and the
  * main federate thread.
  */
-volatile _lf_fd_tag_t __tag = { .timestep = NEVER, .microstep = 0u };
+volatile tag_t __tag = { .time = NEVER, .microstep = 0u };
 
 /** Indicator of whether a NET has been sent to the RTI and no TAG
  *  yet received in reply.
@@ -1090,10 +1090,10 @@ void handle_time_advance_grant() {
     // DEBUG_PRINT("Federate %d pthread_mutex_lock handle_time_advance_grant.", _lf_my_fed_id);
     pthread_mutex_lock(&mutex);
     // DEBUG_PRINT("Federate %d pthread_mutex_locked", _lf_my_fed_id);
-    __tag.timestep = swap_bytes_if_big_endian_ll(result.ull);
+    __tag.time = swap_bytes_if_big_endian_ll(result.ull);
     __tag.microstep = extract_int(buffer);
     __tag_pending = false;
-    DEBUG_PRINT("Federate %d received TAG (%lld, %u).", _lf_my_fed_id, __tag.timestep - start_time, __tag.microstep);
+    DEBUG_PRINT("Federate %d received TAG (%lld, %u).", _lf_my_fed_id, __tag.time - start_time, __tag.microstep);
     // Notify everything that is blocked.
     pthread_cond_broadcast(&event_q_changed);
     // DEBUG_PRINT("Federate %d pthread_mutex_unlock.", _lf_my_fed_id);
@@ -1296,13 +1296,13 @@ bool __fed_has_downstream = false;
  * if there are downstream federates. Otherwise, do nothing.
  * This function assumes the caller holds the mutex lock.
  * 
- * @param timestep The timestep of the tag
+ * @param time The time of the tag
  * @param microstep The microstep of the tag
  */
-void __logical_time_complete(instant_t timestep, microstep_t microstep) {
+void __logical_time_complete(instant_t time, microstep_t microstep) {
     if (__fed_has_downstream) {
-        DEBUG_PRINT("Federate %d is handling the completion of logical tag (%lld, %u).", _lf_my_fed_id, timestep - start_time, microstep);
-        send_tag(LOGICAL_TIME_COMPLETE, timestep, microstep);
+        DEBUG_PRINT("Federate %d is handling the completion of logical tag (%lld, %u).", _lf_my_fed_id, time - start_time, microstep);
+        send_tag(LOGICAL_TIME_COMPLETE, time, microstep);
     }
 }
 
@@ -1319,18 +1319,18 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
  *  change in the event queue.
  *  This function assumes the caller holds the mutex lock.
  */
- _lf_fd_tag_t __next_event_time(instant_t timestep, microstep_t microstep) {
+ tag_t __next_event_time(instant_t time, microstep_t microstep) {
      if (!__fed_has_downstream && !__fed_has_upstream) {
          // This federate is not connected (except possibly by physical links)
          // so there is no need for the RTI to get involved.
 
-         // FIXME: If the event queue is empty, then the timestep argument is either
+         // FIXME: If the event queue is empty, then the time argument is either
          // the stop_time or FOREVER. In this case, it matters whether there are
          // upstream federates connected by physical connections, which do not
          // affect __fed_has_upstream. We should not return immediately because
          // then the execution will hit its stop_time and fail to receive any
          // messages sent by upstream federates.
-        return (_lf_fd_tag_t) {  .timestep = timestep, .microstep = microstep };
+        return (tag_t) {  .time = time, .microstep = microstep };
      }
 
      // FIXME: The returned value t is a promise that, absent inputs from
@@ -1347,14 +1347,12 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
 
      // If time advance has already been granted for this tag or a larger
      // tag, then return immediately.
-     if (__tag.timestep > timestep || 
-        (__tag.timestep == timestep &&
-         __tag.microstep > microstep)) {
-         return (_lf_fd_tag_t) {  .timestep = timestep, .microstep = microstep };
+     if (compare_tags2(__tag.time, __tag.microstep, time, microstep) > 0) {
+         return (tag_t) {  .time = time, .microstep = microstep };
      }
 
-     send_tag(NEXT_EVENT_TIME, timestep, microstep);
-     DEBUG_PRINT("Federate %d sent next event tag (%lld, %u) to RTI.", _lf_my_fed_id, timestep - start_time, microstep);
+     send_tag(NEXT_EVENT_TIME, time, microstep);
+     DEBUG_PRINT("Federate %d sent next event tag (%lld, %u) to RTI.", _lf_my_fed_id, time - start_time, microstep);
 
      // If there are no upstream federates, return immediately, without
      // waiting for a reply. This federate does not need to wait for
@@ -1363,7 +1361,7 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
      // throttle upstream federates.
      // FIXME: As noted above, this is not correct if the time is the stop_time.
      if (!__fed_has_upstream) {
-         return (_lf_fd_tag_t) {  .timestep = timestep, .microstep = microstep };
+         return (tag_t) {  .time = time, .microstep = microstep };
      }
 
      __tag_pending = true;
@@ -1382,14 +1380,14 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
              // If there is now an earlier event on the event queue,
              // then we should return with the time of that event.
              event_t* head_event = (event_t*)pqueue_peek(event_q);
-             if (head_event != NULL && head_event->time < timestep) {
+             if (head_event != NULL && head_event->time < time) {
                  if (head_event->time == current_time) {
                      microstep = get_microstep() + 1;
                  } else {
                      microstep = 0u;
                  }
 
-                 return (_lf_fd_tag_t) { .timestep = head_event->time, .microstep = microstep };
+                 return (tag_t) { .time = head_event->time, .microstep = microstep };
              }
              // If we get here, any activity on the event queue is not relevant.
              // Either the queue is empty or whatever appeared on it
@@ -1397,6 +1395,6 @@ void __logical_time_complete(instant_t timestep, microstep_t microstep) {
              // Keep waiting for the TAG.
          }
      }
-     DEBUG_PRINT("RTI granted tag (%lld, %u) to federate %d.", __tag.timestep - start_time, __tag.microstep , _lf_my_fed_id);
+     DEBUG_PRINT("RTI granted tag (%lld, %u) to federate %d.", __tag.time - start_time, __tag.microstep , _lf_my_fed_id);
      return __tag;
 }

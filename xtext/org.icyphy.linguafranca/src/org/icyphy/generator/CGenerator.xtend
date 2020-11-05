@@ -390,7 +390,7 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "trace.h", "util.h", "util.c")
+        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "util.h", "util.c")
         if (targetThreads === 0) {
             files.add("reactor.c")
         } else {
@@ -670,11 +670,11 @@ class CGenerator extends GeneratorBase {
                 // if there is only one federate or will notify the RTI,
                 // if necessary, of the next event time.
                 pr('''
-                    _lf_fd_tag_t next_event_time(instant_t time, microstep_t microstep) {
+                    tag_t next_event_time(instant_t time, microstep_t microstep) {
                         «IF federates.length > 1»
                             return __next_event_time(time, microstep);
                         «ELSE»
-                            return (_lf_fd_tag_t) {  .timestep = time, .microstep = microstep };
+                            return (tag_t) {  .time = time, .microstep = microstep };
                         «ENDIF»
                     }
                 ''')
