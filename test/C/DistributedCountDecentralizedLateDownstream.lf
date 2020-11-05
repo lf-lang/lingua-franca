@@ -7,7 +7,7 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 1 sec,
+    timeout: 900 msec,
     coordination: decentralized
 };
 
@@ -24,13 +24,11 @@ reactor ImportantActuator {
     =} tardy {=
         if (in->tardiness == 0) {
             // A microstep tardiness has occurred            
-        	printf("A microstep tardiness has occurred.\n", get_elapsed_logical_time(), in->value);
+        	printf("A microstep tardiness has occurred.\n");
         } else {
-        	printf("Message is tardy by %llu nsec.\n", get_elapsed_logical_time(), in->value, in->tardiness);        
+        	printf("Message is tardy by %llu nsec.\n", in->tardiness);        
         }
-        if (in->tardiness > 0) {
-            self->success = true;
-        }
+        self->success = true;
     =}
     reaction(shutdown) {=
         if (!self->success) {
