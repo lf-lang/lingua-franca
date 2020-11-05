@@ -28,14 +28,18 @@ reactor Scheduler(take_a_break_after:int(10), break_interval:time(400 msec)) {
         self->sent_messages++;
         self->micro_delay++;
         self->scheduled_micro_delay = self->micro_delay;
+        tag_t tag = get_current_tag();
         if (self->sent_messages < self->take_a_break_after) {
-        	_lf_schedule_at_tag(act->trigger, get_logical_time(), self->micro_delay, NULL);
+            tag.microstep = self->micro_delay;
+        	_lf_schedule_at_tag(act->trigger, tag, NULL);
         } else {
             // Take a break
         	self->sent_messages = 0;
         	// self->micro_delay = 0;
         	// self->scheduled_micro_delay = 0;
-            _lf_schedule_at_tag(act->trigger, get_logical_time() + self->break_interval, self->micro_delay, NULL);
+        	tag.time += self->break_interval;
+        	tag.microstep = self->micro_delay;
+            _lf_schedule_at_tag(act->trigger, tag, NULL);
         }
     =}
 }
