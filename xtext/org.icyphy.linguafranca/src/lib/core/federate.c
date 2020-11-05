@@ -823,9 +823,7 @@ void _lf_fd_mark_reactions_tardy(trigger_t* trigger) {
  * 
  * 
  * @param action The action or timer to be triggered.
- * @param timestamp The timestamp of the message received over the network.
- * @param microstep The microstep of the sender received over the network.
- *  It can be used to deduce if the message is in the future
+ * @param tag The tag of the message received over the network.
  * @param value Dynamically allocated memory containing the value to send.
  * @param length The length of the array, if it is an array, or 1 for a
  *  scalar and 0 for no payload.
@@ -833,8 +831,7 @@ void _lf_fd_mark_reactions_tardy(trigger_t* trigger) {
  */
 handle_t schedule_message_received_from_network_already_locked(
         trigger_t* trigger,
-        instant_t timestamp,
-        microstep_t microstep,
+        tag_t tag,
         void* value,
         int length
 ) {
@@ -849,15 +846,7 @@ handle_t schedule_message_received_from_network_already_locked(
     // of the message (timestamp, microstep) is 
     // in the future relative to the tag of this
     // federate. By default, assume it is not.
-    bool message_tag_is_in_the_future = false;
-
-    // Check to see if the intended tag is in 
-    // the future.
-    if ((timestamp > current_logical_time) ||
-        (timestamp == current_logical_time && microstep > get_microstep())) {
-            // The intended tag is in the future
-            message_tag_is_in_the_future = true;
-    }
+    bool message_tag_is_in_the_future = compare_tags(tag, get_logical_tag()) > 0;
     
     // Set up the token
     token->value = value;
@@ -868,7 +857,7 @@ handle_t schedule_message_received_from_network_already_locked(
 
     // Calculate the extra_delay required to be passed
     // to the schedule function.
-    interval_t extra_delay = timestamp - current_logical_time;
+    interval_t extra_delay = tag.time - current_logical_time;
 
 
     if (!_lf_execution_started && !message_tag_is_in_the_future) {
@@ -911,9 +900,9 @@ handle_t schedule_message_received_from_network_already_locked(
             // would indicate a critical condition, showing that the 
             // time advance mechanism is not working correctly.
             error_print_and_exit("CRITICAL: Federate %d received a message at tag (%lld, %u) that"
-                                 " has a tag (%lld, %u) that is in the past.", _lf_my_fed_id, current_logical_time - start_time, get_microstep(), timestamp - start_time, microstep);
+                                 " has a tag (%lld, %u) that is in the past.", _lf_my_fed_id, current_logical_time - start_time, get_microstep(), tag.time - start_time, tag.microstep);
 #else
-            if (timestamp < current_logical_time) {
+            if (tag.time < current_logical_time) {
                 // For decentralized execution, in the case where the message
                 // carrying the tag (timestamp, microstep) is not in the future 
                 // because timestamp < current_logical_time, we can directly call 
@@ -936,7 +925,7 @@ handle_t schedule_message_received_from_network_already_locked(
                 // FIXME: how to show tardiness in microsteps?
                 _lf_fd_mark_reactions_tardy(trigger);
                 extra_delay = 0LL;
-                DEBUG_PRINT("Federate %d received a message that is %u microsteps late.", _lf_my_fed_id, get_microstep() - microstep);
+                DEBUG_PRINT("Federate %d received a message that is %u microsteps late.", _lf_my_fed_id, get_microstep() - tag.microstep);
                 return_value = __schedule(trigger, extra_delay, token);
             }
 #endif   
@@ -946,8 +935,8 @@ handle_t schedule_message_received_from_network_already_locked(
             // call _lf_schedule_at_tag pass a non-zero
             // microstep delay, which shall be used to calculate the
             // desired microstep for the message.
-            DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, microstep - get_microstep());
-            return_value = _lf_schedule_at_tag(trigger, timestamp, microstep, token);
+            DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, tag.microstep - get_microstep());
+            return_value = _lf_schedule_at_tag(trigger, tag, token);
         }
         // Notify the main thread in case it is waiting for physical time to elapse.
         DEBUG_PRINT("Federate %d pthread_cond_broadcast(&event_q_changed).", _lf_my_fed_id);
@@ -991,9 +980,9 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     trigger_t* action = __action_for_port(port_id);
 
     // Read the timestamp.
-    instant_t timestamp = extract_ll(buffer + 8);
-
-    microstep_t microstep = extract_int(buffer + 8 + sizeof(instant_t));
+    tag_t tag;
+    tag.time = extract_ll(buffer + 8);
+    tag.microstep = extract_int(buffer + 8 + sizeof(instant_t));
 
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
                                // with decentralized coordination
@@ -1004,10 +993,10 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // by the message. If this timestamp is in the past, the function will cause
     // the logical time to freeze at the current level.
     if (!action->is_physical) {
-        _lf_increment_global_logical_time_barrier(timestamp);
+        _lf_increment_global_logical_time_barrier(tag.time);
     }
 #endif
-    DEBUG_PRINT("Message tag: (%lld, %u), Current tag: (%lld, %u).", timestamp - start_time, microstep, get_elapsed_logical_time(), get_microstep());
+    DEBUG_PRINT("Message tag: (%lld, %u), Current tag: (%lld, %u).", tag.time - start_time, tag.microstep, get_elapsed_logical_time(), get_microstep());
 
     // Read the payload.
     // Allocate memory for the message contents.
@@ -1037,8 +1026,8 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // a lock that the calling thread already holds.
     pthread_mutex_lock(&mutex);
 
-    DEBUG_PRINT("Federate %d calling schedule with tag (%lld, %u).", _lf_my_fed_id, timestamp - start_time, microstep);
-    schedule_message_received_from_network_already_locked(action, timestamp, microstep, message_contents,
+    DEBUG_PRINT("Federate %d calling schedule with tag (%lld, %u).", _lf_my_fed_id, tag.time - start_time, tag.microstep);
+    schedule_message_received_from_network_already_locked(action, tag, message_contents,
                                                           length);
     // DEBUG_PRINT("Called schedule with delay %lld.", delay);
     
