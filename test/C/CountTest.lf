@@ -1,5 +1,6 @@
 target C {
     timeout: 3 sec,
+    tracing: true,
     fast: true
 };
 

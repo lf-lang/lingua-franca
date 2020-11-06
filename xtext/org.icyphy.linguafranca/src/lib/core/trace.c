@@ -281,6 +281,7 @@ void start_trace() {
  * Trace an event identified by a type and a pointer to the self struct of the reactor instance.
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
+ * @param object The pointer to the traced object, e.g. self struct of the reactor instance in the trace table.
  * @param reaction_number The number of the reaction or -1 if the trace is not of a reaction.
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  * @param physical_time If the caller has already accessed physical time, provide it here.
@@ -289,7 +290,7 @@ void start_trace() {
  */
 void tracepoint(
             trace_event_t event_type,
-            void* self_struct,
+            void* object,
             int reaction_number,
             int worker,
             instant_t* physical_time
@@ -304,7 +305,7 @@ void tracepoint(
     int i = _lf_trace_buffer_size[worker];
     // Write to memory buffer.
     _lf_trace_buffer[worker][i].event_type = event_type;
-    _lf_trace_buffer[worker][i].self_struct = self_struct;
+    _lf_trace_buffer[worker][i].object = object;
     _lf_trace_buffer[worker][i].reaction_number = reaction_number;
     _lf_trace_buffer[worker][i].worker = worker;
     _lf_trace_buffer[worker][i].logical_time = get_logical_time();
@@ -333,6 +334,14 @@ void tracepoint_reaction_starts(reaction_t* reaction, int worker) {
  */
 void tracepoint_reaction_ends(reaction_t* reaction, int worker) {
     tracepoint(reaction_ends, reaction->self, reaction->number, worker, NULL);
+}
+
+/**
+ * Trace a call to schedule.
+ * @param trigger Pointer to the trigger_t struct for the trigger.
+ */
+void tracepoint_schedule(trigger_t* trigger) {
+    tracepoint(schedule_called, trigger, 0, 0, NULL);
 }
 
 /**

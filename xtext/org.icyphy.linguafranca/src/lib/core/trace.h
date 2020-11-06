@@ -54,7 +54,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 typedef enum {
     reaction_starts,
-    reaction_ends
+    reaction_ends,
+    schedule_called
 } trace_event_t;
 
 /**
@@ -62,7 +63,8 @@ typedef enum {
  */
 static const char* trace_event_names[] = {
         "Reaction starts",
-        "Reaction ends"
+        "Reaction ends",
+        "Schedule called"
 };
 
 #ifdef LINGUA_FRANCA_TRACE
@@ -72,7 +74,7 @@ static const char* trace_event_names[] = {
 
 typedef struct trace_record_t {
     trace_event_t event_type;
-    void* self_struct;
+    void* object;  // e.g. self struct, trigger.
     int reaction_number;
     int worker;
     instant_t logical_time;
@@ -95,14 +97,14 @@ void start_trace();
  * Trace an event identified by a type and a pointer to the self struct of the reactor instance.
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
- * @param self_struct The pointer to the self struct of the reactor instance in the trace table.
+ * @param object The pointer to the traced object, e.g. self struct of the reactor instance in the trace table.
  * @param reaction_index The index of the reaction or -1 if the trace is not of a reaction.
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
  */
-void tracepoint(trace_event_t event_type, void* self_struct, int reaction_index, int worker, instant_t* physical_time);
+void tracepoint(trace_event_t event_type, void* object, int reaction_index, int worker, instant_t* physical_time);
 
 /**
  * Trace the start of a reaction execution.
@@ -118,6 +120,12 @@ void tracepoint_reaction_starts(reaction_t* reaction, int worker);
  */
 void tracepoint_reaction_ends(reaction_t* reaction, int worker);
 
+/**
+ * Trace a call to schedule.
+ * @param trigger Pointer to the trigger_t struct for the trigger.
+ */
+void tracepoint_schedule(trigger_t* trigger);
+
 void stop_trace();
 
 #else
@@ -126,6 +134,7 @@ void stop_trace();
 #define tracepoint(...)
 #define tracepoint_reaction_starts(...)
 #define tracepoint_reaction_ends(...)
+#define tracepoint_schedule(...)
 #define start_trace(...)
 #define stop_trace(...)
 

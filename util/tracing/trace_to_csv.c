@@ -63,10 +63,10 @@ size_t read_and_write_trace(FILE* trace_file, FILE* csv_file) {
             reaction_name = (char*)malloc(4);
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
         }
-        // printf("DEBUG: self_struct pointer: %p\n", trace[i].self_struct);
+        // printf("DEBUG: object pointer: %p\n", trace[i].object);
         fprintf(csv_file, "%s, %s, %s, %d, %lld, %d, %lld\n",
                 trace_event_names[trace[i].event_type],
-                get_description(trace[i].self_struct),
+                get_description(trace[i].object),
                 reaction_name,
                 trace[i].worker,
                 trace[i].logical_time - start_time,

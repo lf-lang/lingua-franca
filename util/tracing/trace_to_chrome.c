@@ -84,7 +84,7 @@ size_t read_and_write_trace(FILE* trace_file, FILE* json_file) {
             default:
                 phase = "i";
         }
-        // printf("DEBUG: self_struct pointer: %p\n", trace[i].self_struct);
+        // printf("DEBUG: object pointer: %p\n", trace[i].object);
         fprintf(json_file, "{"
                     "\"name\": \"%s\", "   // name is the reactor name.
                     "\"cat\": \"%s\", "    // category is the type of event.
@@ -97,7 +97,7 @@ size_t read_and_write_trace(FILE* trace_file, FILE* json_file) {
                         "\"logical time\": %lld,"    // logical time.
                         "\"microstep\": %d"          // microstep.
                     "}},\n",
-                get_description(trace[i].self_struct),
+                get_description(trace[i].object),
                 trace_event_names[trace[i].event_type],
                 phase,
                 trace[i].worker,
