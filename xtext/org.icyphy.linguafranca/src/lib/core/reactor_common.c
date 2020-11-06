@@ -923,9 +923,8 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
         } else {
             printf("<<<<<< _lf_schedule_at_tag: 12\n");
             // Create a dummy event. Insert it into the queue, and let its next
-            // pointer point to the actual event. The tag (x,0) has already been
-            // seen
-            pqueue_insert(event_q, _lf_create_dummy_event(trigger, tag.time, e, tag.microstep-1));
+            // pointer point to the actual event.
+            pqueue_insert(event_q, _lf_create_dummy_event(trigger, tag.time, e, tag.microstep));
         }
     }
     return 1;

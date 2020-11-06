@@ -40,7 +40,7 @@ reactor Scheduler {
     =}
     
     reaction(shutdown) {=
-        if (self->action_hit_list_index != 10) {
+        if (self->action_hit_list_index != 9) {
             fprintf(stderr, "ERROR: incorrect number of actions were correctly scheduled: %d.", self->action_hit_list_index);
             exit(1);
         }
