@@ -745,41 +745,19 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
     event_t* found = pqueue_find_equal_same_priority(event_q, e);
     if (found != NULL) {
         if (tag.microstep == 0) {
-            // The microstep is 0, which means that the event is being scheduled
-            // a future time.
-            if (found->is_dummy) {
-                // The found event is a dummy event, meaning that it is a placeholder
-                // for another event to be scheduled
-                // at the future time with a microstep larger than 0.
-                // We need to insert our event in place of the dummy
-                // event, chain our event to the dummy event or its real
-                // event, depending on its offset. First, get the offset
-                // of the dummy event.
-                microstep_t dummy_microstep_offset = *((microstep_t*)found->token->value);
-
-                // Here, we repurpose the found event to make it our real event.
+                // The microstep is 0, which means that the event is being scheduled
+                // at a future time and at the beginning of the skip list of events 
+                // at that time. Replace the payload of the event at the head with our
+                // current payload.
                 _lf_replace_token(found, token);
+                _lf_recycle_event(e);
+
+                // In case the event is a dummy event
+                // convert it to a real event.                
                 found->is_dummy = false;
 
-                // If the offset is 1, we leave the next pointer alone, since that points
-                // to its real event. That will cause that real event
-                // to trigger at microstep 1, after the event we are scheduling now.
-                // Otherwise, we create a new dummy event to skip some microsteps.
-                if (dummy_microstep_offset > 1) {
-                    found->next = _lf_create_dummy_events(
-                            trigger, tag.time, found->next, dummy_microstep_offset - 1);
-                }
-                _lf_recycle_event(e);
                 // printf("<<<<<< _lf_schedule_at_tag: 1\n");
-            } else {
-                // There is an existing event at the specified time.
-                // Since it is not a dummy event, its microstep is 0.
-                // Replace it.
-                _lf_replace_token(found, token);
-                _lf_recycle_event(e);
-                // printf("<<<<<< _lf_schedule_at_tag: 2\n");
                 return 0;
-            }
         } else {
             // printf("<<<<<< _lf_schedule_at_tag: 3\n");
             // We are requesting a microstep greater than 0
