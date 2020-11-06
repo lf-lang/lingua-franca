@@ -210,8 +210,8 @@ import org.icyphy.linguaFranca.Value
  *     execute the reaction (see reactor.h in the C library).
  * 
  *  * Timers: For each timer t, there is are two fields in the self struct:
- *    * ___t_trigger: The trigger_t struct for this timer (see reactor.h).
- *    * ___t_trigger_reactions: An array of reactions (pointers to the
+ *    * ___t: The trigger_t struct for this timer (see reactor.h).
+ *    * ___t_reactions: An array of reactions (pointers to the
  *      reaction_t structs on this self struct) sensitive to this timer.
  *
  * * Triggers: For each Timer, Action, Input, and Output of a contained
@@ -2980,7 +2980,7 @@ class CGenerator extends GeneratorBase {
     def getStackPortMember(String portName, String member) '''
         «portName».«member»
     '''
-    
+
     /**
      * If tracing is turned on, then generate code that records
      * the full name of the specified reactor instance in the
@@ -3006,6 +3006,22 @@ class CGenerator extends GeneratorBase {
                 _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
                         = "«description»";
             ''')
+            for (action : instance.actions) {
+                pr(builder, '''
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                            = &(«nameOfSelfStruct»->___«action.name»);
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                            = "«description».«action.name»";
+                ''')
+            }
+            for (timer : instance.timers) {
+                pr(builder, '''
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                            = &(«nameOfSelfStruct»->___«timer.name»);
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                            = "«description».«timer.name»";
+                ''')
+            }
         }
     } 
 

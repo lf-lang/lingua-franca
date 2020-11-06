@@ -107,6 +107,14 @@ token_present_t* __tokens_with_ref_count = NULL;
 token_t* _lf_more_tokens_with_ref_count = NULL;
 int __tokens_with_ref_count_size = 0;
 
+/**
+ * Global STP offset uniformly applied to advancement of each
+ * time step in federated execution. This can be retrieved in
+ * user code by calling get_stp_offset() and adjusted by
+ * calling set_stp_offset(interval_t offset).
+ */
+interval_t _lf_global_time_STP_offset = 0LL;
+
 /////////////////////////////
 // The following functions are in scope for all reactors:
 
@@ -963,6 +971,8 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+
+    tracepoint_schedule(trigger);
 
     // if (extra_delay < 0LL) {
     //     DEBUG_PRINT("WARNING: schedule called with a negative extra_delay. Replacing with zero.\n");
