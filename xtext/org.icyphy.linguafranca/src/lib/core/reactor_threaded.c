@@ -318,9 +318,9 @@ tag_t next_event_time(instant_t time, microstep_t microstep);
  */
 bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
-    if (stop_time > 0LL && logical_time_ns > stop_time) {
+    if (timeout_time > 0LL && logical_time_ns > timeout_time) {
         // Modify the time to wait until to be the timeout time.
-        logical_time_ns = stop_time;
+        logical_time_ns = timeout_time;
         // Indicate on return that the time of the event was not reached.
         // We still wait for time to elapse in case asynchronous events come in.
         return_value = false;
@@ -404,8 +404,8 @@ bool __next() {
         // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
         // If a stop time was given, adjust the next_time from the
         // event time to that stop time.
-        if (stop_time > 0LL && next_time > stop_time) {
-            next_time = stop_time;
+        if (timeout_time > 0LL && next_time > timeout_time) {
+            next_time = timeout_time;
         }
 
         // In case this is in a federation, check whether time can advance
@@ -470,12 +470,12 @@ bool __next() {
         // printf("DEBUG: __next(): event queue is empty.\n");
         // If a stop time was given, adjust the next_time from FOREVER
         // to that stop time.
-        if (stop_time > 0LL) {
-            next_time = stop_time;
+        if (timeout_time > 0LL) {
+            next_time = timeout_time;
             next_microstep = 0;
         }
 
-        // Ask the RTI to advance time to either stop_time or FOREVER.
+        // Ask the RTI to advance time to either timeout_time or FOREVER.
         // This will be granted if there are no upstream federates.
         // If there are upstream federates, then the call will block
         // until the upstream federates can grant some time advance,
@@ -486,7 +486,7 @@ bool __next() {
         tag_t grant_tag = next_event_time(next_time, next_microstep);
         // printf("DEBUG: __next(): RTI grants time advance to %lld.\n", grant_time - start_time);
         if (grant_tag.time == next_time && grant_tag.microstep == next_microstep) {
-            // RTI is OK with advancing time to stop_time or FOREVER.
+            // RTI is OK with advancing time to timeout_time or FOREVER.
             // Note that keepalive is always set for a federated execution.
             if (!keepalive_specified) {
                 // Since keepalive was not specified, quit.
@@ -517,7 +517,7 @@ bool __next() {
 
         // The event queue is still empty, but since keepalive has been
         // specified, we should not stop unless physical time exceeds the
-        // stop_time.  If --fast has been specified, however, this will
+        // timeout_time.  If --fast has been specified, however, this will
         // return immediately.
         // FIXME: --fast becomes useless for federated execution because
         // the federates proceed immediately to the stop time or FOREVER!

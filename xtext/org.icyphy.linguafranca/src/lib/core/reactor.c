@@ -90,8 +90,8 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  */ 
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
-    if (stop_time > 0LL && logical_time_ns > stop_time) {
-        logical_time_ns = stop_time;
+    if (timeout_time > 0LL && logical_time_ns > timeout_time) {
+        logical_time_ns = timeout_time;
         current_tag.microstep = 0;
         // Indicate on return that the time of the event was not reached.
         // We still wait for time to elapse in case asynchronous events come in.
@@ -256,7 +256,7 @@ int __do_step() {
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
 
-    if (stop_time > 0LL && current_tag.time >= stop_time) {
+    if (timeout_time > 0LL && current_tag.time >= timeout_time) {
         stop_requested = true;
         return 0;
     }
@@ -303,7 +303,7 @@ int next() {
         if (new_event == event) {
             // There is no new event. If the timeout time has been reached,
             // or if the maximum time has been reached (unlikely), then return.
-            if (new_event == NULL || (stop_time > 0LL && current_tag.time >= stop_time)) {
+            if (new_event == NULL || (timeout_time > 0LL && current_tag.time >= timeout_time)) {
                 stop_requested = true;
                 return 0;
             }

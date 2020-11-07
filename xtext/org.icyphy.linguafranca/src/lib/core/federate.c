@@ -1253,7 +1253,7 @@ void synchronize_with_other_federates() {
 
     if (duration >= 0LL) {
         // A duration has been specified. Recalculate the stop time.
-        stop_time = current_tag.time + duration;
+        timeout_time = current_tag.time + duration;
     }
 
     // Start a thread to listen for incoming messages from the RTI.
@@ -1316,10 +1316,10 @@ void __logical_time_complete(instant_t time, microstep_t microstep) {
          // so there is no need for the RTI to get involved.
 
          // FIXME: If the event queue is empty, then the time argument is either
-         // the stop_time or FOREVER. In this case, it matters whether there are
+         // the timeout_time or FOREVER. In this case, it matters whether there are
          // upstream federates connected by physical connections, which do not
          // affect __fed_has_upstream. We should not return immediately because
-         // then the execution will hit its stop_time and fail to receive any
+         // then the execution will hit its timeout_time and fail to receive any
          // messages sent by upstream federates.
         return (tag_t) {  .time = time, .microstep = microstep };
      }
@@ -1350,7 +1350,7 @@ void __logical_time_complete(instant_t time, microstep_t microstep) {
      // any other federate.
      // FIXME: If fast execution is being used, it may be necessary to
      // throttle upstream federates.
-     // FIXME: As noted above, this is not correct if the time is the stop_time.
+     // FIXME: As noted above, this is not correct if the time is the timeout_time.
      if (!__fed_has_upstream) {
          return (tag_t) {  .time = time, .microstep = microstep };
      }
