@@ -601,6 +601,7 @@ void _lf_initialize_timer(trigger_t* timer) {
     if (timer->offset == 0) {
         for (int i = 0; i < timer->number_of_reactions; i++) {
             _lf_enqueue_reaction(timer->reactions[i]);
+            tracepoint_schedule(timer, 0LL); // Trace even though schedule is not called.
         }
         if (timer->period == 0) {
             return;
@@ -620,6 +621,7 @@ void _lf_initialize_timer(trigger_t* timer) {
     e->time = get_logical_time() + delay;
     // NOTE: No lock is being held. Assuming this only happens at startup.
     pqueue_insert(event_q, e);
+    tracepoint_schedule(timer, delay); // Trace even though schedule is not called.
 }
 
 /**
@@ -709,8 +711,6 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
 
     tag_t current_logical_tag = get_current_tag();
 
-    tracepoint_schedule(trigger, tag.time - current_logical_tag.time);
-
     // printf("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).\n",
     //              tag.time - start_time, tag.microstep, current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {
@@ -739,6 +739,8 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
     // Set the event time
     e->time = tag.time;
     
+    tracepoint_schedule(trigger, tag.time - current_logical_tag.time);
+
     // Make sure the event points to this trigger so when it is
     // dequeued, it will trigger this trigger.
     e->trigger = trigger;
@@ -862,8 +864,6 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
-
-    tracepoint_schedule(trigger, extra_delay);
 
     // if (extra_delay < 0LL) {
     //     DEBUG_PRINT("WARNING: schedule called with a negative extra_delay. Replacing with zero.\n");
@@ -1057,7 +1057,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // same time will automatically be executed at the next microstep.
     // printf("DEBUG: Inserting event in the event queue with elapsed time %lld.\n", e->time - start_time);
     pqueue_insert(event_q, e);
-    
+
+    tracepoint_schedule(trigger, e->time - current_tag.time);
+
     // FIXME: make a record of handle and implement unschedule.
     // NOTE: Rather than wrapping around to get a negative number,
     // we reset the handle on the assumption that much earlier

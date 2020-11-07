@@ -70,6 +70,31 @@ size_t read_and_write_trace(FILE* trace_file, FILE* json_file) {
             reaction_name = (char*)malloc(4);
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
         }
+        // printf("DEBUG: Reactor's self struct pointer: %p\n", trace[i].reactor);
+        int reactor_index;
+        char* reactor_name = get_reactor_name(trace[i].reactor, &reactor_index);
+        if (reactor_name == NULL) {
+            reactor_name = "NO REACTOR";
+        }
+        // Default name is the reactor name.
+        char* name = reactor_name;
+
+        int trigger_index;
+        char* trigger_name = get_trigger_name(trace[i].trigger, &trigger_index);
+        if (trigger_name == NULL) {
+            trigger_name = "NONE";
+        }
+        // By default, the timestamp used in the trace is the elapsed
+        // physical time in microseconds.  But for schedule_called events,
+        // it will instead be the logical time at which the action or timer
+        // is to be scheduled.
+        interval_t elapsed_physical_time = (trace[i].physical_time - start_time)/1000;
+        interval_t timestamp = elapsed_physical_time;
+        interval_t elapsed_logical_time = (trace[i].logical_time - start_time)/1000;
+
+        // Default thread id is the worker number.
+        int thread_id = trace[i].worker;
+
         char* phase;
         int pid;
         switch(trace[i].event_type) {
@@ -81,30 +106,37 @@ size_t read_and_write_trace(FILE* trace_file, FILE* json_file) {
                 phase = "E";
                 pid = 0; // Process 0 will be named "Execution"
                 break;
+            case schedule_called:
+                phase = "i";
+                pid = reactor_index + 1; // One pid per reactor.
+                timestamp = elapsed_logical_time + trace[i].extra_delay/1000;
+                thread_id = trigger_index;
+                name = trigger_name;
             default:
                 phase = "i";
         }
-        // printf("DEBUG: object pointer: %p\n", trace[i].object);
         fprintf(json_file, "{"
-                    "\"name\": \"%s\", "   // name is the reactor name.
+                    "\"name\": \"%s\", "   // name is the reactor or trigger name.
                     "\"cat\": \"%s\", "    // category is the type of event.
                     "\"ph\": \"%s\", "     // phase is "B" (begin), "E" (end), or "X" (complete).
                     "\"tid\": %d, "        // thread ID.
                     "\"pid\": %d, "        // process ID is required.
-                    "\"ts\": %lld, "       // timestamp is physical time in microseconds
+                    "\"ts\": %lld, "       // timestamp in microseconds
                     "\"args\": {"
                         "\"reaction\": %s,"          // reaction number.
                         "\"logical time\": %lld,"    // logical time.
+                        "\"physical time\": %lld,"   // physical time.
                         "\"microstep\": %d"          // microstep.
                     "}},\n",
-                get_description(trace[i].object),
+                name,
                 trace_event_names[trace[i].event_type],
                 phase,
-                trace[i].worker,
+                thread_id,
                 pid,
-                (trace[i].physical_time - start_time)/1000,
+                timestamp,
                 reaction_name,
-                (trace[i].logical_time - start_time)/1000,
+                elapsed_logical_time,
+                elapsed_physical_time,
                 trace[i].microstep
         );
         if (trace[i].worker > max_thread_id) {
@@ -142,7 +174,37 @@ void write_metadata_events(FILE* json_file) {
                 i, i
         );
     }
-    // Name the "process" for "Execution"
+     // Write the reactor names for the logical timelines.
+    for (int i = 0; i < object_table_size; i++) {
+        if (object_table[i].type == trace_trigger) {
+            // We need the reactor index (not the name) to set the pid.
+            int reactor_index;
+            get_reactor_name(object_table[i].reactor, &reactor_index);
+            fprintf(json_file, "{"
+                    "\"name\": \"thread_name\", "   // metadata for process name.
+                    "\"ph\": \"M\", "       // mark as metadata.
+                    "\"pid\": %d, "         // the "process" to identify by reactor.
+                    "\"tid\": %d,"          // The "thread" to label with action or timer name.
+                    "\"args\": {"
+                        "\"name\": \"Trigger %s\"" 
+                    "}},\n",
+                reactor_index + 1, // Offset of 1 prevents collision with Execution.
+                i,  
+                object_table[i].description);
+
+        } else if (object_table[i].type == trace_reactor) {
+            fprintf(json_file, "{"
+                    "\"name\": \"process_name\", "   // metadata for process name.
+                    "\"ph\": \"M\", "      // mark as metadata.
+                    "\"pid\": %d, "         // the "process" to label as reactor.
+                    "\"args\": {"
+                        "\"name\": \"Reactor %s actions and timers in logical time\"" 
+                    "}},\n",
+                i + 1,  // Offset of 1 prevents collision with Execution.
+                object_table[i].description);
+        }
+    }
+   // Name the "process" for "Execution"
     // Last metadata entry lacks a comma.
     fprintf(json_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
@@ -152,6 +214,7 @@ void write_metadata_events(FILE* json_file) {
                         "\"name\": \"Execution of %s\"" 
                     "}}\n",
                 top_level);
+
 }
 
 int main(int argc, char* argv[]) {
@@ -188,9 +251,9 @@ int main(int argc, char* argv[]) {
         write_metadata_events(json_file);
         fprintf(json_file, "]}\n");
    }
-    // Free memory in object description table.
-    for (int i = 0; i < object_descriptions_size; i++) {
-        free(object_descriptions[i].description);
+    // Free memory in reactor name table.
+    for (int i = 0; i < object_table_size; i++) {
+        free(object_table[i].description);
     }
     fclose(trace_file);
     fclose(json_file);

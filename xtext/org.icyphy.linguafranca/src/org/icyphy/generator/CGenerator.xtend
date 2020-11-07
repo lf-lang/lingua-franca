@@ -640,7 +640,7 @@ class CGenerator extends GeneratorBase {
                 pr("void __initialize_timers() {")
                 indent()
                 if (targetTracing) {
-                    pr('start_trace();')
+                    pr('''start_trace("«filename».lft");''') // .lft is for Lingua Franca trace
                 }
                 if (timerCount > 0) {
                     pr('''
@@ -3012,23 +3012,35 @@ class CGenerator extends GeneratorBase {
             var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
-                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
                         = «nameOfSelfStruct»;
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
+                        = NULL;
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
+                        = trace_reactor;
                 _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
                         = "«description»";
             ''')
             for (action : instance.actions) {
                 pr(builder, '''
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
+                            = «nameOfSelfStruct»;
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
                             = &(«nameOfSelfStruct»->___«action.name»);
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
+                            = trace_trigger;
                     _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
                             = "«description».«action.name»";
                 ''')
             }
             for (timer : instance.timers) {
                 pr(builder, '''
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
+                            = «nameOfSelfStruct»;
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
                             = &(«nameOfSelfStruct»->___«timer.name»);
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
+                            = trace_trigger;
                     _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
                             = "«description».«timer.name»";
                 ''')
@@ -3183,8 +3195,12 @@ class CGenerator extends GeneratorBase {
                         if (targetTracing) {
                             val description = getShortenedName(instance)
                             pr(initializeTriggerObjects, '''
-                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
+                                        = «nameOfSelfStruct»;
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
                                         = &(«nameOfSelfStruct»->___shutdown);
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
+                                        = trace_trigger;
                                 _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
                                         = "«description».shutdown";
                             ''')
