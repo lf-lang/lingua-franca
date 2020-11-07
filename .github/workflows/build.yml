@@ -12,7 +12,7 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
+  # First 
   build:
     # The type of runner that the job will run on
     strategy:
@@ -25,22 +25,57 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      # Setup NodeJS
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.2
-      # Setup Java
+      # Setup Build dependencies
       - name: Setup Java JDK
         uses: actions/setup-java@v1.4.3
         with:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 1.8
+          java-version: 14
           
       # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Build lfc
+        run: bin/build-lfc;
 
       # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+#       - name: Run a multi-line script
+#         run: |
+#           echo Add other actions to build,
+#           echo test, and deploy your project.
+  unit-tests:
+    runs-on: ${{ matrix.platform }}
+    needs: build
+    steps:
+      - name: Run unit tests
+        run: pushd xtext && ./gradlew test && popd;
+
+  c-tests:
+    runs-on: ${{ matrix.platform }}
+    needs: build
+    steps:
+     # Setup NodeJS
+      - name: Run C tests;
+        run: 	bin/run-lf-tests C;
+  
+  cpp-tests:
+    runs-on: ${{ matrix.platform }}
+    needs: build
+    steps:
+      - name: Run C++ tests;
+        run: 	bin/run-lf-tests Cpp;
+        
+  ts-tests:
+    runs-on: ${{ matrix.platform }}
+    needs: build
+    steps:
+      - name: Run TS tests;
+        run: 	bin/run-lf-tests TS;
+        
+  python-tests:
+    runs-on: ${{ matrix.platform }}
+    needs: build
+    steps:
+      - name: Run Python tests;
+        run: 	bin/run-lf-tests TS;
+        
+
+    
