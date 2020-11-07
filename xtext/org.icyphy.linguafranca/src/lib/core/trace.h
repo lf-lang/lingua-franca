@@ -80,6 +80,7 @@ typedef struct trace_record_t {
     instant_t logical_time;
     microstep_t microstep;
     instant_t physical_time;
+    interval_t extra_delay;
 } trace_record_t;
 
 /**
@@ -103,8 +104,17 @@ void start_trace();
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
+ * @param extra_delay The extra delay passed to schedule(). If not relevant for this event
+ *  type, pass 0.
  */
-void tracepoint(trace_event_t event_type, void* object, int reaction_index, int worker, instant_t* physical_time);
+void tracepoint(
+        trace_event_t event_type,
+        void* object,
+        int reaction_number,
+        int worker,
+        instant_t* physical_time,
+        interval_t extra_delay
+);
 
 /**
  * Trace the start of a reaction execution.
@@ -123,8 +133,9 @@ void tracepoint_reaction_ends(reaction_t* reaction, int worker);
 /**
  * Trace a call to schedule.
  * @param trigger Pointer to the trigger_t struct for the trigger.
+ * @param extra_delay The extra delay passed to schedule().
  */
-void tracepoint_schedule(trigger_t* trigger);
+void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay);
 
 void stop_trace();
 
