@@ -25,11 +25,16 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
             in->tardiness
         );
         self->total_received_messages++;
-        if (in->value != self->received_messages++) {
-            fprintf(stderr,"ERROR: received messages out of order.\n");
-            exit(1);
+        if (in->value != get_microstep()) {
+            fprintf(stderr,"ERROR: received incorrect value %d. Expected %d.\n", in->value, get_microstep());
+            // exit(1);
         }
-
+        if (in->value != self->received_messages) {
+            fprintf(stderr,"ERROR: received value %d out of order. Expected %d.\n", in->value, self->received_messages);
+            self->received_messages = in->value;
+            // exit(1);
+        }
+		self->received_messages++;
         if (self->received_messages == self->take_a_break_after) {
             // Sender is taking a break;
             self->breaks++;
@@ -50,7 +55,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
 
 reactor TardyReceiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     input in:int;
-    receiver = new Receiver(take_a_break_after = 1, break_interval = 10 msec);
+    receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec);
     timer t (0, 1 msec); // Force advancement of logical time
     
     reaction (in) -> receiver.in {=
