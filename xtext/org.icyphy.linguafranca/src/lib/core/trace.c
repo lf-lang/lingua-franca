@@ -287,13 +287,16 @@ void start_trace() {
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
+ * @param extra_delay The extra delay passed to schedule(). If not relevant for this event
+ *  type, pass 0.
  */
 void tracepoint(
-            trace_event_t event_type,
-            void* object,
-            int reaction_number,
-            int worker,
-            instant_t* physical_time
+        trace_event_t event_type,
+        void* object,
+        int reaction_number,
+        int worker,
+        instant_t* physical_time,
+        interval_t extra_delay
 ) {
     // printf("DEBUG: Creating trace record.\n");
     // Flush the buffer if it is full.
@@ -324,7 +327,7 @@ void tracepoint(
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
 void tracepoint_reaction_starts(reaction_t* reaction, int worker) {
-    tracepoint(reaction_starts, reaction->self, reaction->number, worker, NULL);
+    tracepoint(reaction_starts, reaction->self, reaction->number, worker, NULL, 0);
 }
 
 /**
@@ -333,15 +336,16 @@ void tracepoint_reaction_starts(reaction_t* reaction, int worker) {
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
 void tracepoint_reaction_ends(reaction_t* reaction, int worker) {
-    tracepoint(reaction_ends, reaction->self, reaction->number, worker, NULL);
+    tracepoint(reaction_ends, reaction->self, reaction->number, worker, NULL, 0);
 }
 
 /**
  * Trace a call to schedule.
  * @param trigger Pointer to the trigger_t struct for the trigger.
+ * @param extra_delay The extra delay passed to schedule().
  */
-void tracepoint_schedule(trigger_t* trigger) {
-    tracepoint(schedule_called, trigger, 0, 0, NULL);
+void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay) {
+    tracepoint(schedule_called, trigger, 0, 0, NULL, extra_delay);
 }
 
 /**

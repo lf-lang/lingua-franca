@@ -706,7 +706,11 @@ void _lf_replace_token(event_t* event, token_t* token) {
  *  or -1 for error (the tag is equal to or less than the current tag).
  */
 int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
+
     tag_t current_logical_tag = get_current_tag();
+
+    tracepoint_schedule(trigger, tag.time - current_logical_tag.time);
+
     // printf("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).\n",
     //              tag.time - start_time, tag.microstep, current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {
@@ -859,7 +863,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
 
-    tracepoint_schedule(trigger);
+    tracepoint_schedule(trigger, extra_delay);
 
     // if (extra_delay < 0LL) {
     //     DEBUG_PRINT("WARNING: schedule called with a negative extra_delay. Replacing with zero.\n");

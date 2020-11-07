@@ -2980,7 +2980,23 @@ class CGenerator extends GeneratorBase {
     def getStackPortMember(String portName, String member) '''
         «portName».«member»
     '''
-
+    /**
+     * Return the full name of the specified instance without
+     * the leading name of the top-level reactor, unless this
+     * is the top-level reactor, in which case return its name.
+     * @param instance The instance.
+     * @return A shortened instance name.
+     */
+    def getShortenedName(ReactorInstance instance) {
+        var description = instance.getFullName
+        // If not at the top level, strip off the name of the top level.
+        val period = description.indexOf(".")
+        if (period > 0) {
+            description = description.substring(period + 1)
+        }
+        return description
+    }
+    
     /**
      * If tracing is turned on, then generate code that records
      * the full name of the specified reactor instance in the
@@ -2988,17 +3004,12 @@ class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      * @param builder The place to put the generated code.
      */
-    def void generateTraceTableEntry(ReactorInstance instance, StringBuilder builder) {
+    def void generateTraceTableEntries(ReactorInstance instance, StringBuilder builder) {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
         if (targetTracing) {
-            var description = instance.getFullName
-            // If not at the top level, strip off the name of the top level.
-            val period = description.indexOf(".")
-            if (period > 0) {
-                description = description.substring(period + 1)
-            }
+            var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
                 _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
@@ -3073,7 +3084,7 @@ class CGenerator extends GeneratorBase {
                 «nameOfSelfStruct»->«targetBankIndex» = 0;
             ''')
         }
-        generateTraceTableEntry(instance, initializeTriggerObjects)
+        generateTraceTableEntries(instance, initializeTriggerObjects)
               
         generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
 
@@ -3169,6 +3180,15 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects, '''
                             __shutdown_triggers[«shutdownCount++»] = &«nameOfSelfStruct»->___shutdown;
                         ''')
+                        if (targetTracing) {
+                            val description = getShortenedName(instance)
+                            pr(initializeTriggerObjects, '''
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].object
+                                        = &(«nameOfSelfStruct»->___shutdown);
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                                        = "«description».shutdown";
+                            ''')
+                        }
                     }
                 }
                 

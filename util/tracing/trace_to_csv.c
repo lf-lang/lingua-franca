@@ -64,14 +64,15 @@ size_t read_and_write_trace(FILE* trace_file, FILE* csv_file) {
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
         }
         // printf("DEBUG: object pointer: %p\n", trace[i].object);
-        fprintf(csv_file, "%s, %s, %s, %d, %lld, %d, %lld\n",
+        fprintf(csv_file, "%s, %s, %s, %d, %lld, %d, %lld, %lld\n",
                 trace_event_names[trace[i].event_type],
                 get_description(trace[i].object),
                 reaction_name,
                 trace[i].worker,
                 trace[i].logical_time - start_time,
                 trace[i].microstep,
-                trace[i].physical_time - start_time
+                trace[i].physical_time - start_time,
+                trace[i].extra_delay
         );
     }
     return trace_length;
@@ -106,7 +107,7 @@ int main(int argc, char* argv[]) {
 
     if (read_header(trace_file) >= 0) {
         // Write a header line into the CSV file.
-        fprintf(csv_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time\n");
+        fprintf(csv_file, "Event, Object, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Extra Delay\n");
         while (read_and_write_trace(trace_file, csv_file) != 0) {};
     }
     // Free memory in object description table.
