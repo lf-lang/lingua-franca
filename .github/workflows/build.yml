@@ -48,6 +48,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: build
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
       - name: Run unit tests
         run: pushd xtext && ./gradlew test && popd;
 
@@ -58,7 +60,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: build
     steps:
-     # Setup NodeJS
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
       - name: Run C tests;
         run: 	bin/run-lf-tests C;
   
@@ -69,6 +72,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: build
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
       - name: Run C++ tests;
         run: 	bin/run-lf-tests Cpp;
         
@@ -79,6 +84,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: build
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
       - name: Run TS tests;
         run: 	bin/run-lf-tests TS;
         
@@ -89,6 +96,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: build
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
       - name: Run Python tests;
         run: 	bin/run-lf-tests TS;
         
