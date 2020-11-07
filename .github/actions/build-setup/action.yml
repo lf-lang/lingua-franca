@@ -1,0 +1,14 @@
+name: build-setup
+author: Marten Lohstroh
+description: Action with composite run steps that prepare the environment for building lfc.
+runs:
+  using: 'composite'
+  steps:
+    # Setup Build dependencies
+    - name: Setup Java JDK
+      uses: actions/setup-java@v1.4.3
+      with:
+      # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+        java-version: 14
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
