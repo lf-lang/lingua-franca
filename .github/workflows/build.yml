@@ -65,7 +65,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
-      - uses: .github/actions/build-setup
+      - uses: ./.github/actions/build-setup
       - name: Run C tests;
         run: |
           bin/build-lfc;  
