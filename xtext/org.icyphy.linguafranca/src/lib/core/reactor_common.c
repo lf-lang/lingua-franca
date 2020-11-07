@@ -77,9 +77,10 @@ bool _lf_execution_started = false;
 bool stop_requested = false;
 
 /**
- * Stop time (start_time + duration), or 0 if no timeout time has been given.
+ * Timeout time (start_time + duration), or -1 if no timeout time has been given.
+ * The microstep for timeout is always 0.
  */
-instant_t stop_time = 0LL;
+instant_t timeout_time = -1LL;
 
 /** Indicator of whether the keepalive command-line option was given. */
 bool keepalive_specified = false;
@@ -712,7 +713,8 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
     tag_t current_logical_tag = get_current_tag();
 
     // printf("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).\n",
-    //              tag.time - start_time, tag.microstep, current_logical_tag.time - start_time, current_logical_tag.microstep);
+    //              tag.time - start_time, tag.microstep,
+    //              current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {
         fprintf(stderr,"_lf_schedule_at_tag(): requested to schedule an event in the past.\n");
         return -1;
@@ -725,11 +727,14 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
 
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
-    // allowed), or if the event time is past the requested stop time.
-    // FIXME: I think microsteps should not be allowed either
-    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
+    // allowed), or if the event time is past the requested timout tag of (timeout_time, 0).
+    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n",
+    //        e->time - start_time, timeout_time - start_time);
     if ((stop_requested && tag.time != current_tag.time)
-            || (stop_time > 0LL && tag.time > stop_time)) {
+            || (timeout_time != -1LL &&                // If timeout is given
+               (compare_tags2(tag.time, tag.microstep, // and the requested tag
+                              timeout_time, 0) > 0))   // is larger than (timeout_time, 0)
+       ) {
         // printf("DEBUG: _lf_schedule_at_tag: event time is past the timeout. Discarding event.\n");
         __done_using(token);
         return -1;
@@ -864,6 +869,12 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
 handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+    // If schedule is called at timeout time, scheduling an would mean 
+    // incurring 1 microstep which should be avoided.
+    if (current_tag.time == timeout_time) {
+        __done_using(token);
+        return 0;
+    }
 
     // if (extra_delay < 0LL) {
     //     DEBUG_PRINT("WARNING: schedule called with a negative extra_delay. Replacing with zero.\n");
@@ -956,6 +967,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
         event_t* found = pqueue_find_equal_same_priority(event_q, e);
         // Check for conflicts. Let events pile up in super dense time.
         if (found != NULL) {
+            if (intended_time == timeout_time) {
+                // Scheduling an event will incur a microstep
+                // at timeout, which is not allowed.
+                return 0;
+            }
             // Skip to the last node in the linked list.
             while(found->next != NULL) {
                 found = found->next;
@@ -983,7 +999,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                     if (min_spacing > 0 || 
                             pqueue_find_equal_same_priority(event_q, existing) != NULL) {
                         // Recycle the new event and the token.
-                        if (existing->token != token) __done_using(token);
+                        if (existing->token != token) {
+                            __done_using(token);
+                        }
                         _lf_recycle_event(e);
                         return(0);
                     }
@@ -1001,10 +1019,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                     if (existing->time > current_tag.time ||
                             (existing->time == current_tag.time &&
                             pqueue_find_equal_same_priority(event_q, existing) != NULL)) {
-                        // Recycle the existing token and the new event
-                        if (existing->token != token) __done_using(existing->token);
-                        // Update the token of the existing event.
-                        existing->token = token;
+                        // Recycle the existing token and the new event                        
+                        // and update the token of the existing event.
+                        _lf_replace_token(existing, token);
                         _lf_recycle_event(e);
                         return(0);
                     }
@@ -1015,9 +1032,15 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                 default:
                     if (existing->time == current_tag.time &&
                             pqueue_find_equal_same_priority(event_q, existing) != NULL) {
+                        if (existing->time == timeout_time) {
+                            // Scheduling e will incur a microstep at timeout, 
+                            // which is illegal.
+                            return 0;
+                        }
                         // If the last event hasn't been handled yet, insert
                         // the new event right behind.
                         existing->next = e;
+                        return 0; // FIXME: return a value
                     } else {
                          // Adjust the tag.
                         intended_time = earliest_time;
@@ -1032,11 +1055,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
-    // allowed), or if the event time is past the requested stop time.
-    // FIXME: I think microsteps should not be allowed either
-    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n", e->time - start_time, stop_time - start_time);
+    // allowed), or if the event time is past the requested timeout tag,
+    // which is always (timeout_time, 0).
+    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n",
+    //         e->time - start_time, timeout_time - start_time);
     if ((stop_requested && e->time != current_tag.time)
-            || (stop_time > 0LL && e->time > stop_time)) {
+            || (timeout_time != -1LL && e->time > timeout_time)) {
         // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
         _lf_recycle_event(e);
@@ -1065,7 +1089,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // we reset the handle on the assumption that much earlier
     // handles are irrelevant.
     int return_value = __handle++;
-    if (__handle < 0) __handle = 1;
+    if (__handle < 0) {
+        __handle = 1;
+    }
     return return_value;
 }
 
@@ -1634,7 +1660,7 @@ void initialize() {
     
     if (duration >= 0LL) {
         // A duration has been specified. Calculate the stop time.
-        stop_time = current_tag.time + duration;
+        timeout_time = current_tag.time + duration;
     }
 }
 
