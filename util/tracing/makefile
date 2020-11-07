@@ -20,6 +20,6 @@ install: trace_to_csv trace_to_chrome
 	mv trace_to_chrome ../../bin
 	
 clean:
-	rm *.o
+	rm -f *.o
 
  

@@ -57,18 +57,33 @@ void usage();
 extern instant_t start_time;
 
 /** Table of pointers to a description of the object. */
-extern object_description_t* object_descriptions;
-extern int object_descriptions_size;
+extern object_description_t* object_table;
+extern int object_table_size;
 
 /** Name of the top-level reactor (first entry in symbol table). */
 extern char* top_level;
 
 /**
- * Get the object description corresponding to the specified pointer.
- * If there is no such object, return "NO DESCRIPTION FOUND".
- * @param object The pointer.
+ * Get the reactor name whose self struct is the specified pointer.
+ * If there is no such reactor, return NULL.
+ * If the index argument is non-null, then put the index
+ * of the reactor in the table into the int pointed to
+ * or -1 if none was found.
+ * @param reactor The pointer to a self struct.
+ * @param index An optional pointer into which to write the index.
  */
-char* get_description(void* object);
+char* get_reactor_name(void* reactor, int* index);
+
+/**
+ * Get the trigger name for the specified pointer.
+ * If there is no such trigger, return NULL.
+ * If the index argument is non-null, then put the index
+ * of the trigger in the table into the int pointed to
+ * or -1 if none was found.
+ * @param reactor The pointer to a self struct.
+ * @param index An optional pointer into which to write the index.
+ */
+char* get_trigger_name(void* trigger, int* index);
 
 /**
  * Print the object to description table.

@@ -218,15 +218,35 @@ int write_trace_header() {
 
         // Next we write the table.
         for (int i = 0; i < _lf_trace_object_descriptions_size; i++) {
-            // printf("DEBUG: Object pointer: %p.\n", _lf_trace_object_descriptions[i].object);
+            // printf("DEBUG: Object pointer: %p.\n", _lf_trace_object_descriptions[i].reactor);
+            // Write the pointer to the self struct.
             items_written = fwrite(
-                        &_lf_trace_object_descriptions[i].object, // Write the pointer value.
+                        &_lf_trace_object_descriptions[i].reactor,
                         sizeof(void*),
                         1,
                         _lf_trace_file
             );
             if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
 
+            // Write the pointer to the trigger_t struct.
+            items_written = fwrite(
+                        &_lf_trace_object_descriptions[i].trigger,
+                        sizeof(trigger_t*),
+                        1,
+                        _lf_trace_file
+            );
+            if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
+
+            // Write the object type.
+            items_written = fwrite(
+                        &_lf_trace_object_descriptions[i].type, // Write the pointer value.
+                        sizeof(_lf_trace_object_t),
+                        1,
+                        _lf_trace_file
+            );
+            if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
+
+            // Write the description.
             int description_size = strlen(_lf_trace_object_descriptions[i].description);
             // printf("DEBUG: Object description: %s.\n", _lf_trace_object_descriptions[i].description);
             items_written = fwrite(
@@ -244,10 +264,11 @@ int write_trace_header() {
 
 /**
  * Open a trace file and start tracing.
+ * @param filename The filename for the trace file.
  */
-void start_trace() {
-    // FIXME: filename and location should be customizable.
-    _lf_trace_file = fopen("trace.lft", "w");
+void start_trace(char* filename) {
+    // FIXME: location of trace file should be customizable.
+    _lf_trace_file = fopen(filename, "w");
     if (_lf_trace_file == NULL) {
         fprintf(stderr, "WARNING: Failed to open log file with error code %d."
                 "No log will be written.\n", errno);
@@ -281,21 +302,23 @@ void start_trace() {
  * Trace an event identified by a type and a pointer to the self struct of the reactor instance.
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
- * @param object The pointer to the traced object, e.g. self struct of the reactor instance in the trace table.
+ * @param reactor The pointer to the self struct of the reactor instance in the trace table.
  * @param reaction_number The number of the reaction or -1 if the trace is not of a reaction.
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
+ * @param trigger Pointer to the trigger_t struct for calls to schedule or NULL otherwise.
  * @param extra_delay The extra delay passed to schedule(). If not relevant for this event
  *  type, pass 0.
  */
 void tracepoint(
         trace_event_t event_type,
-        void* object,
+        void* reactor,
         int reaction_number,
         int worker,
         instant_t* physical_time,
+        trigger_t* trigger,
         interval_t extra_delay
 ) {
     // printf("DEBUG: Creating trace record.\n");
@@ -308,7 +331,7 @@ void tracepoint(
     int i = _lf_trace_buffer_size[worker];
     // Write to memory buffer.
     _lf_trace_buffer[worker][i].event_type = event_type;
-    _lf_trace_buffer[worker][i].object = object;
+    _lf_trace_buffer[worker][i].reactor = reactor;
     _lf_trace_buffer[worker][i].reaction_number = reaction_number;
     _lf_trace_buffer[worker][i].worker = worker;
     _lf_trace_buffer[worker][i].logical_time = get_logical_time();
@@ -319,6 +342,8 @@ void tracepoint(
         _lf_trace_buffer[worker][i].physical_time = get_physical_time();
     }
     _lf_trace_buffer_size[worker]++;
+    _lf_trace_buffer[worker][i].trigger = trigger;
+    _lf_trace_buffer[worker][i].extra_delay = extra_delay;
 }
 
 /**
@@ -327,7 +352,7 @@ void tracepoint(
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
 void tracepoint_reaction_starts(reaction_t* reaction, int worker) {
-    tracepoint(reaction_starts, reaction->self, reaction->number, worker, NULL, 0);
+    tracepoint(reaction_starts, reaction->self, reaction->number, worker, NULL, NULL, 0);
 }
 
 /**
@@ -336,7 +361,7 @@ void tracepoint_reaction_starts(reaction_t* reaction, int worker) {
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  */
 void tracepoint_reaction_ends(reaction_t* reaction, int worker) {
-    tracepoint(reaction_ends, reaction->self, reaction->number, worker, NULL, 0);
+    tracepoint(reaction_ends, reaction->self, reaction->number, worker, NULL, NULL, 0);
 }
 
 /**
@@ -345,7 +370,16 @@ void tracepoint_reaction_ends(reaction_t* reaction, int worker) {
  * @param extra_delay The extra delay passed to schedule().
  */
 void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay) {
-    tracepoint(schedule_called, trigger, 0, 0, NULL, extra_delay);
+    // schedule() can only trigger reactions within the same reactor as the action
+    // or timer. If there is such a reaction, find its reactor's self struct and
+    // put that into the tracepoint. We only have to look at the first reaction.
+    // If there is no reaction, insert NULL for the reactor.
+    void* reactor = NULL;
+    if (trigger->number_of_reactions > 0
+            && trigger->reactions[0] != NULL) {
+        reactor = trigger->reactions[0]->self;
+    }
+    tracepoint(schedule_called, reactor, 0, 0, NULL, trigger, extra_delay);
 }
 
 /**

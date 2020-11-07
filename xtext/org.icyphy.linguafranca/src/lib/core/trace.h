@@ -74,45 +74,62 @@ static const char* trace_event_names[] = {
 
 typedef struct trace_record_t {
     trace_event_t event_type;
-    void* object;  // e.g. self struct, trigger.
+    void* reactor;  // self struct
     int reaction_number;
     int worker;
     instant_t logical_time;
     microstep_t microstep;
     instant_t physical_time;
+    trigger_t* trigger;
     interval_t extra_delay;
 } trace_record_t;
+
+/**
+ * Identifier for what is in the object table.
+ */
+typedef enum {
+    trace_reactor,   // Self struct.
+    trace_trigger    // Timer or action (argument to schedule()).
+} _lf_trace_object_t;
 
 /**
  * Struct for table of pointers to a description of the object.
  */
 typedef struct object_description_t object_description_t;
 struct object_description_t {
-    void* object;      // Pointer to the object (e.g., a reaction_t).
+    void* reactor;      // Pointer to the reactor self struct.
+    trigger_t* trigger;  // Pointer to the trigger (action or timer) if any.
+    _lf_trace_object_t type;     // The type, which indicates whether there is a trigger.
     char* description; // A NULL terminated string.
 };
 
-void start_trace();
+/**
+ * Open a trace file and start tracing.
+ * @param filename The filename for the trace file.
+ */
+void start_trace(char* filename);
 
 /**
  * Trace an event identified by a type and a pointer to the self struct of the reactor instance.
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
- * @param object The pointer to the traced object, e.g. self struct of the reactor instance in the trace table.
+ * @param reactor The pointer to the self struct of the reactor instance in the trace table.
  * @param reaction_index The index of the reaction or -1 if the trace is not of a reaction.
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
+ * @param trigger Pointer to the trigger_t struct for calls to schedule or NULL otherwise.
  * @param extra_delay The extra delay passed to schedule(). If not relevant for this event
  *  type, pass 0.
  */
 void tracepoint(
         trace_event_t event_type,
-        void* object,
+        void* reactor,
         int reaction_number,
         int worker,
         instant_t* physical_time,
+        trigger_t* trigger,
         interval_t extra_delay
 );
 

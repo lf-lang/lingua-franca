@@ -63,15 +63,24 @@ size_t read_and_write_trace(FILE* trace_file, FILE* csv_file) {
             reaction_name = (char*)malloc(4);
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
         }
-        // printf("DEBUG: object pointer: %p\n", trace[i].object);
-        fprintf(csv_file, "%s, %s, %s, %d, %lld, %d, %lld, %lld\n",
+        // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].reactor);
+        char* reactor_name = get_reactor_name(trace[i].reactor, NULL);
+        if (reactor_name == NULL) {
+            reactor_name = "NO REACTOR";
+        }
+        char* trigger_name = get_trigger_name(trace[i].trigger, NULL);
+        if (trigger_name == NULL) {
+            trigger_name = "NO TRIGGER";
+        }
+        fprintf(csv_file, "%s, %s, %s, %d, %lld, %d, %lld, %s, %lld\n",
                 trace_event_names[trace[i].event_type],
-                get_description(trace[i].object),
+                reactor_name,
                 reaction_name,
                 trace[i].worker,
                 trace[i].logical_time - start_time,
                 trace[i].microstep,
                 trace[i].physical_time - start_time,
+                trigger_name,
                 trace[i].extra_delay
         );
     }
@@ -107,12 +116,12 @@ int main(int argc, char* argv[]) {
 
     if (read_header(trace_file) >= 0) {
         // Write a header line into the CSV file.
-        fprintf(csv_file, "Event, Object, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Extra Delay\n");
+        fprintf(csv_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
         while (read_and_write_trace(trace_file, csv_file) != 0) {};
     }
     // Free memory in object description table.
-    for (int i = 0; i < object_descriptions_size; i++) {
-        free(object_descriptions[i].description);
+    for (int i = 0; i < object_table_size; i++) {
+        free(object_table[i].description);
     }
     fclose(trace_file);
     fclose(csv_file);
