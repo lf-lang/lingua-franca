@@ -938,7 +938,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         // If threaded computation is requested, add a -pthread option.
-        if (targetThreads !== 0) {
+        if (targetThreads !== 0 || targetTracing) {
             compileArgs.add("-pthread")
         }
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
