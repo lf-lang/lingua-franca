@@ -70,7 +70,7 @@ jobs:
         if: runner.os == 'Linux'
       - name: Install Protobufs OS X
         run: |
-          brew install protobuf-c;
+          brew install protobuf-c
         if: runner.os == 'macOS'
       - name: Install Protobufs Windows
         uses: lukka/run-vcpkg@v4
@@ -114,6 +114,19 @@ jobs:
           java-version: 14
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2 
+      - name: Install Protobufs Ubuntu
+        run: sudo apt-get install libprotobuf-dev protobuf-compiler
+        if: runner.os == 'Linux'
+      - name: Install Protobufs OS X
+        run: |
+          brew install protobuf
+        if: runner.os == 'macOS'
+      - name: Install Protobufs Windows
+        uses: lukka/run-vcpkg@v4
+        with:
+          vcpkgArguments: 'protobuf'
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+        if: runner.os == 'Windows'
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
