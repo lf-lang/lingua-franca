@@ -44,13 +44,16 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
                         
         }
         if (in->value != self->received_messages) {
-            fprintf(stderr,"WARNING: received value %d out of order. Expected %d.\n", in->value, self->received_messages);
+            fprintf(stderr,"WARNING: skipped expected value %d. Received value %d.\n", self->received_messages, in->value);
             self->received_messages = in->value;
             // exit(1); // The receiver should tolerate this type of error
                         // in this test because multiple messages arriving 
                         // at a given tag (t, m) can override each other.
-                        // Note that with an accurate STP offset, this type
-                        // of error should be extremely rare.
+                        // Because messages arrive in order, only the last 
+                        // value that is received on the port at a given tag
+                        // can be observed. Note that with an accurate STP 
+                        // offset, this type of error should be extremely 
+                        // rare.
                         // FIXME: Messages should not be dropped or
                         // overwritten.
         }
