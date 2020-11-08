@@ -970,6 +970,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             if (intended_time == timeout_time) {
                 // Scheduling an event will incur a microstep
                 // at timeout, which is not allowed.
+                _lf_recycle_event(e);
                 return 0;
             }
             // Skip to the last node in the linked list.
@@ -1035,6 +1036,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                         if (existing->time == timeout_time) {
                             // Scheduling e will incur a microstep at timeout, 
                             // which is illegal.
+                            _lf_recycle_event(e);
                             return 0;
                         }
                         // If the last event hasn't been handled yet, insert
