@@ -213,6 +213,10 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
     return PyLong_FromLong(get_elapsed_physical_time());
 }
 
+/**
+ * Prototype for the main function.
+ */
+int main(int argc, char *argv[]);
 
 ///////////////// Other useful functions /////////////////////
 /**
