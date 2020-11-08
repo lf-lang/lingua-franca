@@ -70,7 +70,7 @@ jobs:
         if: runner.os == 'Linux'
       - name: Install Protobufs OS X
         run: |
-          sudo brew install protobuf-c;
+          brew install protobuf-c;
         if: runner.os == 'macOS'
       - name: Run C tests;
         run: |
