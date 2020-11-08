@@ -24,10 +24,6 @@
  */
 target C;
 
-preamble {=
-    // #define VERBOSE
-=}
-
 reactor Ping(count:int(10)) {
     input receive:int;
     output send:int;

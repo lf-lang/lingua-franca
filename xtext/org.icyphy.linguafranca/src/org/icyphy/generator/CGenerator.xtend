@@ -670,9 +670,9 @@ class CGenerator extends GeneratorBase {
                 // if there is only one federate or will notify the RTI,
                 // if necessary, of the next event time.
                 pr('''
-                    tag_t next_event_time(instant_t time, microstep_t microstep) {
+                    tag_t next_event_tag(instant_t time, microstep_t microstep) {
                         «IF federates.length > 1»
-                            return __next_event_time(time, microstep);
+                            return __next_event_tag(time, microstep);
                         «ELSE»
                             return (tag_t) {  .time = time, .microstep = microstep };
                         «ENDIF»

@@ -283,6 +283,7 @@ int next() {
     //pqueue_dump(event_q, stdout, event_q->prt);
     // If there is no next event and -keepalive has been specified
     // on the command line, then we will wait the maximum time possible.
+    // FIXME: is LLONG_MAX different from FOREVER?
     instant_t next_time = LLONG_MAX;
     if (event == NULL) {
         // No event in the queue.
@@ -301,9 +302,11 @@ int next() {
         // There may be a new earlier event on the queue.
         event_t* new_event = (event_t*)pqueue_peek(event_q);
         if (new_event == event) {
-            // There is no new event. If the timeout time has been reached,
+            // There is no new event. If the timeout tag has been surpassed,
             // or if the maximum time has been reached (unlikely), then return.
-            if (new_event == NULL || (timeout_time > 0LL && current_tag.time >= timeout_time)) {
+            if (new_event == NULL || 
+                (timeout_time != -1LL &&
+                 compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0)) {
                 stop_requested = true;
                 return 0;
             }

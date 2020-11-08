@@ -292,7 +292,7 @@ void logical_time_complete(instant_t time, microstep_t microstep);
  * @param microstep The microstep to which to advance.
  * @return The time to which it is safe to advance.
  */
-tag_t next_event_time(instant_t time, microstep_t microstep);
+tag_t next_event_tag(instant_t time, microstep_t microstep);
 
 /**
  * Wait until physical time matches or exceeds the specified logical time,
@@ -393,30 +393,33 @@ bool __next() {
 
     // Peek at the earliest event in the event queue.
     event_t* event = (event_t*)pqueue_peek(event_q);
-    instant_t next_time = FOREVER;
-    microstep_t next_microstep = 0;
+    tag_t next_tag = { .time = FOREVER, .microstep = 0 };
+
+    bool next_event_tag_is_after_timeout = false;
     if (event != NULL) {
         // There is an event in the event queue.
-        next_time = event->time;
-        if (next_time == current_tag.time) {
-            next_microstep =  get_microstep() + 1;
+        next_tag.time = event->time;
+        if (next_tag.time == current_tag.time) {
+            next_tag.microstep =  get_microstep() + 1;
         }
         // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
-        // If a stop time was given, adjust the next_time from the
-        // event time to that stop time.
-        if (timeout_time > 0LL && next_time > timeout_time) {
-            next_time = timeout_time;
+        // If a timeout tag was given, adjust the next_tag from the
+        // event tag to that timeout tag.
+        // FIXME: This is primarily done to let the RTI
+        // know about the timeout time? 
+        if (timeout_time != -1LL && compare_tags2(next_tag.time, next_tag.microstep, timeout_time, 0) > 0) {
+            next_event_tag_is_after_timeout = true;
+            next_tag = (tag_t) { .time = timeout_time, .microstep = 0 };
         }
 
-        // In case this is in a federation, check whether time can advance
-        // to the next time. If there are upstream federates, then this call
+        // In case this is in a federation, check whether tag can advance
+        // to the next tag. If there are upstream federates, then this call
         // will block waiting for a response from the RTI.
         // If an action triggers during that wait, it will unblock
         // and return with a time (typically) less than the next_time.
-        tag_t grant_tag = next_event_time(next_time, next_microstep);
-        if (grant_tag.time != next_time ||
-            (grant_tag.microstep != next_microstep)) {
-            // RTI has granted time advance to an earlier time or the wait
+        tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
+        if (compare_tags(grant_tag, next_tag) != 0) {
+            // RTI has granted tag advance to an earlier tag or the wait
             // for the RTI response was interrupted by a local physical action.
             // Continue executing. The event queue may have changed.
             return true;
@@ -426,7 +429,7 @@ bool __next() {
         // This can be interrupted if a physical action triggers (e.g., a message
         // arrives from an upstream federate or a local physical action triggers).
         // printf("DEBUG: next(): Waiting until time %lld.\n", (next_time - start_time));
-        if (!wait_until(next_time)) {
+        if (!wait_until(next_tag.time)) {
             // printf("DEBUG: __next(): Wait until time interrupted.\n");
             // Sleep was interrupted or the stop time has been reached.
             // Time has not advanced to the time of the event.
@@ -440,8 +443,8 @@ bool __next() {
             return true;
         }
 
-        // If the event time was past the stop time, it is now safe to stop execution.
-        if (event->time != next_time) {
+        // If the event tag was past the timeout time, it is now safe to stop execution.
+        if (next_event_tag_is_after_timeout) {
             // printf("DEBUG: __next(): logical stop time reached. Requesting stop.\n");
             stop_requested = true;
             // Signal all the worker threads. Since both the queues are
@@ -452,7 +455,7 @@ bool __next() {
                 
         // At this point, finally, we have an event to process.
         // Advance current time to match that of the first event on the queue.
-        _lf_advance_logical_time(next_time);
+        _lf_advance_logical_time(next_tag.time);
 
         // DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_tag.time - start_time);
 
@@ -468,11 +471,11 @@ bool __next() {
     } else {
         // There is no event on the event queue.
         // printf("DEBUG: __next(): event queue is empty.\n");
-        // If a stop time was given, adjust the next_time from FOREVER
-        // to that stop time.
-        if (timeout_time > 0LL) {
-            next_time = timeout_time;
-            next_microstep = 0;
+        // If a timeout tag was given, adjust the next_tag's time
+        // from FOREVER to timeout time.
+        if (timeout_time != -1LL) {
+            next_tag.time = timeout_time;
+            next_tag.microstep = 0;
         }
 
         // Ask the RTI to advance time to either timeout_time or FOREVER.
@@ -483,10 +486,10 @@ bool __next() {
         // requested advance.
         // printf("DEBUG: __next(): next event time to RTI %lld.\n", next_time - start_time);
         // FIXME: verify
-        tag_t grant_tag = next_event_time(next_time, next_microstep);
+        tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
         // printf("DEBUG: __next(): RTI grants time advance to %lld.\n", grant_time - start_time);
-        if (grant_tag.time == next_time && grant_tag.microstep == next_microstep) {
-            // RTI is OK with advancing time to timeout_time or FOREVER.
+        if (compare_tags(grant_tag, next_tag) == 0) {
+            // RTI is OK with advancing tag to (timeout_time, 0) or (FOREVER, 0).
             // Note that keepalive is always set for a federated execution.
             if (!keepalive_specified) {
                 // Since keepalive was not specified, quit.
@@ -522,7 +525,7 @@ bool __next() {
         // FIXME: --fast becomes useless for federated execution because
         // the federates proceed immediately to the stop time or FOREVER!
         // printf("DEBUG: __next(): Empty queue. Waiting until time %lld.\n", next_time - start_time);
-        if (!wait_until(next_time)) {
+        if (!wait_until(next_tag.time)) {
             // printf("DEBUG: __next(): Wait until time interrupted.\n");
             // Sleep was interrupted or the stop time has been reached.
             // Time has not advanced to the time of the event.
@@ -558,7 +561,7 @@ void stop() {
 #endif
     stop_requested = true;
     // Notify the RTI that nothing more will happen.
-    next_event_time(FOREVER, 0);
+    next_event_tag(FOREVER, 0);
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);
@@ -1049,7 +1052,7 @@ int main(int argc, char* argv[]) {
         // reaction queue that will be executed at tag (0,0).
         // Before we could do so, we need to ask the RTI if it is 
         // okay.
-        tag_t grant_time = next_event_time(start_time, 0u);
+        tag_t grant_time = next_event_tag(start_time, 0u);
         if (grant_time.time != start_time || grant_time.microstep != 0u) {
             // This is a critical condition
             fprintf(stderr, "Federate received a grant time earlier than start time or with an incorrect starting microstep (%lld, %u).\n", grant_time.time - start_time, grant_time.microstep);
