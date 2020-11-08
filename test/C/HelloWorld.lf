@@ -1,6 +1,5 @@
 target C {
-    tracing: true,
-    threads: 4 
+    tracing: true
 };
 preamble {=
     #define VERBOSE 
