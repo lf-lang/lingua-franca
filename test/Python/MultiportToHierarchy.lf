@@ -36,13 +36,13 @@ reactor Destination(width(4)) {
     =}
 }
 reactor Container(width(4)) {
-    input[width] in;
+    input[width] _in;
     dst = new Destination();
-    in -> dst._in;
+    _in -> dst._in;
 }
 
 main reactor MultiportToHierarchy  { 
     a = new Source();
     b = new Container();
-    a.out -> b.in;
+    a.out -> b._in;
 }
