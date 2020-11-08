@@ -143,7 +143,7 @@ jobs:
       - name: Run Python tests;
         run: |
           bin/build-lfc;
-          bin/run-lf-tests Cpp;
+          bin/run-lf-tests Python;
         
 
     
