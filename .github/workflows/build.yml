@@ -107,8 +107,8 @@ jobs:
       #   uses: textbook/git-checkout-submodule-action@master # FIXME: will likely not work on windows. Workaround: https://github.com/textbook/git-checkout-submodule-action/issues/7
       - name: Checkout submodules
         uses: srt32/git-actions@v0.0.3
-          with:
-            args: git submodule update --init --recursive
+        with:
+          args: git submodule update --init --recursive
       - name: Run TS tests;
         run: |
           bin/build-lfc;
