@@ -67,11 +67,11 @@ jobs:
       #     sudo ldconfig
       - name: Install Protobufs Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
-        if: ${{ runner.os = "Linux" }}
+        if: ${{ runner.os }} == "Linux" 
       - name: Install Protobufs OS X
         run: |
           sudo brew install protobuf-c;
-        if: ${{ runner.os = "macOS" }}
+        if: ${{ runner.os }} == "macOS"
       - name: Run C tests;
         run: |
           bin/build-lfc;
