@@ -1,6 +1,16 @@
 /**
  * Test a sender-receiver network system that
  * relies on microsteps being taken into account.
+ * This version of the test does not use a centralized
+ * coordinator to advance logical time. Therefore,
+ * the receiver will rely on an STP offset (initially
+ * zero) to wait long enough for messages to arrive 
+ * before advancing its logical time. In this test,
+ * the STP offset is initially zero and gradually 
+ * raised every time a tardiness is perceived until 
+ * no tardiness is observed. Therefore, the exact 
+ * outcome of the test will depend on actual runtime
+ * timing.
  *  
  * @author Soroush Bateni
  */
@@ -26,13 +36,23 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
         );
         self->total_received_messages++;
         if (in->value != get_microstep()) {
-            fprintf(stderr,"ERROR: received incorrect value %d. Expected %d.\n", in->value, get_microstep());
-            // exit(1);
+            fprintf(stderr,"WARNING: received incorrect value %d. Expected %d.\n", in->value, get_microstep());
+            // exit(1); // The receiver should tolerate this type of error
+            			// in this test because messages on the network can
+            			// arrive late. Note that with an accurate STP offset,
+            			// this type of error should be extremely rare.
+                        
         }
         if (in->value != self->received_messages) {
-            fprintf(stderr,"ERROR: received value %d out of order. Expected %d.\n", in->value, self->received_messages);
+            fprintf(stderr,"WARNING: received value %d out of order. Expected %d.\n", in->value, self->received_messages);
             self->received_messages = in->value;
-            // exit(1);
+            // exit(1); // The receiver should tolerate this type of error
+                        // in this test because multiple messages arriving 
+                        // at a given tag (t, m) can override each other.
+                        // Note that with an accurate STP offset, this type
+                        // of error should be extremely rare.
+                        // FIXME: Messages should not be dropped or
+                        // overwritten.
         }
 		self->received_messages++;
         if (self->received_messages == self->take_a_break_after) {
