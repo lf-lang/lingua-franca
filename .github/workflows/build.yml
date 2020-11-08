@@ -12,35 +12,6 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-#   # First 
-#   build:
-#     # The type of runner that the job will run on
-#     strategy:
-#       matrix:
-#         platform: [ubuntu-latest, macos-latest, windows-latest]
-#     runs-on: ${{ matrix.platform }}
-#     #runs-on: ubuntu-latest
-
-#     # Steps represent a sequence of tasks that will be executed as part of the job
-#     steps:
-#       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-#       - uses: actions/checkout@v2
-#       # Setup Build dependencies
-#       - name: Setup Java JDK
-#         uses: actions/setup-java@v1.4.3
-#         with:
-#           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-#           java-version: 14
-          
-#       # Runs a single command using the runners shell
-#       - name: Build lfc
-#         run: bin/build-lfc;
-
-#       # Runs a set of commands using the runners shell
-# #       - name: Run a multi-line script
-# #         run: |
-# #           echo Add other actions to build,
-# #           echo test, and deploy your project.
   unit-tests:
     strategy:
       matrix:
@@ -56,7 +27,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       - name: Run unit tests
-        run: pushd xtext && ./gradlew test && popd;
+        run: |
+          cd xtext
+          ./gradlew test
 
   c-tests:
     strategy:
@@ -64,11 +37,15 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 14
       - uses: actions/checkout@v2
-      - uses: ./.github/actions/build-setup
       - name: Run C tests;
         run: |
-          bin/build-lfc;  
+          bin/build-lfc;
           bin/run-lf-tests C;
   
   cpp-tests:
@@ -85,7 +62,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       - name: Run C++ tests;
-        run: 	bin/run-lf-tests Cpp;
+        run: |
+          bin/build-lfc;
+          bin/run-lf-tests Cpp;
         
   ts-tests:
     strategy:
@@ -98,10 +77,14 @@ jobs:
         with:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 14
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.1.2 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       - name: Run TS tests;
-        run: 	bin/run-lf-tests TS;
+        run: |
+          bin/build-lfc;
+          bin/run-lf-tests TS;
         
   python-tests:
     strategy:
@@ -117,7 +100,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       - name: Run Python tests;
-        run: 	bin/run-lf-tests Python;
+        run: |
+          bin/build-lfc;
+          bin/run-lf-tests Cpp;
         
 
     
