@@ -287,10 +287,10 @@ void send_timed_message(interval_t additional_delay,
     encode_ushort(port, &(buffer[1]));
 
     // Next two bytes identify the destination federate.
-    encode_ushort(federate, &(buffer[3]));
+    encode_ushort(federate, &(buffer[1 + sizeof(ushort)]));
 
     // The next four bytes are the message length.
-    encode_int(length, &(buffer[5]));
+    encode_int(length, &(buffer[1 + sizeof(ushort) + sizeof(ushort)]));
 
     // Get current logical time
     instant_t current_message_timestamp = get_logical_time();
@@ -322,9 +322,9 @@ void send_timed_message(interval_t additional_delay,
     }
     
     // Next 8 bytes are the timestamp.
-    encode_ll(current_message_timestamp, &(buffer[9]));
+    encode_ll(current_message_timestamp, &(buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     // Next 4 bytes are the microstep.
-    encode_int(current_message_microstep, &(buffer[9 + sizeof(instant_t)]));
+    encode_int(current_message_microstep, &(buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
     DEBUG_PRINT("Federate %d sending message with tag (%lld, %u) to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, current_message_microstep,  federate);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
@@ -757,18 +757,18 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
                     "Federate %d failed to send TIMESTAMP message ID to RTI.", _lf_my_fed_id);
 
     // Send the timestamp.
-    long long message = swap_bytes_if_big_endian_ll(my_physical_time);
+    instant_t message = swap_bytes_if_big_endian_ll(my_physical_time);
 
-    write_to_socket(_lf_rti_socket, sizeof(long long), (void*)(&message),
+    write_to_socket(_lf_rti_socket, sizeof(instant_t), (void*)(&message),
                     "Federate %d failed to send TIMESTAMP message to RTI.", _lf_my_fed_id);
 
     // Get a reply.
     // Buffer for message ID plus timestamp.
-    int buffer_length = sizeof(long long) + 1;
+    int buffer_length = sizeof(instant_t) + 1;
     unsigned char buffer[buffer_length];
 
     // Read bytes from the socket. We need 9 bytes.
-    read_from_socket(_lf_rti_socket, 9, &(buffer[0]), "Federate %d failed to read TIMESTAMP message from RTI.", _lf_my_fed_id);
+    read_from_socket(_lf_rti_socket, buffer_length, buffer, "Federate %d failed to read TIMESTAMP message from RTI.", _lf_my_fed_id);
     DEBUG_PRINT("Federate %d read 9 bytes.", _lf_my_fed_id);
 
     // First byte received is the message ID.
@@ -777,7 +777,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
                              buffer[0]);
     }
 
-    instant_t timestamp = swap_bytes_if_big_endian_ll(*((long long*)(&(buffer[1]))));
+    instant_t timestamp = extract_ll(&(buffer[1]));
     printf("Federate %d: starting timestamp is: %lld.\n", _lf_my_fed_id, timestamp);
 
     return timestamp;
@@ -860,7 +860,7 @@ handle_t schedule_message_received_from_network_already_locked(
     interval_t extra_delay = tag.time - current_logical_time;
 
 
-    if (!_lf_execution_started && !message_tag_is_in_the_future) {
+    if (!_lf_execution_started && !message_tag_is_in_the_future && !trigger->is_physical) {
         // If execution has not started yet,
         // there could be a special case where a message has
         // arrived on a logical connection with a tag 
@@ -958,11 +958,7 @@ handle_t schedule_message_received_from_network_already_locked(
  * @param socket The socket to read the message from.
  * @param buffer The buffer to read.
  */
-void handle_timed_message(int socket, unsigned char* buffer) {
-    // Acquire the one mutex lock to prevent logical time from advancing
-    // between the time we read the timestamp and the time we call schedule().
-    DEBUG_PRINT("Federate %d pthread_mutex_lock handle_timed_message.", _lf_my_fed_id);
-    
+void handle_timed_message(int socket, unsigned char* buffer) {    
     // Read the header which contains the timestamp.
     read_from_socket(socket, 20, buffer, "Federate %d failed to read timed message header.", _lf_my_fed_id);
     // Extract the header information.
@@ -1023,6 +1019,9 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // because pthreads is too incredibly stupid and deadlocks trying to acquire
     // a lock that the calling thread already holds.
     pthread_mutex_lock(&mutex);
+    // Acquire the one mutex lock to prevent logical time from advancing
+    // during the call to schedule().
+    DEBUG_PRINT("Federate %d pthread_mutex_lock handle_timed_message.", _lf_my_fed_id);
 
     DEBUG_PRINT("Federate %d calling schedule with tag (%lld, %u).", _lf_my_fed_id, tag.time - start_time, tag.microstep);
     schedule_message_received_from_network_already_locked(action, tag, message_contents,
@@ -1310,7 +1309,7 @@ void __logical_time_complete(instant_t time, microstep_t microstep) {
  *  change in the event queue.
  *  This function assumes the caller holds the mutex lock.
  */
- tag_t __next_event_time(instant_t time, microstep_t microstep) {
+ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
      if (!__fed_has_downstream && !__fed_has_upstream) {
          // This federate is not connected (except possibly by physical links)
          // so there is no need for the RTI to get involved.
@@ -1330,7 +1329,7 @@ void __logical_time_complete(instant_t time, microstep_t microstep) {
      // a physical action (not counting receivers from upstream federates),
      // then we can only promise up to current physical time.
      // This will result in this federate busy waiting, looping through this code
-     // and notifying the RTI with next_event_time(current_physical_time())
+     // and notifying the RTI with next_event_tag(current_physical_time())
      // repeatedly.
 
      // If there are upstream federates, then we need to wait for a
