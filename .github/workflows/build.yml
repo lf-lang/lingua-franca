@@ -103,8 +103,12 @@ jobs:
         uses: actions/setup-node@v2.1.2 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      # - name: Checkout submodules
+      #   uses: textbook/git-checkout-submodule-action@master # FIXME: will likely not work on windows. Workaround: https://github.com/textbook/git-checkout-submodule-action/issues/7
       - name: Checkout submodules
-        uses: textbook/git-checkout-submodule-action@master # FIXME: will likely not work on windows. Workaround: https://github.com/textbook/git-checkout-submodule-action/issues/7
+        uses: srt32/git-actions@v0.0.3
+          with:
+            args: git submodule update --init --recursive
       - name: Run TS tests;
         run: |
           bin/build-lfc;
