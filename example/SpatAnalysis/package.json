@@ -1,0 +1,35 @@
+{
+    "name": "LinguaFrancaDefault",
+    "version": "0.0.1",
+    "description": "A default Lingua Franca project for the TypeScript target",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/icyphy/lingua-franca"
+    },
+    "license": "BSD-2-Clause",
+    "dependencies": {
+        "command-line-args": "^5.1.1",
+        "command-line-usage": "^6.1.0",
+        "microtime": "^3.0.0",
+        "ulog": "^2.0.0-beta.7"
+    },
+    "devDependencies": {
+        "@babel/cli": "^7.8.4",
+        "@babel/core": "^7.8.7",
+        "@babel/node": "^7.8.7",
+        "@babel/plugin-proposal-class-properties": "^7.8.3",
+        "@babel/plugin-proposal-object-rest-spread": "^7.8.3",
+        "@babel/plugin-proposal-optional-chaining": "^7.8.3",
+        "@babel/plugin-transform-modules-commonjs": "^7.8.3",
+        "@babel/preset-env": "^7.8.7",
+        "@babel/preset-typescript": "^7.8.3",
+        "@types/google-protobuf": "^3.7.2",
+        "@types/node": "^13.9.2",
+        "typescript": "^3.8.3",
+        "ts-protoc-gen": "^0.12.0"
+    },
+    "scripts": {
+        "check-types": "tsc",
+        "build": "rm -rf dist && babel src --out-dir dist --extensions .ts"
+    }
+}

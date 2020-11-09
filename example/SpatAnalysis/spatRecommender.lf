@@ -1,0 +1,165 @@
+/*
+ * Example PTIDES application for connected vehicle application
+ * Demo Tile: RSU Coordinated Speed alignment
+ * This is the Road side unit application that
+ * 	- Accepts requests to provide speed recommendations (based on its SPAT) from vehicles
+ *  - Uses MQTT pub/sub
+ * @author Ravi Akella
+ */
+ 
+target C{
+	
+    threads: 1, // Must use threaded implementation so schedule is thread safe.
+    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/util.c",
+    timeout: 60 secs,
+    keepalive: true
+};
+ 
+import MQTTPublisher from "MQTTPublisher.lf";
+
+
+reactor phaseChanger{
+    
+    preamble {=
+		#define BILLION 1000000000LL
+        typedef struct spat_status{
+            int signal_phase; //integer code for signal 1-Red, 2-Green, 3-Yellow
+            long long unsigned residual; // remaining time for phase change
+        } spat_status;
+        
+ 	=}
+    
+    input in:int;
+    output out:char*;
+    output outStruct:spat_status;
+    
+    state status:spat_status(1, 0); //(signal_phase, residual time))
+	
+	//Internal state variables
+	state phase_start_time:time(0 msec);
+	state phase_duration:time(0 msec);
+
+	logical action red:int;
+	logical action green:int;
+	logical action yellow:int;
+	
+    reaction(startup) -> red {=
+        schedule_int(red, MSEC(100), 1);
+        self->phase_start_time = get_logical_time();
+    =}   
+    
+    reaction(red) -> green, out, outStruct {=    		
+    	self->status.signal_phase = red->value;
+    	self->phase_duration = MSEC(5000);
+    	self->phase_start_time = get_logical_time();
+    	
+    	self->status.residual = self->phase_duration;
+		int length = snprintf(NULL, 0, "%d %llu", self->status.signal_phase, self->status.residual) + 1;
+        // Dynamically allocate memory for the output.
+        SET_NEW_ARRAY(out, length);
+        // Populate the output string and increment the count.
+        snprintf(out->value, length, "%d %llu", self->status.signal_phase, self->status.residual);
+        printf("spatRecommender: At phy time %lld, phase change message: %s\n",
+            get_physical_time(),
+            out->value
+        );
+        
+        
+        SET(outStruct, self->status);
+    	schedule_int(green, self->phase_duration, 2);
+    =}
+    reaction(green) -> yellow, out {=
+    	self->status.signal_phase = green->value;
+    	self->phase_duration = MSEC(3000);
+    	self->phase_start_time = get_logical_time();
+    	
+    	self->status.residual = self->phase_duration;
+		int length = snprintf(NULL, 0, "%d %llu", self->status.signal_phase, self->status.residual) + 1;
+        // Dynamically allocate memory for the output.
+        SET_NEW_ARRAY(out, length);
+        // Populate the output string and increment the count.
+        snprintf(out->value, length, "%d %llu", self->status.signal_phase, self->status.residual);
+        printf("spatRecommender: At phy time %lld, phase change message: %s\n",
+            get_physical_time(),
+            out->value
+        );
+    	
+    	schedule_int(yellow, self->phase_duration, 3);
+    =}
+    
+    reaction(yellow)->red, out {=
+    	self->status.signal_phase = yellow->value;
+    	self->phase_duration = MSEC(1000);
+    	self->phase_start_time = get_logical_time();
+
+    	self->status.residual = self->phase_duration;
+		int length = snprintf(NULL, 0, "%d %llu", self->status.signal_phase, self->status.residual) + 1;
+        // Dynamically allocate memory for the output.
+        SET_NEW_ARRAY(out, length);
+        // Populate the output string and increment the count.
+        snprintf(out->value, length, "%d %llu", self->status.signal_phase, self->status.residual);
+        printf("spatRecommender: At phy time %lld, phase change message: %s\n",
+            get_physical_time(),
+            out->value
+        );
+        
+        schedule_int(red, self->phase_duration, 1);
+    =}
+    
+    timer t(0, 500 msec);
+	reaction(t)->out{=
+
+		self->status.residual = self->phase_duration - get_logical_time() + self->phase_start_time;
+		int length = snprintf(NULL, 0, "%d %llu", self->status.signal_phase, self->status.residual) + 1;
+        // Dynamically allocate memory for the output.
+        SET_NEW_ARRAY(out, length);
+        // Populate the output string and increment the count.
+        snprintf(out->value, length, "%d %llu", self->status.signal_phase, self->status.residual);
+        printf("spatRecommender: At phy time %lld, publish message: %s\n",
+            get_physical_time(),
+            out->value
+        );
+	=}
+}
+
+/**
+ * Reactor that prints an incoming string.
+ * @param prefix A prefix for the message.
+ * @input message The message.
+ */
+reactor recvSpatMessage {
+    input message:char*;
+    reaction(message) {=
+    	printf("Received (phase, residual in nsec) %s:\n", message->value);
+    	
+		/*printf("Received Phase=\"%d\", residual=%llu.\n", 
+			message->signal_phase, message->residual
+		);
+		*/
+    =}
+}
+
+// expected parameter is for testing.
+reactor Print {
+    input in:char*;
+    
+    reaction(in) {=
+        printf("Received: name = %d, value = %lld\n", in->value.signal_phase, in->value.residual);
+    =}
+}
+
+
+main reactor spatRecommender {
+	signal = new phaseChanger();
+
+    pub = new MQTTPublisher(
+        topic = "spat/rsu101",
+        //address = "tcp://host.docker.internal:1883",
+        address = "tcp://localhost:1883",
+        clientID = "Intersection Signal 101",
+        include_physical_timestamp = 0
+    );
+    
+    signal.out -> pub.in;
+    
+}
