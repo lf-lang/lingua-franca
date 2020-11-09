@@ -733,13 +733,18 @@ void* worker(void* arg) {
                 //}
                 //__first_invocation = false;
                 // The following will set stop_requested if there are
-                // no events to process. It may block waiting for events
+                // no events to process or if __next() returns false.
+                // __next() may block waiting for events
                 // to appear on the event queue, but in any case, it will
                 // either set stop_request to true or populate the reaction
                 // queue with reactions to execute. Note that we already
                 // hold the mutex lock.
                 __advancing_time = true;
-                __next();
+                if (!__next()) {
+                    __advancing_time = false;
+                    stop_requested = true;
+                    continue;
+                }
                 __advancing_time = false;
                 // printf("DEBUG: worker %d: Done waiting for __next().\n", worker_number);
             } else {
@@ -951,42 +956,32 @@ void __execute_reactions_during_wrapup() {
     }
 }
 
-/** Execute finalization functions, including reactions triggered
- *  by shutdown. This is assumed to be called in the main thread
- *  after all worker threads have exited (or at least finished
- *  all their reaction invocations).
- *  Print elapsed logical and physical times.
+/** 
+ * Execute reactions that are already in the reaction queue
+ * and reactions triggered by shutdown. This is assumed to 
+ * be called in the main thread after all worker threads have 
+ * exited (or at least finished adding all their final reactions).
  */
 void wrapup() {
-    // There may be events on the event queue with the current logical
-    // time but a larger microstep. Process those first because we always
-    // process all microsteps at the stop time.
-    // To make sure next() does its work, unset stop_requested.
-    stop_requested = false;
-    // To make sure next() doesn't wait for events that will
-    // never arrive, unset keepalive.
-    keepalive_specified = false;
-    pthread_mutex_lock(&mutex);
-    // Copy the current time so that we don't advance time even if __next() does.
-    instant_t wrapup_time = current_tag.time;
-    event_t* event = (event_t*)pqueue_peek(event_q);
-    while (event != NULL && event->time == wrapup_time) {
-        __next(); // Ignore return value. We already know we need to terminate.
-        __execute_reactions_during_wrapup();
-    }
-    
-    current_tag.time = wrapup_time;
-
-    // Notify the RTI that the current logical time is complete.
-    // This function informs the RTI of the current_tag.time in a
+    // Notify the RTI that the current logical tag is complete.
+    // This function informs the RTI of the current_tag in a
     // non-blocking manner.
-    logical_time_complete(current_tag.time, current_tag.microstep);
+    logical_time_complete(current_tag.time, current_tag.microstep); 
+
+    if (current_tag.time != timeout_time) {
+        // request_stop() has been called.
+        // Shutdown reactions need to be executed
+        // at the next microstep. First, execute
+        // the reactions at the current microstep.
+        // Note that the mutex is already locked.
+        __execute_reactions_during_wrapup();
+        _lf_advance_logical_time(current_tag.time);
+    }
 
     pthread_mutex_unlock(&mutex);
 
     // Invoke any code-generated wrapup. If this returns true,
-    // then actions have been scheduled at the next microstep.
-    // Invoke __next() one more time to react to those actions.
+    // then reactions have been scheduled at the current microstep.
     // printf("DEBUG: wrapup invoked.\n");
     if (__wrapup()) {
         // __wrapup() returns true if it has put shutdown events
@@ -994,17 +989,17 @@ void wrapup() {
         // events.
         DEBUG_PRINT("__wrapup returned true.");
         
-        // Execute one iteration of next(), which will process the next
-        // timestamp on the event queue, moving its reactions to the reaction
-        // queue. This returns false if there was in fact nothing on the event
-        // queue. We have to acquire the mutex first.
+        // Execute shutdown reactions.
+        // We have to acquire the mutex first.
         pthread_mutex_lock(&mutex);
-        if (__next()) {
-            DEBUG_PRINT("wrapup: next() returned");
-            __execute_reactions_during_wrapup();
-        }
+        __execute_reactions_during_wrapup();
         pthread_mutex_unlock(&mutex);
     }
+
+    // Notify the RTI that the current logical tag is complete.
+    // This function informs the RTI of the current_tag in a
+    // non-blocking manner.
+    logical_time_complete(current_tag.time, current_tag.microstep); 
 
 }
 

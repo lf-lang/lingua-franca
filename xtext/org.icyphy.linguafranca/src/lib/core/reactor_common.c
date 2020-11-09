@@ -120,16 +120,6 @@ interval_t _lf_global_time_STP_offset = 0LL;
 // The following functions are in scope for all reactors:
 
 /**
- * Return the physical time of the start of execution in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
- * @return A time instant.
- */
-instant_t get_start_time() {
-    return start_time;
-}
-
-/**
  * Return the global STP offset on advancement of logical
  * time for federated execution.
  */
