@@ -1,5 +1,5 @@
 /*
- * A test for the stop() functionality in Lingua Franca.
+ * A test for the request_stop() functionality in Lingua Franca.
  * This version of the test is threaded.
  * 
  * @author Soroush Bateni
