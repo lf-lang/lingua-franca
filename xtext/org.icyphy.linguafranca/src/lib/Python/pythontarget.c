@@ -222,8 +222,8 @@ int main(int argc, char *argv[]);
 /**
  * Stop execution at the conclusion of the current logical time.
  */
-static PyObject* py_stop(PyObject *self) {
-    stop();
+static PyObject* py_request_stop(PyObject *self) {
+    request_stop();
     
     Py_INCREF(Py_None);
     return Py_None;
@@ -701,7 +701,7 @@ static PyTypeObject action_capsule_t = {
  * @see get_logical_time
  * @see get_physical_time
  * @see get_elapsed_physical_time
- * @see stop
+ * @see request_stop
  */
 static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_main, METH_VARARGS, NULL},
@@ -710,7 +710,7 @@ static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
   {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
   {"get_elapsed_physical_time", py_get_elapsed_physical_time, METH_NOARGS, NULL},
-  {"stop", py_stop, METH_NOARGS, NULL},
+  {"request_stop", py_request_stop, METH_NOARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
 
