@@ -218,6 +218,12 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
  */
 int main(int argc, char *argv[]);
 
+/**
+ * Prototype for request_stop().
+ * @see reactor.c and reactor_threaded.c
+ */
+void request_stop();
+
 ///////////////// Other useful functions /////////////////////
 /**
  * Stop execution at the conclusion of the current logical time.
