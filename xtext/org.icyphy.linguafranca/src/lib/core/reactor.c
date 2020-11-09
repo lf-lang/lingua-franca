@@ -343,7 +343,7 @@ int next() {
 }
 
 // Stop execution at the conclusion of the current logical time.
-void stop() {
+void request_stop() {
     stop_requested = true;
 }
 
