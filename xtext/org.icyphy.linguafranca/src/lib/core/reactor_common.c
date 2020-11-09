@@ -71,7 +71,7 @@ bool _lf_execution_started = false;
 
 /**
  * Indicator that the execution should stop after the completion of the
- * current logical time. This can be set to true by calling the `stop()`
+ * current logical time. This can be set to true by calling the `request_stop()`
  * function in a reaction.
  */
 bool stop_requested = false;

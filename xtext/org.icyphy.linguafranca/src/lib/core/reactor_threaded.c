@@ -374,7 +374,7 @@ bool __first_invocation = true;
  *
  * If there is no event in the queue and the keepalive command-line option was
  * not given, set stop_requested to true and return.
- * If keepalive was given, then wait for either stop()
+ * If keepalive was given, then wait for either request_stop()
  * to be called or an event appears in the event queue and then return.
  *
  * If a timeout option was specified, then when the next logical time from the
@@ -494,7 +494,7 @@ bool __next() {
             if (!keepalive_specified) {
                 // Since keepalive was not specified, quit.
                 // printf("DEBUG: __next(): requesting stop.\n");
-                // Can't call stop() because we already hold a mutex.
+                // Can't call request_stop() because we already hold a mutex.
                 stop_requested = true;
                 // Signal all the worker threads.
                 pthread_cond_broadcast(&reaction_q_changed);
@@ -552,7 +552,7 @@ bool __next() {
 
 
 // Stop execution at the conclusion of the current logical time.
-void stop() {
+void request_stop() {
     // printf("DEBUG: pthread_mutex_lock stop\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
