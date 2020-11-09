@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "noEmit": true,
+        "target": "esnext",
+        "esModuleInterop": true,
+        "isolatedModules": true,
+        "lib": ["esnext", "dom"],
+        "sourceMap": true,
+        "strict": true,
+        "moduleResolution": "node",
+        "strictBindCallApply": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+    },
+    "include": [
+        "src/**/*",
+    ]
+}
