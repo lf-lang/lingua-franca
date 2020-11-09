@@ -316,7 +316,7 @@ class CGenerator extends GeneratorBase {
     protected var startTimers = new StringBuilder()
     var timerCount = 0
     var startupReactionCount = 0
-    var shutdownCount = 0
+    var shutdownReactionCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
@@ -515,19 +515,19 @@ class CGenerator extends GeneratorBase {
                 ''')
                 
                 // If there are shutdown reactions, create a table of triggers.
-                if (shutdownCount > 0) {
+                if (shutdownReactionCount > 0) {
                     pr('''
                         // Array of pointers to shutdown triggers.
-                        trigger_t* __shutdown_triggers[«shutdownCount»];
+                        reaction_t* __shutdown_reactions[«shutdownReactionCount»];
                     ''')
                 } else {
                     pr('''
                         // Empty array of pointers to shutdown triggers.
-                        trigger_t** __shutdown_triggers = NULL;
+                        reaction_t** __shutdown_reactions = NULL;
                     ''')
                 }
                 pr('''
-                    int __shutdown_triggers_size = «shutdownCount»;
+                    int __shutdown_reactions_size = «shutdownReactionCount»;
                 ''')
                 
                 // Generate function to return a pointer to the action trigger_t
@@ -679,16 +679,17 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')
                 
-                // Generate function to schedule shutdown actions if any
+                // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
                 pr('''
-                    bool __wrapup() {
-                        __start_time_step();  // To free memory allocated for actions.
-                        for (int i = 0; i < __shutdown_triggers_size; i++) {
-                            __schedule(__shutdown_triggers[i], 0LL, NULL);
+                    bool __wrapup() {                          
+                        for (int i = 0; i < __shutdown_reactions_size; i++) {
+                            if (__shutdown_reactions[i] != NULL) {
+                                _lf_enqueue_reaction(__shutdown_reactions[i]);
+                            }
                         }
-                        // Return true if there are shutdown actions.
-                        return (__shutdown_triggers_size > 0);
+                        // Return true if there are shutdown reactions.
+                        return (__shutdown_reactions_size > 0);
                     }
                 ''')
                 
@@ -3190,7 +3191,7 @@ class CGenerator extends GeneratorBase {
                         ''')
                     } else if (trigger.isShutdown) {
                         pr(initializeTriggerObjects, '''
-                            __shutdown_triggers[«shutdownCount++»] = &«nameOfSelfStruct»->___shutdown;
+                            __shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->___reaction_«reactionCount»;
                         ''')
                         if (targetTracing) {
                             val description = getShortenedName(instance)

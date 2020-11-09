@@ -134,6 +134,17 @@ instant_t get_physical_time() {
 }
 
 /**
+ * Return the physical time of the start of execution in nanoseconds.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
+ * @return A time instant.
+ */
+instant_t get_start_time() {
+    return start_time;
+}
+
+
+/**
  * Return the elapsed physical time in nanoseconds.
  */
 instant_t get_elapsed_physical_time() {

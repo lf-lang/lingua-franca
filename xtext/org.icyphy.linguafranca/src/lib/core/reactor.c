@@ -256,7 +256,8 @@ int __do_step() {
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
 
-    if (timeout_time > 0LL && current_tag.time >= timeout_time) {
+    if (timeout_time != -1LL && 
+        compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0) {
         stop_requested = true;
         return 0;
     }
@@ -328,6 +329,16 @@ int next() {
     // stick them into the reaction queue.
     __pop_events();
     
+    // If we are at (timeout_time, 0), there will be shutdown
+    // reactions that will be added to the reaction queue
+    // during wrapup(). Therefore, do not call __do_step()
+    // here.
+    if (timeout_time != -1LL && 
+        compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0) {
+        stop_requested = true;
+        return 0;
+    }
+
     return __do_step();
 }
 
@@ -336,14 +347,26 @@ void stop() {
     stop_requested = true;
 }
 
-// Print elapsed logical and physical times.
-void wrapup() {
-    // Invoke any code generated wrapup. If this returns true,
-    // then actions have been scheduled at the next microstep.
-    // Invoke next() one more time to react to those actions.
-    if (__wrapup()) {
-        next();
+/*
+ * Execute shutdown reactions (those reactions
+ * that are triggered at shutdown) during
+ * wrapup.
+ */
+void wrapup() {    
+    if (current_tag.time != timeout_time) {
+        // The cause for stop is not reaching
+        // the timeout. Therefore, the
+        // request_stop() has been called.
+        // Shutdown reactions need to incur one
+        // microstep.
+        _lf_advance_logical_time(current_tag.time);
     }
+    // Invoke any code-generated wrapup. If this returns true,
+    // then at least one shutdown reaction has been inserted 
+    // into the reaction queue. Note that at (timeout_time, 0)
+    // other reactions might also exist on the queue.
+    __wrapup();
+    __do_step();
 }
 
 int main(int argc, char* argv[]) {
