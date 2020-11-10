@@ -16,24 +16,28 @@ reactor Print {
     input in:int;
     state success:int(0);
     state success_tardy:int(0);
-    timer t(0, 100 usec); // Force a timer to be invoke periodically
+    timer t(0, 10 usec); // Force a timer to be invoke periodically
                          // to ensure logical time will advance in the
                          // absence of incoming messages.
-    state c:int(0);
+    state c:int(1);
     reaction(in) {=
-        interval_t current_time = get_elapsed_logical_time();
-        printf("At time %llu received %d. Tardiness is %llu.\n", get_elapsed_logical_time(), in->value, in->tardiness);
-        if (current_time == SEC(1) *  self->c) {
+        tag_t current_tag = get_current_tag();
+        printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
+            get_elapsed_logical_time(),
+            get_microstep(),
+            in->value,
+            in->intended_tag.time - get_start_time(),
+            in->intended_tag.microstep);
+        if (compare_tags2(current_tag.time - get_start_time(), current_tag.microstep, 
+                         SEC(1) *  self->c, 0) == 0) {
             self->success++; // Message was on-time
         }
         self->c++;
     =} tardy {=
-        if (in->tardiness == 0) {
-            // A microstep tardiness has occurred            
-        	printf("At time %llu received %d. A microstep tardiness has occurred.\n", get_elapsed_logical_time(), in->value);
-        } else {
-        	printf("At time %llu received %d. Message is tardy by %llu nsec.\n", get_elapsed_logical_time(), in->value, in->tardiness);        
-        }
+        tag_t current_tag = get_current_tag();
+        printf("Message is tardy by (%lld, %u).\n",
+	            current_tag.time - in->intended_tag.time,
+	            current_tag.microstep - in->intended_tag.microstep);
         self->success_tardy++;
         self->c++;
     =}

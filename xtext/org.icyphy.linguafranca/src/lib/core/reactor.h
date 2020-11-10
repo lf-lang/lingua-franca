@@ -448,6 +448,9 @@ struct event_t {
     size_t pos;               // Position in the priority queue.
     token_t* token;           // Pointer to the token wrapping the value.
     bool is_dummy;            // Flag to indicate whether this event is merely a placeholder or an actual event.
+#ifdef _LF_IS_FEDERATED
+    tag_t intended_tag; // The tardiness of the event relative to the intended tag.
+#endif
     event_t* next;            // Pointer to the next event lined up in superdense time.
 };
 
@@ -468,10 +471,12 @@ struct trigger_t {
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
-    interval_t tardiness;     // The amount of discrepency in logical time between the original intended
+#ifdef _LF_IS_FEDERATED
+    tag_t intended_tag;          // The amount of discrepency in logical time between the original intended
                               // trigger time of this trigger and the actual trigger time. This currently
                               // can only happen when logical connections are used using a decentralized coordination
                               // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
+#endif
 };
 //  ======== Function Declarations ========  //
 

@@ -311,9 +311,10 @@ void send_timed_message(interval_t additional_delay,
         // on the connection with a positive delay.
         // In this case,
         // the tag of the outgoing message
-        // should be (get_logical_time() + additional_delay, get_microstep())
+        // should be (get_logical_time() + additional_delay, 0)
 
         current_message_timestamp += additional_delay;
+        current_message_microstep = 0;
     } else if (additional_delay == -1LL) {
         // No after delay is given by the user
         // In this case,
@@ -792,30 +793,11 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 trigger_t* __action_for_port(int port_id);
 
 /**
- * Handle the case where the tardiness of an incoming message
- * is only in microsteps. In this case, the tardiness of the 
- * trigger will indicate 0 but the tardy handler will be invoked.
- * 
- * @param trigger The trigger of the action corresponding to the
- *  input port
- */
-void _lf_fd_mark_reactions_tardy(trigger_t* trigger) {
-    // Go through all triggered reaction of the trigger and
-    // set their tardiness to true.
-    for (int i = 0; i < trigger->number_of_reactions;  i++) {
-        trigger->reactions[i]->is_tardy = true;
-    }
-    // Set the tardiness of the trigger to 0;
-    trigger->tardiness = 0LL;
-}
-
-
-/**
  * Version of schedule_value() similar to that in reactor_common.c
  * except that it does not acquire the mutex lock and has a special
  * behavior during startup where it can inject reactions to the reaction
  * queue if execution has not started yet.
- * It is also responsible for setting the tardiness of the 
+ * It is also responsible for setting the intended tag of the 
  * network message based on the calculated delay.
  * This function assumes that the caller holds the mutex lock.
  * 
@@ -852,8 +834,8 @@ handle_t schedule_message_received_from_network_already_locked(
     token->value = value;
     token->length = length;
 
-    // Assume tardiness is initially 0
-    trigger->tardiness = 0LL;
+    // Assign the intended tag
+    trigger->intended_tag = tag;
 
     // Calculate the extra_delay required to be passed
     // to the schedule function.
@@ -891,7 +873,7 @@ handle_t schedule_message_received_from_network_already_locked(
                 // trigger->tardiness = 0LL - extra_delay;
                 extra_delay = 0LL;
             }               
-            DEBUG_PRINT("Federate %d calling schedule with delay %llu and tardiness %llu.", _lf_my_fed_id, extra_delay, trigger->tardiness);
+            DEBUG_PRINT("Federate %d calling schedule with delay %lld.", _lf_my_fed_id, extra_delay);
             return_value = __schedule(trigger, extra_delay, token);
         } else if (!message_tag_is_in_the_future) {
 #ifdef _LF_COORD_CENTRALIZED
@@ -902,39 +884,25 @@ handle_t schedule_message_received_from_network_already_locked(
             error_print_and_exit("CRITICAL: Federate %d received a message at tag (%lld, %u) that"
                                  " has a tag (%lld, %u) that is in the past.", _lf_my_fed_id, current_logical_time - start_time, get_microstep(), tag.time - start_time, tag.microstep);
 #else
-            if (tag.time < current_logical_time) {
-                // For decentralized execution, in the case where the message
-                // carrying the tag (timestamp, microstep) is not in the future 
-                // because timestamp < current_logical_time, we can directly call 
-                // __schedule() with 0 delay which will 
-                // incur one microstep relative to the current tag. We will set
-                // a tardiness accordingly here to 
-                // trigger the Tardy handler downstream, if any exists.
-                // (current_logical_time, current_tag.microstep + 1)
-                trigger->tardiness = -extra_delay;
-                // Set the delay back to 0
-                extra_delay = 0LL;
-                DEBUG_PRINT("Federate %d calling schedule with delay %llu and tardiness %llu.", _lf_my_fed_id, extra_delay, trigger->tardiness);
-                return_value = __schedule(trigger, extra_delay, token);
-            } else {
-                // In the case where the microstep is in the past
-                // but timestamp == current_logical_time, we will
-                // call schedule with a delay of 1 microstep, but 
-                // set tardiness to 0, meaning the microstep was 
-                // missed. The tardy handler, if any, will be
-                // invoked.
-                _lf_fd_mark_reactions_tardy(trigger);
-                extra_delay = 0LL;
-                DEBUG_PRINT("Federate %d received a message that is %u microsteps late.", _lf_my_fed_id, get_microstep() - tag.microstep);
-                return_value = __schedule(trigger, extra_delay, token);
-            }
+           // Set the delay back to 0
+            extra_delay = 0LL;            
+            DEBUG_PRINT("Federate %d calling schedule with 0 delay and intended tag (%lld, %u).", _lf_my_fed_id,
+                        trigger->intended_tag.time,
+                        trigger->intended_tag.microstep);
+            return_value = __schedule(trigger, extra_delay, token);
 #endif   
-        } else {
+        } else if (tag.time == current_logical_time) {
             // In case the message is in the future 
-            // call _lf_schedule_at_tag() and pass the tag
+            // in terms of microstep, call 
+            // _lf_schedule_at_tag() and pass the tag
             // of the message.
             DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, tag.microstep - get_microstep());
             return_value = _lf_schedule_at_tag(trigger, tag, token);
+        } else {
+            // In case the message is in the future
+            // in terms of logical time, call __schedule().
+            DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, tag.microstep - get_microstep());
+            return_value = __schedule(trigger, extra_delay, token);
         }
         // Notify the main thread in case it is waiting for physical time to elapse.
         DEBUG_PRINT("Federate %d pthread_cond_broadcast(&event_q_changed).", _lf_my_fed_id);
