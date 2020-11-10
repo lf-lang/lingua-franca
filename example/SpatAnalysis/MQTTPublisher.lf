@@ -41,7 +41,7 @@ reactor MQTTPublisher (
 ) {
     preamble {=
         #include "MQTTClient.h"
-        #include "util.h"
+        #include "core/util.h"
         
         // Timeout for completion of message sending in milliseconds.
         #define TIMEOUT     10000L

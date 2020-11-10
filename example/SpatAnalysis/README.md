@@ -2,6 +2,7 @@
 
 ### Requirements:
   - Lingua Franca program should include printf statements in "EVENT: <Field>: <Value> " format. This stdout including "Field" and "Value" are later parsed for insertion into a time series database. 
+  - The MQTT C Client library must be installed (https://github.com/eclipse/paho.mqtt.c)
   - A time series data base such as InfluxDB (https://docs.influxdata.com/influxdb/v1.8/introduction/install/) is to be installed. 
     - Drop into influx shell using `influx` on terminal and create a database using 'CREATE DATABASE <name>'. I used LF_EVENTS as the database name. 
   - Install Grafana (on OSX, default brew package after an update should be fine). Check you can access the frontend from browser over the default port http://localhost:3000. You change the default port as in here (https://grafana.com/docs/grafana/latest/administration/configuration/)
