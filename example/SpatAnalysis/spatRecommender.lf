@@ -7,10 +7,10 @@
  * @author Ravi Akella
  */
  
-target C{
+target C {
 	
     threads: 1, // Must use threaded implementation so schedule is thread safe.
-    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/util.c",
+    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/core/util.c",
     timeout: 60 secs,
     keepalive: true
 };
@@ -21,7 +21,7 @@ import MQTTPublisher from "MQTTPublisher.lf";
 reactor phaseChanger{
     
     preamble {=
-		#define BILLION 1000000000LL
+	#define BILLION 1000000000LL
         typedef struct spat_status{
             int signal_phase; //integer code for signal 1-Red, 2-Green, 3-Yellow
             long long unsigned residual; // remaining time for phase change
