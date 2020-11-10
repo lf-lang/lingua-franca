@@ -2,7 +2,7 @@
  * This is a test for send_timed_message,
  * which is an internal API.
  * This version of the test uses the
- * decentralized coordinator.
+ * decentralized coordination.
  * 
  * @author Soroush Bateni
  */
@@ -41,10 +41,12 @@ reactor Receiver {
                 self->success++;
             }
         }
-        printf("Received %d at tag (%lld, %u).\n",
+        printf("Received %d at tag (%lld, %u) with intended tag (%lld, %u).\n",
                in->value,
                get_elapsed_logical_time(),
-               get_microstep());
+               get_microstep(),
+               in->intended_tag.time - get_start_time(),
+               in->intended_tag.microstep);
     =}
     
     reaction(shutdown) {=

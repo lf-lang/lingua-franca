@@ -996,25 +996,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // physical time is larger than the intended time and, if so,
     // modify the intended time.
     if (trigger->is_physical) {
-        // Get the current physical time.
-        instant_t physical_time = get_physical_time();
-
-        if (physical_time > intended_time) {
-            // printf("DEBUG: Physical time %lld is larger than the tag by %lld. Using physical time.\n", physical_time, physical_time - tag);
-            // FIXME: In some circumstances (like Ptides), this is an
-            // error condition because it introduces nondeterminism.
-            // Do we want another kind of action, say a ptides action,
-            // that is physical but flags or handles this error here
-            // in some way?
-
-            // Update the tardiness of the trigger to reflect
-            // the descrepency between physical_time and the
-            // requested tag. Since the tardiness can be externally
-            // set (initially, it is zero), we only add to it here.
-            // trigger->tardiness += physical_time - intended_time;
-
-            intended_time = physical_time;
-        }
+        // Get the current physical time and assign it as the intended time.
+        intended_time = get_physical_time() + delay;
     } else {
         // FIXME: We need to verify that we are executing within a reaction?
         // See reactor_threaded.
@@ -1048,9 +1031,19 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             // Skip to the last node in the linked list.
             while(found->next != NULL) {
                 found = found->next;
+#ifdef _LF_IS_FEDERATED
+                // Since e is incurring a microstep,
+                // also increment its intended microstep.
+                e->intended_tag.microstep++;
+#endif
             }
             // Hook the event into the list.
             found->next = e;
+#ifdef _LF_IS_FEDERATED
+            // Since e is incurring a microstep,
+            // also increment its intended microstep.
+            e->intended_tag.microstep++;
+#endif
             return(0); // FIXME: return value
         }
         // If there are not conflicts, schedule as usual. If intended time is
@@ -1111,6 +1104,10 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                             _lf_recycle_event(e);
                             return 0;
                         }
+#ifdef _LF_IS_FEDERATED
+                        e->intended_tag.time = existing->time;
+                        e->intended_tag.microstep = existing->intended_tag.microstep + 1;
+#endif
                         // If the last event hasn't been handled yet, insert
                         // the new event right behind.
                         existing->next = e;
@@ -1126,6 +1123,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
     // Set the tag of the event.
     e->time = intended_time;
+
+#ifdef _LF_IS_FEDERATED
+    // Set the intended tag
+    e->intended_tag.time = intended_time;
+#endif
 
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
