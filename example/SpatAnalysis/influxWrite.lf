@@ -7,7 +7,7 @@ target TypeScript;
 main reactor influxConnector {
    
     preamble{=
-        
+        // @ts-ignore
         import * as Influx from "influx";
         import * as os from "os";
 
@@ -46,6 +46,7 @@ main reactor influxConnector {
     reaction(startup){=
 		influx
 		  .getDatabaseNames()
+		  // @ts-ignore
 		  .then((names) => {
 		    if (!names.includes(databaseName)) {
 		      return influx.createDatabase(databaseName);
@@ -55,6 +56,7 @@ main reactor influxConnector {
 		      console.log("Created new database if not exists");
 
 		  })
+		  // @ts-ignore
 		  .catch((err) => {
 		    console.error(`Error creating Influx database!`);
 		  });
@@ -95,13 +97,12 @@ main reactor influxConnector {
 			       	    timestamp: _timestamp,
 			       	 },
 			     	 ])
+					  // @ts-ignore
 			     	 .catch((err) => {
 			      	  console.error(`Error saving data to InfluxDB! ${err.stack}`);
 			      	});
 	            }
 	    	});
-   
-  			
 		} catch (err) {
   			console.error(err)
 		}
@@ -117,9 +118,11 @@ main reactor influxConnector {
 		    limit 10
 		  		`
 		    )
+			// @ts-ignore
 		    .then((result) => {
 		      console.log(result);
 		    })
+			// @ts-ignore
 		    .catch((err) => {
 		      console.log(err.stack);
 		 });
