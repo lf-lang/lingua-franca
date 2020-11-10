@@ -91,11 +91,11 @@ bool keepalive_specified = false;
 bool** __is_present_fields = NULL;
 int __is_present_fields_size = 0;
 
-// Define the array of pointers to the tardiness fields of all
+// Define the array of pointers to the intended_tag fields of all
 // ports and actions that need to be reinitialized at the start
 // of each time step.
-interval_t** __tardiness_fields = NULL;
-int __tardiness_fields_size = 0;
+tag_t** __intended_tag_fields = NULL;
+int __intended_tag_fields_size = 0;
 
 // Define the array of pointers to the token fields of all the
 // actions and inputs that need to have their reference counts
@@ -365,7 +365,9 @@ token_freed __done_using(token_t* token) {
 void _lf_enqueue_reaction(reaction_t* reaction);
 
 /**
- * Use tables to reset is_present fields to false and decrement reference
+ * Use tables to reset is_present fields to false,
+ * set intended_tag fields in federated execution
+ * to the current_tag, and decrement reference
  * counts between time steps and at the end of execution.
  */
 void __start_time_step() {
@@ -386,7 +388,7 @@ void __start_time_step() {
     for(int i = 0; i < __is_present_fields_size; i++) {
         *__is_present_fields[i] = false;
 #ifdef _LF_IS_FEDERATED
-        *__tardiness_fields[i] = 0LL;
+        *__intended_tag_fields[i] = current_tag;
 #endif
     }
 }
@@ -517,15 +519,22 @@ void __pop_events() {
             reaction_t *reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-                // Transfer the tardiness from the trigger to the reaction.
+#ifdef _LF_IS_FEDERATED
+                // In federated execution, transfer the tardiness from the trigger to the reaction.
                 // This will help the runtime decide whether or not to execute the tardy
                 // reaction instead of the main reaction.
-                // Note that it is important that we do not override the is_tardy feild
+                // Note that it is important that we do not override the is_tardy field
                 // of a reaction if the tardiness of the trigger is 0 because this situation
-                // could indicate a microstep tardiness.
-                if (event->trigger->tardiness > 0LL) {
+                // could indicate a microstep tardiness. The tardiness occurs if the intended tag
+                // is in the past relative to the current tag.
+                if (compare_tags(event->intended_tag,
+                                  current_tag) < 0) {
+                    // Transfer the intended tag to the trigger so that
+                    // the reaction can access the value.
+                    event->trigger->intended_tag = event->intended_tag;
                     reaction->is_tardy = true;
                 }
+#endif
                 // printf("DEBUG: Enqueing reaction %p.\n", reaction);
                 pqueue_insert(reaction_q, reaction);
             }
@@ -638,6 +647,9 @@ void _lf_recycle_event(event_t* e) {
     e->pos = 0;
     e->token = NULL;
     e->is_dummy = false;
+#ifdef _LF_IS_FEDERATED
+    e->intended_tag = (tag_t) { .time = 0LL, .microstep = 0u};
+#endif
     e->next = NULL;
     pqueue_insert(recycle_q, e);
 }
@@ -690,6 +702,15 @@ void _lf_replace_token(event_t* event, token_t* token) {
  * 
  * If there is an event found at the requested tag, the payload
  * is replaced and 0 is returned.
+ * 
+ * Note that this function is an internal API that must
+ * be called with tags that are in order for a given
+ * trigger. This means that the following order is illegal:
+ * _lf_schedule_at_tag(trigger1, bigger_tag, ...);
+ * _lf_schedule_at_tag(trigger1, smaller_tag, ...);
+ * where bigger_tag > smaller_tag. This function is primarily
+ * used for network communication (which is assumed to be
+ * in order).
  *
  * @param trigger The trigger to be invoked at a later logical time.
  * @param tag Logical tag of the event
@@ -743,22 +764,51 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
     // Set the payload.
     e->token = token;
 
+#ifdef _LF_IS_FEDERATED
+    // Set the intended tag
+    e->intended_tag = trigger->intended_tag;
+#endif
+
     event_t* found = pqueue_find_equal_same_priority(event_q, e);
     if (found != NULL) {
         if (tag.microstep == 0) {
                 // The microstep is 0, which means that the event is being scheduled
                 // at a future time and at the beginning of the skip list of events 
-                // at that time. Replace the payload of the event at the head with our
-                // current payload.
-                _lf_replace_token(found, token);
-                _lf_recycle_event(e);
-
+                // at that time.
                 // In case the event is a dummy event
                 // convert it to a real event.                
                 found->is_dummy = false;
-
+                switch (trigger->policy) {
+                    case drop:
+                        if (found->token != token) {
+                            __done_using(token);
+                        }
+                        _lf_recycle_event(e);
+                        return(0);
+                        break;
+                    case replace:
+                        // Replace the payload of the event at the head with our
+                        // current payload.
+                        _lf_replace_token(found, token);
+                        _lf_recycle_event(e);
+                        return 0;
+                        break;
+                    default:
+                        // Adding a microstep to the original
+                        // intended tag.
+                        if (found->time == timeout_time) {
+                            // Scheduling e will incur a microstep at timeout, 
+                            // which is illegal.
+                            _lf_recycle_event(e);
+                            return 0;
+                        }
+                        if (found->next != NULL) {
+                            fprintf(stderr, "_lf_schedule_at_tag: in-order contract violated.\n");
+                            return -1;
+                        }
+                        found->next = e;
+                }
                 // printf("<<<<<< _lf_schedule_at_tag: 1\n");
-                return 0;
         } else {
             // printf("<<<<<< _lf_schedule_at_tag: 3\n");
             // We are requesting a microstep greater than 0
@@ -799,9 +849,36 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
             if (found->next == NULL) {
                 found->next = e;
             } else {
-                _lf_replace_token(found->next, token);
-                _lf_recycle_event(e);
-                return 0;
+                switch (trigger->policy) {
+                    case drop:
+                        if (found->next->token != token) {
+                            __done_using(token);
+                        }
+                        _lf_recycle_event(e);
+                        return 0;
+                        break;
+                    case replace:
+                        // Replace the payload of the event at the head with our
+                        // current payload.
+                        _lf_replace_token(found->next, token);
+                        _lf_recycle_event(e);
+                        return 0;
+                        break;
+                    default:
+                        // Adding a microstep to the original
+                        // intended tag.
+                        if (found->time == timeout_time) {
+                            // Scheduling e will incur a microstep at timeout, 
+                            // which is illegal.
+                            _lf_recycle_event(e);
+                            return 0;
+                        }
+                        if (found->next->next != NULL) {
+                            fprintf(stderr, "_lf_schedule_at_tag: in-order contract violated.\n");
+                            return -1;
+                        }
+                        found->next->next = e;
+                }
             }
         }
     } else {
@@ -910,6 +987,11 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // dequeued, it will trigger this trigger.
     e->trigger = trigger;
 
+#ifdef _LF_IS_FEDERATED
+    // Set the intended tag
+    e->intended_tag = trigger->intended_tag;
+#endif
+
     // If the trigger is physical, then we need to check whether
     // physical time is larger than the intended time and, if so,
     // modify the intended time.
@@ -929,7 +1011,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             // the descrepency between physical_time and the
             // requested tag. Since the tardiness can be externally
             // set (initially, it is zero), we only add to it here.
-            trigger->tardiness += physical_time - intended_time;
+            // trigger->tardiness += physical_time - intended_time;
 
             intended_time = physical_time;
         }

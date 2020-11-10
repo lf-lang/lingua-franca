@@ -591,16 +591,15 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 
-                // Create the table to initialize tardiness fields to 0 between time steps.
+                // Create the table to initialize intended tag fields to 0 between time steps.
                 if (isFederated) {
-                    // Tardiness is only applicable to ports in federated execution.
-                    // Allocate the initial (before mutations) array of pointers to tardiness fields.
-                    // There is a 1-1 map between structs containing is_present and tardiness fields,
+                    // Allocate the initial (before mutations) array of pointers to intended_tag fields.
+                    // There is a 1-1 map between structs containing is_present and intended_tag fields,
                     // thus, we reuse startTimeStepIsPresentCount as the counter.
                     pr('''
-                        // Create the array that will contain pointers to tardiness fields to reset on each step.
-                        __tardiness_fields_size = «startTimeStepIsPresentCount»;
-                        __tardiness_fields = (interval_t**)malloc(«startTimeStepIsPresentCount» * sizeof(interval_t*));
+                        // Create the array that will contain pointers to intended_tag fields to reset on each step.
+                        __intended_tag_fields_size = «startTimeStepIsPresentCount»;
+                        __intended_tag_fields = (tag_t**)malloc(«startTimeStepIsPresentCount» * sizeof(tag_t*));
                     ''')
                 }
                 
@@ -674,7 +673,7 @@ class CGenerator extends GeneratorBase {
                         «IF federates.length > 1»
                             return __next_event_tag(time, microstep);
                         «ELSE»
-                            return (tag_t) {  .time = time, .microstep = microstep };
+                            return («targetTagType») {  .time = time, .microstep = microstep };
                         «ENDIF»
                     }
                 ''')
@@ -1389,14 +1388,14 @@ class CGenerator extends GeneratorBase {
         val reactor = decl.toDefinition
         // In the case where there are incoming
         // p2p connections (physical and logical)
-        // there will be a tardiness field added
+        // there will be a intended_tag field added
         // to accommodate the case where a reaction
         // triggered by a port or action is late due
         // to network latency, etc..
-        var tardiness = ''        
+        var intended_tag = ''        
         if (isFederated) {
-            tardiness = '''
-                «targetTimeType» tardiness;
+            intended_tag = '''
+                «targetTagType» intended_tag;
             '''
         }
         // First, handle inputs.
@@ -1414,7 +1413,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
-                    «tardiness»
+                    «intended_tag»
                 } «variableStructType(input, decl)»;
             ''')
             
@@ -1434,7 +1433,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
-                    «tardiness»
+                    «intended_tag»
                 } «variableStructType(output, decl)»;
             ''')
 
@@ -1444,11 +1443,6 @@ class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
-            if (action.origin === ActionOrigin.PHYSICAL) {
-                tardiness = '''
-                    «targetTimeType» tardiness;
-                '''
-            }
             pr(action, code, '''
                 typedef struct {
                     trigger_t* trigger;
@@ -1456,7 +1450,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     bool has_value;
                     token_t* token;
-                    «tardiness»
+                    «intended_tag»
                 } «variableStructType(action, decl)»;
             ''')
             
@@ -1721,7 +1715,7 @@ class CGenerator extends GeneratorBase {
                     // self->__«containedReactor.name».«port.name»_trigger.is_physical = false;
                     // self->__«containedReactor.name».«port.name»_trigger.drop = false;
                     // self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
-                    // self->__«containedReactor.name».«port.name»_trigger.tardiness = 0;
+                    // self->__«containedReactor.name».«port.name»_trigger.intended_tag = (0, 0);
                     pr(port, constructorCode, '''
                         self->__«containedReactor.name».«port.name»_trigger.last = NULL;
                         self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
@@ -1903,7 +1897,7 @@ class CGenerator extends GeneratorBase {
                 // self->___reaction_«reactionCount».pos = 0;
                 // self->___reaction_«reactionCount».running = false;
                 // self->___reaction_«reactionCount».deadline = 0LL;
-                // self->___reaction_«reactionCount».tardiness = false;
+                // self->___reaction_«reactionCount».is_tardy = false;
                 pr(reaction, constructorCode, '''
                     self->___reaction_«reactionCount».number = «reactionCount»;
                     self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
@@ -2140,8 +2134,8 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code that passes existing tardiness to all output ports
-     * and actions. This tardiness is the maximum tardiness of the 
+     * Generate code that passes existing intended tag to all output ports
+     * and actions. This intended tag is the minimum intended tag of the 
      * triggering inputs of the reaction.
      * 
      * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
@@ -2149,48 +2143,49 @@ class CGenerator extends GeneratorBase {
      * @param decl The reactor that has the reaction
      * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
      */
-    def generateTardinessInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        // Construct the tardiness inheritance code to go into
+    def generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
+        // Construct the intended_tag inheritance code to go into
         // the body of the function.
-        var StringBuilder tardinessInheritenceCode = new StringBuilder()
+        var StringBuilder intendedTagInheritenceCode = new StringBuilder()
         if (isFederated) {
-            pr(tardinessInheritenceCode, '''
+            pr(intendedTagInheritenceCode, '''
                 if (self->___reaction_«reactionIndex».is_tardy == true) {
             ''')
-            indent(tardinessInheritenceCode);            
-            pr(tardinessInheritenceCode, '''            
-                // The operations inside this if (if any exists) are expensive 
+            indent(intendedTagInheritenceCode);            
+            pr(intendedTagInheritenceCode, '''            
+                // The operations inside this if clause (if any exists) are expensive 
                 // and must only be done if the reaction has unhandled tardiness.
-                // Otherwise, all tardiness values are 0 by default.
+                // Otherwise, all intended_tag values are current_tag by default.
                 
-                // Inherited tardiness. This will take the maximum
-                // tardiness of all input triggers
-                «targetTimeType» inherited_max_tardiness = 0LL;
+                // Inherited intended tag. This will take the minimum
+                // intended_tag of all input triggers
+                «targetTagType» inherited_min_intended_tag = («targetTagType») { .time = FOREVER, .microstep = UINT_MAX };
             ''')
-            pr(tardinessInheritenceCode, '''
-                // Find the maximum tardiness
+            pr(intendedTagInheritenceCode, '''
+                // Find the minimum intended tag
             ''')
             // Go through every trigger of the reaction and check the
-            // value of tardiness to choose the maximum.
+            // value of intended_tag to choose the minimum.
             for (TriggerRef inputTrigger : reaction.triggers ?: emptyList) {
                 if (inputTrigger instanceof VarRef) {
                     if (inputTrigger.variable instanceof Output) {
                         // Output from a contained reactor
-                        pr(tardinessInheritenceCode, '''
-                            if («inputTrigger.container.name».«inputTrigger.variable.name»->tardiness > inherited_max_tardiness) {
-                                inherited_max_tardiness = «inputTrigger.container.name».«inputTrigger.variable.name»->tardiness;
+                        pr(intendedTagInheritenceCode, '''
+                            if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag,
+                                             inherited_min_intended_tag) < 0) {
+                                inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag;
                             }
                         ''')
                     } else if (inputTrigger.variable instanceof Port) {
-                        pr(tardinessInheritenceCode, '''
-                            if («inputTrigger.variable.name»->tardiness > inherited_max_tardiness) {
-                                inherited_max_tardiness = «inputTrigger.variable.name»->tardiness;
+                        pr(intendedTagInheritenceCode, '''
+                            if (compare_tags(«inputTrigger.variable.name»->intended_tag, inherited_min_intended_tag) < 0) {
+                                inherited_min_intended_tag = «inputTrigger.variable.name»->intended_tag;
                             }
                         ''')
                     } else if (inputTrigger.variable instanceof Action) {
-                        pr(tardinessInheritenceCode, '''
-                            if («inputTrigger.variable.name»->trigger->tardiness > inherited_max_tardiness) {
-                                inherited_max_tardiness = «inputTrigger.variable.name»->trigger->tardiness;
+                        pr(intendedTagInheritenceCode, '''
+                            if (compare_tags(«inputTrigger.variable.name»->trigger->intended_tag, inherited_min_intended_tag) < 0) {
+                                inherited_min_intended_tag = «inputTrigger.variable.name»->trigger->intended_tag;
                             }
                         ''')
                     }
@@ -2199,46 +2194,46 @@ class CGenerator extends GeneratorBase {
             }
             if (reaction.triggers === null || reaction.triggers.size === 0) {
                 // No triggers are given, which means the reaction would react to any input.
-                // We need to check tardiness for every input.
+                // We need to check the intended tag for every input.
                 // NOTE: this does not include contained outputs. 
                 for (input : reaction.sources) {
-                    pr(tardinessInheritenceCode, '''
-                        if («input.variable.name»->tardiness > inherited_max_tardiness) {
-                            inherited_max_tardiness = «input.variable.name»->tardiness;
+                    pr(intendedTagInheritenceCode, '''
+                        if (compare_tags(«input.variable.name»->intended_tag, inherited_min_intended_tag) > 0) {
+                            inherited_min_intended_tag = «input.variable.name»->intended_tag;
                         }
                     ''')
                 }
             }
             
-            // Once the maximum tardiness has been found,
+            // Once the minimum intended tag has been found,
             // it will be passed down to the port effects
-            // of the reaction. Note that the tardiness
+            // of the reaction. Note that the intended tag
             // will not pass on to actions downstream.
             for (effect : reaction.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
                     // Input to a contained reaction
-                    pr(tardinessInheritenceCode, '''
-                        // All effects inherit the maximum tardiness of input triggers
-                        «effect.container.name».«effect.variable.name»->tardiness = inherited_max_tardiness;
+                    pr(intendedTagInheritenceCode, '''
+                        // All effects inherit the minimum intended tag of input triggers
+                        «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
                     ''')                    
                 } else if (effect.variable instanceof Output) {
                     // Everything else
-                    pr(tardinessInheritenceCode, '''
-                        // All effects inherit the maximum tardiness of input triggers
-                        «effect.variable.name»->tardiness = inherited_max_tardiness;
+                    pr(intendedTagInheritenceCode, '''
+                        // All effects inherit the minimum intended tag of input triggers
+                        «effect.variable.name»->intended_tag = inherited_min_intended_tag;
                     ''')                    
                 }
             }
-            unindent(tardinessInheritenceCode);
-            pr(tardinessInheritenceCode,'''
+            unindent(intendedTagInheritenceCode);
+            pr(intendedTagInheritenceCode,'''
             }
             ''')
             
-            // Write the the tardiness inheritance initialization
+            // Write the the intended tag inheritance initialization
             // to the main code.
-            pr(tardinessInheritenceCode.toString) 
+            pr(intendedTagInheritenceCode.toString) 
         }
-        return tardinessInheritenceCode
+        return intendedTagInheritenceCode
     }
     
     /**
@@ -2375,10 +2370,10 @@ class CGenerator extends GeneratorBase {
             pr(reactionInitialization.toString)
             
             if (reaction.tardy === null) {
-                // Pass down the tardiness to all input and output effects
+                // Pass down the intended_tag to all input and output effects
                 // downstream if the current reaction does not have a tardy
                 // handler.
-                generateTardinessInheritence(body, reaction, decl, reactionIndex)                
+                generateIntendedTagInheritence(body, reaction, decl, reactionIndex)                
             }
         } else {
             pr(structType + "* self = (" + structType + "*)instance_args;")
@@ -2611,11 +2606,11 @@ class CGenerator extends GeneratorBase {
                                         = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»is_present;
                             ''')
                             if (isFederated) {
-                                // Tardiness is only applicable to ports in federated execution.
+                                // Intended_tag is only applicable to ports in federated execution.
                                 pr(startTimeStep, '''
                                     // Add port «sourcePort.getFullName» to array of is_present fields.
-                                    __tardiness_fields[«startTimeStepIsPresentCount»] 
-                                            = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»tardiness;
+                                    __intended_tag_fields[«startTimeStepIsPresentCount»] 
+                                            = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»intended_tag;
                                 ''')
                             }
                             startTimeStepIsPresentCount++
@@ -2652,10 +2647,10 @@ class CGenerator extends GeneratorBase {
                                 __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "is_present")»;
                             ''')
                             if (isFederated) {
-                                // Tardiness is only applicable to ports in federated execution.
+                                // Intended_tag is only applicable to ports in federated execution.
                                 pr(startTimeStep, '''
-                                    // Add port «output.getFullName» to array of tardiness fields.
-                                    __tardiness_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "tardiness")»;
+                                    // Add port «output.getFullName» to array of intended_tag fields.
+                                    __intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "intended_tag")»;
                                 ''')
                             }
                             startTimeStepIsPresentCount++
@@ -2667,10 +2662,10 @@ class CGenerator extends GeneratorBase {
                             __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "is_present")»;
                         ''')
                         if (isFederated) {                            
-                            // Tardiness is only applicable to ports in federated execution.
+                            // Intended_tag is only applicable to ports in federated execution.
                             pr(startTimeStep, '''
-                                // Add port «output.getFullName» to array of tardiness fields.
-                                __tardiness_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "tardiness")»;
+                                // Add port «output.getFullName» to array of Intended_tag fields.
+                                __intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "intended_tag")»;
                             ''')                            
                         }
                         startTimeStepIsPresentCount++
@@ -2685,11 +2680,11 @@ class CGenerator extends GeneratorBase {
                         = &«containerSelfStructName»->__«action.name».is_present;
             ''')
             if (isFederated) {
-                // Tardiness is only applicable to actions in federated execution.
+                // Intended_tag is only applicable to actions in federated execution.
                 pr(startTimeStep, '''
-                    // Add action «action.getFullName» to array of is_present fields.
-                    __tardiness_fields[«startTimeStepIsPresentCount»] 
-                            = &«containerSelfStructName»->__«action.name».tardiness;
+                    // Add action «action.getFullName» to array of intended_tag fields.
+                    __intended_tag_fields[«startTimeStepIsPresentCount»] 
+                            = &«containerSelfStructName»->__«action.name».intended_tag;
                 ''')
             }
             startTimeStepIsPresentCount++
@@ -3823,7 +3818,7 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
             «IF isFederated»
-                DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
+                DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
             «ENDIF»
         ''')
         if (isTokenType(type)) {
@@ -4821,6 +4816,10 @@ class CGenerator extends GeneratorBase {
     }
         
     override getTargetTimeType() '''interval_t'''
+    
+    override getTargetTagType() '''tag_t'''
+    
+    override getTargetTagIntervalType() '''tag_interval_t'''
 
     override getTargetUndefinedType() '''/* «reportError("undefined type")» */'''
 

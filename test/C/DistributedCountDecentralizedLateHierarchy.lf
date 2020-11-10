@@ -2,7 +2,9 @@
  * Test a form of a distributed deterministic system
  * where a federate that receives timestamped messages has a timer in addition to the messages
  * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
- * In addition, this test shows that the tardiness is passed down the hierarchy until it is handled.
+ * In addition, this test shows that the tardiness of the reaction
+ * is passed down the hierarchy until it is handled.
+ * 
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
@@ -17,16 +19,14 @@ reactor ImportantActuator {
     input in:int;
     state success:bool(false);
     reaction(in) {=
-        if (in->tardiness > 0) {
+        if (compare_tags(in->intended_tag, get_current_tag()) != 0) {
             self->success = false; // tardiness was not handled correctly
         }
     =} tardy {=
-        if (in->tardiness == 0) {
-            // A microstep tardiness has occurred            
-        	printf("A microstep tardiness has occurred.\n");
-        } else {
-        	printf("Message is tardy by %llu nsec.\n", in->tardiness);        
-        }
+        tag_t current_tag = get_current_tag();
+        printf("Message is tardy by (%lld, %u).\n",
+	            current_tag.time - in->intended_tag.time,
+	            current_tag.microstep - in->intended_tag.microstep);
         self->success = true;
     =}
     reaction(shutdown) {=
@@ -41,8 +41,14 @@ reactor ImportantActuator {
 
 reactor Print {
     input in:int;
-    reaction(in) {=    
-        printf("At time %llu received %d. Tardiness is %llu.\n", get_elapsed_logical_time(), in->value, in->tardiness);
+    reaction(in) {=
+        tag_t current_tag = get_current_tag();  
+        printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
+               current_tag.time,
+               current_tag.microstep,
+               in->value,
+               in->intended_tag.time,
+               in->intended_tag.microstep);
     =}
 
 }

@@ -85,6 +85,12 @@ typedef struct {
 } tag_t;
 
 /**
+ * A tag interval indicates the
+ * pairwise difference of two tags.
+ */
+typedef tag_t tag_interval_t;
+
+/**
  * Compare two tags. Return -1 if the first is less than
  * the second, 0 if they are equal, and +1 if the first is
  * greater than the second. A tag is greater than another if

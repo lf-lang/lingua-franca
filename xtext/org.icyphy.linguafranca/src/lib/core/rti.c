@@ -382,7 +382,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
             // Find the (transitive) next event tag upstream.
             tag_t upstream_next_event = transitive_next_event(
                     upstream, upstream->next_event, visited);
-            DEBUG_PRINT("Upstream next event: (%lld, %u). Upstream completion time: (%lld, %u). Candidate time: (%lld, %u).",
+            DEBUG_PRINT("RTI: Upstream next event: (%lld, %u). Upstream completion time: (%lld, %u). Candidate time: (%lld, %u).",
                     upstream_next_event.time - start_time,
                     upstream_next_event.microstep,
                     upstream_completion_tag.time - start_time,

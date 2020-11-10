@@ -2317,6 +2317,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     
     abstract def String getTargetTimeType()
 
+    abstract def String getTargetTagType()
+
+    abstract def String getTargetTagIntervalType()
+
     abstract def String getTargetUndefinedType()
     
     abstract def String getTargetFixedSizeListType(String baseType, Integer size)
