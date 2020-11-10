@@ -261,13 +261,13 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
  *  with the specified time and microstep.
  */
 void send_tag_advance_grant(federate_t* fed, tag_t tag) {
-    if (fed->state == NOT_CONNECTED) {
-        return;
-    }
     unsigned char buffer[1 + sizeof(instant_t) + sizeof(microstep_t)];
     buffer[0] = TIME_ADVANCE_GRANT;
     encode_ll(tag.time, &(buffer[1]));
     encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
+    if (fed->state == NOT_CONNECTED) {
+        return;
+    }
     write_to_socket(fed->socket, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer, "RTI failed to send time advance grant to federate %d.", fed->id);
     DEBUG_PRINT("RTI sent to federate %d the TAG (%lld, %u).", fed->id, tag.time - start_time, tag.microstep);
 }
