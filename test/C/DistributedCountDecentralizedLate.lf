@@ -19,7 +19,7 @@ reactor Print {
     timer t(0, 10 usec); // Force a timer to be invoke periodically
                          // to ensure logical time will advance in the
                          // absence of incoming messages.
-    state c:int(1);
+    state c:int(0);
     reaction(in) {=
         tag_t current_tag = get_current_tag();
         printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
