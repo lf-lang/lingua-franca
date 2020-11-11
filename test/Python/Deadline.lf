@@ -12,7 +12,7 @@ reactor Source(period(2 sec)) {
         if self.count % 2 != 0:
             # The count variable is odd.
             # Take time to cause a deadline violation.
-            sleep_time = MSEC(400)
+            sleep_time = MSEC(500)
             start_time = get_physical_time()
             while (get_physical_time() < start_time + sleep_time):
                 pass
@@ -23,7 +23,7 @@ reactor Source(period(2 sec)) {
     =}
 }
 
-reactor Destination(timeout(2 sec)) {
+reactor Destination(timeout(1 sec)) {
     input x;
     state count(0);
     reaction(x) {=
@@ -45,6 +45,6 @@ reactor Destination(timeout(2 sec)) {
 }
 main reactor Deadline {
     s = new Source();
-    d = new Destination(timeout = 100 msec);
+    d = new Destination(timeout = 200 msec);
     s.y -> d.x;
 }
