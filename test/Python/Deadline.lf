@@ -2,9 +2,9 @@
 // Even numbers are sent by the Source immediately, whereas odd numbers
 // are sent after a big enough delay to violate the deadline.
 target Python {
-    timeout: 2 sec
+    timeout: 3 sec
 };
-reactor Source(period(1 sec)) {
+reactor Source(period(1500 msec)) {
     output y;
     timer t(0, period);
     state count(0);
