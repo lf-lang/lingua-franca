@@ -48,6 +48,6 @@ reactor Scheduler {
     =}
 }
 
-reactor ScheduleAt {
+main reactor ScheduleAt {
     sender = new Scheduler();
 }
