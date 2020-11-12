@@ -10,7 +10,7 @@
  *  determines the time of the next event.
  */
 target Python {
-    timeout: 1 sec
+    timeout: 1500 msec
 };
 main reactor SlowingClockPhysical {
     physical action a(100 msec, 100 msec); // first offset and minimum interarrival time.
