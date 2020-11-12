@@ -1089,7 +1089,7 @@ void handle_stop_granted_message() {
     pthread_mutex_lock(&mutex);
 
     instant_t stop_time = extract_ll(buffer);
-    DEBUG_PRINT("Federate %d received from RTI a STOP_GRANTED message with time %lld.", FED_ID, stop_time - start_time);
+    DEBUG_PRINT("Federate %d received from RTI a STOP_GRANTED message with time %lld.", _lf_my_fed_id, stop_time);
     if (stop_time > current_tag.time) {
         // We could re-use the timeout mechanism
         // in which the federate stops at 
@@ -1230,19 +1230,20 @@ void* listen_to_rti(void* args) {
             exit(1);
         }
         switch(buffer[0]) {
-        case TIMED_MESSAGE:
-            handle_timed_message(_lf_rti_socket, buffer + 1);
-            break;
-        case TIME_ADVANCE_GRANT:
-            handle_time_advance_grant();
-            break;
-        case STOP_REQUEST:
-            handle_stop_request_message();
-        case STOP_GRANTED:
-            handle_stop_granted_message();
-            break;
-        default:
-            error_print("Received from RTI an unrecognized message type: %d.", buffer[0]);
+            case TIMED_MESSAGE:
+                handle_timed_message(_lf_rti_socket, buffer + 1);
+                break;
+            case TIME_ADVANCE_GRANT:
+                handle_time_advance_grant();
+                break;
+            case STOP_REQUEST:
+                handle_stop_request_message();
+                break;
+            case STOP_GRANTED:
+                handle_stop_granted_message();
+                break;
+            default:
+                error_print("Received from RTI an unrecognized message type: %d.", buffer[0]);
         }
     }
     return NULL;
