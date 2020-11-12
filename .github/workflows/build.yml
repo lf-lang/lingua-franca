@@ -65,14 +65,15 @@ jobs:
       #     cd protobuf
       #     sudo make install
       #     sudo ldconfig
-      - name: Install Protobufs Ubuntu
+      - name: Install Dependencies Ubuntu
         run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
         if: runner.os == 'Linux'
-      - name: Install Protobufs OS X
+      - name: Install Dependencies OS X
         run: |
           brew install protobuf-c
+          brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Protobufs Windows
+      - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
           vcpkgArguments: 'protobuf'
@@ -95,6 +96,9 @@ jobs:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
           java-version: 14
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Install Dependencies OS X
+        run: brew install coreutils
+        if: runner.os == 'macOS'
       - uses: actions/checkout@v2
       - name: Run C++ tests;
         run: |
@@ -114,13 +118,15 @@ jobs:
           java-version: 14
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2
-      - name: Install Protobufs Ubuntu
+      - name: Install Dependencies Ubuntu
         run: sudo apt-get install libprotobuf-dev protobuf-compiler
         if: runner.os == 'Linux'
-      - name: Install Protobufs OS X
-        run: brew install protobuf
+      - name: Install Dependencies OS X
+        run: |
+          brew install protobuf
+          brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Protobufs Windows
+      - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
           vcpkgArguments: 'protobuf'
