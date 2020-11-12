@@ -63,7 +63,7 @@ else
                     continue
                 fi
                 echo "================================================================================";
-                command="timeout 30s " # timeout 30s
+                command="timeout 2m " # timeout 2m
                 if [ $1 == "Cpp" ]; then
                     command+="bin/$name"
                 elif [ $1 == "C" ]; then
@@ -81,7 +81,7 @@ else
                 echo "Executing command:"$command;
                 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
                 
-                if $command; # timeout 30s 
+                if $command; # timeout 2m 
                 then
                     correct=$((correct + 1))
                 else
