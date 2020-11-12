@@ -5,8 +5,7 @@
  *  @author Edward A. Lee
  */
 target C {
-    timeout: 0 sec,
-    logging: DEBUG
+    timeout: 0 sec
 };
 
 reactor Source {

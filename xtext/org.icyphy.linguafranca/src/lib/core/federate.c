@@ -369,7 +369,10 @@ void _lf_fd_send_stop_request_to_rti() {
     // Raise a logical time barrier at the current time
     _lf_increment_global_logical_time_barrier_already_locked(current_tag.time);
     // Send a stop request with the current tag to the RTI
-    send_tag(STOP_REQUEST, current_tag.time, current_tag.microstep);
+    unsigned char buffer[1 + sizeof(instant_t)];
+    buffer[0] = STOP_REQUEST;
+    encode_ll(current_tag.time, &(buffer[1]));
+    write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t), buffer, "Federate %d failed to send stop time %lld to the RTI.", _lf_my_fed_id, current_tag.time - start_time);
 }
 
 /**
@@ -951,8 +954,8 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 
     // Read the tag of the message.
     tag_t tag;
-    tag.time = extract_ll(buffer + 8);
-    tag.microstep = extract_int(buffer + 8 + sizeof(instant_t));
+    tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
 
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
                                // with decentralized coordination
@@ -1041,23 +1044,16 @@ volatile bool __tag_pending = false;
  *  which it acquires to interact with the main thread, which may
  *  be waiting for a TAG (this broadcasts a condition signal).
  */
-void handle_time_advance_grant() {
-    union {
-        long long ull;
-        unsigned char c[sizeof(long long)];
-    } result;
-    read_from_socket(_lf_rti_socket, sizeof(long long), (unsigned char*)&result.c,
+void handle_tag_advance_grant() {
+    unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
+    read_from_socket(_lf_rti_socket, sizeof(instant_t) + sizeof(microstep_t), buffer,
                      "Federate %d failed to read the time advance grant from the RTI.", _lf_my_fed_id);
 
-    unsigned char buffer[sizeof(microstep_t)];
-    read_from_socket(_lf_rti_socket, sizeof(microstep_t), buffer,
-                     "Federate %d failed to read the time advance grant microstep from the RTI.", _lf_my_fed_id);
-
-    // DEBUG_PRINT("Federate %d pthread_mutex_lock handle_time_advance_grant.", _lf_my_fed_id);
+    // DEBUG_PRINT("Federate %d pthread_mutex_lock handle_tag_advance_grant.", _lf_my_fed_id);
     pthread_mutex_lock(&mutex);
     // DEBUG_PRINT("Federate %d pthread_mutex_locked", _lf_my_fed_id);
-    __tag.time = swap_bytes_if_big_endian_ll(result.ull);
-    __tag.microstep = extract_int(buffer);
+    __tag.time = extract_ll(buffer);
+    __tag.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     __tag_pending = false;
     DEBUG_PRINT("Federate %d received TAG (%lld, %u).", _lf_my_fed_id, __tag.time - start_time, __tag.microstep);
     // Notify everything that is blocked.
@@ -1128,7 +1124,7 @@ void handle_stop_request_message() {
     unsigned char outgoing_buffer[1 + sizeof(instant_t)];
     outgoing_buffer[0] = STOP_REQUEST_REPLY;
     // Encode the current logical time
-    encode_ll(current_tag.time, outgoing_buffer);
+    encode_ll(current_tag.time, &(outgoing_buffer[1]));
     // Send the current logical time to the RTI. This message does not have an identifying byte since
     // since the RTI is waiting for a response from this federate.
     write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t), outgoing_buffer, "Federate %d failed to send the answer to STOP_REQUEST to RTI.", _lf_my_fed_id);
@@ -1232,10 +1228,10 @@ void* listen_to_rti(void* args) {
         }
         switch(buffer[0]) {
             case TIMED_MESSAGE:
-                handle_timed_message(_lf_rti_socket, buffer + 1);
+                handle_timed_message(_lf_rti_socket, &(buffer[1]));
                 break;
             case TIME_ADVANCE_GRANT:
-                handle_time_advance_grant();
+                handle_tag_advance_grant();
                 break;
             case STOP_REQUEST:
                 handle_stop_request_message();
@@ -1244,7 +1240,7 @@ void* listen_to_rti(void* args) {
                 handle_stop_granted_message();
                 break;
             default:
-                error_print("Received from RTI an unrecognized message type: %hhx.", buffer[0]);
+                error_print_and_exit("Federate %d received from RTI an unrecognized message type: %hhx.", _lf_my_fed_id, buffer[0]);
         }
     }
     return NULL;
