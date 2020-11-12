@@ -63,17 +63,16 @@ else
                     continue
                 fi
                 echo "================================================================================";
-                command="timeout 2m " # timeout 2m
                 if [ $1 == "Cpp" ]; then
-                    command+="bin/$name"
+                    command="bin/$name"
                 elif [ $1 == "C" ]; then
-                    command+="bin/$name"
+                    command="bin/$name"
 	            elif [ $1 == "CCpp" ]; then
-                    command+="bin/$name"
+                    command="bin/$name"
 	            elif [ $1 == "TS" ]; then
-                    command+="node ${name}/dist/${name}"".js"
+                    command="node ${name}/dist/${name}"".js"
                 elif [ $1 == "Python" ]; then
-                    command+="python3 src-gen/${name}/${name}"".py"
+                    command="python3 src-gen/${name}/${name}"".py"
                 else
                     echo "Unknown target. Valid targets are: \"Cpp\", \"CCpp\", \"TS\", \"Python\", and \"C\".";
                     exit 1;
