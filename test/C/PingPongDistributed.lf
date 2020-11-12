@@ -22,7 +22,9 @@
  * 
  * @author Edward A. Lee
  */
-target C;
+target C {
+    logging: DEBUG
+};
 
 reactor Ping(count:int(10)) {
     input receive:int;

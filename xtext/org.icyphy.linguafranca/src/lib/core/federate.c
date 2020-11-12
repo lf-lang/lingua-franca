@@ -1244,7 +1244,7 @@ void* listen_to_rti(void* args) {
                 handle_stop_granted_message();
                 break;
             default:
-                error_print("Received from RTI an unrecognized message type: %d.", buffer[0]);
+                error_print("Received from RTI an unrecognized message type: %hhx.", buffer[0]);
         }
     }
     return NULL;
