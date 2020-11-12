@@ -600,7 +600,7 @@ void request_stop() {
     stop_requested = true;
 #endif
     // Notify the RTI that nothing more will happen.
-    // next_event_tag(FOREVER, 0);
+    next_event_tag(FOREVER, 0);
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);
