@@ -48,6 +48,6 @@ reactor Scheduler {
     =}
 }
 
-federated reactor ScheduleAt {
+reactor ScheduleAt {
     sender = new Scheduler();
 }

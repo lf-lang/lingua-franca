@@ -340,11 +340,12 @@ void send_timed_message(interval_t additional_delay,
     pthread_mutex_unlock(&mutex);
 }
 
-/** Send a time to the RTI.
- *  This is not synchronized.
- *  It assumes the caller is.
- *  @param type The message type (NEXT_EVENT_TIME or LOGICAL_TIME_COMPLETE).
- *  @param time The time of this federate's next event.
+/** 
+ * Send a time to the RTI.
+ * This is not synchronized.
+ * It assumes the caller is.
+ * @param type The message type (NEXT_EVENT_TIME or LOGICAL_TIME_COMPLETE).
+ * @param time The time of this federate's next event.
  */
 void send_tag(unsigned char type, instant_t time, microstep_t microstep) {
     DEBUG_PRINT("Federate %d sending tag (%lld, %u) to the RTI.", _lf_my_fed_id, time - start_time, microstep);
@@ -355,13 +356,20 @@ void send_tag(unsigned char type, instant_t time, microstep_t microstep) {
     write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer, "Federate %d failed to send tag (%lld, %u) to the RTI.", _lf_my_fed_id, time - start_time, microstep);
 }
 
-/** Send a STOP message to the RTI, which will then broadcast
- *  the message to all federates.
- *  This function assumes the caller holds the mutex lock.
+/** 
+ * Send a STOP_REQUEST message to the RTI.
+ * 
+ * This function raises a global barrier on
+ * logical time at the current time.
+ * 
+ * This function assumes the caller holds the mutex lock.
  */
-void __broadcast_stop() {
+void _lf_fd_send_stop_request_to_rti() {
     DEBUG_PRINT("Federate %d requesting a whole program stop.\n", _lf_my_fed_id);
-    send_tag(STOP, current_tag.time, current_tag.microstep);
+    // Raise a logical time barrier at the current time
+    _lf_increment_global_logical_time_barrier_already_locked(current_tag.time);
+    // Send a stop request with the current tag to the RTI
+    send_tag(STOP_REQUEST, current_tag.time, current_tag.microstep);
 }
 
 /**
@@ -1058,29 +1066,75 @@ void handle_time_advance_grant() {
     pthread_mutex_unlock(&mutex);
 }
 
-/** Handle a STOP message from the RTI.
- *  NOTE: The stop time is ignored. This federate will stop as soon
- *  as possible.
- *  FIXME: It should be possible to at least handle the situation
- *  where the specified stop time is larger than current time.
- *  This would require implementing a shutdown action.
- *  @param buffer A pointer to the bytes specifying the stop time.
+/** 
+ * Handle a STOP_GRANTED message from the RTI. * 
+ * 
+ * This function removes the global barrier on
+ * logical time raised when request_stop() was
+ * called.
+ * 
+ * This function assumes the caller does not hold
+ * the mutex lock, therefore, it acquires it.
+ * 
+ * FIXME: It should be possible to at least handle the situation
+ * where the specified stop time is larger than current time.
+ * This would require implementing a shutdown action.
  */
-void handle_incoming_stop_message() {
-    union {
-        long long ull;
-        unsigned char c[sizeof(long long)];
-    } time;
-    read_from_socket(_lf_rti_socket, sizeof(long long), (unsigned char*)&time.c, "Federate %d failed to read stop time from RTI.", _lf_my_fed_id);
+void handle_stop_granted_message() {
+    unsigned char buffer[sizeof(instant_t)];
+    read_from_socket(_lf_rti_socket, sizeof(instant_t), buffer, "Federate %d failed to read STOP_GRANTED time from RTI.", _lf_my_fed_id);
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
     pthread_mutex_lock(&mutex);
 
-    instant_t stop_time = swap_bytes_if_big_endian_ll(time.ull);
-    DEBUG_PRINT("Federate %d received from RTI a STOP request with time %lld.", FED_ID, stop_time - start_time);
-    stop_requested = true;
+    instant_t stop_time = extract_ll(buffer);
+    DEBUG_PRINT("Federate %d received from RTI a STOP_GRANTED message with time %lld.", FED_ID, stop_time - start_time);
+    if (stop_time > current_tag.time) {
+        // We could re-use the timeout mechanism
+        // in which the federate stops at 
+        // tag (timeout_time, 0).
+        timeout_time = stop_time;
+    } else if (stop_time == current_tag.time) {
+        // We cannot rely on timeout because the execution
+        // has to stop at the current logical time. In that case,
+        // set stop_requested, which causes shutdown events
+        // to occur at the next microstep.
+        stop_requested = true;
+    }
+
+    _lf_decrement_global_logical_time_barrier_already_locked();
     pthread_cond_broadcast(&event_q_changed);
+    pthread_mutex_unlock(&mutex);
+}
+
+/**
+ * Handle a STOP_REQUEST message from the RTI.
+ * 
+ * This function assumes the caller does not hold
+ * the mutex lock, therefore, it acquires it.
+ */
+void handle_stop_request_message() {
+    unsigned char buffer[sizeof(instant_t)];
+    read_from_socket(_lf_rti_socket, sizeof(instant_t), buffer, "Federate %d failed to read STOP_REQUEST time from RTI.", _lf_my_fed_id);
+
+    // Acquire a mutex lock to ensure that this state does change while a
+    // message is transport or being used to determine a TAG.
+    pthread_mutex_lock(&mutex);
+
+    instant_t stop_time = extract_ll(buffer); // Note: ignoring the payload of the incoming stop request from the RTI
+    DEBUG_PRINT("Federate %d received from RTI a STOP_REQUEST message with time %lld.", FED_ID, stop_time - start_time);
+    
+    unsigned char outgoing_buffer[sizeof(instant_t)];
+    // Encode the current logical time
+    encode_ll(current_tag.time, outgoing_buffer);
+    // Send the current logical time to the RTI. This message does not have an identifying byte since
+    // since the RTI is waiting for a response from this federate.
+    write_to_socket(_lf_rti_socket, sizeof(instant_t), outgoing_buffer, "Federate %d failed to send the answer to STOP_REQUEST to RTI.", _lf_my_fed_id);
+
+    // Raise a barrier at current time
+    // because we are sending it to the RTI
+    _lf_increment_global_logical_time_barrier_already_locked(current_tag.time);
 
     pthread_mutex_unlock(&mutex);
 }
@@ -1182,11 +1236,13 @@ void* listen_to_rti(void* args) {
         case TIME_ADVANCE_GRANT:
             handle_time_advance_grant();
             break;
-        case STOP:
-            handle_incoming_stop_message();
+        case STOP_REQUEST:
+            handle_stop_request_message();
+        case STOP_GRANTED:
+            handle_stop_granted_message();
             break;
         default:
-            error_print_and_exit("Received from RTI an unrecognized message type: %d.", buffer[0]);
+            error_print("Received from RTI an unrecognized message type: %d.", buffer[0]);
         }
     }
     return NULL;
