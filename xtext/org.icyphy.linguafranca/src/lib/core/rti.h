@@ -179,16 +179,24 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define LOGICAL_TIME_COMPLETE 8
 
-/** Byte identifying a stop message. When any federate calls stop(), it will
- *  send this message to the RTI, which will then broadcast it to all other
- *  federates. The next 8 bytes will be the timestamp.
- *  NOTE: It is not clear whether sending a stopping timestamp is useful.
- *  If any federate can send a STOP message that specifies the stop time on
- *  all other federates, then every federate depends on every other federate
- *  and time cannot be advanced. Hence, the current implementations may result
- *  in nondeterministic stop times.
+/**
+ * Byte identifying a stop request. When any federate calls request_stop(), it will
+ * send this message to the RTI, which will then decide on a common stop timestamp
+ * and answer with a STOP_GRANTED. The next 8 bytes will be the timestamp.
+ * NOTE: It is not clear whether sending a stopping timestamp is useful.
+ * If any federate can send a STOP_REQUEST message that specifies the stop time on
+ * all other federates, then every federate depends on every other federate
+ * and time cannot be advanced. Hence, the current implementations may result
+ * in nondeterministic stop times.
  */
-#define STOP 9
+#define STOP_REQUEST 9
+
+/**
+ * Byte sent by the RTI indicating that the stop request from this federate
+ * or from other federates has been granted. The next 8 bytes will be the
+ * time at which the federates will stop.
+ */
+#define STOP_GRANTED 10
 
 /**
  * Byte identifying a address query message, sent by a federate to RTI
@@ -199,7 +207,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * the other federate), followed by the IP address of the other
  * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
  */
-#define ADDRESS_QUERY 10
+#define ADDRESS_QUERY 11
 
 /**
  * Byte identifying a message advertising the port for the physical connection server
@@ -208,7 +216,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The sending federate will not wait for a response from the RTI and assumes its
  * request will be processed eventually by the RTI.
  */
-#define ADDRESS_AD 11
+#define ADDRESS_AD 12
 
 /**
  * Byte identifying a first message that is sent by a federate directly to another federate
@@ -219,7 +227,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * federate does not expect this federate or federation to connect, it will respond
  * instead with REJECT.
  */
-#define P2P_SENDING_FED_ID 12
+#define P2P_SENDING_FED_ID 13
 
 /**
  * Byte identifying a timestamped message to send directly to another federate.
@@ -236,7 +244,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next four bytes will be the microstep of the sender.
  * The ramaining bytes are the message.
  */
-#define P2P_TIMED_MESSAGE 13
+#define P2P_TIMED_MESSAGE 14
 
 /////////////////////////////////////////////
 //// Rejection codes

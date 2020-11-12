@@ -92,7 +92,8 @@ pthread_cond_t global_logical_time_barrier_requestors_reached_zero = PTHREAD_CON
  * logical time, this function will raise a barrier at the current logical 
  * time.
  * 
- * This function assumes the mutex lock is not held, thus, it will acquire it itself.
+ * This function assumes the mutex lock is already held, thus, it will not
+ * acquire it itself.
  * 
  * @note This function is only useful in threaded applications to facilitate
  *  certain non-blocking functionalities such as receiving timed messages
@@ -103,8 +104,7 @@ pthread_cond_t global_logical_time_barrier_requestors_reached_zero = PTHREAD_CON
  * If future_tag is in the past (or equals to current logical time), the runtime
  * will freeze advancement of logical time.
  */
-void _lf_increment_global_logical_time_barrier(instant_t future_tag) {
-    pthread_mutex_lock(&mutex);
+void _lf_increment_global_logical_time_barrier_already_locked(instant_t future_tag) {
     instant_t current_logical_time = get_logical_time();
     // Check to see if future_tag is actually in the future
     if (current_logical_time < future_tag) {
@@ -123,6 +123,38 @@ void _lf_increment_global_logical_time_barrier(instant_t future_tag) {
     }
     // Increment the number of requestors
     _lf_global_logical_time_advancement_barrier.requestors++;
+}
+
+/**
+ * Raise a barrier on logical time at future_tag if possible (or freeze 
+ * the current logical time) and increment the total number of requestors 
+ * waiting on the barrier. There should always be a subsequent
+ * call to _lf_decrement_global_logical_time_barrier() or 
+ * _lf_decrement_global_logical_time_barrier_already_locked() to release
+ * the barrier.
+ * 
+ * If there is already a barrier raised at a later logical time, this 
+ * function will move it to future_tag or the current logical time, whichever
+ * is larger. If the existing barrier is earlier 
+ * than future_tag, this function will not move the barrier. If there are 
+ * no existing barriers and future_tag is in the past relative to current 
+ * logical time, this function will raise a barrier at the current logical 
+ * time.
+ * 
+ * This function assumes the mutex lock is not held, thus, it will acquire it itself.
+ * 
+ * @note This function is only useful in threaded applications to facilitate
+ *  certain non-blocking functionalities such as receiving timed messages
+ *  over the network or handling stop in the federated execution.
+ * 
+ * @param future_tag A desired tag for the barrier. This function will guarantee
+ * that current logical time will not go past future_tag if it is in the future.
+ * If future_tag is in the past (or equals to current logical time), the runtime
+ * will freeze advancement of logical time.
+ */
+void _lf_increment_global_logical_time_barrier(instant_t future_tag) {
+    pthread_mutex_lock(&mutex);
+    _lf_increment_global_logical_time_barrier_already_locked(future_tag);
     pthread_mutex_unlock(&mutex);
 }
 
@@ -556,12 +588,19 @@ void request_stop() {
     // printf("DEBUG: pthread_mutex_lock stop\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
-#if (NUMBER_OF_FEDERATES > 1)
-    __broadcast_stop();
-#endif
+#ifdef _LF_IS_FEDERATED
+    _lf_fd_send_stop_request_to_rti();
+    // Do not set stop_requested
+    // since the RTI might grant a
+    // later stop tag than the current
+    // tag. The _lf_fd_send_request_stop_to_rti() 
+    // will raise a barrier at the current
+    // logical time.
+#else
     stop_requested = true;
+#endif
     // Notify the RTI that nothing more will happen.
-    next_event_tag(FOREVER, 0);
+    // next_event_tag(FOREVER, 0);
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);

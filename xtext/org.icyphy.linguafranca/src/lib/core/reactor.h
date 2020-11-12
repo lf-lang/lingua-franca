@@ -715,9 +715,10 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
 handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
- * For a federated execution, broadcast stop() to all federates.
+ * For a federated execution, send a STOP_REQUEST message
+ * to the RTI.
  */
-void __broadcast_stop();
+void _lf_fd_send_stop_request_to_rti();
 
 /**
  * Advance from the current tag to the next. If the given next_time is equal to
