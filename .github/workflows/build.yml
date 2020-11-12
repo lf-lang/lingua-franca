@@ -163,9 +163,10 @@ jobs:
       - name: Install Protobufs Ubuntu
         run: sudo apt-get install libprotobuf-dev protobuf-compiler
         if: runner.os == 'Linux'
-      - name: Install Protobufs OS X
+      - name: Install Dependencies OS X
         run: |
-          brew install protobuf;
+          brew install protobuf
+          brew install coreutils
         if: runner.os == 'macOS'
       - name: Install Protobufs Windows
         uses: lukka/run-vcpkg@v4
