@@ -70,6 +70,9 @@ pthread_cond_t received_start_times = PTHREAD_COND_INITIALIZER;
 // Condition variable used to signal that a start time has been sent to a federate.
 pthread_cond_t sent_start_time = PTHREAD_COND_INITIALIZER;
 
+// RTI's decided stop time for federates
+instant_t max_stop_time = NEVER;
+
 // The federates.
 federate_t federates[NUMBER_OF_FEDERATES];
 
@@ -78,6 +81,9 @@ instant_t max_start_time = 0LL;
 
 // Number of federates that have proposed start times.
 int num_feds_proposed_start = 0;
+
+// Number of federates handling stop
+int num_feds_handling_stop = 0;
 
 // Boolean indicating that all federates have exited.
 volatile bool all_federates_exited = false;
@@ -192,15 +198,15 @@ int create_server(int specified_port, int port) {
  *  @param buffer The buffer to read into (the first byte is already there).
  */
 void handle_timed_message(int sending_socket, unsigned char* buffer) {
-    int header_size = 21;
+    int header_size = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
     // Read the header, minus the first byte which is already there.
-    read_from_socket(sending_socket, header_size - 1, buffer + 1, "RTI failed to read the timed message header from remote federate.");
+    read_from_socket(sending_socket, header_size - 1, &(buffer[1]), "RTI failed to read the timed message header from remote federate.");
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
     unsigned int length;
     // Extract information from the header.
-    extract_header(buffer + 1, &port_id, &federate_id, &length);
+    extract_header(&(buffer[1]), &port_id, &federate_id, &length);
 
     unsigned int total_bytes_to_read = length + header_size;
     unsigned int bytes_to_read = length;
@@ -209,7 +215,7 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
         bytes_to_read = BUFFER_SIZE - header_size;
     }
 
-    read_from_socket(sending_socket, bytes_to_read, buffer + header_size,
+    read_from_socket(sending_socket, bytes_to_read, &(buffer[header_size]),
                      "RTI failed to read timed message from federate %d.", federate_id);
     int bytes_read = bytes_to_read + header_size;
     DEBUG_PRINT("Message received by RTI: %s.", buffer + header_size);
@@ -247,7 +253,9 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
     while (total_bytes_read < total_bytes_to_read) {
         DEBUG_PRINT("Forwarding message in chunks.");
         bytes_to_read = total_bytes_to_read - total_bytes_read;
-        if (bytes_to_read > BUFFER_SIZE) bytes_to_read = BUFFER_SIZE;
+        if (bytes_to_read > BUFFER_SIZE) {
+            bytes_to_read = BUFFER_SIZE;
+        }
         read_from_socket(sending_socket, bytes_to_read, buffer, "RTI failed to read message chunks.");
         total_bytes_read += bytes_to_read;
 
@@ -429,7 +437,7 @@ void handle_logical_time_complete(federate_t* fed) {
     read_from_socket(fed->socket, sizeof(microstep_t), buffer + sizeof(instant_t), "RTI failed to read the content of the logical tag complete microstep from federate %d.", fed->id);
 
     // Acquire a mutex lock to ensure that this state does change while a
-    // message is transport or being used to determine a TAG.
+    // message is in transport or being used to determine a TAG.
     pthread_mutex_lock(&rti_mutex);
 
     fed->completed.time = extract_ll(buffer);
@@ -455,7 +463,7 @@ void handle_next_event_time(federate_t* fed) {
     read_from_socket(fed->socket, sizeof(microstep_t), buffer + sizeof(instant_t), "RTI failed to read the content of the next event tag microstep from federate %d.", fed->id);
 
     // Acquire a mutex lock to ensure that this state does change while a
-    // message is transport or being used to determine a TAG.
+    // message is in transport or being used to determine a TAG.
     pthread_mutex_lock(&rti_mutex);
 
     fed->next_event.time = extract_ll(buffer);
@@ -472,9 +480,7 @@ void handle_next_event_time(federate_t* fed) {
 }
 
 /**
- * Broadcast a message to all federates, except the federate provided in skip_federate.
- * If skip_federate is -1 (or any negative value), this function will broadcast to all
- * federates.
+ * Broadcast a message to all federates.
  * 
  * If a federate is disconnected, this function will skip over it.
  * 
@@ -482,18 +488,47 @@ void handle_next_event_time(federate_t* fed) {
  * 
  * @param buffer The buffer containing the message
  * @param size_of_message The size of the message
- * @param skip_federate The federate to skip over in the broadcast
  */
-void _lf_rti_broadcast_message_to_federates_already_locked(unsigned char* buffer, size_t size_of_message, int skip_federate) {
+void _lf_rti_broadcast_message_to_federates_already_locked(unsigned char* buffer, size_t size_of_message) {
     // Iterate over federates and send each the message.
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-        if (federates[i].id != skip_federate) {
-            if (federates[i].state == NOT_CONNECTED) {
-                continue;
-            }
-            write_to_socket(federates[i].socket, size_of_message, buffer, "RTI failed to broadcast message to federate %d.", federates[i].id);
+        if (federates[i].state == NOT_CONNECTED) {
+            continue;
         }
+        write_to_socket(federates[i].socket, size_of_message, buffer, "RTI failed to broadcast message to federate %d.", federates[i].id);
     }
+}
+
+/////////////////// STOP functions ////////////////////
+
+/**
+ * Mark a federate requesting stop.
+ * 
+ * This function assumes the rti_mutex is already locked.
+ * 
+ * @param fed The federate that has requested a stop or has suddenly
+ *  stopped (disconnected).
+ */
+void _lf_rti_mark_federate_requesting_stop(federate_t* fed) {    
+    if (!fed->requested_stop) {
+        // Assume that the federate
+        // has requested stop
+        num_feds_handling_stop++;
+        fed->requested_stop = true;
+    }
+}
+
+/**
+ * Once the RTI has seen proposed times from all connected federates,
+ * it will broadcast a STOP_GRANTED carrying the max_stop_time.
+ */
+void _lf_rti_broadcast_stop_time_to_federates() {
+    // Reply with a stop granted to all federates
+    unsigned char outgoing_buffer[1 + sizeof(instant_t)];
+    outgoing_buffer[0] = STOP_GRANTED;
+    encode_ll(max_stop_time, &(outgoing_buffer[1]));
+    _lf_rti_broadcast_message_to_federates_already_locked(outgoing_buffer, 1 + sizeof(instant_t));
+    DEBUG_PRINT("RTI broadcasted to federates STOP_GRANTED with time %lld.", max_stop_time);
 }
 
 /**
@@ -505,44 +540,88 @@ void handle_stop_request_message(federate_t* fed) {
     read_from_socket(fed->socket, sizeof(instant_t), buffer, "RTI failed to read the stop message timestamp from federate %d.", fed->id);
 
     // Acquire a mutex lock to ensure that this state does change while a
-    // message is transport or being used to determine a TAG.
-    pthread_mutex_lock(&rti_mutex);
-
+    // message is in transport or being used to determine a TAG.
+    pthread_mutex_lock(&rti_mutex);    
+    // Extract the proposed stop time for the federate
     instant_t stop_time = extract_ll(buffer);
+    
+    // Check if we have already received a stop_time
+    // from this federate
+    if (!federates[fed->id].requested_stop) {
+        if (stop_time > max_stop_time) {
+            max_stop_time = stop_time;
+        }
+        // If this federate has not already asked
+        // for a stop, add it to the tally.
+        _lf_rti_mark_federate_requesting_stop(fed);
+    }
+
+    if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
+        // We now have information about the stop time of all
+        // federates.
+        _lf_rti_broadcast_stop_time_to_federates();
+        pthread_mutex_unlock(&rti_mutex);    
+        return;
+    }
     DEBUG_PRINT("RTI received from federate %d a STOP_REQUEST message with time %lld.", fed->id, stop_time);
     unsigned char stop_request_buffer[1 + sizeof(instant_t)];
     stop_request_buffer[0] = STOP_REQUEST;
     encode_ll(stop_time, &(stop_request_buffer[1]));
-
-    _lf_rti_broadcast_message_to_federates_already_locked(stop_request_buffer, 1 + sizeof(instant_t), fed->id);
-    DEBUG_PRINT("RTI broadcasted to federates STOP_REQUEST with time %lld.", stop_time);
-
-    // Read federates' response
-    instant_t agreed_upon_stop_time = stop_time;
+    
+    // Iterate over federates and send each the STOP_REQUEST message
+    // if we do not have a stop_time already for them.
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-        if (federates[i].id != fed->id) {
+        if (federates[i].id != fed->id && federates[i].requested_stop == false) {
             if (federates[i].state == NOT_CONNECTED) {
                 continue;
             }
-            unsigned char buffer_stop_time[sizeof(instant_t)];
-            read_from_socket(federates[i].socket, sizeof(instant_t), buffer_stop_time, "RTI failed to read the reply to STOP_REQUEST message from federate %d.", federates[i].id);
-            instant_t federate_stop_time = extract_ll(buffer_stop_time);
-            DEBUG_PRINT("RTI received from federate %d STOP time %lld.", federates[i].id, federate_stop_time);
-            if (federate_stop_time > agreed_upon_stop_time) {
-                agreed_upon_stop_time = federate_stop_time;
-            }
+            write_to_socket(federates[i].socket, 1 + sizeof(instant_t), buffer, "RTI failed to broadcast message to federate %d.", federates[i].id);
         }
     }
-
-    // Reply with a stop granted to all federates
-    unsigned char outgoing_buffer[1 + sizeof(instant_t)];
-    outgoing_buffer[0] = STOP_GRANTED;
-    encode_ll(agreed_upon_stop_time, &(outgoing_buffer[1]));
-    _lf_rti_broadcast_message_to_federates_already_locked(outgoing_buffer, 1 + sizeof(instant_t), -1);
-    DEBUG_PRINT("RTI broadcasted to federates STOP_GRANTED with time %lld.", agreed_upon_stop_time);
-
+    DEBUG_PRINT("RTI broadcasted to federates STOP_REQUEST with time %lld.", stop_time);
     pthread_mutex_unlock(&rti_mutex);
 }
+
+/** 
+ * Handle a STOP_REQUEST_REPLY message.
+ * @param fed The federate replying the STOP_REQUEST
+ */
+void handle_stop_request_reply(federate_t* fed) {
+    // Read federate's response
+    if (fed->state == NOT_CONNECTED) {
+        pthread_mutex_lock(&rti_mutex);
+        // The federate has disconnected. We can assume it has 
+        // requested stop.
+        _lf_rti_mark_federate_requesting_stop(fed);
+        if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
+            _lf_rti_broadcast_stop_time_to_federates();
+        }
+        pthread_mutex_unlock(&rti_mutex);
+        return;
+    }
+
+    unsigned char buffer_stop_time[sizeof(instant_t)];
+    read_from_socket(fed->socket, sizeof(instant_t), buffer_stop_time, "RTI failed to read the reply to STOP_REQUEST message from federate %d.", fed->id);
+    instant_t federate_stop_time = extract_ll(buffer_stop_time);
+    DEBUG_PRINT("RTI received from federate %d STOP time %lld.", fed->id, federate_stop_time);
+
+    // Acquire the mutex lock so that we can change the state of the RTI
+    pthread_mutex_lock(&rti_mutex);
+    // If the federate has not requested stop before,
+    // count the reply    
+    if (!fed->requested_stop) {
+        if (federate_stop_time > max_stop_time) {
+            max_stop_time = federate_stop_time;
+        }
+        _lf_rti_mark_federate_requesting_stop(fed);
+    }
+
+    if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
+        _lf_rti_broadcast_stop_time_to_federates();
+    }
+    pthread_mutex_unlock(&rti_mutex);
+}
+//////////////////////////////////////////////////
 
 /** 
  * Handle address query messages.
@@ -703,16 +782,7 @@ void handle_timestamp(federate_t *my_fed) {
 void handle_federate_resign(federate_t *my_fed) {
     //Nothing more to do. Close the socket and exit.
     unsigned char temporary_read_buffer[1];
-    pthread_mutex_lock(&rti_mutex);            
-    // Shut down the socket before closing
-    // it. This indicates to the receiver that
-    // there will be no more transmissions, therefore
-    // it is safe to close the socket.
-    shutdown(my_fed->socket, SHUT_WR);
-    int bytes_read = 0;
-    do { // Wait until the remote socket is closed
-        bytes_read = read_from_socket2(my_fed->socket, 1, temporary_read_buffer);
-    } while(bytes_read > 0 || errno == EAGAIN || errno == EWOULDBLOCK);
+    pthread_mutex_lock(&rti_mutex);
     my_fed->state = NOT_CONNECTED;
     my_fed->next_event.time = NEVER;
     my_fed->next_event.microstep = 0;
@@ -744,56 +814,68 @@ void* federate(void* fed) {
             error_print_and_exit("ERROR: RTI socket to federate %d broken.\n", my_fed->id);
         }
         switch(buffer[0]) {
-        case TIMESTAMP:
-            DEBUG_PRINT("RTI handling TIMESTAMP message.");
-            handle_timestamp(my_fed);
-            break;
-        case ADDRESS_QUERY:
-            // debug_print("Handling ADDRESS_QUERY message.\n");
-            handle_address_query(my_fed->id);
-            break;
-        case ADDRESS_AD:
-            DEBUG_PRINT("RTI handling ADDRESS_AD message.");
-            handle_address_ad(my_fed->id);
-            break;
-        case TIMED_MESSAGE:
-            DEBUG_PRINT("RTI handling timed message.");
-            if (my_fed->state == NOT_CONNECTED) {
+            case TIMESTAMP:
+                DEBUG_PRINT("RTI handling TIMESTAMP message.");
+                handle_timestamp(my_fed);
+                break;
+            case ADDRESS_QUERY:
+                // debug_print("Handling ADDRESS_QUERY message.\n");
+                handle_address_query(my_fed->id);
+                break;
+            case ADDRESS_AD:
+                DEBUG_PRINT("RTI handling ADDRESS_AD message.");
+                handle_address_ad(my_fed->id);
+                break;
+            case TIMED_MESSAGE:
+                DEBUG_PRINT("RTI handling timed message.");
+                if (my_fed->state == NOT_CONNECTED) {
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    return NULL;
+                }
+                handle_timed_message(my_fed->socket, buffer);
+                break;
+            case RESIGN:
+                DEBUG_PRINT("RTI handling resign.");
+                if (my_fed->state == NOT_CONNECTED) {
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    return NULL;
+                }
+                handle_federate_resign(my_fed);
                 return NULL;
-            }
-            handle_timed_message(my_fed->socket, buffer);
-            break;
-        case RESIGN:
-            DEBUG_PRINT("RTI handling resign.");
-            if (my_fed->state == NOT_CONNECTED) {
-                return NULL;
-            }
-            handle_federate_resign(my_fed);
-            return NULL;
-            break;
-        case NEXT_EVENT_TIME:            
-            DEBUG_PRINT("RTI handling next event time.");
-            if (my_fed->state == NOT_CONNECTED) {
-                return NULL;
-            }
-            handle_next_event_time(my_fed);
-            break;
-        case LOGICAL_TIME_COMPLETE:            
-            DEBUG_PRINT("RTI handling logical time completion.");
-            if (my_fed->state == NOT_CONNECTED) {
-                return NULL;
-            }
-            handle_logical_time_complete(my_fed);
-            break;
-        case STOP_REQUEST:
-            DEBUG_PRINT("RTI handling stop request from federate %d.", my_fed->id);
-            if (my_fed->state == NOT_CONNECTED) {
-                return NULL;
-            }
-            handle_stop_request_message(my_fed);
-            break;
-        default:
-            error_print("RTI received from federate %d an unrecognized message type: %u.", my_fed->id, buffer[0]);
+                break;
+            case NEXT_EVENT_TIME:            
+                DEBUG_PRINT("RTI handling next event time.");
+                if (my_fed->state == NOT_CONNECTED) {
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    return NULL;
+                }
+                handle_next_event_time(my_fed);
+                break;
+            case LOGICAL_TIME_COMPLETE:            
+                DEBUG_PRINT("RTI handling logical time completion.");
+                if (my_fed->state == NOT_CONNECTED) {
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    return NULL;
+                }
+                handle_logical_time_complete(my_fed);
+                break;
+            case STOP_REQUEST:
+                DEBUG_PRINT("RTI handling stop request from federate %d.", my_fed->id);
+                if (my_fed->state == NOT_CONNECTED) {
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    return NULL;
+                }
+                handle_stop_request_message(my_fed);
+                break;
+            case STOP_REQUEST_REPLY:
+                if (my_fed->state == NOT_CONNECTED) {
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    return NULL;
+                }
+                handle_stop_request_reply(my_fed);
+                break;
+            default:
+                error_print("RTI received from federate %d an unrecognized message type: %d.", my_fed->id, buffer);
         }
     }
 
@@ -977,6 +1059,7 @@ void initialize_federate(int id) {
     strncpy(federates[id].server_hostname ,"localhost", INET_ADDRSTRLEN);
     federates[id].server_ip_addr.s_addr = 0;
     federates[id].server_port = -1;
+    federates[id].requested_stop = false;
 }
 
 /** 

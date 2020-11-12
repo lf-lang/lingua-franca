@@ -279,7 +279,7 @@ void send_timed_message(interval_t additional_delay,
                         unsigned char* message) {
     assert(port < 65536);
     assert(federate < 65536);
-    unsigned char buffer[17];
+    unsigned char buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t)];
     // First byte identifies this as a timed message.
     buffer[0] = message_type;
     // Next two bytes identify the destination port.
@@ -936,7 +936,7 @@ handle_t schedule_message_received_from_network_already_locked(
  */
 void handle_timed_message(int socket, unsigned char* buffer) {    
     // Read the header which contains the timestamp.
-    read_from_socket(socket, 20, buffer, "Federate %d failed to read timed message header.", _lf_my_fed_id);
+    read_from_socket(socket, sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t), buffer, "Federate %d failed to read timed message header.", _lf_my_fed_id);
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
@@ -1125,12 +1125,13 @@ void handle_stop_request_message() {
     instant_t stop_time = extract_ll(buffer); // Note: ignoring the payload of the incoming stop request from the RTI
     DEBUG_PRINT("Federate %d received from RTI a STOP_REQUEST message with time %lld.", FED_ID, stop_time - start_time);
     
-    unsigned char outgoing_buffer[sizeof(instant_t)];
+    unsigned char outgoing_buffer[1 + sizeof(instant_t)];
+    outgoing_buffer[0] = STOP_REQUEST_REPLY;
     // Encode the current logical time
     encode_ll(current_tag.time, outgoing_buffer);
     // Send the current logical time to the RTI. This message does not have an identifying byte since
     // since the RTI is waiting for a response from this federate.
-    write_to_socket(_lf_rti_socket, sizeof(instant_t), outgoing_buffer, "Federate %d failed to send the answer to STOP_REQUEST to RTI.", _lf_my_fed_id);
+    write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t), outgoing_buffer, "Federate %d failed to send the answer to STOP_REQUEST to RTI.", _lf_my_fed_id);
 
     // Raise a barrier at current time
     // because we are sending it to the RTI
