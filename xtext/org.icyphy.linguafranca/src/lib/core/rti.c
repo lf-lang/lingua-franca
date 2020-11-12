@@ -879,7 +879,7 @@ void* federate(void* fed) {
                 handle_stop_request_reply(my_fed);
                 break;
             default:
-                error_print("RTI received from federate %d an unrecognized message type: %d.", my_fed->id, buffer);
+                error_print("RTI received from federate %d an unrecognized message type: %hhx.", my_fed->id, buffer[0]);
         }
     }
 
