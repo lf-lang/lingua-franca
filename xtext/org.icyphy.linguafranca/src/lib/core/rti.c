@@ -542,7 +542,6 @@ void handle_stop_request_message(federate_t* fed) {
     pthread_mutex_lock(&rti_mutex);    
     // Extract the proposed stop time for the federate
     instant_t stop_time = extract_ll(buffer);
-    microstep_t stop_microstep = extract_int(&buffer[sizeof(instant_t)]); // Ignore the microstep
 
     // Check if we have already received a stop_time
     // from this federate
