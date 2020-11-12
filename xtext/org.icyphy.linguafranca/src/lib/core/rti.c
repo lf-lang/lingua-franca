@@ -554,6 +554,10 @@ void handle_stop_request_message(federate_t* fed) {
         // If this federate has not already asked
         // for a stop, add it to the tally.
         _lf_rti_mark_federate_requesting_stop(fed);
+    } else {
+        // Ignore this request
+        pthread_mutex_unlock(&rti_mutex);  
+        return;
     }
 
     if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
