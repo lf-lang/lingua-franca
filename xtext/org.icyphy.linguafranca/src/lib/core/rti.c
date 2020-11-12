@@ -433,8 +433,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
  */
 void handle_logical_time_complete(federate_t* fed) {
     unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
-    read_from_socket(fed->socket, sizeof(instant_t), buffer, "RTI failed to read the content of the logical tag complete time from federate %d.", fed->id);
-    read_from_socket(fed->socket, sizeof(microstep_t), buffer + sizeof(instant_t), "RTI failed to read the content of the logical tag complete microstep from federate %d.", fed->id);
+    read_from_socket(fed->socket, sizeof(instant_t) + sizeof(microstep_t), buffer, "RTI failed to read the content of the logical tag complete from federate %d.", fed->id);
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is in transport or being used to determine a TAG.
@@ -459,8 +458,7 @@ void handle_logical_time_complete(federate_t* fed) {
  */
 void handle_next_event_time(federate_t* fed) {
     unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
-    read_from_socket(fed->socket, sizeof(instant_t), buffer, "RTI failed to read the content of the next event tag's time from federate %d.", fed->id);
-    read_from_socket(fed->socket, sizeof(microstep_t), buffer + sizeof(instant_t), "RTI failed to read the content of the next event tag microstep from federate %d.", fed->id);
+    read_from_socket(fed->socket, sizeof(instant_t) + sizeof(microstep_t), buffer, "RTI failed to read the content of the next event tag from federate %d.", fed->id);
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is in transport or being used to determine a TAG.
@@ -544,7 +542,8 @@ void handle_stop_request_message(federate_t* fed) {
     pthread_mutex_lock(&rti_mutex);    
     // Extract the proposed stop time for the federate
     instant_t stop_time = extract_ll(buffer);
-    
+    microstep_t stop_microstep = extract_int(&buffer[sizeof(instant_t)]); // Ignore the microstep
+
     // Check if we have already received a stop_time
     // from this federate
     if (!federates[fed->id].requested_stop) {
@@ -579,7 +578,7 @@ void handle_stop_request_message(federate_t* fed) {
             if (federates[i].state == NOT_CONNECTED) {
                 continue;
             }
-            write_to_socket(federates[i].socket, 1 + sizeof(instant_t), buffer, "RTI failed to broadcast message to federate %d.", federates[i].id);
+            write_to_socket(federates[i].socket, 1 + sizeof(instant_t), stop_request_buffer, "RTI failed to broadcast message to federate %d.", federates[i].id);
         }
     }
     DEBUG_PRINT("RTI broadcasted to federates STOP_REQUEST with time %lld.", stop_time);

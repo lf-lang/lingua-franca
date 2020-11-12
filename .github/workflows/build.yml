@@ -160,7 +160,7 @@ jobs:
           java-version: 14
       - name: Setup Python
         uses: actions/setup-python@v2.1.4
-      - name: Install Protobufs Ubuntu
+      - name: Install Dependencies Ubuntu
         run: sudo apt-get install libprotobuf-dev protobuf-compiler
         if: runner.os == 'Linux'
       - name: Install Dependencies OS X
@@ -168,7 +168,7 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Protobufs Windows
+      - name: Install Dependencies Windows
         uses: lukka/run-vcpkg@v4
         with:
           vcpkgArguments: 'protobuf'

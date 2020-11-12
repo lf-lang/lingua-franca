@@ -179,10 +179,23 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define LOGICAL_TIME_COMPLETE 8
 
+/////////// Messages used in request_stop() ///////////////
+//// Overview of the algorithm:
+////  When any federate calls request_stop(), it will
+////  send a STOP_REQUEST message to the RTI, which will then forward a STOP_REQUEST message
+////  to any federate that has not yet provided a stop time to the RTI. The federates will reply
+////  with a STOP_REQUEST_REPLY and a stop time (which shall be their current logical time
+////  at the time they receive the STOP_REQUEST). When the RTI has gathered all the stop times
+////  from federates (that are still connected), it will decide on a common stop timestamp
+////  which is the maximum of the seen stop times and answer with a STOP_GRANTED. The federate
+////  sending the STOP_REQUEST and federates sending the STOP_REQUEST_REPLY will freeze
+////  the advancement of logical time until they receive the STOP_GRANTED message, in which
+////  case they might continue their execution until the stop time has been reached.
+
 /**
- * Byte identifying a stop request. When any federate calls request_stop(), it will
- * send this message to the RTI, which will then decide on a common stop timestamp
- * and answer with a STOP_GRANTED. The next 8 bytes will be the timestamp.
+ * Byte identifying a stop request. 
+ * The next 8 bytes will be the timestamp.
+ * 
  * NOTE: It is not clear whether sending a stopping timestamp is useful.
  * If any federate can send a STOP_REQUEST message that specifies the stop time on
  * all other federates, then every federate depends on every other federate
@@ -204,6 +217,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * time at which the federates will stop.
  */
 #define STOP_GRANTED 11
+/////////// End of request_stop() messages ////////////////
 
 /**
  * Byte identifying a address query message, sent by a federate to RTI
