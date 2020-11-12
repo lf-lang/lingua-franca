@@ -192,11 +192,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define STOP_REQUEST 9
 
 /**
+ * Byte indicating a federate's reply to a STOP_REQUEST that was originally sent
+ * by the RTI.
+ * The next 8 bytes will be the timestamp.
+ */
+#define STOP_REQUEST_REPLY 10
+
+/**
  * Byte sent by the RTI indicating that the stop request from this federate
  * or from other federates has been granted. The next 8 bytes will be the
  * time at which the federates will stop.
  */
-#define STOP_GRANTED 10
+#define STOP_GRANTED 11
 
 /**
  * Byte identifying a address query message, sent by a federate to RTI
@@ -207,7 +214,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * the other federate), followed by the IP address of the other
  * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
  */
-#define ADDRESS_QUERY 11
+#define ADDRESS_QUERY 12
 
 /**
  * Byte identifying a message advertising the port for the physical connection server
@@ -216,7 +223,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The sending federate will not wait for a response from the RTI and assumes its
  * request will be processed eventually by the RTI.
  */
-#define ADDRESS_AD 12
+#define ADDRESS_AD 13
 
 /**
  * Byte identifying a first message that is sent by a federate directly to another federate
@@ -227,7 +234,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * federate does not expect this federate or federation to connect, it will respond
  * instead with REJECT.
  */
-#define P2P_SENDING_FED_ID 13
+#define P2P_SENDING_FED_ID 14
 
 /**
  * Byte identifying a timestamped message to send directly to another federate.
@@ -244,7 +251,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next four bytes will be the microstep of the sender.
  * The ramaining bytes are the message.
  */
-#define P2P_TIMED_MESSAGE 14
+#define P2P_TIMED_MESSAGE 15
 
 /////////////////////////////////////////////
 //// Rejection codes
@@ -312,6 +319,9 @@ typedef struct federate_t {
                             // RTI has not been informed of the port number.
     struct in_addr server_ip_addr; // Information about the IP address of the socket
                                 // server of the federate.
+    bool requested_stop;    // Indicates that the federate has requested stop or has replied
+                            // to a request for stop from the RTI. Used to prevent double-counting
+                            // a federate when handling request_stop().
 } federate_t;
 
 
