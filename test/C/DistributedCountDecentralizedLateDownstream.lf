@@ -15,28 +15,22 @@ import Count from "lib/Count.lf";
 
 reactor ImportantActuator {
     input in:int;
-    state success:bool(false);
     reaction(in) {=
-        if (compare_tags(in->intended_tag, get_current_tag()) != 0) {
-            self->success = false; // tardiness was not handled correctly            
-        	fprintf(stderr, "ERROR: Message is tardy by (%lld, %u) nsec.\n",
+        if (compare_tags((tag_t) {0LL,0u}, get_current_tag()) != 0) {
+            fprintf(stderr, "ERROR: Tardiness was not handled correctly. "
+                    "Message is tardy by (%lld, %u) nsec.\n",
                     get_logical_time() - in->intended_tag.time,
                     get_microstep() - in->intended_tag.microstep);
+            exit(1);
         }
     =} tardy {=
         tag_t current_tag = get_current_tag();
         printf("Message is tardy by (%lld, %u).\n",
 	            current_tag.time - in->intended_tag.time,
 	            current_tag.microstep - in->intended_tag.microstep);
-        self->success = true;
     =}
     reaction(shutdown) {=
-        if (!self->success) {
-            fprintf(stderr, "Failed to detect tardiness of message.\n");
-            exit(1);
-        } else {
-            printf("Successfully detected tardiness.\n");
-        }
+    	printf("SUCCESS: Successfully detected tardiness.\n");
     =}
 }
 
@@ -45,10 +39,10 @@ reactor Print {
     reaction(in) {=
         tag_t current_tag = get_current_tag();  
         printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
-               current_tag.time,
+               current_tag.time - get_start_time(),
                current_tag.microstep,
                in->value,
-               in->intended_tag.time,
+               in->intended_tag.time - get_start_time(),
                in->intended_tag.microstep);
     =}
 
