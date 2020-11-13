@@ -9,13 +9,10 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 1 sec
+    timeout: 1100 msec
 };
-preamble {=
-    // #define VERBOSE
-=}
 reactor Count {
-    timer t(0, 200 msec);
+    timer t(0, 400 msec);
     state s:int(0);
     output out:int;
     reaction(t) -> out {=
@@ -40,10 +37,11 @@ reactor Print {
         self->c++;
     =}
     reaction(shutdown) {=
-        if (self->c != 5) {
-            fprintf(stderr, "ERROR: Expected to receive 5 items. Received %d.\n", self->c);
+        if (self->c != 3) {
+            fprintf(stderr, "ERROR: Expected to receive 3 items. Received %d.\n", self->c);
             exit(2);
         }
+        printf("SUCCESS: Successfully received 3 items.\n");
     =}
 }
 federated reactor DistributedCount at localhost {
