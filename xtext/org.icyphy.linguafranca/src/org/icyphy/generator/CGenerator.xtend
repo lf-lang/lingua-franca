@@ -3896,7 +3896,10 @@ class CGenerator extends GeneratorBase {
                 additionalDelayString = delay.literal
             }
         }
-        if (isPhysical || targetCoordination.equals("decentralized")) {
+        if (isPhysical) {
+            socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
+            messageType = "P2P_MESSAGE"            
+        }else if (targetCoordination.equals("decentralized")) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
@@ -3905,13 +3908,24 @@ class CGenerator extends GeneratorBase {
             socket = '''_lf_rti_socket'''
             messageType = "TIMED_MESSAGE"
         }
+        
+        
+        var String sendingFunction = '''send_timed_message'''
+        var String commonArgs = '''«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+        if (isPhysical) {
+            // Messages going on a physical connection do not
+            // carry a timestamp or require the delay;
+            sendingFunction = '''send_message'''            
+            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+        }
+        
         if (isTokenType(type)) {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
-                send_timed_message(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»->token);
             ''')
         } else {
@@ -3930,7 +3944,7 @@ class CGenerator extends GeneratorBase {
             }
             result.append('''
             size_t message_length = «lengthExpression»;
-            send_timed_message(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            «sendingFunction»(«commonArgs», «pointerExpression»);
             ''')
         }
         return result.toString

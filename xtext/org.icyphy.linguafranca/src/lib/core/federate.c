@@ -245,6 +245,61 @@ void create_server(int specified_port) {
     _lf_server_socket = socket_descriptor;
 }
 
+/**
+ * Send a message to another federate directly or via the RTI.
+ * 
+ * @note This function is similar to send_time_message() except that it
+ *  does not deal with time and timed_messages.
+ * 
+ * @param additional_delay The offset applied to the timestamp
+ *  using after. The additional delay will be greater or equal to zero
+ *  if an after is used on the connection. If no after is given in the
+ *  program, -1 is passed.
+ * @param socket The socket to send the message on
+ * @param message_type The type of the message being sent. 
+ *  Currently can be TIMED_MESSAGE for messages sent via
+ *  RTI or P2P_TIMED_MESSAGE for messages sent between
+ *  federates.
+ * @param port The ID of the destination port.
+ * @param federate The ID of the destination federate.
+ * @param length The message length.
+ * @param message The message.
+ */
+void send_message(int socket,
+                  int message_type,
+                  unsigned int port,
+                  unsigned int federate,
+                  size_t length,
+                  unsigned char* message) {
+    assert(port < 65536);
+    assert(federate < 65536);
+    unsigned char header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)];
+    // First byte identifies this as a timed message.
+    header_buffer[0] = message_type;
+    // Next two bytes identify the destination port.
+    // NOTE: Send messages little endian, not big endian.
+    encode_ushort(port, &(header_buffer[1]));
+
+    // Next two bytes identify the destination federate.
+    encode_ushort(federate, &(header_buffer[1 + sizeof(ushort)]));
+
+    // The next four bytes are the message length.
+    encode_int(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
+
+    DEBUG_PRINT("Federate %d sending message to federate %d.", _lf_my_fed_id, federate);
+
+    // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
+    const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int);
+    // Use a mutex lock to prevent multiple threads from simultaneously sending.
+    // DEBUG_PRINT("Federate %d pthread_mutex_lock send_timed", _lf_my_fed_id);
+    pthread_mutex_lock(&mutex);
+    // DEBUG_PRINT("Federate %d pthread_mutex_locked", _lf_my_fed_id);
+    write_to_socket(socket, header_length, header_buffer, "Federate %d failed to send message header to the RTI.", _lf_my_fed_id);
+    write_to_socket(socket, length, message, "Federate %d failed to send message body to the RTI.", _lf_my_fed_id);
+    // DEBUG_PRINT("Federate %d pthread_mutex_unlock", _lf_my_fed_id);
+    pthread_mutex_unlock(&mutex);
+}
+
 /** 
  * Send the specified timestamped message to the specified port in the
  * specified federate via the RTI or directly to a federate depending on
@@ -255,6 +310,9 @@ void create_server(int specified_port) {
  * in the message. The caller can reuse or free the memory after this returns.
  * This method assumes that the caller does not hold the mutex lock,
  * which it acquires to perform the send.
+ * 
+ * @note This function is similar to send_message() except that it
+ *   sends timed messages and also contains logics related to time.
  * 
  * @param additional_delay The offset applied to the timestamp
  *  using after. The additional delay will be greater or equal to zero
@@ -279,18 +337,18 @@ void send_timed_message(interval_t additional_delay,
                         unsigned char* message) {
     assert(port < 65536);
     assert(federate < 65536);
-    unsigned char buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t)];
+    unsigned char header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t)];
     // First byte identifies this as a timed message.
-    buffer[0] = message_type;
+    header_buffer[0] = message_type;
     // Next two bytes identify the destination port.
     // NOTE: Send messages little endian, not big endian.
-    encode_ushort(port, &(buffer[1]));
+    encode_ushort(port, &(header_buffer[1]));
 
     // Next two bytes identify the destination federate.
-    encode_ushort(federate, &(buffer[1 + sizeof(ushort)]));
+    encode_ushort(federate, &(header_buffer[1 + sizeof(ushort)]));
 
     // The next four bytes are the message length.
-    encode_int(length, &(buffer[1 + sizeof(ushort) + sizeof(ushort)]));
+    encode_int(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
 
     // Get current logical time
     instant_t current_message_timestamp = get_logical_time();
@@ -323,9 +381,9 @@ void send_timed_message(interval_t additional_delay,
     }
     
     // Next 8 bytes are the timestamp.
-    encode_ll(current_message_timestamp, &(buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     // Next 4 bytes are the microstep.
-    encode_int(current_message_microstep, &(buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
+    encode_int(current_message_microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
     DEBUG_PRINT("Federate %d sending message with tag (%lld, %u) to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, current_message_microstep,  federate);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
@@ -334,7 +392,7 @@ void send_timed_message(interval_t additional_delay,
     // DEBUG_PRINT("Federate %d pthread_mutex_lock send_timed", _lf_my_fed_id);
     pthread_mutex_lock(&mutex);
     // DEBUG_PRINT("Federate %d pthread_mutex_locked", _lf_my_fed_id);
-    write_to_socket(socket, header_length, buffer, "Federate %d failed to send timed message header to the RTI.", _lf_my_fed_id);
+    write_to_socket(socket, header_length, header_buffer, "Federate %d failed to send timed message header to the RTI.", _lf_my_fed_id);
     write_to_socket(socket, length, message, "Federate %d failed to send timed message body to the RTI.", _lf_my_fed_id);
     // DEBUG_PRINT("Federate %d pthread_mutex_unlock", _lf_my_fed_id);
     pthread_mutex_unlock(&mutex);
@@ -857,14 +915,11 @@ handle_t schedule_message_received_from_network_already_locked(
     // Thus, call __schedule() instead.
     if (return_value == 0) {
         if (trigger->is_physical) {
-            // For physical connections, the schedule function will
-            // add to the tardiness according to the current physical time.
-            // However, the schedule function cannot take a negative delay.
-            // Thus, here, we pad the tardiness to the appropriate amount.
-            if (extra_delay < 0LL) {
-                // trigger->tardiness = 0LL - extra_delay;
-                extra_delay = 0LL;
-            }               
+            // For physical connections, set extra_delay to zero
+            // since the physical time is always assigned. The
+            // after delay on the connection is enforced by
+            // setting the min_delay in code generation.
+            extra_delay = 0LL;
             DEBUG_PRINT("Federate %d calling schedule with delay %lld.", _lf_my_fed_id, extra_delay);
             return_value = __schedule(trigger, extra_delay, token);
         } else if (!message_tag_is_in_the_future) {
@@ -901,6 +956,42 @@ handle_t schedule_message_received_from_network_already_locked(
         pthread_cond_broadcast(&event_q_changed);
     }
     return return_value;
+}
+
+/**
+ * Handle a message being received from a remote federate.
+ * 
+ * This function assumes the caller does not hold the mutex lock.
+ * @param socket The socket to read the message from
+ * @param buffer The buffer to read
+ */
+void handle_message(int socket, unsigned char* buffer) {    
+    // Read the header.
+    read_from_socket(socket, sizeof(ushort) + sizeof(ushort) + sizeof(int), buffer, "Federate %d failed to read message header.", _lf_my_fed_id);
+    // Extract the header information.
+    unsigned short port_id;
+    unsigned short federate_id;
+    unsigned int length;
+    extract_header(buffer, &port_id, &federate_id, &length);
+    // Check if the message is intended for this federate
+    assert (_lf_my_fed_id == federate_id);
+    DEBUG_PRINT("Federate %d receiving message to port %d of length %d.", _lf_my_fed_id, port_id, length);
+
+    // Get the triggering action for the corerponding port
+    trigger_t* action = __action_for_port(port_id);
+
+    // Read the payload.
+    // Allocate memory for the message contents.
+    unsigned char* message_contents = (unsigned char*)malloc(length);
+    int bytes_read = read_from_socket2(socket, length, message_contents);
+    if (bytes_read < length) {
+        // Placeholder
+        error_print_and_exit( "Federate %d failed to read message body.", _lf_my_fed_id);
+    } 
+    DEBUG_PRINT("Message received by federate: %s. Length: %d.", message_contents, length);
+
+    DEBUG_PRINT("Federate %d calling schedule.", _lf_my_fed_id);
+    _lf_schedule_value(&action, 0, message_contents, length);
 }
 
 /**
@@ -981,7 +1072,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     pthread_mutex_lock(&mutex);
     // Acquire the one mutex lock to prevent logical time from advancing
     // during the call to schedule().
-    DEBUG_PRINT("Federate %d pthread_mutex_lock handle_timed_message.", _lf_my_fed_id);
+    // DEBUG_PRINT("Federate %d pthread_mutex_lock handle_timed_message.", _lf_my_fed_id);
 
     DEBUG_PRINT("Federate %d calling schedule with tag (%lld, %u).", _lf_my_fed_id, tag.time - start_time, tag.microstep);
     schedule_message_received_from_network_already_locked(action, tag, message_contents,
@@ -1179,15 +1270,19 @@ void* listen_to_federates(void *fed_id_ptr) {
             break;
         }
         switch(buffer[0]) {
-        case P2P_TIMED_MESSAGE:
-            DEBUG_PRINT("Federate %d handling timed p2p message from federate %d.", _lf_my_fed_id, fed_id);
-            handle_timed_message(socket_id, buffer + 1);
-            break;
-        default:
-            error_print("Federate %d received erroneous message type: %d. Closing the socket.", _lf_my_fed_id, buffer[0]);
-            close(socket_id);
-            _lf_federate_sockets_for_inbound_p2p_connections[fed_id] = -1;
-            break;
+            case P2P_MESSAGE:
+                DEBUG_PRINT("Federate %d handling p2p message from federate %d.", _lf_my_fed_id, fed_id);
+                handle_message(socket_id, buffer + 1);
+                break;
+            case P2P_TIMED_MESSAGE:
+                DEBUG_PRINT("Federate %d handling timed p2p message from federate %d.", _lf_my_fed_id, fed_id);
+                handle_timed_message(socket_id, buffer + 1);
+                break;
+            default:
+                error_print("Federate %d received erroneous message type: %d. Closing the socket.", _lf_my_fed_id, buffer[0]);
+                close(socket_id);
+                _lf_federate_sockets_for_inbound_p2p_connections[fed_id] = -1;
+                break;
         }
     }
     free(fed_id_ptr);
