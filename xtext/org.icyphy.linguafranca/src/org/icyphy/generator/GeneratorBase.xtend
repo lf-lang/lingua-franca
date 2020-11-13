@@ -250,6 +250,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var Set<Reaction> unorderedReactions = null
     
+    
+    /**
+     * Indicates whether or not the current Lingua Franca program
+     * contains a federation.
+     */
+     protected var boolean isFederated = false
+    
     ////////////////////////////////////////////
     //// Target properties, if they are included.
     
@@ -326,6 +333,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected boolean targetFast = false
     
     /**
+     * The coordination target parameter. Default is
+     * centralized.
+     */
+    protected String targetCoordination = "centralized"
+    
+    /**
      * List of files to be copied to src-gen.
      */
     protected List<File> targetFiles = newLinkedList
@@ -398,6 +411,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
+    def String getTargetCoordination() {
+        return targetCoordination
+    }
+    
     /**
      * Store the given reactor in the collection of generated delay classes
      * and insert it in the AST under the top-level reactors node.
@@ -457,6 +474,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetFast = true
                         }
+                    case TargetProperties.COORDINATION.name:
+                        // Set the target coordination if assigned
+                        // by the user. Values can only be
+                        // 'centralized' or 'decentralized'.
+                        this.targetCoordination = param.value.id
                     case TargetProperties.FILES.name:
                         this.targetFiles.addAll(this.collectFiles(param.value))
                     case TargetProperties.PROTOBUFS.name: 
@@ -1165,6 +1187,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param sendingFed The sending federate.
      * @param receivingFed The destination federate.
      * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
      * @throws UnsupportedOperationException If the target does not support this operation.
      */
     def String generateNetworkSenderBody(
@@ -1173,7 +1197,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        InferredType type
+        InferredType type,
+        boolean isPhysical,
+        Value delay
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -2006,7 +2032,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             federates.add(federateInstance)
             federateByName.put("", federateInstance)
             federateByID.put(0, federateInstance)
-        } else {            
+        } else {
+            // The Lingua Franca program is federated
+            isFederated = true            
             if (mainDefn.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
@@ -2079,7 +2107,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             
             // For each connection between federates, replace it in the
             // AST with an action (which inherits the delay) and two reactions.
-            // The action will be physical.
+            // The action will be physical for physical connections and logical
+            // for logical connections.
             var connectionsToRemove = new LinkedList<Connection>()
             for (connection : mainDefn.connections) {
                 // FIXME: Connections between federates do not support parallel connections.
@@ -2093,7 +2122,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     // Connection spans federates.
                     // First, update the dependencies in the FederateInstances.
                     // Exclude physical connections because these do not create real dependencies.
-                    if (leftFederate !== rightFederate && !connection.physical) {
+                    if (leftFederate !== rightFederate && !connection.physical && (!targetCoordination.equals("decentralized"))) {
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
                             dependsOn = new LinkedHashSet<Value>()

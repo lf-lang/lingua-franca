@@ -12,7 +12,7 @@ plugins {
 }
 
 subprojects {
-	ext.xtextVersion = '2.22.0'
+	ext.xtextVersion = '2.23.0'
 	repositories {
 		mavenCentral()
 	}

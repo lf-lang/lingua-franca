@@ -43,6 +43,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.InferredType
+import org.icyphy.Targets
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -55,7 +56,6 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.ReactorDecl
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.TypedVariable
@@ -63,7 +63,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Targets
+import org.icyphy.linguaFranca.Value
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -314,7 +314,8 @@ class CGenerator extends GeneratorBase {
 
     // Place to collect code to initialize timers for all reactors.
     protected var startTimers = new StringBuilder()
-    var startTimersCount = 0
+    var timerCount = 0
+    var startupReactionCount = 0
     var shutdownCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
@@ -341,10 +342,32 @@ class CGenerator extends GeneratorBase {
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
+                
+        // Assume the program is federated first
+        pr('''
+            #define _LF_IS_FEDERATED
+            #define _LF_COORD_CENTRALIZED
+        ''')
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)
         
+        // After the work of GeneratorBase is done
+        // (e.g., model is analyzed and federates
+        // are populated), check to see if the
+        // program is actually federated
+        if (!isFederated) {
+            // Remove the _LF_IS_FEDERATED
+            // definition if the program
+            // is not federated
+            var indexToDelete = code.indexOf('''#define _LF_IS_FEDERATED''')
+            code.delete(indexToDelete, indexToDelete + 55)
+        } else if (targetCoordination.equals("decentralized")) {
+            // Replace _LF_COORD_CENTRALIZED with _LF_COORD_DECENTRALIZED
+            var indexToReplace = code.indexOf('''#define _LF_COORD_CENTRALIZED''')
+            code.replace(indexToReplace, indexToReplace + 30 , "#define _LF_COORD_DECENTRALIZED")
+        }
+
         // Generate code for each reactor.
         val names = newLinkedHashSet
         for (r : reactors) {
@@ -406,13 +429,7 @@ class CGenerator extends GeneratorBase {
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
-                pr(startTimers, 'synchronize_with_other_federates('
-                    + federate.id
-                    + ', "'
-                    + federationRTIProperties.get('host') 
-                    + '", ' + federationRTIProperties.get('port')
-                    + ");"
-                )
+                pr(startTimers, "synchronize_with_other_federates();")
             }
         
             // Build the instantiation tree if a main reactor is present.
@@ -461,20 +478,36 @@ class CGenerator extends GeneratorBase {
                 pr('}\n')
                 
                 // If there are timers, create a table of timers to be initialized.
-                if (startTimersCount > 0) {
+                if (timerCount > 0) {
                     pr('''
-                        // Array of pointers to timer and startup triggers to start the timers in __start_timers().
-                        trigger_t* __timer_triggers[«startTimersCount»];
+                        // Array of pointers to timer triggers to be scheduled in __initialize_timers().
+                        trigger_t* __timer_triggers[«timerCount»];
                     ''')
                 } else {
                     pr('''
-                        // Array of pointers to timer and startup triggers to start the timers in __start_timers().
+                        // Array of pointers to timer triggers to be scheduled in __initialize_timers().
                         trigger_t** __timer_triggers = NULL;
                     ''')
                 }
                 pr('''
-                    int __timer_triggers_size = «startTimersCount»;
+                    int __timer_triggers_size = «timerCount»;
                 ''')
+                // If there are startup reactions, store them in an array.
+                if (startupReactionCount > 0) {
+                    pr('''
+                        // Array of pointers to timer triggers to be scheduled in __trigger_startup_reactions().
+                        reaction_t* __startup_reactions[«startupReactionCount»];
+                    ''')
+                } else {
+                    pr('''
+                        // Array of pointers to reactions to be scheduled in __trigger_startup_reactions().
+                        reaction_t** __startup_reactions = NULL;
+                    ''')
+                }
+                pr('''
+                    int __startup_reactions_size = «startupReactionCount»;
+                ''')
+                
                 // If there are shutdown reactions, create a table of triggers.
                 if (shutdownCount > 0) {
                     pr('''
@@ -483,7 +516,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 } else {
                     pr('''
-                        // Empty rray of pointers to shutdown triggers.
+                        // Empty array of pointers to shutdown triggers.
                         trigger_t** __shutdown_triggers = NULL;
                     ''')
                 }
@@ -563,25 +596,35 @@ class CGenerator extends GeneratorBase {
                 pr(startTimeStep.toString)
                 
                 setReactionPriorities(main, federate)
-                if (federates.length > 1) {
-                    if (federate.dependsOn.size > 0) {
-                        pr('__fed_has_upstream  = true;')
-                    }
-                    if (federate.sendsTo.size > 0) {
-                        pr('__fed_has_downstream = true;')
-                    }
-                }
+                initializeFederate(federate)
                 unindent()
                 pr('}\n')
 
-                // Generate function to start timers for all reactors.
-                pr("void __start_timers() {")
+                // Generate function to trigger startup reactions for all reactors.
+                pr("void __trigger_startup_reactions() {")
                 indent()
-                pr(startTimers.toString)
-                if (startTimersCount > 0) {
+                pr(startTimers.toString) // FIXME: these are actually startup actions, not timers.
+                if (startupReactionCount > 0) {
+                    pr('''
+                       for (int i = 0; i < __startup_reactions_size; i++) {
+                           if (__startup_reactions[i] != NULL) {
+                               _lf_enqueue_reaction(__startup_reactions[i]);
+                           }
+                       }
+                    ''')
+                }
+                unindent()
+                pr("}")
+
+                // Generate function to schedule timers for all reactors.
+                pr("void __initialize_timers() {")
+                indent()
+                if (timerCount > 0) {
                     pr('''
                        for (int i = 0; i < __timer_triggers_size; i++) {
-                           __schedule(__timer_triggers[i], 0LL, NULL);
+                           if (__timer_triggers[i] != NULL) {
+                               _lf_initialize_timer(__timer_triggers[i]);
+                           }
                        }
                     ''')
                 }
@@ -629,12 +672,26 @@ class CGenerator extends GeneratorBase {
                 // Generate the termination function.
                 // If there are federates, this will resign from the federation.
                 if (federates.length > 1) {
+                    // FIXME: Send EOF on any open P2P sockets.
+                    // FIXME: Check return values.
                     pr('''
                         void __termination() {
-                            unsigned char message_marker = RESIGN;
-                            if (write(rti_socket, &message_marker, 1) != 1) {
-                                fprintf(stderr, "WARNING: Failed to send RESIGN message to the RTI.\n");
+                            // Check for all outgoing physical connections in
+                            // _lf_federate_sockets_for_outbound_p2p_connections and 
+                            // if the socket ID is not -1, the connection is still open. 
+                            // Send an EOF by closing the socket here.
+                            for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+                                if (_lf_federate_sockets_for_outbound_p2p_connections[i] != -1) {
+                                    close(_lf_federate_sockets_for_outbound_p2p_connections[i]);
+                                    _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
+                                }
                             }
+                            «IF federate.inboundP2PConnections.length > 0»
+                                void* thread_return;
+                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                            «ENDIF»
+                            unsigned char message_marker = RESIGN;
+                            write_to_socket(_lf_rti_socket, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
                         }
                     ''')
                 } else {
@@ -658,6 +715,81 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * If the number of federates is greater than one, then generate the code
+     * that initializes global variables that describe the federate.
+     * @param federate The federate instance.
+     */
+    protected def void initializeFederate(FederateInstance federate) {
+        if (federates.length > 1) {
+            pr('''
+                // ***** Start initializing the federated execution. */
+            ''')
+            // Set indicator variables that specify whether the federate has
+            // upstream logical connections.
+            if (federate.dependsOn.size > 0) {
+                pr('__fed_has_upstream  = true;')
+            }
+            if (federate.sendsTo.size > 0) {
+                pr('__fed_has_downstream = true;')
+            }
+            // Set global variable identifying the federate.
+            pr('''_lf_my_fed_id = «federate.id»;''');
+            
+            // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic to be processed in a separate
+            // thread without requiring a mutex lock.
+            val numberOfInboundConnections = federate.inboundP2PConnections.length;
+            val numberOfOutboundConnections  = federate.outboundP2PConnections.length;
+            
+            pr('''
+                _lf_number_of_inbound_p2p_connections = «numberOfInboundConnections»;
+                _lf_number_of_outbound_p2p_connections = «numberOfOutboundConnections»;
+            ''')
+            if (numberOfInboundConnections > 0) {
+                pr('''
+                    // Initialize the array of socket for incoming connections to -1.
+                    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                        _lf_federate_sockets_for_inbound_p2p_connections[i] = -1;
+                    }
+                ''')                    
+            }
+            if (numberOfOutboundConnections > 0) {                        
+                pr('''
+                    // Initialize the array of socket for outgoing connections to -1.
+                    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+                        _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
+                    }
+                ''')                    
+            }
+            
+            pr('''
+                // Connect to the RTI. This sets _lf_rti_socket.
+                connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
+            ''');
+        
+            if (numberOfInboundConnections > 0) {
+                pr('''
+                    // Create a socket server to listen to other federates.
+                    // If a port is specified by the user, that will be used
+                    // as the only possibility for the server. If not, the port
+                    // will start from STARTING_PORT. The function will
+                    // keep incrementing the port until the number of tries reaches PORT_RANGE_LIMIT.
+                    create_server(«federate.port»);
+                    // Connect to remote federates for each physical connection.
+                    // This is done in a separate thread because this thread will call
+                    // connect_to_federate for each outbound physical connection at the same
+                    // time that the new thread is listening for such connections for inbound
+                    // physical connections. The thread will live until termination.
+                    pthread_create(&_lf_inbound_p2p_handling_thread_id, NULL, handle_p2p_connections_from_federates, NULL);
+                ''')
+            }
+                            
+            for (remoteFederate : federate.outboundP2PConnections) {
+                pr('''connect_to_federate(«remoteFederate.id»);''')
+            }
+        }
     }
     
     /** Invoke the compiler on the generated code. */
@@ -727,6 +859,9 @@ class CGenerator extends GeneratorBase {
         
         val rtiCode = new StringBuilder()
         pr(rtiCode, '''
+            «IF targetLoggingLevel?.equals("DEBUG")»
+                #define VERBOSE
+            «ENDIF»
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES
             #endif
@@ -900,8 +1035,10 @@ class CGenerator extends GeneratorBase {
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
             # Set a trap to kill all background jobs on error or control-C
-            trap 'echo "#### Killing federates."; kill $(jobs -p)' ERR
-            trap 'kill $(jobs -p)' SIGINT
+            # Enable job control
+            set -m
+            trap 'echo "#### Received ERR. Killing federates."; kill ${pids[*]}; exit 1' ERR
+            trap 'echo "#### Received SIGINT. Killing federates."; kill ${pids[*]}; exit 1' SIGINT
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
@@ -924,57 +1061,22 @@ class CGenerator extends GeneratorBase {
         if (user !== null) {
             target = user + '@' + host
         }
-        for (federate : federates) {
-            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
-                if(distCode.length === 0) pr(distCode, distHeader)
-                val logFileName = '''log/«filename»_«federate.name».log'''
-                val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'''
-                // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-                pr(distCode, '''
-                    echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
-                    # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
-                    ssh «federate.host» '\
-                        mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core; \
-                        echo "--------------" >> «path»/«logFileName»; \
-                        date >> «path»/«logFileName»;
-                    '
-                    pushd src-gen/core > /dev/null
-                    echo "Copying LF core files to host «federate.host»"
-                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
-                    popd > /dev/null
-                    pushd src-gen > /dev/null
-                    echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
-                    popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «compileCommand»"
-                    ssh «federate.host» '\
-                        cd «path»; \
-                        echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
-                        # Capture the output in the log file and stdout.
-                        «compileCommand» 2>&1 | tee -a «logFileName»;'
-                ''')
-                val executeCommand = '''bin/«filename»_«federate.name» -i '$FEDERATION_ID' '''
-                pr(shCode, '''
-                    echo "#### Launching the federate «federate.name» on host «federate.host»"
-                    ssh «federate.host» '\
-                        cd «path»; \
-                        echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
-                        date >> «logFileName»; \
-                        echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
-                        «executeCommand» 2>&1 | tee -a «logFileName»' &
-                ''')                
-            } else {
-                pr(shCode, '''
-                    echo "#### Launching the federate «federate.name»."
-                    «outPath»«File.separator»«filename»_«federate.name» -i $FEDERATION_ID &
-                ''')                
-            }
-        }
         // Launch the RTI in the foreground.
         if (host == 'localhost' || host == '0.0.0.0') {
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI)."
-                «outPath»«File.separator»«filename»_RTI -i $FEDERATION_ID
+                # The RTI is started first to allow proper boot-up
+                # before federates will try to connect.
+                # The RTI will be brought back to foreground
+                # to be responsive to user inputs after all federates
+                # are launched.
+                «outPath»«File.separator»«filename»_RTI -i $FEDERATION_ID &
+                # Store the PID of the RTI
+                RTI=$!
+                # Wait for the RTI to boot up before
+                # starting federates (this could be done by waiting for a specific output
+                # from the RTI, but here we use sleep)
+                sleep 1
             ''')
         } else {
             // Start the RTI on the remote machine.
@@ -1031,8 +1133,79 @@ class CGenerator extends GeneratorBase {
                     date >> «logFileName»; \
                     echo "In «path», executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
                     «executeCommand» 2>&1 | tee -a «logFileName»' &
+                # Store the PID of the channel to RTI
+                RTI=$!
+                # Wait for the RTI to boot up before
+                # starting federates (this could be done by waiting for a specific output
+                # from the RTI, but here we use sleep)
+                sleep 1
             ''')
         }
+                
+        // Index used for storing pids of federates
+        var federateIndex = 0
+        for (federate : federates) {
+            if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
+                if(distCode.length === 0) pr(distCode, distHeader)
+                val logFileName = '''log/«filename»_«federate.name».log'''
+                val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'''
+                // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
+                pr(distCode, '''
+                    echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
+                    # The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.
+                    ssh «federate.host» '\
+                        mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core; \
+                        echo "--------------" >> «path»/«logFileName»; \
+                        date >> «path»/«logFileName»;
+                    '
+                    pushd src-gen/core > /dev/null
+                    echo "Copying LF core files to host «federate.host»"
+                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    popd > /dev/null
+                    pushd src-gen > /dev/null
+                    echo "Copying source files to host «federate.host»"
+                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
+                    popd > /dev/null
+                    echo "Compiling on host «federate.host» using: «compileCommand»"
+                    ssh «federate.host» '\
+                        cd «path»; \
+                        echo "In «path» compiling with: «compileCommand»" >> «logFileName» 2>&1; \
+                        # Capture the output in the log file and stdout.
+                        «compileCommand» 2>&1 | tee -a «logFileName»;'
+                ''')
+                val executeCommand = '''bin/«filename»_«federate.name» -i '$FEDERATION_ID' '''
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    ssh «federate.host» '\
+                        cd «path»; \
+                        echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
+                        date >> «logFileName»; \
+                        echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
+                        «executeCommand» 2>&1 | tee -a «logFileName»' &
+                ''')                
+            } else {
+                pr(shCode, '''
+                    echo "#### Launching the federate «federate.name»."
+                    «outPath»«File.separator»«filename»_«federate.name» -i $FEDERATION_ID &
+                    pids[«federateIndex++»]=$!
+                ''')                
+            }
+        }
+        pr(shCode, '''
+            echo "#### Bringing the RTI back to foreground"
+            fg 1
+            RTI=$! # Store the new pid of the RTI
+        ''')
+        // Wait for launched processes to finish
+        pr(shCode, '''
+            
+            # Wait for launched processes to finish.
+            # The errors are handled separately via trap.
+            for pid in ${pids[*]}; do
+                wait $pid
+            done
+            wait $RTI
+        ''')
 
         // Write the launcher file.
         // Delete file previously produced, if any.
@@ -1189,6 +1362,18 @@ class CGenerator extends GeneratorBase {
         ReactorDecl decl, FederateInstance federate
     ) {
         val reactor = decl.toDefinition
+        // In the case where there are incoming
+        // p2p connections (physical and logical)
+        // there will be a tardiness field added
+        // to accommodate the case where a reaction
+        // triggered by a port or action is late due
+        // to network latency, etc..
+        var tardiness = ''        
+        if (isFederated) {
+            tardiness = '''
+                «targetTimeType» tardiness;
+            '''
+        }
         // First, handle inputs.
         for (input : reactor.allInputs) {
             var token = ''
@@ -1204,6 +1389,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
+                    «tardiness»
                 } «variableStructType(input, decl)»;
             ''')
             
@@ -1223,6 +1409,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
+                    «tardiness»
                 } «variableStructType(output, decl)»;
             ''')
 
@@ -1232,6 +1419,11 @@ class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
+            if (action.origin === ActionOrigin.PHYSICAL) {
+                tardiness = '''
+                    «targetTimeType» tardiness;
+                '''
+            }
             pr(action, code, '''
                 typedef struct {
                     trigger_t* trigger;
@@ -1239,6 +1431,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     bool has_value;
                     token_t* token;
+                    «tardiness»
                 } «variableStructType(action, decl)»;
             ''')
             
@@ -1503,6 +1696,7 @@ class CGenerator extends GeneratorBase {
                     // self->__«containedReactor.name».«port.name»_trigger.is_physical = false;
                     // self->__«containedReactor.name».«port.name»_trigger.drop = false;
                     // self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
+                    // self->__«containedReactor.name».«port.name»_trigger.tardiness = 0;
                     pr(port, constructorCode, '''
                         self->__«containedReactor.name».«port.name»_trigger.last = NULL;
                         self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
@@ -1668,6 +1862,14 @@ class CGenerator extends GeneratorBase {
                     val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionCount
                     deadlineFunctionPointer = "&" + deadlineFunctionName
                 }
+                
+                // Assign the tardiness handler
+                var tardyFunctionPointer = "NULL"
+                if (reaction.tardy !== null) {
+                    // The following has to match the name chosen in generateReactions
+                    val tardyFunctionName = decl.name.toLowerCase + '_tardy_function' + reactionCount
+                    tardyFunctionPointer = "&" + tardyFunctionName
+                }
 
                 // Set the defaults of the reaction_t struct in the constructor.
                 // Since the self struct is allocated using calloc, there is no need to set:
@@ -1676,10 +1878,12 @@ class CGenerator extends GeneratorBase {
                 // self->___reaction_«reactionCount».pos = 0;
                 // self->___reaction_«reactionCount».running = false;
                 // self->___reaction_«reactionCount».deadline = 0LL;
+                // self->___reaction_«reactionCount».tardiness = false;
                 pr(reaction, constructorCode, '''
                     self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
+                    self->___reaction_«reactionCount».tardy_handler = «tardyFunctionPointer»;
                 ''')
 
             }
@@ -1862,10 +2066,6 @@ class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor. 
      */
     def generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        
-        val reactor = decl.toDefinition
-        
-        // Create a unique function name for each reaction.
         val functionName = reactionFunctionName(decl, reactionIndex)
         
         
@@ -1873,13 +2073,29 @@ class CGenerator extends GeneratorBase {
         indent()
         var body = reaction.code.toText
         
-        generateInitializationForReaction(body, reaction, decl)
+        generateInitializationForReaction(body, reaction, decl, reactionIndex)
         
         // Code verbatim from 'reaction'
         prSourceLineNumber(reaction.code)
         pr(body)
         unindent()
         pr("}")
+
+        // Now generate code for the late function, if there is one
+        // Note that this function can only be defined on reactions
+        // in federates that have inputs from a logical connection.
+        if (reaction.tardy !== null) {
+            val lateFunctionName = decl.name.toLowerCase + '_tardy_function' + reactionIndex
+
+            pr('void ' + lateFunctionName + '(void* instance_args) {')
+            indent();
+            generateInitializationForReaction(body, reaction, decl, reactionIndex)
+            // Code verbatim from 'late'
+            prSourceLineNumber(reaction.tardy.code)
+            pr(reaction.tardy.code.toText)
+            unindent()
+            pr("}")
+        }
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.deadline !== null) {
@@ -1888,7 +2104,7 @@ class CGenerator extends GeneratorBase {
 
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
-            generateInitializationForReaction(body, reaction, reactor)
+            generateInitializationForReaction(body, reaction, decl, reactionIndex)
             // Code verbatim from 'deadline'
             prSourceLineNumber(reaction.deadline.code)
             pr(reaction.deadline.code.toText)
@@ -1898,13 +2114,116 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
+     * Generate code that passes existing tardiness to all output ports
+     * and actions. This tardiness is the maximum tardiness of the 
+     * triggering inputs of the reaction.
+     * 
+     * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
+     * @param reaction The initialization code will be generated for this specific reaction
+     * @param decl The reactor that has the reaction
+     * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
+     */
+    def generateTardinessInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
+        // Construct the tardiness inheritance code to go into
+        // the body of the function.
+        var StringBuilder tardinessInheritenceCode = new StringBuilder()
+        if (isFederated) {
+            pr(tardinessInheritenceCode, '''
+                if (self->___reaction_«reactionIndex».tardiness == true) {
+            ''')
+            indent(tardinessInheritenceCode);            
+            pr(tardinessInheritenceCode, '''            
+                // The following operations are expensive and must
+                // only be done if the reaction has unhandled tardiness.
+                // Otherwise, all tardiness values are 0 by default.
+                
+                // Inherited tardiness. This will take the maximum
+                // tardiness of all input triggers
+                «targetTimeType» inherited_max_tardiness = 0LL;
+            ''')
+            pr(tardinessInheritenceCode, '''
+                // Find the maximum tardiness
+            ''')
+            // Go through every trigger of the reaction and check the
+            // value of tardiness to choose the maximum.
+            for (TriggerRef inputTrigger : reaction.triggers ?: emptyList) {
+                if (inputTrigger instanceof VarRef) {
+                    if (inputTrigger.variable instanceof Output) {
+                        // Output from a contained reactor
+                        pr(tardinessInheritenceCode, '''
+                            if («inputTrigger.container.name».«inputTrigger.variable.name»->tardiness > inherited_max_tardiness) {
+                                inherited_max_tardiness = «inputTrigger.container.name».«inputTrigger.variable.name»->tardiness;
+                            }
+                        ''')
+                    } else if (inputTrigger.variable instanceof Port) {
+                        pr(tardinessInheritenceCode, '''
+                            if («inputTrigger.variable.name»->tardiness > inherited_max_tardiness) {
+                                inherited_max_tardiness = «inputTrigger.variable.name»->tardiness;
+                            }
+                        ''')
+                    } else if (inputTrigger.variable instanceof Action) {
+                        pr(tardinessInheritenceCode, '''
+                            if («inputTrigger.variable.name»->trigger->tardiness > inherited_max_tardiness) {
+                                inherited_max_tardiness = «inputTrigger.variable.name»->trigger->tardiness;
+                            }
+                        ''')
+                    }
+
+                }
+            }
+            if (reaction.triggers === null || reaction.triggers.size === 0) {
+                // No triggers are given, which means the reaction would react to any input.
+                // We need to check tardiness for every input.
+                // NOTE: this does not include contained outputs. 
+                for (input : reaction.sources) {
+                    pr(tardinessInheritenceCode, '''
+                        if («input.variable.name»->tardiness > inherited_max_tardiness) {
+                            inherited_max_tardiness = «input.variable.name»->tardiness;
+                        }
+                    ''')
+                }
+            }
+            
+            // Once the maximum tardiness has been found,
+            // it will be passed down to the port effects
+            // of the reaction. Note that the tardiness
+            // will not pass on to actions downstream.
+            for (effect : reaction.effects ?: emptyList) {
+                if (effect.variable instanceof Input) {
+                    // Input to a contained reaction
+                    pr(tardinessInheritenceCode, '''
+                        // All effects inherit the maximum tardiness of input triggers
+                        «effect.container.name».«effect.variable.name»->tardiness = inherited_max_tardiness;
+                    ''')                    
+                } else if (effect.variable instanceof Output) {
+                    // Everything else
+                    pr(tardinessInheritenceCode, '''
+                        // All effects inherit the maximum tardiness of input triggers
+                        «effect.variable.name»->tardiness = inherited_max_tardiness;
+                    ''')                    
+                }
+            }
+            unindent(tardinessInheritenceCode);
+            pr(tardinessInheritenceCode,'''
+            }
+            ''')
+            
+            // Write the the tardiness inheritance initialization
+            // to the main code.
+            pr(tardinessInheritenceCode.toString) 
+        }
+        return tardinessInheritenceCode
+    }
+    
+    /**
      * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.
      * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
      * @param reaction The initialization code will be generated for this specific reaction
      * @param decl The reactor that has the reaction
+     * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
      * @return The reaction initialization code for reusability.
      */
-    def generateInitializationForReaction(String body, Reaction reaction, ReactorDecl decl) {
+    def generateInitializationForReaction(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
         val reactor = decl.toDefinition
         
         // Construct the reactionInitialization code to go into
@@ -2028,6 +2347,13 @@ class CGenerator extends GeneratorBase {
             }
             // Next generate all the collected setup code.
             pr(reactionInitialization.toString)
+            
+            if (reaction.tardy === null) {
+                // Pass down the tardiness to all input and output effects
+                // downstream if the current reaction does not have a tardy
+                // handler.
+                generateTardinessInheritence(body, reaction, decl, reactionIndex)                
+            }
         } else {
             pr(structType + "* self = (" + structType + "*)instance_args;")
         }
@@ -2062,6 +2388,24 @@ class CGenerator extends GeneratorBase {
                 var Collection<PortInstance> destinationPorts = null
 
                 var portCount = 0
+                // Record the number of reactions that this reaction depends on.
+                // This is used for optimization. When that number is 1, the reaction can
+                // be executed immediately when its triggering reaction has completed.
+                val maximalUpstreamReactions = reaction.maximal(reaction.dependsOnReactions)
+                if (maximalUpstreamReactions.size == 1) {
+                    val upstreamReactionInstance = maximalUpstreamReactions.get(0)
+                    val upstreamReaction =
+                        '''«selfStructName(upstreamReactionInstance.parent)»->___reaction_«upstreamReactionInstance.reactionIndex»'''
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
+                        «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = &(«upstreamReaction»);
+                    ''')
+                } else {
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName» does not depend on one maximal upstream reaction.
+                        «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = NULL;
+                    ''')
+                }
                 for (port : reaction.dependentPorts) {
                     // The port to which the reaction writes may have dependent
                     // reactions in the container. If so, we list that port here.
@@ -2322,15 +2666,19 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «offset»;
                     «triggerStructName».period = «period»;
-                    __timer_triggers[«startTimersCount»] = &«triggerStructName»;
+                    __timer_triggers[«timerCount»] = &«triggerStructName»;
                 ''')
-                startTimersCount++
+                timerCount++
             } else if (trigger instanceof Action) {
                 var minDelay = (triggerInstance as ActionInstance).minDelay
-                var minInterArrival = (triggerInstance as ActionInstance).minInterArrival
+                var minSpacing = (triggerInstance as ActionInstance).minSpacing
                 pr(initializeTriggerObjects, '''
                     «triggerStructName».offset = «timeInTargetLanguage(minDelay)»;
-                    «triggerStructName».period = «timeInTargetLanguage(minInterArrival)»;
+                    «IF minSpacing !== null»
+                    «triggerStructName».period = «timeInTargetLanguage(minSpacing)»;
+                    «ELSE»
+                    «triggerStructName».period = «org.icyphy.generator.CGenerator.UNDEFINED_MIN_SPACING»;
+                    «ENDIF»
                 ''')               
             } else if (triggerInstance instanceof PortInstance) {
                 // Nothing to do in initialize_trigger_objects
@@ -2717,7 +3065,7 @@ class CGenerator extends GeneratorBase {
                     }
                     if (trigger.isStartup) {
                         pr(initializeTriggerObjects, '''
-                            __timer_triggers[«startTimersCount++»] = &«nameOfSelfStruct»->___startup;
+                            __startup_reactions[«startupReactionCount++»] = &«nameOfSelfStruct»->___reaction_«reactionCount»;
                         ''')
                     } else if (trigger.isShutdown) {
                         pr(initializeTriggerObjects, '''
@@ -3339,6 +3687,9 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
+            «IF isFederated»
+                DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
+            «ENDIF»
         ''')
         if (isTokenType(type)) {
             result.append('''
@@ -3363,6 +3714,8 @@ class CGenerator extends GeneratorBase {
      * @param sendingFed The sending federate.
      * @param receivingFed The destination federate.
      * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
      */
     override generateNetworkSenderBody(
         VarRef sendingPort,
@@ -3370,7 +3723,9 @@ class CGenerator extends GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
-        InferredType type
+        InferredType type,
+        boolean isPhysical,
+        Value delay
     ) { 
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -3378,14 +3733,55 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
-        // FIXME: Use send_via_rti if the physical keyword is supplied to the connection.
+        // If the connection is physical and the receiving federate is remote, send it directly on a socket.
+        // If the connection is physical and the receiving federate is local, send it via shared memory. FIXME: not implemented yet
+        // If the connection is logical and the coordination mode is centralized, send via RTI.
+        // If the connection is logical and the coordination mode is decentralized, send directly
+        var String socket;
+        var String messageType;
+        
+        // The additional delay in absence of after
+        // is  -1. This has a special meaning
+        // in send_timed_message
+        // (@see send_timed_message in lib/core/federate.c).
+        // In this case, the sender will send
+        // its current tag as the timestamp
+        // of the outgoing message without adding a microstep delay.
+        // If the user has assigned an after delay 
+        // (that can be zero) either as a time
+        // value (e.g., 200 msec) or as a literal
+        // (e.g., a parameter), that delay in nsec
+        // will be passed to send_timed_message and added to 
+        // the current timestamp. If after delay is 0,
+        // send_timed_message will use the current tag +
+        // a microstep as the timestamp of the outgoing message.
+        // FIXME: implementation of tag is currently incomplete
+        // in the C target. Therefore, the nuances regarding
+        // the microstep delay are currently not implemented.
+        var String additionalDelayString = '-1';
+        if (delay !== null) {
+            if (delay.time !== null) {
+                additionalDelayString = (new TimeValue(delay.time.interval, delay.time.unit)).toNanoSeconds.toString;
+            } else {
+                additionalDelayString = delay.literal
+            }
+        }
+        if (isPhysical || targetCoordination.equals("decentralized")) {
+            socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
+            messageType = "P2P_TIMED_MESSAGE"
+        } else {
+            // Logical connection
+            // Send the message via rti
+            socket = '''_lf_rti_socket'''
+            messageType = "TIMED_MESSAGE"
+        }
         if (isTokenType(type)) {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
-                send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                send_timed_message(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»->token);
             ''')
         } else {
@@ -3404,7 +3800,7 @@ class CGenerator extends GeneratorBase {
             }
             result.append('''
             size_t message_length = «lengthExpression»;
-            send_via_rti_timed(«receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            send_timed_message(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
             ''')
         }
         return result.toString
@@ -3416,7 +3812,13 @@ class CGenerator extends GeneratorBase {
      *  private variables if such commands are specified in the target directive.
      */
     override generatePreamble() {
-        super.generatePreamble()
+        super.generatePreamble()        
+        
+        if (targetLoggingLevel?.equals("DEBUG")) {
+            pr('''
+                #define VERBOSE
+            ''')
+        }
         
         includeTargetLanguageHeaders()
         
@@ -3487,7 +3889,7 @@ class CGenerator extends GeneratorBase {
      *  uniformly across all target languages.
      */
     protected def includeTargetLanguageHeaders()
-    {    	
+    {
         pr('#include "ctarget.h"')
     }
     
@@ -3597,6 +3999,9 @@ class CGenerator extends GeneratorBase {
      *   if there is no federation.
      */
     private def void connectInputsToOutputs(ReactorInstance instance, FederateInstance federate) {
+        if (!reactorBelongsToFederate(instance, federate)) {
+            return;
+        }
         pr('''// Connect inputs and outputs for reactor «instance.getFullName».''')
         // For destinations that are multiports, need to count channels
         // in case there is more than one connection.
@@ -3612,121 +4017,124 @@ class CGenerator extends GeneratorBase {
             // Moreover, if the eventual source is an input and it is NOT
             // written to by a reaction, then it is dangling, so we skip it.
             if (reactorBelongsToFederate(eventualSource.parent, federate)
-                && eventualSource.isOutput
-                || eventualSource.dependsOnReactions.size > 0
+                && (eventualSource.isOutput
+                || eventualSource.dependsOnReactions.size > 0)
             ) {
                 val destinations = instance.destinations.get(source)
                 // For multiports, need to count the channels in case there are multiple
                 // destinations.
                 var sourceChannelCount = 0
                 for (destination : destinations) {
-                    // If the destination is an output, then skip this step.
-                    // Outputs are handled by finding the transitive closure
-                    // (finding the eventual inputs).
-                    if (destination.isInput) {
-                        var comment = ''
-                        if (source !== eventualSource) {
-                            comment = ''' (eventual source is «eventualSource.getFullName»)'''
-                        }
-                        val destStructType = variableStructType(
-                            destination.definition as TypedVariable,
-                            destination.parent.definition.reactorClass
-                        )
-                        // There are four cases, depending on whether the source or
-                        // destination or both are multiports.
-                        if (eventualSource instanceof MultiportInstance) {
-                            // Source is a multiport. 
-                            // Number of available channels:
-                            var width = eventualSource.instances.size - sourceChannelCount
-                            // If there are no more available channels, there is nothing to do.
-                            if (width > 0) {
-                                if (destination instanceof MultiportInstance) {
-                                    // Source and destination are both multiports.
-                                    // First, get the first available destination channel.
-                                    var destinationChannel = destinationChannelCount.get(destination)
-                                    if (destinationChannel === null) {
-                                        destinationChannel = 0
-                                        destinationChannelCount.put(destination, 1)
-                                    } else {
-                                        // Add the width of the source to the index of the destination's
-                                        // next available channel. This may be out of bounds for the
-                                        // destination.
-                                        destinationChannelCount.put(destination, destinationChannel + width)
-                                    }
-                                    // There will be nothing to do if the destination channel index
-                                    // is out of bounds.
-                                    if (destinationChannel < destination.instances.size) {
-                                        // There is at least one available channel at the destination.
-                                        // The number of connections now will be the minimum of the
-                                        // source width and the number of remaining channels at the
-                                        // destination.
-                                        if (destination.instances.size - destinationChannel < width) {
-                                            width = destination.instances.size - destinationChannel
+                    // Check to see if the destination reactor belongs to the federate.
+                    if (reactorBelongsToFederate(destination.parent, federate)) {
+                        // If the destination is an output, then skip this step.
+                        // Outputs are handled by finding the transitive closure
+                        // (finding the eventual inputs).
+                        if (destination.isInput) {
+                            var comment = ''
+                            if (source !== eventualSource) {
+                                comment = ''' (eventual source is «eventualSource.getFullName»)'''
+                            }
+                            val destStructType = variableStructType(
+                                destination.definition as TypedVariable,
+                                destination.parent.definition.reactorClass
+                            )
+                            // There are four cases, depending on whether the source or
+                            // destination or both are multiports.
+                            if (eventualSource instanceof MultiportInstance) {
+                                // Source is a multiport. 
+                                // Number of available channels:
+                                var width = eventualSource.instances.size - sourceChannelCount
+                                // If there are no more available channels, there is nothing to do.
+                                if (width > 0) {
+                                    if (destination instanceof MultiportInstance) {
+                                        // Source and destination are both multiports.
+                                        // First, get the first available destination channel.
+                                        var destinationChannel = destinationChannelCount.get(destination)
+                                        if (destinationChannel === null) {
+                                            destinationChannel = 0
+                                            destinationChannelCount.put(destination, 1)
+                                        } else {
+                                            // Add the width of the source to the index of the destination's
+                                            // next available channel. This may be out of bounds for the
+                                            // destination.
+                                            destinationChannelCount.put(destination, destinationChannel + width)
                                         }
-                                        // Finally, we can generate the code to make the connections.
+                                        // There will be nothing to do if the destination channel index
+                                        // is out of bounds.
+                                        if (destinationChannel < destination.instances.size) {
+                                            // There is at least one available channel at the destination.
+                                            // The number of connections now will be the minimum of the
+                                            // source width and the number of remaining channels at the
+                                            // destination.
+                                            if (destination.instances.size - destinationChannel < width) {
+                                                width = destination.instances.size - destinationChannel
+                                            }
+                                            // Finally, we can generate the code to make the connections.
+                                            pr('''
+                                                // Connect «source.getFullName»«comment» to input port «destination.getFullName»
+                                                int j = «sourceChannelCount»;
+                                                for (int i = «destinationChannel»; i < «destinationChannel» + «width»; i++) {
+                                                    «destinationReference(destination)»[i]
+                                                        = («destStructType»*)«sourceReference(eventualSource)»[j++];
+                                                }
+                                            ''')
+                                            sourceChannelCount += width
+                                        } else {
+                                            pr('''
+                                                // No destination channels available for connection from
+                                                // «source.getFullName»«comment» to input port «destination.getFullName».
+                                            ''')
+                                        }
+                                    } else {
+                                        // Source is a multiport, destination is a single port.
                                         pr('''
                                             // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                            int j = «sourceChannelCount»;
-                                            for (int i = «destinationChannel»; i < «destinationChannel» + «width»; i++) {
-                                                «destinationReference(destination)»[i]
-                                                    = («destStructType»*)«sourceReference(eventualSource)»[j++];
-                                            }
+                                            «destinationReference(destination)»
+                                                    = («destStructType»*)«sourceReference(eventualSource)»[«sourceChannelCount»];
                                         ''')
-                                        sourceChannelCount += width
-                                    } else {
-                                        pr('''
-                                            // No destination channels available for connection from
-                                            // «source.getFullName»«comment» to input port «destination.getFullName».
-                                        ''')
+                                        sourceChannelCount++
                                     }
                                 } else {
-                                    // Source is a multiport, destination is a single port.
+                                    pr('''
+                                        // No source channels available for connection from
+                                        // «source.getFullName»«comment» to input port «destination.getFullName».
+                                    ''')
+                                }
+                            } else if (destination instanceof MultiportInstance) {
+                                // Source is a single port, Destination is a multiport.
+                                // First, get the first available destination channel.
+                                var destinationChannel = destinationChannelCount.get(destination)
+                                if (destinationChannel === null) {
+                                    destinationChannel = 0
+                                    destinationChannelCount.put(destination, 1)
+                                } else {
+                                    // Add the width of the source to the index of the destination's
+                                    // next available channel. This may be out of bounds for the
+                                    // destination.
+                                    destinationChannelCount.put(destination, destinationChannel + 1)
+                                }
+                                // There will be nothing to do if the destination channel index
+                                // is out of bounds.
+                                if (destinationChannel < destination.instances.size) {
                                     pr('''
                                         // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                        «destinationReference(destination)»
-                                                = («destStructType»*)«sourceReference(eventualSource)»[«sourceChannelCount»];
+                                        «destinationReference(destination)»[«destinationChannel»]
+                                                = («destStructType»*)«sourceReference(eventualSource)»;
                                     ''')
-                                    sourceChannelCount++
+                                } else {
+                                    pr('''
+                                        // No destination channels available for connection from
+                                        // «source.getFullName»«comment» to input port «destination.getFullName».
+                                    ''')
                                 }
                             } else {
-                                pr('''
-                                    // No source channels available for connection from
-                                    // «source.getFullName»«comment» to input port «destination.getFullName».
-                                ''')
-                            }
-                        } else if (destination instanceof MultiportInstance) {
-                            // Source is a single port, Destination is a multiport.
-                            // First, get the first available destination channel.
-                            var destinationChannel = destinationChannelCount.get(destination)
-                            if (destinationChannel === null) {
-                                destinationChannel = 0
-                                destinationChannelCount.put(destination, 1)
-                            } else {
-                                // Add the width of the source to the index of the destination's
-                                // next available channel. This may be out of bounds for the
-                                // destination.
-                                destinationChannelCount.put(destination, destinationChannel + 1)
-                            }
-                            // There will be nothing to do if the destination channel index
-                            // is out of bounds.
-                            if (destinationChannel < destination.instances.size) {
+                                // Both ports are single ports.
                                 pr('''
                                     // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                    «destinationReference(destination)»[«destinationChannel»]
-                                            = («destStructType»*)«sourceReference(eventualSource)»;
-                                ''')
-                            } else {
-                                pr('''
-                                    // No destination channels available for connection from
-                                    // «source.getFullName»«comment» to input port «destination.getFullName».
+                                    «destinationReference(destination)» = («destStructType»*)«sourceReference(eventualSource)»;
                                 ''')
                             }
-                        } else {
-                            // Both ports are single ports.
-                            pr('''
-                                // Connect «source.getFullName»«comment» to input port «destination.getFullName»
-                                «destinationReference(destination)» = («destStructType»*)«sourceReference(eventualSource)»;
-                            ''')
                         }
                     }
                 }
@@ -4264,7 +4672,7 @@ class CGenerator extends GeneratorBase {
     protected static var DISABLE_REACTION_INITIALIZATION_MARKER
         = '// **** Do not include initialization code in this reaction.'
         
-    public static var DEFAULT_MIN_INTER_ARRIVAL = new TimeValue(1, TimeUnit.NSEC)
+    public static var UNDEFINED_MIN_SPACING = -1
     
        
     /** Returns the Target enum for this generator */

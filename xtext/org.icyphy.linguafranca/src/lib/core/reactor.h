@@ -58,9 +58,9 @@
 #include <limits.h>
 #include <errno.h>
 #include "pqueue.h"
+#include "util.h"
 
 //  ======== Macros ========  //
-
 #define CONSTRUCTOR(classname) (new_ ## classname)
 #define SELF_STRUCT_T(classname) (classname ## _self_t)
 
@@ -354,6 +354,11 @@ typedef long long instant_t;
 typedef long long interval_t;
 
 /**
+ * Microstep instant.
+ */
+typedef unsigned int microstep_t;
+
+/**
  * String type so that we don't have to use {= char* =}.
  * Use this for strings that are not dynamically allocated.
  * For dynamically allocated strings that have to be freed after
@@ -441,22 +446,39 @@ struct reaction_t {
     index_t index; // Inverse priority determined by dependency analysis. INSTANCE.
     unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph. INSTANCE.
     size_t pos;       // Current position in the priority queue. RUNTIME.
+    reaction_t* last_enabling_reaction; // The last enabling reaction, or NULL if there is none. Used for optimization. INSTANCE.
     int num_outputs;  // Number of outputs that may possibly be produced by this function. COMMON.
     bool** output_produced;   // Array of pointers to booleans indicating whether outputs were produced. COMMON.
     int* triggered_sizes;     // Pointer to array of ints with number of triggers per output. INSTANCE.
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
     interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
+    bool tardiness;           // Indicator of tardiness in one of the input triggers to this reaction. default = 0.
+                              // Value of True indicates to the runtime that this reaction contains trigger(s)
+                              // that are triggered at a later logical time that was originally anticipated.
+                              // Currently, this is only possible if logical
+                              // connections are used in a decentralized federated
+                              // execution. COMMON.
     reaction_function_t deadline_violation_handler; // Deadline violation handler. COMMON.
+    reaction_function_t tardy_handler; // Tardiness handler. Invoked when a trigger to this reaction
+                                       // was triggered at a later logical time than originally
+                                       // intended. Currently, this is only possible if logical
+                                       // connections are used in a decentralized federated
+                                       // execution. COMMON.
 };
 
+/** Typedef for event_t struct, used for storing activation records. */
+typedef struct event_t event_t;
+
 /** Event activation record to push onto the event queue. */
-typedef struct event_t {
+struct event_t {
     instant_t time;           // Time of release.
-    trigger_t* trigger;       // Associated trigger.
+    trigger_t* trigger;       // Associated trigger, NULL if this is a dummy event.
     size_t pos;               // Position in the priority queue.
     token_t* token;           // Pointer to the token wrapping the value.
-} event_t;
+    bool is_dummy;            // Flag to indicate whether this event is merely a placeholder or an actual event.
+    event_t* next;            // Pointer to the next event lined up in superdense time.
+};
 
 /**
  * Trigger struct representing an output, timer, action, or input.
@@ -470,12 +492,15 @@ struct trigger_t {
     interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
     token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action.
-//    instant_t scheduled;      // Tag of the last event that was scheduled for this action.
     event_t* last;            // Pointer to the last event that was scheduled for this action.
     policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
+    interval_t tardiness;     // The amount of discrepency in logical time between the original intended
+                              // trigger time of this trigger and the actual trigger time. This currently
+                              // can only happen when logical connections are used using a decentralized coordination
+                              // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
 };
 //  ======== Function Declarations ========  //
 
@@ -493,6 +518,11 @@ interval_t get_elapsed_logical_time();
  * @return A time instant.
  */
 instant_t get_logical_time();
+
+/**
+ * Return the current microstep.
+ */
+unsigned int get_microstep();
 
 /**
  * Return the current physical time in nanoseconds.
@@ -548,9 +578,15 @@ void __pop_events();
 handle_t __schedule(trigger_t* trigger, interval_t delay, token_t* token);
 
 /**
- * Function (to be code generated) to start timers.
+ * Function (to be code generated) to schedule timers.
  */
-void __start_timers();
+void __initialize_timers();
+
+/**
+ * Function (to be code generated) to trigger startup reactions.
+ */
+void __trigger_startup_reactions();
+
 
 /**
  * Function (to be code generated) to terminate execution.
@@ -591,6 +627,40 @@ token_t* create_token(size_t element_size);
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
 handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value);
+
+/**
+ * Get a new event. If there is a recycled event available, use that.
+ * If not, allocate a new one. In either case, all fields will be zero'ed out.
+ */
+event_t* _lf_get_new_event();
+
+/**
+ * Recycle the given event.
+ * Zero it out and pushed it onto the recycle queue.
+ */
+void _lf_recycle_event(event_t* e);
+
+/**
+ * Schedule events at a specific tag (time, microstep), provided
+ * that the tag is in the future relative to the current tag.
+ * The input time values are absolute.
+ * 
+ * If there is an event found at the requested tag, the payload
+ * is replaced and 0 is returned.
+ *
+ * @param time Logical time of the event
+ * @param microstep The microstep of the event in the given logical time
+ * @param trigger The trigger to be invoked at a later logical time.
+ * @param token The token wrapping the payload or NULL for no payload.
+ * 
+ * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
+ */
+int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigger, token_t* token);
+
+/**
+ * Create a dummy event to be used as a spacer in the event queue.
+ */
+event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* next, unsigned int offset);
 
 /**
  * Schedule the specified action with the specified token as a payload.
@@ -677,6 +747,13 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  * For a federated execution, broadcast stop() to all federates.
  */
 void __broadcast_stop();
+
+/**
+ * Advance from the current tag to the next. If the given next_time is equal to
+ * the current time, then increase the microstep. Otherwise, update the current
+ * time and set the microstep to zero.
+ */ 
+void _lf_advance_logical_time(instant_t next_time);
 
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.

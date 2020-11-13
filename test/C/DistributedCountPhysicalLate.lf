@@ -1,0 +1,63 @@
+/** Test a particularly simple form of a distributed deterministic system
+ *  where a federation that receives timestamped messages only over connections
+ *  that are marked 'physical' (using the ~> arrow).
+ *  Therefore, no additional coordination of the
+ *  advancement of time (HLA or Ptides) is needed.
+ *  This showcases the special tardy handler
+ *  that can be used on the receiving reaction.
+ *  @author Edward A. Lee
+ *  @author Soroush Bateni
+ */
+target C {
+    timeout: 1 sec
+};
+preamble {=
+    // #define VERBOSE
+=}
+reactor Count {
+    timer t(0, 200 msec);
+    state s:int(0);
+    output out:int;
+    reaction(t) -> out {=
+        SET(out, self->s);
+        self->s++;
+    =}
+}
+reactor Print {
+    input in:int;
+    state c:int(0);
+    reaction(in) {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("At time %lld, received %d\n", elapsed_time, in->value);
+        if (in->value    != self->c) {
+            fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
+            exit(1);
+        }
+        if (!(elapsed_time > MSEC(200) * self->c)) {
+            fprintf(stderr, "ERROR: Expected received time to be strictly greater than %lld.\n", MSEC(200) * self->c);
+            exit(3);
+        }
+        self->c++;
+    =} tardy {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("Message on physical connection was tardy. Received at time %lld "
+               "but the original intended timestamp was %lld.\n",
+                elapsed_time, elapsed_time - in->tardiness);
+        if (in->tardiness < 1LL) {
+        	fprintf(stderr, "ERROR: incorrect amount of tardiness received.");
+            exit(4);
+        }        
+        self->c++;
+    =}
+    reaction(shutdown) {=
+        if (self->c != 5) {
+            fprintf(stderr, "ERROR: Expected to receive 5 items. Received %d.\n", self->c);
+            exit(2);
+        }
+    =}
+}
+federated reactor DistributedCount at localhost {
+    c = new Count();
+    p = new Print();
+    c.out ~> p.in;    // Indicating a 'physical' connection.
+}

@@ -1,22 +1,29 @@
-target C;
+target C {threads: 1};
 main reactor ScheduleTwice {
     logical action a:int;
-    state got_it:bool(false);
+    state rc_count:int(0);
+    preamble {=
+        #define VERBOSE
+    =}
     reaction(startup) -> a {=
         schedule_int(a, MSEC(100), 42);
         schedule_int(a, MSEC(100), 84);
     =}
     reaction(a) {=
-        printf("Received %d.\n", a->value);
-        if (a->value != 84) {
-            fprintf(stderr, "Expected 84.\n");
+        printf("Received %d at tag(%lld, %u).\n", a->value, get_elapsed_logical_time(), get_microstep());
+        if (get_microstep() == 0 && a->value != 42) {
+            fprintf(stderr, "ERROR: Expected 42 at microstep 0.\n");
             exit(1);
         }
-        self->got_it = true;
+        if (get_microstep() == 1 && a->value != 84) {
+            fprintf(stderr, "ERROR: Expected 84 at microstep 1.\n");
+            exit(1);
+        }
+        self->rc_count++;
     =}
     reaction(shutdown) {=
-        if (!self->got_it) {
-            fprintf(stderr, "Didn't get any data.\n");
+        if (self->rc_count < 2) {
+            fprintf(stderr, "Didn't see two events.\n");
             exit(2);
         }
     =}

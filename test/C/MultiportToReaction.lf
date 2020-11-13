@@ -9,12 +9,13 @@ reactor Source(width:int(1)) {
     state s:int(0);
     output[width] out:int;
     reaction(t) -> out {=
+        printf("Sending.\n");
         for(int i = 0; i < out_width; i++) {
             SET(out[i], self->s++);
         }
     =}
 }
-main reactor MultiportFromReaction {
+main reactor MultiportToReaction {
     state s:int(6);
     reaction(b.out) {=
         int sum = 0;

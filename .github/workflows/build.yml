@@ -1,0 +1,181 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on: [push, pull_request]
+  # push:
+  #   branches: [ master ]
+  # pull_request:
+  #   branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  unit-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # Setup Build dependencies
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 14
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Run unit tests
+        run: |
+          cd xtext
+          ./gradlew test
+
+  c-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 14
+      - uses: actions/checkout@v2
+      # - name: Cache protobuf library # Thanks to https://lukasjoswiak.com/github-actions-protobuf/
+      #   id: cache-protobuf
+      #   uses: actions/cache@v1
+      #   with:
+      #     path: protobuf
+      #     key: ${{ runner.os }}-protobuf
+      # - name: Build protobuf library
+      #   if: steps.cache-protobuf.outputs.cache-hit != 'true'
+      #   run: |
+      #     git clone https://github.com/protocolbuffers/protobuf.git
+      #     cd protobuf
+      #     git submodule update --init --recursive
+      #     ./autogen.sh
+      #     ./autogen.sh
+      #     ./configure
+      #     make
+      #     make check
+      # - name: Install protobuf library
+      #   run: |
+      #     cd protobuf
+      #     sudo make install
+      #     sudo ldconfig
+      - name: Install Protobufs Ubuntu
+        run: sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
+        if: runner.os == 'Linux'
+      - name: Install Protobufs OS X
+        run: |
+          brew install protobuf-c
+        if: runner.os == 'macOS'
+      - name: Install Protobufs Windows
+        uses: lukka/run-vcpkg@v4
+        with:
+          vcpkgArguments: 'protobuf'
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+        if: runner.os == 'Windows'
+      - name: Run C tests;
+        run: |
+          bin/build-lfc;
+          bin/run-lf-tests C;
+  
+  cpp-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 14
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Run C++ tests;
+        run: |
+          bin/build-lfc;
+          bin/run-lf-tests Cpp;
+        
+  ts-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 14
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.1.2 
+      - name: Install Protobufs Ubuntu
+        run: sudo apt-get install libprotobuf-dev protobuf-compiler
+        if: runner.os == 'Linux'
+      - name: Install Protobufs OS X
+        run: |
+          brew install protobuf
+        if: runner.os == 'macOS'
+      - name: Install Protobufs Windows
+        uses: lukka/run-vcpkg@v4
+        with:
+          vcpkgArguments: 'protobuf'
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+        if: runner.os == 'Windows'
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+            submodules: true
+      # - name: Checkout submodules
+      #   uses: textbook/git-checkout-submodule-action@master # FIXME: will likely not work on windows. Workaround: https://github.com/textbook/git-checkout-submodule-action/issues/7
+      #- name: Checkout submodules
+      #  uses: srt32/git-actions@v0.0.3
+      #  with:
+      #    args: git submodule update --init --recursive
+      - name: Run TS tests;
+        run: |
+          bin/build-lfc;
+          bin/run-lf-tests TS;
+        
+  python-tests:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 14
+      - name: Setup Python
+        uses: actions/setup-python@v2.1.4
+      - name: Install Protobufs Ubuntu
+        run: sudo apt-get install libprotobuf-dev protobuf-compiler
+        if: runner.os == 'Linux'
+      - name: Install Protobufs OS X
+        run: |
+          brew install protobuf;
+        if: runner.os == 'macOS'
+      - name: Install Protobufs Windows
+        uses: lukka/run-vcpkg@v4
+        with:
+          vcpkgArguments: 'protobuf'
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+        if: runner.os == 'Windows'
+      - name: Install Google API Python Client
+        run: pip3 install --upgrade google-api-python-client
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2      
+      - name: Run Python tests;
+        run: |
+          bin/build-lfc;
+          bin/run-lf-tests Python;
+        
+
+    
