@@ -55,7 +55,7 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 reactor ArbiterReactor(numRounds:int(1000), numSmokers:int(200)) {
     
     public preamble {=
-        #include "include/PseudoRandom.hh"
+        #include "PseudoRandom.hh"
         #include "reactor-cpp/logging.hh"
     =}
     

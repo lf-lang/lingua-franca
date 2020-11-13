@@ -1,7 +1,7 @@
 target Cpp;
 
 import Philosopher from "Philosopher.lf";
-import Master from "Master.lf";
+import Master from "../Master.lf";
 
 
 reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
@@ -95,8 +95,179 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
         if (acquire_forks(forks, 0)) {
             p0.eat.set();
         } else {
-            p0.denied.set();
             retries++;
+            p0.denied.set();
+        }
+    =}
+    
+    reaction(p1.hungry) -> p1.eat, p1.denied {=
+        if (acquire_forks(forks, 1)) {
+            p1.eat.set();
+        } else {
+            retries++;
+            p1.denied.set();
+        }
+    =}
+
+    reaction(p2.hungry) -> p2.eat, p2.denied {=
+        if (acquire_forks(forks, 2)) {
+            p2.eat.set();
+        } else {
+            retries++;
+            p2.denied.set();
+        }
+    =}
+    
+    reaction(p3.hungry) -> p3.eat, p3.denied {=
+        if (acquire_forks(forks, 3)) {
+            p3.eat.set();
+        } else {
+            retries++;
+            p3.denied.set();
+        }
+    =}
+        
+    reaction(p4.hungry) -> p4.eat, p4.denied {=
+        if (acquire_forks(forks, 4)) {
+            p4.eat.set();
+        } else {
+            retries++;
+            p4.denied.set();
+        }
+    =}
+    
+    reaction(p5.hungry) -> p5.eat, p5.denied {=
+        if (acquire_forks(forks, 5)) {
+            p5.eat.set();
+        } else {
+            retries++;
+            p5.denied.set();
+        }
+    =}
+    
+    reaction(p6.hungry) -> p6.eat, p6.denied {=
+        if (acquire_forks(forks, 6)) {
+            p6.eat.set();
+        } else {
+            retries++;
+            p6.denied.set();
+        }
+    =}
+    
+    reaction(p7.hungry) -> p7.eat, p7.denied {=
+        if (acquire_forks(forks, 7)) {
+            p7.eat.set();
+        } else {
+            retries++;
+            p7.denied.set();
+        }
+    =}
+        
+    reaction(p8.hungry) -> p8.eat, p8.denied {=
+        if (acquire_forks(forks, 8)) {
+            p8.eat.set();
+        } else {
+            retries++;
+            p8.denied.set();
+        }
+    =}
+    
+    reaction(p9.hungry) -> p9.eat, p9.denied {=
+        if (acquire_forks(forks, 9)) {
+            p9.eat.set();
+        } else {
+            retries++;
+            p9.denied.set();
+        }
+    =}
+    
+    reaction(p10.hungry) -> p10.eat, p10.denied {=
+        if (acquire_forks(forks, 10)) {
+            p10.eat.set();
+        } else {
+            retries++;
+            p10.denied.set();
+        }
+    =}
+    
+    reaction(p11.hungry) -> p11.eat, p11.denied {=
+        if (acquire_forks(forks, 11)) {
+            p11.eat.set();
+        } else {
+            retries++;
+            p11.denied.set();
+        }
+    =}
+    
+    reaction(p12.hungry) -> p12.eat, p12.denied {=
+        if (acquire_forks(forks, 12)) {
+            p12.eat.set();
+        } else {
+            retries++;
+            p12.denied.set();
+        }
+    =}
+    
+    reaction(p13.hungry) -> p13.eat, p13.denied {=
+        if (acquire_forks(forks, 13)) {
+            p13.eat.set();
+        } else {
+            retries++;
+            p13.denied.set();
+        }
+    =}
+    
+    reaction(p14.hungry) -> p14.eat, p14.denied {=
+        if (acquire_forks(forks, 14)) {
+            p14.eat.set();
+        } else {
+            retries++;
+            p14.denied.set();
+        }
+    =}
+    
+    reaction(p15.hungry) -> p15.eat, p15.denied {=
+        if (acquire_forks(forks, 15)) {
+            p15.eat.set();
+        } else {
+            retries++;
+            p15.denied.set();
+        }
+    =}
+    
+    reaction(p16.hungry) -> p16.eat, p16.denied {=
+        if (acquire_forks(forks, 16)) {
+            p16.eat.set();
+        } else {
+            retries++;
+            p16.denied.set();
+        }
+    =}
+    
+    reaction(p17.hungry) -> p17.eat, p17.denied {=
+        if (acquire_forks(forks, 17)) {
+            p17.eat.set();
+        } else {
+            retries++;
+            p17.denied.set();
+        }
+    =}
+    
+    reaction(p18.hungry) -> p18.eat, p18.denied {=
+        if (acquire_forks(forks, 18)) {
+            p18.eat.set();
+        } else {
+            retries++;
+            p18.denied.set();
+        }
+    =}
+    
+    reaction(p19.hungry) -> p19.eat, p19.denied {=
+        if (acquire_forks(forks, 19)) {
+            p19.eat.set();
+        } else {
+            retries++;
+            p19.denied.set();
         }
     =}
     
@@ -104,247 +275,76 @@ reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {
         free_forks(forks, 0);
     =}
     
-    reaction(p1.hungry) -> p1.eat, p1.denied {=
-        if (acquire_forks(forks, 1)) {
-            p1.eat.set();
-        } else {
-            p1.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p1.done) {=
         free_forks(forks, 1);
-    =}
-    
-    reaction(p2.hungry) -> p2.eat, p2.denied {=
-        if (acquire_forks(forks, 2)) {
-            p2.eat.set();
-        } else {
-            p2.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p2.done) {=
         free_forks(forks, 2);
     =}
     
-    reaction(p3.hungry) -> p3.eat, p3.denied {=
-        if (acquire_forks(forks, 3)) {
-            p3.eat.set();
-        } else {
-            p3.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p3.done) {=
         free_forks(forks, 3);
-    =}
-    
-    reaction(p4.hungry) -> p4.eat, p4.denied {=
-        if (acquire_forks(forks, 4)) {
-            p4.eat.set();
-        } else {
-            p4.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p4.done) {=
         free_forks(forks, 4);
     =}
     
-    reaction(p5.hungry) -> p5.eat, p5.denied {=
-        if (acquire_forks(forks, 5)) {
-            p5.eat.set();
-        } else {
-            p5.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p5.done) {=
         free_forks(forks, 5);
-    =}
-    
-    reaction(p6.hungry) -> p6.eat, p6.denied {=
-        if (acquire_forks(forks, 6)) {
-            p6.eat.set();
-        } else {
-            p6.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p6.done) {=
         free_forks(forks, 6);
     =}
     
-    reaction(p7.hungry) -> p7.eat, p7.denied {=
-        if (acquire_forks(forks, 7)) {
-            p7.eat.set();
-        } else {
-            p7.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p7.done) {=
         free_forks(forks, 7);
-    =}
-        
-    reaction(p8.hungry) -> p8.eat, p8.denied {=
-        if (acquire_forks(forks, 8)) {
-            p8.eat.set();
-        } else {
-            p8.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p8.done) {=
         free_forks(forks, 8);
     =}
     
-    reaction(p9.hungry) -> p9.eat, p9.denied {=
-        if (acquire_forks(forks, 9)) {
-            p9.eat.set();
-        } else {
-            p9.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p9.done) {=
         free_forks(forks, 9);
-    =}
-    
-    reaction(p10.hungry) -> p10.eat, p10.denied {=
-        if (acquire_forks(forks, 10)) {
-            p10.eat.set();
-        } else {
-            p10.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p10.done) {=
         free_forks(forks, 10);
     =}
     
-    reaction(p11.hungry) -> p11.eat, p11.denied {=
-        if (acquire_forks(forks, 11)) {
-            p11.eat.set();
-        } else {
-            p11.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p11.done) {=
         free_forks(forks, 11);
-    =}
-    
-    reaction(p12.hungry) -> p12.eat, p12.denied {=
-        if (acquire_forks(forks, 12)) {
-            p12.eat.set();
-        } else {
-            p12.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p12.done) {=
         free_forks(forks, 12);
     =}
     
-    reaction(p13.hungry) -> p13.eat, p13.denied {=
-        if (acquire_forks(forks, 13)) {
-            p13.eat.set();
-        } else {
-            p13.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p13.done) {=
         free_forks(forks, 13);
-    =}
-    
-    reaction(p14.hungry) -> p14.eat, p14.denied {=
-        if (acquire_forks(forks, 14)) {
-            p14.eat.set();
-        } else {
-            p14.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p14.done) {=
         free_forks(forks, 14);
     =}
     
-    reaction(p15.hungry) -> p15.eat, p15.denied {=
-        if (acquire_forks(forks, 15)) {
-            p15.eat.set();
-        } else {
-            p15.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p15.done) {=
         free_forks(forks, 15);
-    =}
-    
-    reaction(p16.hungry) -> p16.eat, p16.denied {=
-        if (acquire_forks(forks, 16)) {
-            p16.eat.set();
-        } else {
-            p16.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p16.done) {=
         free_forks(forks, 16);
     =}
     
-    reaction(p17.hungry) -> p17.eat, p17.denied {=
-        if (acquire_forks(forks, 17)) {
-            p17.eat.set();
-        } else {
-            p17.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p17.done) {=
         free_forks(forks, 17);
     =}
     
-    reaction(p18.hungry) -> p18.eat, p18.denied {=
-        if (acquire_forks(forks, 18)) {
-            p18.eat.set();
-        } else {
-            p18.denied.set();
-            retries++;
-        }
-    =}
-    
     reaction(p18.done) {=
         free_forks(forks, 18);
-    =}
-    
-    reaction(p19.hungry) -> p19.eat, p19.denied {=
-        if (acquire_forks(forks, 19)) {
-            p19.eat.set();
-        } else {
-            p19.denied.set();
-            retries++;
-        }
     =}
     
     reaction(p19.done) {=

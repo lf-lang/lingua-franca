@@ -10,7 +10,7 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include : "RadixSort.cmake"
+    cmake-include : "../IncludeHeaders.cmake"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -19,7 +19,7 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}(2048)) {
     
     public preamble {=
-        #include "include/PseudoRandom.hh"
+        #include "PseudoRandom.hh"
         #include "reactor-cpp/logging.hh"
     =}
     
