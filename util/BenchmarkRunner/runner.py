@@ -36,12 +36,22 @@ class Experiment:
     # class variables
     _outputFileExtension = '.output'
     
-    def _runSequenceForSingleParam(self, sequenceSpec, resultOutput, logOutput):
+    def _runSequenceForSingleParam(self, sequenceSpec, resultOutput, logOutput, statusOutput=sys.stdout, errorOutput=sys.stderr):
+        ''' Run a list of commands one by one and write the outputs of the last command to resultOutput.
+        
+        Parameters:
+        sequenceSpec (list): List containing strings and lists of strings that are run through a shell or directly. Strings are run through a shell, lists of strings directly.
+        resultOutput: Object with a write method that stores the outputs, usually an open file.
+        logOutput: Object with a write method that stores log messages, usually an open file.
+        '''
         
         for commandIdx in range(len(sequenceSpec)):
+            
+            # execute through shell or not?
             shell = False
             if isinstance(sequenceSpec[commandIdx], str):
                 shell = True
+            
             if commandIdx < len(sequenceSpec)-1:
                 # run command with log output
                 try:
@@ -50,8 +60,9 @@ class Experiment:
                         shell=shell,
                         stdout=logOutput,
                         stderr=logOutput)
-                except:
-                    print(f'Error: Failed to run the command: {sequenceSpec[commandIdx].join()}', file=sys.stderr)
+                except Exception as e:
+                    print(f'Error: Failed to run the command: {sequenceSpec[commandIdx]}', file=errorOutput)
+                    print(e, file=errorOutput)
             else:
                 # run the last command and store output in output file
                 try:
@@ -60,79 +71,43 @@ class Experiment:
                         shell=shell,
                         stdout=resultOutput,
                         stderr=resultOutput)
-                except:
-                    print(f'Error: Failed to run the command: {sequenceSpec[commandIdx].join()}', file=sys.stderr)
+                except Exception as e:
+                    print(f'Error: Failed to run the command: {sequenceSpec[commandIdx]}', file=sys.stderr)
+                    print(e, file=errorOutput)
     
-    def _writePlotHeaderData(self, gnuplotFile, outputFileName, additionalCommands=None):
-        # For details see the gnuplot manual.
-        
-        # set the type of output with 'set terminal <type>' and additional parameters
-        print("set terminal pdfcairo enhanced color", file=gnuplotFile)
-        
-        # default is to output to stdout, change that to file output here
-        print(f'set output "{outputFileName}"', file=gnuplotFile)
-        
-        # labels of the axis
-        print(f'set xlabel "{self.experimentConfig["plotXAxisLabel"]}"', file=gnuplotFile)
-        print(f'set ylabel "{self.experimentConfig["plotYAxisLabel"]}"', file=gnuplotFile)
-        
-        #if factor < 1:
-        #  print("set xtics %d" % (int(4*factor)), file=gnuplotFile)
-        #else:
-        #print("set xtics 2", file=gnuplotFile)
-        
-        #print("set xrange [4:]", file=gnuplotFile)
-        
-        # set the separator token in the data files
-        print('set datafile separator ","', file=gnuplotFile)
-        
-        # set the title of the plot
-        print(f'set title "{self.experimentConfig["plotTitle"]}"', file=gnuplotFile)
-        
-        # enable showing a legend at position 'outside', the names of the key are
-        # specified when plotting
-        print("set key outside", file=gnuplotFile)
-        
-        if additionalCommands:
-            print(additionalCommands, file=gnuplotFile)
-    
-    def _processOutputFiles(self, parserNames, summarizerNames, outputFileNames):
+    def _processOutputFiles(self, outputFileNames):
         ''' Read, parse, summarize the output files of the experiment given by a parameter.
-        Store the complete data for each sequence in the object member self.valuesOfSequences.
+        Stores the data per sequence in the object member self.valuesOfSequences.
         self.valuesOfSequences is a dictionary that stores for each sequence indexed by its name
         a dicitonary that stores all pairs (parameter, value) of the sequence, indexed by the
         parameter value. Example:
         self.valuesOfSequences['seq1'] = { 1: 500, 2: 505, 3: 490 }
         This method also returns self.valuesOfSequences.
         
-        Object-level behaviour of method:
-        - Assumes valid parameters.
-        - Sets the object variable self.valuesOfSequences.
-        
         Parameters:
-        parserNames (dict): Mapping from sequence identifiers to module names of parsers.
-        summarizerNames (dict): Mapping from sequence identifiers to module names of summarizers.
-        outputFileNames (list): List of file names of output files generated during running this experiment. This method assumes a valid list.
+        outputFileNames (dict): Mapping of sequence names to a list of output file names. This method assumes a valid list.
         '''
-        parsers = {}
-        for implName in parserNames:
-            parsers[implName] = importlib.import_module(parserNames[implName])
-        summarizers = {}
-        for implName in summarizerNames:
-            summarizers[implName] = importlib.import_module(summarizerNames[implName])
+        # reset object variable for the results
         self.valuesOfSequences = {}
         
-        for sequenceName in self.sequencesToRun:
-            
-            # Parse output files of the experiment and summarize the measured values into
-            # a single value using the parser and summarizer specified in config file.
-            self.valuesOfSequences[sequenceName] = {}
-            resultFilesOfSequence = outputFileNames[sequenceName]
-            for parameter, resultFileName in resultFilesOfSequence.items():
-                with open(resultFileName, 'r') as resultFile:
-                    measurementValues = parsers[sequenceName].parse(resultFile, resultFileName)
-                    summarizedValue = summarizers[sequenceName].summarizeMeasurements(measurementValues, parameter, resultFileName)
-                    self.valuesOfSequences[sequenceName][parameter] = summarizedValue
+        # load parsers and summarizers
+        parsers = {}
+        for seqId in self.experimentConfig['parsers'].keys():
+            parsers[seqId] = importlib.import_module(self.experimentConfig['parsers'][seqId])
+        summarizers = {}
+        for seqId in self.experimentConfig['summarizers'].keys():
+            summarizers[seqId] = importlib.import_module(self.experimentConfig['summarizers'][seqId])
+        
+        # parse and summarize all output files in the list outputFileNames
+        for sequenceId in outputFileNames.keys():
+            if sequenceId in self.sequencesToRun:
+                self.valuesOfSequences[sequenceId] = []
+                resultFilesOfSequence = outputFileNames[sequenceId]
+                for parameter, resultFileName in resultFilesOfSequence:
+                    with open(resultFileName, 'r') as resultFile:
+                        measurementValues = parsers[sequenceId].parse(resultFile, resultFileName)
+                        summarizedValue = summarizers[sequenceId].summarizeMeasurements(measurementValues, parameter, resultFileName)
+                        self.valuesOfSequences[sequenceId].append( (parameter, summarizedValue) )
         
         return self.valuesOfSequences
     
@@ -142,26 +117,45 @@ class Experiment:
         Object-level behaviour of method:
         - Assumes the object-wide naming conventions for folders and files.
         - Uses self.outputPath as the base directory to search for output files.
-        - Sets and overwrites the object variable self.outputFileNames.
+        - Overwrites and sets the object variable self.outputFileNames.
         '''
         self.outputFileNames = {} # reset object member
-        folders = next(os.walk(self.outputPath))[1]
         
-        for folder in folders:
-            curentPath = os.path.join(self.outputPath, folder)
-            files = next(os.walk(curentPath))[2]
-            for file in files:
-                if file.endswith(Experiment._outputFileExtension):
-                    seqNameFromFileName = file[:(-len(Experiment._outputFileExtension))]
-                    if seqNameFromFileName in self.sequencesToRun:
+        # collect all folders that are supposed to correspond to parameters
+        folders = []
+        for dirpath, dirnames, filenames in os.walk(self.outputPath):
+            folders.extend(dirnames)
+            break
+        
+        for parameter, seqSpecs in self.sequences:
+            # find corresponding foler for param in specification
+            folderForCurrentParam = None
+            for folder in folders:
+                if folder == str(parameter):
+                    folderForCurrentParam = folder
+                    break
+            
+            if folderForCurrentParam:
+                curentPath = os.path.join(self.outputPath, folderForCurrentParam)
+                
+                # collect all files in folder corresponding to parameter
+                files = []
+                for dirpath, dirnames, filenames in os.walk(curentPath):
+                    files.extend(filenames)
+                    break
+                
+                for file in files:
+                    # check if file is valid file
+                    if file.endswith(Experiment._outputFileExtension) and (os.path.splitext(file)[0] in seqSpecs.keys()) and (os.path.splitext(file)[0] in self.sequencesToRun):
+                        seqNameFromFileName = file[:(-len(Experiment._outputFileExtension))]
                         if not seqNameFromFileName in self.outputFileNames:
-                            self.outputFileNames[seqNameFromFileName] = {}
-                        self.outputFileNames[seqNameFromFileName][folder] = os.path.join(curentPath, file)
+                            self.outputFileNames[seqNameFromFileName] = []
+                        self.outputFileNames[seqNameFromFileName].append( (parameter, os.path.join(curentPath, file)) )
         
         return self.outputFileNames
                     
     
-    def __init__(self, experimentId, experimentConfig, outputPathBase, sequencesToRun, sequenceNames):
+    def __init__(self, experimentId, experimentConfig, outputPathBase, sequencesToRun):
         '''Create a new Experiment.
         
         Parameters:
@@ -178,90 +172,68 @@ class Experiment:
         self.experimentConfig = experimentConfig
         self.sequences = experimentConfig['sequences']
         self.sequencesToRun = sequencesToRun
-        self.sequenceNames = sequenceNames
         self.name = experimentConfig['plotTitle']
     
     def getValueForGlobalPlot(self, sequenceName):
-        parameter = self.experimentConfig['sequenceParameterForGlobalPlot']
+        globalPlotParameter = self.experimentConfig['sequenceParameterForGlobalPlot']
+        if not hasattr(self, 'valuesOfSequences'):
+            if not hasattr(self, 'outputFileNames'):
+                self._compileListOfExistingOutputFiles()
+            self._processOutputFiles(self.outputFileNames)
         if sequenceName in self.valuesOfSequences:
-            return self.valuesOfSequences[sequenceName][parameter]
-        else:
-            return None
+            for param, val in self.valuesOfSequences[sequenceName]:
+                if param == globalPlotParameter:
+                    return val
+        print(f'Warning: Failed to retrieve value for global plot in experiment {self.experimentId} for sequence {sequenceName}.', file=sys.stderr)
+        return None
     
     def getGlobalPlotLabel(self):
         return self.experimentConfig['globalPlotXAxisLabel']
     
     def plotExperiment(self, parserNames, summarizerNames, sequenceColors=None):
-        # initializations
-        gnuplotFileName = self.experimentId + '.txt'
-        sequenceDataPaths = {}
         
         if not hasattr(self, 'outputFileNames'):
-            # assuming experiment did not run, searching existing output files
+            # assuming experiment did not run, search for existing output files in base directory
             self._compileListOfExistingOutputFiles()
-        self._processOutputFiles(parserNames, summarizerNames, self.outputFileNames)
+        self._processOutputFiles(self.outputFileNames)
         
-        for sequenceName in self.sequencesToRun:
-            
-            # Output the pairs (parameter, summarized value) of each sequence to a simple
-            # CSV file that can be read by gnuplot.
-            sequenceDataFileName = sequenceName + '.seq'
-            sequenceDataPaths[sequenceName] = os.path.join(self.outputPath, sequenceDataFileName)
-            
-            with open(sequenceDataPaths[sequenceName], 'w') as sequenceFile:
-                sequence = self.valuesOfSequences[sequenceName]
-                for parameter, value in sequence.items():
-                    sequenceFile.write(str(parameter) + ',' + str(value) + '\n')
-        
-        # create file for gnuplot and execute gnuplot
-        gnuPlotFilePath = os.path.join(self.outputPath, gnuplotFileName)
-        with open(gnuPlotFilePath, 'w') as gnuPlotFile:
-            self._writePlotHeaderData(
-                gnuplotFile = gnuPlotFile,
-                outputFileName = gnuplotFileName.replace('.txt', '.pdf'),
-                additionalCommands = self.experimentConfig['additionalGnuplotHeaderCommands'] )
-            plot_commands = []
-            for sequenceName in self.sequencesToRun:
-                plot_commands.append(f'"{os.path.basename(sequenceDataPaths[sequenceName])}" title "{self.sequenceNames[sequenceName]}" with linespoints')
-                if sequenceColors:
-                    plot_commands[-1] += f' linecolor {sequenceColors["sequenceName"]}'
-            
-            print("plot " + ",\\\n".join(plot_commands), file=gnuPlotFile)
-        try:
-            subprocess.run(args=['gnuplot', gnuplotFileName], cwd=self.outputPath)
-        except:
-            print('Failed to run "gnuplot".', file=sys.stderr)
-    
+        plotter = importlib.import_module(self.experimentConfig['plotter'])
+        plotter.plot(
+            valuesOfSequences = self.valuesOfSequences,
+            outputPath = self.outputPath,
+            experimentId = self.experimentId,
+            config = self.experimentConfig)
     
     def runExperiment(self, logOutput=sys.stdout):
-        '''
+        ''' Runs the commands specified for the experiment and stores the output in output files.
+        
         Object-level behaviour of method:
         - Sets and overwrites the object variable self.outputFileNames.
-        - ...
         '''
         
         os.makedirs(self.outputPath, exist_ok=True)
         self.outputFileNames = {}
-        for sequenceName in self.sequencesToRun:
-            self.outputFileNames[sequenceName] = {}
         
         numParameters = len(self.sequences)
-        numRunParameters = 0
-        for parameterValue, dictOfSequencesForParam in self.sequences.items():
-            numRunParameters += 1
+        numParametersRun = 0
+        for parameterValue, dictOfSequencesForParam in self.sequences:
+            numParametersRun += 1
             if(verbose):
-                print(f'    Running parameter {numRunParameters}/{numParameters}')
+                print(f'    Running parameter {numParametersRun}/{numParameters}')
             
             # create output dir
-            outputPathForParameter = os.path.join(self.outputPath, parameterValue)
+            outputPathForParameter = os.path.join(self.outputPath, str(parameterValue))
             os.makedirs(outputPathForParameter, exist_ok=True)
             
             # run all sequences for a single parameter
             for sequenceName, sequenceSpec in dictOfSequencesForParam.items():
                 # run sequence only if in list
                 if sequenceName in self.sequencesToRun:
+                    
                     outputFilePath = os.path.join(outputPathForParameter, sequenceName + Experiment._outputFileExtension)
-                    self.outputFileNames[sequenceName][parameterValue] = outputFilePath
+                    if not sequenceName in self.outputFileNames:
+                        self.outputFileNames[sequenceName] = []
+                    self.outputFileNames[sequenceName].append( (parameterValue, outputFilePath) )
                     with open(outputFilePath, 'w') as outputFile:
                         self._runSequenceForSingleParam(sequenceSpec, outputFile, logOutput)
             
@@ -298,7 +270,7 @@ def writeGlobalHeaderData(gnuplotFile, outputFileName, dataFileName, globalPlotC
     print(f'plot for [i=2:*] "{dataFileName}" using i:xtic(1)', file=gnuplotFile)
     
     # user defined commands
-    print(globalPlotConfig["additionalGnuplotHeaderCommands"], file=gnuplotFile)
+    print(globalPlotConfig["plotAdditionalGnuplotHeaderCommands"], file=gnuplotFile)
 
 
 def main():
@@ -365,14 +337,14 @@ def main():
     sequencesToRun = []
     if not args.sequences:
         for exp in experimentsToRun:
-            for param in config.experiments[exp]['sequences'].keys():
-                for seq in config.experiments[exp]['sequences'][param]:
+            for param, sequences in config.experiments[exp]['sequences']:
+                for seq in sequences:
                     if not seq in sequencesToRun:
                         sequencesToRun.append(seq)
     else:
         for exp in experimentsToRun:
-            for param in config.experiments[exp]['sequences'].keys():
-                for seq in config.experiments[exp]['sequences'][param]:
+            for param, sequences in config.experiments[exp]['sequences']:
+                for seq in sequences:
                     if (seq in args.sequences) and (not seq in sequencesToRun):
                         sequencesToRun.append(seq)
     
@@ -414,57 +386,64 @@ def main():
                 experimentId = experimentId,
                 outputPathBase = basePath,
                 experimentConfig = experimentConfig,
-                sequencesToRun = sequencesToRun,
-                sequenceNames = config.sequenceNames)
+                sequencesToRun = sequencesToRun)
             experiments.append(experiment)
         
-        # execute experiments
-        if not plotOnly:
-            # run experiments
-            numExperimentsRun = 0
-            for experiment in experiments:
+        # handle each experiment
+        numExperimentsRun = 0
+        for experiment in experiments:
+            
+            # run the experiment
+            if not plotOnly:
                 numExperimentsRun += 1
                 if verbose:
                     print(f'Running Experiment {numExperimentsRun}/{len(experimentsToRun)}: {experimentId}')
                 experiment.runExperiment(logFile)
-                
-                # plot the experiment
-                if not args.skipPlot:
-                    experiment.plotExperiment(config.parsers, config.summarizers)
+            
+            # plot the experiment
+            if not args.skipPlot:
+                experiment.plotExperiment(config.parsers, config.summarizers)
         
         # create global plot
-        if not args.skipPlotGlobal:
-            # create global overview graph for all experiments executed
-            globalPlotFileName = "overview.dat"
-            globalPlotFilePath = os.path.join(basePath, globalPlotFileName)
-            with open(globalPlotFilePath, 'w') as globalPlotFile:
-                
-                # write sequence names in first line of the data file
-                globalPlotFile.write(',' + ','.join(sequencesToRun) + '\n')
-                
-                # collect data and write line by line
-                for experiment in experiments:
-                    items = [experiment.getGlobalPlotLabel()]
-                    for sequenceName in sequencesToRun:
-                        if experiment.getValueForGlobalPlot(sequenceName):
-                            items.append(str(experiment.getValueForGlobalPlot(sequenceName)))
-                        else:
-                            items.append('0')
-                    globalPlotFile.write(','.join(items) + '\n')
-            
-            gnuplotFileName = 'gnuplot.txt'
-            gnuplotFilePath = os.path.join(basePath, gnuplotFileName)
-            with open(gnuplotFilePath, 'w') as gnuplotFile:
-                writeGlobalHeaderData(
-                    gnuplotFile = gnuplotFile,
-                    outputFileName = 'overview.pdf',
-                    dataFileName = globalPlotFileName,
-                    globalPlotConfig = config.globalPlot )
-            
-            try:
-                subprocess.run(args=['gnuplot', gnuplotFileName], cwd=basePath)
-            except:
-                print('Failed to run "gnuplot".', file=sys.stderr)
+#         if not args.skipPlotGlobal:
+#             # create global overview graph for all experiments executed
+#             globalPlotFileName = "overview.dat"
+#             globalPlotFilePath = os.path.join(basePath, globalPlotFileName)
+#             with open(globalPlotFilePath, 'w') as globalPlotFile:
+#                 
+#                 # write sequence names in first line of the data file
+#                 globalPlotFile.write(',' + ','.join(sequencesToRun) + '\n')
+#                 
+#                 # collect data and write line by line
+#                 for experiment in experiments:
+#                     items = [experiment.getGlobalPlotLabel()]
+#                     values = []
+#                     for sequenceName in sequencesToRun:
+#                         if experiment.getValueForGlobalPlot(sequenceName):
+#                             values.append(experiment.getValueForGlobalPlot(sequenceName))
+#                         else:
+#                             values.append(0)
+#                     # normalize value:
+#                     maxVal = max(values)
+#                     if maxVal != 0:
+#                         for i in range(len(values)):
+#                             values[i] = values[i] / maxVal
+#                             items.append(str(values[i]))
+#                     globalPlotFile.write(','.join(items) + '\n')
+#             
+#             gnuplotFileName = 'gnuplot.txt'
+#             gnuplotFilePath = os.path.join(basePath, gnuplotFileName)
+#             with open(gnuplotFilePath, 'w') as gnuplotFile:
+#                 writeGlobalHeaderData(
+#                     gnuplotFile = gnuplotFile,
+#                     outputFileName = 'overview.pdf',
+#                     dataFileName = globalPlotFileName,
+#                     globalPlotConfig = config.globalPlot )
+#             
+#             try:
+#                 subprocess.run(args=['gnuplot', gnuplotFileName], cwd=basePath)
+#             except:
+#                 print('Failed to run "gnuplot".', file=sys.stderr)
 
 if __name__ == "__main__":
     main()
