@@ -51,6 +51,8 @@ DistributedCountDecentralizedLateHierarchy.lf
 DistributedCountPhysical.lf
 DistributedCountPhysicalDecentralized.lf
 DistributedDoublePort.lf
+DistributedStop.lf
+DistributedStopZero.lf
 DistributedToken.lf
 DoubleInvocation.lf
 DoublePort.lf
