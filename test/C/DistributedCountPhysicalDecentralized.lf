@@ -9,12 +9,12 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 1 sec,
+    timeout: 1100 msec,
     coordination: decentralized
 };
 
 reactor Count {
-    timer t(0, 200 msec);
+    timer t(0, 400 msec);
     state s:int(0);
     output out:int;
     reaction(t) -> out {=
@@ -32,17 +32,18 @@ reactor Print {
             fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
             exit(1);
         }
-        if (!(elapsed_time > MSEC(200) * self->c)) {
+        if (!(elapsed_time > MSEC(400) * self->c)) {
             fprintf(stderr, "ERROR: Expected received time to be strictly greater than %lld.\n", MSEC(200) * self->c);
             exit(3);
         }
         self->c++;
     =}
     reaction(shutdown) {=
-        if (self->c != 5) {
-            fprintf(stderr, "ERROR: Expected to receive 5 items. Received %d.\n", self->c);
+        if (self->c != 3) {
+            fprintf(stderr, "ERROR: Expected to receive 3 items. Received %d.\n", self->c);
             exit(2);
         }
+        printf("SUCCESS: Successfully received 3 items.\n");
     =}
 }
 federated reactor DistributedCount at localhost {
