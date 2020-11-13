@@ -356,25 +356,6 @@ void send_tag(unsigned char type, instant_t time, microstep_t microstep) {
     write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer, "Federate %d failed to send tag (%lld, %u) to the RTI.", _lf_my_fed_id, time - start_time, microstep);
 }
 
-/** 
- * Send a STOP_REQUEST message to the RTI.
- * 
- * This function raises a global barrier on
- * logical time at the current time.
- * 
- * This function assumes the caller holds the mutex lock.
- */
-void _lf_fd_send_stop_request_to_rti() {
-    DEBUG_PRINT("Federate %d requesting a whole program stop.\n", _lf_my_fed_id);
-    // Raise a logical time barrier at the current time
-    _lf_increment_global_logical_time_barrier_already_locked(current_tag.time);
-    // Send a stop request with the current tag to the RTI
-    unsigned char buffer[1 + sizeof(instant_t)];
-    buffer[0] = STOP_REQUEST;
-    encode_ll(current_tag.time, &(buffer[1]));
-    write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t), buffer, "Federate %d failed to send stop time %lld to the RTI.", _lf_my_fed_id, current_tag.time - start_time);
-}
-
 /**
  * Thread to accept connections from other federates that send this federate
  * messages directly (not through the RTI). This thread starts a thread for
@@ -1060,6 +1041,25 @@ void handle_tag_advance_grant() {
     pthread_cond_broadcast(&event_q_changed);
     // DEBUG_PRINT("Federate %d pthread_mutex_unlock.", _lf_my_fed_id);
     pthread_mutex_unlock(&mutex);
+}
+
+/** 
+ * Send a STOP_REQUEST message to the RTI.
+ * 
+ * This function raises a global barrier on
+ * logical time at the current time.
+ * 
+ * This function assumes the caller holds the mutex lock.
+ */
+void _lf_fd_send_stop_request_to_rti() {
+    DEBUG_PRINT("Federate %d requesting a whole program stop.\n", _lf_my_fed_id);
+    // Raise a logical time barrier at the current time
+    _lf_increment_global_logical_time_barrier_already_locked(current_tag.time);
+    // Send a stop request with the current tag to the RTI
+    unsigned char buffer[1 + sizeof(instant_t)];
+    buffer[0] = STOP_REQUEST;
+    encode_ll(current_tag.time, &(buffer[1]));
+    write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t), buffer, "Federate %d failed to send stop time %lld to the RTI.", _lf_my_fed_id, current_tag.time - start_time);
 }
 
 /** 

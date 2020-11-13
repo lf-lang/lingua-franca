@@ -350,7 +350,7 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
  */
 bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
-    if (timeout_time > 0LL && logical_time_ns > timeout_time) {
+    if (timeout_time != -1LL && logical_time_ns > timeout_time) {
         // Modify the time to wait until to be the timeout time.
         logical_time_ns = timeout_time;
         // Indicate on return that the time of the event was not reached.
@@ -396,6 +396,22 @@ bool wait_until(instant_t logical_time_ns) {
 // Indicator used to identify the first invocation of __next().
 bool __first_invocation = true;
 
+
+/**
+ * A helper function that returns true if the provided tag is after timeout.
+ * It will also return true if stop_requested is set.
+ * 
+ * This function assumes the mutex is already locked.
+ * @param tag The tag to check against timeout time
+ */
+bool _lf_is_tag_after_timeout_already_locked(tag_t tag) {
+    if ((timeout_time != -1LL && compare_tags2(tag.time, tag.microstep, timeout_time, 0) > 0) ||
+        stop_requested == true) {
+        return true;
+    }
+    return false;
+}
+
 /**
  * If there is at least one event in the event queue, then wait until
  * physical time matches or exceeds the time of the least tag on the event
@@ -434,16 +450,18 @@ bool __next() {
         if (next_tag.time == current_tag.time) {
             next_tag.microstep =  get_microstep() + 1;
         }
+
         // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
         // If a timeout tag was given, adjust the next_tag from the
         // event tag to that timeout tag.
         // FIXME: This is primarily done to let the RTI
         // know about the timeout time? 
-        if (timeout_time != -1LL && compare_tags2(next_tag.time, next_tag.microstep, timeout_time, 0) > 0) {
+        if (_lf_is_tag_after_timeout_already_locked(next_tag)) {
             next_event_tag_is_after_timeout = true;
             next_tag = (tag_t) { .time = timeout_time, .microstep = 0 };
         }
 
+#ifdef _LF_IS_FEDERATED
         // In case this is in a federation, check whether tag can advance
         // to the next tag. If there are upstream federates, then this call
         // will block waiting for a response from the RTI.
@@ -457,6 +475,16 @@ bool __next() {
             return true;
         }
 
+        // Since next_event_tag releases the mutex lock internally, we need to check
+        // if the timeout time has changed or if stop is requested in case a 
+        // request_stop() has been called while the mutex was unlocked.
+        if (_lf_is_tag_after_timeout_already_locked(next_tag)) {
+            next_event_tag_is_after_timeout = true;
+            // Set the next tag to the current tag to stop as soon as possible
+            next_tag = current_tag;
+        }
+#endif
+
         // Wait for physical time to advance to the next event time (or stop time).
         // This can be interrupted if a physical action triggers (e.g., a message
         // arrives from an upstream federate or a local physical action triggers).
@@ -469,15 +497,17 @@ bool __next() {
             // Mutex lock was reacquired by wait_until.
             return true;
         }
-
+        
         // If the event queue has changed, return to iterate.
         if ((event_t*)pqueue_peek(event_q) != event) {
             return true;
         }
-
+        
+        // Since wait_until releases the mutex lock internally, we need to check
+        // if the timeout time has changed or if stop is requested in case a 
+        // request_stop() has been called while the mutex was unlocked.
         // If the event tag was past the timeout time, it is now safe to stop execution.
-        if (next_event_tag_is_after_timeout) {
-            // printf("DEBUG: __next(): logical stop time reached. Requesting stop.\n");
+        if (_lf_is_tag_after_timeout_already_locked(next_tag) || next_event_tag_is_after_timeout) {
             stop_requested = true;
             // Signal all the worker threads. Since both the queues are
             // empty, the threads will exit without doing anything further.
@@ -590,6 +620,8 @@ void request_stop() {
     // printf("DEBUG: pthread_mutex_locked\n");
 #ifdef _LF_IS_FEDERATED
     _lf_fd_send_stop_request_to_rti();
+    // Notify the RTI that nothing more will happen.
+    next_event_tag(FOREVER, 0);
     // Do not set stop_requested
     // since the RTI might grant a
     // later stop tag than the current
@@ -598,12 +630,10 @@ void request_stop() {
     // logical time.
 #else
     stop_requested = true;
-#endif
-    // Notify the RTI that nothing more will happen.
-    next_event_tag(FOREVER, 0);
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);
+#endif
     // printf("DEBUG: pthread_mutex_unlock stop\n");
     pthread_mutex_unlock(&mutex);
 }
