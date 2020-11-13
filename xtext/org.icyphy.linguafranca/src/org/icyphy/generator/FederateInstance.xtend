@@ -116,6 +116,24 @@ class FederateInstance {
      *  The sending federate needs to specify this ID.
      */
     public var networkMessageActions = new LinkedList<Action>()
+    
+    /** 
+     * A set of federates with which this federate has an inbound connection
+     * There will only be one physical connection even if federate A has defined multiple
+     * physical connections to federate B. The message handler on federate A will be 
+     * responsible for including the appropriate information in the message header (such as port ID)
+     * to help the receiver distinguish different events.
+     */
+    public var inboundP2PConnections = new LinkedHashSet<FederateInstance>()
+    
+    /**
+     * A list of federate with which this federate has an outbound physical connection. 
+     * There will only be one physical connection even if federate A has defined multiple
+     * physical connections to federate B. The message handler on federate B will be 
+     * responsible for distinguishing the incoming messages by parsing their header and
+     * scheduling the appropriate action.
+     */
+    public var outboundP2PConnections = new LinkedHashSet<FederateInstance>()
 
     /////////////////////////////////////////////
     //// Public Methods
@@ -219,5 +237,6 @@ class FederateInstance {
     var excludeReactions = null as Set<Reaction>
     
     /** The generator using this. */
-    var generator = null as GeneratorBase 
+    var generator = null as GeneratorBase
+    
 }

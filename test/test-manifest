@@ -44,7 +44,14 @@ DelayStructWithAfterOverlapped.lf
 Determinism.lf
 DeterminismThreaded.lf
 DistributedCount.lf
+DistributedCountDecentralized.lf
+DistributedCountDecentralizedLate.lf
+DistributedCountDecentralizedLateDownstream.lf
+DistributedCountDecentralizedLateHierarchy.lf
 DistributedCountPhysical.lf
+DistributedCountPhysicalLate.lf
+DistributedCountPhysicalDecentralized.lf
+DistributedCountPhysicalDecentralizedLate.lf
 DistributedToken.lf
 DoubleInvocation.lf
 DoubleReaction.lf
@@ -93,6 +100,8 @@ MultiportToReaction.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
+PingPong.lf
+PingPongThreaded.lf
 PingPongDistributed.lf
 Pipeline.lf
 Preamble.lf

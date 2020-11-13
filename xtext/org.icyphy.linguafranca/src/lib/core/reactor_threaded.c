@@ -28,6 +28,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 
 #include "reactor_common.c"
@@ -35,6 +36,29 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Number of idle worker threads.
 volatile int number_of_idle_threads = 0;
+
+/*
+ * A struct representing a barrier in threaded 
+ * Lingua Franca programs that can prevent advancement 
+ * of logical time if
+ * 1- Number of requestors is larger than 0
+ * 2- Value of horizon is not FOREVER
+ */
+typedef struct _lf_logical_time_advancement_barrier {
+    int requestors; // Used to indicate the number of
+                    // requestors that have asked
+                    // for a barrier to be raised
+                    // on logical time.
+    instant_t horizon; // If semaphore is larger than 0
+                       // then the runtime should not
+                       // advance its logical time beyond
+                       // the horizon.
+} _lf_logical_time_advancement_barrier;
+
+
+// Create a global logical time barrier and
+// initialize the barrier's semaphore to 0 and its horizon to FOREVER.
+_lf_logical_time_advancement_barrier _lf_global_logical_time_advancement_barrier = {0, FOREVER};
 
 // Queue of currently executing reactions.
 pqueue_t* executing_q;  // Sorted by index (precedence sort)
@@ -48,6 +72,129 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t event_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t reaction_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
+// A condition variable that notifies threads whenever the number
+// of requestors on the logical time barrier reach zero.
+pthread_cond_t global_logical_time_barrier_requestors_reached_zero = PTHREAD_COND_INITIALIZER;
+
+/**
+ * Raise a barrier on logical time at future_tag if possible (or freeze 
+ * the current logical time) and increment the total number of requestors 
+ * waiting on the barrier. There should always be a subsequent
+ * call to _lf_decrement_global_logical_time_barrier() or 
+ * _lf_decrement_global_logical_time_barrier_already_locked() to release
+ * the barrier.
+ * 
+ * If there is already a barrier raised at a later logical time, this 
+ * function will move it to future_tag or the current logical time, whichever
+ * is larger. If the existing barrier is earlier 
+ * than future_tag, this function will not move the barrier. If there are 
+ * no existing barriers and future_tag is in the past relative to current 
+ * logical time, this function will raise a barrier at the current logical 
+ * time.
+ * 
+ * This function assumes the mutex lock is not held, thus, it will acquire it itself.
+ * 
+ * @note This function is only useful in threaded applications to facilitate
+ *  certain non-blocking functionalities such as receiving timed messages
+ *  over the network or handling stop in the federated execution.
+ * 
+ * @param future_tag A desired tag for the barrier. This function will guarantee
+ * that current logical time will not go past future_tag if it is in the future.
+ * If future_tag is in the past (or equals to current logical time), the runtime
+ * will freeze advancement of logical time.
+ */
+void _lf_increment_global_logical_time_barrier(instant_t future_tag) {
+    pthread_mutex_lock(&mutex);
+    instant_t current_logical_time = get_logical_time();
+    // Check to see if future_tag is actually in the future
+    if (current_logical_time < future_tag) {
+        if (future_tag < _lf_global_logical_time_advancement_barrier.horizon) {
+            // The future tag is smaller than the current horizon of the barrier.
+            // Therefore, we should prevent logical time from reaching the
+            // expected tag.
+            _lf_global_logical_time_advancement_barrier.horizon = future_tag - 1; // Just before the requested tag.
+            DEBUG_PRINT("Raised barrier on logical time at %lld.", _lf_global_logical_time_advancement_barrier.horizon);
+        } 
+    } else {
+            // future_tag is not in the future.
+            // Therefore, hold the current logical time.
+            _lf_global_logical_time_advancement_barrier.horizon = current_logical_time;
+            DEBUG_PRINT("Raised barrier at current logical time %lld.", _lf_global_logical_time_advancement_barrier.horizon);
+    }
+    // Increment the number of requestors
+    _lf_global_logical_time_advancement_barrier.requestors++;
+    pthread_mutex_unlock(&mutex);
+}
+
+/**
+ * Decrement the total number of requestors for the global logical time barrier.
+ * If the total number of requestors reaches zero, this function resets the
+ * logical time barrier to FOREVER and notifies all threads that are waiting 
+ * on the barrier that the number of requestors has reached zero.
+ * 
+ * This function assumes that the caller already holds the mutex lock.
+ * 
+ * @note This function is only useful in threaded applications to facilitate
+ *  certain non-blocking functionalities such as receiving timed messages
+ *  over the network or handling stop in the federated execution.
+ */
+void _lf_decrement_global_logical_time_barrier_already_locked() {
+    // Decrement the number of requestors for the logical time barrier.
+    _lf_global_logical_time_advancement_barrier.requestors--;
+    // Check to see if the semaphore is negative, which indicates that
+    // a mismatched call was placed for this function.
+    if (_lf_global_logical_time_advancement_barrier.requestors < 0) {
+        fprintf(stderr, "Mismatched use of _lf_increment_global_logical_time_barrier()"
+         "and  _lf_decrement_global_logical_time_barrier().");
+        exit(1);
+    } else if (_lf_global_logical_time_advancement_barrier.requestors == 0) {
+        // When the semaphore reaches zero, reset the horizon to forever.
+        _lf_global_logical_time_advancement_barrier.horizon = FOREVER;
+        // Notify waiting threads that the semaphore has reached zero.
+        pthread_cond_broadcast(&global_logical_time_barrier_requestors_reached_zero);
+    }
+    DEBUG_PRINT("Barrier is at logical time %lld.", _lf_global_logical_time_advancement_barrier.horizon);
+}
+
+/**
+ * @see _lf_decrement_global_logical_time_barrier_already_locked()
+ * A variant of _lf_decrement_global_logical_time_barrier_already_locked() that
+ * assumes the caller does not hold the mutex lock, thus, it will acquire it
+ * itself.
+ * 
+ * @note This function is only useful in threaded applications to facilitate
+ *  certain non-blocking functionalities such as receiving timed messages
+ *  over the network or handling stop in the federated execution.
+ */
+void _lf_decrement_global_logical_time_barrier() {
+    pthread_mutex_lock(&mutex);
+    // Call the original function
+    _lf_decrement_global_logical_time_barrier_already_locked();
+    pthread_mutex_unlock(&mutex);
+}
+
+/**
+ * A function that will wait if the proposed time
+ * is larger than a requested barrier on logical time until
+ * that barrier is lifted.
+ * 
+ * 
+ * This function assumes the mutex is already locked.
+ * Thus, it unlocks the mutex while it's waiting to allow
+ * the logical time barrier to change.
+ * 
+ * @param proposed_time The timestamp that the runtime wants
+ *  to advance to.
+ */
+void _lf_wait_on_global_logical_time_barrier(instant_t proposed_time) {
+    // Wait if the global barrier semaphore on logical time is zero
+    // and the proposed_time is larger than the horizon.
+    while (proposed_time > _lf_global_logical_time_advancement_barrier.horizon) {
+        DEBUG_PRINT("Waiting on barrier for time %lld.", proposed_time);
+        // Wait until no requestor remains for the barrier on logical time
+        pthread_cond_wait(&global_logical_time_barrier_requestors_reached_zero, &mutex);
+    }
+}
 
 /**
  * Schedule the specified trigger at current_time plus the offset of the
@@ -143,21 +290,27 @@ void logical_time_complete(instant_t time);
  */
 instant_t next_event_time(instant_t time);
 
-/** Wait until physical time matches or exceeds the specified logical time,
- *  unless -fast is given.
+/**
+ * Wait until physical time matches or exceeds the specified logical time,
+ * unless -fast is given. If a barrier on logical time is raised at an earlier
+ * logical time, wait until the barrier is removed.
  *
- *  If an event is put on the event queue during the wait, then the wait is
- *  interrupted and this function returns false. It also returns false if the
- *  timeout time is reached before the wait has completed.
+ * If an event is put on the event queue during the wait, then the wait is
+ * interrupted and this function returns false. It also returns false if the
+ * timeout time is reached before the wait has completed.
+ * 
+ * In certain cases, if a reaction is added to the reaction queue during the
+ * wait, this function returns false to allow for execution of those reactions.
+ * 
  *
- *  The mutex lock is assumed to be held by the calling thread.
- *  Note this this could return true even if the a new event
- *  was placed on the queue if that event time matches or exceeds
- *  the specified time.
+ * The mutex lock is assumed to be held by the calling thread.
+ * Note this this could return true even if the a new event
+ * was placed on the queue if that event time matches or exceeds
+ * the specified time.
  *
- *  @return False if the wait is interrupted either because of an event
- *   queue signal or if the wait time was interrupted early by reaching
- *   the stop time, if one was specified.
+ * @return False if the wait is interrupted either because of an event
+ *  queue signal or if the wait time was interrupted early by reaching
+ *  the stop time, if one was specified.
  */
 bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
@@ -187,7 +340,15 @@ bool wait_until(instant_t logical_time_ns) {
             return_value = false;
         }
         // printf("DEBUG: -------- Returned from wait.\n");
+
     }
+#ifdef _LF_IS_FEDERATED // Only wait on the logical time barrier in federated LF programs
+    // Wait until the global barrier on logical time (horizon) is larger
+    // than the logical_time_ns.
+    // This can effectively add to the STP offset in certain cases, for example,
+    // when a message with timestamp (0,0) has arrived at (0,0).
+    _lf_wait_on_global_logical_time_barrier(logical_time_ns);
+#endif
     return return_value;
 }
 
@@ -227,7 +388,7 @@ bool __next() {
     if (event != NULL) {
         // There is an event in the event queue.
         next_time = event->time;
-
+        // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
         // If a stop time was given, adjust the next_time from the
         // event time to that stop time.
         if (stop_time > 0LL && next_time > stop_time) {
@@ -261,7 +422,9 @@ bool __next() {
         }
 
         // If the event queue has changed, return to iterate.
-        if ((event_t*)pqueue_peek(event_q) != event) return true;
+        if ((event_t*)pqueue_peek(event_q) != event) {
+            return true;
+        }
 
         // If the event time was past the stop time, it is now safe to stop execution.
         if (event->time != next_time) {
@@ -272,11 +435,12 @@ bool __next() {
             pthread_cond_broadcast(&reaction_q_changed);
             return false;
         }
-
+                
         // At this point, finally, we have an event to process.
         // Advance current time to match that of the first event on the queue.
-        current_time = next_time;
-        // printf("DEBUG: __next(): ********* Advanced logical time to %lld.\n", current_time - start_time);
+        _lf_advance_logical_time(next_time);
+
+        DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_time - start_time);
 
         // Invoke code that must execute before starting a new logical time round,
         // such as initializing outputs to be absent.
@@ -295,6 +459,7 @@ bool __next() {
         if (stop_time > 0LL) {
             next_time = stop_time;
         }
+
         // Ask the RTI to advance time to either stop_time or FOREVER.
         // This will be granted if there are no upstream federates.
         // If there are upstream federates, then the call will block
@@ -324,6 +489,7 @@ bool __next() {
             // the event queue. Continue executing.
             return true;
         }
+
         // If we get here, the RTI has granted time advance to the stop time
         // (or there is only federate, or to FOREVER is there is no stop time)
         // and keepalive has been specified.
@@ -486,6 +652,26 @@ reaction_t* first_ready_reaction() {
 volatile bool __advancing_time = false;
 
 /**
+ * Put the specified reaction on the reaction queue.
+ * This version acquires a mutex lock.
+ * @param reaction The reaction.
+ */
+void _lf_enqueue_reaction(reaction_t* reaction) {
+    // Acquire the mutex lock.
+    // printf("DEBUG: pthread_mutex_lock worker to queue downstream reaction.\n");
+    pthread_mutex_lock(&mutex);
+    // printf("DEBUG: pthread_mutex_locked\n");
+    // Do not enqueue this reaction twice.
+    if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+        // printf("DEBUG: Enqueing downstream reaction %p.\n", reaction);
+        pqueue_insert(reaction_q, reaction);
+        pthread_cond_signal(&reaction_q_changed);
+    }
+    pthread_mutex_unlock(&mutex);
+    // printf("DEBUG: pthread_mutex_unlock after queueing downstream reaction.\n");
+}
+
+/**
  * Worker thread for the thread pool.
  */
 void* worker(void* arg) {
@@ -517,10 +703,10 @@ void* worker(void* arg) {
                     && pqueue_size(executing_q) == 0
                     && !__advancing_time)
             {
-                if (!__first_invocation) {
-                    logical_time_complete(current_time);
-                }
-                __first_invocation = false;
+                //if (!__first_invocation) {
+                logical_time_complete(current_time);
+                //}
+                //__first_invocation = false;
                 // The following will set stop_requested if there are
                 // no events to process. It may block waiting for events
                 // to appear on the event queue, but in any case, it will
@@ -559,13 +745,49 @@ void* worker(void* arg) {
                 pthread_cond_signal(&reaction_q_changed);
             }
         
+
+            bool violation = false;
+            // If the tardiness for the reaction is true,
+            // an input trigger to this reaction has been triggered at a later
+            // logical time than originally anticipated. In this case, a special
+            // tardy reaction will be invoked.             
+            // FIXME: Note that the tardy reaction will be invoked
+            // at most once per logical time value. If the tardy reaction triggers the
+            // same reaction at the current time value, even if at a future superdense time,
+            // then the reaction will be invoked and the tardy reaction will not be invoked again.
+            // However, inputs ports to a federate reactor are network port types so this possibly should
+            // be disallowed.
+            // @note The tardy handler and the deadline handler are not mutually exclusive.
+            //  In other words, both can be invoked for a reaction if it is triggered late
+            //  in logical time (tardy) and also misses the constraint on physical time (deadline).
+            // @note In absence of a tardy handler, the tardiness will be passed down the reaction
+            //  chain until it is dealt with in a downstream tardy handler.
+            if (reaction->tardiness == true) {
+                reaction_function_t handler = reaction->tardy_handler;
+                DEBUG_PRINT("Invoking tardiness handler %p.", handler);
+                // Invoke the tardy handler if there is one.
+                if (handler != NULL) {
+                    // There is a violation
+                    violation = true;
+                    // Unlock the mutex to run the reaction.
+                    DEBUG_PRINT("pthread_mutex_unlock to run tardiness handler.\n");
+                    pthread_mutex_unlock(&mutex);
+                    (*handler)(reaction->self);
+
+                    // If the reaction produced outputs, put the resulting
+                    // triggered reactions into the queue or execute them directly if possible.
+                    schedule_output_reactions(reaction);
+                    
+                    // Reset the tardiness because it has been dealt with
+                    reaction->tardiness = false;
+                }
+            }
             // If the reaction has a deadline, compare to current physical time
             // and invoke the deadline violation reaction instead of the reaction function
             // if a violation has occurred. Note that the violation reaction will be invoked
             // at most once per logical time value. If the violation reaction triggers the
             // same reaction at the current time value, even if at a future superdense time,
             // then the reaction will be invoked and the violation reaction will not be invoked again.
-            bool violation = false;
             if (reaction->deadline > 0LL) {
                 // Get the current physical time.
                 struct timespec current_physical_time;
@@ -575,7 +797,7 @@ void* worker(void* arg) {
                         current_physical_time.tv_sec * BILLION
                         + current_physical_time.tv_nsec;
                 // Check for deadline violation.
-                if (reaction->deadline > 0LL && physical_time > current_time + reaction->deadline) {
+                if (physical_time > current_time + reaction->deadline) {
                     // Deadline violation has occurred.
                     violation = true;
                     // Invoke the local handler, if there is one.
@@ -585,42 +807,53 @@ void* worker(void* arg) {
                         // printf("DEBUG: pthread_mutex_unlock to run deadline handler.\n");
                         pthread_mutex_unlock(&mutex);
                         (*handler)(reaction->self);
-                        // printf("DEBUG: pthread_mutex_lock worker after running deadline handler\n");
-                        pthread_mutex_lock(&mutex);
-                        // printf("DEBUG: pthread_mutex_locked\n");
+
                         // If the reaction produced outputs, put the resulting
-                        // triggered reactions into the queue.
+                        // triggered reactions into the queue or execute them directly if possible.
                         schedule_output_reactions(reaction);
                         // Remove the reaction from the executing queue.
-                        // This thread holds the mutex lock, so if this is the last
-                        // reaction of the current time step, this thread will also
-                        // be the one to advance time.
-                        pqueue_remove(executing_q, reaction);
                     }
                 }
             }
-            if (!violation) {
+            if (violation) {
+                // Need to acquire the mutex lock to remove this from the executing queue
+                // and to obtain the next reaction to execute.
+                // printf("DEBUG: pthread_mutex_lock worker after running deadline handler\n");
+                pthread_mutex_lock(&mutex);
+                // printf("DEBUG: pthread_mutex_locked\n");
+
+                // The reaction is not going to be executed. However,
+                // this thread holds the mutex lock, so if this is the last
+                // reaction of the current time step, this thread will also
+                // be the one to advance time.
+                pqueue_remove(executing_q, reaction);
+            } else {
                 // Unlock the mutex to run the reaction.
                 // printf("DEBUG: pthread_mutex_unlock to invoke reaction function\n");
                 pthread_mutex_unlock(&mutex);
                 // Invoke the reaction function.
                  // printf("DEBUG: worker: Invoking reaction.\n");
                 reaction->function(reaction->self);
+                // If the reaction produced outputs, put the resulting triggered
+                // reactions into the queue while holding the mutex lock.
+                schedule_output_reactions(reaction);
+
                 // Reacquire the mutex lock.
                 // printf("DEBUG: pthread_mutex_lock worker after invoking reaction function\n");
                 pthread_mutex_lock(&mutex);
                 // printf("DEBUG: pthread_mutex_locked\n");
-                // If the reaction produced outputs, put the resulting triggered
-                // reactions into the queue while holding the mutex lock.
-                schedule_output_reactions(reaction);
+
                 // Remove the reaction from the executing queue.
                 // This thread holds the mutex lock, so if this is the last
                 // reaction of the current time step, this thread will also
                 // be the one to advance time.
                 pqueue_remove(executing_q, reaction);
-
-                 // printf("DEBUG: worker: Done invoking reaction.\n");
             }
+            // Reset the tardiness because it has been passed
+            // down the chain
+            reaction->tardiness = false;
+
+            // printf("DEBUG: worker: Done invoking reaction.\n");
         }
     } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
@@ -666,18 +899,17 @@ void __execute_reactions_during_wrapup() {
     // NOTE: deadlines on these reactions are ignored.
     // Is that the right thing to do?
     while (pqueue_size(reaction_q) > 0) {
-        reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
-
-        // Invoke the reaction function.
-        pthread_mutex_unlock(&mutex);
-        // printf("DEBUG: wrapup(): Invoking reaction.\n");
-        reaction->function(reaction->self);
         pthread_mutex_lock(&mutex);
+        reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
+        pthread_mutex_unlock(&mutex);
+        // Invoke the reaction function.
+        DEBUG_PRINT("wrapup(): Invoking reaction.\n");
+        reaction->function(reaction->self);
 
         // If the reaction produced outputs, insert the resulting triggered
         // reactions into the reaction queue.
         schedule_output_reactions(reaction);
-        // printf("DEBUG: wrapup(): Done invoking reaction.\n");
+        DEBUG_PRINT("wrapup(): Done invoking reaction.\n");
     }
 }
 
@@ -704,9 +936,12 @@ void wrapup() {
         __next(); // Ignore return value. We already know we need to terminate.
         __execute_reactions_during_wrapup();
     }
+    
     current_time = wrapup_time;
 
     // Notify the RTI that the current logical time is complete.
+    // This function informs the RTI of the current_time in a 
+    // non-blocking manner.
     logical_time_complete(current_time);
 
     pthread_mutex_unlock(&mutex);
@@ -719,7 +954,7 @@ void wrapup() {
         // __wrapup() returns true if it has put shutdown events
         // onto the event queue.  We need to run reactions to those
         // events.
-         // printf("DEBUG: __wrapup returned true.\n");
+        DEBUG_PRINT("__wrapup returned true.");
         
         // Execute one iteration of next(), which will process the next
         // timestamp on the event queue, moving its reactions to the reaction
@@ -727,11 +962,12 @@ void wrapup() {
         // queue. We have to acquire the mutex first.
         pthread_mutex_lock(&mutex);
         if (__next()) {
-            // printf("DEBUG: wrapup: next() returned\n");
+            DEBUG_PRINT("wrapup: next() returned");
             __execute_reactions_during_wrapup();
         }
         pthread_mutex_unlock(&mutex);
     }
+
 }
 
 int main(int argc, char* argv[]) {
@@ -754,6 +990,10 @@ int main(int argc, char* argv[]) {
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mutex, &attr);
 
+    if (atexit(termination) != 0) {
+        fprintf(stderr, "WARNING: Failed to register termination function!");
+    }
+
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
         // printf("DEBUG: pthread_mutex_lock main\n");
@@ -767,7 +1007,23 @@ int main(int argc, char* argv[]) {
         executing_q = pqueue_init(number_of_threads, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
 
-        __start_timers();
+        __trigger_startup_reactions();
+        __initialize_timers();
+
+        // At this time, reactions (startup, etc.) are added to the 
+        // reaction queue that will be executed at tag (0,0).
+        // Before we could do so, we need to ask the RTI if it is 
+        // okay.
+        instant_t grant_time = next_event_time(start_time);
+        if (grant_time != start_time) {
+            // This is a critical condition
+            fprintf(stderr, "Federate received a grant time earlier than start time.\n");
+            exit(1);
+        }
+        
+        _lf_execution_started = true;
+        DEBUG_PRINT("Started execution.");
+
         start_threads();
         // printf("DEBUG: pthread_mutex_unlock main\n");
         pthread_mutex_unlock(&mutex);
@@ -791,10 +1047,8 @@ int main(int argc, char* argv[]) {
         free(__thread_ids);
 
         wrapup();
-        termination();
         return 0;
     } else {
-        termination();
         return -1;
     }
 }

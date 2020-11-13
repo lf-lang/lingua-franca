@@ -36,10 +36,61 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>     // Defines read(), write(), and close()
 #include <assert.h>
 #include <string.h>     // Defines memcpy()
+#include <stdarg.h>     // Defines va_list
 
 #ifndef NUMBER_OF_FEDERATES
 #define NUMBER_OF_FEDERATES 1
 #endif
+
+/**
+ * A function that can be used in lieu of fprintf(stderr, ...).
+ * The input to this function is exactly like printf: (format, ...).
+ * An "ERROR: " moniker is appended to the beginning of the error message
+ * using strcpy and the format and a new line are appended at the
+ * end of the printed message using strcat.
+ * The size of the error message depends on the size of the input format, which
+ * should be a null-terminated string.
+ * 
+ * FIXME: This function could be slow. The strcat is required because this 
+ * function is used in a multi-threaded application. Using multiple calls 
+ * to vfprintf will result in staggered output of the function and an incorrect
+ * output format.
+ */
+void error_print(char* format, ...) {
+    va_list args;
+    char error_message[strlen(format) + 8];
+    strcpy(error_message,  "ERROR: ");
+    strcat(error_message, format);
+    strcat(error_message, "\n");
+    va_start (args, format);
+    vfprintf(stderr, error_message, args);
+    va_end (args);
+}
+
+/**
+ * A function that can be used in lieu of fprintf(stderr, ...) that also exits
+ * the program. The input to this function is exactly like printf: (format, ...).
+ * An "ERROR: " moniker is appended to the beginning of the error message
+ * using strcpy and the format and a new line are appended at the
+ * end of the printed message using strcat.
+ * The size of the error message depends on the size of the input format, which
+ * should be a null-terminated string.
+ * 
+ * FIXME: This function could be slow. The strcat is required because this 
+ * function is used in a multi-threaded application. Using multiple calls 
+ * to vfprintf will result in staggered output of the function and an incorrect
+ * output format.
+ */
+void error_print_and_exit(char* format, ...) {
+    va_list args;
+    char error_message[strlen(format) + 8];
+    strcpy(error_message,  "ERROR: ");
+    strcat(error_message, format);
+    strcat(error_message, "\n");
+    va_start (args, format);
+    vfprintf(stderr, error_message, args);
+    exit(EXIT_FAILURE);
+}
 
 /** Print the error defined by the errno variable with the
  *  specified message as a prefix, then exit with error code 1.
@@ -68,22 +119,35 @@ int host_is_big_endian() {
 }
 
 // Error messages.
-char* ERROR_DISCONNECTED = "ERROR socket is not connected";
-char* ERROR_EOF = "ERROR peer sent EOF";
+char* ERROR_DISCONNECTED = "ERROR socket is not connected.";
+char* ERROR_EOF = "ERROR peer sent EOF.";
 
-/** Read the specified number of bytes from the specified socket into the
- *  specified buffer. If a disconnect or an EOF occurs during this
- *  reading, report an error and exit.
- *  @param socket The socket ID.
- *  @param num_bytes The number of bytes to read.
- *  @param buffer The buffer into which to put the bytes.
+/** 
+ * Read the specified number of bytes from the specified socket into the
+ * specified buffer. If a disconnect or an EOF occurs during this
+ * reading, report an error and exit. This function takes a formatted 
+ * string and additional optional arguments similar to printf(format, ...)
+ * that is appended to the error messages.
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to read.
+ * @param buffer The buffer into which to put the bytes.
  */
-void read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
+void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* format, ...) {
     int bytes_read = 0;
+    va_list args;
     while (bytes_read < num_bytes) {
         int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
-        if (more < 0) error(ERROR_DISCONNECTED);
-        if (more == 0) error(ERROR_EOF);
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
+            // The error code set by the socket indicates
+            // that we should try again (@see man errno).
+            continue;
+        } else if (more < 0) {
+            fprintf(stderr, "ERROR socket is not connected. ");
+            error_print_and_exit(format, args);
+        } else if (more == 0) {
+            fprintf(stderr, "ERROR peer sent EOF. ");
+            error_print_and_exit(format, args);
+        }
         bytes_read += more;
     }
 }
@@ -109,19 +173,34 @@ int read_from_socket2(int socket, int num_bytes, unsigned char* buffer) {
     return bytes_read;
 }
 
-/** Write the specified number of bytes to the specified socket from the
- *  specified buffer. If a disconnect or an EOF occurs during this
- *  reading, report an error and exit.
- *  @param socket The socket ID.
- *  @param num_bytes The number of bytes to write.
- *  @param buffer The buffer from which to get the bytes.
+/**
+ * Write the specified number of bytes to the specified socket from the
+ * specified buffer. If a disconnect or an EOF occurs during this
+ * reading, report an error and exit. This function takes a formatted 
+ * string and additional optional arguments similar to printf(format, ...)
+ * that is appended to the error messages.
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to write.
+ * @param buffer The buffer from which to get the bytes.
+ * @param format A format string for error messages, followed by any number of
+ *  fields that will be used to fill the format string as in printf.
  */
-void write_to_socket(int socket, int num_bytes, unsigned char* buffer) {
+void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* format, ...) {
     int bytes_written = 0;
+    va_list args;
     while (bytes_written < num_bytes) {
         int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
-        if (more < 0) error(ERROR_DISCONNECTED);
-        if (more == 0) error(ERROR_EOF);
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
+            // The error code set by the socket indicates
+            // that we should try again (@see man errno).
+            continue;
+        } else if (more < 0) {
+            fprintf(stderr, "ERROR socket is not connected. ");
+            error_print_and_exit(format, args);
+        } else if (more == 0) {
+            fprintf(stderr, "ERROR peer sent EOF.");
+            error_print_and_exit(format, args);
+        }
         bytes_written += more;
     }
 }

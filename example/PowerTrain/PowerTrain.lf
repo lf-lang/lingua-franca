@@ -7,9 +7,9 @@ reactor EngineControl {
 	input on_off:bool;
 	input angle:int;
 	output torque:int;
-	output check:bool; 
+	output check:int; 
 	state braking:bool(true);
-	timer pulse(0, 10 msec);
+	physical action crank(0, 5 msec, "drop"):bool;
 	
 	reaction(on_off) -> torque {=
 		if(self->braking) {
@@ -26,7 +26,7 @@ reactor EngineControl {
 		}	
 	=}
 	
-	reaction(pulse) -> check {=
+	reaction(crank) -> check {=
 		SET(check, true);	
 	=} 
 }
@@ -40,15 +40,11 @@ reactor LeftPedal {
 	
 	output angle:int;
 	output on_off:bool;
-	timer t(0);
-	timer check(0, 2 msec);
+	
+	physical action a(0, 1 msec, "replace"):int;
 	state pressed:int(0);
-	
-    reaction(t) {=
-    	// Configure sensor.
-    =}
-	
-    reaction(check) -> angle, on_off {=
+   
+    reaction(a) -> angle, on_off {=
         int a = (int) *mm_reg;
         if(!self->pressed && a > ZERO_MAX) {
           SET(on_off, true);
@@ -76,14 +72,11 @@ reactor RightPedal {
    
     // Assume all valid pedal values are non-negative.
     state pedal:int(-1);
-    logical action response(30 msec);
+    logical action response(2 msec);
     input check:int;
     output angle:int;
-    reaction(check) -> response {=
-        self->pedal = -1;
-        init_poll();
-        schedule(response, 0);
-    =}
+    
+    // Swapping these two reactions creates a cycle.
     
     reaction(response) -> angle {=
         if (self->pedal < 0) {
@@ -92,6 +85,14 @@ reactor RightPedal {
             SET(angle, self->pedal); 
         }
     =}
+    
+    reaction(check) -> response {=
+        self->pedal = -1;
+        init_poll();
+        schedule(response, 0);
+    =}
+    
+    
 }
 
 //
@@ -133,19 +134,35 @@ reactor RightPedal {
 // Simply apply the requested force
 reactor Brakes {
 	input force:int;
+	
+	reaction(force) {=
+        
+    =} deadline (3 msec) {=
+        
+    =}
 }
 
 // Simply apply the requested torque
 reactor Engine {
 	input torque:int;
+	
+	reaction(torque) {=
+        
+    =} deadline (5 msec) {=
+        
+    =}
 }
 
 reactor BrakeControl {
 	input angle:int;
 	output force:int;
+	
+	reaction(angle) -> force {=
+        
+    =}
 }
 
-reactor Main {
+main reactor PowerTrain {
 	lp = new LeftPedal();
 	rp = new RightPedal();
 	bc = new BrakeControl(); // FIXME: check for referencing unknown reactor classes

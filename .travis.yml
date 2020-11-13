@@ -2,6 +2,10 @@
 #
 # Based on http://muelder.blogspot.com/2015/08/building-eclipse-plugins-with-maven.html
 #
+os:
+  - linux
+  - osx
+
 dist: bionic
 sudo: false  
 language: java    
@@ -16,34 +20,30 @@ before_install:
   - nvm install 10.4.0
 addons:
   apt:
-#   update: true
-    sources:
-      - sourceline: 'ppa:ubuntu-toolchain-r/test'
     packages:
-      - python3
       - python3-pip
       - python3-setuptools
-      - gcc-7
-      - g++-7
+      - python3-googleapi
       - libprotobuf-dev
       - libprotobuf-c-dev
       - protobuf-compiler
       - protobuf-c-compiler
-      - python3-googleapi
 env:
-  - TEST=C  
-  - TEST=Cpp  
-  - TEST=TS  
-  - TEST=Python  
+  - TEST=Unit
+  - TEST=C
+  - TEST=Cpp
+  - TEST=Python
+  - TEST=TS
 # global:  
 #  - DISPLAY=:99.0  
 #before_install:
 # - sh -e /etc/init.d/xvfb start - sleep 10  
-script:    
- - export CC=/usr/bin/gcc-7
- - export CXX=/usr/bin/g++-7
- - pushd xtext
- - ./gradlew test
- - popd
-# - bin/build-lfc --clean
- - bin/run-lf-tests $TEST
+script:
+ - 'if [ ${TEST} = "Unit" ]; then
+        pushd xtext;
+        ./gradlew test || travis_terminate 1;
+        popd;
+    else
+        bin/build-lfc --clean || travis_terminate 1;
+	bin/run-lf-tests $TEST || travis_terminate 1;
+    fi'

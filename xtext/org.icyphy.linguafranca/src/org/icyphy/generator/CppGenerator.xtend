@@ -104,31 +104,21 @@ class CppGenerator extends GeneratorBase {
     Reactor mainReactor
 
     /** Path to the Cpp lib directory (relative to class path)  */
-    val libDir = File.separator + "lib" + File.separator + "Cpp"
+    val libDir = "/lib/Cpp"
 
     def toDir(Resource r) {
         r.toPath.getFilename
     }
 
-    def preambleHeaderFile(Resource r) {
-        r.toDir + File.separator + "preamble.hh"
-    }
+    def preambleHeaderFile(Resource r) '''«r.toDir»/preamble.hh'''
 
-    def preambleSourceFile(Resource r) {
-        r.toDir + File.separator + "preamble.cc"
-    }
+    def preambleSourceFile(Resource r) '''«r.toDir»/preamble.cc'''
 
-    def headerFile(Reactor r) {
-        r.eResource.toDir + File.separator + r.name + ".hh"
-    }
+    def headerFile(Reactor r) '''«r.eResource.toDir»/«r.name».hh'''
 
-    def headerImplFile(Reactor r) {
-        r.eResource.toDir + File.separator + r.name + "_impl.hh"
-    }
+    def headerImplFile(Reactor r) '''«r.eResource.toDir»/«r.name»_impl.hh'''
 
-    def sourceFile(Reactor r) {
-        r.eResource.toDir + File.separator + r.name + ".cc"
-    }
+    def sourceFile(Reactor r) '''«r.eResource.toDir»/«r.name».cc'''
 
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
@@ -143,29 +133,29 @@ class CppGenerator extends GeneratorBase {
             reactors.add(mainReactor)
         }
 
-        fsa.generateFile(filename + File.separator + "main.cc",
+        fsa.generateFile('''«filename»/main.cc''',
             mainReactor.generateMain)
-        fsa.generateFile(filename + File.separator + "CMakeLists.txt",
+        fsa.generateFile('''«filename»/CMakeLists.txt''',
             generateCmake)
-        copyFileFromClassPath(libDir + File.separator + "lfutil.hh",
+        copyFileFromClassPath('''«libDir»/lfutil.hh''',
             fsa.getAbsolutePath('''/«filename»/__include__/lfutil.hh'''))
-        copyFileFromClassPath(libDir + File.separator + "time_parser.hh",
+        copyFileFromClassPath('''«libDir»/time_parser.hh''',
             fsa.getAbsolutePath('''/«filename»/__include__/time_parser.hh'''))
-        copyFileFromClassPath(libDir + File.separator + "3rd-party" + File.separator + "CLI11.hpp",
+        copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''',
             fsa.getAbsolutePath('''/«filename»/__include__/CLI/CLI11.hpp'''))
 
         for (r : reactors) {
-            fsa.generateFile(filename + File.separator + r.toDefinition.headerFile,
+            fsa.generateFile('''«filename»/«r.toDefinition.headerFile»''',
                 r.toDefinition.generateReactorHeader)
             val implFile = r.toDefinition.isGeneric ? r.toDefinition.headerImplFile : r.toDefinition.sourceFile
-            fsa.generateFile(filename + File.separator + implFile,
+            fsa.generateFile('''«filename»/«implFile»''',
                 r.toDefinition.generateReactorSource)
         }
 
         for (r : this.resources ?: emptyList) {
-            fsa.generateFile(filename + File.separator + r.preambleSourceFile,
+            fsa.generateFile('''«filename»/«r.preambleSourceFile»''',
                 r.generatePreambleSource)
-            fsa.generateFile(filename + File.separator + r.preambleHeaderFile,
+            fsa.generateFile('''«filename»/«r.preambleHeaderFile»''',
                 r.generatePreambleHeader)
         }
 
@@ -950,7 +940,7 @@ class CppGenerator extends GeneratorBase {
           dep-reactor-cpp
           PREFIX "${REACTOR_CPP_BUILD_DIR}"
           GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "0c7c6aec52f28e550bb6cbfa9adb9a18452c8402"
+          GIT_TAG "b09a3ab4a40656cdc39043e5268b1386cbd95c2a"
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
@@ -960,12 +950,23 @@ class CppGenerator extends GeneratorBase {
             «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
         )
         
-        set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
         set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-        
+        set(REACTOR_CPP_BIN_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}")
+        set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        set(REACTOR_CPP_IMPLIB_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+        ««« Unfortunately, we cannot use find_package() here. At the time when this file is processed, the
+        ««« reactor-cpp library is not build yet and find_package() would not work. Therefore, we need to
+        ««« setup the reactor-cpp dependency manually. This also means that we have to check for the
+        ««« platform and set the correct paths accordingly.
         add_library(reactor-cpp SHARED IMPORTED)
         add_dependencies(reactor-cpp dep-reactor-cpp)
-        set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
+        if(WIN32)
+            set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_IMPLIB_NAME}")
+            set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_BIN_DIR}/${REACTOR_CPP_LIB_NAME}")
+        else()
+            set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
+        endif()
         
         if (APPLE)
           set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
@@ -993,12 +994,16 @@ class CppGenerator extends GeneratorBase {
         install(TARGETS «filename» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
         
         «IF targetCmakeInclude !== null»
-            include("«directory»«File.separator»«targetCmakeInclude»")
+            include("«directory»/«targetCmakeInclude»")
         «ENDIF»
     '''
 
     def void doCompile(IFileSystemAccess2 fsa) {
-        val srcGenPath = fsa.getAbsolutePath('/')
+        // Cmake can only handle unix-style paths. Therefore, we replace `\' by '/' in the
+        // absolute path in case we are running on Windows. All other platforms should not
+        // be affected.
+        val srcGenPath = fsa.getAbsolutePath('/').replace('\\', '/')
+
         val rootPath = srcGenPath.substring(0, srcGenPath.length() - "/src-gen".length())
 
         val srcPath = fsa.getAbsolutePath('''«filename»/''')
@@ -1009,9 +1014,13 @@ class CppGenerator extends GeneratorBase {
         var buildDir = new File(buildPath)
         if (!buildDir.exists()) buildDir.mkdirs()
 
-        val makeBuilder = createCommand("make", #[
-            '''-j«Runtime.getRuntime().availableProcessors()»''',
-            "install"])
+        val makeBuilder = createCommand("cmake", #[
+            "--build",
+            ".",
+            "--target",
+            "install",
+            "--config",
+            '''«IF targetBuildType === null»"Release"«ELSE»"«targetBuildType»"«ENDIF»'''])
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
             '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',

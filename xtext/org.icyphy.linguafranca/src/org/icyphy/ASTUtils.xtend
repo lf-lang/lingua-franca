@@ -387,23 +387,38 @@ class ASTUtils {
 
         // Name the newly created action; set its delay and type.
         action.name = getUniqueIdentifier(parent, "networkMessage")
+        // Instead of handling after delay on a connection using
+        // action delay, the sender (left federate) will send its 
+        // current logical timestamp + the connection delay to the 
+        // receiver (right federate). The receiver can then decide
+        // if it can schedule the action with the appropriate delay
+        // by taking the delay into account.
         // Handle connection delay.
-        if (connection.delay !== null) {
-            action.minDelay = factory.createValue
-            action.minDelay.time = factory.createTime
-            if (connection.delay.time !== null) {
-                action.minDelay.time.interval = connection.delay.time.interval
-                action.minDelay.time.unit = connection.delay.time.unit
-            } else {
-                action.minDelay.literal = connection.delay.literal
-            }
-        }
+        // if (connection.delay !== null) {
+        //    action.minDelay = factory.createValue
+        //    action.minDelay.time = factory.createTime
+        //    if (connection.delay.time !== null) {
+        //        action.minDelay.time.interval = connection.delay.time.interval
+        //        action.minDelay.time.unit = connection.delay.time.unit
+        //    } else {
+        //        action.minDelay.literal = connection.delay.literal
+        //    }
+        //}
         action.type = type
         
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.physical) {
+            leftFederate.outboundP2PConnections.add(rightFederate)
+            rightFederate.inboundP2PConnections.add(leftFederate)
             action.origin = ActionOrigin.PHYSICAL
         } else {
+            // If the connection is logical but coordination
+            // is decentralized, we would need
+            // to make P2P connections
+            if (generator.targetCoordination.equals("decentralized")) {
+                leftFederate.outboundP2PConnections.add(rightFederate)
+                rightFederate.inboundP2PConnections.add(leftFederate)                
+            }            
             action.origin = ActionOrigin.LOGICAL
         }
         
@@ -429,7 +444,7 @@ class ASTUtils {
 
         // Add the action to the reactor.
         parent.actions.add(action)
-
+        
         // Configure the sending reaction.
         r1.triggers.add(inRef)
         r1.effects.add(effectRef)
@@ -440,7 +455,9 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
-            action.inferredType
+            action.inferredType,
+            connection.isPhysical,
+            connection.delay
         )
 
         // Configure the receiving reaction.

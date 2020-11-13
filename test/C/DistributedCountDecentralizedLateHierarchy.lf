@@ -1,0 +1,67 @@
+/** 
+ * Test a form of a distributed deterministic system
+ * where a federate that receives timestamped messages has a timer in addition to the messages
+ * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
+ * In addition, this test shows that the tardiness is passed down the hierarchy until it is handled.
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ */
+target C {
+    timeout: 5 sec,
+    coordination: decentralized
+};
+
+import Count from "lib/Count.lf";
+
+reactor ImportantActuator {
+    input in:int;
+    state success:bool(false);
+    reaction(in) {=
+        if (in->tardiness > 0) {
+            self->success = false; // tardiness was not handled correctly
+        }
+    =} tardy {=
+        printf("Message is tardy by %llu nsec.\n", in->tardiness);
+        if (in->tardiness > 0) {
+            self->success = true;
+        }
+    =}
+    reaction(shutdown) {=
+        if (!self->success) {
+            fprintf(stderr, "Failed to detect tardiness of message.\n");
+            exit(1);
+        } else {
+            printf("Successfully detected tardiness.\n");
+        }
+    =}
+}
+
+reactor Print {
+    input in:int;
+    reaction(in) {=    
+        printf("At time %llu received %d. Tardiness is %llu.\n", get_elapsed_logical_time(), in->value, in->tardiness);
+    =}
+
+}
+
+reactor Receiver {
+    input in:int;
+    timer t(0, 10 msec); // Force a timer to be invoke periodically
+                         // to ensure logical time will advance in the
+                         // absence of incoming messages.
+    state c:int(0);
+    p = new Print();
+    a = new ImportantActuator();
+    in -> p.in;
+    in -> a.in;
+    
+    reaction(t) {=
+        // Do nothing.
+    =}
+}
+
+federated reactor DistributedCount {
+    c = new Count();
+    r = new Receiver();
+    c.out -> r.in;    // Indicating a 'logical' connection.
+}

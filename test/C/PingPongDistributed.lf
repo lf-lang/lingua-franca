@@ -23,16 +23,17 @@
  * @author Edward A. Lee
  */
 target C;
+
+preamble {=
+    // #define VERBOSE
+=}
+
 reactor Ping(count:int(10)) {
     input receive:int;
     output send:int;
     state pingsLeft:int(count);
     logical action serve;
-    reaction (startup) -> send {=
-        printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
-        SET(send, self->pingsLeft--);
-    =}
-    reaction (serve) -> send {= 
+    reaction (startup, serve) -> send {= 
         printf("At logical time %lld, Ping sending %d.\n", get_elapsed_logical_time(), self->pingsLeft);
         SET(send, self->pingsLeft--);
     =}

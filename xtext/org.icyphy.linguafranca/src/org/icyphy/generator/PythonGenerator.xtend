@@ -1442,7 +1442,7 @@ class PythonGenerator extends CGenerator {
         indent()
         
         // First, generate C initializations
-        super.generateInitializationForReaction("", reaction, decl)
+        super.generateInitializationForReaction("", reaction, decl, reactionIndex)
         
         
         prSourceLineNumber(reaction.code)
@@ -1481,7 +1481,7 @@ class PythonGenerator extends CGenerator {
             indent();
             
             
-            super.generateInitializationForReaction("", reaction, decl)
+            super.generateInitializationForReaction("", reaction, decl, reactionIndex)
             
             pr('''PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
             ''')
