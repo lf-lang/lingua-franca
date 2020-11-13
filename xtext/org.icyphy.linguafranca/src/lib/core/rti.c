@@ -269,14 +269,24 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
  *  with the specified time and microstep.
  */
 void send_tag_advance_grant(federate_t* fed, tag_t tag) {
-    unsigned char buffer[1 + sizeof(instant_t) + sizeof(microstep_t)];
+    int message_length = 1 + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[message_length];
     buffer[0] = TIME_ADVANCE_GRANT;
     encode_ll(tag.time, &(buffer[1]));
     encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
     if (fed->state == NOT_CONNECTED) {
         return;
     }
-    write_to_socket(fed->socket, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer, "RTI failed to send time advance grant to federate %d.", fed->id);
+    // This function is called in send_tag_advance_if_appropriate(), which is a long
+    // function. During this call, the socket might close, causing the following write_to_socket
+    // to fail. Consider a failure here a soft failure and update the federate's status.
+    int bytes_read = write_to_socket2(fed->socket, message_length, buffer);
+    if (bytes_read < message_length) {
+        error_print("RTI failed to send time advance grant to federate %d.", fed->id);
+        if (bytes_read < 0) {
+            fed->state = NOT_CONNECTED;
+        }
+    }
     DEBUG_PRINT("RTI sent to federate %d the TAG (%lld, %u).", fed->id, tag.time - start_time, tag.microstep);
 }
 
