@@ -32,7 +32,7 @@ reactor Print {
             fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
             exit(1);
         }
-        if (!(elapsed_time > MSEC(400) * self->c)) {
+        if (!(elapsed_time > MSEC(700) * self->c)) {
             fprintf(stderr, "ERROR: Expected received time to be strictly greater than %lld.\n", MSEC(200) * self->c);
             exit(3);
         }

@@ -30,7 +30,7 @@ else
             echo "gtimeout could not be found.";
             exit 1;
         fi
-        timeout_command+="gtimeout 2m " # 2 minute timeout
+        timeout_command+="gtimeout 7m " # 7 minute timeout
     else
         timeout_command+="timeout 2m " # 2 minute timeout
     fi
@@ -92,7 +92,7 @@ else
                 echo "Executing command:"$command;
                 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
                 
-                if $command; # timeout 2m 
+                if $command; # timeout 2m or 7m for MacOS
                 then
                     correct=$((correct + 1))
                 else
