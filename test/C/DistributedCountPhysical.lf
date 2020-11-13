@@ -12,7 +12,7 @@ target C {
     timeout: 1100 msec
 };
 reactor Count {
-    timer t(0, 400 msec);
+    timer t(200 msec, 500 msec);
     state s:int(0);
     output out:int;
     reaction(t) -> out {=
@@ -30,15 +30,15 @@ reactor Print {
             fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
             exit(1);
         }
-        if (!(elapsed_time > MSEC(200) * self->c)) {
+        if (!(elapsed_time > MSEC(700) * self->c)) {
             fprintf(stderr, "ERROR: Expected received time to be strictly greater than %lld.\n", MSEC(200) * self->c);
             exit(3);
         }
         self->c++;
     =}
     reaction(shutdown) {=
-        if (self->c != 3) {
-            fprintf(stderr, "ERROR: Expected to receive 3 items. Received %d.\n", self->c);
+        if (self->c != 2) {
+            fprintf(stderr, "ERROR: Expected to receive 2 items. Received %d.\n", self->c);
             exit(2);
         }
         printf("SUCCESS: Successfully received 3 items.\n");
