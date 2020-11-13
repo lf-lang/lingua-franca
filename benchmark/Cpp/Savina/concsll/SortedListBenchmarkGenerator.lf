@@ -45,7 +45,7 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "SortedList.cmake"
+    cmake-include: "../IncludeHeaders.cmake"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";

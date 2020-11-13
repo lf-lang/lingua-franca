@@ -1,7 +1,7 @@
 target Cpp;
 
 import Philosopher from "Philosopher.lf";
-import Master from "Master.lf";
+import Master from "../Master.lf";
 
 
 reactor Arbitrator(count:unsigned(10000), verbose:bool(false)) {

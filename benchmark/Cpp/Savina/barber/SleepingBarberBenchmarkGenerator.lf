@@ -59,7 +59,7 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "../include/IncludeHeaders.cmake"
+    cmake-include: "../IncludeHeaders.cmake"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -94,7 +94,7 @@ public preamble {=
 reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:int(1000)) {
     
     public preamble {=
-        #include "include/PseudoRandom.hh"
+        #include "PseudoRandom.hh"
         #include <list>
     =}
     
@@ -245,7 +245,7 @@ reactor CustomerReactor(instance:int(0)) {
 reactor BarberReactor(averageHaircutRate:int(1000)) {
     
     public preamble {=
-        #include "include/PseudoRandom.hh"
+        #include "PseudoRandom.hh"
         #include "reactor-cpp/logging.hh"
     =}
     

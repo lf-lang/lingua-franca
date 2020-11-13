@@ -46,7 +46,7 @@
   cog.outl(f'// numWorkers = {numWorkers}')
 ]]] */
 // Generated file with the following parameters:
-// numWorkers = 240
+// numWorkers = 60
 // [[[end]]]
 
 target Cpp {
@@ -108,9 +108,9 @@ reactor ThroughputProducer(totalMessages:int(10000), numConsumer:int(60)) {
       cog.outl(f'input[{numWorkers}] inFinished:void;')
       cog.outl(f'output[{numWorkers}] outReset:void;')
     ]]] */
-    output[240] outMessage:void;
-    input[240] inFinished:void;
-    output[240] outReset:void;
+    output[60] outMessage:void;
+    input[60] inFinished:void;
+    output[60] outReset:void;
     /// [[[end]]]
     
     logical action sendNextMessage;
@@ -160,7 +160,7 @@ main reactor ThroughputBenchmark(numIterations:int(12), numMessagesPerReactor:in
     /* [[[cog
       cog.outl(f'producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer={numWorkers});')
     ]]] */
-    producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=240);
+    producer = new ThroughputProducer(totalMessages=numMessagesPerReactor, numConsumer=60);
     // [[[end]]]
     runner = new BenchmarkRunner(numIterations=numIterations);
     
@@ -172,7 +172,7 @@ main reactor ThroughputBenchmark(numIterations:int(12), numMessagesPerReactor:in
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", {numWorkers});')
         ]]] */
-        printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", 240);
+        printArgs("numIterations", numIterations, "numMessagesPerReactor", numMessagesPerReactor, "numWorkers", 60);
         // [[[end]]]
         printSystemInfo();
         runner.inStart.set();
@@ -181,7 +181,7 @@ main reactor ThroughputBenchmark(numIterations:int(12), numMessagesPerReactor:in
     /* [[[cog
       cog.outl(f'worker = new[{numWorkers}] ThroughputReactor(totalMessages=numMessagesPerReactor);')
     ]]] */
-    worker = new[240] ThroughputReactor(totalMessages=numMessagesPerReactor);
+    worker = new[60] ThroughputReactor(totalMessages=numMessagesPerReactor);
     // [[[end]]]
     
     producer.outMessage -> worker.inMessage;
