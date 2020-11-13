@@ -527,16 +527,28 @@ void _lf_rti_mark_federate_requesting_stop(federate_t* fed) {
 }
 
 /**
+ * Boolean used to prevent the RTI from sending the
+ * STOP_GRANTED message multiple times.
+ */
+bool _lf_rti_stop_granted_already_sent_to_federates = false;
+
+/**
  * Once the RTI has seen proposed times from all connected federates,
  * it will broadcast a STOP_GRANTED carrying the max_stop_time.
+ * 
+ * This function assumes the caller holds the rti_mutex lock.
  */
-void _lf_rti_broadcast_stop_time_to_federates() {
+void _lf_rti_broadcast_stop_time_to_federates_already_locked() {
+    if (_lf_rti_stop_granted_already_sent_to_federates == true) {
+        return;
+    }
     // Reply with a stop granted to all federates
     unsigned char outgoing_buffer[1 + sizeof(instant_t)];
     outgoing_buffer[0] = STOP_GRANTED;
     encode_ll(max_stop_time, &(outgoing_buffer[1]));
     _lf_rti_broadcast_message_to_federates_already_locked(outgoing_buffer, 1 + sizeof(instant_t));
     DEBUG_PRINT("RTI broadcasted to federates STOP_GRANTED with time %lld.", max_stop_time);
+    _lf_rti_stop_granted_already_sent_to_federates = true;
 }
 
 /**
@@ -571,7 +583,7 @@ void handle_stop_request_message(federate_t* fed) {
     if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
         // We now have information about the stop time of all
         // federates.
-        _lf_rti_broadcast_stop_time_to_federates();
+        _lf_rti_broadcast_stop_time_to_federates_already_locked();
         pthread_mutex_unlock(&rti_mutex);    
         return;
     }
@@ -606,7 +618,7 @@ void handle_stop_request_reply(federate_t* fed) {
         // requested stop.
         _lf_rti_mark_federate_requesting_stop(fed);
         if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
-            _lf_rti_broadcast_stop_time_to_federates();
+            _lf_rti_broadcast_stop_time_to_federates_already_locked();
         }
         pthread_mutex_unlock(&rti_mutex);
         return;
@@ -629,7 +641,7 @@ void handle_stop_request_reply(federate_t* fed) {
     }
 
     if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
-        _lf_rti_broadcast_stop_time_to_federates();
+        _lf_rti_broadcast_stop_time_to_federates_already_locked();
     }
     pthread_mutex_unlock(&rti_mutex);
 }

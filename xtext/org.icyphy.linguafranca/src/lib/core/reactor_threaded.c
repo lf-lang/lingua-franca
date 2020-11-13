@@ -177,7 +177,7 @@ void _lf_decrement_global_logical_time_barrier_already_locked() {
     // a mismatched call was placed for this function.
     if (_lf_global_logical_time_advancement_barrier.requestors < 0) {
         fprintf(stderr, "Mismatched use of _lf_increment_global_logical_time_barrier()"
-         "and  _lf_decrement_global_logical_time_barrier().");
+         " and  _lf_decrement_global_logical_time_barrier().\n");
         exit(1);
     } else if (_lf_global_logical_time_advancement_barrier.requestors == 0) {
         // When the semaphore reaches zero, reset the horizon to forever.
