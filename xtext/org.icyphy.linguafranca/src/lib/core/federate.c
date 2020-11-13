@@ -892,7 +892,7 @@ handle_t schedule_message_received_from_network_already_locked(
     interval_t extra_delay = tag.time - current_logical_time;
 
 
-    if (!_lf_execution_started && !message_tag_is_in_the_future && !trigger->is_physical) {
+    if (!_lf_execution_started && !message_tag_is_in_the_future) {
         // If execution has not started yet,
         // there could be a special case where a message has
         // arrived on a logical connection with a tag 
@@ -914,15 +914,7 @@ handle_t schedule_message_received_from_network_already_locked(
     // does not apply or the call to _lf_schedule_init_reactions() has failed.
     // Thus, call __schedule() instead.
     if (return_value == 0) {
-        if (trigger->is_physical) {
-            // For physical connections, set extra_delay to zero
-            // since the physical time is always assigned. The
-            // after delay on the connection is enforced by
-            // setting the min_delay in code generation.
-            extra_delay = 0LL;
-            DEBUG_PRINT("Federate %d calling schedule with delay %lld.", _lf_my_fed_id, extra_delay);
-            return_value = __schedule(trigger, extra_delay, token);
-        } else if (!message_tag_is_in_the_future) {
+        if (!message_tag_is_in_the_future) {
 #ifdef _LF_COORD_CENTRALIZED
             // If the coordination is centralized, receiving a message
             // that does not carry a timestamp that is in the future 
@@ -1024,6 +1016,11 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // Get the triggering action for the corerponding port
     trigger_t* action = __action_for_port(port_id);
 
+    if (action->is_physical) {
+        // Messages sent on physical connections should be handled via handle_message().
+        error_print_and_exit("Federate %d received a timed message on a physical connection.", _lf_my_fed_id);
+    }
+
     // Read the tag of the message.
     tag_t tag;
     tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
@@ -1037,9 +1034,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // suggests that the logical time barrier be raised at the timestamp provided
     // by the message. If this timestamp is in the past, the function will cause
     // the logical time to freeze at the current level.
-    if (!action->is_physical) {
-        _lf_increment_global_logical_time_barrier(tag.time);
-    }
+    _lf_increment_global_logical_time_barrier(tag.time);
 #endif
     DEBUG_PRINT("Message tag: (%lld, %u), Current tag: (%lld, %u).", tag.time - start_time, tag.microstep, get_elapsed_logical_time(), get_microstep());
 
@@ -1055,9 +1050,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
             // Suggest that the logical time barrier be raised at the timestamp provided
             // by the message. If this timestamp is in the past, this effectively
             // freezes the logical time at the current level.
-            if (!action->is_physical) {
-                _lf_decrement_global_logical_time_barrier_already_locked();
-            }
+            _lf_decrement_global_logical_time_barrier_already_locked();
 #endif
         // Placeholder
         error_print_and_exit( "Federate %d failed to read timed message body.", _lf_my_fed_id);
@@ -1086,9 +1079,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // Suggest that the logical time barrier be raised at the timestamp provided
     // by the message. If this timestamp is in the past, this effectively
     // freezes the logical time at the current level.
-    if (!action->is_physical) {
-        _lf_decrement_global_logical_time_barrier_already_locked();
-    }
+    _lf_decrement_global_logical_time_barrier_already_locked();
 #endif
 
     // The mutex is unlocked here after the barrier on
