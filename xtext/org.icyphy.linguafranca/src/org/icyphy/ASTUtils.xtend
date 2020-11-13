@@ -387,23 +387,6 @@ class ASTUtils {
 
         // Name the newly created action; set its delay and type.
         action.name = getUniqueIdentifier(parent, "networkMessage")
-        // Instead of handling after delay on a connection using
-        // action delay, the sender (left federate) will send its 
-        // current logical timestamp + the connection delay to the 
-        // receiver (right federate). The receiver can then decide
-        // if it can schedule the action with the appropriate delay
-        // by taking the delay into account.
-        // Handle connection delay.
-        // if (connection.delay !== null) {
-        //    action.minDelay = factory.createValue
-        //    action.minDelay.time = factory.createTime
-        //    if (connection.delay.time !== null) {
-        //        action.minDelay.time.interval = connection.delay.time.interval
-        //        action.minDelay.time.unit = connection.delay.time.unit
-        //    } else {
-        //        action.minDelay.literal = connection.delay.literal
-        //    }
-        //}
         action.type = type
         
         // The connection is 'physical' if it uses the ~> notation.
@@ -411,6 +394,20 @@ class ASTUtils {
             leftFederate.outboundP2PConnections.add(rightFederate)
             rightFederate.inboundP2PConnections.add(leftFederate)
             action.origin = ActionOrigin.PHYSICAL
+            // Messages sent on physical connections do not
+            // carry a timestamp, or a delay. The delay
+            // provided using after is enforced by setting
+            // the minDelay.
+            if (connection.delay !== null) {
+                action.minDelay = factory.createValue
+                action.minDelay.time = factory.createTime
+                if (connection.delay.time !== null) {
+                    action.minDelay.time.interval = connection.delay.time.interval
+                    action.minDelay.time.unit = connection.delay.time.unit
+                } else {
+                    action.minDelay.literal = connection.delay.literal
+                }
+            }
         } else {
             // If the connection is logical but coordination
             // is decentralized, we would need

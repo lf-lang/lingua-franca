@@ -251,6 +251,17 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define P2P_SENDING_FED_ID 14
 
 /**
+ * Byte identifying a message to send directly to another federate.
+ * 
+ * The next two bytes will be the ID of the destination port.
+ * The next two bytes are the destination federate ID. This is checked against
+ * the _lf_my_fed_id of the receiving federate to ensure the message was intended for
+ * The four bytes after will be the length of the message.
+ * The ramaining bytes are the message.
+ */
+#define P2P_MESSAGE 15
+
+/**
  * Byte identifying a timestamped message to send directly to another federate.
  * This is a variant of @see TIMED_MESSAGE that is used in P2P connections between
  * federates. Having a separate message type for P2P connections between federates
@@ -265,7 +276,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next four bytes will be the microstep of the sender.
  * The ramaining bytes are the message.
  */
-#define P2P_TIMED_MESSAGE 15
+#define P2P_TIMED_MESSAGE 16
 
 /////////////////////////////////////////////
 //// Rejection codes
