@@ -926,7 +926,7 @@ experiments['BigVarNumPings'] = {
 
 
 binName = 'DictionaryBenchmarkGenerator'
-lfSrcPath = f'concdic/{binName}.lf'
+lfSrcPath = f'concdict/{binName}.lf'
 paramName1 = f'--numMessagesPerWorker'
 constParam1 = 20
 constParam2 = 10
