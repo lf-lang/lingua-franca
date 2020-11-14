@@ -54,7 +54,7 @@
   cog.outl(f'// numHaircuts = {numHaircuts}')
 ]]] */
 // Generated file with the following parameters:
-// numHaircuts = 3000
+// numHaircuts = 2000
 // [[[end]]]
 
 target Cpp {
@@ -116,7 +116,7 @@ reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:i
     /* [[[cog
       cog.outl(f'input[{numHaircuts}] inCustomers:{{=Message=}};')
     ]]] */
-    input[3000] inCustomers:{=Message=};
+    input[2000] inCustomers:{=Message=};
     // [[[end]]]
     
     logical action sendCustomersFirstVisit:void;
@@ -257,7 +257,7 @@ reactor BarberReactor(averageHaircutRate:int(1000)) {
     /* [[[cog
       cog.outl(f'output[{numHaircuts}] outCustomers:{{=Message=}};')
     ]]] */
-    output[3000] outCustomers:{=Message=};
+    output[2000] outCustomers:{=Message=};
     // [[[end]]]
     output outRoom:{=Message=};
     
@@ -329,7 +329,7 @@ reactor WaitingRoomReactor(capacity:int(1000), numCustomers:int(2000)) {
     /* [[[cog
       cog.outl(f'output[{numHaircuts}] outCustomers:{{=Message=}};')
     ]]] */
-    output[3000] outCustomers:{=Message=};
+    output[2000] outCustomers:{=Message=};
     // [[[end]]]
     input inBarber:{=Message=};
     output outBarber:{=Message=};
@@ -392,7 +392,7 @@ main reactor SleepingBarberBenchmark(numIterations:int(12), waitingRoomSize:int(
     /* [[[cog
       cog.outl(f'controller = new CustomerControllerReactor(numHaircuts={numHaircuts}, averageProductionRate=averageProductionRate);')
     ]]] */
-    controller = new CustomerControllerReactor(numHaircuts=3000, averageProductionRate=averageProductionRate);
+    controller = new CustomerControllerReactor(numHaircuts=2000, averageProductionRate=averageProductionRate);
     // [[[end]]]
     runner = new BenchmarkRunner(numIterations=numIterations);
     
@@ -404,7 +404,7 @@ main reactor SleepingBarberBenchmark(numIterations:int(12), waitingRoomSize:int(
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", {numHaircuts});')
         ]]] */
-        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", 3000);
+        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", 2000);
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
@@ -414,8 +414,8 @@ main reactor SleepingBarberBenchmark(numIterations:int(12), waitingRoomSize:int(
       cog.outl(f'room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers={numHaircuts});')
       cog.outl(f'customers = new[{numHaircuts}] CustomerReactor();')
     ]]] */
-    room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers=3000);
-    customers = new[3000] CustomerReactor();
+    room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers=2000);
+    customers = new[2000] CustomerReactor();
     // [[[end]]]
     barber = new BarberReactor(averageHaircutRate=averageHaircutRate);
     
