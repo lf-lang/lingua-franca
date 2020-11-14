@@ -7,7 +7,12 @@
 
 import os
 
-# variables that describe the environment and interface
+# variables that describe the environment, interface and requirements
+
+# Requirements besidee the one set in the variables:
+# - Python module cog, install with 'pip3 install cogapp'
+# - java version 1.8 for Savina, test with 'java -version'
+# - Executable lfc in PATH.
 
 # Where are the .lf files of the Savina Cpp implementation?
 lfCppSourceFilePathBase = '../../benchmark/Cpp/Savina'
