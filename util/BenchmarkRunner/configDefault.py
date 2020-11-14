@@ -29,26 +29,26 @@
 import os.path
 
 parsers = {
-    'savina-akka-default': 'savina_parser',
-    'lf1': 'lf_parser',
-    'lf2': 'lf_parser',
-    'lf4': 'lf_parser',
-    'lf8': 'lf_parser',
-    'lf16': 'lf_parser',
-    'lf-c-1': 'lf_c_parser'
+    'savina-akka-default': 'parserSavina',
+    'lf1': 'parserLfCpp',
+    'lf2': 'parserLfCpp',
+    'lf4': 'parserLfCpp',
+    'lf8': 'parserLfCpp',
+    'lf16': 'parserLfCpp',
+    'lf-c-1': 'parserLfC'
 }
 
 summarizers = {
-    'savina-akka-default': 'summarizer_median_warmup',
-    'lf1': 'summarizer_median_warmup',
-    'lf2': 'summarizer_median_warmup',
-    'lf4': 'summarizer_median_warmup',
-    'lf8': 'summarizer_median_warmup',
-    'lf16': 'summarizer_median_warmup',
-    'lf-c-1': 'summarizer_median_warmup'
+    'savina-akka-default': 'summarizerMedianWarmup',
+    'lf1': 'summarizerMedianWarmup',
+    'lf2': 'summarizerMedianWarmup',
+    'lf4': 'summarizerMedianWarmup',
+    'lf8': 'summarizerMedianWarmup',
+    'lf16': 'summarizerMedianWarmup',
+    'lf-c-1': 'summarizerMedianWarmup'
 }
 
-plotter = 'default_plotter'
+plotter = 'plotterDefault'
 
 # optional colors for gnuplot
 # use 'show colornames' in gnuplot to get a list.
@@ -202,8 +202,8 @@ experiments['PingPongVarNumThreads'] = {
     'plotSequenceColors': { 'lf-cpp': 'violet', 'lf-c': 'dark-turquoise', 'savina-akka': 'skyblue' },
     'plotSequenceNames': { 'lf-cpp': 'LF C++', 'lf-c': 'LF C', 'savina-akka': 'Savina Akka' },
     'plotter': plotter,
-    'parsers': { 'lf-cpp': 'lf_parser', 'lf-c': 'lf_c_parser', 'savina-akka': 'savina_parser' },
-    'summarizers': { 'lf-cpp': 'summarizer_median_warmup', 'lf-c': 'summarizer_median_warmup', 'savina-akka': 'summarizer_median_warmup' },
+    'parsers': { 'lf-cpp': 'parserLfCpp', 'lf-c': 'parserLfC', 'savina-akka': 'parserSavina' },
+    'summarizers': { 'lf-cpp': 'summarizerMedianWarmup', 'lf-c': 'summarizerMedianWarmup', 'savina-akka': 'summarizerMedianWarmup' },
     'sequences': [
         ('1', {
             'lf-cpp': [ f'lfc {os.path.join(lfSourceFilePathBase, "pingpong/PingPongBenchmark.lf")}'.split(),
