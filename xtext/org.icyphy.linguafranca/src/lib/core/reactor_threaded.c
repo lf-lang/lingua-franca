@@ -221,7 +221,8 @@ void _lf_decrement_global_logical_time_barrier() {
 void _lf_wait_on_global_logical_time_barrier(instant_t proposed_time) {
     // Wait if the global barrier semaphore on logical time is zero
     // and the proposed_time is larger than the horizon.
-    while (proposed_time > _lf_global_logical_time_advancement_barrier.horizon) {
+    while (proposed_time > _lf_global_logical_time_advancement_barrier.horizon &&
+          _lf_global_logical_time_advancement_barrier.requestors > 0) {
         DEBUG_PRINT("Waiting on barrier for time %lld.", proposed_time);
         // Wait until no requestor remains for the barrier on logical time
         pthread_cond_wait(&global_logical_time_barrier_requestors_reached_zero, &mutex);
@@ -540,6 +541,7 @@ bool __next() {
             next_tag.microstep = 0;
         }
 
+#ifdef _LF_IS_FEDERATED
         // Ask the RTI to advance time to either timeout_time or FOREVER.
         // This will be granted if there are no upstream federates.
         // If there are upstream federates, then the call will block
@@ -570,6 +572,16 @@ bool __next() {
             // the event queue. Continue executing.
             return true;
         }
+
+        // Since next_event_tag releases the mutex lock internally, we need to check
+        // if the timeout time has changed or if stop is requested in case a 
+        // request_stop() has been called while the mutex was unlocked.
+        if (_lf_is_tag_after_timeout_already_locked(next_tag)) {
+            // Set the next tag to the current tag to stop as soon as possible
+            next_tag = current_tag;
+        }
+#endif
+
 
         // If we get here, the RTI has granted time advance to the stop time
         // (or there is only federate, or to FOREVER is there is no stop time)
