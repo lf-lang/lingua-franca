@@ -18,6 +18,9 @@ savinaJarPath = './savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar'
 # The package path inside of Savina to the benchmarks:
 savinaPackagePathBase = 'edu.rice.habanero.benchmarks'
 
+pythonExe = 'python3'
+lfcExe = 'lfc'
+javaExe = 'java'
 
 # Options for the benchmarks:
 numIterationsDefault = 4
@@ -29,22 +32,22 @@ numIterationsAkka = 4
 
 # predefined global variables for convenience
 parsers = {
-    'savina-akka-default': 'savina_parser',
-    'lf-cpp-1': 'lf_parser',
-    'lf-cpp-2': 'lf_parser',
-    'lf-cpp-4': 'lf_parser',
-    'lf-cpp-8': 'lf_parser',
-    'lf-cpp-16': 'lf_parser',
-    'lf-c-1': 'lf_c_parser'
+    'savina-akka-default': 'parserSavina',
+    'lf-cpp-1': 'parserLfCpp',
+    'lf-cpp-2': 'parserLfCpp',
+    'lf-cpp-4': 'parserLfCpp',
+    'lf-cpp-8': 'parserLfCpp',
+    'lf-cpp-16': 'parserLfCpp',
+    'lf-c-1': 'parserLfC'
 }
 summarizers = {
-    'savina-akka-default': 'summarizer_median_warmup',
-    'lf-cpp-1': 'summarizer_median_warmup',
-    'lf-cpp-2': 'summarizer_median_warmup',
-    'lf-cpp-4': 'summarizer_median_warmup',
-    'lf-cpp-8': 'summarizer_median_warmup',
-    'lf-cpp-16': 'summarizer_median_warmup',
-    'lf-c-1': 'summarizer_median_warmup'
+    'savina-akka-default': 'summarizerMedianWarmup',
+    'lf-cpp-1': 'summarizerMedianWarmup',
+    'lf-cpp-2': 'summarizerMedianWarmup',
+    'lf-cpp-4': 'summarizerMedianWarmup',
+    'lf-cpp-8': 'summarizerMedianWarmup',
+    'lf-cpp-16': 'summarizerMedianWarmup',
+    'lf-c-1': 'summarizerMedianWarmup'
 }
 plotter = 'plotterBox'
 sequenceColors = {
@@ -104,7 +107,7 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {paramNameLf1} {paramValue1}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {paramNameLf1} {paramValue1}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {paramNameLf1} {paramValue1}'
-runCmdAkka = f'java -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {paramValue1}'
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {paramValue1}'
 experiments['PingPong'] = {
     'description': f'Benchmark Ping Pong from the Savina suite with {paramValue1} pings.',
     'plotAdditionalGnuplotHeaderCommands': '',
@@ -121,13 +124,13 @@ experiments['PingPong'] = {
     'summarizers': summarizers,
     'sequences': [
         ('1', {
-            'lf-cpp-1': [ f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-1': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf1.split() ],
-            'lf-cpp-4': [ f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-4': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf4.split() ],
-            'lf-cpp-8': [ f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-8': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf8.split() ],
-            'lf-cpp-16': [ f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-16': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf16.split() ],
             'savina-akka-default': [ f'{runCmdAkka} 300'.split() ]
         })
@@ -146,7 +149,7 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {paramNameLf1} {paramValue1}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {paramNameLf1} {paramValue1}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {paramNameLf1} {paramValue1}'
-runCmdAkka = f'java -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {paramValue2} -r {paramValue1}'
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {paramValue2} -r {paramValue1}'
 experiments['ThreadRing'] = {
     'description': f'Thread Ring from the Savina suite with {paramValue2} actors/reactors.',
     'plotAdditionalGnuplotHeaderCommands': '',
@@ -163,17 +166,17 @@ experiments['ThreadRing'] = {
     'summarizers': summarizers,
     'sequences': [
         ('1', {
-            'lf-cpp-1': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-1': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf1.split() ],
-            'lf-cpp-4': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-4': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf4.split() ],
-            'lf-cpp-8': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-8': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf8.split() ],
-            'lf-cpp-16': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-16': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf16.split() ],
             'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
@@ -190,7 +193,7 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {paramNameLf1} {paramValue1}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {paramNameLf1} {paramValue1}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {paramNameLf1} {paramValue1}'
-runCmdAkka = f'java -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {paramValue1}'
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {paramValue1}'
 experiments['Counting'] = {
     'description': f'Counting benchmark from the Savina suite.',
     'plotAdditionalGnuplotHeaderCommands': '',
@@ -207,13 +210,13 @@ experiments['Counting'] = {
     'summarizers': summarizers,
     'sequences': [
         ('1', {
-            'lf-cpp-1': [ f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-1': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf1.split() ],
-            'lf-cpp-4': [ f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-4': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf4.split() ],
-            'lf-cpp-8': [ f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-8': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf8.split() ],
-            'lf-cpp-16': [ f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-16': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf16.split() ],
             'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
@@ -232,7 +235,7 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {paramNameLf1} {paramValue1}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {paramNameLf1} {paramValue1}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {paramNameLf1} {paramValue1}'
-runCmdAkka = f'java -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -a {paramValue2} -n {paramValue1}'
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -a {paramValue2} -n {paramValue1}'
 experiments['Throughput'] = {
     'description': f'Fork join (throughput) benchmark from the Savina suite.',
     'plotAdditionalGnuplotHeaderCommands': '',
@@ -249,17 +252,17 @@ experiments['Throughput'] = {
     'summarizers': summarizers,
     'sequences': [
         ('1', {
-            'lf-cpp-1': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-1': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf1.split() ],
-            'lf-cpp-4': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-4': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf4.split() ],
-            'lf-cpp-8': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-8': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf8.split() ],
-            'lf-cpp-16': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-16': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf16.split() ],
             'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
@@ -278,7 +281,7 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {paramNameLf1} {paramValue1}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {paramNameLf1} {paramValue1}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {paramNameLf1} {paramValue1}'
-runCmdAkka = f'java -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -numChameneos {paramValue2} -numMeetings {paramValue1}'
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -numChameneos {paramValue2} -numMeetings {paramValue1}'
 experiments['Chameneos'] = {
     'description': f'Chameneos benchmark from the Savina suite.',
     'plotAdditionalGnuplotHeaderCommands': '',
@@ -295,17 +298,17 @@ experiments['Chameneos'] = {
     'summarizers': summarizers,
     'sequences': [
         ('1', {
-            'lf-cpp-1': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-1': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf1.split() ],
-            'lf-cpp-4': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-4': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf4.split() ],
-            'lf-cpp-8': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-8': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf8.split() ],
-            'lf-cpp-16': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-16': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf16.split() ],
             'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
@@ -325,7 +328,7 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {paramNameLf1} {paramValue1}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {paramNameLf1} {paramValue1}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {paramNameLf1} {paramValue1}'
-runCmdAkka = f'java -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -w {paramValue2} -n {paramValue1}'
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -w {paramValue2} -n {paramValue1}'
 experiments['Big'] = {
     'description': f'Big benchmark from the Savina suite.',
     'plotAdditionalGnuplotHeaderCommands': '',
@@ -342,17 +345,17 @@ experiments['Big'] = {
     'summarizers': summarizers,
     'sequences': [
         ('1', {
-            'lf-cpp-1': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-1': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf1.split() ],
-            'lf-cpp-4': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-4': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf4.split() ],
-            'lf-cpp-8': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-8': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf8.split() ],
-            'lf-cpp-16': [ f'python -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'lfc {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+            'lf-cpp-16': [ f'{pythonExe} -m cogapp -r -D {paramNameLf2}={paramValue2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
+                         f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          runCmdLf16.split() ],
             'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })

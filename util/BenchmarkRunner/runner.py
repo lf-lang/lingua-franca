@@ -277,7 +277,7 @@ def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--output', dest='output', action='store', help='name of the folder where all output is written to; default: "output"')
-    parser.add_argument('-c', '--config', dest='config', action='store', help='specify a config file that describes experiments (without file extension .py); default: default_config')
+    parser.add_argument('-c', '--config', dest='config', action='store', help='specify a config file that describes experiments (without file extension .py); default: configDefault')
     parser.add_argument('-p', '--skip-plotting', dest='skipPlot', action='store_true', help='disable creating plot for experiments; default: false')
     parser.add_argument('-e', '--experiment', dest='experiments', action='append', help='specify one or more experiments to execute by name; default: all experiments in the config file')
     parser.add_argument('-s', '--sequence', dest='sequences', action='append', help='specify one or more sequences within the experiments; default: all sequences in the config file')
@@ -294,7 +294,7 @@ def main():
     
     # load and sanitize specification of config file
     config = None
-    configFileName = 'default_config'
+    configFileName = 'configDefault'
     if args.config:
         configFileName = args.config
     config = importlib.import_module(configFileName)
