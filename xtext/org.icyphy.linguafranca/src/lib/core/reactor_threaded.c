@@ -219,6 +219,10 @@ void _lf_decrement_global_logical_time_barrier() {
  *  to advance to.
  */
 void _lf_wait_on_global_logical_time_barrier(instant_t proposed_time) {
+    // Do not wait for FOREVER
+    if (proposed_time == FOREVER) {
+        return;
+    }
     // Wait if the global barrier semaphore on logical time is zero
     // and the proposed_time is larger than the horizon.
     while (proposed_time > _lf_global_logical_time_advancement_barrier.horizon &&
@@ -540,7 +544,6 @@ bool __next() {
             next_tag.time = timeout_time;
             next_tag.microstep = 0;
         }
-
 
         // Ask the RTI to advance time to either timeout_time or FOREVER.
         // This will be granted if there are no upstream federates.
