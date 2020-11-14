@@ -541,7 +541,7 @@ bool __next() {
             next_tag.microstep = 0;
         }
 
-#ifdef _LF_IS_FEDERATED
+
         // Ask the RTI to advance time to either timeout_time or FOREVER.
         // This will be granted if there are no upstream federates.
         // If there are upstream federates, then the call will block
@@ -580,7 +580,6 @@ bool __next() {
             // Set the next tag to the current tag to stop as soon as possible
             next_tag = current_tag;
         }
-#endif
 
 
         // If we get here, the RTI has granted time advance to the stop time
