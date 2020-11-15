@@ -107,7 +107,7 @@ binName = 'PingPongBenchmark'
 lfSrcPath = f'pingpong/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.pingpong.PingPongAkkaActorBenchmark'
 paramNameLf1 = f'--count'
-paramValue1 = 1000000
+paramValue1 = 6000000
 runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp1} {paramNameLf1} {paramValue1}'
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {paramNameLf1} {paramValue1}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {paramNameLf1} {paramValue1}'
@@ -118,7 +118,7 @@ experiments['PingPong'] = {
     'plotAdditionalGnuplotHeaderCommands': '',
     'sequenceParameterForGlobalPlot': '1',
     'globalPlotXAxisLabel': f'Ping Pong',
-    'plotTitle': f'Ping Pong ({paramValue1} Pings)',
+    'plotTitle': f'Ping Pong',
     'plotXAxisLabel': 'no value',
     'plotYAxisLabel': 'Execution time in ms (median)',
     'plotSequenceColors': sequenceColors,
@@ -147,7 +147,7 @@ binName = 'ThreadRingBenchmarkGenerator'
 lfSrcPath = f'threadring/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.threadring.ThreadRingAkkaActorBenchmark'
 paramNameLf1 = f'--numPings'
-paramValue1 = 1000000
+paramValue1 = 8000000
 paramNameLf2 = f'numReactors'
 paramValue2 = 100
 runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp1} {paramNameLf1} {paramValue1}'
@@ -193,7 +193,7 @@ binName = 'CountingBenchmark'
 lfSrcPath = f'count/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.count.CountingAkkaActorBenchmark'
 paramNameLf1 = f'--countTo'
-paramValue1 = 2000000
+paramValue1 = 20000000
 runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp1} {paramNameLf1} {paramValue1}'
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {paramNameLf1} {paramValue1}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {paramNameLf1} {paramValue1}'
@@ -233,7 +233,7 @@ binName = 'ThroughputBenchmarkGenerator'
 lfSrcPath = f'fjthrput/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.fjthrput.ThroughputAkkaActorBenchmark'
 paramNameLf1 = f'--numMessagesPerReactor'
-paramValue1 = 250000
+paramValue1 = 100000
 paramNameLf2 = f'numWorkers'
 paramValue2 = 60
 runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp1} {paramNameLf1} {paramValue1}'
