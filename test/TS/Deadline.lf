@@ -2,12 +2,12 @@
 // Even numbers are sent by the Source immediately, whereas odd numbers
 // are sent after a big enough delay to violate the deadline.
 target TypeScript{
-    timeout : 2 sec
+    timeout : 4 sec
 };
 
-//run = "bin/Deadline -timeout 2 sec"
+//run = "bin/Deadline -timeout 4 sec"
 
-reactor Source(period:time(1 sec)) {
+reactor Source(period:time(2 sec)) {
     output y:number;
     timer t(0, period);
     state count:number(0);
@@ -17,7 +17,7 @@ reactor Source(period:time(1 sec)) {
             // Busy wait 0.2 sconds to cause a deadline violation.
             let initialElapsedTime = util.getElapsedPhysicalTime();
             console.log("****: " + initialElapsedTime);
-            while (util.getElapsedPhysicalTime().isEarlierThan(initialElapsedTime.add(new UnitBasedTimeValue(200, TimeUnit.msec))));
+            while (util.getElapsedPhysicalTime().isEarlierThan(initialElapsedTime.add(new UnitBasedTimeValue(400, TimeUnit.msec))));
             console.log("****: " + util.getElapsedPhysicalTime());
         }
         console.log("Source sends: " + count);
@@ -51,6 +51,6 @@ reactor Destination(timeout:time(1 sec)) {
 }
 main reactor Deadline {
     s = new Source();
-    d = new Destination(timeout = 100 msec);
+    d = new Destination(timeout = 200 msec);
     s.y -> d.x;
 }

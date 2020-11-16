@@ -34,7 +34,7 @@ reactor Destination {
 main reactor TimeLimit(period(1 usec)) {
     timer stop(10 secs);
     reaction(stop) {=
-        stop()
+        request_stop()
     =}
     reaction(shutdown) {=
         print("**** shutdown reaction invoked.")

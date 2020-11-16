@@ -1,0 +1,55 @@
+/*
+ * A test for the request_stop() functionality in Lingua Franca.
+ * 
+ * @author Soroush Bateni
+ */
+ target C {
+    timeout: 11 msec
+};
+
+import Sender from "lib/LoopedActionSender.lf"
+
+reactor Consumer {
+    input in:int;
+    state success:bool(true);
+    reaction(in) {=
+        tag_t current_tag = get_current_tag();
+        if (compare_tags(current_tag,
+                         (tag_t) { .time = MSEC(11) + get_start_time(), .microstep = 0}) > 0) {
+        	fprintf(stderr,"ERROR: Tag (%lld, %d) received. Failed to enforce timeout.\n",
+                            current_tag.time, current_tag.microstep);
+        	exit(1);
+        } else if (compare_tags(current_tag,
+                         (tag_t) { .time = MSEC(10) + get_start_time(), .microstep = 8}) == 0) {
+            // Call request_stop() at relative tag (10 msec, 8)
+            request_stop();
+        }
+
+        if (compare_tags(current_tag,
+                         (tag_t) { .time = MSEC(10) + get_start_time(), .microstep = 9}) == 0) {
+            // The reaction should not have been called at (10 msec, 9)
+            self->success = false;                    
+        }
+    =}
+    
+    reaction(shutdown) {=
+        printf("Shutdown invoked at tag (%lld, %u).\n", current_tag.time - get_start_time(), current_tag.microstep);
+        // Check to see if shutdown is called at relative tag (10 msec, 9)
+        if (compare_tags(current_tag,
+            (tag_t) { .time = MSEC(10) + get_start_time(), .microstep = 9}) == 0 && 
+            self->success == true) {
+            printf("SUCCESS: successfully enforced timeout.\n");
+        } else {
+        	fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
+                            current_tag.time, current_tag.microstep);
+        	exit(1);
+        }
+    =}
+} 
+
+main reactor Timeout {
+   consumer = new Consumer();
+   producer = new Sender(break_interval = 1 msec); 
+   
+   producer.out -> consumer.in;
+}

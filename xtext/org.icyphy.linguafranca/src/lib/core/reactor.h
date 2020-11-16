@@ -59,41 +59,20 @@
 #include <errno.h>
 #include "pqueue.h"
 #include "util.h"
+#include "tag.h"    // Time-related types and functions.
+
+// The following file is also included, but must be included
+// after its requirements are met, so the #include appears at
+// then end.
+// #include "trace.h"
 
 //  ======== Macros ========  //
 #define CONSTRUCTOR(classname) (new_ ## classname)
 #define SELF_STRUCT_T(classname) (classname ## _self_t)
 
-
-// Commonly used time values.
-#define NEVER -0xFFFFFFFFFFFFFFFFLL
-#define FOREVER 0x7FFFFFFFFFFFFFFFLL
-
-// Convenience for converting times
-#define BILLION 1000000000LL
-
 // FIXME: May want these to application dependent, hence code generated.
 #define INITIAL_EVENT_QUEUE_SIZE 10
 #define INITIAL_REACT_QUEUE_SIZE 10
-
-/* Conversion of time to nanoseconds. */
-#define NSEC(t) (t * 1LL)
-#define NSECS(t) (t * 1LL)
-#define USEC(t) (t * 1000LL)
-#define USECS(t) (t * 1000LL)
-#define MSEC(t) (t * 1000000LL)
-#define MSECS(t) (t * 1000000LL)
-#define SEC(t)  (t * 1000000000LL)
-#define SECS(t) (t * 1000000000LL)
-#define MINUTE(t)   (t * 60000000000LL)
-#define MINUTES(t)  (t * 60000000000LL)
-#define HOUR(t)  (t * 3600000000000LL)
-#define HOURS(t) (t * 3600000000000LL)
-#define DAY(t)   (t * 86400000000000LL)
-#define DAYS(t)  (t * 86400000000000LL)
-#define WEEK(t)  (t * 604800000000000LL)
-#define WEEKS(t) (t * 604800000000000LL)
-
 
 ////////////////////////////////////////////////////////////
 //// Macros for producing outputs.
@@ -342,23 +321,6 @@ typedef enum {no=0, token_and_value, token_only} ok_to_free_t;
 typedef int handle_t;
 
 /**
- * Time instant. Both physical and logical times are represented
- * using this typedef. FIXME: Perhaps distinct typedefs should
- * be used.
- * WARNING: If this code is used after about the year 2262,
- * then representing time as a long long will be insufficient.
- */
-typedef long long instant_t;
-
-/** Interval of time. */
-typedef long long interval_t;
-
-/**
- * Microstep instant.
- */
-typedef unsigned int microstep_t;
-
-/**
  * String type so that we don't have to use {= char* =}.
  * Use this for strings that are not dynamically allocated.
  * For dynamically allocated strings that have to be freed after
@@ -382,6 +344,14 @@ typedef void(*reaction_function_t)(void*);
 
 /** Trigger struct representing an output, timer, action, or input. See below. */
 typedef struct trigger_t trigger_t;
+
+/**
+ * Global STP offset uniformly applied to advancement of each 
+ * time step in federated execution. This can be retrieved in 
+ * user code by calling get_stp_offset() and adjusted by 
+ * calling set_stp_offset(interval_t offset).
+ */
+extern interval_t _lf_global_time_STP_offset;
 
 /**
  * Token type for dynamically allocated arrays and structs sent as messages.
@@ -443,6 +413,7 @@ typedef struct reaction_t reaction_t;
 struct reaction_t {
     reaction_function_t function; // The reaction function. COMMON.
     void* self;    // Pointer to a struct with the reactor's state. INSTANCE.
+    int number;    // The number of the reaction in the reactor (0 is the first reaction).
     index_t index; // Inverse priority determined by dependency analysis. INSTANCE.
     unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph. INSTANCE.
     size_t pos;       // Current position in the priority queue. RUNTIME.
@@ -453,7 +424,7 @@ struct reaction_t {
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
     interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
-    bool tardiness;           // Indicator of tardiness in one of the input triggers to this reaction. default = 0.
+    bool is_tardy;           // Indicator of tardiness in one of the input triggers to this reaction. default = false.
                               // Value of True indicates to the runtime that this reaction contains trigger(s)
                               // that are triggered at a later logical time that was originally anticipated.
                               // Currently, this is only possible if logical
@@ -477,6 +448,9 @@ struct event_t {
     size_t pos;               // Position in the priority queue.
     token_t* token;           // Pointer to the token wrapping the value.
     bool is_dummy;            // Flag to indicate whether this event is merely a placeholder or an actual event.
+#ifdef _LF_IS_FEDERATED
+    tag_t intended_tag; // The tardiness of the event relative to the intended tag.
+#endif
     event_t* next;            // Pointer to the next event lined up in superdense time.
 };
 
@@ -497,40 +471,38 @@ struct trigger_t {
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
-    interval_t tardiness;     // The amount of discrepency in logical time between the original intended
+#ifdef _LF_IS_FEDERATED
+    tag_t intended_tag;          // The amount of discrepency in logical time between the original intended
                               // trigger time of this trigger and the actual trigger time. This currently
                               // can only happen when logical connections are used using a decentralized coordination
                               // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
+#endif
 };
 //  ======== Function Declarations ========  //
 
 /**
- * Return the elapsed logical time in nanoseconds
- * since the start of execution.
- * @return A time interval.
- */
-interval_t get_elapsed_logical_time();
-
-/**
- * Return the current logical time in nanoseconds.
+ * Return the time of the start of execution in nanoseconds.
+ * This is both the starting physical and starting logical time.
  * On many platforms, this is the number of nanoseconds
  * since January 1, 1970, but it is actually platform dependent.
  * @return A time instant.
  */
-instant_t get_logical_time();
+instant_t get_start_time();
 
 /**
- * Return the current microstep.
+ * Return the global STP offset on advancement of logical
+ * time for federated execution.
  */
-unsigned int get_microstep();
+interval_t get_stp_offset();
 
 /**
- * Return the current physical time in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
- * @return A time instant.
+ * Set the global STP offset on advancement of logical
+ * time for federated execution.
+ * 
+ * @param offset A positive time value to be applied
+ *  as the STP offset.
  */
-instant_t get_physical_time();
+void set_stp_offset(interval_t offset);
 
 /**
  * Print a snapshot of the priority queues used during execution
@@ -648,14 +620,13 @@ void _lf_recycle_event(event_t* e);
  * If there is an event found at the requested tag, the payload
  * is replaced and 0 is returned.
  *
- * @param time Logical time of the event
- * @param microstep The microstep of the event in the given logical time
  * @param trigger The trigger to be invoked at a later logical time.
+ * @param tag Logical tag of the event
  * @param token The token wrapping the payload or NULL for no payload.
  * 
  * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
  */
-int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigger, token_t* token);
+int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token);
 
 /**
  * Create a dummy event to be used as a spacer in the event queue.
@@ -744,9 +715,10 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
 handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
- * For a federated execution, broadcast stop() to all federates.
+ * For a federated execution, send a STOP_REQUEST message
+ * to the RTI.
  */
-void __broadcast_stop();
+void _lf_fd_send_stop_request_to_rti();
 
 /**
  * Advance from the current tag to the next. If the given next_time is equal to
@@ -754,6 +726,15 @@ void __broadcast_stop();
  * time and set the microstep to zero.
  */ 
 void _lf_advance_logical_time(instant_t next_time);
+
+//  ******** Global Variables ********  //
+
+/**
+ * The number of worker threads for threaded execution.
+ * By default, execution is not threaded and this variable will have value 0,
+ * meaning that the execution is not threaded.
+ */
+extern unsigned int _lf_number_of_threads;
 
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.
@@ -791,6 +772,8 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp);
 int nanosleep(const struct timespec *req, struct timespec *rem);
 #endif
 //  ******** End Windows Support ********  //
+
+#include "trace.h"
 
 #endif /* REACTOR_H */
 /** @} */
