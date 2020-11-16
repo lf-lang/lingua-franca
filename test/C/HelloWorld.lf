@@ -1,9 +1,7 @@
 target C {
-    tracing: true
+    tracing: true,
+    logging: DEBUG
 };
-preamble {=
-    #define VERBOSE 
-=}
 reactor HelloWorld {
     state success:bool(false);
     reaction(startup) {=
