@@ -27,7 +27,7 @@ else
     
     if [[ "$OSTYPE" == "darwin"* ]]; then
         if ! command -v gtimeout &> /dev/null; then
-            echo "gtimeout could not be found.";
+            echo "gtimeout could not be found. Please install gtimeout using 'brew install coreutils'";
             exit 1;
         fi
         timeout_command+="gtimeout 2m " # 2 minute timeout
