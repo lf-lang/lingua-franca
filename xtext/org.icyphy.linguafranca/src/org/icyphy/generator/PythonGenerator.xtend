@@ -447,6 +447,10 @@ class PythonGenerator extends CGenerator {
                         // If type is not given, pass along the initialization directly if it is present
                         pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»
                         ''')
+                    } else {
+                        // If neither the type nor the initialization is given, use None
+                        pythonClasses.append('''    «stateVar.name» = None
+                        ''')                        
                     }
                 }
 
