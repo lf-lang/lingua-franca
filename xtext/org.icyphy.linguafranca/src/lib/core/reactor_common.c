@@ -80,7 +80,7 @@ bool stop_requested = false;
  * Timeout time (start_time + duration), or -1 if no timeout time has been given.
  * The microstep for timeout is always 0.
  */
-instant_t timeout_time = -1LL;
+instant_t timeout_time = NEVER;
 
 /** Indicator of whether the keepalive command-line option was given. */
 bool keepalive_specified = false;
@@ -494,6 +494,20 @@ token_t* __initialize_token(token_t* token, int length) {
 }
 
 /**
+ * A helper function that returns true if the provided tag is after timeout.
+ * It will also return true if stop_requested is set.
+ * 
+ * @param tag The tag to check against timeout time
+ */
+bool _lf_is_tag_after_timeout(tag_t tag) {
+    if ((timeout_time != NEVER && compare_tags2(tag.time, tag.microstep, timeout_time, 0) > 0) ||
+        stop_requested == true) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * Pop all events from event_q with timestamp equal to current_tag.time, extract all
  * the reactions triggered by these events, and stick them into the reaction
  * queue.
@@ -742,7 +756,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
     // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n",
     //        e->time - start_time, timeout_time - start_time);
     if ((stop_requested && tag.time != current_tag.time)
-            || (timeout_time != -1LL &&                // If timeout is given
+            || (timeout_time != NEVER &&                // If timeout is given
                (compare_tags2(tag.time, tag.microstep, // and the requested tag
                               timeout_time, 0) > 0))   // is larger than (timeout_time, 0)
        ) {
@@ -1136,7 +1150,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n",
     //         e->time - start_time, timeout_time - start_time);
     if ((stop_requested && e->time != current_tag.time)
-            || (timeout_time != -1LL && e->time > timeout_time)) {
+            || (timeout_time != NEVER && e->time > timeout_time)) {
         // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
         __done_using(token);
         _lf_recycle_event(e);

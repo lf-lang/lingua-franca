@@ -90,7 +90,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  */ 
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
-    if (timeout_time > 0LL && logical_time_ns > timeout_time) {
+    if (_lf_is_tag_after_timeout((tag_t) { .time = logical_time_ns, .microstep = 0})) {
         logical_time_ns = timeout_time;
         current_tag.microstep = 0;
         // Indicate on return that the time of the event was not reached.
@@ -256,7 +256,7 @@ int __do_step() {
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
 
-    if (timeout_time != -1LL && 
+    if (timeout_time != NEVER && 
         compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0) {
         stop_requested = true;
         return 0;
@@ -285,19 +285,27 @@ int next() {
     // If there is no next event and -keepalive has been specified
     // on the command line, then we will wait the maximum time possible.
     // FIXME: is LLONG_MAX different from FOREVER?
-    instant_t next_time = LLONG_MAX;
+    tag_t next_tag = { .time = LLONG_MAX, .microstep = 0};
     if (event == NULL) {
         // No event in the queue.
         if (!keepalive_specified) {
             return 0;
         }
     } else {
-        next_time = event->time;
+        next_tag.time = event->time;
     }
-    //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_time - start_time);
+    // Deduce the microstep
+    if (next_tag.time == current_tag.time) {
+        next_tag.microstep = get_microstep() + 1;
+    }
+
+    if (_lf_is_tag_after_timeout(next_tag)) {
+        return 0;
+    }
+    //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_tag.time - start_time);
     // Wait until physical time >= event.time.
     // The wait_until function will advance current_tag.time.
-    if (wait_until(next_time) < 0) {
+    if (wait_until(next_tag.time) < 0) {
         // Sleep was interrupted or the timeout time has been reached.
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
@@ -306,17 +314,16 @@ int next() {
             // There is no new event. If the timeout tag has been surpassed,
             // or if the maximum time has been reached (unlikely), then return.
             if (new_event == NULL || 
-                (timeout_time != -1LL &&
-                 compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0)) {
+                (_lf_is_tag_after_timeout(current_tag))) {
                 stop_requested = true;
                 return 0;
             }
-            printf("DEBUG: Setting current (elapsed) time to %lld.\n", next_time - start_time);
+            printf("DEBUG: Setting current (elapsed) time to %lld.\n", next_tag.time - start_time);
         } else {
             // Handle the new event.
             event = new_event;
-            next_time = event->time;
-            printf("DEBUG: New event at (elapsed) time %lld.\n", next_time - start_time);
+            next_tag.time = event->time;
+            printf("DEBUG: New event at (elapsed) time %lld.\n", next_tag.time - start_time);
         }
     }
 
@@ -333,7 +340,7 @@ int next() {
     // reactions that will be added to the reaction queue
     // during wrapup(). Therefore, do not call __do_step()
     // here.
-    if (timeout_time != -1LL && 
+    if (timeout_time != NEVER && 
         compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0) {
         stop_requested = true;
         return 0;

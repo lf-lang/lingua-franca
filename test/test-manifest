@@ -130,6 +130,8 @@ SlowingClockPhysical.lf
 StartupOutFromInside.lf
 Stop.lf
 StopThreaded.lf
+StopZero.lf
+StopZeroThreaded.lf
 Stride.lf
 StructAsState.lf
 StructAsType.lf

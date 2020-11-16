@@ -355,7 +355,7 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
  */
 bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
-    if (timeout_time != -1LL && logical_time_ns > timeout_time) {
+    if (timeout_time != NEVER && logical_time_ns > timeout_time) {
         // Modify the time to wait until to be the timeout time.
         logical_time_ns = timeout_time;
         // Indicate on return that the time of the event was not reached.
@@ -401,22 +401,6 @@ bool wait_until(instant_t logical_time_ns) {
 // Indicator used to identify the first invocation of __next().
 bool __first_invocation = true;
 
-
-/**
- * A helper function that returns true if the provided tag is after timeout.
- * It will also return true if stop_requested is set.
- * 
- * This function assumes the mutex is already locked.
- * @param tag The tag to check against timeout time
- */
-bool _lf_is_tag_after_timeout_already_locked(tag_t tag) {
-    if ((timeout_time != -1LL && compare_tags2(tag.time, tag.microstep, timeout_time, 0) > 0) ||
-        stop_requested == true) {
-        return true;
-    }
-    return false;
-}
-
 /**
  * If there is at least one event in the event queue, then wait until
  * physical time matches or exceeds the time of the least tag on the event
@@ -461,7 +445,7 @@ bool __next() {
         // event tag to that timeout tag.
         // FIXME: This is primarily done to let the RTI
         // know about the timeout time? 
-        if (_lf_is_tag_after_timeout_already_locked(next_tag)) {
+        if (_lf_is_tag_after_timeout(next_tag)) {
             next_event_tag_is_after_timeout = true;
             next_tag = (tag_t) { .time = timeout_time, .microstep = 0 };
         }
@@ -483,7 +467,7 @@ bool __next() {
         // Since next_event_tag releases the mutex lock internally, we need to check
         // if the timeout time has changed or if stop is requested in case a 
         // request_stop() has been called while the mutex was unlocked.
-        if (_lf_is_tag_after_timeout_already_locked(next_tag)) {
+        if (_lf_is_tag_after_timeout(next_tag)) {
             next_event_tag_is_after_timeout = true;
             // Set the next tag to the current tag to stop as soon as possible
             next_tag = current_tag;
@@ -512,7 +496,7 @@ bool __next() {
         // if the timeout time has changed or if stop is requested in case a 
         // request_stop() has been called while the mutex was unlocked.
         // If the event tag was past the timeout time, it is now safe to stop execution.
-        if (_lf_is_tag_after_timeout_already_locked(next_tag) || next_event_tag_is_after_timeout) {
+        if (_lf_is_tag_after_timeout(next_tag) || next_event_tag_is_after_timeout) {
             stop_requested = true;
             // Signal all the worker threads. Since both the queues are
             // empty, the threads will exit without doing anything further.
@@ -540,7 +524,7 @@ bool __next() {
         // printf("DEBUG: __next(): event queue is empty.\n");
         // If a timeout tag was given, adjust the next_tag's time
         // from FOREVER to timeout time.
-        if (timeout_time != -1LL) {
+        if (timeout_time != NEVER) {
             next_tag.time = timeout_time;
             next_tag.microstep = 0;
         }
@@ -579,7 +563,7 @@ bool __next() {
         // Since next_event_tag releases the mutex lock internally, we need to check
         // if the timeout time has changed or if stop is requested in case a 
         // request_stop() has been called while the mutex was unlocked.
-        if (_lf_is_tag_after_timeout_already_locked(next_tag)) {
+        if (_lf_is_tag_after_timeout(next_tag)) {
             // Set the next tag to the current tag to stop as soon as possible
             next_tag = current_tag;
         }
