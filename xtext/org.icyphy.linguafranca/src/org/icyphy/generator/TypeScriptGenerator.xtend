@@ -1492,6 +1492,14 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
         "TimeValue"
     }
     
+    override getTargetTagType() {
+        "TimeValue"
+    }
+    
+    override getTargetTagIntervalType() {
+        return getTargetUndefinedType()
+    }
+    
     override String getTargetUndefinedType() {
         "Present"
     }

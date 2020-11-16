@@ -1,21 +1,20 @@
-/** Test a particularly simple form of a distributed deterministic system
- *  where a federation that receives timestamped messages only over connections
- *  that are marked 'physical' (using the ~> arrow).
- *  Therefore, no additional coordination of the
- *  advancement of time (HLA or Ptides) is needed.
- *  This test also showcases the feature where the tardiness
- *  can be obtained from the port.
- *  @author Edward A. Lee
+/** 
+ * Test a particularly simple form of a distributed deterministic system
+ * where a federation that receives timestamped messages only over connections
+ * that are marked 'physical' (using the ~> arrow).
+ * Therefore, no additional coordination of the
+ * advancement of time (HLA or Ptides) is needed.
+ * 
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
     timeout: 1 sec,
     coordination: decentralized
 };
-preamble {=
-    // #define VERBOSE
-=}
+
 reactor Count {
-    timer t(0, 200 msec);
+    timer t(200 msec, 1 sec);
     state s:int(0);
     output out:int;
     reaction(t) -> out {=
@@ -28,24 +27,23 @@ reactor Print {
     state c:int(0);
     reaction(in) {=
         interval_t elapsed_time = get_elapsed_logical_time();
-        printf("At time %lld, received %d."
-            " The original intended timestamp was %lld.\n",
-            elapsed_time, in->value, elapsed_time - in->tardiness);
+        printf("At time %lld, received %d.\n", elapsed_time, in->value);
         if (in->value    != self->c) {
             fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
             exit(1);
         }
-        if (!(elapsed_time > MSEC(200) * self->c)) {
+        if (!(elapsed_time > (SEC(1) * self->c) + MSEC(200))) {
             fprintf(stderr, "ERROR: Expected received time to be strictly greater than %lld.\n", MSEC(200) * self->c);
             exit(3);
         }
         self->c++;
     =}
     reaction(shutdown) {=
-        if (self->c != 5) {
-            fprintf(stderr, "ERROR: Expected to receive 5 items. Received %d.\n", self->c);
+        if (self->c != 1) {
+            fprintf(stderr, "ERROR: Expected to receive 1 item. Received %d.\n", self->c);
             exit(2);
         }
+        printf("SUCCESS: Successfully received 1 item.\n");
     =}
 }
 federated reactor DistributedCount at localhost {

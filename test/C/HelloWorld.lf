@@ -1,4 +1,7 @@
-target C;
+target C {
+    tracing: true,
+    logging: DEBUG
+};
 reactor HelloWorld {
     state success:bool(false);
     reaction(startup) {=

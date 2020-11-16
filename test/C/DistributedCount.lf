@@ -12,10 +12,6 @@ target C {
 
 import Count from "lib/Count.lf";
 
-preamble {=
-   // #define VERBOSE
-=}
-
 reactor Print {
     input in:int;
     state c:int(1);

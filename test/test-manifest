@@ -49,11 +49,13 @@ DistributedCountDecentralizedLate.lf
 DistributedCountDecentralizedLateDownstream.lf
 DistributedCountDecentralizedLateHierarchy.lf
 DistributedCountPhysical.lf
-DistributedCountPhysicalLate.lf
 DistributedCountPhysicalDecentralized.lf
-DistributedCountPhysicalDecentralizedLate.lf
+DistributedDoublePort.lf
+DistributedStop.lf
+DistributedStopZero.lf
 DistributedToken.lf
 DoubleInvocation.lf
+DoublePort.lf
 DoubleReaction.lf
 DoubleReactionThreaded.lf
 DoubleTrigger.lf
@@ -100,6 +102,7 @@ MultiportToReaction.lf
 NativeListsAndTimes.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
+PhysicalConnection.lf
 PingPong.lf
 PingPongThreaded.lf
 PingPongDistributed.lf
@@ -109,6 +112,7 @@ PreambleFile.lf
 ProtoNoPacking.lf
 ReadOutputOfContainedReactor.lf
 Schedule.lf
+ScheduleAt.lf
 ScheduleTwice.lf
 ScheduleValue.lf
 ScheduleLogicalAction.lf
@@ -124,6 +128,10 @@ SimpleImport.lf
 SlowingClock.lf
 SlowingClockPhysical.lf
 StartupOutFromInside.lf
+Stop.lf
+StopThreaded.lf
+StopZero.lf
+StopZeroThreaded.lf
 Stride.lf
 StructAsState.lf
 StructAsType.lf
@@ -138,6 +146,10 @@ ThreadedMultiport.lf
 ThreadedThreaded.lf
 TimeLimit.lf
 TimeLimitThreaded.lf
+Timeout.lf
+TimeoutZero.lf
+TimeoutThreaded.lf
+TimeoutZeroThreaded.lf
 TriggerDownstreamOnlyIfPresent.lf
 TriggerDownstreamOnlyIfPresent2.lf
 UnconnectedInput.lf

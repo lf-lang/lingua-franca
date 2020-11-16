@@ -210,8 +210,8 @@ import org.icyphy.linguaFranca.Value
  *     execute the reaction (see reactor.h in the C library).
  * 
  *  * Timers: For each timer t, there is are two fields in the self struct:
- *    * ___t_trigger: The trigger_t struct for this timer (see reactor.h).
- *    * ___t_trigger_reactions: An array of reactions (pointers to the
+ *    * ___t: The trigger_t struct for this timer (see reactor.h).
+ *    * ___t_reactions: An array of reactions (pointers to the
  *      reaction_t structs on this self struct) sensitive to this timer.
  *
  * * Triggers: For each Timer, Action, Input, and Output of a contained
@@ -316,7 +316,7 @@ class CGenerator extends GeneratorBase {
     protected var startTimers = new StringBuilder()
     var timerCount = 0
     var startupReactionCount = 0
-    var shutdownCount = 0
+    var shutdownReactionCount = 0
 
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
@@ -390,11 +390,17 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
+        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "util.h", "util.c")
         if (targetThreads === 0) {
             files.add("reactor.c")
         } else {
             files.add("reactor_threaded.c")
+        }
+        
+        // Handle tracing, if used.
+        if (targetTracing) {
+            // Provide the implementation of the tracing functions.
+            files.add("trace.c")
         }
         // If there are federates, copy the required files for that.
         // Also, create two RTI C files, one that launches the federates
@@ -509,19 +515,19 @@ class CGenerator extends GeneratorBase {
                 ''')
                 
                 // If there are shutdown reactions, create a table of triggers.
-                if (shutdownCount > 0) {
+                if (shutdownReactionCount > 0) {
                     pr('''
                         // Array of pointers to shutdown triggers.
-                        trigger_t* __shutdown_triggers[«shutdownCount»];
+                        reaction_t* __shutdown_reactions[«shutdownReactionCount»];
                     ''')
                 } else {
                     pr('''
                         // Empty array of pointers to shutdown triggers.
-                        trigger_t** __shutdown_triggers = NULL;
+                        reaction_t** __shutdown_reactions = NULL;
                     ''')
                 }
                 pr('''
-                    int __shutdown_triggers_size = «shutdownCount»;
+                    int __shutdown_reactions_size = «shutdownReactionCount»;
                 ''')
                 
                 // Generate function to return a pointer to the action trigger_t
@@ -584,6 +590,19 @@ class CGenerator extends GeneratorBase {
                         __is_present_fields = (bool**)malloc(«startTimeStepIsPresentCount» * sizeof(bool*));
                     ''')
                 }
+                
+                // Create the table to initialize intended tag fields to 0 between time steps.
+                if (isFederated) {
+                    // Allocate the initial (before mutations) array of pointers to intended_tag fields.
+                    // There is a 1-1 map between structs containing is_present and intended_tag fields,
+                    // thus, we reuse startTimeStepIsPresentCount as the counter.
+                    pr('''
+                        // Create the array that will contain pointers to intended_tag fields to reset on each step.
+                        __intended_tag_fields_size = «startTimeStepIsPresentCount»;
+                        __intended_tag_fields = (tag_t**)malloc(«startTimeStepIsPresentCount» * sizeof(tag_t*));
+                    ''')
+                }
+                
                 pr(initializeTriggerObjects.toString)
                 pr('// Populate arrays of trigger pointers.')
                 pr(initializeTriggerObjectsEnd.toString)
@@ -619,6 +638,9 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule timers for all reactors.
                 pr("void __initialize_timers() {")
                 indent()
+                if (targetTracing) {
+                    pr('''start_trace("«filename».lft");''') // .lft is for Lingua Franca trace
+                }
                 if (timerCount > 0) {
                     pr('''
                        for (int i = 0; i < __timer_triggers_size; i++) {
@@ -636,9 +658,9 @@ class CGenerator extends GeneratorBase {
                 // downstream federates, will notify the RTI
                 // that the specified logical time is complete.
                 pr('''
-                    void logical_time_complete(instant_t time) {
+                    void logical_time_complete(instant_t timestep, microstep_t microstep) {
                         «IF federates.length > 1»
-                            __logical_time_complete(time);
+                            __logical_time_complete(timestep, microstep);
                         «ENDIF»
                     }
                 ''')
@@ -647,25 +669,26 @@ class CGenerator extends GeneratorBase {
                 // if there is only one federate or will notify the RTI,
                 // if necessary, of the next event time.
                 pr('''
-                    instant_t next_event_time(instant_t time) {
+                    tag_t next_event_tag(instant_t time, microstep_t microstep) {
                         «IF federates.length > 1»
-                            return __next_event_time(time);
+                            return __next_event_tag(time, microstep);
                         «ELSE»
-                            return time;
+                            return («targetTagType») {  .time = time, .microstep = microstep };
                         «ENDIF»
                     }
                 ''')
                 
-                // Generate function to schedule shutdown actions if any
+                // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
                 pr('''
-                    bool __wrapup() {
-                        __start_time_step();  // To free memory allocated for actions.
-                        for (int i = 0; i < __shutdown_triggers_size; i++) {
-                            __schedule(__shutdown_triggers[i], 0LL, NULL);
+                    bool __wrapup() {                          
+                        for (int i = 0; i < __shutdown_reactions_size; i++) {
+                            if (__shutdown_reactions[i] != NULL) {
+                                _lf_enqueue_reaction(__shutdown_reactions[i]);
+                            }
                         }
-                        // Return true if there are shutdown actions.
-                        return (__shutdown_triggers_size > 0);
+                        // Return true if there are shutdown reactions.
+                        return (__shutdown_reactions_size > 0);
                     }
                 ''')
                 
@@ -676,6 +699,7 @@ class CGenerator extends GeneratorBase {
                     // FIXME: Check return values.
                     pr('''
                         void __termination() {
+                            stop_trace();
                             // Check for all outgoing physical connections in
                             // _lf_federate_sockets_for_outbound_p2p_connections and 
                             // if the socket ID is not -1, the connection is still open. 
@@ -695,7 +719,7 @@ class CGenerator extends GeneratorBase {
                         }
                     ''')
                 } else {
-                    pr("void __termination() {}");
+                    pr("void __termination() {stop_trace();}");
                 }
             }
             writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
@@ -1098,7 +1122,7 @@ class CGenerator extends GeneratorBase {
                 '
                 pushd src-gen/core > /dev/null
                 echo "Copying LF core files for RTI to host «target»"
-                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/core
+                scp rti.c rti.h util.h util.c reactor.h pqueue.h trace.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"
@@ -1160,7 +1184,7 @@ class CGenerator extends GeneratorBase {
                     '
                     pushd src-gen/core > /dev/null
                     echo "Copying LF core files to host «federate.host»"
-                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    scp reactor_common.c reactor.h pqueue.c pqueue.h trace.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
                     popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
@@ -1364,14 +1388,14 @@ class CGenerator extends GeneratorBase {
         val reactor = decl.toDefinition
         // In the case where there are incoming
         // p2p connections (physical and logical)
-        // there will be a tardiness field added
+        // there will be a intended_tag field added
         // to accommodate the case where a reaction
         // triggered by a port or action is late due
         // to network latency, etc..
-        var tardiness = ''        
+        var intended_tag = ''        
         if (isFederated) {
-            tardiness = '''
-                «targetTimeType» tardiness;
+            intended_tag = '''
+                «targetTagType» intended_tag;
             '''
         }
         // First, handle inputs.
@@ -1389,7 +1413,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
-                    «tardiness»
+                    «intended_tag»
                 } «variableStructType(input, decl)»;
             ''')
             
@@ -1409,7 +1433,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
-                    «tardiness»
+                    «intended_tag»
                 } «variableStructType(output, decl)»;
             ''')
 
@@ -1419,11 +1443,6 @@ class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the schedule() functions to get to the trigger.
         for (action : reactor.allActions) {
-            if (action.origin === ActionOrigin.PHYSICAL) {
-                tardiness = '''
-                    «targetTimeType» tardiness;
-                '''
-            }
             pr(action, code, '''
                 typedef struct {
                     trigger_t* trigger;
@@ -1431,7 +1450,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     bool has_value;
                     token_t* token;
-                    «tardiness»
+                    «intended_tag»
                 } «variableStructType(action, decl)»;
             ''')
             
@@ -1696,7 +1715,7 @@ class CGenerator extends GeneratorBase {
                     // self->__«containedReactor.name».«port.name»_trigger.is_physical = false;
                     // self->__«containedReactor.name».«port.name»_trigger.drop = false;
                     // self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
-                    // self->__«containedReactor.name».«port.name»_trigger.tardiness = 0;
+                    // self->__«containedReactor.name».«port.name»_trigger.intended_tag = (0, 0);
                     pr(port, constructorCode, '''
                         self->__«containedReactor.name».«port.name»_trigger.last = NULL;
                         self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
@@ -1814,7 +1833,7 @@ class CGenerator extends GeneratorBase {
             if (federate === null || federate.containsReaction(reactor, reaction)) {
                 // Create the reaction_t struct.
                 pr(reaction, body, '''reaction_t ___reaction_«reactionCount»;''')
-
+                
                 // Create the map of triggers to reactions.
                 for (trigger : reaction.triggers) {
                     // trigger may not be a VarRef (it could be "startup" or "shutdown").
@@ -1878,8 +1897,9 @@ class CGenerator extends GeneratorBase {
                 // self->___reaction_«reactionCount».pos = 0;
                 // self->___reaction_«reactionCount».running = false;
                 // self->___reaction_«reactionCount».deadline = 0LL;
-                // self->___reaction_«reactionCount».tardiness = false;
+                // self->___reaction_«reactionCount».is_tardy = false;
                 pr(reaction, constructorCode, '''
+                    self->___reaction_«reactionCount».number = «reactionCount»;
                     self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
@@ -2114,8 +2134,8 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * Generate code that passes existing tardiness to all output ports
-     * and actions. This tardiness is the maximum tardiness of the 
+     * Generate code that passes existing intended tag to all output ports
+     * and actions. This intended tag is the minimum intended tag of the 
      * triggering inputs of the reaction.
      * 
      * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
@@ -2123,48 +2143,49 @@ class CGenerator extends GeneratorBase {
      * @param decl The reactor that has the reaction
      * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
      */
-    def generateTardinessInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        // Construct the tardiness inheritance code to go into
+    def generateIntendedTagInheritence(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
+        // Construct the intended_tag inheritance code to go into
         // the body of the function.
-        var StringBuilder tardinessInheritenceCode = new StringBuilder()
+        var StringBuilder intendedTagInheritenceCode = new StringBuilder()
         if (isFederated) {
-            pr(tardinessInheritenceCode, '''
-                if (self->___reaction_«reactionIndex».tardiness == true) {
+            pr(intendedTagInheritenceCode, '''
+                if (self->___reaction_«reactionIndex».is_tardy == true) {
             ''')
-            indent(tardinessInheritenceCode);            
-            pr(tardinessInheritenceCode, '''            
-                // The following operations are expensive and must
-                // only be done if the reaction has unhandled tardiness.
-                // Otherwise, all tardiness values are 0 by default.
+            indent(intendedTagInheritenceCode);            
+            pr(intendedTagInheritenceCode, '''            
+                // The operations inside this if clause (if any exists) are expensive 
+                // and must only be done if the reaction has unhandled tardiness.
+                // Otherwise, all intended_tag values are current_tag by default.
                 
-                // Inherited tardiness. This will take the maximum
-                // tardiness of all input triggers
-                «targetTimeType» inherited_max_tardiness = 0LL;
+                // Inherited intended tag. This will take the minimum
+                // intended_tag of all input triggers
+                «targetTagType» inherited_min_intended_tag = («targetTagType») { .time = FOREVER, .microstep = UINT_MAX };
             ''')
-            pr(tardinessInheritenceCode, '''
-                // Find the maximum tardiness
+            pr(intendedTagInheritenceCode, '''
+                // Find the minimum intended tag
             ''')
             // Go through every trigger of the reaction and check the
-            // value of tardiness to choose the maximum.
+            // value of intended_tag to choose the minimum.
             for (TriggerRef inputTrigger : reaction.triggers ?: emptyList) {
                 if (inputTrigger instanceof VarRef) {
                     if (inputTrigger.variable instanceof Output) {
                         // Output from a contained reactor
-                        pr(tardinessInheritenceCode, '''
-                            if («inputTrigger.container.name».«inputTrigger.variable.name»->tardiness > inherited_max_tardiness) {
-                                inherited_max_tardiness = «inputTrigger.container.name».«inputTrigger.variable.name»->tardiness;
+                        pr(intendedTagInheritenceCode, '''
+                            if (compare_tags(«inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag,
+                                             inherited_min_intended_tag) < 0) {
+                                inherited_min_intended_tag = «inputTrigger.container.name».«inputTrigger.variable.name»->intended_tag;
                             }
                         ''')
                     } else if (inputTrigger.variable instanceof Port) {
-                        pr(tardinessInheritenceCode, '''
-                            if («inputTrigger.variable.name»->tardiness > inherited_max_tardiness) {
-                                inherited_max_tardiness = «inputTrigger.variable.name»->tardiness;
+                        pr(intendedTagInheritenceCode, '''
+                            if (compare_tags(«inputTrigger.variable.name»->intended_tag, inherited_min_intended_tag) < 0) {
+                                inherited_min_intended_tag = «inputTrigger.variable.name»->intended_tag;
                             }
                         ''')
                     } else if (inputTrigger.variable instanceof Action) {
-                        pr(tardinessInheritenceCode, '''
-                            if («inputTrigger.variable.name»->trigger->tardiness > inherited_max_tardiness) {
-                                inherited_max_tardiness = «inputTrigger.variable.name»->trigger->tardiness;
+                        pr(intendedTagInheritenceCode, '''
+                            if (compare_tags(«inputTrigger.variable.name»->trigger->intended_tag, inherited_min_intended_tag) < 0) {
+                                inherited_min_intended_tag = «inputTrigger.variable.name»->trigger->intended_tag;
                             }
                         ''')
                     }
@@ -2173,46 +2194,46 @@ class CGenerator extends GeneratorBase {
             }
             if (reaction.triggers === null || reaction.triggers.size === 0) {
                 // No triggers are given, which means the reaction would react to any input.
-                // We need to check tardiness for every input.
+                // We need to check the intended tag for every input.
                 // NOTE: this does not include contained outputs. 
                 for (input : reaction.sources) {
-                    pr(tardinessInheritenceCode, '''
-                        if («input.variable.name»->tardiness > inherited_max_tardiness) {
-                            inherited_max_tardiness = «input.variable.name»->tardiness;
+                    pr(intendedTagInheritenceCode, '''
+                        if (compare_tags(«input.variable.name»->intended_tag, inherited_min_intended_tag) > 0) {
+                            inherited_min_intended_tag = «input.variable.name»->intended_tag;
                         }
                     ''')
                 }
             }
             
-            // Once the maximum tardiness has been found,
+            // Once the minimum intended tag has been found,
             // it will be passed down to the port effects
-            // of the reaction. Note that the tardiness
+            // of the reaction. Note that the intended tag
             // will not pass on to actions downstream.
             for (effect : reaction.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
                     // Input to a contained reaction
-                    pr(tardinessInheritenceCode, '''
-                        // All effects inherit the maximum tardiness of input triggers
-                        «effect.container.name».«effect.variable.name»->tardiness = inherited_max_tardiness;
+                    pr(intendedTagInheritenceCode, '''
+                        // All effects inherit the minimum intended tag of input triggers
+                        «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
                     ''')                    
                 } else if (effect.variable instanceof Output) {
                     // Everything else
-                    pr(tardinessInheritenceCode, '''
-                        // All effects inherit the maximum tardiness of input triggers
-                        «effect.variable.name»->tardiness = inherited_max_tardiness;
+                    pr(intendedTagInheritenceCode, '''
+                        // All effects inherit the minimum intended tag of input triggers
+                        «effect.variable.name»->intended_tag = inherited_min_intended_tag;
                     ''')                    
                 }
             }
-            unindent(tardinessInheritenceCode);
-            pr(tardinessInheritenceCode,'''
+            unindent(intendedTagInheritenceCode);
+            pr(intendedTagInheritenceCode,'''
             }
             ''')
             
-            // Write the the tardiness inheritance initialization
+            // Write the the intended tag inheritance initialization
             // to the main code.
-            pr(tardinessInheritenceCode.toString) 
+            pr(intendedTagInheritenceCode.toString) 
         }
-        return tardinessInheritenceCode
+        return intendedTagInheritenceCode
     }
     
     /**
@@ -2349,10 +2370,10 @@ class CGenerator extends GeneratorBase {
             pr(reactionInitialization.toString)
             
             if (reaction.tardy === null) {
-                // Pass down the tardiness to all input and output effects
+                // Pass down the intended_tag to all input and output effects
                 // downstream if the current reaction does not have a tardy
                 // handler.
-                generateTardinessInheritence(body, reaction, decl, reactionIndex)                
+                generateIntendedTagInheritence(body, reaction, decl, reactionIndex)                
             }
         } else {
             pr(structType + "* self = (" + structType + "*)instance_args;")
@@ -2584,6 +2605,14 @@ class CGenerator extends GeneratorBase {
                                 __is_present_fields[«startTimeStepIsPresentCount»] 
                                         = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»is_present;
                             ''')
+                            if (isFederated) {
+                                // Intended_tag is only applicable to ports in federated execution.
+                                pr(startTimeStep, '''
+                                    // Add port «sourcePort.getFullName» to array of is_present fields.
+                                    __intended_tag_fields[«startTimeStepIsPresentCount»] 
+                                            = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»intended_tag;
+                                ''')
+                            }
                             startTimeStepIsPresentCount++
                         }
                     }
@@ -2617,6 +2646,13 @@ class CGenerator extends GeneratorBase {
                                 // Add port «output.getFullName» to array of is_present fields.
                                 __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "is_present")»;
                             ''')
+                            if (isFederated) {
+                                // Intended_tag is only applicable to ports in federated execution.
+                                pr(startTimeStep, '''
+                                    // Add port «output.getFullName» to array of intended_tag fields.
+                                    __intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "intended_tag")»;
+                                ''')
+                            }
                             startTimeStepIsPresentCount++
                             j++
                         }
@@ -2625,6 +2661,13 @@ class CGenerator extends GeneratorBase {
                             // Add port «output.getFullName» to array of is_present fields.
                             __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "is_present")»;
                         ''')
+                        if (isFederated) {                            
+                            // Intended_tag is only applicable to ports in federated execution.
+                            pr(startTimeStep, '''
+                                // Add port «output.getFullName» to array of Intended_tag fields.
+                                __intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "intended_tag")»;
+                            ''')                            
+                        }
                         startTimeStepIsPresentCount++
                     }
                 }
@@ -2636,6 +2679,14 @@ class CGenerator extends GeneratorBase {
                 __is_present_fields[«startTimeStepIsPresentCount»] 
                         = &«containerSelfStructName»->__«action.name».is_present;
             ''')
+            if (isFederated) {
+                // Intended_tag is only applicable to actions in federated execution.
+                pr(startTimeStep, '''
+                    // Add action «action.getFullName» to array of intended_tag fields.
+                    __intended_tag_fields[«startTimeStepIsPresentCount»] 
+                            = &«containerSelfStructName»->__«action.name».intended_tag;
+                ''')
+            }
             startTimeStepIsPresentCount++
         }
     }
@@ -2925,6 +2976,73 @@ class CGenerator extends GeneratorBase {
     def getStackPortMember(String portName, String member) '''
         «portName».«member»
     '''
+    /**
+     * Return the full name of the specified instance without
+     * the leading name of the top-level reactor, unless this
+     * is the top-level reactor, in which case return its name.
+     * @param instance The instance.
+     * @return A shortened instance name.
+     */
+    def getShortenedName(ReactorInstance instance) {
+        var description = instance.getFullName
+        // If not at the top level, strip off the name of the top level.
+        val period = description.indexOf(".")
+        if (period > 0) {
+            description = description.substring(period + 1)
+        }
+        return description
+    }
+    
+    /**
+     * If tracing is turned on, then generate code that records
+     * the full name of the specified reactor instance in the
+     * trace table. If tracing is not turned on, do nothing.
+     * @param instance The reactor instance.
+     * @param builder The place to put the generated code.
+     */
+    def void generateTraceTableEntries(ReactorInstance instance, StringBuilder builder) {
+        // If tracing is turned on, record the address of this reaction
+        // in the _lf_trace_object_descriptions table that is used to generate
+        // the header information in the trace file.
+        if (targetTracing) {
+            var description = getShortenedName(instance)
+            var nameOfSelfStruct = selfStructName(instance)
+            pr(builder, '''
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
+                        = «nameOfSelfStruct»;
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
+                        = NULL;
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
+                        = trace_reactor;
+                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                        = "«description»";
+            ''')
+            for (action : instance.actions) {
+                pr(builder, '''
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
+                            = «nameOfSelfStruct»;
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
+                            = &(«nameOfSelfStruct»->___«action.name»);
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
+                            = trace_trigger;
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                            = "«description».«action.name»";
+                ''')
+            }
+            for (timer : instance.timers) {
+                pr(builder, '''
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
+                            = «nameOfSelfStruct»;
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
+                            = &(«nameOfSelfStruct»->___«timer.name»);
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
+                            = trace_trigger;
+                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                            = "«description».«timer.name»";
+                ''')
+            }
+        }
+    } 
 
     /** Generate code to instantiate the specified reactor instance and
      *  initialize it.
@@ -2965,8 +3083,6 @@ class CGenerator extends GeneratorBase {
             pr(initializeTriggerObjectsEnd, '''
                 «nameOfSelfStruct»->«targetBankIndex» = «instance.bankIndex»;
             ''')
-                
-            
         } else {
             pr(initializeTriggerObjects, '''
                 «structType»* «nameOfSelfStruct» = new_«reactorClass.name»();
@@ -2976,7 +3092,8 @@ class CGenerator extends GeneratorBase {
                 «nameOfSelfStruct»->«targetBankIndex» = 0;
             ''')
         }
-        
+        generateTraceTableEntries(instance, initializeTriggerObjects)
+              
         generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
 
         // Generate code to initialize the "self" struct in the
@@ -3069,8 +3186,21 @@ class CGenerator extends GeneratorBase {
                         ''')
                     } else if (trigger.isShutdown) {
                         pr(initializeTriggerObjects, '''
-                            __shutdown_triggers[«shutdownCount++»] = &«nameOfSelfStruct»->___shutdown;
+                            __shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->___reaction_«reactionCount»;
                         ''')
+                        if (targetTracing) {
+                            val description = getShortenedName(instance)
+                            pr(initializeTriggerObjects, '''
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
+                                        = «nameOfSelfStruct»;
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
+                                        = &(«nameOfSelfStruct»->___shutdown);
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
+                                        = trace_trigger;
+                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
+                                        = "«description».shutdown";
+                            ''')
+                        }
                     }
                 }
                 
@@ -3688,7 +3818,7 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
             «IF isFederated»
-                DEBUG_PRINT("Received a message with a tardiness of %llu.", «receiveRef»->tardiness);
+                DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
             «ENDIF»
         ''')
         if (isTokenType(type)) {
@@ -3766,7 +3896,10 @@ class CGenerator extends GeneratorBase {
                 additionalDelayString = delay.literal
             }
         }
-        if (isPhysical || targetCoordination.equals("decentralized")) {
+        if (isPhysical) {
+            socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
+            messageType = "P2P_MESSAGE"            
+        }else if (targetCoordination.equals("decentralized")) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
@@ -3775,13 +3908,24 @@ class CGenerator extends GeneratorBase {
             socket = '''_lf_rti_socket'''
             messageType = "TIMED_MESSAGE"
         }
+        
+        
+        var String sendingFunction = '''send_timed_message'''
+        var String commonArgs = '''«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+        if (isPhysical) {
+            // Messages going on a physical connection do not
+            // carry a timestamp or require the delay;
+            sendingFunction = '''send_message'''            
+            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+        }
+        
         if (isTokenType(type)) {
             // NOTE: Transporting token types this way is likely to only work if the sender and receiver
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
                 «sendRef»->token->ref_count++;
-                send_timed_message(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, (unsigned char*) «sendRef»->value);
+                «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
                 __done_using(«sendRef»->token);
             ''')
         } else {
@@ -3800,7 +3944,7 @@ class CGenerator extends GeneratorBase {
             }
             result.append('''
             size_t message_length = «lengthExpression»;
-            send_timed_message(«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length, «pointerExpression»);
+            «sendingFunction»(«commonArgs», «pointerExpression»);
             ''')
         }
         return result.toString
@@ -3888,20 +4032,24 @@ class CGenerator extends GeneratorBase {
      *  Note. The core files always need to be (and will be) copied 
      *  uniformly across all target languages.
      */
-    protected def includeTargetLanguageHeaders()
-    {
+    protected def includeTargetLanguageHeaders() {
+        if (targetTracing) {
+            pr('#define LINGUA_FRANCA_TRACE')
+        }
         pr('#include "ctarget.h"')
+        if (targetTracing) {
+            pr('#include "core/trace.c"')            
+        }
     }
     
     /** Add necessary source files specific to the target language.  */
-    protected def includeTargetLanguageSourceFiles()
-    {
+    protected def includeTargetLanguageSourceFiles() {
         if (targetThreads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             pr(startTimers, '''
-                if (number_of_threads == 0) {
-                   number_of_threads = «targetThreads»;
+                if (_lf_number_of_threads == 0) {
+                   _lf_number_of_threads = «targetThreads»;
                 }
             ''')
             pr("#include \"core/reactor_threaded.c\"")
@@ -4682,6 +4830,10 @@ class CGenerator extends GeneratorBase {
     }
         
     override getTargetTimeType() '''interval_t'''
+    
+    override getTargetTagType() '''tag_t'''
+    
+    override getTargetTagIntervalType() '''tag_interval_t'''
 
     override getTargetUndefinedType() '''/* «reportError("undefined type")» */'''
 

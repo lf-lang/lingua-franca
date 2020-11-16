@@ -8,6 +8,8 @@
 // See ThreadedMultiport for a parameterized version of this.
 target C {
     timeout: 2 sec,
+    tracing: true,
+    fast: true,
     flags: "", // Disable compiler optimization so that TakeTime actually takes time.
     threads: 4
 };

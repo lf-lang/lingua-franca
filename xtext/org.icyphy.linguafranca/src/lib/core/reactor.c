@@ -35,7 +35,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include <assert.h>
 
 /**
- * Schedule the specified trigger at current_time plus the offset of the
+ * Schedule the specified trigger at current_tag.time plus the offset of the
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
@@ -83,16 +83,16 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  * Advance logical time to the lesser of the specified time or the
  * timeout time, if a timeout time has been given. If the -fast command-line option
  * was not given, then wait until physical time matches or exceeds the start time of
- * execution plus the current_time plus the specified logical time.  If this is not
- * interrupted, then advance current_time by the specified logical_delay. 
+ * execution plus the current_tag.time plus the specified logical time.  If this is not
+ * interrupted, then advance current_tag.time by the specified logical_delay.
  * Return 0 if time advanced to the time of the event and -1 if the wait
  * was interrupted or if the timeout time was reached.
  */ 
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
-    if (stop_time > 0LL && logical_time_ns > stop_time) {
-        logical_time_ns = stop_time;
-        current_microstep = 0;
+    if (_lf_is_tag_after_timeout((tag_t) { .time = logical_time_ns, .microstep = 0})) {
+        logical_time_ns = timeout_time;
+        current_tag.microstep = 0;
         // Indicate on return that the time of the event was not reached.
         // We still wait for time to elapse in case asynchronous events come in.
         return_value = -1;
@@ -129,7 +129,7 @@ int wait_until(instant_t logical_time_ns) {
             long long current_physical_time_ns 
                     = current_physical_time.tv_sec * BILLION
                     + current_physical_time.tv_nsec;
-            if (current_physical_time_ns > current_time) {
+            if (current_physical_time_ns > current_tag.time) {
                 if (current_physical_time_ns < logical_time_ns) {
                     // Advance current time.
                     _lf_advance_logical_time(current_physical_time_ns);
@@ -176,7 +176,7 @@ int __do_step() {
         // printf("DEBUG: Address of reaction: %p\n", reaction);
 
         bool violation = false;
-        // If the tardiness amount for the reaction is larger than zero,
+        // If the reaction is tardy,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
         // tardy reaction will be invoked.             
@@ -193,7 +193,7 @@ int __do_step() {
         //  the federated execution. Since federated execution uses the threaded runtime, this
         //  condition currently will not occur here (in the unthreaded runtime). However, tardiness
         //  handling is replicated here for future compatibility.
-        // if (reaction->tardiness > 0LL) {
+        // if (reaction->is_tardy > 0LL) {
         //     // There is a violation
         //     violation = true;
         //     reaction_function_t handler = reaction->tardy_handler;
@@ -202,7 +202,7 @@ int __do_step() {
 
         //         // If the reaction produced outputs, put the resulting
         //         // triggered reactions into the queue or execute them directly if possible.
-        //         schedule_output_reactions(reaction);
+        //         schedule_output_reactions(reaction, 0);
         //     }
         // }
 
@@ -226,7 +226,7 @@ int __do_step() {
             // container deadlines are defined in the container.
             // They can have different deadlines, so we have to check both.
             // Handle the local deadline first.
-            if (reaction->deadline > 0LL && physical_time > current_time + reaction->deadline) {
+            if (reaction->deadline > 0LL && physical_time > current_tag.time + reaction->deadline) {
                 printf("Deadline violation.\n");
                 // Deadline violation has occurred.
                 violation = true;
@@ -236,25 +236,28 @@ int __do_step() {
                     (*handler)(reaction->self);
                     // If the reaction produced outputs, put the resulting
                     // triggered reactions into the queue.
-                    schedule_output_reactions(reaction);
+                    schedule_output_reactions(reaction, 0);
                 }
             }
         }
         
         if (!violation) {
             // Invoke the reaction function.
+            tracepoint_reaction_starts(reaction, 0); // 0 indicates unthreaded.
             reaction->function(reaction->self);
+            tracepoint_reaction_ends(reaction, 0);
 
             // If the reaction produced outputs, put the resulting triggered
             // reactions into the queue.
-            schedule_output_reactions(reaction);
+            schedule_output_reactions(reaction, 0);
         }
     }
     
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
 
-    if (stop_time > 0LL && current_time >= stop_time) {
+    if (timeout_time != NEVER && 
+        compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0) {
         stop_requested = true;
         return 0;
     }
@@ -263,7 +266,7 @@ int __do_step() {
 
 // Wait until physical time matches or exceeds the time of the least tag
 // on the event queue. If there is no event in the queue, return 0.
-// After this wait, advance current_time to match
+// After this wait, advance current_tag.time to match
 // this tag. Then pop the next event(s) from the
 // event queue that all have the same tag, and extract from those events
 // the reactions that are to be invoked at this logical time.
@@ -281,37 +284,46 @@ int next() {
     //pqueue_dump(event_q, stdout, event_q->prt);
     // If there is no next event and -keepalive has been specified
     // on the command line, then we will wait the maximum time possible.
-    instant_t next_time = LLONG_MAX;
+    // FIXME: is LLONG_MAX different from FOREVER?
+    tag_t next_tag = { .time = LLONG_MAX, .microstep = 0};
     if (event == NULL) {
         // No event in the queue.
         if (!keepalive_specified) {
             return 0;
         }
     } else {
-        next_time = event->time;
+        next_tag.time = event->time;
     }
-    //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_time - start_time);
+    // Deduce the microstep
+    if (next_tag.time == current_tag.time) {
+        next_tag.microstep = get_microstep() + 1;
+    }
+
+    if (_lf_is_tag_after_timeout(next_tag)) {
+        return 0;
+    }
+    //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_tag.time - start_time);
     // Wait until physical time >= event.time.
-    // The wait_until function will advance current_time.
-    if (wait_until(next_time) < 0) {
+    // The wait_until function will advance current_tag.time.
+    if (wait_until(next_tag.time) < 0) {
         // Sleep was interrupted or the timeout time has been reached.
         // Time has not advanced to the time of the event.
         // There may be a new earlier event on the queue.
         event_t* new_event = (event_t*)pqueue_peek(event_q);
-        printf("HERE\n");
         if (new_event == event) {
-            // There is no new event. If the timeout time has been reached,
+            // There is no new event. If the timeout tag has been surpassed,
             // or if the maximum time has been reached (unlikely), then return.
-            if (new_event == NULL || (stop_time > 0LL && current_time >= stop_time)) {
+            if (new_event == NULL || 
+                (_lf_is_tag_after_timeout(current_tag))) {
                 stop_requested = true;
                 return 0;
             }
-            printf("DEBUG: Setting current (elapsed) time to %lld.\n", next_time - start_time);
+            printf("DEBUG: Setting current (elapsed) time to %lld.\n", next_tag.time - start_time);
         } else {
             // Handle the new event.
             event = new_event;
-            next_time = event->time;
-            printf("DEBUG: New event at (elapsed) time %lld.\n", next_time - start_time);
+            next_tag.time = event->time;
+            printf("DEBUG: New event at (elapsed) time %lld.\n", next_tag.time - start_time);
         }
     }
 
@@ -319,27 +331,49 @@ int next() {
     // such as initializing outputs to be absent.
     __start_time_step();
     
-    // Pop all events from event_q with timestamp equal to current_time,
+    // Pop all events from event_q with timestamp equal to current_tag.time,
     // extract all the reactions triggered by these events, and
     // stick them into the reaction queue.
     __pop_events();
     
+    // If we are at (timeout_time, 0), there will be shutdown
+    // reactions that will be added to the reaction queue
+    // during wrapup(). Therefore, do not call __do_step()
+    // here.
+    if (timeout_time != NEVER && 
+        compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0) {
+        stop_requested = true;
+        return 0;
+    }
+
     return __do_step();
 }
 
 // Stop execution at the conclusion of the current logical time.
-void stop() {
+void request_stop() {
     stop_requested = true;
 }
 
-// Print elapsed logical and physical times.
-void wrapup() {
-    // Invoke any code generated wrapup. If this returns true,
-    // then actions have been scheduled at the next microstep.
-    // Invoke next() one more time to react to those actions.
-    if (__wrapup()) {
-        next();
+/*
+ * Execute shutdown reactions (those reactions
+ * that are triggered at shutdown) during
+ * wrapup.
+ */
+void wrapup() {    
+    if (current_tag.time != timeout_time) {
+        // The cause for stop is not reaching
+        // the timeout. Therefore, the
+        // request_stop() has been called.
+        // Shutdown reactions need to incur one
+        // microstep.
+        _lf_advance_logical_time(current_tag.time);
     }
+    // Invoke any code-generated wrapup. If this returns true,
+    // then at least one shutdown reaction has been inserted 
+    // into the reaction queue. Note that at (timeout_time, 0)
+    // other reactions might also exist on the queue.
+    __wrapup();
+    __do_step();
 }
 
 int main(int argc, char* argv[]) {

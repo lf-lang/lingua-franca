@@ -1119,6 +1119,12 @@ class CppGenerator extends GeneratorBase {
 
     override getTargetTimeType() '''reactor::Duration'''
 
+    override getTargetTagType() '''reactor::Tag'''
+
+    override getTargetTagIntervalType() {
+        return getTargetUndefinedType()
+    }
+
     override getTargetUndefinedType() '''/* «reportError("undefined type")» */'''
 
     // this override changes the undefined type for actions to void
