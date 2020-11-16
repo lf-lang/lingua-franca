@@ -860,7 +860,7 @@ void* worker(void* arg) {
         
 
             bool violation = false;
-            // If the is_tardy for the reaction is true,
+            // If the reaction is tardy,
             // an input trigger to this reaction has been triggered at a later
             // logical time than originally anticipated. In this case, a special
             // tardy reaction will be invoked.             
