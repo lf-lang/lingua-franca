@@ -7,7 +7,7 @@
     timeout: 11 msec
 };
 
-import Sender from "DistributedLoopedAction.lf"
+import Sender from "lib/LoopedActionSender.lf"
 
 reactor Consumer {
     input in:int;
