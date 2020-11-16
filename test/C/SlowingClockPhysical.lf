@@ -1,19 +1,16 @@
-/** Output events at physical times at least 100, 300, and 600
- *  msec after the start time.
- *  This uses a physical action with a minimum interarrival time of
- *  100 msec. The reactor increases the interarrival time with each
- *  invocation of the schedule() function.
- *  The timestamps of the events will be exact because the physical
- *  time at which schedule() is called is always way smaller than
- *  the time of the last invocation (or start time) plus the minimum
- *  interarrival time. Hence, the minimum interarrival time always
- *  determines the time of the next event.
+/** 
+/*
+ * Events are scheduled with increasing additional delays of 0, 100, 300, 600
+ * msec on a physical action with a minimum delay of 100 msec.  
+ * The use of the physical action makes the elapsed time jumps from 0 to 
+ * approximately 100 msec, to approximatly 300 msec thereafter, drifting away
+ * further with each new event.
  */
 target C {
     timeout: 1500 msec
 };
 main reactor SlowingClockPhysical {
-    physical action a(100 msec, 100 msec); // first offset and minimum interarrival time.
+    physical action a(100 msec);
     state interval:time(100 msec);
     state expected_time:time(100 msec);
     reaction(startup) -> a {=
@@ -34,7 +31,7 @@ main reactor SlowingClockPhysical {
         self->interval += MSEC(100);
         self->expected_time = MSEC(100) + self->interval;
         schedule(a, self->interval);
-        printf("Scheduling next to occur after: \%lld nsec.\n", self->interval);
+        printf("Scheduling next to occur approximately after: \%lld nsec.\n", self->interval);
     =}
     reaction(shutdown) {=
         if (self->expected_time < MSEC(500)) {
