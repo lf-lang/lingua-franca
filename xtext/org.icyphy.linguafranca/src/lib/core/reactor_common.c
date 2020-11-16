@@ -77,7 +77,7 @@ bool _lf_execution_started = false;
 bool stop_requested = false;
 
 /**
- * Timeout time (start_time + duration), or -1 if no timeout time has been given.
+ * Timeout time (start_time + duration), or NEVER if no timeout time has been given.
  * The microstep for timeout is always 0.
  */
 instant_t timeout_time = NEVER;
