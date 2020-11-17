@@ -7,7 +7,7 @@ This example has quite a few dependencies that must be installed and run:
   - [MQTT C Client library](https://github.com/eclipse/paho.mqtt.c) (used by the MQTT publisher and subscriber reactors)
   - MQTT broker, such as [mosquitto](https://mosquitto.org). This needs to be running after installation.
   - [InfluxDB](https://docs.influxdata.com/influxdb/v1.8/introduction/install/) , a time-series database. This needs to be started after installation:
-    - Start `influxd` in the background.
+    - Start `influxd` in the background or run `brew services start influxdb`. (`brew services list` will show that InfluxDB is running.)
     - Drop into influx shell using `influx` on terminal and create a database using 'CREATE DATABASE <name>'. I used LF_EVENTS as the database name. 
     - databaseName: check if this database exists from influx shell using `SHOW DATABASES`
   - [Grafana](https://grafana.com/docs/grafana/latest/), a browser-based data visualizer. This too needs to be started after installation (e.g. using `brew services start grafana` on MacOS).
@@ -31,8 +31,12 @@ This example has quite a few dependencies that must be installed and run:
     - `measurementName`: This is `event_times` to extract those events.
     - `traceFilePath`: This is `../../my_trace` above (sadly, it is relative to the `dist` directory).
     - `schema`: This needs to match how your events are written to the trace file (see below).
-- Configure Grafana dashboard to include influxDS as datasource (https://grafana.com/docs/grafana/latest/datasources/influxdb/)
-- Create a new panel, select the database name in query tab. We create two queries for physical and logical times on the measurement named "event_times" as below:
+- Configure Grafana dashboard to include influxDS as datasource (see also: https://grafana.com/docs/grafana/latest/datasources/influxdb/ . However, that page seems out of date):
+    - Point your browser to `http://localhost:3000/datasources`
+    - Click the gear icon in the side menu and select `Data Sources`
+    - Click on `Add data source` and then select `InfluxDB`
+    - Configure this page with the `admin` password that you specified when setting up grafana and pointer to `http://localhost:8086`.
+- Create a new panel and select `InfluxDB` in query tab. We create two queries for physical and logical times on the measurement named "event_times" as below:
 
 B
 FROM default event_times WHERE
