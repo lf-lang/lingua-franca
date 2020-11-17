@@ -283,6 +283,16 @@ typedef enum {false, true} bool;
 #endif
 
 /**
+ * ushort type. Redefine here for portability if sys/types.h is not included.
+ * @see sys/types.h
+ * 
+ * @note using sizeof(ushort) should be okay but not sizeof ushort.
+ */
+#ifndef _SYS_TYPES_H
+typedef unsigned short int ushort;
+#endif
+
+/**
  * Policy for handling scheduled events that violate the specified
  * minimum interarrival time.
  * The default policy is `defer`: adjust the tag to that the minimum
