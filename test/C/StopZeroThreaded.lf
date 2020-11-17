@@ -10,23 +10,37 @@ target C {
 
 reactor Sender {
     output out:int;
+    state reaction_invoked_correctly:bool(false);
     timer t(0, 1 usec);
-    reaction(t) -> out{=
+    logical action act;
+    reaction(t) -> out, act {=
         printf("Sending 42 at (%lld, %u).\n",
                      get_elapsed_logical_time(),
                      get_microstep());
         SET(out, 42);
-        
+        schedule(act, 0);
         tag_t zero = (tag_t) { .time = get_start_time(), .microstep = 0u };
+        tag_t one = (tag_t) { .time = get_start_time(), .microstep = 1u };
         if (compare_tags(get_current_tag(), zero) == 0) {
             // Request stop at (0,0)
             printf("Requesting stop at (%lld, %u).\n",
                      get_elapsed_logical_time(),
                      get_microstep());
         	request_stop();
+        } else if (compare_tags(get_current_tag(), one) > 0) {
+            fprintf(stderr, "ERROR: Reaction called after shutdown at (%lld, %u).\n",
+                     get_elapsed_logical_time(),
+                     get_microstep());
+            exit(1);
         }
     =}
-    
+    reaction(act) {=
+        // Reaction should be invoked at (0,1)
+        tag_t one = (tag_t) { .time = get_start_time(), .microstep = 1u };
+        if (compare_tags(get_current_tag(), one) == 0) {
+            self->reaction_invoked_correctly = true;
+        }
+    =}
     reaction(shutdown) {=
         if (get_elapsed_logical_time() != USEC(0) ||
             get_microstep() != 1) {
@@ -35,6 +49,12 @@ reactor Sender {
                      get_elapsed_logical_time(),
                      get_microstep());
             exit(1);
+        } else if (self->reaction_invoked_correctly == false) {
+            fprintf(stderr, "ERROR: Sender reaction(act) was not invoked. "
+                    "Stopping at (%lld, %u).\n",
+                     get_elapsed_logical_time(),
+                     get_microstep());
+            exit(1);            
         }
         printf("SUCCESS: Successfully stopped the program at (%lld, %u).\n",
                      get_elapsed_logical_time(),
@@ -60,8 +80,7 @@ reactor Receiver {
     =}
     
     reaction(shutdown) {=
-        // Sender should have requested stop earlier than the receiver.
-        // Therefore, the shutdown events must occur at (1000, 0) on the
+        // Shutdown events must occur at (0, 1) on the
         // receiver.
         if (get_elapsed_logical_time() != USEC(0) ||
             get_microstep() != 1) {

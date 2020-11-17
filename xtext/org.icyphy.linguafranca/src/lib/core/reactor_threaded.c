@@ -1025,9 +1025,12 @@ void __execute_reactions_during_wrapup() {
 
 /** 
  * Execute reactions that are already in the reaction queue
- * and reactions triggered by shutdown. This is assumed to 
+ * and reactions triggered at shutdown's tag. This is assumed to 
  * be called in the main thread after all worker threads have 
  * exited (or at least finished adding all their final reactions).
+ * 
+ * This function assumes the caller holds the mutex lock.
+ * It will unlock it several times to run reactions.
  */
 void wrapup() {
     // Notify the RTI that the current logical tag is complete.
@@ -1043,6 +1046,12 @@ void wrapup() {
         // Note that the mutex is already locked.
         __execute_reactions_during_wrapup();
         _lf_advance_logical_time(current_tag.time);
+        // Invoke code that must execute before starting a new logical time round,
+        // such as initializing outputs to be absent.
+        __start_time_step();
+        // Pop events one last time to retrieve events
+        // scheduled at the next microstep.
+        __pop_events();
     }
 
     pthread_mutex_unlock(&mutex);
@@ -1057,11 +1066,11 @@ void wrapup() {
         DEBUG_PRINT("__wrapup returned true.");
         
         // Execute shutdown reactions.
-        // We have to acquire the mutex first.
-        pthread_mutex_lock(&mutex);
         __execute_reactions_during_wrapup();
-        pthread_mutex_unlock(&mutex);
     }
+    
+    // We have to acquire the mutex before exiting.
+    pthread_mutex_lock(&mutex);
 
     // Notify the RTI that the current logical tag is complete.
     // This function informs the RTI of the current_tag in a

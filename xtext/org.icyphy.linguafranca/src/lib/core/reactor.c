@@ -367,6 +367,14 @@ void wrapup() {
         // Shutdown reactions need to incur one
         // microstep.
         _lf_advance_logical_time(current_tag.time);
+        
+        // Invoke code that must execute before starting a new logical time round,
+        // such as initializing outputs to be absent.
+        __start_time_step();
+        
+        // Pop events one last time to retrieve events
+        // scheduled at the next microstep.
+        __pop_events();
     }
     // Invoke any code-generated wrapup. If this returns true,
     // then at least one shutdown reaction has been inserted 
