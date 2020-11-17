@@ -10,6 +10,7 @@
     "dependencies": {
         "command-line-args": "^5.1.1",
         "command-line-usage": "^6.1.0",
+        "influx": "^5.6.3",
         "microtime": "^3.0.0",
         "ulog": "^2.0.0-beta.7"
     },
