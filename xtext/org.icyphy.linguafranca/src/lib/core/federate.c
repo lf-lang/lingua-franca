@@ -1192,7 +1192,8 @@ void handle_stop_granted_message() {
     }
     
     _lf_decrement_global_logical_time_barrier_already_locked();
-    pthread_cond_broadcast(&event_q_changed);
+    pthread_cond_broadcast(&reaction_q_changed);
+    pthread_cond_signal(&event_q_changed);
     pthread_mutex_unlock(&mutex);
 }
 

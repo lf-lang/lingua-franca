@@ -387,7 +387,7 @@ void __start_time_step() {
     }
     for(int i = 0; i < __is_present_fields_size; i++) {
         *__is_present_fields[i] = false;
-#ifdef _LF_IS_FEDERATED
+#ifdef _LF_COORD_DECENTRALIZED
         *__intended_tag_fields[i] = current_tag;
 #endif
     }
@@ -533,7 +533,7 @@ void __pop_events() {
             reaction_t *reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-#ifdef _LF_IS_FEDERATED
+#ifdef _LF_COORD_DECENTRALIZED
                 // In federated execution, transfer the tardiness from the trigger to the reaction.
                 // This will help the runtime decide whether or not to execute the tardy
                 // reaction instead of the main reaction.
@@ -542,11 +542,15 @@ void __pop_events() {
                 // could indicate a microstep tardiness. The tardiness occurs if the intended tag
                 // is in the past relative to the current tag.
                 if (compare_tags(event->intended_tag,
-                                  current_tag) < 0) {
+                                  current_tag) < 0 && !event->trigger->is_timer) {
                     // Transfer the intended tag to the trigger so that
                     // the reaction can access the value.
                     event->trigger->intended_tag = event->intended_tag;
                     reaction->is_tardy = true;
+                    DEBUG_PRINT("Trigger %p is tardy. Intended tag: (%lld, %u). Current tag: (%lld, %u)",
+                                event->trigger,
+                                event->intended_tag.time - start_time, event->intended_tag.microstep,
+                                current_tag.time - start_time, current_tag.microstep);
                 }
 #endif
                 // printf("DEBUG: Enqueing reaction %p.\n", reaction);
@@ -661,7 +665,7 @@ void _lf_recycle_event(event_t* e) {
     e->pos = 0;
     e->token = NULL;
     e->is_dummy = false;
-#ifdef _LF_IS_FEDERATED
+#ifdef _LF_COORD_DECENTRALIZED
     e->intended_tag = (tag_t) { .time = 0LL, .microstep = 0u};
 #endif
     e->next = NULL;
@@ -778,7 +782,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
     // Set the payload.
     e->token = token;
 
-#ifdef _LF_IS_FEDERATED
+#ifdef _LF_COORD_DECENTRALIZED
     // Set the intended tag
     e->intended_tag = trigger->intended_tag;
 #endif
@@ -1001,11 +1005,6 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // dequeued, it will trigger this trigger.
     e->trigger = trigger;
 
-#ifdef _LF_IS_FEDERATED
-    // Set the intended tag
-    e->intended_tag = trigger->intended_tag;
-#endif
-
     // If the trigger is physical, then we need to check whether
     // physical time is larger than the intended time and, if so,
     // modify the intended time.
@@ -1027,6 +1026,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             intended_time = current_tag.time;
         }
     }
+
+#ifdef _LF_COORD_DECENTRALIZED
+    // Set the intended tag
+    // Assume the microstep is 0
+    e->intended_tag = (tag_t) { .time = intended_time, .microstep = 0 };
+#endif
     
     event_t* existing = (event_t*)(trigger->last);
     // Check for conflicts (a queued event with the same trigger and time).
@@ -1045,7 +1050,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             // Skip to the last node in the linked list.
             while(found->next != NULL) {
                 found = found->next;
-#ifdef _LF_IS_FEDERATED
+#ifdef _LF_COORD_DECENTRALIZED
                 // Since e is incurring a microstep,
                 // also increment its intended microstep.
                 e->intended_tag.microstep++;
@@ -1053,7 +1058,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             }
             // Hook the event into the list.
             found->next = e;
-#ifdef _LF_IS_FEDERATED
+#ifdef _LF_COORD_DECENTRALIZED
             // Since e is incurring a microstep,
             // also increment its intended microstep.
             e->intended_tag.microstep++;
@@ -1118,8 +1123,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                             _lf_recycle_event(e);
                             return 0;
                         }
-#ifdef _LF_IS_FEDERATED
-                        e->intended_tag.time = existing->time;
+#ifdef _LF_COORD_DECENTRALIZED
+                        e->intended_tag.time = existing->intended_tag.time;
                         e->intended_tag.microstep = existing->intended_tag.microstep + 1;
 #endif
                         // If the last event hasn't been handled yet, insert
@@ -1138,9 +1143,12 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     // Set the tag of the event.
     e->time = intended_time;
 
-#ifdef _LF_IS_FEDERATED
+#ifdef _LF_COORD_DECENTRALIZED
     // Set the intended tag
     e->intended_tag.time = intended_time;
+    if (intended_time == current_tag.time) {
+        e->intended_tag.microstep = current_tag.microstep + 1;
+    }
 #endif
 
     // Do not schedule events if a stop has been requested
@@ -1382,7 +1390,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     // without going through the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
     int num_downstream_reactions = 0;
-#ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
+#ifdef _LF_COORD_DECENTRALIZED // Only pass down tardiness for federated programs that use decentralized coordination.
     // Extract the inherited tardiness
     bool inherited_tardiness = reaction->is_tardy;
 #endif
@@ -1398,7 +1406,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                     // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
-#ifdef _LF_IS_FEDERATED // Only pass down tardiness for federated LF programs
+#ifdef _LF_COORD_DECENTRALIZED // Only pass down tardiness for federated LF programs
                         // Set the tardiness for the downstream reaction
                         downstream_reaction->is_tardy = inherited_tardiness;
                         DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->is_tardy);
@@ -1439,7 +1447,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     if (downstream_to_execute_now != NULL) {
         //  printf("DEBUG: Optimizing and executing downstream reaction now.\n");
         bool violation = false;
-#ifdef _LF_IS_FEDERATED // Only use the Tardy handler for federated LF programs
+#ifdef _LF_COORD_DECENTRALIZED // Only use the Tardy handler for federated programs that use decentralized coordination
         // If the is_tardy for the reaction is true,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
