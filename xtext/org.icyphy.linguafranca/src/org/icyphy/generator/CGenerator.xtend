@@ -592,7 +592,7 @@ class CGenerator extends GeneratorBase {
                 }
                 
                 // Create the table to initialize intended tag fields to 0 between time steps.
-                if (isFederated) {
+                if (isFederatedAndDecentralized) {
                     // Allocate the initial (before mutations) array of pointers to intended_tag fields.
                     // There is a 1-1 map between structs containing is_present and intended_tag fields,
                     // thus, we reuse startTimeStepIsPresentCount as the counter.
@@ -1387,13 +1387,14 @@ class CGenerator extends GeneratorBase {
     ) {
         val reactor = decl.toDefinition
         // In the case where there are incoming
-        // p2p connections (physical and logical)
-        // there will be a intended_tag field added
-        // to accommodate the case where a reaction
-        // triggered by a port or action is late due
-        // to network latency, etc..
+        // p2p logical connections in decentralized
+        // federated execution, there will be an
+        // intended_tag field added to accommodate
+        // the case where a reaction triggered by a
+        // port or action is late due to network 
+        // latency, etc..
         var intended_tag = ''        
-        if (isFederated) {
+        if (isFederatedAndDecentralized) {
             intended_tag = '''
                 «targetTagType» intended_tag;
             '''
@@ -2147,7 +2148,7 @@ class CGenerator extends GeneratorBase {
         // Construct the intended_tag inheritance code to go into
         // the body of the function.
         var StringBuilder intendedTagInheritenceCode = new StringBuilder()
-        if (isFederated) {
+        if (isFederatedAndDecentralized) {
             pr(intendedTagInheritenceCode, '''
                 if (self->___reaction_«reactionIndex».is_tardy == true) {
             ''')
@@ -2605,7 +2606,7 @@ class CGenerator extends GeneratorBase {
                                 __is_present_fields[«startTimeStepIsPresentCount»] 
                                         = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»is_present;
                             ''')
-                            if (isFederated) {
+                            if (isFederatedAndDecentralized) {
                                 // Intended_tag is only applicable to ports in federated execution.
                                 pr(startTimeStep, '''
                                     // Add port «sourcePort.getFullName» to array of is_present fields.
@@ -2646,8 +2647,8 @@ class CGenerator extends GeneratorBase {
                                 // Add port «output.getFullName» to array of is_present fields.
                                 __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "is_present")»;
                             ''')
-                            if (isFederated) {
-                                // Intended_tag is only applicable to ports in federated execution.
+                            if (isFederatedAndDecentralized) {
+                                // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                                 pr(startTimeStep, '''
                                     // Add port «output.getFullName» to array of intended_tag fields.
                                     __intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»[«j»]''', "intended_tag")»;
@@ -2661,8 +2662,8 @@ class CGenerator extends GeneratorBase {
                             // Add port «output.getFullName» to array of is_present fields.
                             __is_present_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "is_present")»;
                         ''')
-                        if (isFederated) {                            
-                            // Intended_tag is only applicable to ports in federated execution.
+                        if (isFederatedAndDecentralized) {                            
+                            // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                             pr(startTimeStep, '''
                                 // Add port «output.getFullName» to array of Intended_tag fields.
                                 __intended_tag_fields[«startTimeStepIsPresentCount»] = &«nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "intended_tag")»;
@@ -2679,8 +2680,8 @@ class CGenerator extends GeneratorBase {
                 __is_present_fields[«startTimeStepIsPresentCount»] 
                         = &«containerSelfStructName»->__«action.name».is_present;
             ''')
-            if (isFederated) {
-                // Intended_tag is only applicable to actions in federated execution.
+            if (isFederatedAndDecentralized) {
+                // Intended_tag is only applicable to actions in federated execution with decentralized coordination.
                 pr(startTimeStep, '''
                     // Add action «action.getFullName» to array of intended_tag fields.
                     __intended_tag_fields[«startTimeStepIsPresentCount»] 
@@ -3817,7 +3818,7 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         result.append('''
             // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-            «IF isFederated»
+            «IF isFederatedAndDecentralized»
                 DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
             «ENDIF»
         ''')
@@ -4821,6 +4822,13 @@ class CGenerator extends GeneratorBase {
         = '// **** Do not include initialization code in this reaction.'
         
     public static var UNDEFINED_MIN_SPACING = -1
+    
+    protected def isFederatedAndDecentralized() {
+        if (isFederated && targetCoordination.equals("decentralized")) {
+            return true
+        }
+        return false
+    }
     
        
     /** Returns the Target enum for this generator */
