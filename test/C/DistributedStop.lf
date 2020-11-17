@@ -3,9 +3,7 @@
  * 
  * @author Soroush Bateni
  */
-target C {
-    logging: DEBUG
-};
+target C;
 
 reactor Sender {
     output out:int;

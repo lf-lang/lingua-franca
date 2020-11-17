@@ -610,7 +610,6 @@ bool __next() {
     }
 }
 
-
 // Stop execution at the conclusion of the current logical time.
 void request_stop() {
     // printf("DEBUG: pthread_mutex_lock stop\n");
@@ -1033,25 +1032,30 @@ void __execute_reactions_during_wrapup() {
  * It will unlock it several times to run reactions.
  */
 void wrapup() {
-    // Notify the RTI that the current logical tag is complete.
-    // This function informs the RTI of the current_tag in a
-    // non-blocking manner.
-    logical_time_complete(current_tag.time, current_tag.microstep); 
-
     if (current_tag.time != timeout_time) {
-        // request_stop() has been called.
+        // request_stop() has been called or starvation occurred.
         // Shutdown reactions need to be executed
         // at the next microstep. First, execute
         // the reactions at the current microstep.
         // Note that the mutex is already locked.
         __execute_reactions_during_wrapup();
+        // Notify the RTI that the current logical tag is complete.
+        // This function informs the RTI of the current_tag in a
+        // non-blocking manner.
+        logical_time_complete(current_tag.time, current_tag.microstep); 
         _lf_advance_logical_time(current_tag.time);
         // Invoke code that must execute before starting a new logical time round,
         // such as initializing outputs to be absent.
         __start_time_step();
-        // Pop events one last time to retrieve events
-        // scheduled at the next microstep.
-        __pop_events();
+
+        event_t* event = (event_t*)pqueue_peek(event_q);
+        if (event != NULL) {
+            if (event->time == current_tag.time) {
+                // Pop events one last time to retrieve events
+                // scheduled at the next microstep.
+                __pop_events();
+            }
+        }
     }
 
     pthread_mutex_unlock(&mutex);
