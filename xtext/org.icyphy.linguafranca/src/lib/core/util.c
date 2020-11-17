@@ -412,13 +412,13 @@ void extract_header(
     *port_id = extract_ushort(buffer);
     
     // The next two bytes are the ID of the destination federate.
-    *federate_id = extract_ushort(&(buffer[sizeof(ushort)]));
+    *federate_id = extract_ushort(&(buffer[sizeof(unsigned short)]));
 
     // printf("DEBUG: Message for port %d of federate %d.\n", *port_id, *federate_id);
     // FIXME: Better error handling needed here.
     assert(*federate_id < NUMBER_OF_FEDERATES);
     // The next four bytes are the message length.
-    *length = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort)]));
+    *length = extract_int(&(buffer[sizeof(unsigned short) + sizeof(unsigned short)]));
 
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 }
