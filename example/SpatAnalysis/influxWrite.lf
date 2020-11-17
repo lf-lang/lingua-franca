@@ -14,7 +14,7 @@ main reactor influxConnector {
         import * as fs from "fs";
         import * as path from "path";
         
-        const databaseName = "LF_Events";
+        const databaseName = "LF_EVENTS";
         const measurementName = "event_times";
         const traceFilePath = "../../my_trace";
         
