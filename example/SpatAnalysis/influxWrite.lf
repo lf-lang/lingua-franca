@@ -35,7 +35,7 @@ main reactor influxConnector {
 				physical_latency: Influx.FieldType.INTEGER,
 				residual: Influx.FieldType.INTEGER,
 				phase: Influx.FieldType.INTEGER,
-				deadline_miss: Influx.FieldType.BOOLEAN,
+				deadline_miss: Influx.FieldType.INTEGER,
 		      },
 		      tags: []
 		    },
