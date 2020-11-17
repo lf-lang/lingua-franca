@@ -3,21 +3,44 @@
  * 
  * @author Soroush Bateni
  */
-target C;
+target C {
+    logging: DEBUG
+};
 
 reactor Sender {
     output out:int;
     timer t(0, 1 usec);
-    reaction(t) -> out{=
+    logical action act;
+    state reaction_invoked_correctly:bool(false);
+    reaction(t, act) -> out{=
         printf("Sending 42 at (%lld, %u).\n",
                      get_elapsed_logical_time(),
                      get_microstep());
         SET(out, 42);
+        if (get_microstep() == 0) {
+            // Instead of having a separate reaction
+            // for 'act' like Stop.lf, we trigger the 
+            // same reaction to test request_stop() being
+            // called multiple times
+        	schedule(act, 0);        	
+        }
         if (get_elapsed_logical_time() == USEC(1)) {
+            // Call request_stop() both at (1 usec, 0) and
+            // (1 usec, 1)
             printf("Requesting stop at (%lld, %u).\n",
                      get_elapsed_logical_time(),
                      get_microstep());
-        	request_stop();
+            request_stop();
+        } 
+        
+        tag_t _1usec1 = (tag_t) { .time = USEC(1) + get_start_time(), .microstep = 1u };
+        if (compare_tags(get_current_tag(), _1usec1) == 0) {
+            // The reaction was invoked at (1 usec, 1) as expected
+		    self->reaction_invoked_correctly = true;
+        } else if (compare_tags(get_current_tag(), _1usec1) > 0) {
+            // The reaction should not have been invoked at tags larger than (1 usec, 1)
+            fprintf(stderr, "ERROR: Invoked reaction(t, act) at tag bigger than shutdown.\n");
+            exit(1);            
         }
     =}
     
@@ -29,6 +52,12 @@ reactor Sender {
                      get_elapsed_logical_time(),
                      get_microstep());
             exit(1);
+        } else if (self->reaction_invoked_correctly == false) {
+            fprintf(stderr, "ERROR: Sender reaction(t, act) was not invoked at (1 usec, 1). "
+                    "Stopping at (%lld, %u).\n",
+                     get_elapsed_logical_time(),
+                     get_microstep());
+            exit(1);            
         }
         printf("SUCCESS: Successfully stopped the federation at (%lld, %u).\n",
                      get_elapsed_logical_time(),
@@ -38,6 +67,7 @@ reactor Sender {
 
 reactor Receiver {
     input in:int;
+    state reaction_invoked_correctly:bool(false);
     reaction(in) {=
         printf("Received %d at (%lld, %u).\n",
                      in->value,
@@ -48,6 +78,14 @@ reactor Receiver {
                      get_elapsed_logical_time(),
                      get_microstep());
         	request_stop();
+        	// The receiver should receive a message at tag
+        	// (1 usec, 0) and trigger this reaction
+        	self->reaction_invoked_correctly = true;
+        }
+        
+        tag_t _1usec0 = (tag_t) { .time = USEC(1) + get_start_time(), .microstep = 0u };
+        if (compare_tags(get_current_tag(), _1usec0) > 0) {
+        	self->reaction_invoked_correctly = false;            
         }
     =}
     
@@ -62,6 +100,12 @@ reactor Receiver {
                      get_elapsed_logical_time(),
                      get_microstep());
             exit(1);
+        } else if (self->reaction_invoked_correctly == false) {            
+            fprintf(stderr, "ERROR: Receiver reaction(in) was not invoked the correct number of times. "
+                    "Stopping at (%lld, %u).\n",
+                     get_elapsed_logical_time(),
+                     get_microstep());
+            exit(1);            
         }
         printf("SUCCESS: Successfully stopped the federation at (%lld, %u).\n",
                      get_elapsed_logical_time(),

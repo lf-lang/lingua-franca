@@ -1125,6 +1125,12 @@ void handle_tag_advance_grant() {
     pthread_mutex_unlock(&mutex);
 }
 
+/**
+ * Used to prevent the federate from sending a REQUEST_STOP
+ * message multiple times to the RTI.
+ */
+bool federate_has_already_sent_a_stop_request_to_rti = false;
+
 /** 
  * Send a STOP_REQUEST message to the RTI.
  * 
@@ -1134,6 +1140,9 @@ void handle_tag_advance_grant() {
  * This function assumes the caller holds the mutex lock.
  */
 void _lf_fd_send_stop_request_to_rti() {
+    if (federate_has_already_sent_a_stop_request_to_rti == true) {
+        return;
+    }
     DEBUG_PRINT("Federate %d requesting a whole program stop.\n", _lf_my_fed_id);
     // Raise a logical time barrier at the current time
     _lf_increment_global_logical_time_barrier_already_locked(current_tag.time);
@@ -1142,6 +1151,7 @@ void _lf_fd_send_stop_request_to_rti() {
     buffer[0] = STOP_REQUEST;
     encode_ll(current_tag.time, &(buffer[1]));
     write_to_socket(_lf_rti_socket, 1 + sizeof(instant_t), buffer, "Federate %d failed to send stop time %lld to the RTI.", _lf_my_fed_id, current_tag.time - start_time);
+    federate_has_already_sent_a_stop_request_to_rti = true;
 }
 
 /** 
@@ -1180,7 +1190,7 @@ void handle_stop_granted_message() {
         // to occur at the next microstep.
         stop_requested = true;
     }
-
+    
     _lf_decrement_global_logical_time_barrier_already_locked();
     pthread_cond_broadcast(&event_q_changed);
     pthread_mutex_unlock(&mutex);
