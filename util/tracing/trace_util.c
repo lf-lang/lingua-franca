@@ -37,6 +37,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Buffer for reading object descriptions. Size limit is BUFFER_SIZE bytes. */
 char buffer[BUFFER_SIZE];
 
+/** File containing the trace binary data. */
+FILE* trace_file;
+
+/** File for writing the output data. */
+FILE* output_file;
+
 /** Buffer for reading trace records. */
 trace_record_t trace[TRACE_BUFFER_CAPACITY];
 
@@ -50,6 +56,64 @@ char* top_level = NULL;
 // FIXME: Replace with hash table implementation.
 object_description_t* object_table;
 int object_table_size = 0;
+
+/**
+ * Function to be invoked upon exiting.
+ */
+void termination() {
+    // Free memory in object description table.
+    for (int i = 0; i < object_table_size; i++) {
+        free(object_table[i].description);
+    }
+    fclose(trace_file);
+    fclose(output_file);
+    printf("Done!\n");
+}
+
+/**
+ * Open the trace file and the output file using the given filename.
+ * The filename argument can include path information.
+ * It can include the ".lft" extension or not.
+ * The output file will have the same path and name except that the
+ * extension will be given by the second argument.
+ * @param filename The file name.
+ * @param output_file_extension The extension to put on the output file name (e.g. "csv").
+ */
+void open_files(char* filename, char* output_file_extension) {
+    // Open the input file for reading.
+    size_t length = strlen(filename);
+    if (length > 4 && strcmp(&filename[length - 4], ".lft") == 0) {
+        // The filename includes the .lft extension.
+        length -= 4;
+    }
+    char trace_file_name[length + 4];
+    strncpy(trace_file_name, filename, length);
+    trace_file_name[length] = 0;
+    strcat(trace_file_name, ".lft");
+    trace_file = fopen(trace_file_name, "r");
+    if (trace_file == NULL) {
+        fprintf(stderr, "No trace file named %s.\n", trace_file_name);
+        usage();
+        exit(2);
+    }
+
+    // Open the output file for writing.
+    char output_file_name[length + strlen(output_file_extension) + 1];
+    strncpy(output_file_name, filename, length);
+    output_file_name[length] = 0;
+    strcat(output_file_name, ".");
+    strcat(output_file_name, output_file_extension);
+    output_file = fopen(output_file_name, "w");
+    if (output_file == NULL) {
+        fprintf(stderr, "Could not create output file named %s.\n", output_file_name);
+        usage();
+        exit(2);
+    }
+
+    if (atexit(termination) != 0) {
+        fprintf(stderr, "WARNING: Failed to register termination function!");
+    }
+}
 
 /**
  * Get the reactor name whose self struct is the specified pointer.
@@ -124,7 +188,7 @@ void print_table() {
  * Read header information.
  * @return The number of objects in the object table or -1 for failure.
  */
-size_t read_header(FILE* trace_file) {
+size_t read_header() {
     // Read the start time.
     int items_read = fread(&start_time, sizeof(instant_t), 1, trace_file);
     if (items_read != 1) _LF_TRACE_FAILURE(trace_file);
@@ -190,10 +254,9 @@ size_t read_header(FILE* trace_file) {
 /**
  * Read the trace from the specified file and put it in the trace global
  * variable. Return the length of the trace.
- * @param trace_file The file to read.
  * @return The number of trace record read or 0 upon seeing an EOF.
  */
-int read_trace(FILE* trace_file) {
+int read_trace() {
     // Read first the int giving the length of the trace.
     int trace_length;
     int items_read = fread(&trace_length, sizeof(int), 1, trace_file);

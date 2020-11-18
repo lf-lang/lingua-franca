@@ -49,12 +49,10 @@ void usage() {
 
 /**
  * Read a trace in the specified file and write it to the specified CSV file.
- * @param trace_file The file to read.
- * @param csv_file The file to write.
  * @return The number of records read or 0 upon seeing an EOF.
  */
-size_t read_and_write_trace(FILE* trace_file, FILE* csv_file) {
-    int trace_length = read_trace(trace_file);
+size_t read_and_write_trace() {
+    int trace_length = read_trace();
     if (trace_length == 0) return 0;
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
@@ -72,7 +70,7 @@ size_t read_and_write_trace(FILE* trace_file, FILE* csv_file) {
         if (trigger_name == NULL) {
             trigger_name = "NO TRIGGER";
         }
-        fprintf(csv_file, "%s, %s, %s, %d, %lld, %d, %lld, %s, %lld\n",
+        fprintf(output_file, "%s, %s, %s, %d, %lld, %d, %lld, %s, %lld\n",
                 trace_event_names[trace[i].event_type],
                 reactor_name,
                 reaction_name,
@@ -92,37 +90,11 @@ int main(int argc, char* argv[]) {
         usage();
         exit(0);
     }
-    // Open the input file for reading.
-    char trace_file_name[strlen(argv[1]) + 4];
-    strcpy(trace_file_name, argv[1]);
-    strcat(trace_file_name, ".lft");
-    FILE* trace_file = fopen(trace_file_name, "r");
-    if (trace_file == NULL) {
-        fprintf(stderr, "No trace file named %s.\n", trace_file_name);
-        usage();
-        exit(2);
-    }
+    open_files(argv[1], "csv");
 
-    // Open the output file for writing.
-    char csv_file_name[strlen(argv[1]) + 4];
-    strcpy(csv_file_name, argv[1]);
-    strcat(csv_file_name, ".csv");
-    FILE* csv_file = fopen(csv_file_name, "w");
-    if (csv_file == NULL) {
-        fprintf(stderr, "Could not create output file named %s.\n", csv_file_name);
-        usage();
-        exit(2);
-    }
-
-    if (read_header(trace_file) >= 0) {
+    if (read_header() >= 0) {
         // Write a header line into the CSV file.
-        fprintf(csv_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
-        while (read_and_write_trace(trace_file, csv_file) != 0) {};
+        fprintf(output_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
+        while (read_and_write_trace() != 0) {};
     }
-    // Free memory in object description table.
-    for (int i = 0; i < object_table_size; i++) {
-        free(object_table[i].description);
-    }
-    fclose(trace_file);
-    fclose(csv_file);
 }

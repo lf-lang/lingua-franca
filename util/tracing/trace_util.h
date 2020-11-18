@@ -48,6 +48,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Buffer for reading trace records. */
 extern trace_record_t trace[];
 
+/** File containing the trace binary data. */
+extern FILE* trace_file;
+
+/** File for writing the output data. */
+extern FILE* output_file;
+
 /**
  * Print a usage message.
  */
@@ -62,6 +68,13 @@ extern int object_table_size;
 
 /** Name of the top-level reactor (first entry in symbol table). */
 extern char* top_level;
+
+/**
+ * Open the trace file and the output file using the given filename.
+ * @param filename The file name.
+ * @param output_file_extension The extension to put on the output file name (e.g. "csv").
+ */
+void open_files(char* filename, char* output_file_extension);
 
 /**
  * Get the reactor name whose self struct is the specified pointer.
@@ -94,12 +107,11 @@ void print_table();
  * Read header information.
  * @return The number of objects in the object table or -1 for failure.
  */
-size_t read_header(FILE* trace_file);
+size_t read_header();
 
 /**
  * Read the trace from the specified file and put it in the trace global
  * variable. Return the length of the trace.
- * @param trace_file The file to read.
  * @return The number of trace record read or 0 upon seeing an EOF.
  */
-int read_trace(FILE* trace_file);
+int read_trace();
