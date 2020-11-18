@@ -35,7 +35,7 @@ reactor Consumer {
             printf("SUCCESS: successfully enforced timeout.\n");
         } else {
         	fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
-                            current_tag.time, current_tag.microstep);
+                            current_tag.time - start_time, current_tag.microstep);
         	exit(1);
         }
     =}

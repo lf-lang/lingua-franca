@@ -40,25 +40,32 @@ volatile int number_of_idle_threads = 0;
 /*
  * A struct representing a barrier in threaded 
  * Lingua Franca programs that can prevent advancement 
- * of logical time if
+ * of tag if
  * 1- Number of requestors is larger than 0
- * 2- Value of horizon is not FOREVER
+ * 2- Value of horizon is not (FOREVER, 0)
  */
-typedef struct _lf_logical_time_advancement_barrier {
+typedef struct _lf_tag_advancement_barrier {
     int requestors; // Used to indicate the number of
                     // requestors that have asked
                     // for a barrier to be raised
-                    // on logical time.
-    instant_t horizon; // If semaphore is larger than 0
-                       // then the runtime should not
-                       // advance its logical time beyond
-                       // the horizon.
-} _lf_logical_time_advancement_barrier;
+                    // on tag.
+    tag_t horizon;  // If semaphore is larger than 0
+                    // then the runtime should not
+                    // advance its tag beyond the
+                    // horizon.
+} _lf_tag_advancement_barrier;
 
 
-// Create a global logical time barrier and
-// initialize the barrier's semaphore to 0 and its horizon to FOREVER.
-_lf_logical_time_advancement_barrier _lf_global_logical_time_advancement_barrier = {0, FOREVER};
+/**
+ *  Create a global tag barrier and
+ * initialize the barrier's semaphore to 0 and its horizon to (FOREVER, 0).
+ */
+_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, 
+                                                                            (tag_t) {
+                                                                                .time = FOREVER,
+                                                                                .microstep = 0 
+                                                                            }
+                                                                          };
 
 // Queue of currently executing reactions.
 pqueue_t* executing_q;  // Sorted by index (precedence sort)
@@ -73,24 +80,23 @@ pthread_cond_t event_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t reaction_q_changed = PTHREAD_COND_INITIALIZER;
 pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
 // A condition variable that notifies threads whenever the number
-// of requestors on the logical time barrier reach zero.
-pthread_cond_t global_logical_time_barrier_requestors_reached_zero = PTHREAD_COND_INITIALIZER;
+// of requestors on the tag barrier reaches zero.
+pthread_cond_t global_tag_barrier_requestors_reached_zero = PTHREAD_COND_INITIALIZER;
 
 /**
- * Raise a barrier on logical time at future_tag if possible (or freeze 
- * the current logical time) and increment the total number of requestors 
+ * Raise a barrier on tag at future_tag if possible (or freeze 
+ * the current tag) and increment the total number of requestors 
  * waiting on the barrier. There should always be a subsequent
- * call to _lf_decrement_global_logical_time_barrier() or 
- * _lf_decrement_global_logical_time_barrier_already_locked() to release
+ * call to _lf_decrement_global_tag_barrier() or 
+ * _lf_decrement_global_tag_barrier_already_locked() to release
  * the barrier.
  * 
- * If there is already a barrier raised at a later logical time, this 
- * function will move it to future_tag or the current logical time, whichever
+ * If there is already a barrier raised at a later tag, this 
+ * function will move it to future_tag or the current tag, whichever
  * is larger. If the existing barrier is earlier 
  * than future_tag, this function will not move the barrier. If there are 
- * no existing barriers and future_tag is in the past relative to current 
- * logical time, this function will raise a barrier at the current logical 
- * time.
+ * no existing barriers and future_tag is in the past relative to the 
+ * current tag, this function will raise a barrier at the current tag.
  * 
  * This function assumes the mutex lock is already held, thus, it will not
  * acquire it itself.
@@ -104,64 +110,73 @@ pthread_cond_t global_logical_time_barrier_requestors_reached_zero = PTHREAD_CON
  * If future_tag is in the past (or equals to current logical time), the runtime
  * will freeze advancement of logical time.
  */
-void _lf_increment_global_logical_time_barrier_already_locked(instant_t future_tag) {
-    instant_t current_logical_time = get_logical_time();
+void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
+    tag_t current_tag = get_current_tag();
     // Check to see if future_tag is actually in the future
-    if (current_logical_time < future_tag) {
-        if (future_tag < _lf_global_logical_time_advancement_barrier.horizon) {
+    if (compare_tags(current_tag, future_tag) < 0) {
+        if (compare_tags(future_tag, _lf_global_tag_advancement_barrier.horizon) < 0) {
             // The future tag is smaller than the current horizon of the barrier.
             // Therefore, we should prevent logical time from reaching the
             // expected tag.
-            _lf_global_logical_time_advancement_barrier.horizon = future_tag - 1; // Just before the requested tag.
-            DEBUG_PRINT("Raised barrier on logical time at %lld.", _lf_global_logical_time_advancement_barrier.horizon);
+            _lf_global_tag_advancement_barrier.horizon.time = future_tag.time;
+            _lf_global_tag_advancement_barrier.horizon.microstep = future_tag.microstep - 1; // Just before the requested tag.
+                                                                                             // Could be -1 if future_tag has 
+                                                                                             // 0 microsteps. In this case,
+                                                                                             // the logical time will not advance
+                                                                                             // to future_tag.time at all
+            DEBUG_PRINT("Raised barrier at tag (%lld, %u).",
+                        _lf_global_tag_advancement_barrier.horizon.time,
+                        _lf_global_tag_advancement_barrier.horizon.microstep);
         } 
     } else {
             // future_tag is not in the future.
             // Therefore, hold the current logical time.
-            _lf_global_logical_time_advancement_barrier.horizon = current_logical_time;
-            DEBUG_PRINT("Raised barrier at current logical time %lld.", _lf_global_logical_time_advancement_barrier.horizon);
+            _lf_global_tag_advancement_barrier.horizon = current_tag;
+            DEBUG_PRINT("Raised barrier at current tag (%lld, %u).",
+                        _lf_global_tag_advancement_barrier.horizon.time,
+                        _lf_global_tag_advancement_barrier.horizon.microstep);
     }
     // Increment the number of requestors
-    _lf_global_logical_time_advancement_barrier.requestors++;
+    _lf_global_tag_advancement_barrier.requestors++;
 }
 
 /**
- * Raise a barrier on logical time at future_tag if possible (or freeze 
- * the current logical time) and increment the total number of requestors 
+ * Raise a barrier on tag at future_tag if possible (or freeze 
+ * the current tag) and increment the total number of requestors 
  * waiting on the barrier. There should always be a subsequent
- * call to _lf_decrement_global_logical_time_barrier() or 
- * _lf_decrement_global_logical_time_barrier_already_locked() to release
+ * call to _lf_decrement_global_tag_barrier() or 
+ * _lf_decrement_global_tag_barrier_already_locked() to release
  * the barrier.
  * 
- * If there is already a barrier raised at a later logical time, this 
- * function will move it to future_tag or the current logical time, whichever
+ * If there is already a barrier raised at a later tag, this 
+ * function will move it to future_tag or the current tag, whichever
  * is larger. If the existing barrier is earlier 
  * than future_tag, this function will not move the barrier. If there are 
- * no existing barriers and future_tag is in the past relative to current 
- * logical time, this function will raise a barrier at the current logical 
- * time.
+ * no existing barriers and future_tag is in the past relative to the 
+ * current tag, this function will raise a barrier at the current tag.
  * 
- * This function assumes the mutex lock is not held, thus, it will acquire it itself.
+ * This function assumes the mutex lock is already held, thus, it will not
+ * acquire it itself.
  * 
  * @note This function is only useful in threaded applications to facilitate
  *  certain non-blocking functionalities such as receiving timed messages
  *  over the network or handling stop in the federated execution.
  * 
  * @param future_tag A desired tag for the barrier. This function will guarantee
- * that current logical time will not go past future_tag if it is in the future.
- * If future_tag is in the past (or equals to current logical time), the runtime
- * will freeze advancement of logical time.
+ * that current tag will not go past future_tag if it is in the future.
+ * If future_tag is in the past (or equals to current tag), the runtime
+ * will freeze advancement of tag.
  */
-void _lf_increment_global_logical_time_barrier(instant_t future_tag) {
+void _lf_increment_global_tag_barrier(tag_t future_tag) {
     pthread_mutex_lock(&mutex);
-    _lf_increment_global_logical_time_barrier_already_locked(future_tag);
+    _lf_increment_global_tag_barrier_already_locked(future_tag);
     pthread_mutex_unlock(&mutex);
 }
 
 /**
- * Decrement the total number of requestors for the global logical time barrier.
+ * Decrement the total number of requestors for the global tag barrier.
  * If the total number of requestors reaches zero, this function resets the
- * logical time barrier to FOREVER and notifies all threads that are waiting 
+ * tag barrier to (FOREVER, 0) and notifies all threads that are waiting 
  * on the barrier that the number of requestors has reached zero.
  * 
  * This function assumes that the caller already holds the mutex lock.
@@ -170,27 +185,29 @@ void _lf_increment_global_logical_time_barrier(instant_t future_tag) {
  *  certain non-blocking functionalities such as receiving timed messages
  *  over the network or handling stop in the federated execution.
  */
-void _lf_decrement_global_logical_time_barrier_already_locked() {
-    // Decrement the number of requestors for the logical time barrier.
-    _lf_global_logical_time_advancement_barrier.requestors--;
+void _lf_decrement_global_tag_barrier_already_locked() {
+    // Decrement the number of requestors for the tag barrier.
+    _lf_global_tag_advancement_barrier.requestors--;
     // Check to see if the semaphore is negative, which indicates that
     // a mismatched call was placed for this function.
-    if (_lf_global_logical_time_advancement_barrier.requestors < 0) {
-        fprintf(stderr, "Mismatched use of _lf_increment_global_logical_time_barrier()"
-         " and  _lf_decrement_global_logical_time_barrier().\n");
+    if (_lf_global_tag_advancement_barrier.requestors < 0) {
+        fprintf(stderr, "Mismatched use of _lf_increment_global_tag_barrier()"
+         " and  _lf_decrement_global_tag_barrier().\n");
         exit(1);
-    } else if (_lf_global_logical_time_advancement_barrier.requestors == 0) {
+    } else if (_lf_global_tag_advancement_barrier.requestors == 0) {
         // When the semaphore reaches zero, reset the horizon to forever.
-        _lf_global_logical_time_advancement_barrier.horizon = FOREVER;
+        _lf_global_tag_advancement_barrier.horizon = (tag_t) { .time = FOREVER, .microstep = 0 };
         // Notify waiting threads that the semaphore has reached zero.
-        pthread_cond_broadcast(&global_logical_time_barrier_requestors_reached_zero);
+        pthread_cond_broadcast(&global_tag_barrier_requestors_reached_zero);
     }
-    DEBUG_PRINT("Barrier is at logical time %lld.", _lf_global_logical_time_advancement_barrier.horizon);
+    DEBUG_PRINT("Barrier is at tag (%lld, %u).",
+                 _lf_global_tag_advancement_barrier.horizon.time,
+                 _lf_global_tag_advancement_barrier.horizon.microstep);
 }
 
 /**
- * @see _lf_decrement_global_logical_time_barrier_already_locked()
- * A variant of _lf_decrement_global_logical_time_barrier_already_locked() that
+ * @see _lf_decrement_global_tag_barrier_already_locked()
+ * A variant of _lf_decrement_global_tag_barrier_already_locked() that
  * assumes the caller does not hold the mutex lock, thus, it will acquire it
  * itself.
  * 
@@ -198,38 +215,38 @@ void _lf_decrement_global_logical_time_barrier_already_locked() {
  *  certain non-blocking functionalities such as receiving timed messages
  *  over the network or handling stop in the federated execution.
  */
-void _lf_decrement_global_logical_time_barrier() {
+void _lf_decrement_global_tag_barrier() {
     pthread_mutex_lock(&mutex);
     // Call the original function
-    _lf_decrement_global_logical_time_barrier_already_locked();
+    _lf_decrement_global_tag_barrier_already_locked();
     pthread_mutex_unlock(&mutex);
 }
 
 /**
- * A function that will wait if the proposed time
- * is larger than a requested barrier on logical time until
+ * A function that will wait if the proposed tag
+ * is larger than a requested barrier on tag until
  * that barrier is lifted.
  * 
  * 
  * This function assumes the mutex is already locked.
  * Thus, it unlocks the mutex while it's waiting to allow
- * the logical time barrier to change.
+ * the tag barrier to change.
  * 
- * @param proposed_time The timestamp that the runtime wants
+ * @param proposed_tag The tag that the runtime wants
  *  to advance to.
  */
-void _lf_wait_on_global_logical_time_barrier(instant_t proposed_time) {
+void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
     // Do not wait for FOREVER
-    if (proposed_time == FOREVER) {
+    if (proposed_tag.time == FOREVER) {
         return;
     }
     // Wait if the global barrier semaphore on logical time is zero
     // and the proposed_time is larger than the horizon.
-    while (proposed_time > _lf_global_logical_time_advancement_barrier.horizon &&
-          _lf_global_logical_time_advancement_barrier.requestors > 0) {
-        DEBUG_PRINT("Waiting on barrier for time %lld.", proposed_time);
+    while (compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) &&
+          _lf_global_tag_advancement_barrier.requestors > 0) {
+        DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time, proposed_tag.microstep);
         // Wait until no requestor remains for the barrier on logical time
-        pthread_cond_wait(&global_logical_time_barrier_requestors_reached_zero, &mutex);
+        pthread_cond_wait(&global_tag_barrier_requestors_reached_zero, &mutex);
     }
 }
 
@@ -341,19 +358,22 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
  * timeout time is reached before the wait has completed.
  * 
  * In certain cases, if a reaction is added to the reaction queue during the
- * wait, this function returns false to allow for execution of those reactions.
- * 
+ * wait, this function returns false to allow for execution of those reactions. * 
  *
  * The mutex lock is assumed to be held by the calling thread.
  * Note this this could return true even if the a new event
  * was placed on the queue if that event time matches or exceeds
  * the specified time.
  *
+ * @param logical_time_ns Logical time to wait on.
+ * @param mirostep The microstep to wait on used exclusively for federated 
+ *  applications with decentralized coordination. Ignored otherwise. 
+ * 
  * @return False if the wait is interrupted either because of an event
  *  queue signal or if the wait time was interrupted early by reaching
  *  the stop time, if one was specified.
  */
-bool wait_until(instant_t logical_time_ns) {
+bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
     bool return_value = true;
     if (timeout_time != NEVER && logical_time_ns > timeout_time) {
         // Modify the time to wait until to be the timeout time.
@@ -388,12 +408,12 @@ bool wait_until(instant_t logical_time_ns) {
         // printf("DEBUG: -------- Returned from wait.\n");
 
     }
-#ifdef _LF_IS_FEDERATED // Only wait on the logical time barrier in federated LF programs
-    // Wait until the global barrier on logical time (horizon) is larger
-    // than the logical_time_ns.
+#ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
+    // Wait until the global barrier on tag (horizon) is larger
+    // than the tag.
     // This can effectively add to the STP offset in certain cases, for example,
     // when a message with timestamp (0,0) has arrived at (0,0).
-    _lf_wait_on_global_logical_time_barrier(logical_time_ns);
+    _lf_wait_on_global_tag_barrier((tag_t) { .time = logical_time_ns, .microstep = microstep } );
 #endif
     return return_value;
 }
@@ -430,7 +450,7 @@ bool __next() {
 
     // Peek at the earliest event in the event queue.
     event_t* event = (event_t*)pqueue_peek(event_q);
-    tag_t next_tag = { .time = FOREVER, .microstep = 0 };
+    tag_t next_tag = { .time = FOREVER, .microstep = UINT_MAX };
 
     bool next_event_tag_is_after_timeout = false;
     if (event != NULL) {
@@ -438,6 +458,8 @@ bool __next() {
         next_tag.time = event->time;
         if (next_tag.time == current_tag.time) {
             next_tag.microstep =  get_microstep() + 1;
+        } else {
+            next_tag.microstep = 0;
         }
 
         // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
@@ -467,10 +489,12 @@ bool __next() {
         // Since next_event_tag releases the mutex lock internally, we need to check
         // if the timeout time has changed or if stop is requested in case a 
         // request_stop() has been called while the mutex was unlocked.
-        if (_lf_is_tag_after_timeout(next_tag)) {
+        if (stop_requested) {
+            return false;
+        } else if (_lf_is_tag_after_timeout(next_tag)) {
             next_event_tag_is_after_timeout = true;
-            // Set the next tag to the current tag to stop as soon as possible
-            next_tag = current_tag;
+            next_tag.time = timeout_time;
+            next_tag.microstep = 0;
         }
 #endif
 
@@ -478,7 +502,7 @@ bool __next() {
         // This can be interrupted if a physical action triggers (e.g., a message
         // arrives from an upstream federate or a local physical action triggers).
         // printf("DEBUG: next(): Waiting until time %lld.\n", (next_time - start_time));
-        if (!wait_until(next_tag.time)) {
+        if (!wait_until(next_tag.time, next_tag.microstep)) {
             // printf("DEBUG: __next(): Wait until time interrupted.\n");
             // Sleep was interrupted or the stop time has been reached.
             // Time has not advanced to the time of the event.
@@ -495,8 +519,11 @@ bool __next() {
         // Since wait_until releases the mutex lock internally, we need to check
         // if the timeout time has changed or if stop is requested in case a 
         // request_stop() has been called while the mutex was unlocked.
-        // If the event tag was past the timeout time, it is now safe to stop execution.
-        if (_lf_is_tag_after_timeout(next_tag) || next_event_tag_is_after_timeout) {
+        // If the event tag was past the timeout time, it is now safe to stop the
+        // execution.
+        if (stop_requested) {
+            return false;
+        }else if (_lf_is_tag_after_timeout(next_tag) || next_event_tag_is_after_timeout) {
             stop_requested = true;
             // Signal all the worker threads. Since both the queues are
             // empty, the threads will exit without doing anything further.
@@ -585,7 +612,7 @@ bool __next() {
         // FIXME: --fast becomes useless for federated execution because
         // the federates proceed immediately to the stop time or FOREVER!
         // printf("DEBUG: __next(): Empty queue. Waiting until time %lld.\n", next_time - start_time);
-        if (!wait_until(next_tag.time)) {
+        if (!wait_until(next_tag.time, next_tag.microstep)) {
             // printf("DEBUG: __next(): Wait until time interrupted.\n");
             // Sleep was interrupted or the stop time has been reached.
             // Time has not advanced to the time of the event.
@@ -806,11 +833,7 @@ void* worker(void* arg) {
                 // queue with reactions to execute. Note that we already
                 // hold the mutex lock.
                 __advancing_time = true;
-                if (!__next()) {
-                    __advancing_time = false;
-                    stop_requested = true;
-                    continue;
-                }
+                __next();
                 __advancing_time = false;
                 // printf("DEBUG: worker %d: Done waiting for __next().\n", worker_number);
             } else {

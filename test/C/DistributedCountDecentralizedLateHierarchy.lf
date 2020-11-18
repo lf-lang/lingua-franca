@@ -18,7 +18,7 @@ import Count from "lib/Count.lf";
 reactor ImportantActuator {
     input in:int;
     reaction(in) {=
-        if (compare_tags((tag_t) {0LL,0u}, get_current_tag()) != 0) {
+        if (compare_tags((tag_t) {get_start_time(),0u}, get_current_tag()) != 0) {
             fprintf(stderr, "ERROR: Tardiness was not handled correctly. "
                     "Message is tardy by (%lld, %u) nsec.\n",
                     get_logical_time() - in->intended_tag.time,
