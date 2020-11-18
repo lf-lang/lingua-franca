@@ -56,11 +56,9 @@ void usage() {
 
 /**
  * Read a trace in the specified file and write it to the specified json file.
- * @param trace_file The file to read.
- * @param json_file The file to write.
  * @return The number of records read or 0 upon seeing an EOF.
  */
-size_t read_and_write_trace(FILE* trace_file, FILE* json_file) {
+size_t read_and_write_trace() {
     int trace_length = read_trace(trace_file);
     if (trace_length == 0) return 0;
     // Write each line.
@@ -115,7 +113,7 @@ size_t read_and_write_trace(FILE* trace_file, FILE* json_file) {
             default:
                 phase = "i";
         }
-        fprintf(json_file, "{"
+        fprintf(output_file, "{"
                     "\"name\": \"%s\", "   // name is the reactor or trigger name.
                     "\"cat\": \"%s\", "    // category is the type of event.
                     "\"ph\": \"%s\", "     // phase is "B" (begin), "E" (end), or "X" (complete).
@@ -149,9 +147,9 @@ size_t read_and_write_trace(FILE* trace_file, FILE* json_file) {
 /**
  * Write metadata events, which provide names in the renderer.
  */
-void write_metadata_events(FILE* json_file) {
+void write_metadata_events() {
     // Thread 0 is the main thread.
-    fprintf(json_file, "{"
+    fprintf(output_file, "{"
             "\"name\": \"thread_name\", "
             "\"ph\": \"M\", "      // mark as metadata.
             "\"pid\": 0, "
@@ -163,7 +161,7 @@ void write_metadata_events(FILE* json_file) {
 
     // Name the worker threads.
     for (int i = 1; i <= max_thread_id; i++) {
-        fprintf(json_file, "{"
+        fprintf(output_file, "{"
                     "\"name\": \"thread_name\", "
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": 0, "
@@ -180,7 +178,7 @@ void write_metadata_events(FILE* json_file) {
             // We need the reactor index (not the name) to set the pid.
             int reactor_index;
             get_reactor_name(object_table[i].reactor, &reactor_index);
-            fprintf(json_file, "{"
+            fprintf(output_file, "{"
                     "\"name\": \"thread_name\", "   // metadata for process name.
                     "\"ph\": \"M\", "       // mark as metadata.
                     "\"pid\": %d, "         // the "process" to identify by reactor.
@@ -193,7 +191,7 @@ void write_metadata_events(FILE* json_file) {
                 object_table[i].description);
 
         } else if (object_table[i].type == trace_reactor) {
-            fprintf(json_file, "{"
+            fprintf(output_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "         // the "process" to label as reactor.
@@ -206,7 +204,7 @@ void write_metadata_events(FILE* json_file) {
     }
    // Name the "process" for "Execution"
     // Last metadata entry lacks a comma.
-    fprintf(json_file, "{"
+    fprintf(output_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": 0, "         // the "process" to label "Execution".
@@ -222,39 +220,13 @@ int main(int argc, char* argv[]) {
         usage();
         exit(0);
     }
-    // Open the input file for reading.
-    char trace_file_name[strlen(argv[1]) + 4];
-    strcpy(trace_file_name, argv[1]);
-    strcat(trace_file_name, ".lft");
-    FILE* trace_file = fopen(trace_file_name, "r");
-    if (trace_file == NULL) {
-        fprintf(stderr, "No trace file named %s.\n", trace_file_name);
-        usage();
-        exit(2);
-    }
-
-    // Open the output file for writing.
-    char json_file_name[strlen(argv[1]) + 4];
-    strcpy(json_file_name, argv[1]);
-    strcat(json_file_name, ".json");
-    FILE* json_file = fopen(json_file_name, "w");
-    if (json_file == NULL) {
-        fprintf(stderr, "Could not create output file named %s.\n", json_file_name);
-        usage();
-        exit(2);
-    }
+    open_files(argv[1], "json");
 
     if (read_header(trace_file) >= 0) {
         // Write the opening bracket into the json file.
-        fprintf(json_file, "{ \"traceEvents\": [\n");
-        while (read_and_write_trace(trace_file, json_file) != 0) {};
-        write_metadata_events(json_file);
-        fprintf(json_file, "]}\n");
+        fprintf(output_file, "{ \"traceEvents\": [\n");
+        while (read_and_write_trace() != 0) {};
+        write_metadata_events();
+        fprintf(output_file, "]}\n");
    }
-    // Free memory in reactor name table.
-    for (int i = 0; i < object_table_size; i++) {
-        free(object_table[i].description);
-    }
-    fclose(trace_file);
-    fclose(json_file);
 }

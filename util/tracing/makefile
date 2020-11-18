@@ -3,7 +3,7 @@
 # @author: Edward A. Lee
 
 CC=gcc
-CFLAGS=-I../../xtext/org.icyphy.linguafranca/src/lib/core/
+CFLAGS=-I../../xtext/org.icyphy.linguafranca/src/lib/core/ -Wall
 DEPS=
 
 %.o: %.c $(DEPS)
