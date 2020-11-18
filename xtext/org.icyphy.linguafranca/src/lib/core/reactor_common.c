@@ -542,7 +542,8 @@ void __pop_events() {
                 // could indicate a microstep tardiness. The tardiness occurs if the intended tag
                 // is in the past relative to the current tag.
                 if (compare_tags(event->intended_tag,
-                                  current_tag) < 0 && !event->trigger->is_timer) {
+                                 current_tag) < 0 &&
+                                 !event->trigger->is_timer && !event->trigger->is_physical) {
                     // Transfer the intended tag to the trigger so that
                     // the reaction can access the value.
                     event->trigger->intended_tag = event->intended_tag;
@@ -1028,9 +1029,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     }
 
 #ifdef _LF_COORD_DECENTRALIZED
-    // Set the intended tag
-    // Assume the microstep is 0
-    e->intended_tag = (tag_t) { .time = intended_time, .microstep = 0 };
+    if (!trigger->is_timer && !trigger->is_physical) {
+        e->intended_tag = trigger->intended_tag;
+    }
 #endif
     
     event_t* existing = (event_t*)(trigger->last);
@@ -1050,19 +1051,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
             // Skip to the last node in the linked list.
             while(found->next != NULL) {
                 found = found->next;
-#ifdef _LF_COORD_DECENTRALIZED
-                // Since e is incurring a microstep,
-                // also increment its intended microstep.
-                e->intended_tag.microstep++;
-#endif
             }
             // Hook the event into the list.
             found->next = e;
-#ifdef _LF_COORD_DECENTRALIZED
-            // Since e is incurring a microstep,
-            // also increment its intended microstep.
-            e->intended_tag.microstep++;
-#endif
             return(0); // FIXME: return value
         }
         // If there are not conflicts, schedule as usual. If intended time is
@@ -1123,10 +1114,6 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
                             _lf_recycle_event(e);
                             return 0;
                         }
-#ifdef _LF_COORD_DECENTRALIZED
-                        e->intended_tag.time = existing->intended_tag.time;
-                        e->intended_tag.microstep = existing->intended_tag.microstep + 1;
-#endif
                         // If the last event hasn't been handled yet, insert
                         // the new event right behind.
                         existing->next = e;
@@ -1142,14 +1129,6 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
 
     // Set the tag of the event.
     e->time = intended_time;
-
-#ifdef _LF_COORD_DECENTRALIZED
-    // Set the intended tag
-    e->intended_tag.time = intended_time;
-    if (intended_time == current_tag.time) {
-        e->intended_tag.microstep = current_tag.microstep + 1;
-    }
-#endif
 
     // Do not schedule events if a stop has been requested
     // and the event is strictly in the future (current microsteps are
@@ -1248,6 +1227,11 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     if (trigger->is_timer || trigger->is_physical) {
         return 0;
     }
+
+#ifdef _LF_COORD_DECENTRALIZED
+    // Set the intended tag which is (0,0)
+    trigger->intended_tag = (tag_t) { .time = start_time, .microstep = 0 };
+#endif
 
     // Copy the token pointer into the trigger struct so that the
     // reactions can access it. This overwrites the previous template token,

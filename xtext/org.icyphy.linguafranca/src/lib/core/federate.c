@@ -926,7 +926,7 @@ handle_t schedule_message_received_from_network_already_locked(
            // Set the delay back to 0
             extra_delay = 0LL;            
             DEBUG_PRINT("Federate %d calling schedule with 0 delay and intended tag (%lld, %u).", _lf_my_fed_id,
-                        trigger->intended_tag.time,
+                        trigger->intended_tag.time - start_time,
                         trigger->intended_tag.microstep);
             return_value = __schedule(trigger, extra_delay, token);
 #endif   
@@ -940,7 +940,7 @@ handle_t schedule_message_received_from_network_already_locked(
         } else {
             // In case the message is in the future
             // in terms of logical time, call __schedule().
-            DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, tag.microstep - get_microstep());
+            DEBUG_PRINT("Federate %d received a message that is %lld nanoseconds in the future.", _lf_my_fed_id, extra_delay);
             return_value = __schedule(trigger, extra_delay, token);
         }
         // Notify the main thread in case it is waiting for physical time to elapse.
@@ -987,16 +987,16 @@ void handle_message(int socket, unsigned char* buffer) {
 }
 
 /**
- * Handle a timestamped message being received from a remote federate via the RTI
+ * Handle a timed message being received from a remote federate via the RTI
  * or directly from other federates.
- * This will read the timestamp, which is appended to the header,
+ * This will read the tag encoded in the header
  * and calculate an offset to pass to the schedule function.
  * This function assumes the caller does not hold the mutex lock.
  * Instead of holding the mutex lock, this function calls 
- * _lf_increment_global_logical_time_barrier with the timestamp
- * of the message as an argument. This ensures that the logical
- * time will not advance to timestamp if it is in the future, or
- * the logical time will not advance at all if the timestamp is
+ * _lf_increment_global_tag_barrier with the tag carried in
+ * the message header as an argument. This ensures that the tag
+ * will not advance to the tag of the message if it is in the future, or
+ * the tag will not advance at all if the tag of the message is
  * now or in the past.
  * @param socket The socket to read the message from.
  * @param buffer The buffer to read.
@@ -1025,16 +1025,16 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     tag_t tag;
     tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
-
+    
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
                                // with decentralized coordination
     // For logical connections in decentralized coordination,
-    // increment the barrier to prevent advancement of logical time beyond
-    // the received timestamp if possible. The following function call
-    // suggests that the logical time barrier be raised at the timestamp provided
-    // by the message. If this timestamp is in the past, the function will cause
-    // the logical time to freeze at the current level.
-    _lf_increment_global_logical_time_barrier(tag.time);
+    // increment the barrier to prevent advancement of tag beyond
+    // the received tag if possible. The following function call
+    // suggests that the tag barrier be raised at the tag provided
+    // by the message. If this tag is in the past, the function will cause
+    // the tag to freeze at the current level.
+    _lf_increment_global_tag_barrier(tag);
 #endif
     DEBUG_PRINT("Message tag: (%lld, %u), Current tag: (%lld, %u).", tag.time - start_time, tag.microstep, get_elapsed_logical_time(), get_microstep());
 
@@ -1045,12 +1045,8 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     if (bytes_read < length) {
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
                                // with decentralized coordination
-            // For logical connections in decentralized coordination,
-            // increment the barrier to prevent advancement of logical time
-            // Suggest that the logical time barrier be raised at the timestamp provided
-            // by the message. If this timestamp is in the past, this effectively
-            // freezes the logical time at the current level.
-            _lf_decrement_global_logical_time_barrier_already_locked();
+            // Decrement the barrier to allow advancement of tag.
+            _lf_decrement_global_tag_barrier_already_locked();
 #endif
         // Placeholder
         error_print_and_exit( "Federate %d failed to read timed message body.", _lf_my_fed_id);
@@ -1074,12 +1070,9 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
                                // with decentralized coordination
-    // For logical connections in decentralized coordination,
-    // increment the barrier to prevent advancement of logical time
-    // Suggest that the logical time barrier be raised at the timestamp provided
-    // by the message. If this timestamp is in the past, this effectively
-    // freezes the logical time at the current level.
-    _lf_decrement_global_logical_time_barrier_already_locked();
+    // Finally, decrement the barrier to allow the execution to continue
+    // past the raised barrier
+    _lf_decrement_global_tag_barrier_already_locked();
 #endif
 
     // The mutex is unlocked here after the barrier on
@@ -1145,7 +1138,7 @@ void _lf_fd_send_stop_request_to_rti() {
     }
     DEBUG_PRINT("Federate %d requesting a whole program stop.\n", _lf_my_fed_id);
     // Raise a logical time barrier at the current time
-    _lf_increment_global_logical_time_barrier_already_locked(current_tag.time);
+    _lf_increment_global_tag_barrier_already_locked(current_tag);
     // Send a stop request with the current tag to the RTI
     unsigned char buffer[1 + sizeof(instant_t)];
     buffer[0] = STOP_REQUEST;
@@ -1191,7 +1184,7 @@ void handle_stop_granted_message() {
         stop_requested = true;
     }
     
-    _lf_decrement_global_logical_time_barrier_already_locked();
+    _lf_decrement_global_tag_barrier_already_locked();
     pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);
     pthread_mutex_unlock(&mutex);
@@ -1224,7 +1217,7 @@ void handle_stop_request_message() {
 
     // Raise a barrier at current time
     // because we are sending it to the RTI
-    _lf_increment_global_logical_time_barrier_already_locked(current_tag.time);
+    _lf_increment_global_tag_barrier_already_locked(current_tag);
 
     pthread_mutex_unlock(&mutex);
 }
@@ -1379,8 +1372,8 @@ void synchronize_with_other_federates() {
     pthread_create(&thread_id, NULL, listen_to_rti, NULL);
 
     // If --fast was not specified, wait until physical time matches
-    // or exceeds the start time.
-    wait_until(current_tag.time);
+    // or exceeds the start time. Microstep is ignored.
+    wait_until(current_tag.time, 0u);
     DEBUG_PRINT("Done waiting for start time %lld.", current_tag.time);
     DEBUG_PRINT("Physical time is ahead of current time by %lld.", get_physical_time() - current_tag.time);
 

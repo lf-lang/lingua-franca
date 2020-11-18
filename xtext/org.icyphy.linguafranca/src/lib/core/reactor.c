@@ -362,8 +362,9 @@ void request_stop() {
 void wrapup() {    
     if (current_tag.time != timeout_time) {
         // The cause for stop is not reaching
-        // the timeout. Therefore, the
-        // request_stop() has been called.
+        // the timeout. Therefore, either the
+        // request_stop() has been called or starvation
+        // has occurred.
         // Shutdown reactions need to incur one
         // microstep.
         _lf_advance_logical_time(current_tag.time);
@@ -372,9 +373,14 @@ void wrapup() {
         // such as initializing outputs to be absent.
         __start_time_step();
         
-        // Pop events one last time to retrieve events
-        // scheduled at the next microstep.
-        __pop_events();
+        event_t* event = (event_t*)pqueue_peek(event_q);
+        if (event != NULL) {
+            if (event->time == current_tag.time) {
+                // Pop events one last time to retrieve events
+                // scheduled at the next microstep.
+                __pop_events();
+            }
+        }
     }
     // Invoke any code-generated wrapup. If this returns true,
     // then at least one shutdown reaction has been inserted 
