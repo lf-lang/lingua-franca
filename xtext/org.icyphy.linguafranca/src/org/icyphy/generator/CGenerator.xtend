@@ -592,7 +592,7 @@ class CGenerator extends GeneratorBase {
                 }
                 
                 // Create the table to initialize intended tag fields to 0 between time steps.
-                if (isFederatedAndDecentralized) {
+                if (isFederatedAndDecentralized && startTimeStepIsPresentCount > 0) {
                     // Allocate the initial (before mutations) array of pointers to intended_tag fields.
                     // There is a 1-1 map between structs containing is_present and intended_tag fields,
                     // thus, we reuse startTimeStepIsPresentCount as the counter.
