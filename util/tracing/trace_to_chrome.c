@@ -54,6 +54,9 @@ void usage() {
     */
 }
 
+/** Maximum reaction number encountered. */
+int max_reaction_number = 0;
+
 /**
  * Read a trace in the specified file and write it to the specified json file.
  * @return The number of records read or 0 upon seeing an EOF.
@@ -140,6 +143,43 @@ size_t read_and_write_trace() {
         if (trace[i].worker > max_thread_id) {
             max_thread_id = trace[i].worker;
         }
+        // If the event is reaction_starts, then also generate an instantaneous
+        // event to be shown in the reactor's section, along with timers and actions.
+        if (trace[i].event_type == reaction_starts) {
+            phase = "i";
+            pid = reactor_index + 1;
+            reaction_name = (char*)malloc(4);
+            char name[13];
+            snprintf(name, 13, "reaction %d", trace[i].reaction_number);
+
+            // NOTE: If the reactor has more than 1024 timers and actions, then
+            // there will be a collision of thread IDs here.
+            thread_id = 1024 + trace[i].reaction_number;
+            if (trace[i].reaction_number > max_reaction_number) {
+                max_reaction_number = trace[i].reaction_number;
+            }
+
+            fprintf(output_file, "{"
+                    "\"name\": \"%s\", "   // name is the reactor or trigger name.
+                    "\"cat\": \"%s\", "    // category is the type of event.
+                    "\"ph\": \"%s\", "     // phase is "B" (begin), "E" (end), or "X" (complete).
+                    "\"tid\": %d, "        // thread ID.
+                    "\"pid\": %d, "        // process ID is required.
+                    "\"ts\": %lld, "       // timestamp in microseconds
+                    "\"args\": {"
+                        "\"microstep\": %d, "       // microstep.
+                        "\"physical time\": %lld"   // physical time.
+                    "}},\n",
+                name,
+                "Reaction",
+                phase,
+                thread_id,
+                pid,
+                elapsed_logical_time,
+                trace[i].microstep,
+                elapsed_physical_time
+            );
+        }
     }
     return trace_length;
 }
@@ -172,6 +212,23 @@ void write_metadata_events() {
                 i, i
         );
     }
+
+    // Name reactions.
+    for (int reactor_index = 1; reactor_index <= object_table_size; reactor_index++) {
+        for (int reaction_number = 0; reaction_number <= max_reaction_number; reaction_number++) {
+            fprintf(output_file, "{"
+                    "\"name\": \"thread_name\", "
+                    "\"ph\": \"M\", "      // mark as metadata.
+                    "\"pid\": %d, "
+                    "\"tid\": %d, "
+                    "\"args\": {"
+                        "\"name\": \"Reaction %d\""
+                    "}},\n",
+                reactor_index, reaction_number + 1024, reaction_number
+            );
+        }
+    }
+
      // Write the reactor names for the logical timelines.
     for (int i = 0; i < object_table_size; i++) {
         if (object_table[i].type == trace_trigger) {
@@ -196,7 +253,7 @@ void write_metadata_events() {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "         // the "process" to label as reactor.
                     "\"args\": {"
-                        "\"name\": \"Reactor %s actions and timers in logical time\"" 
+                        "\"name\": \"Reactor %s reactions, actions, and timers in logical time\"" 
                     "}},\n",
                 i + 1,  // Offset of 1 prevents collision with Execution.
                 object_table[i].description);
