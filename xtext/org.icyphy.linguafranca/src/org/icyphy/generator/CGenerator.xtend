@@ -980,6 +980,12 @@ class CGenerator extends GeneratorBase {
         // Generate code that blocks until the federates resign.
         pr(rtiCode, "wait_for_federates(socket_descriptor);")
         
+        // Handle RTI's exit
+        pr(rtiCode, '''
+            printf("RTI is exiting.\n");
+            return 0;
+        ''')
+
         unindent(rtiCode)
         pr(rtiCode, "}")
         

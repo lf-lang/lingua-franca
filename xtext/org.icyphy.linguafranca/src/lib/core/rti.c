@@ -1132,9 +1132,10 @@ int start_rti_server(int port) {
     return socket_descriptor;
 }
 
-/** Start the runtime infrastructure (RTI) interaction with the federates
- *  and wait for the federates to exit.
- *  @param socket_descriptor The socket descriptor returned by start_rti_server().
+/** 
+ * Start the runtime infrastructure (RTI) interaction with the federates
+ * and wait for the federates to exit.
+ * @param socket_descriptor The socket descriptor returned by start_rti_server().
  */
 void wait_for_federates(int socket_descriptor) {
     // Wait for connections from federates and create a thread for each.
