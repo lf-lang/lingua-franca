@@ -61,11 +61,11 @@ typedef struct _lf_tag_advancement_barrier {
  * initialize the barrier's semaphore to 0 and its horizon to (FOREVER, 0).
  */
 _lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, 
-                                                                            (tag_t) {
-                                                                                .time = FOREVER,
-                                                                                .microstep = 0 
-                                                                            }
-                                                                          };
+                                                                  (tag_t) {
+                                                                    .time = FOREVER,
+                                                                    .microstep = 0 
+                                                                  }
+                                                                 };
 
 // Queue of currently executing reactions.
 pqueue_t* executing_q;  // Sorted by index (precedence sort)
@@ -1051,8 +1051,13 @@ void __execute_reactions_during_wrapup() {
  * be called in the main thread after all worker threads have 
  * exited (or at least finished adding all their final reactions).
  * 
- * This function assumes the caller holds the mutex lock.
- * It will unlock it several times to run reactions.
+ * This function assumes the caller does not hold the mutex lock.
+ * Note that this function assumes that all worker threads have
+ * exited, and thus does not acquire the lock when accessing the
+ * reaction_q. It does however still need to acquire
+ * the mutex lock when the federate wants to communicate with the RTI
+ * (e.g., by calling logical_time_complete()) and when it accesses
+ * the event_q (because of async calls to __schedule()).
  */
 void wrapup() {
     if (current_tag.time != timeout_time) {
@@ -1060,12 +1065,16 @@ void wrapup() {
         // Shutdown reactions need to be executed
         // at the next microstep. First, execute
         // the reactions at the current microstep.
-        // Note that the mutex is already locked.
         __execute_reactions_during_wrapup();
+    
+        // Acquire the mutex lock to send logical_time_complete to the
+        // RTI and to access the event_q.
+        pthread_mutex_lock(&mutex);
         // Notify the RTI that the current logical tag is complete.
         // This function informs the RTI of the current_tag in a
         // non-blocking manner.
-        logical_time_complete(current_tag.time, current_tag.microstep); 
+        logical_time_complete(current_tag.time, current_tag.microstep);
+
         _lf_advance_logical_time(current_tag.time);
         // Invoke code that must execute before starting a new logical time round,
         // such as initializing outputs to be absent.
@@ -1079,9 +1088,9 @@ void wrapup() {
                 __pop_events();
             }
         }
+        // Release the lock
+        pthread_mutex_unlock(&mutex);
     }
-
-    pthread_mutex_unlock(&mutex);
 
     // Invoke any code-generated wrapup. If this returns true,
     // then reactions have been scheduled at the current microstep.
@@ -1096,14 +1105,14 @@ void wrapup() {
         __execute_reactions_during_wrapup();
     }
     
-    // We have to acquire the mutex before exiting.
+    // Acquire the mutex before calling logical_time_complete().
     pthread_mutex_lock(&mutex);
-
     // Notify the RTI that the current logical tag is complete.
     // This function informs the RTI of the current_tag in a
     // non-blocking manner.
-    logical_time_complete(current_tag.time, current_tag.microstep); 
-
+    logical_time_complete(current_tag.time, current_tag.microstep);    
+    // Release the lock
+    pthread_mutex_unlock(&mutex);
 }
 
 int main(int argc, char* argv[]) {
