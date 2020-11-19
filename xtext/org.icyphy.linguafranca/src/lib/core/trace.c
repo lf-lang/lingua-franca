@@ -76,9 +76,30 @@ FILE* _lf_trace_file;
 /**
  * Table of pointers to a description of the object.
  */
-// FIXME: Size should be code generated.
-object_description_t _lf_trace_object_descriptions[1024];
+object_description_t _lf_trace_object_descriptions[TRACE_OBJECT_TABLE_SIZE];
 int _lf_trace_object_descriptions_size = 0;
+
+/**
+ * Register a trace object.
+ * @param pointer1 Pointer that identifies the object, typically to a reactor self struct.
+ * @param pointer2 Further identifying pointer, typically to a trigger (action or timer) or NULL if irrelevant.
+ * @param type The type of trace object.
+ * @param description The human-readable description of the object.
+ * @return 1 if successful, 0 if the trace object table is full.
+ */
+int _lf_register_trace_object(void* pointer1, void* pointer2, _lf_trace_object_t type, char* description) {
+    pthread_mutex_lock(&_lf_trace_mutex);
+    if (_lf_trace_object_descriptions_size >= TRACE_OBJECT_TABLE_SIZE) {
+        return 0;
+    }
+    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor = pointer1;
+    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger = pointer2;
+    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type = type;
+    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size    ].description = description;
+    _lf_trace_object_descriptions_size++;
+    pthread_mutex_unlock(&_lf_trace_mutex);
+    return 1;
+}
 
 /**
  * Thread that actually flushes the buffers to a file.
