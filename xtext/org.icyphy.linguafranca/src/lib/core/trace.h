@@ -72,6 +72,9 @@ static const char* trace_event_names[] = {
 // FIXME: Target property should specify the capacity of the trace buffer.
 #define TRACE_BUFFER_CAPACITY 2048
 
+/** Size of the table of trace objects. */
+#define TRACE_OBJECT_TABLE_SIZE 1024
+
 typedef struct trace_record_t {
     trace_event_t event_type;
     void* reactor;  // self struct
@@ -97,11 +100,24 @@ typedef enum {
  */
 typedef struct object_description_t object_description_t;
 struct object_description_t {
-    void* reactor;      // Pointer to the reactor self struct.
-    trigger_t* trigger;  // Pointer to the trigger (action or timer) if any.
-    _lf_trace_object_t type;     // The type, which indicates whether there is a trigger.
+    void* reactor;      // Pointer to the reactor self struct or other identifying pointer.
+    void* trigger;      // Pointer to the trigger (action or timer) or other secondary ID, if any.
+    _lf_trace_object_t type;  // The type of trace object.
     char* description; // A NULL terminated string.
 };
+
+extern object_description_t _lf_trace_object_descriptions[];
+extern int _lf_trace_object_descriptions_size;
+
+/**
+ * Register a trace object.
+ * @param pointer1 Pointer that identifies the object, typically to a reactor self struct.
+ * @param pointer2 Further identifying pointer, typically to a trigger (action or timer) or NULL if irrelevant.
+ * @param type The type of trace object.
+ * @param description The human-readable description of the object.
+ * @return 1 if successful, 0 if the trace object table is full.
+ */
+int _lf_register_trace_object(void* pointer1, void* pointer2, _lf_trace_object_t type, char* description);
 
 /**
  * Open a trace file and start tracing.

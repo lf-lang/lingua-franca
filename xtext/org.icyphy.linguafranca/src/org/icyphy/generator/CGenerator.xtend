@@ -2993,37 +2993,16 @@ class CGenerator extends GeneratorBase {
             var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
-                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
-                        = «nameOfSelfStruct»;
-                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
-                        = NULL;
-                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
-                        = trace_reactor;
-                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
-                        = "«description»";
+                _lf_register_trace_object(«nameOfSelfStruct», NULL, trace_reactor, "«description»");
             ''')
             for (action : instance.actions) {
                 pr(builder, '''
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
-                            = «nameOfSelfStruct»;
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
-                            = &(«nameOfSelfStruct»->___«action.name»);
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
-                            = trace_trigger;
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
-                            = "«description».«action.name»";
+                    _lf_register_trace_object(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«action.name», trace_trigger, "«description».«action.name»");
                 ''')
             }
             for (timer : instance.timers) {
                 pr(builder, '''
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
-                            = «nameOfSelfStruct»;
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
-                            = &(«nameOfSelfStruct»->___«timer.name»);
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
-                            = trace_trigger;
-                    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
-                            = "«description».«timer.name»";
+                    _lf_register_trace_object(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«timer.name»), trace_trigger, "«description».«timer.name»");
                 ''')
             }
         }
