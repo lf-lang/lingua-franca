@@ -2140,7 +2140,7 @@ class CGenerator extends GeneratorBase {
             pr(intendedTagInheritenceCode, '''            
                 // The operations inside this if clause (if any exists) are expensive 
                 // and must only be done if the reaction has unhandled tardiness.
-                // Otherwise, all intended_tag values are current_tag by default.
+                // Otherwise, all intended_tag values are (NEVER, 0) by default.
                 
                 // Inherited intended tag. This will take the minimum
                 // intended_tag of all input triggers
@@ -3779,6 +3779,12 @@ class CGenerator extends GeneratorBase {
                 DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
             «ENDIF»
         ''')
+        if (isFederatedAndDecentralized) {
+            result.append('''
+                // Transfer the intended tag from the action to the port
+                «receiveRef»->intended_tag = «action.name»->trigger->intended_tag;
+            ''')
+        }
         if (isTokenType(type)) {
             result.append('''
                 SET_TOKEN(«receiveRef», «action.name»->token);

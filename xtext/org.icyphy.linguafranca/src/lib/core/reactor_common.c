@@ -388,7 +388,9 @@ void __start_time_step() {
     for(int i = 0; i < __is_present_fields_size; i++) {
         *__is_present_fields[i] = false;
 #ifdef _LF_COORD_DECENTRALIZED
-        *__intended_tag_fields[i] = current_tag;
+        // FIXME: For now, an intended tag of (NEVER, 0)
+        // indicates that it has never been set.
+        *__intended_tag_fields[i] = (tag_t) {NEVER, 0};
 #endif
     }
 }
@@ -534,24 +536,25 @@ void __pop_events() {
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
 #ifdef _LF_COORD_DECENTRALIZED
-                // In federated execution, transfer the tardiness from the trigger to the reaction.
-                // This will help the runtime decide whether or not to execute the tardy
-                // reaction instead of the main reaction.
-                // Note that it is important that we do not override the is_tardy field
-                // of a reaction if the tardiness of the trigger is 0 because this situation
-                // could indicate a microstep tardiness. The tardiness occurs if the intended tag
-                // is in the past relative to the current tag.
-                if (compare_tags(event->intended_tag,
-                                 current_tag) < 0 &&
-                                 !event->trigger->is_timer && !event->trigger->is_physical) {
-                    // Transfer the intended tag to the trigger so that
+                // In federated execution, an intended tag that is not (NEVER, 0)
+                // indicates that this particular event is triggered by a network message.
+                // The intended tag is set in handle_timed_message in federate.c whenever
+                // a timed message arrives from another federate.
+                if (event->intended_tag.time != NEVER) {
+                    // If the intended tag of the event is actually set,
+                    // transfer the intended tag to the trigger so that
                     // the reaction can access the value.
                     event->trigger->intended_tag = event->intended_tag;
-                    reaction->is_tardy = true;
-                    DEBUG_PRINT("Trigger %p is tardy. Intended tag: (%lld, %u). Current tag: (%lld, %u)",
-                                event->trigger,
-                                event->intended_tag.time - start_time, event->intended_tag.microstep,
-                                current_tag.time - start_time, current_tag.microstep);
+                    // And check if it is in the past compared to the current tag.
+                    if (compare_tags(event->intended_tag,
+                                    current_tag) < 0) {
+                        // Mark the triggered reaction as tardy
+                        reaction->is_tardy = true;
+                        DEBUG_PRINT("Trigger %p is tardy. Intended tag: (%lld, %u). Current tag: (%lld, %u)",
+                                    event->trigger,
+                                    event->intended_tag.time - start_time, event->intended_tag.microstep,
+                                    current_tag.time - start_time, current_tag.microstep);
+                    }
                 }
 #endif
                 // printf("DEBUG: Enqueing reaction %p.\n", reaction);
@@ -1029,9 +1032,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     }
 
 #ifdef _LF_COORD_DECENTRALIZED
-    if (!trigger->is_timer && !trigger->is_physical) {
-        e->intended_tag = trigger->intended_tag;
-    }
+    e->intended_tag = trigger->intended_tag;
 #endif
     
     event_t* existing = (event_t*)(trigger->last);
