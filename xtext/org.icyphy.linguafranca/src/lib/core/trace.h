@@ -55,7 +55,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef enum {
     reaction_starts,
     reaction_ends,
-    schedule_called
+    schedule_called,
+    user_event
 } trace_event_t;
 
 /**
@@ -64,7 +65,8 @@ typedef enum {
 static const char* trace_event_names[] = {
         "Reaction starts",
         "Reaction ends",
-        "Schedule called"
+        "Schedule called",
+        "User-defined event"
 };
 
 #ifdef LINGUA_FRANCA_TRACE
@@ -77,7 +79,7 @@ static const char* trace_event_names[] = {
 
 typedef struct trace_record_t {
     trace_event_t event_type;
-    void* reactor;  // self struct
+    void* pointer;  // pointer identifying the record, e.g. to self struct for a reactor.
     int reaction_number;
     int worker;
     instant_t logical_time;
@@ -92,7 +94,8 @@ typedef struct trace_record_t {
  */
 typedef enum {
     trace_reactor,   // Self struct.
-    trace_trigger    // Timer or action (argument to schedule()).
+    trace_trigger,   // Timer or action (argument to schedule()).
+    trace_user       // User-defined trace object.
 } _lf_trace_object_t;
 
 /**
@@ -100,7 +103,7 @@ typedef enum {
  */
 typedef struct object_description_t object_description_t;
 struct object_description_t {
-    void* reactor;      // Pointer to the reactor self struct or other identifying pointer.
+    void* pointer;      // Pointer to the reactor self struct or other identifying pointer.
     void* trigger;      // Pointer to the trigger (action or timer) or other secondary ID, if any.
     _lf_trace_object_t type;  // The type of trace object.
     char* description; // A NULL terminated string.
@@ -118,6 +121,15 @@ extern int _lf_trace_object_descriptions_size;
  * @return 1 if successful, 0 if the trace object table is full.
  */
 int _lf_register_trace_object(void* pointer1, void* pointer2, _lf_trace_object_t type, char* description);
+
+/**
+ * Register a user trace object. This should be called once, providing a pointer to a string
+ * that describes a phenomenon being traced. Use the same pointer as the first argument to
+ * tracepoint_user_event().
+ * @param description Pointer to a human-readable description of the event.
+ * @return 1 if successful, 0 if the trace object table is full.
+ */
+int register_user_trace_object(char* description);
 
 /**
  * Open a trace file and start tracing.
@@ -169,6 +181,14 @@ void tracepoint_reaction_ends(reaction_t* reaction, int worker);
  * @param extra_delay The extra delay passed to schedule().
  */
 void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay);
+
+/**
+ * Trace a user-defined event. Before calling this, you must call
+ * register_user_trace_object() with a pointer to the same string
+ * or else the event will not be recognized.
+ * @param description Pointer to the description string.
+ */
+void tracepoint_user_event(char* description);
 
 void stop_trace();
 

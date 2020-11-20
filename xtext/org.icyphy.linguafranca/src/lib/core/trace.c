@@ -92,13 +92,104 @@ int _lf_register_trace_object(void* pointer1, void* pointer2, _lf_trace_object_t
     if (_lf_trace_object_descriptions_size >= TRACE_OBJECT_TABLE_SIZE) {
         return 0;
     }
-    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor = pointer1;
+    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].pointer = pointer1;
     _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger = pointer2;
     _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type = type;
-    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size    ].description = description;
+    _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].description = description;
     _lf_trace_object_descriptions_size++;
     pthread_mutex_unlock(&_lf_trace_mutex);
     return 1;
+}
+
+/**
+ * Register a user trace object. This should be called once, providing a pointer to a string
+ * that describes a phenomenon being traced. Use the same pointer as the first argument to
+ * tracepoint_user_event().
+ * @param description Pointer to a human-readable description of the event.
+ * @return 1 if successful, 0 if the trace object table is full.
+ */
+int register_user_trace_object(char* description) {
+    return _lf_register_trace_object(description, NULL, trace_user, description);
+}
+
+/** Indicator that the trace header information has been written to the file. */
+bool _lf_trace_header_written = false;
+
+/**
+ * Write the trace header information.
+ * See trace.h.
+ * @return The number of items written to the object table or -1 for failure.
+ */
+int write_trace_header() {
+    if (_lf_trace_file != NULL) {
+        pthread_mutex_lock(&_lf_trace_mutex);
+        // The first item in the header is the start time.
+        // This is both the starting physical time and the starting logical time.
+        instant_t start_time = get_start_time();
+        // printf("DEBUG: Start time written to trace file is %lld.\n", start_time);
+        size_t items_written = fwrite(
+                &start_time,
+                sizeof(instant_t),
+                1,
+                _lf_trace_file
+        );
+        if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
+
+        // The next item in the header is the size of the
+        // _lf_trace_object_descriptions table.
+        // printf("DEBUG: Table size written to trace file is %d.\n", _lf_trace_object_descriptions_size);
+        items_written = fwrite(
+                &_lf_trace_object_descriptions_size,
+                sizeof(int),
+                1,
+                _lf_trace_file
+        );
+        if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
+
+        // Next we write the table.
+        for (int i = 0; i < _lf_trace_object_descriptions_size; i++) {
+            // printf("DEBUG: Object pointer: %p.\n", _lf_trace_object_descriptions[i].pointer);
+            // Write the pointer to the self struct.
+            items_written = fwrite(
+                        &_lf_trace_object_descriptions[i].pointer,
+                        sizeof(void*),
+                        1,
+                        _lf_trace_file
+            );
+            if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
+
+            // Write the pointer to the trigger_t struct.
+            items_written = fwrite(
+                        &_lf_trace_object_descriptions[i].trigger,
+                        sizeof(trigger_t*),
+                        1,
+                        _lf_trace_file
+            );
+            if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
+
+            // Write the object type.
+            items_written = fwrite(
+                        &_lf_trace_object_descriptions[i].type, // Write the pointer value.
+                        sizeof(_lf_trace_object_t),
+                        1,
+                        _lf_trace_file
+            );
+            if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
+
+            // Write the description.
+            int description_size = strlen(_lf_trace_object_descriptions[i].description);
+            // printf("DEBUG: Object description: %s.\n", _lf_trace_object_descriptions[i].description);
+            items_written = fwrite(
+                        _lf_trace_object_descriptions[i].description,
+                        sizeof(char),
+                        description_size + 1, // Include null terminator.
+                        _lf_trace_file
+            );
+            if (items_written != description_size + 1) _LF_TRACE_FAILURE(_lf_trace_file);
+        }
+        pthread_mutex_unlock(&_lf_trace_mutex);
+    }
+    return _lf_trace_object_descriptions_size;
 }
 
 /**
@@ -130,6 +221,14 @@ void* flush_trace(void* args) {
         }
         // Unlock the mutex to write to the file.
         pthread_mutex_unlock(&_lf_trace_mutex);
+
+        // If the trace header has not been written, write it now.
+        // This is deferred to here so that user trace objects can be
+        // registered in startup reactions.
+        if (!_lf_trace_header_written) {
+            write_trace_header();
+            _lf_trace_header_written = true;
+        }
 
         // Write first the length of the array.
         size_t items_written = fwrite(
@@ -207,83 +306,6 @@ void flush_trace_to_file(int worker) {
 }
 
 /**
- * Write the trace header information.
- * See trace.h.
- * @return The number of items written to the object table or -1 for failure.
- */
-int write_trace_header() {
-    if (_lf_trace_file != NULL) {
-        pthread_mutex_lock(&_lf_trace_mutex);
-        // The first item in the header is the start time.
-        // This is both the starting physical time and the starting logical time.
-        instant_t start_time = get_start_time();
-        // printf("DEBUG: Start time written to trace file is %lld.\n", start_time);
-        size_t items_written = fwrite(
-                &start_time,
-                sizeof(instant_t),
-                1,
-                _lf_trace_file
-        );
-        if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
-
-        // The next item in the header is the size of the
-        // _lf_trace_object_descriptions table.
-        // printf("DEBUG: Table size written to trace file is %d.\n", _lf_trace_object_descriptions_size);
-        items_written = fwrite(
-                &_lf_trace_object_descriptions_size,
-                sizeof(int),
-                1,
-                _lf_trace_file
-        );
-        if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
-
-        // Next we write the table.
-        for (int i = 0; i < _lf_trace_object_descriptions_size; i++) {
-            // printf("DEBUG: Object pointer: %p.\n", _lf_trace_object_descriptions[i].reactor);
-            // Write the pointer to the self struct.
-            items_written = fwrite(
-                        &_lf_trace_object_descriptions[i].reactor,
-                        sizeof(void*),
-                        1,
-                        _lf_trace_file
-            );
-            if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
-
-            // Write the pointer to the trigger_t struct.
-            items_written = fwrite(
-                        &_lf_trace_object_descriptions[i].trigger,
-                        sizeof(trigger_t*),
-                        1,
-                        _lf_trace_file
-            );
-            if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
-
-            // Write the object type.
-            items_written = fwrite(
-                        &_lf_trace_object_descriptions[i].type, // Write the pointer value.
-                        sizeof(_lf_trace_object_t),
-                        1,
-                        _lf_trace_file
-            );
-            if (items_written != 1) _LF_TRACE_FAILURE(_lf_trace_file);
-
-            // Write the description.
-            int description_size = strlen(_lf_trace_object_descriptions[i].description);
-            // printf("DEBUG: Object description: %s.\n", _lf_trace_object_descriptions[i].description);
-            items_written = fwrite(
-                        _lf_trace_object_descriptions[i].description,
-                        sizeof(char),
-                        description_size + 1, // Include null terminator.
-                        _lf_trace_file
-            );
-            if (items_written != description_size + 1) _LF_TRACE_FAILURE(_lf_trace_file);
-        }
-        pthread_mutex_unlock(&_lf_trace_mutex);
-    }
-    return _lf_trace_object_descriptions_size;
-}
-
-/**
  * Open a trace file and start tracing.
  * @param filename The filename for the trace file.
  */
@@ -294,7 +316,10 @@ void start_trace(char* filename) {
         fprintf(stderr, "WARNING: Failed to open log file with error code %d."
                 "No log will be written.\n", errno);
     }
-    write_trace_header();
+    // Do not write the trace header information to the file yet
+    // so that startup reactions can register user-defined trace objects.
+    // write_trace_header();
+    _lf_trace_header_written = false;
 
     // Allocate an array of arrays of trace records, one per worker thread plus one
     // for the 0 thread (the main thread, or in an unthreaded program, the only thread).
@@ -352,7 +377,7 @@ void tracepoint(
     int i = _lf_trace_buffer_size[worker];
     // Write to memory buffer.
     _lf_trace_buffer[worker][i].event_type = event_type;
-    _lf_trace_buffer[worker][i].reactor = reactor;
+    _lf_trace_buffer[worker][i].pointer = reactor;
     _lf_trace_buffer[worker][i].reaction_number = reaction_number;
     _lf_trace_buffer[worker][i].worker = worker;
     _lf_trace_buffer[worker][i].logical_time = get_logical_time();
@@ -401,6 +426,16 @@ void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay) {
         reactor = trigger->reactions[0]->self;
     }
     tracepoint(schedule_called, reactor, 0, 0, NULL, trigger, extra_delay);
+}
+
+/**
+ * Trace a user-defined event. Before calling this, you must call
+ * register_user_trace_object() with a pointer to the same string
+ * or else the event will not be recognized.
+ * @param description Pointer to the description string.
+ */
+void tracepoint_user_event(char* description) {
+    tracepoint(user_event, description,  0, 0, NULL, NULL, 0);
 }
 
 /**
