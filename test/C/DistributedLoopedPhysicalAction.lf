@@ -38,12 +38,10 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
                         // log output.
     reaction(in) {=
         tag_t current_tag = get_current_tag();  
-        printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
+        printf("At tag (%lld, %u) received %d.\n",
                current_tag.time - get_start_time(),
                current_tag.microstep,
-               in->value,
-               in->intended_tag.time - get_start_time(),
-               in->intended_tag.microstep);
+               in->value);
         self->total_received_messages++;
         if (in->value != self->received_messages++) {
             fprintf(stderr,"ERROR: received messages out of order.\n");
