@@ -35,6 +35,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "trace.h"
 #include "trace_util.h"
 
+#define PID_FOR_USER_EVENT 1000000 // Assumes no more than a million reactors.
+#define PID_FOR_UNKNOWN_EVENT 2000000
+
 /** Buffer for reading trace records. */
 trace_record_t trace[TRACE_BUFFER_CAPACITY];
 
@@ -71,9 +74,9 @@ size_t read_and_write_trace() {
             reaction_name = (char*)malloc(4);
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
         }
-        // printf("DEBUG: Reactor's self struct pointer: %p\n", trace[i].reactor);
+        // printf("DEBUG: Reactor's self struct pointer: %p\n", trace[i].pointer);
         int reactor_index;
-        char* reactor_name = get_reactor_name(trace[i].reactor, &reactor_index);
+        char* reactor_name = get_object_description(trace[i].pointer, &reactor_index);
         if (reactor_name == NULL) {
             reactor_name = "NO REACTOR";
         }
@@ -113,7 +116,13 @@ size_t read_and_write_trace() {
                 timestamp = elapsed_logical_time + trace[i].extra_delay/1000;
                 thread_id = trigger_index;
                 name = trigger_name;
+                break;
+            case user_event:
+                pid = PID_FOR_USER_EVENT;
+                phase= "i";
+                break;
             default:
+                pid = PID_FOR_UNKNOWN_EVENT;
                 phase = "i";
         }
         fprintf(output_file, "{"
@@ -213,7 +222,7 @@ void write_metadata_events() {
         );
     }
 
-    // Name reactions.
+    // Name reactions for each reactor.
     for (int reactor_index = 1; reactor_index <= object_table_size; reactor_index++) {
         for (int reaction_number = 0; reaction_number <= max_reaction_number; reaction_number++) {
             fprintf(output_file, "{"
@@ -234,9 +243,9 @@ void write_metadata_events() {
         if (object_table[i].type == trace_trigger) {
             // We need the reactor index (not the name) to set the pid.
             int reactor_index;
-            get_reactor_name(object_table[i].reactor, &reactor_index);
+            get_object_description(object_table[i].pointer, &reactor_index);
             fprintf(output_file, "{"
-                    "\"name\": \"thread_name\", "   // metadata for process name.
+                    "\"name\": \"thread_name\", "   // metadata for thread name.
                     "\"ph\": \"M\", "       // mark as metadata.
                     "\"pid\": %d, "         // the "process" to identify by reactor.
                     "\"tid\": %d,"          // The "thread" to label with action or timer name.
@@ -246,7 +255,6 @@ void write_metadata_events() {
                 reactor_index + 1, // Offset of 1 prevents collision with Execution.
                 i,  
                 object_table[i].description);
-
         } else if (object_table[i].type == trace_reactor) {
             fprintf(output_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
@@ -257,9 +265,19 @@ void write_metadata_events() {
                     "}},\n",
                 i + 1,  // Offset of 1 prevents collision with Execution.
                 object_table[i].description);
+        } else if (object_table[i].type == trace_user) {
+            fprintf(output_file, "{"
+                    "\"name\": \"thread_name\", "   // metadata for thread name.
+                    "\"ph\": \"M\", "      // mark as metadata.
+                    "\"pid\": %d, "         // the "process" to label as reactor.
+                    "\"args\": {"
+                        "\"name\": \"%s\"" 
+                    "}},\n",
+                PID_FOR_USER_EVENT,
+                object_table[i].description);
         }
     }
-   // Name the "process" for "Execution"
+    // Name the "process" for "Execution"
     // Last metadata entry lacks a comma.
     fprintf(output_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
@@ -269,6 +287,16 @@ void write_metadata_events() {
                         "\"name\": \"Execution of %s\"" 
                     "}}\n",
                 top_level);
+    // Name the "process" for "Execution"
+    // Last metadata entry lacks a comma.
+    fprintf(output_file, "{"
+                    "\"name\": \"process_name\", "   // metadata for process name.
+                    "\"ph\": \"M\", "      // mark as metadata.
+                    "\"pid\": %d, "        // the "process" to label "User events".
+                    "\"args\": {"
+                        "\"name\": \"Execution of %s\"" 
+                    "}}\n",
+                PID_FOR_USER_EVENT, top_level);
 
 }
 

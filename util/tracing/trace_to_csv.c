@@ -61,8 +61,8 @@ size_t read_and_write_trace() {
             reaction_name = (char*)malloc(4);
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
         }
-        // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].reactor);
-        char* reactor_name = get_reactor_name(trace[i].reactor, NULL);
+        // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].pointer);
+        char* reactor_name = get_object_description(trace[i].pointer, NULL);
         if (reactor_name == NULL) {
             reactor_name = "NO REACTOR";
         }

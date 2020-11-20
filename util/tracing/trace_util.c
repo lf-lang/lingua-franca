@@ -116,18 +116,20 @@ void open_files(char* filename, char* output_file_extension) {
 }
 
 /**
- * Get the reactor name whose self struct is the specified pointer.
- * If there is no such reactor, return NULL.
+ * Get the description of the object pointed to by the specified pointer.
+ * For example, this can be the name of a reactor (pointer points to
+ * the self struct) or a user-define string.
+ * If there is no such pointer in the symbol table, return NULL.
  * If the index argument is non-null, then put the index
- * of the reactor in the table into the int pointed to
+ * of the entry in the table into the int pointed to
  * or -1 if none was found.
- * @param reactor The pointer to a self struct.
+ * @param pointer The pointer to to an object, e.g. a self struct.
  * @param index An optional pointer into which to write the index.
  */
-char* get_reactor_name(void* reactor, int* index) {
+char* get_object_description(void* pointer, int* index) {
     // FIXME: Replace with a hash table implementation.
     for (int i = 0; i < object_table_size; i++) {
-        if (object_table[i].reactor == reactor && object_table[i].type == trace_reactor) {
+        if (object_table[i].pointer == pointer) {
             if (index != NULL) {
                 *index = i;
             }
@@ -171,12 +173,18 @@ char* get_trigger_name(void* trigger, int* index) {
 void print_table() {
     printf("------- objects traced:\n");
     for (int i = 0; i < object_table_size; i++) {
-        char* type = "reactor";
-        if (object_table[i].type == trace_trigger) {
+        char* type;
+        if (object_table[i].type == trace_reactor) {
+            type = "reactor";
+        } else if (object_table[i].type == trace_trigger) {
             type = "trigger";
+        } else if (object_table[i].type == trace_user) {
+            type = "user-defined";
+        } else {
+            type = "unknown type";
         }
-        printf("reactor = %p, trigger = %p, type = %s: %s\n", 
-            object_table[i].reactor,
+        printf("pointer = %p, trigger = %p, type = %s: %s\n", 
+            object_table[i].pointer,
             object_table[i].trigger,
             type,
             object_table[i].description);
@@ -213,7 +221,7 @@ size_t read_header() {
         void* reactor;
         items_read = fread(&reactor, sizeof(void*), 1, trace_file);
         if (items_read != 1) _LF_TRACE_FAILURE(trace_file);
-        object_table[i].reactor = reactor;
+        object_table[i].pointer = reactor;
 
         void* trigger;
         items_read = fread(&trigger, sizeof(trigger_t*), 1, trace_file);
