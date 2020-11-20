@@ -3957,13 +3957,13 @@ class CGenerator extends GeneratorBase {
             pr('''
                 #define _LF_IS_FEDERATED
             ''')
-            if (targetCoordination.equals("centralized")) {                        
-                // Assume the program is federated first
+            if (targetCoordination.equals("centralized")) {
+                // The coordination is centralized.
                 pr('''
                     #define _LF_COORD_CENTRALIZED
                 ''')                
             } else if (targetCoordination.equals("decentralized")) {                        
-                // Assume the program is federated first
+                // The coordination is decentralized
                 pr('''
                     #define _LF_COORD_DECENTRALIZED
                 ''')
