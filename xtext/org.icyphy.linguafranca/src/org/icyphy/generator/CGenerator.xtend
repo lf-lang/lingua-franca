@@ -2997,7 +2997,7 @@ class CGenerator extends GeneratorBase {
             ''')
             for (action : instance.actions) {
                 pr(builder, '''
-                    _lf_register_trace_object(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«action.name», trace_trigger, "«description».«action.name»");
+                    _lf_register_trace_object(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«action.name»), trace_trigger, "«description».«action.name»");
                 ''')
             }
             for (timer : instance.timers) {
@@ -3155,14 +3155,8 @@ class CGenerator extends GeneratorBase {
                         if (targetTracing) {
                             val description = getShortenedName(instance)
                             pr(initializeTriggerObjects, '''
-                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].reactor
-                                        = «nameOfSelfStruct»;
-                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].trigger
-                                        = &(«nameOfSelfStruct»->___shutdown);
-                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size].type
-                                        = trace_trigger;
-                                _lf_trace_object_descriptions[_lf_trace_object_descriptions_size++].description
-                                        = "«description».shutdown";
+                                _lf_register_trace_object(«nameOfSelfStruct», &(«nameOfSelfStruct»->___shutdown),
+                                        trace_trigger, "«description».shutdown");
                             ''')
                         }
                     }
@@ -3920,7 +3914,6 @@ class CGenerator extends GeneratorBase {
      *  private variables if such commands are specified in the target directive.
      */
     override generatePreamble() {
-        super.generatePreamble()        
         
         if (targetLoggingLevel?.equals("DEBUG")) {
             pr('''
@@ -3951,6 +3944,10 @@ class CGenerator extends GeneratorBase {
         
         includeTargetLanguageHeaders()
         
+        // Do this after the above includes so that the preamble can
+        // call built-in functions.
+        super.generatePreamble()        
+
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
         // Handle target parameters.
