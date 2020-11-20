@@ -21,13 +21,10 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
                         // Comment this line for a more sensible
                         // log output.
     reaction(in) {=
-        printf("At tag (%lld, %u) received value %d with intended tag (%lld, %u).\n",
+        printf("At tag (%lld, %u) received value %d.\n",
             get_elapsed_logical_time(),
             get_microstep(),
-            in->value,
-            in->intended_tag.time - get_start_time(),
-            in->intended_tag.microstep
-        );
+            in->value);
         self->total_received_messages++;
         if (in->value != self->received_messages++) {
             fprintf(stderr,"ERROR: received messages out of order.\n");
@@ -36,10 +33,6 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
         if (get_elapsed_logical_time() != self->breaks * self->break_interval) {
             fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", get_elapsed_logical_time());
             // exit(2);
-        }
-        if (compare_tags(in->intended_tag, get_current_tag()) != 0) {
-            fprintf(stderr,"ERROR: received tardy messages.\n");
-            // exit(3);
         }  
 
         if (self->received_messages == self->take_a_break_after) {
