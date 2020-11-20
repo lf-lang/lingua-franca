@@ -1,0 +1,111 @@
+target C {threads: 1, keepalive: true};
+
+preamble {=
+    #include <stdio.h>
+    struct {
+        void* move;
+        void* open;
+        void* close;
+    } buttons;
+    
+    void* read_input(void* arg) {
+        printf("***************************************************************\n");
+        printf("Press 'o' and hit return or enter to open the door\n");
+        printf("Press 'c' and hit return or enter to close the door\n");
+        printf("Press 'm' and hit return or enter perturb the motion sensor\n");
+        while(1) {
+            int c = getchar();
+            if (c == 'm') {
+                schedule(buttons.move, 0);
+            }
+            if (c == 'o') {
+                schedule(buttons.open, 0);
+            }
+            if (c == 'c') {
+                schedule(buttons.close, 0);
+            }
+            if (c == EOF) {
+                break;
+            }
+        }
+        request_stop();
+    }   
+=}
+ 
+reactor MotionDetector {
+    physical action movement;
+    state timestamp:time(0);
+    state moved:bool(false);
+    input check:bool;
+    output ok:bool;
+    reaction(startup) -> movement {=
+        buttons.move = movement;
+		pthread_t thread_id;
+        pthread_create(&thread_id, NULL, &read_input, NULL);
+	=}
+	reaction(movement) {=
+        printf("Motion detected!\n");
+        self->moved = true;
+        self->timestamp = get_logical_time();
+    =}
+    reaction(check) -> ok {=
+        if (!self->moved || (get_logical_time() - self->timestamp) > SECS(2)) {
+            SET(ok, true);
+        } else {
+            SET(ok, false);
+        }
+    =}
+}
+
+reactor DoorController {
+    
+    physical action open;
+    physical action close;
+    
+    output check:bool;
+    input ok:bool;
+    state opened:bool(false);
+    state requested:bool(false);
+    reaction(startup) -> open, close {=
+        buttons.open = open;
+        buttons.close = close;
+	=}
+    
+    reaction(open) -> check {=
+		if (self->opened) {
+        	printf("The door is already open\n");
+        } else {
+            printf("Checking the motion sensor\n");
+			SET(check, false);
+			self->requested = true;
+        }
+    =}
+    
+    reaction(close) {=
+        printf("Closing the door\n");
+        self->opened = false;
+    =}
+    
+    reaction(ok) {=
+        if (self->requested && ok->value) {
+            self->opened = true;
+        	printf("Opening the door.\n");   
+        } else {
+        	printf("Cannot open the door; recent motion detected.\n");
+        }
+        self->requested = false;
+    =}
+}
+/**
+ * Reactor that emulates a train door. It has two components: one that
+ * controls the door and one that senses motion. When the door controller
+ * receives a request to open the door (a button press), it has to first
+ * check whether the vehicle was recently in motion. The request will be
+ * denied if motion has been detected less than two seconds ago.
+ */
+main reactor TrainDoor {
+	motion = new MotionDetector();
+	door = new DoorController();
+    door.check -> motion.check;
+    motion.ok -> door.ok;
+}
