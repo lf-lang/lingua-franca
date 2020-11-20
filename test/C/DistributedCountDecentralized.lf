@@ -35,13 +35,14 @@ reactor Print {
     =}
     reaction(shutdown) {=
         if (self->c != 6) {
-            printf("Expected to receive 5 items.\n");
+            fprintf(stderr, "Expected to receive 5 items.\n");
             exit(2);
         }
+        printf("SUCCESS: Successfully received 5 items.\n");
     =}
 }
 
-federated reactor DistributedCount {
+federated reactor DistributedCountDecentralized {
     c = new Count();
     p = new Print();
     c.out -> p.in after 200 msec;    // Indicating a 'logical' connection

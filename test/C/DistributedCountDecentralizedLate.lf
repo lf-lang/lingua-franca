@@ -46,9 +46,7 @@ reactor Print {
     =}
     
     reaction(shutdown) {=
-        if ((self->success +  self->success_tardy) != 5) { // At timeout (e.g., t = 5000000000), we allow
-                                                           // for arbitrary microsteps. Therefore, we get
-                                                           // 6 messages rather than 5.
+        if ((self->success +  self->success_tardy) != 5) {
             fprintf(stderr, "Failed to detect tardiness of messages.\n");
             exit(1);
         } else {
@@ -57,7 +55,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount {
+federated reactor DistributedCountDecentralized {
     c = new Count();
     p = new Print();
     c.out -> p.in;    // Indicating a 'logical' connection.
