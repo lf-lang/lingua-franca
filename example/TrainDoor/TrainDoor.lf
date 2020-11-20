@@ -29,9 +29,10 @@ preamble {=
             }
         }
         request_stop();
+        return NULL;
     }   
 =}
- 
+
 reactor MotionDetector {
     physical action movement;
     state timestamp:time(0);
@@ -96,6 +97,7 @@ reactor DoorController {
         self->requested = false;
     =}
 }
+
 /**
  * Reactor that emulates a train door. It has two components: one that
  * controls the door and one that senses motion. When the door controller
