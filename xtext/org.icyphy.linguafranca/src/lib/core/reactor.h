@@ -521,9 +521,14 @@ void set_stp_offset(interval_t offset);
 void print_snapshot();
 
 /**
- * Function to request stopping execution at the end of the current logical time.
+ * Request a stop to execution as soon as possible.
+ * In a non-federated execution, this will occur
+ * at the conclusion of the current logical time.
+ * In a federated execution, it will likely occur at
+ * a later logical time determined by the RTI so that
+ * all federates stop at the same logical time.
  */
-void stop();
+void request_stop();
 
 /** 
  * Generated function that optionally sets default command-line options.

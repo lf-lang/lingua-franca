@@ -637,7 +637,14 @@ bool __next() {
     }
 }
 
-// Stop execution at the conclusion of the current logical time.
+/**
+ * Request a stop to execution as soon as possible.
+ * In a non-federated execution, this will occur
+ * at the conclusion of the current logical time.
+ * In a federated execution, it will likely occur at
+ * a later logical time determined by the RTI so that
+ * all federates stop at the same logical time.
+ */
 void request_stop() {
     // printf("DEBUG: pthread_mutex_lock stop\n");
     pthread_mutex_lock(&mutex);
