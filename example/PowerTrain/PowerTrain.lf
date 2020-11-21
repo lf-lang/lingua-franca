@@ -26,7 +26,7 @@ preamble {=
 	    printw("***************************************************************\n");
         printw("Press '1-6' to change the angle of the accelerator\n");
         printw("Press 'q-y' to change the angle of the brake pedal\n");
-	    int c = 0;         // Command: [1-6|q-y]
+	    char c = 0;         // Command: [1-6|q-y]
 	    int v = 0;
 	    while (true) {
 	    	bool skip = false; // Whether to schedule and event or not  	
@@ -217,6 +217,7 @@ main reactor PowerTrain {
 	ec = new EngineControl();
 	b = new Brakes();
 	e = new Engine();
+	
 	
 	bp.angle -> bc.angle;
 	bc.force -> b.force;
