@@ -1,5 +1,17 @@
 target C {threads: 1, keepalive: true, flags: "-lncurses"};
 
+/**
+ * FIXME: there are still two problems with this implementation:
+ * 1. Use of a global variable to let the ncurses thread find the actions
+ * that it should schedule. It would be helpful to have some kind of generic
+ * framework for setting up interactive tests.
+ * 2. When the program runs out of space on the terminal, newlines are ignored.
+ * It is not clear to me why this is the case, but I've only just now started
+ * using ncurses, which is a pretty rich toolkit. More on ncurses here:
+ * http://web.mit.edu/barnowl/src/ncurses/ncurses-5.4/doc/html/ncurses-intro.html
+ * 
+ * @author Marten Lohstroh
+ */
 preamble {=
     #include <stdio.h>
 	#include <stdlib.h>
@@ -86,44 +98,50 @@ preamble {=
 	      	
 	      	if (!skip) {
                 schedule_int(pedals.accelerate, 0, v);
-            }	         
+            }
 	   }
 	   endwin();
 	   return 0;
-	}   
+	}
+	pthread_t curses_thread;
+	bool initialized = false;
+	void init_sensors() {
+        if (!initialized) {
+        	pthread_create(&curses_thread, NULL, &read_input, NULL);
+        	initialized = true;
+        }
+    }
 =}
 
 reactor EngineControl {
 	
-	input applied:bool;
-	input angle:int;
+	input brkOn:bool;
+	input accRate:int;
 	output torque:int;
 	state braking:bool(true);
 	state accelerating:bool(false);
 	
-	reaction(applied) -> torque {=
-		self->braking = applied->value; 
+	//@label Set torque to zero if car is accelerating
+	reaction(brkOn) -> torque {=
+		self->braking = brkOn->value;
+		if(self->accelerating) {
+			SET(torque, 0);
+		}
 	=}
 	
-	reaction(angle) -> torque {= 
+	//@label Adjust torque unless car is braking 
+	reaction(accRate) -> torque {= 
 		if (!self->braking) {
-			SET(torque, calc_torque(angle->value));
-			if (angle->value > 0) {
+			SET(torque, calc_torque(accRate->value));
+			if (accRate->value > 0) {
             	self->accelerating = true; 
             } else {
                 self->accelerating = false;
             }
-			
-		} else if (angle->value > 0){
+		} else if (accRate->value > 0){
             printw("Cannot accelerate; release brake pedal first.\n");
         }
 	=}
-	
-	reaction(applied) -> torque {=
-        if(self->braking && self->accelerating) {
-			SET(torque, 0);
-		}
-    =}
 }
 
 reactor BrakePedal { 
@@ -133,10 +151,13 @@ reactor BrakePedal {
 	physical action a(0, 1 msec, "replace"):int;
 	state last:int(1);
 	
+	// @label Setup callback
    	reaction(startup) -> a {=
         pedals.brake = a;
+        init_sensors();
 	=}
-   
+    
+    // @label Output reported angle
     reaction(a) -> angle, applied {=
     	if (self->last != a->value) {
         	if (self->last == 0) {
@@ -159,12 +180,13 @@ reactor Accelerator {
     output angle:int;
     state last:int(0);
     
-    // Swapping these two reactions creates a cycle.
-    
+    // @label Setup callback
     reaction(startup) -> a {=
         pedals.accelerate = a;
+        init_sensors();
 	=}
     
+    // @label Output reported angle
     reaction(a) -> angle {=
         if (self->last != a->value) {
 			SET(angle, a->value);
@@ -174,28 +196,31 @@ reactor Accelerator {
     
 }
 
-// Simply apply the requested force
+// @label: Apply the requested force
 reactor Brakes {
 	input force:int;
 	
+	// @label Reaction with deadline
 	reaction(force) {=
         printw("Adjusting brake power to %dN; on time!\n", force->value);
-    =} deadline (3 msec) {=
+    =} deadline (300 usec) {=
         printw("Adjusting brake power to %dN; too late!\n", force->value);
     =}
 }
 
-// Simply apply the requested torque
+// @label Apply the requested torque
 reactor Engine {
 	input torque:int;
 	
+	// @label Reaction with deadline
 	reaction(torque) {=
         printw("Adjusting engine torque to %dNm; on time!\n", torque->value);
-    =} deadline (5 msec) {=
+    =} deadline (1 msec) {=
         printw("Adjusting engine torque to %dNm; too late!\n", torque->value);
     =}
 }
 
+// @label Adjust the force
 reactor BrakeControl {
 	input angle:int;
 	output force:int;
@@ -205,11 +230,10 @@ reactor BrakeControl {
     =}
 }
 
+/**
+ * Reactor that implements a simplified power train control module.
+ */
 main reactor PowerTrain {
-    reaction(startup) {=
-        pthread_t thread_id;
-        pthread_create(&thread_id, NULL, &read_input, NULL);
-    =}
     
 	bp = new BrakePedal();
 	a = new Accelerator();
@@ -218,11 +242,10 @@ main reactor PowerTrain {
 	b = new Brakes();
 	e = new Engine();
 	
-	
 	bp.angle -> bc.angle;
 	bc.force -> b.force;
-	bp.applied -> ec.applied;
+	bp.applied -> ec.brkOn;
 	ec.torque -> e.torque;
-	a.angle -> ec.angle;
+	a.angle -> ec.accRate;
 	
 }
