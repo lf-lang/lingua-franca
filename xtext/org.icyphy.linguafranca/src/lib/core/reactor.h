@@ -51,6 +51,7 @@
 #ifndef REACTOR_H
 #define REACTOR_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -273,16 +274,6 @@ do { \
 #define OVERLAPPING(chain1, chain2) ((chain1 & chain2) != 0)
 
 //  ======== Type definitions ========  //
-
-/**
- * Booleans. This needs to be defined only if the target language
- * is C and the compiler is not a C++ compiler.
- */
-#ifndef __cplusplus
-#ifndef _STDBOOL_H
-typedef enum {false, true} bool;
-#endif
-#endif
 
 /**
  * ushort type. Redefine here for portability if sys/types.h is not included.
