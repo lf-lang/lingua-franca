@@ -42,7 +42,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CTARGET_H
 
 #include "core/reactor.h"
-#include "core/pqueue.c" // FIXME: Ideally this should be hidden
 
 //////////////////////////////////////////////////////////////
 /////////////  SET Functions (to produce an output)

@@ -36,6 +36,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "reactor.h"
 #include "tag.c"
+#include "pqueue.c"
 
 /**
  * Indicator for the absence of values for ports that remain disconnected.
