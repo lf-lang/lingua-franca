@@ -792,7 +792,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token) {
     e->intended_tag = trigger->intended_tag;
 #endif
 
-    event_t* found = pqueue_find_equal_same_priority(event_q, e);
+    event_t* found = (event_t *)pqueue_find_equal_same_priority(event_q, e);
     if (found != NULL) {
         if (tag.microstep == 0) {
                 // The microstep is 0, which means that the event is being scheduled
@@ -1041,7 +1041,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) 
     if (trigger->period < 0) {
         // No minimum spacing defined.
         e->time = intended_time;
-        event_t* found = pqueue_find_equal_same_priority(event_q, e);
+        event_t* found = (event_t *)pqueue_find_equal_same_priority(event_q, e);
         // Check for conflicts. Let events pile up in super dense time.
         if (found != NULL) {
             if (intended_time == timeout_time) {
