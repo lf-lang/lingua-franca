@@ -279,7 +279,9 @@ do { \
  * is C and the compiler is not a C++ compiler.
  */
 #ifndef __cplusplus
+#ifndef _STDBOOL_H
 typedef enum {false, true} bool;
+#endif
 #endif
 
 /**
