@@ -1,0 +1,39 @@
+target C;
+
+preamble {=
+    typedef enum {paper=0, rock=1, scissors=2} symbol_t;
+    const char* symbol_names[] = {"paper", "rock", "scissors"};
+=}
+ 
+reactor Player(id:char(0)) {
+    
+    input observe:symbol_t;
+    output reveal:symbol_t;
+
+	state choice:symbol_t;
+
+    reaction(startup) -> reveal {=
+        srand(time(0) / self->id);
+        self->choice = rand() % 2;
+        SET(reveal, self->choice);
+        printf("Player %d chose '%s'\n", self->id, symbol_names[self->choice]);
+    =}
+	
+    reaction(observe) {=
+        if (observe->value == self->choice) {
+            // Go again...
+        } else if (observe->value = (self->choice + 1) % 2) {
+        	printf("Player %d won!\n", self->id);    
+        }
+    =}
+    
+}
+
+main reactor PaperRockScissors {
+    
+	player1 = new Player(id=1);
+	player2 = new Player(id=2);
+	
+	player1.reveal -> player2.observe;
+	player2.reveal -> player1.observe;
+}
