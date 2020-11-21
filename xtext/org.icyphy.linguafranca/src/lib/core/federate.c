@@ -485,7 +485,7 @@ void* handle_p2p_connections_from_federates(void *ignored) {
         // We cannot pass a pointer to remote_fed_id to the thread we need to create
         // because that variable is on the stack. Instead, we malloc memory.
         // The created thread is responsible for calling free().
-        ushort* remote_fed_id_copy = malloc(sizeof(ushort));
+        ushort* remote_fed_id_copy = (ushort*)malloc(sizeof(ushort));
         if (remote_fed_id_copy == NULL) error_print("ERROR: malloc failed in federate %d.\n", _lf_my_fed_id);
         *remote_fed_id_copy = remote_fed_id;
         int result = pthread_create(&thread_ids[received_federates], NULL, listen_to_federates, remote_fed_id_copy);
@@ -810,7 +810,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     // Send the timestamp.
     instant_t message = swap_bytes_if_big_endian_ll(my_physical_time);
 
-    write_to_socket(_lf_rti_socket, sizeof(instant_t), (void*)(&message),
+    write_to_socket(_lf_rti_socket, sizeof(instant_t), (unsigned char*)(&message),
                     "Federate %d failed to send TIMESTAMP message to RTI.", _lf_my_fed_id);
 
     // Get a reply.
@@ -1421,7 +1421,7 @@ void __logical_time_complete(instant_t time, microstep_t microstep) {
  *  change in the event queue.
  *  This function assumes the caller holds the mutex lock.
  */
- tag_t __next_event_tag(instant_t time, microstep_t microstep) {
+tag_t __next_event_tag(instant_t time, microstep_t microstep) {
      if (!__fed_has_downstream && !__fed_has_upstream) {
          // This federate is not connected (except possibly by physical links)
          // so there is no need for the RTI to get involved.
