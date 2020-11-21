@@ -9,19 +9,20 @@ reactor Player(id:char(0)) {
     
     input observe:symbol_t;
     output reveal:symbol_t;
+    logical action repeat(1 sec);
 
 	state choice:symbol_t;
 
-    reaction(startup) -> reveal {=
+    reaction(startup, repeat) -> reveal {=
         srand(time(0) / self->id);
         self->choice = rand() % 2;
         SET(reveal, self->choice);
         printf("Player %d chose '%s'\n", self->id, symbol_names[self->choice]);
     =}
 	
-    reaction(observe) {=
+    reaction(observe) -> repeat {=
         if (observe->value == self->choice) {
-            // Go again...
+            schedule(repeat, 0);
         } else if (observe->value = (self->choice + 1) % 2) {
         	printf("Player %d won!\n", self->id);    
         }
