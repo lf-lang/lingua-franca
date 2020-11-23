@@ -120,6 +120,7 @@ size_t read_and_write_trace() {
             case user_event:
                 pid = PID_FOR_USER_EVENT;
                 phase= "i";
+                thread_id = reactor_index;
                 break;
             default:
                 pid = PID_FOR_UNKNOWN_EVENT;
@@ -237,8 +238,8 @@ void write_metadata_events() {
             );
         }
     }
-
-     // Write the reactor names for the logical timelines.
+    
+    // Write the reactor names for the logical timelines.
     for (int i = 0; i < object_table_size; i++) {
         if (object_table[i].type == trace_trigger) {
             // We need the reactor index (not the name) to set the pid.
@@ -270,10 +271,12 @@ void write_metadata_events() {
                     "\"name\": \"thread_name\", "   // metadata for thread name.
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "         // the "process" to label as reactor.
+                    "\"tid\": %d,"          // The "thread" to label with action or timer name.
                     "\"args\": {"
                         "\"name\": \"%s\"" 
                     "}},\n",
                 PID_FOR_USER_EVENT,
+                i, // This is the index in the object table.
                 object_table[i].description);
         }
     }
@@ -285,19 +288,18 @@ void write_metadata_events() {
                     "\"pid\": 0, "         // the "process" to label "Execution".
                     "\"args\": {"
                         "\"name\": \"Execution of %s\"" 
-                    "}}\n",
+                    "}},\n",
                 top_level);
-    // Name the "process" for "Execution"
+    // Name the "process" for "User Events"
     // Last metadata entry lacks a comma.
     fprintf(output_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "User events".
                     "\"args\": {"
-                        "\"name\": \"Execution of %s\"" 
+                        "\"name\": \"User events in %s, shown in physical time:\"" 
                     "}}\n",
                 PID_FOR_USER_EVENT, top_level);
-
 }
 
 int main(int argc, char* argv[]) {
