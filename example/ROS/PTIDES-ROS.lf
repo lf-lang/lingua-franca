@@ -27,14 +27,18 @@
  * 
  *   add_executable(talker src/PTIDES-ROS.cpp)
  * 
- * 5- Run the provided build-ROS-node.sh:
+ * 5- Use lfc (in bin/) to compile the provided .lf file
+ *    
+ *       lfc PTIDES-ROS.lf
+ * 
+ * 6- Run the provided build-ROS-node.sh:
  * 
  *       ./build-ROS-node.sh PTIDES-ROS cpp_pubsub
  * 
  * This will create a 'talker' node in the package cpp_pubsub (these names can be changed in 
  * CMakeLists.txt and in the argument to build-ROS-node.sh).
  * 
- * 6- Source the appropriate setup.bash and run the node:
+ * 7- Source the appropriate setup.bash and run the node:
  * 
  *       source cpp_pubsub/install/setup.bash
  *       ros2 run cpp_pubsub talker
