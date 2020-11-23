@@ -6,8 +6,11 @@
  * There is a MessageGenerator reactor that publishes String messages on 'topic'
  * and a MessageReceiver reactor that subscribes to 'topic'.
  * 
- * 1- To get this example working, install ROS 2
- *    (https://index.ros.org/doc/ros2/Installation/Foxy/).
+ * 1- To get this example working, install full ROS 2 desktop
+ *    ('https://index.ros.org/doc/ros2/Installation/Foxy/').
+ * 
+ *    Please note that 'colcon' should also be installed.
+ *    See 'https://index.ros.org/doc/ros2/Tutorials/Colcon-Tutorial/' for more details.
  * 
  * 2- Follow the instruction in 
  *    https://index.ros.org/doc/ros2/Tutorials/Writing-A-Simple-Cpp-Publisher-And-Subscriber/
