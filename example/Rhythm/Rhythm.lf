@@ -1,5 +1,18 @@
 /**
  * Simple demonstration of asynchronous input and timed output.
+ * This program opens a simple, terminal-based user interface for
+ * specifying a rhymic audio output. The rhythm is displayed in
+ * the terminal as it is generated and produced as audio using
+ * the terminal's "beep" functionality. Note that not all terminal
+ * implementation provide audio output, so you may not hear any
+ * audible beeps. Moreover, many terminal implementations implement
+ * the beep in such a way that it occupies a fixed amount of time
+ * that may be longer than the 'sixteenth' parameter given here,
+ * in which case the audible rhythm will not be accurate.
+ * Regrettably, this "beep" functionality is the closest we have
+ * been able to find to any sort of even remotely portable audio
+ * output.
+ * 
  * This program uses ncurses, which needs to be installed on your machine
  * for this to work. It also uses the library utility sensor_simulator,
  * provided with Lingua Franca, which uses keyboard input to simulate
