@@ -341,17 +341,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * List of files to be copied to src-gen.
      */
-    protected List<File> targetFiles = newLinkedList
+    protected List<String> targetFiles = newLinkedList
     
     /**
      * List of proto files to be processed by the code generator.
      */
-    protected List<File> protoFiles = newLinkedList
+    protected List<String> protoFiles = newLinkedList
     
     /**
      * Contents of $LF_CLASSPATH, if it was set.
      */
-    protected String classpath
+    protected String classpathLF
     
     /**
      * The value of the keepalive target parameter, or false if there is none.
@@ -411,6 +411,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
+
+    /**
+     * Returns the desired source gen. path
+     */
+    def getSrcGenPath() {
+          directory + File.separator + "src-gen"
+    }
+     
+    /**
+     * Returns the desired output path
+     */
+    def getBinGenPath() {
+          directory + File.separator + "bin"
+    }
+    
     def String getTargetCoordination() {
         return targetCoordination
     }
@@ -569,7 +584,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         analyzeModel(resource, fsa, context)
         
         // Process target files. Copy each of them into the src-gen dir.
-        copyUserFiles()
+        copyUserFiles(getSrcGenPath())
         
         // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
@@ -620,17 +635,37 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     /**
-     * Copy all files listed in the target property `files` into the src-gen
-     * directory.
+     * Copy all files listed in the target property `files` into the
+     * specified directory.
      */
-    protected def copyUserFiles() {
+    protected def copyUserFiles(String targetDirectory) {
+        // Make sure the target directory exists.
+        val srcGenDir = new File(targetDirectory + File.separator)
+        srcGenDir.mkdirs
         
-        for (file : this.targetFiles) {
-            val target = new File(directory + File.separator + "src-gen/" + file.name)
-            if (target.exists) {
-                target.delete
+        for (filename : this.targetFiles) {
+            val file = filename.findFile
+            if (file !== null) {
+                val target = new File(targetDirectory + File.separator + file.name)
+                if (target.exists) {
+                    target.delete
+                }
+                Files.copy(file.toPath, target.toPath)
+            } else {
+                // Try to copy the file as a resource.
+                // If this is missing, it should have been previously reported as an error.
+                try {
+                    var filenameWithoutPath = filename
+                    val lastSeparator = filename.lastIndexOf(File.separator)
+                    if (lastSeparator > 0) {
+                        filenameWithoutPath = filename.substring(lastSeparator + 1)
+                    }
+                    copyFileFromClassPath(filename, targetDirectory + File.separator + filenameWithoutPath)
+                } catch (IOException ex) {
+                    // Ignore. Previously reported as a warning.
+                    System.err.println('''WARNING: Failed to find file «filename».''')
+                }
             }
-            Files.copy(file.toPath, target.toPath)
         }
     }
     
@@ -1499,12 +1534,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * the files that the property lists.
      * 
      * Arrays are traversed, so files are collected recursively. If elements
-     * are found that do not denote files or denote files that cannot be found,
-     * warnings are reported.
+     * are found that do not denote files, warnings are reported.
      * @param value The right-hand side of a target property.
      */
-    def List<File> collectFiles(Element value) {
-        var allFound = true;
+    def List<String> collectFiles(Element value) {
         val files = newLinkedList
         var filename = ""
         if (value.array !== null) {
@@ -1514,35 +1547,42 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             return files
         } else if (value.literal !== null) {
             filename = value.literal.withoutQuotes
+            files.add(filename)
         } else if (value.id !== "") {
             filename = value.id
+            files.add(filename)
         } else {
             this.
                 reportWarning(
                     value, '''Expected a string, path, or array but found something else.''')
         }
+        // Make sure the file exists and issue a warning if not.
         val file = filename.findFile
-        if (file !== null) {
-            files.add(file)
-        } else {
-            // Warn that file hasn't been found.
-            allFound = false
-            this.reportWarning(value, '''Could not find «filename».''')
+        if (file === null) {
+            // See if it can be found as a resource.
+            val stream = this.class.getResourceAsStream(filename)
+            if (stream === null) {
+                // Warn that file hasn't been found.
+                this.reportWarning(value, 
+                    '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
+            }
+            // Sadly, even with this not null, the file may not exist.
+            try {
+                stream.read()
+            } catch (IOException ex) {
+                // Warn that file hasn't been found.
+                this.reportWarning(value, 
+                    '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
+            }
+            stream.close()
         }
-
-        if (!allFound && this.classpath.isNullOrEmpty) {
-            // Report that LF_CLASSPATH hasn't been set 
-            // and something hasn't been found.
-            this.reportWarning(value,
-                "LF_CLASSPATH environment variable is not set.")
-        }
-
         return files
     }
 
     /**
      * Search for a given file name in the current directory.
      * If not found, search in directories in LF_CLASSPATH.
+     * If not found there, search relative to the CLASSPATH.
      * The first file found will be returned.
      * 
      * @param fileName The file name or relative path + file name
@@ -1561,9 +1601,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Check in LF_CLASSPATH
         // Load all the resources in LF_CLASSPATH if it is set.
-        this.classpath = System.getenv("LF_CLASSPATH");
-        if (this.classpath !== null) {
-            var String[] paths = this.classpath.split(
+        this.classpathLF = System.getenv("LF_CLASSPATH");
+        if (this.classpathLF !== null) {
+            var String[] paths = this.classpathLF.split(
                 System.getProperty("path.separator"));
             for (String path : paths) {
                 foundFile = new File(path + '/' + fileName);

@@ -825,23 +825,8 @@ class PythonGenerator extends CGenerator {
 
         super.parseTargetParameters()
         
-        // Make sure src-gen directory exists.
-        val srcGenDir = new File(srcGenPath + File.separator)
-        srcGenDir.mkdirs
-
-        // Process target files. Copy each of them into the src-gen dir.
-        for (file : this.targetFiles) {
-            val name = file.name
-            val target = new File(srcGenPath + File.separator + name)
-            if (target.exists) {
-                target.delete
-            }
-            Files.copy(file.toPath, target.toPath)
-        }
-
         // Handle .proto files.
-        for (file : this.protoFiles) {
-            val name = file.name
+        for (name : this.protoFiles) {
             this.processProtoFile(name)
             val dotIndex = name.lastIndexOf('.')
             var rootFilename = name
@@ -1058,9 +1043,9 @@ class PythonGenerator extends CGenerator {
     /**
      * Copy Python specific target code to the src-gen directory
      */        
-    override copyUserFiles()
-    {    	
-        var srcGenPath = getSrcGenPath()
+    override copyUserFiles(String srcGenPath) {    	
+        super.copyUserFiles(srcGenPath)
+
     	// Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
