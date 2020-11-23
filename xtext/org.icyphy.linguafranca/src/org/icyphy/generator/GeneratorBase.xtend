@@ -55,10 +55,13 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.InferredType
+import org.icyphy.Targets
 import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
 import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.Instantiation
@@ -79,8 +82,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Code
-import org.icyphy.Targets
 
 /**
  * Generator base class for shared code between code generators.
@@ -473,6 +474,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         // Figure out the file name for the target code from the source file name.
         resource.analyzeResource
+        
+        // If there are any physical actions, ensure the threaded engine is used.
+        for (action : resource.allContents.toIterable.filter(Action)) {
+            if (action.origin == ActionOrigin.PHYSICAL) {
+                targetThreads = 1
+            }
+        }
         
         var target = resource.findTarget
         targetName = target.name
