@@ -144,7 +144,7 @@ reactor MessageReceiver {
 
     
     timer t(0, 5 msec);
-    reaction(t) {=       
+    reaction(t) {=
         rclcpp::spin_some(self->minimal_subscriber);
         // std::cout << "Timer triggered." << std::endl;
     =}
