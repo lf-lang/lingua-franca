@@ -1,0 +1,135 @@
+/**
+ * Simple demonstration of asynchronous input and timed output.
+ * This program uses ncurses, which needs to be installed on your machine
+ * for this to work. It also uses the library utility sensor_simulator,
+ * provided with Lingua Franca, which uses keyboard input to simulate
+ * asynchronous sensors and beeps to simulate timed output.
+ * 
+ * You can construct simple rhythms with this program.
+ * The sixteenth parameter determines the duration of a sixteenth note,
+ * the finest resolution this example supports. A bar duration is 16
+ * times this number.
+ * You can turn on and off several beeps to occur within the bar
+ * with keyboard input.
+ */
+target C {
+    threads: 1,
+    flags: "-lncurses",
+    files: ["/lib/C/sensor_simulator.c", "/lib/C/sensor_simulator.h"] 
+};
+preamble {=
+    #include <ncurses.h>
+    #include "sensor_simulator.c"
+    
+    #define DOWNBEAT 0x01
+    #define SIXTEENTHNOTE 0x02
+    #define EIGHTHNOTE 0x04
+    #define QUARTERNOTE 0x10
+    #define HALFNOTE 0x100
+    #define UPBEAT 0x1000
+=}
+ reactor Rhythm(sixteenth:time(100 msec)) {
+    timer t(0, sixteenth);
+    
+    // Count of sixteenth notes.
+    state count:int(0);
+    
+    // Indicator of whether any sound is produced.
+    state sound:bool(false);
+    
+    // Action to be invoked when a key is pressed.
+    physical action key:char;
+    
+    // Indicator of when to make a sound.
+    state rhythm:int(0);
+        
+    // Position of the cursor in the terminal window.
+    state cursor:int(0);
+    
+    reaction(startup) -> key {=
+        // Start the sensor simulator, which starts ncurses.
+        if (start_sensor_simulator()) {
+            fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
+            exit(1);
+        }
+        char* message[9];
+        message[0] = "Type the following keys:";
+        message[1] = "  a: start and stop all sound";
+        message[2] = "  x: quit";
+        message[3] = "  d: down beat";
+        message[4] = "  s: sixteenth note";
+        message[5] = "  e: eighth note";
+        message[6] = "  q: quarter note";
+        message[7] = "  h: half note";
+        message[8] = "  u: up beat";
+        show_message(message, 9);
+        
+        // Register action to trigger on key press.
+        register_sensor_key('\0', key);
+    =}
+    reaction(key) {=
+        switch (key->value) {
+            case 'a':
+                self->sound = !self->sound;
+                // Ensure there is a downbeat, at least.
+                if (self->rhythm == 0) {
+                    self->rhythm = self->rhythm | DOWNBEAT;
+                }
+                break;
+            case 'd':
+                self->rhythm = self->rhythm ^ DOWNBEAT;
+                break;
+            case 's':
+                self->rhythm = self->rhythm ^ SIXTEENTHNOTE;
+                break;
+            case 'e':
+                self->rhythm = self->rhythm ^ EIGHTHNOTE;
+                break;
+            case 'q':
+                self->rhythm = self->rhythm ^ QUARTERNOTE;
+                break;
+            case 'h':
+                self->rhythm = self->rhythm ^ HALFNOTE;
+                break;
+            case 'u':
+                self->rhythm = self->rhythm ^ UPBEAT;
+                break;
+            case 'x':
+                request_stop();
+                break;
+        }
+    =}
+    
+    reaction(t) {=
+        int beeped = 0;
+        if (self->sound) {
+            int position = 1 << self->count;
+            if (position & self->rhythm) {
+                beep();
+                beeped++;
+            }
+        }
+        pthread_mutex_lock(&sensor_mutex);
+        if (beeped > 0) {
+            printw("*");
+        } else {
+            printw(".");
+        }
+        self->count++;
+        if (self->count == 16) {
+            self->count = 0;
+            int term_height, term_width;
+            getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
+            self->cursor++;
+            if (self->cursor >= term_height) {
+                self->cursor = 0;
+            }
+            move(self->cursor, 0);
+        }
+        refresh();
+        pthread_mutex_unlock(&sensor_mutex);
+    =}
+} 
+main reactor Foo {
+    a = new Rhythm();
+}
