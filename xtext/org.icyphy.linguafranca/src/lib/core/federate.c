@@ -1498,5 +1498,6 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
          }
      }
      DEBUG_PRINT("RTI granted tag (%lld, %u) to federate %d.", __tag.time - start_time, __tag.microstep , _lf_my_fed_id);
+
      return __tag;
 }
