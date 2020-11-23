@@ -973,20 +973,6 @@ class CGenerator extends GeneratorBase {
         fOut.close()
     }
     
-    /**
-     * Returns the desired source gen. path
-     */
-    def getSrcGenPath() {
-          directory + File.separator + "src-gen"
-    }
-     
-    /**
-     * Returns the desired output path
-     */
-    def getBinGenPath() {
-          directory + File.separator + "bin"
-    }
-    
     /** Create the launcher shell scripts. This will create one or two file
      *  in the output path (bin directory). The first has name equal to
      *  the filename of the source file without the ".lf" extension.
@@ -3972,12 +3958,11 @@ class CGenerator extends GeneratorBase {
         
         // Handle .proto files.
         for (file : this.protoFiles) {
-            val name = file.name
-            this.processProtoFile(name)
-            val dotIndex = name.lastIndexOf('.')
-            var rootFilename = name
+            this.processProtoFile(file)
+            val dotIndex = file.lastIndexOf('.')
+            var rootFilename = file
             if (dotIndex > 0) {
-                rootFilename = name.substring(0, dotIndex)
+                rootFilename = file.substring(0, dotIndex)
             }
             pr('#include "' + rootFilename + '.pb-c.h"')
         }
