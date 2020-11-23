@@ -685,7 +685,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     ]) {
                         error(
                             "Target property logging is required to be one of " +
-                                LoggingLevels.values(),
+                                LoggingLevels.values().join(', '),
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
                 case NO_COMPILE:
