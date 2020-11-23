@@ -22,11 +22,11 @@ preamble {=
         void* accelerate;
     } pedals;
 
-	int calc_torque(int angle) {  // ~0-600 Nm in Tesla Model 3
-        return 100 * angle;
+	int calc_brake_force(int angle) {  // ~0-600 Nm in Tesla Model 3
+        return 100 * angle + 50;
     }
 
-	int calc_force(int angle) {
+	int calc_motor_torque(int angle) {
         return 100 * angle;
     }
 
@@ -113,7 +113,7 @@ preamble {=
     }
 =}
 
-reactor EngineControl {
+reactor MotorControl {
 	
 	input brkOn:bool;
 	input accRate:int;
@@ -132,7 +132,7 @@ reactor EngineControl {
 	//@label Adjust torque unless car is braking 
 	reaction(accRate) -> torque {= 
 		if (!self->braking) {
-			SET(torque, calc_torque(accRate->value));
+			SET(torque, calc_motor_torque(accRate->value));
 			if (accRate->value > 0) {
             	self->accelerating = true; 
             } else {
@@ -196,26 +196,26 @@ reactor Accelerator {
     
 }
 
-// @label: Apply the requested force
+// @label Apply the requested force
 reactor Brakes {
 	input force:int;
 	
 	// @label Reaction with deadline
 	reaction(force) {=
         printw("Adjusting brake power to %dN; on time!\n", force->value);
-    =} deadline (300 usec) {=
+    =} deadline (2 msec) {=
         printw("Adjusting brake power to %dN; too late!\n", force->value);
     =}
 }
 
 // @label Apply the requested torque
-reactor Engine {
+reactor Motor {
 	input torque:int;
 	
 	// @label Reaction with deadline
 	reaction(torque) {=
         printw("Adjusting engine torque to %dNm; on time!\n", torque->value);
-    =} deadline (1 msec) {=
+    =} deadline (3 msec) {=
         printw("Adjusting engine torque to %dNm; too late!\n", torque->value);
     =}
 }
@@ -226,7 +226,7 @@ reactor BrakeControl {
 	output force:int;
 	
 	reaction(angle) -> force {=
-        SET(force, calc_force(angle->value));
+        SET(force, calc_brake_force(angle->value));
     =}
 }
 
@@ -238,14 +238,14 @@ main reactor PowerTrain {
 	bp = new BrakePedal();
 	a = new Accelerator();
 	bc = new BrakeControl();
-	ec = new EngineControl();
+	mc = new MotorControl();
 	b = new Brakes();
-	e = new Engine();
+	m = new Motor();
 	
 	bp.angle -> bc.angle;
 	bc.force -> b.force;
-	bp.applied -> ec.brkOn;
-	ec.torque -> e.torque;
-	a.angle -> ec.accRate;
+	bp.applied -> mc.brkOn;
+	mc.torque -> m.torque;
+	a.angle -> mc.accRate;
 	
 }
