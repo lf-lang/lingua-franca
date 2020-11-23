@@ -4,6 +4,7 @@
  * for this to work. It also uses the library utility sensor_simulator,
  * provided with Lingua Franca, which uses keyboard input to simulate
  * asynchronous sensors and beeps to simulate timed output.
+ * See lingua-franca/lib/C/sensor_simulator.h.
  * 
  * You can construct simple rhythms with this program.
  * The sixteenth parameter determines the duration of a sixteenth note,
@@ -13,7 +14,6 @@
  * with keyboard input.
  */
 target C {
-    threads: 1,
     flags: "-lncurses",
     files: ["/lib/C/sensor_simulator.c", "/lib/C/sensor_simulator.h"] 
 };
