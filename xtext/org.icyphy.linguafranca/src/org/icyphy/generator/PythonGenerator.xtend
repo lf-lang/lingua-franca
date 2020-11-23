@@ -27,39 +27,35 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.generator
 
 import java.io.File
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
-
-import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.ReactorDecl
-import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.Parameter
+import java.io.FileOutputStream
+import java.io.IOException
 import java.util.ArrayList
-import org.icyphy.ASTUtils
 import java.util.LinkedHashSet
-import org.icyphy.linguaFranca.Value
 import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
-import org.icyphy.InferredType
-import java.util.LinkedHashMap
-import org.icyphy.linguaFranca.Reactor
-import java.io.FileOutputStream
 import java.util.stream.Stream
-import java.io.IOException
-import java.nio.file.Path
-import java.nio.file.Files
-import org.icyphy.linguaFranca.Model
+import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.generator.IFileSystemAccess2
+import org.eclipse.xtext.generator.IGeneratorContext
+import org.icyphy.InferredType
 import org.icyphy.Targets
+import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.Input
+import org.icyphy.linguaFranca.Instantiation
+import org.icyphy.linguaFranca.Model
+import org.icyphy.linguaFranca.Output
+import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Port
+import org.icyphy.linguaFranca.Reaction
+import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguaFranca.ReactorDecl
+import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.TriggerRef
+import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.VarRef
+
+import static extension org.icyphy.ASTUtils.*
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -78,13 +74,13 @@ class PythonGenerator extends CGenerator {
 	// Set of acceptable import targets includes only C.
     val acceptableTargetSet = newLinkedHashSet('Python')
 	
-	private val buildPyWheel = false;
+	val buildPyWheel = false;
 	
 	// Used to add statements that come before reactor classes and user code
-	private var pythonPreamble = new StringBuilder()
+	var pythonPreamble = new StringBuilder()
 	
 	// Used to add module requirements to setup.py (delimited with ,)
-	private var pythonRequiredModules = new StringBuilder()
+	var pythonRequiredModules = new StringBuilder()
 	
 	new () {
         super()
@@ -810,6 +806,12 @@ class PythonGenerator extends CGenerator {
                 ''')
             }
         }
+        
+        if (targetLoggingLevel?.equals("DEBUG")) {
+            pr('''
+                #define VERBOSE
+            ''')
+        }
 
         includeTargetLanguageHeaders()
 
@@ -1002,27 +1004,9 @@ class PythonGenerator extends CGenerator {
                     val srcDir = directory + File.separator + "src-gen" + File.separator + baseFileName
                     val dstDir = directory + File.separator + "src-gen" + File.separator + filename
                     var filesToCopy = newArrayList('''«filename».c''', "pythontarget.c", "pythontarget.h",
-                        "ctarget.h")
+                        "ctarget.h", "core")
                     
-                    for (file : filesToCopy) {
-                        var src = new File(srcDir + File.separator + file)
-                        var dst = new File(dstDir + File.separator + file)
-                        try {
-                            java.nio.file.Files.copy(
-                                src.toPath(),
-                                dst.toPath(),
-                                java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-                                java.nio.file.StandardCopyOption.COPY_ATTRIBUTES,
-                                java.nio.file.LinkOption.NOFOLLOW_LINKS
-                            )
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-
-                    }
-                    
-                    // Copy core library files
-                    copyFolder(new File(srcDir + File.separator + "core").toPath , new File(dstDir + File.separator + "core").toPath)
+                    copyFilesFromClassPath(srcDir, dstDir, filesToCopy);
                     
                     // Do not compile the Python code here. They will be compiled on remote machines
                 }
@@ -1141,8 +1125,7 @@ class PythonGenerator extends CGenerator {
         if (user !== null) {
             target = user + '@' + host
         }
-        for (federate : federates) {        
-            var pyOutPath = directory + File.separator + "src-gen" + File.separator + '''«filename»_«federate.name»'''
+        for (federate : federates) {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 pr(distCode, '''
@@ -1334,16 +1317,12 @@ class PythonGenerator extends CGenerator {
         val reactor = decl.toDefinition
         
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if(reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((decl === this.mainDef?.reactorClass) && reactor.isFederated))
-        {
+        if(reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((decl === this.mainDef?.reactorClass) && reactor.isFederated)) {
             return super.generateReaction(reaction, decl, reactionIndex)
         }
         
         // Contains "O" characters. The number of these characters depend on the number of inputs to the reaction
         val StringBuilder pyObjectDescriptor = new StringBuilder()
-
-        // Define the "self" struct.
-        var structType = selfStructType(decl)
         
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct or generic_port_instance_with_token_struct.
         // Each input must be cast to (PyObject *)
@@ -1361,10 +1340,6 @@ class PythonGenerator extends CGenerator {
         // again with the outputs, they are not defined a second time.
         // That second redefinition would trigger a compile error.  
         var actionsAsTriggers = new LinkedHashSet<Action>();
-        
-        // Indicates if the reactor is in a bank and has the instance parameter
-        var hasInstance = false
-        
         
         // Next, add the triggers (input and actions; timers are not needed).
         // TODO: handle triggers
@@ -1464,7 +1439,6 @@ class PythonGenerator extends CGenerator {
         if (reaction.deadline !== null) {
             // The following name has to match the choice in generateReactionInstances
             val deadlineFunctionName = decl.name.toLowerCase + '_deadline_function' + reactionIndex
-            val pythonDeadlineFunctionName = 'deadline_function_' + reactionIndex
 
             pr('void ' + deadlineFunctionName + '(void* instance_args) {')
             indent();
@@ -1828,20 +1802,4 @@ class PythonGenerator extends CGenerator {
             default: "O"
         }
     }
-    
-    
-    private def copyFolder(Path src, Path dest) throws IOException {
-        try (var Stream<Path> stream = Files.walk(src)) {
-            stream.forEach([source|copy(source, dest.resolve(src.relativize(source)))]);
-        }
-    }
-
-    private def copy(Path source, Path dest) {
-        try {
-            Files.copy(source, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-    }
-    
 }
