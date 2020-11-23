@@ -152,3 +152,24 @@ instant_t get_elapsed_physical_time() {
     clock_gettime(CLOCK_REALTIME, &physicalTime);
     return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
 }
+
+/**
+ * For C++ compatibility, take a volatile tag_t and return a non-volatile
+ * variant.
+ */
+#ifdef __cplusplus
+tag_t convert_volatile_tag_to_nonvolatile(tag_t volatile const& vtag) {
+    tag_t non_volatile_tag;
+    non_volatile_tag.time = vtag.time;
+    non_volatile_tag.microstep - vtag.microstep;
+    return non_volatile_tag;
+}
+#else
+/**
+ * @note This is an undefined behavior in C and should
+ *  be used with utmost caution. See Section 6.7.2 of the C99 standard.
+ */
+tag_t convert_volatile_tag_to_nonvolatile(tag_t volatile vtag) {
+    return vtag;
+}
+#endif

@@ -155,4 +155,18 @@ instant_t get_physical_time();
  */
 instant_t get_start_time();
 
+/**
+ * For C++ compatibility, take a volatile tag_t and return a non-volatile
+ * variant.
+ */
+#ifdef __cplusplus
+tag_t convert_volatile_tag_to_nonvolatile(tag_t volatile const& vtag);
+#else
+/**
+ * @note This is an undefined behavior in C and should
+ *  be used with utmost caution. See Section 6.7.2 of the C99 standard.
+ */
+tag_t convert_volatile_tag_to_nonvolatile(tag_t volatile vtag);
+#endif
+
 #endif // TAG_H

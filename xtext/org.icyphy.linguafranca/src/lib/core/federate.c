@@ -143,7 +143,7 @@ int _lf_server_port = -1;
  * @param fed_id_ptr A pointer to a ushort containing federate ID being listened to.
  *  This procedure frees the memory pointed to before returning.
  */
-void* listen_to_federates(void *args);
+void* listen_to_federates(void* args);
 
 /** 
  * Create a server to listen to incoming physical
@@ -186,7 +186,7 @@ void create_server(int specified_port) {
     // Server file descriptor.
     struct sockaddr_in server_fd;
     // Zero out the server address structure.
-    bzero((char *) &server_fd, sizeof(server_fd));
+    bzero((char*)&server_fd, sizeof(server_fd));
 
     server_fd.sin_family = AF_INET;            // IPv4
     server_fd.sin_addr.s_addr = INADDR_ANY;    // All interfaces, 0.0.0.0.
@@ -231,7 +231,7 @@ void create_server(int specified_port) {
 
     // Set the global server port
     _lf_server_port = port;
-    
+
     // Send the server port number to the RTI
     // on an ADDRESS_AD message (@see rti.h).
     unsigned char buffer[sizeof(int) + 1];
@@ -379,12 +379,12 @@ void send_timed_message(interval_t additional_delay,
         // the tag of the outgoing message
         // should be (get_logical_time(), get_microstep())
     }
-    
+
     // Next 8 bytes are the timestamp.
     encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     // Next 4 bytes are the microstep.
     encode_int(current_message_microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
-    DEBUG_PRINT("Federate %d sending message with tag (%lld, %u) to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, current_message_microstep,  federate);
+    DEBUG_PRINT("Federate %d sending message with tag (%lld, %u) to federate %d.", _lf_my_fed_id, current_message_timestamp - start_time, current_message_microstep, federate);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
@@ -421,7 +421,7 @@ void send_tag(unsigned char type, instant_t time, microstep_t microstep) {
  * before exiting itself.
  * @param ignored No argument needed for this thread.
  */
-void* handle_p2p_connections_from_federates(void *ignored) {
+void* handle_p2p_connections_from_federates(void* ignored) {
     int received_federates = 0;
     pthread_t thread_ids[_lf_number_of_inbound_p2p_connections];
     while (received_federates < _lf_number_of_inbound_p2p_connections) {
@@ -432,15 +432,16 @@ void* handle_p2p_connections_from_federates(void *ignored) {
         // FIXME: Error handling here is too harsh maybe?
         if (socket_id < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
             error_print("A fatal error occurred while accepting a new socket. \
-                         Federate %d will not accept connections anymore.", _lf_my_fed_id);
+                         Federate %d will not accept connections anymore.",
+                         _lf_my_fed_id);
             return NULL;
         }
         DEBUG_PRINT("Federate %d accepted new connection from remote federate.", _lf_my_fed_id);
-        
+
         size_t header_length = 1 + sizeof(ushort) + 1;
         unsigned char buffer[header_length];
         int bytes_read = read_from_socket2(socket_id, header_length, (unsigned char*)&buffer);
-        if(bytes_read != header_length || buffer[0] != P2P_SENDING_FED_ID) {
+        if (bytes_read != header_length || buffer[0] != P2P_SENDING_FED_ID) {
             printf("WARNING: Federate received invalid first message on P2P socket. Closing socket.\n");
             if (bytes_read >= 0) {
                 unsigned char response[2];
@@ -452,13 +453,13 @@ void* handle_p2p_connections_from_federates(void *ignored) {
             }
             continue;
         }
-        
+
         // Get the federation ID and check it.
         unsigned char federation_id_length = buffer[header_length - 1];
         char remote_federation_id[federation_id_length];
         bytes_read = read_from_socket2(socket_id, federation_id_length, (unsigned char*)remote_federation_id);
-        if(bytes_read != federation_id_length
-                || (strncmp(federation_id, remote_federation_id, strnlen(federation_id, 255)) != 0)) {
+        if (bytes_read != federation_id_length
+                 || (strncmp(federation_id, remote_federation_id, strnlen(federation_id, 255)) != 0)) {
             printf("WARNING: Federate received invalid federation ID. Closing socket.\n");
             if (bytes_read >= 0) {
                 unsigned char response[2];
@@ -486,7 +487,9 @@ void* handle_p2p_connections_from_federates(void *ignored) {
         // because that variable is on the stack. Instead, we malloc memory.
         // The created thread is responsible for calling free().
         ushort* remote_fed_id_copy = (ushort*)malloc(sizeof(ushort));
-        if (remote_fed_id_copy == NULL) error_print("ERROR: malloc failed in federate %d.\n", _lf_my_fed_id);
+        if (remote_fed_id_copy == NULL) {
+            error_print_and_exit("ERROR: malloc failed in federate %d.\n", _lf_my_fed_id);
+        }
         *remote_fed_id_copy = remote_fed_id;
         int result = pthread_create(&thread_ids[received_federates], NULL, listen_to_federates, remote_fed_id_copy);
         if (result != 0) {
@@ -548,7 +551,7 @@ void connect_to_federate(ushort remote_federate_id) {
 
         port = extract_int(buffer);
 
-        read_from_socket(_lf_rti_socket, sizeof(host_ip_addr), (unsigned char *)&host_ip_addr, "Federate %d failed to read the ip address for federate %d from RTI.", _lf_my_fed_id, remote_federate_id);
+        read_from_socket(_lf_rti_socket, sizeof(host_ip_addr), (unsigned char*)&host_ip_addr, "Federate %d failed to read the ip address for federate %d from RTI.", _lf_my_fed_id, remote_federate_id);
 
         // A reply of -1 for the port means that the RTI does not know
         // the port number of the remote federate, presumably because the
@@ -568,20 +571,20 @@ void connect_to_federate(ushort remote_federate_id) {
         }
     }
     assert(port < 65536);
-    
+
 #ifdef VERBOSE
-        // Print the received IP address in a human readable format
-        // Create the human readable format of the received address.
-        // This is avoided unless VERBOSE is defined by the user to 
-        // subdue the overhead caused by inet_ntop().
-        char hostname[INET_ADDRSTRLEN];
-        inet_ntop( AF_INET, &host_ip_addr , hostname, INET_ADDRSTRLEN );
-        DEBUG_PRINT("Received address %s port %d for federate %d from RTI.", hostname, port, remote_federate_id);
+    // Print the received IP address in a human readable format
+    // Create the human readable format of the received address.
+    // This is avoided unless VERBOSE is defined by the user to
+    // subdue the overhead caused by inet_ntop().
+    char hostname[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &host_ip_addr, hostname, INET_ADDRSTRLEN);
+    DEBUG_PRINT("Received address %s port %d for federate %d from RTI.", hostname, port, remote_federate_id);
 #endif
 
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        _lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id] = socket(AF_INET , SOCK_STREAM , 0);
+        _lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id] = socket(AF_INET, SOCK_STREAM, 0);
         if (_lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id] < 0) {
             error_print_and_exit("ERROR on federate %d creating socket to federate %d.", _lf_my_fed_id, remote_federate_id);
         }
@@ -589,7 +592,7 @@ void connect_to_federate(ushort remote_federate_id) {
         // Server file descriptor.
         struct sockaddr_in server_fd;
         // Zero out the server_fd struct.
-        bzero((char *) &server_fd, sizeof(server_fd));
+        bzero((char*)&server_fd, sizeof(server_fd));
 
         // Set up the server_fd fields.
         server_fd.sin_family = AF_INET;    // IPv4
@@ -601,7 +604,7 @@ void connect_to_federate(ushort remote_federate_id) {
             _lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id],
             (struct sockaddr *)&server_fd,
             sizeof(server_fd));
-        
+
         if (result != 0) {
             error_print("Federate %d failed to connect to federate %d on port %d.", _lf_my_fed_id, remote_federate_id, port);
 
@@ -618,7 +621,7 @@ void connect_to_federate(ushort remote_federate_id) {
                 return;
             }
             printf("Federate %d could not connect to federate %d. Will try again every %d nanoseconds.\n",
-                    _lf_my_fed_id, remote_federate_id, ADDRESS_QUERY_RETRY_INTERVAL);
+                   _lf_my_fed_id, remote_federate_id, ADDRESS_QUERY_RETRY_INTERVAL);
             // Wait CONNECT_RETRY_INTERVAL seconds.
             struct timespec wait_time = {0L, ADDRESS_QUERY_RETRY_INTERVAL};
             struct timespec remaining_time;
@@ -630,20 +633,20 @@ void connect_to_federate(ushort remote_federate_id) {
             size_t buffer_length = 1 + sizeof(ushort) + 1;
             unsigned char buffer[buffer_length];
             buffer[0] = P2P_SENDING_FED_ID;
-            encode_ushort(_lf_my_fed_id, (unsigned char *)&(buffer[1]));
+            encode_ushort(_lf_my_fed_id, (unsigned char*)&(buffer[1]));
             unsigned char federation_id_length = strnlen(federation_id, 255);
             buffer[sizeof(ushort) + 1] = federation_id_length;
             write_to_socket(_lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id], buffer_length, buffer,
                             "Federate %d failed to send fed_id to federate %d.", _lf_my_fed_id, remote_federate_id);
-            write_to_socket(_lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id], federation_id_length, (unsigned char *)federation_id,
+            write_to_socket(_lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id], federation_id_length, (unsigned char*)federation_id,
                             "Federate %d failed to send federation id to federate %d.", _lf_my_fed_id, remote_federate_id);
 
-            read_from_socket(_lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id], 1, (unsigned char *)buffer,
-                            "Federate %d failed to read ACK from federate %d in response to sending fed_id.", _lf_my_fed_id, remote_federate_id);
+            read_from_socket(_lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id], 1, (unsigned char*)buffer,
+                             "Federate %d failed to read ACK from federate %d in response to sending fed_id.", _lf_my_fed_id, remote_federate_id);
             if (buffer[0] != ACK) {
                 // Get the error code.
-                read_from_socket(_lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id], 1, (unsigned char *)buffer,
-                                "Federate %d failed to read error code from federate %d in response to sending fed_id.", _lf_my_fed_id, remote_federate_id);
+                read_from_socket(_lf_federate_sockets_for_outbound_p2p_connections[remote_federate_id], 1, (unsigned char*)buffer,
+                                 "Federate %d failed to read error code from federate %d in response to sending fed_id.", _lf_my_fed_id, remote_federate_id);
                 error_print("Received REJECT message from remote federate (%d).", buffer[0]);
                 result = -1;
                 continue;
@@ -679,7 +682,7 @@ void connect_to_rti(char* hostname, int port) {
     bool failure_message = false;
     while (result < 0) {
         // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-        _lf_rti_socket = socket(AF_INET , SOCK_STREAM , 0);
+        _lf_rti_socket = socket(AF_INET, SOCK_STREAM, 0);
         if (_lf_rti_socket < 0) {
             error_print_and_exit("Federate %d creating socket to RTI.", _lf_my_fed_id);
         }
@@ -691,12 +694,12 @@ void connect_to_rti(char* hostname, int port) {
         // Server file descriptor.
         struct sockaddr_in server_fd;
         // Zero out the server_fd struct.
-        bzero((char *) &server_fd, sizeof(server_fd));
+        bzero((char*)&server_fd, sizeof(server_fd));
 
         // Set up the server_fd fields.
         server_fd.sin_family = AF_INET;    // IPv4
-        bcopy((char *)server->h_addr,
-             (char *)&server_fd.sin_addr.s_addr,
+        bcopy((char*)server->h_addr,
+             (char*)&server_fd.sin_addr.s_addr,
              server->h_length);
         // Convert the port number from host byte order to network byte order.
         server_fd.sin_port = htons(port);
@@ -740,7 +743,7 @@ void connect_to_rti(char* hostname, int port) {
                                      _lf_my_fed_id, CONNECT_NUM_RETRIES);
             }
             printf("Federate %d could not connect to RTI at %s. Will try again every %d seconds.\n",
-                    _lf_my_fed_id, hostname, CONNECT_RETRY_INTERVAL);
+                   _lf_my_fed_id, hostname, CONNECT_RETRY_INTERVAL);
             // Wait CONNECT_RETRY_INTERVAL seconds.
             struct timespec wait_time = {(time_t)CONNECT_RETRY_INTERVAL, 0L};
             struct timespec remaining_time;
@@ -787,7 +790,6 @@ void connect_to_rti(char* hostname, int port) {
                 error_print_and_exit("RTI Rejected FED_ID message with response (see rti.h): %d. Error code: %d. Federate quits.\n", response, cause);
             }
             printf("Federate %d: connected to RTI at %s:%d.\n", _lf_my_fed_id, hostname, port);
-
         }
     }
 }
@@ -804,7 +806,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     // Send the timestamp marker first.
     unsigned char message_marker = TIMESTAMP;
     // FIXME: Retry rather than exit.
-    write_to_socket(_lf_rti_socket, 1, &message_marker, 
+    write_to_socket(_lf_rti_socket, 1, &message_marker,
                     "Federate %d failed to send TIMESTAMP message ID to RTI.", _lf_my_fed_id);
 
     // Send the timestamp.
@@ -865,8 +867,7 @@ handle_t schedule_message_received_from_network_already_locked(
         trigger_t* trigger,
         tag_t tag,
         void* value,
-        int length
-) {
+        int length) {
 
     token_t* token = create_token(trigger->element_size);
     // Return value of the function
@@ -875,11 +876,11 @@ handle_t schedule_message_received_from_network_already_locked(
     instant_t current_logical_time = get_logical_time();
 
     // Indicates whether or not the intended tag
-    // of the message (timestamp, microstep) is 
+    // of the message (timestamp, microstep) is
     // in the future relative to the tag of this
     // federate. By default, assume it is not.
     bool message_tag_is_in_the_future = compare_tags(tag, get_current_tag()) > 0;
-    
+
     // Set up the token
     token->value = value;
     token->length = length;
@@ -891,11 +892,10 @@ handle_t schedule_message_received_from_network_already_locked(
     // to the schedule function.
     interval_t extra_delay = tag.time - current_logical_time;
 
-
     if (!_lf_execution_started && !message_tag_is_in_the_future) {
         // If execution has not started yet,
         // there could be a special case where a message has
-        // arrived on a logical connection with a tag 
+        // arrived on a logical connection with a tag
         // (0, 0) when this federate
         // is at tag (0, 0).
         // In this case, the schedule
@@ -917,22 +917,23 @@ handle_t schedule_message_received_from_network_already_locked(
         if (!message_tag_is_in_the_future) {
 #ifdef _LF_COORD_CENTRALIZED
             // If the coordination is centralized, receiving a message
-            // that does not carry a timestamp that is in the future 
-            // would indicate a critical condition, showing that the 
+            // that does not carry a timestamp that is in the future
+            // would indicate a critical condition, showing that the
             // time advance mechanism is not working correctly.
             error_print_and_exit("CRITICAL: Federate %d received a message at tag (%lld, %u) that"
-                                 " has a tag (%lld, %u) that is in the past.", _lf_my_fed_id, current_logical_time - start_time, get_microstep(), tag.time - start_time, tag.microstep);
+                                 " has a tag (%lld, %u) that is in the past.",
+                                 _lf_my_fed_id, current_logical_time - start_time, get_microstep(), tag.time - start_time, tag.microstep);
 #else
-           // Set the delay back to 0
-            extra_delay = 0LL;            
+            // Set the delay back to 0
+            extra_delay = 0LL;
             DEBUG_PRINT("Federate %d calling schedule with 0 delay and intended tag (%lld, %u).", _lf_my_fed_id,
                         trigger->intended_tag.time - start_time,
                         trigger->intended_tag.microstep);
             return_value = __schedule(trigger, extra_delay, token);
-#endif   
+#endif
         } else if (tag.time == current_logical_time) {
-            // In case the message is in the future 
-            // in terms of microstep, call 
+            // In case the message is in the future
+            // in terms of microstep, call
             // _lf_schedule_at_tag() and pass the tag
             // of the message.
             DEBUG_PRINT("Federate %d received a message that is (%lld nanoseconds, %u microsteps) in the future.", _lf_my_fed_id, extra_delay, tag.microstep - get_microstep());
@@ -957,7 +958,7 @@ handle_t schedule_message_received_from_network_already_locked(
  * @param socket The socket to read the message from
  * @param buffer The buffer to read
  */
-void handle_message(int socket, unsigned char* buffer) {    
+void handle_message(int socket, unsigned char* buffer) {
     // Read the header.
     read_from_socket(socket, sizeof(ushort) + sizeof(ushort) + sizeof(int), buffer, "Federate %d failed to read message header.", _lf_my_fed_id);
     // Extract the header information.
@@ -966,7 +967,7 @@ void handle_message(int socket, unsigned char* buffer) {
     unsigned int length;
     extract_header(buffer, &port_id, &federate_id, &length);
     // Check if the message is intended for this federate
-    assert (_lf_my_fed_id == federate_id);
+    assert(_lf_my_fed_id == federate_id);
     DEBUG_PRINT("Federate %d receiving message to port %d of length %d.", _lf_my_fed_id, port_id, length);
 
     // Get the triggering action for the corerponding port
@@ -978,8 +979,8 @@ void handle_message(int socket, unsigned char* buffer) {
     int bytes_read = read_from_socket2(socket, length, message_contents);
     if (bytes_read < length) {
         // Placeholder
-        error_print_and_exit( "Federate %d failed to read message body.", _lf_my_fed_id);
-    } 
+        error_print_and_exit("Federate %d failed to read message body.", _lf_my_fed_id);
+    }
     DEBUG_PRINT("Message received by federate: %s. Length: %d.", message_contents, length);
 
     DEBUG_PRINT("Federate %d calling schedule.", _lf_my_fed_id);
@@ -1001,7 +1002,7 @@ void handle_message(int socket, unsigned char* buffer) {
  * @param socket The socket to read the message from.
  * @param buffer The buffer to read.
  */
-void handle_timed_message(int socket, unsigned char* buffer) {    
+void handle_timed_message(int socket, unsigned char* buffer) {
     // Read the header which contains the timestamp.
     read_from_socket(socket, sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t), buffer, "Federate %d failed to read timed message header.", _lf_my_fed_id);
     // Extract the header information.
@@ -1010,7 +1011,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     unsigned int length;
     extract_header(buffer, &port_id, &federate_id, &length);
     // Check if the message is intended for this federate
-    assert (_lf_my_fed_id == federate_id);
+    assert(_lf_my_fed_id == federate_id);
     DEBUG_PRINT("Federate %d receiving message to port %d of length %d.", _lf_my_fed_id, port_id, length);
 
     // Get the triggering action for the corerponding port
@@ -1025,8 +1026,8 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     tag_t tag;
     tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
-    
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
+
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
                                // with decentralized coordination
     // For logical connections in decentralized coordination,
     // increment the barrier to prevent advancement of tag beyond
@@ -1043,15 +1044,15 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     unsigned char* message_contents = (unsigned char*)malloc(length);
     int bytes_read = read_from_socket2(socket, length, message_contents);
     if (bytes_read < length) {
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
                                // with decentralized coordination
-            // Decrement the barrier to allow advancement of tag.
-            _lf_decrement_global_tag_barrier_already_locked();
+        // Decrement the barrier to allow advancement of tag.
+        _lf_decrement_global_tag_barrier_already_locked();
 #endif
         // Placeholder
-        error_print_and_exit( "Federate %d failed to read timed message body.", _lf_my_fed_id);
+        error_print_and_exit("Federate %d failed to read timed message body.", _lf_my_fed_id);
     }
-    
+
     // If something happens, make sure to release the barrier.
     DEBUG_PRINT("Message received by federate: %s.", message_contents);
 
@@ -1067,8 +1068,8 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     schedule_message_received_from_network_already_locked(action, tag, message_contents,
                                                           length);
     // DEBUG_PRINT("Called schedule with delay %lld.", delay);
-    
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs
+
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
                                // with decentralized coordination
     // Finally, decrement the barrier to allow the execution to continue
     // past the raised barrier
@@ -1088,7 +1089,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
  * This is used to communicate between the listen_to_rti thread and the
  * main federate thread.
  */
-volatile tag_t __tag = { .time = NEVER, .microstep = 0u };
+volatile tag_t __tag = {.time = NEVER, .microstep = 0u};
 
 /** Indicator of whether a NET has been sent to the RTI and no TAG
  *  yet received in reply.
@@ -1173,7 +1174,7 @@ void handle_stop_granted_message() {
     DEBUG_PRINT("Federate %d received from RTI a STOP_GRANTED message with time %lld.", _lf_my_fed_id, stop_time);
     if (stop_time > current_tag.time) {
         // We could re-use the timeout mechanism
-        // in which the federate stops at 
+        // in which the federate stops at
         // tag (timeout_time, 0).
         timeout_time = stop_time;
     } else if (stop_time == current_tag.time) {
@@ -1183,7 +1184,7 @@ void handle_stop_granted_message() {
         // to occur at the next microstep.
         stop_requested = true;
     }
-    
+
     _lf_decrement_global_tag_barrier_already_locked();
     pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);
@@ -1206,7 +1207,7 @@ void handle_stop_request_message() {
 
     instant_t stop_time = extract_ll(buffer); // Note: ignoring the payload of the incoming stop request from the RTI
     DEBUG_PRINT("Federate %d received from RTI a STOP_REQUEST message with time %lld.", FED_ID, stop_time - start_time);
-    
+
     unsigned char outgoing_buffer[1 + sizeof(instant_t)];
     outgoing_buffer[0] = STOP_REQUEST_REPLY;
     // Encode the current logical time
@@ -1233,7 +1234,7 @@ void handle_stop_request_message() {
  * @param fed_id_ptr A pointer to a ushort containing federate ID being listened to.
  *  This procedure frees the memory pointed to before returning.
  */
-void* listen_to_federates(void *fed_id_ptr) {
+void* listen_to_federates(void* fed_id_ptr) {
 
     ushort fed_id = *((ushort*)fed_id_ptr);
 
@@ -1264,7 +1265,7 @@ void* listen_to_federates(void *fed_id_ptr) {
             _lf_federate_sockets_for_inbound_p2p_connections[fed_id] = -1;
             break;
         }
-        switch(buffer[0]) {
+        switch (buffer[0]) {
             case P2P_MESSAGE:
                 DEBUG_PRINT("Federate %d handling p2p message from federate %d.", _lf_my_fed_id, fed_id);
                 handle_message(socket_id, buffer + 1);
@@ -1316,7 +1317,7 @@ void* listen_to_rti(void* args) {
             _lf_rti_socket = -1;
             exit(1);
         }
-        switch(buffer[0]) {
+        switch (buffer[0]) {
             case TIMED_MESSAGE:
                 handle_timed_message(_lf_rti_socket, &(buffer[1]));
                 break;
@@ -1349,7 +1350,7 @@ void* listen_to_rti(void* args) {
  * returned by the RTI.
  */
 void synchronize_with_other_federates() {
-                
+
     DEBUG_PRINT("Federate %d synchronizing with other federates.", _lf_my_fed_id);
 
     // Reset the start time to the coordinated start time for all federates.
@@ -1422,82 +1423,85 @@ void __logical_time_complete(instant_t time, microstep_t microstep) {
  *  This function assumes the caller holds the mutex lock.
  */
 tag_t __next_event_tag(instant_t time, microstep_t microstep) {
-     if (!__fed_has_downstream && !__fed_has_upstream) {
-         // This federate is not connected (except possibly by physical links)
-         // so there is no need for the RTI to get involved.
+    if (!__fed_has_downstream && !__fed_has_upstream) {
+        // This federate is not connected (except possibly by physical links)
+        // so there is no need for the RTI to get involved.
 
-         // FIXME: If the event queue is empty, then the time argument is either
-         // the timeout_time or FOREVER. In this case, it matters whether there are
-         // upstream federates connected by physical connections, which do not
-         // affect __fed_has_upstream. We should not return immediately because
-         // then the execution will hit its timeout_time and fail to receive any
-         // messages sent by upstream federates.
-        return (tag_t) {  .time = time, .microstep = microstep };
-     }
+        // FIXME: If the event queue is empty, then the time argument is either
+        // the timeout_time or FOREVER. In this case, it matters whether there are
+        // upstream federates connected by physical connections, which do not
+        // affect __fed_has_upstream. We should not return immediately because
+        // then the execution will hit its timeout_time and fail to receive any
+        // messages sent by upstream federates.
+        return (tag_t){.time = time, .microstep = microstep};
+    }
 
-     // FIXME: The returned value t is a promise that, absent inputs from
-     // another federate, this federate will not produce events earlier than t.
-     // But if there are downstream federates and there is
-     // a physical action (not counting receivers from upstream federates),
-     // then we can only promise up to current physical time.
-     // This will result in this federate busy waiting, looping through this code
-     // and notifying the RTI with next_event_tag(current_physical_time())
-     // repeatedly.
+    // FIXME: The returned value t is a promise that, absent inputs from
+    // another federate, this federate will not produce events earlier than t.
+    // But if there are downstream federates and there is
+    // a physical action (not counting receivers from upstream federates),
+    // then we can only promise up to current physical time.
+    // This will result in this federate busy waiting, looping through this code
+    // and notifying the RTI with next_event_tag(current_physical_time())
+    // repeatedly.
 
-     // If there are upstream federates, then we need to wait for a
-     // reply from the RTI.
+    // If there are upstream federates, then we need to wait for a
+    // reply from the RTI.
 
-     // If time advance has already been granted for this tag or a larger
-     // tag, then return immediately.
-     if (compare_tags2(__tag.time, __tag.microstep, time, microstep) > 0) {
-         return (tag_t) {  .time = time, .microstep = microstep };
-     }
+    // If time advance has already been granted for this tag or a larger
+    // tag, then return immediately.
+    if (compare_tags2(__tag.time, __tag.microstep, time, microstep) > 0) {
+        return (tag_t){.time = time, .microstep = microstep};
+    }
 
-     send_tag(NEXT_EVENT_TIME, time, microstep);
-     DEBUG_PRINT("Federate %d sent next event tag (%lld, %u) to RTI.", _lf_my_fed_id, time - start_time, microstep);
+    send_tag(NEXT_EVENT_TIME, time, microstep);
+    DEBUG_PRINT("Federate %d sent next event tag (%lld, %u) to RTI.", _lf_my_fed_id, time - start_time, microstep);
 
-     // If there are no upstream federates, return immediately, without
-     // waiting for a reply. This federate does not need to wait for
-     // any other federate.
-     // FIXME: If fast execution is being used, it may be necessary to
-     // throttle upstream federates.
-     // FIXME: As noted above, this is not correct if the time is the timeout_time.
-     if (!__fed_has_upstream) {
-         return (tag_t) {  .time = time, .microstep = microstep };
-     }
+    // If there are no upstream federates, return immediately, without
+    // waiting for a reply. This federate does not need to wait for
+    // any other federate.
+    // FIXME: If fast execution is being used, it may be necessary to
+    // throttle upstream federates.
+    // FIXME: As noted above, this is not correct if the time is the timeout_time.
+    if (!__fed_has_upstream) {
+        return (tag_t){.time = time, .microstep = microstep};
+    }
 
-     __tag_pending = true;
-     while (__tag_pending) {
-         // Wait until either something changes on the event queue or
-         // the RTI has responded with a TAG.
-         DEBUG_PRINT("Federate %d pthread_cond_wait", _lf_my_fed_id);
-         if (pthread_cond_wait(&event_q_changed, &mutex) != 0) {
-             fprintf(stderr, "ERROR: pthread_cond_wait errored.\n");
-         }
+    __tag_pending = true;
+    while (__tag_pending) {
+        // Wait until either something changes on the event queue or
+        // the RTI has responded with a TAG.
+        DEBUG_PRINT("Federate %d pthread_cond_wait", _lf_my_fed_id);
+        if (pthread_cond_wait(&event_q_changed, &mutex) != 0) {
+            fprintf(stderr, "ERROR: pthread_cond_wait errored.\n");
+        }
 
-         if (__tag_pending) {
-             DEBUG_PRINT("Federate %d: RTI has not replied, but a change was detected on the event queue.", _lf_my_fed_id);
-             // The RTI has not replied, so the wait must have been
-             // interrupted by activity on the event queue.
-             // If there is now an earlier event on the event queue,
-             // then we should return with the time of that event.
-             event_t* head_event = (event_t*)pqueue_peek(event_q);
-             if (head_event != NULL && head_event->time < time) {
-                 if (head_event->time == current_tag.time) {
-                     microstep = get_microstep() + 1;
-                 } else {
-                     microstep = 0u;
-                 }
+        if (__tag_pending) {
+            DEBUG_PRINT("Federate %d: RTI has not replied, but a change was detected on the event queue.", _lf_my_fed_id);
+            // The RTI has not replied, so the wait must have been
+            // interrupted by activity on the event queue.
+            // If there is now an earlier event on the event queue,
+            // then we should return with the time of that event.
+            event_t *head_event = (event_t *)pqueue_peek(event_q);
+            if (head_event != NULL && head_event->time < time) {
+                if (head_event->time == current_tag.time) {
+                    microstep = get_microstep() + 1;
+                } else {
+                    microstep = 0u;
+                }
 
-                 return (tag_t) { .time = head_event->time, .microstep = microstep };
-             }
-             // If we get here, any activity on the event queue is not relevant.
-             // Either the queue is empty or whatever appeared on it
-             // has a timestamp greater than this request.
-             // Keep waiting for the TAG.
-         }
-     }
-     DEBUG_PRINT("RTI granted tag (%lld, %u) to federate %d.", __tag.time - start_time, __tag.microstep , _lf_my_fed_id);
+                return (tag_t){.time = head_event->time, .microstep = microstep};
+            }
+            // If we get here, any activity on the event queue is not relevant.
+            // Either the queue is empty or whatever appeared on it
+            // has a timestamp greater than this request.
+            // Keep waiting for the TAG.
+        }
+    }
+    DEBUG_PRINT("RTI granted tag (%lld, %u) to federate %d.", __tag.time - start_time, __tag.microstep, _lf_my_fed_id);
 
-     return __tag;
+    // Convert the volatile __tag to a non-volatile variable before returning.
+    // This is relatively safe to do here because of the __tag_pending guard and the conditional wait
+    // that happens prior to this and the fact that the mutex is locked.
+    return convert_volatile_tag_to_nonvolatile(__tag);
 }
