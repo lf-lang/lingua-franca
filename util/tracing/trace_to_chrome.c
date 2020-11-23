@@ -69,7 +69,7 @@ size_t read_and_write_trace() {
     if (trace_length == 0) return 0;
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
-        char* reaction_name = "none";
+        char* reaction_name = "\"UNKNOWN\"";
         if (trace[i].reaction_number >= 0) {
             reaction_name = (char*)malloc(4);
             snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
