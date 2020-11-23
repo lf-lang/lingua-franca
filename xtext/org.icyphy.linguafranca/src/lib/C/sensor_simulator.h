@@ -34,12 +34,18 @@ provides a convenient way to do that.
 To use this, include the following flags in your target properties:
 <pre>
 target C {
-    threads: 1,
     flags: "-lncurses",
     files: ["/lib/C/sensor_simulator.c", "/lib/C/sensor_simulator.h"]
 };
 </pre>
 This requires `ncurses`, a library providing somewhat portable keyboard access.
+
+In addition, you need this in your Lingua Franca file:
+<pre>
+preamble {=
+    #include "sensor_simulator.c"
+=}
+</pre>
 */
 
 #ifndef SENSOR_SIMULATOR_H
