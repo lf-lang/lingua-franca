@@ -195,10 +195,12 @@ void stop_trace();
 #else
 
 // empty definition in case we compile without tracing
+#define register_user_trace_object(...)
 #define tracepoint(...)
 #define tracepoint_reaction_starts(...)
 #define tracepoint_reaction_ends(...)
 #define tracepoint_schedule(...)
+#define tracepoint_user_event(...)
 #define start_trace(...)
 #define stop_trace(...)
 

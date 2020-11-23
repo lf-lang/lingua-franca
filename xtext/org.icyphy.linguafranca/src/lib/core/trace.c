@@ -349,8 +349,10 @@ void start_trace(char* filename) {
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
  * @param reactor The pointer to the self struct of the reactor instance in the trace table.
- * @param reaction_number The number of the reaction or -1 if the trace is not of a reaction.
- * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ * @param reaction_number The number of the reaction or -1 if the trace is not of a reaction
+ *  or the reaction number if not known.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution
+ *  or -1 for an unknown thread.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
  *  and ensures that the physical time in the trace is the same as that used by the caller.
@@ -369,27 +371,28 @@ void tracepoint(
 ) {
     // printf("DEBUG: Creating trace record.\n");
     // Flush the buffer if it is full.
-    if (_lf_trace_buffer_size[worker] >= TRACE_BUFFER_CAPACITY) {
+    int index = (worker >= 0) ? worker : 0;
+    if (_lf_trace_buffer_size[index] >= TRACE_BUFFER_CAPACITY) {
         // No more room in the buffer. Write the buffer to the file.
-        flush_trace_to_file(worker);
+        flush_trace_to_file(index);
     }
     // The above flush_trace_to_file resets the write pointer.
-    int i = _lf_trace_buffer_size[worker];
+    int i = _lf_trace_buffer_size[index];
     // Write to memory buffer.
-    _lf_trace_buffer[worker][i].event_type = event_type;
-    _lf_trace_buffer[worker][i].pointer = reactor;
-    _lf_trace_buffer[worker][i].reaction_number = reaction_number;
-    _lf_trace_buffer[worker][i].worker = worker;
-    _lf_trace_buffer[worker][i].logical_time = get_logical_time();
-    _lf_trace_buffer[worker][i].microstep = get_microstep();
+    _lf_trace_buffer[index][i].event_type = event_type;
+    _lf_trace_buffer[index][i].pointer = reactor;
+    _lf_trace_buffer[index][i].reaction_number = reaction_number;
+    _lf_trace_buffer[index][i].worker = worker;
+    _lf_trace_buffer[index][i].logical_time = get_logical_time();
+    _lf_trace_buffer[index][i].microstep = get_microstep();
     if (physical_time != NULL) {
-        _lf_trace_buffer[worker][i].physical_time = *physical_time;
+        _lf_trace_buffer[index][i].physical_time = *physical_time;
     } else {
-        _lf_trace_buffer[worker][i].physical_time = get_physical_time();
+        _lf_trace_buffer[index][i].physical_time = get_physical_time();
     }
-    _lf_trace_buffer_size[worker]++;
-    _lf_trace_buffer[worker][i].trigger = trigger;
-    _lf_trace_buffer[worker][i].extra_delay = extra_delay;
+    _lf_trace_buffer_size[index]++;
+    _lf_trace_buffer[index][i].trigger = trigger;
+    _lf_trace_buffer[index][i].extra_delay = extra_delay;
 }
 
 /**
@@ -435,7 +438,8 @@ void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay) {
  * @param description Pointer to the description string.
  */
 void tracepoint_user_event(char* description) {
-    tracepoint(user_event, description,  0, 0, NULL, NULL, 0);
+    // -1s indicate unknown reaction number and worker thread.
+    tracepoint(user_event, description,  -1, -1, NULL, NULL, 0);
 }
 
 /**
