@@ -451,7 +451,7 @@ public enum Targets {
         /**
          * Directive to specify the grain at which to report log messages during execution.
          */
-        LOGGING("logging", Arrays.asList(Targets.TS, Targets.CPP, Targets.C)),
+        LOGGING("logging", Arrays.asList(Targets.TS, Targets.CPP, Targets.C, Targets.Python)),
         
         /**
          * Directive to not invoke the target compiler.

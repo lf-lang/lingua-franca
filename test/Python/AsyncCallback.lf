@@ -4,7 +4,8 @@
 // does not implement any mutex protecting the event queue.
 target Python {
 	timeout: 2 sec,
-	keepalive: true    // Not really needed here because there is a timer.
+	keepalive: true,    // Not really needed here because there is a timer.
+	logging: DEBUG
 };
 
 main reactor AsyncCallback {
