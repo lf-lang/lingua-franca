@@ -2979,16 +2979,16 @@ class CGenerator extends GeneratorBase {
             var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
-                _lf_register_trace_object(«nameOfSelfStruct», NULL, trace_reactor, "«description»");
+                _lf_register_trace_event(«nameOfSelfStruct», NULL, trace_reactor, "«description»");
             ''')
             for (action : instance.actions) {
                 pr(builder, '''
-                    _lf_register_trace_object(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«action.name»), trace_trigger, "«description».«action.name»");
+                    _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«action.name»), trace_trigger, "«description».«action.name»");
                 ''')
             }
             for (timer : instance.timers) {
                 pr(builder, '''
-                    _lf_register_trace_object(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«timer.name»), trace_trigger, "«description».«timer.name»");
+                    _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___«timer.name»), trace_trigger, "«description».«timer.name»");
                 ''')
             }
         }
@@ -3141,7 +3141,7 @@ class CGenerator extends GeneratorBase {
                         if (targetTracing) {
                             val description = getShortenedName(instance)
                             pr(initializeTriggerObjects, '''
-                                _lf_register_trace_object(«nameOfSelfStruct», &(«nameOfSelfStruct»->___shutdown),
+                                _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___shutdown),
                                         trace_trigger, "«description».shutdown");
                             ''')
                         }
