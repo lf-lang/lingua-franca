@@ -99,6 +99,18 @@ size_t read_and_write_trace() {
         // Default thread id is the worker number.
         int thread_id = trace[i].worker;
 
+        char* args;
+        asprintf(&args, "{"
+                        "\"reaction\": %s,"          // reaction number.
+                        "\"logical time\": %lld,"    // logical time.
+                        "\"physical time\": %lld,"   // physical time.
+                        "\"microstep\": %d"          // microstep.
+                    "}",
+                reaction_name,
+                elapsed_logical_time,
+                elapsed_physical_time,
+                trace[i].microstep
+        );
         char* phase;
         int pid;
         switch(trace[i].event_type) {
@@ -122,7 +134,16 @@ size_t read_and_write_trace() {
                 phase= "i";
                 thread_id = reactor_index;
                 break;
+            case user_value:
+                pid = PID_FOR_USER_EVENT;
+                phase= "C";
+                thread_id = reactor_index;
+                free(args);
+                asprintf(&args, "{\"value\": %lld}", trace[i].extra_delay);
+                break;
             default:
+                fprintf(stderr, "WARNING: Unrecognized event type %d: %s", 
+                        trace[i].event_type, trace_event_names[trace[i].event_type]);
                 pid = PID_FOR_UNKNOWN_EVENT;
                 phase = "i";
         }
@@ -133,23 +154,18 @@ size_t read_and_write_trace() {
                     "\"tid\": %d, "        // thread ID.
                     "\"pid\": %d, "        // process ID is required.
                     "\"ts\": %lld, "       // timestamp in microseconds
-                    "\"args\": {"
-                        "\"reaction\": %s,"          // reaction number.
-                        "\"logical time\": %lld,"    // logical time.
-                        "\"physical time\": %lld,"   // physical time.
-                        "\"microstep\": %d"          // microstep.
-                    "}},\n",
+                    "\"args\": %s"         // additional arguments from above.
+                    "},\n",
                 name,
                 trace_event_names[trace[i].event_type],
                 phase,
                 thread_id,
                 pid,
                 timestamp,
-                reaction_name,
-                elapsed_logical_time,
-                elapsed_physical_time,
-                trace[i].microstep
+                args
         );
+        free(args);
+
         if (trace[i].worker > max_thread_id) {
             max_thread_id = trace[i].worker;
         }

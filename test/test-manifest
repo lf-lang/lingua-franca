@@ -150,6 +150,7 @@ Timeout.lf
 TimeoutZero.lf
 TimeoutThreaded.lf
 TimeoutZeroThreaded.lf
+Tracing.lf
 TriggerDownstreamOnlyIfPresent.lf
 TriggerDownstreamOnlyIfPresent2.lf
 UnconnectedInput.lf
