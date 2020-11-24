@@ -1262,6 +1262,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // added to a resource; not doing so will result in a NPE.
             models.add(r.toDefinition.eContainer as Model)
         }
+        // Add the main reactor if it is defined
+        if (this.mainDef !== null) {
+            models.add(this.mainDef.reactorClass.toDefinition.eContainer as Model)
+        }
         for (m : models) {
             for (p : m.preambles) {
                 pr(p.code.toText)

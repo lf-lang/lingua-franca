@@ -4,8 +4,7 @@
 // does not implement any mutex protecting the event queue.
 target Python {
 	timeout: 2 sec,
-	keepalive: true,    // Not really needed here because there is a timer.
-	logging: DEBUG
+	keepalive: true    // Not really needed here because there is a timer.
 };
 
 main reactor AsyncCallback {
@@ -33,7 +32,7 @@ main reactor AsyncCallback {
         
 	=}
 	timer t(0, 200 msec);
-	state thread;
+	state threads({=list()=});
 	state expected_time(100 msec);
 	state toggle(false);
 	
@@ -42,16 +41,17 @@ main reactor AsyncCallback {
   
 	reaction(t) -> a {=
         # start new thread, provide callback
-        self.thread = self.threading.Thread(target=self.take_time, args=(a,))
-        self.thread.start()
+        x = self.threading.Thread(target=self.take_time, args=(a,))
+        self.threads.append(x)
+        x.start()
 	=}
 	
 	reaction(a) {=
         elapsed_time = get_elapsed_logical_time()
-        print("Asynchronous callback {:d}: Assigned logical time greater than start time by {:d} nsec.\n".format(self.i, elapsed_time));
+        print("Asynchronous callback {:d}: Assigned logical time greater than start time by {:d} nsec.".format(self.i, elapsed_time));
         self.i += 1 
         if elapsed_time <= self.expected_time:
-            sys.stderr.write("ERROR: Expected logical time to be larger than {:d}.\n".format(self.expected_time));
+            sys.stderr.write("ERROR: Expected logical time to be larger than {:d}.".format(self.expected_time));
             exit(1)
         if self.toggle:
             self.toggle = False
