@@ -56,7 +56,8 @@ typedef enum {
     reaction_starts,
     reaction_ends,
     schedule_called,
-    user_event
+    user_event,
+    user_value
 } trace_event_t;
 
 /**
@@ -66,7 +67,8 @@ static const char* trace_event_names[] = {
         "Reaction starts",
         "Reaction ends",
         "Schedule called",
-        "User-defined event"
+        "User-defined event",
+        "User-defined valued event"
 };
 
 #ifdef LINGUA_FRANCA_TRACE
@@ -190,6 +192,18 @@ void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay);
  */
 void tracepoint_user_event(char* description);
 
+/**
+ * Trace a user-defined event with a value.
+ * Before calling this, you must call
+ * register_user_trace_object() with a pointer to the same string
+ * or else the event will not be recognized.
+ * @param description Pointer to the description string.
+ * @param value The value of the event. This is a long long for
+ *  convenience so that time values can be passed unchanged.
+ *  But int values work as well.
+ */
+void tracepoint_user_value(char* description, long long value);
+
 void stop_trace();
 
 #else
@@ -201,6 +215,7 @@ void stop_trace();
 #define tracepoint_reaction_ends(...)
 #define tracepoint_schedule(...)
 #define tracepoint_user_event(...)
+#define tracepoint_user_value(...)
 #define start_trace(...)
 #define stop_trace(...)
 

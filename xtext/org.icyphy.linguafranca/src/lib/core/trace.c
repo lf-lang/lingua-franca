@@ -104,7 +104,7 @@ int _lf_register_trace_object(void* pointer1, void* pointer2, _lf_trace_object_t
 /**
  * Register a user trace object. This should be called once, providing a pointer to a string
  * that describes a phenomenon being traced. Use the same pointer as the first argument to
- * tracepoint_user_event().
+ * tracepoint_user_event() and tracepoint_user_value().
  * @param description Pointer to a human-readable description of the event.
  * @return 1 if successful, 0 if the trace object table is full.
  */
@@ -440,6 +440,21 @@ void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay) {
 void tracepoint_user_event(char* description) {
     // -1s indicate unknown reaction number and worker thread.
     tracepoint(user_event, description,  -1, -1, NULL, NULL, 0);
+}
+
+/**
+ * Trace a user-defined event with a value.
+ * Before calling this, you must call
+ * register_user_trace_object() with a pointer to the same string
+ * or else the event will not be recognized.
+ * @param description Pointer to the description string.
+ * @param value The value of the event. This is a long long for
+ *  convenience so that time values can be passed unchanged.
+ *  But int values work as well.
+ */
+void tracepoint_user_value(char* description, long long value) {
+    // -1s indicate unknown reaction number and worker thread.
+    tracepoint(user_value, description,  -1, -1, NULL, NULL, value);
 }
 
 /**
