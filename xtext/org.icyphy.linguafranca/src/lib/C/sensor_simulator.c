@@ -181,6 +181,7 @@ int register_sensor_key(char key, void* action) {
  * @param number_of_lines The number of lines.
  */
 void show_message(char* message_lines[], int number_of_lines) {
+    pthread_mutex_lock(&sensor_mutex);
     int term_height, term_width;
     int message_width = 0;
     // Find the widest message in the list.
@@ -190,13 +191,15 @@ void show_message(char* message_lines[], int number_of_lines) {
             message_width = width;
         }
     }
-    pthread_mutex_lock(&sensor_mutex);
     getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
     int x = (term_width - message_width)/2;
     int y = (term_height - number_of_lines)/2;
     for (int i = 0; i < number_of_lines; i++) {
-        move(y++, x);
-        printw("%s", message_lines[i]);
+        mvprintw(y++, x, "%s", message_lines[i]);
+        // According to curses docs, the following should not be necessary
+        // after each print. But if I wait and do it later, the output
+        // gets garbled.
+        refresh();
     }
     move(0, 0);
     refresh();
