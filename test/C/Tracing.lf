@@ -26,8 +26,8 @@ reactor TakeTime {
         snprintf(self->event, length, format, self->bank_index);
         
         // Register the user trace event.
-        if (!register_user_trace_object(self->event)) {
-            fprintf(stderr, "ERROR: Failed to register trace object.\n");
+        if (!register_user_trace_event(self->event)) {
+            fprintf(stderr, "ERROR: Failed to register trace event.\n");
             exit(1);
         }
     =}
@@ -55,8 +55,8 @@ reactor Destination(width:int(4)) {
 	input[width] in:int;
 	reaction(startup) {=
         // Register the user value event.
-        if (!register_user_trace_object("Number of Destination invocations")) {
-            fprintf(stderr, "ERROR: Failed to register trace object.\n");
+        if (!register_user_trace_event("Number of Destination invocations")) {
+            fprintf(stderr, "ERROR: Failed to register trace event.\n");
             exit(1);
         }
     =}

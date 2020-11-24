@@ -122,16 +122,16 @@ extern int _lf_trace_object_descriptions_size;
  * @param description The human-readable description of the object.
  * @return 1 if successful, 0 if the trace object table is full.
  */
-int _lf_register_trace_object(void* pointer1, void* pointer2, _lf_trace_object_t type, char* description);
+int _lf_register_trace_event(void* pointer1, void* pointer2, _lf_trace_object_t type, char* description);
 
 /**
- * Register a user trace object. This should be called once, providing a pointer to a string
+ * Register a user trace event. This should be called once, providing a pointer to a string
  * that describes a phenomenon being traced. Use the same pointer as the first argument to
- * tracepoint_user_event().
+ * tracepoint_user_event() and tracepoint_user_value().
  * @param description Pointer to a human-readable description of the event.
  * @return 1 if successful, 0 if the trace object table is full.
  */
-int register_user_trace_object(char* description);
+int register_user_trace_event(char* description);
 
 /**
  * Open a trace file and start tracing.
@@ -186,7 +186,7 @@ void tracepoint_schedule(trigger_t* trigger, interval_t extra_delay);
 
 /**
  * Trace a user-defined event. Before calling this, you must call
- * register_user_trace_object() with a pointer to the same string
+ * register_user_trace_event() with a pointer to the same string
  * or else the event will not be recognized.
  * @param description Pointer to the description string.
  */
@@ -195,7 +195,7 @@ void tracepoint_user_event(char* description);
 /**
  * Trace a user-defined event with a value.
  * Before calling this, you must call
- * register_user_trace_object() with a pointer to the same string
+ * register_user_trace_event() with a pointer to the same string
  * or else the event will not be recognized.
  * @param description Pointer to the description string.
  * @param value The value of the event. This is a long long for
@@ -209,7 +209,7 @@ void stop_trace();
 #else
 
 // empty definition in case we compile without tracing
-#define register_user_trace_object(...)
+#define register_user_trace_event(...)
 #define tracepoint(...)
 #define tracepoint_reaction_starts(...)
 #define tracepoint_reaction_ends(...)
