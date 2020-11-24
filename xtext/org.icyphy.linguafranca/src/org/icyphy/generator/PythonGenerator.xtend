@@ -732,12 +732,12 @@ class PythonGenerator extends CGenerator {
      * Generate code that ensures only one thread can execute at a time as per Python specifications
      * @param state 0=beginning, 1=end
      */
-    def pyThreadMutexLockCode(int state) {
+    def pyThreadMutexLockCode(int state, Reactor reactor) {
         if(targetThreads > 0)
         {
             switch(state){
-                case 0: return '''pthread_mutex_lock(&mutex);'''
-                case 1: return '''pthread_mutex_unlock(&mutex);'''
+                case 0: return '''pthread_mutex_lock(&py_«reactor.name»_reaction_mutex);'''
+                case 1: return '''pthread_mutex_unlock(&py_«reactor.name»_reaction_mutex);'''
                 default: return ''''''
             }
         }
@@ -800,6 +800,10 @@ class PythonGenerator extends CGenerator {
             // added to a resource; not doing so will result in a NPE.
             models.add(r.toDefinition.eContainer as Model)
         }
+        // Add the main reactor if it is defined
+        if (this.mainDef !== null) {
+            models.add(this.mainDef.reactorClass.toDefinition.eContainer as Model)
+        }
         for (m : models) {
             for (p : m.preambles) {
                 pythonPreamble.append('''«p.code.toText»
@@ -823,10 +827,28 @@ class PythonGenerator extends CGenerator {
             targetThreads = 1
         }
 
-        includeTargetLanguageSourceFiles()
+        super.includeTargetLanguageSourceFiles()
 
         super.parseTargetParameters()
         
+        // If the program is threaded, create a mutex for each reactor
+        // that guards the execution of its reactions.
+        // This is necessary because Python is not thread-safe
+        // and running multiple instances of the same function can cause
+        // a segmentation fault.
+        if (targetThreads > 0) {
+            for (r : this.reactors ?: emptyList) {
+                pr('''
+                    pthread_mutex_t py_«r.toDefinition.name»_reaction_mutex = PTHREAD_MUTEX_INITIALIZER;
+                ''')
+            }
+            // Add mutex for the main reactor
+            if (this.mainDef !== null) {
+                pr('''
+                    pthread_mutex_t py_«this.mainDef.name»_reaction_mutex = PTHREAD_MUTEX_INITIALIZER;
+                ''')
+            }
+        }
         // Handle .proto files.
         for (name : this.protoFiles) {
             this.processProtoFile(name)
@@ -980,8 +1002,7 @@ class PythonGenerator extends CGenerator {
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         // If there are federates, assign the number of threads in the CGenerator to 1        
-        if(federates.length > 1)
-        {
+        if(federates.length > 1) {
             super.targetThreads = 1;
         }
 
@@ -1413,23 +1434,20 @@ class PythonGenerator extends CGenerator {
         // Unfortunately, threads cannot run concurrently in Python.
         // Therefore, we need to make sure reactions cannot execute concurrently by
         // holding the mutex lock.
-        if(targetThreads > 0)
-        {
-            pr(pyThreadMutexLockCode(0))
+        if(targetThreads > 0) {
+            pr(pyThreadMutexLockCode(0, reactor))
         }
         
         pr('''PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
         ''')
         pr('''
-            if (rValue == NULL)
-            {
+            if (rValue == NULL) {
                 fprintf(stderr, "Failed to call reaction «pythonFunctionName».\n");
             }
         ''')
         
-        if(targetThreads > 0)
-        {
-            pr(pyThreadMutexLockCode(1))                
+        if(targetThreads > 0) {
+            pr(pyThreadMutexLockCode(1, reactor))
         }
         
         unindent()
@@ -1445,15 +1463,24 @@ class PythonGenerator extends CGenerator {
             
             
             super.generateInitializationForReaction("", reaction, decl, reactionIndex)
+            // Unfortunately, threads cannot run concurrently in Python.
+            // Therefore, we need to make sure reactions cannot execute concurrently by
+            // holding the mutex lock.
+            if(targetThreads > 0) {
+                pr(pyThreadMutexLockCode(0, reactor))
+            }
             
             pr('''PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
             ''')
             pr('''
-                if (rValue == NULL)
-                {
+                if (rValue == NULL) {
                     fprintf(stderr, "Failed to call reaction «deadlineFunctionName».\n");
                 }
             ''')
+
+            if(targetThreads > 0) {
+                pr(pyThreadMutexLockCode(1, reactor))
+            }
             //pr(reactionInitialization.toString)
             // Code verbatim from 'deadline'
             //prSourceLineNumber(reaction.deadline.code)
