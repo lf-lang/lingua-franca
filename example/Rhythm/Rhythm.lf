@@ -32,6 +32,7 @@ target C {
 };
 preamble {=
     #include <ncurses.h>
+    #include <unistd.h>
     #include "sensor_simulator.c"
     
     #define DOWNBEAT 0x01
@@ -40,8 +41,28 @@ preamble {=
     #define QUARTERNOTE 0x10
     #define HALFNOTE 0x100
     #define UPBEAT 0x1000
+    
+    #define CLEAR 0x0000
+    // Merenque in binary covers two bars (in temporal order):  1001 0101 0101 1111
+    // Reverse the order to get the bit sequence: 1111 0101 0101 1001
+    #define MERENGUE 0xf559
+    
+    
+    char* message[] = {
+        "Type the following keys:",
+        "  a: start and stop all sound",
+        "  x: quit",
+        "  d: down beat",
+        "  s: sixteenth note",
+        "  e: eighth note",
+        "  q: quarter note",
+        "  h: half note",
+        "  u: up beat",
+        "  m: merengue",
+        "  c: merengue"
+     };
 =}
- reactor Rhythm(sixteenth:time(100 msec)) {
+ reactor Rhythm(sixteenth:time(600 msec)) {
     timer t(0, sixteenth);
     
     // Count of sixteenth notes.
@@ -55,6 +76,9 @@ preamble {=
     
     // Indicator of when to make a sound.
     state rhythm:int(0);
+    
+    // Currently active rhythm.
+    state active_rhythm:int(0);
         
     // Position of the cursor in the terminal window.
     state cursor:int(0);
@@ -65,21 +89,18 @@ preamble {=
             fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
             exit(1);
         }
-        char* message[9];
-        message[0] = "Type the following keys:";
-        message[1] = "  a: start and stop all sound";
-        message[2] = "  x: quit";
-        message[3] = "  d: down beat";
-        message[4] = "  s: sixteenth note";
-        message[5] = "  e: eighth note";
-        message[6] = "  q: quarter note";
-        message[7] = "  h: half note";
-        message[8] = "  u: up beat";
-        show_message(message, 9);
+        // Print sound is off message.
+        int term_height, term_width;
+        getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
+        mvprintw(0, (term_width - 12)/2, "SOUND IS OFF");
+        refresh();
+
+        show_message(message, 11);
         
         // Register action to trigger on key press.
         register_sensor_key('\0', key);
     =}
+    
     reaction(key) {=
         switch (key->value) {
             case 'a':
@@ -88,6 +109,22 @@ preamble {=
                 if (self->rhythm == 0) {
                     self->rhythm = self->rhythm | DOWNBEAT;
                 }
+                // Update the status message at the top.
+                // First, record current cursor position.
+                int y, x;
+                getyx(stdscr, y, x);
+                // Next, get window dimensions.
+                int term_height, term_width;
+                getmaxyx(stdscr, term_height, term_width);
+                // Next, print.
+                if (self->sound) {
+                    mvprintw(0, (term_width - 12)/2, "SOUND IS ON ");
+                } else {
+                    mvprintw(0, (term_width - 12)/2, "SOUND IS OFF");
+                }
+                refresh();
+                // Finally, restore cursor position.
+                move(y, x);
                 break;
             case 'd':
                 self->rhythm = self->rhythm ^ DOWNBEAT;
@@ -107,17 +144,23 @@ preamble {=
             case 'u':
                 self->rhythm = self->rhythm ^ UPBEAT;
                 break;
+            case 'm':
+                self->rhythm =  MERENGUE;
+                break;
+            case 'c':
+                self->rhythm =  CLEAR;
+                break;
             case 'x':
                 request_stop();
                 break;
         }
     =}
-    
+
     reaction(t) {=
         int beeped = 0;
         if (self->sound) {
             int position = 1 << self->count;
-            if (position & self->rhythm) {
+            if (position & self->active_rhythm) {
                 beep();
                 beeped++;
             }
@@ -130,6 +173,7 @@ preamble {=
         }
         self->count++;
         if (self->count == 16) {
+            self->active_rhythm = self->rhythm;
             self->count = 0;
             int term_height, term_width;
             getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
