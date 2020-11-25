@@ -64,6 +64,7 @@ preamble {=
     unsigned int sample_count = 0;
     
     pthread_mutex_t audio_mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t audio_cond = PTHREAD_COND_INITIALIZER;
     short next_buffer[BUFFER_SIZE];
     instant_t next_buffer_start_time = NEVER;
     
@@ -85,6 +86,7 @@ preamble {=
         memcpy(samples, next_buffer, BUFFER_SIZE * sizeof(short));
         memset(next_buffer, 0, BUFFER_SIZE * sizeof(short));
         next_buffer_start_time += BUFFER_DURATION_NS;
+        pthread_cond_signal(&audio_cond);
         pthread_mutex_unlock(&audio_mutex);
         
         AudioQueueEnqueueBuffer (queue, buf_ref, 0, NULL);
@@ -274,11 +276,12 @@ reactor Tick {
     state loop_thread_id:pthread_t({=NULL=});
     
     reaction(startup) {=
-        // Set the start time of the current buffer to the current time.
+        // Set the start time of the current buffer to the current time
+        // minus the buffer duration.
         // There will be two empty buffers ahead in the queue, so the
         // next_buffer should not come into use until 1/10 second later.
         // Hopefully, that is enough time to start up.
-        next_buffer_start_time = get_logical_time();
+        next_buffer_start_time = get_logical_time() - BUFFER_DURATION_NS;
         
         // Start the audio loop thread.
         pthread_create(&self->loop_thread_id, NULL, &run_audio_loop, NULL);
@@ -288,17 +291,22 @@ reactor Tick {
         instant_t time_offset = get_logical_time() - next_buffer_start_time;
         // If this is late, then tick right away.
         if (time_offset < 0) {
+            printf("WARNING: note is late by %lld.\n", time_offset);
             time_offset = 0;
         }
         // Calculate the index of the tick.
         size_t index_offset = (time_offset * SAMPLE_RATE) / BILLION;
         
-        if (index_offset > BUFFER_SIZE) {
-            // FIXME: Panic. What to do?
-            printf("FIXME: Panic!\n");
-        } else {
-            next_buffer[index_offset] = MAX_AMPLITUDE * emphasis->value;
+        // If the offset is beyond the end of the audio buffer, then the program
+        // has gotten too far ahead of the audio. Wait for audio to catch up.
+        // (This should not happen).
+        while (index_offset > BUFFER_SIZE) {
+            printf("WARNING: program is ahead of audio by %lld.\n", time_offset);
+            pthread_cond_wait(&audio_cond, &audio_mutex);
+            time_offset = get_logical_time() - next_buffer_start_time;
+            index_offset = (time_offset * SAMPLE_RATE) / BILLION;
         }
+        next_buffer[index_offset] = MAX_AMPLITUDE * emphasis->value;
         
         pthread_mutex_unlock(&audio_mutex);
     =}
