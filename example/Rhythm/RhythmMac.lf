@@ -1,0 +1,311 @@
+/**
+ * Simple demonstration of asynchronous input and timed output.
+ * This version is not portable. It runs on MacOS.
+ * 
+ * This program opens a simple, terminal-based user interface for
+ * specifying a rhythmic audio output. The rhythm is displayed in
+ * the terminal as it is generated and produced as audio using
+ * the terminal's "beep" functionality. Note that not all terminal
+ * implementation provide audio output, so you may not hear any
+ * audible beeps. Moreover, many terminal implementations implement
+ * the beep in such a way that it occupies a fixed amount of time
+ * that may be longer than the 'sixteenth' parameter given here,
+ * in which case the audible rhythm will not be accurate.
+ * Regrettably, this "beep" functionality is the closest we have
+ * been able to find to any sort of even remotely portable audio
+ * output.
+ * 
+ * This program uses ncurses, which needs to be installed on your machine
+ * for this to work. It also uses the library utility sensor_simulator,
+ * provided with Lingua Franca, which uses keyboard input to simulate
+ * asynchronous sensors and beeps to simulate timed output.
+ * See lingua-franca/lib/C/sensor_simulator.h.
+ * 
+ * You can construct simple rhythms with this program.
+ * The sixteenth parameter determines the duration of a sixteenth note,
+ * the finest resolution this example supports.
+ * You can turn on and off several beeps to occur within the bar
+ * with keyboard input.
+ */
+target C {
+    flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
+    files: ["/lib/C/sensor_simulator.c", "/lib/C/sensor_simulator.h"] 
+};
+preamble {=
+    #include <ncurses.h>
+    #include <unistd.h>
+    #include "AudioToolbox/AudioToolbox.h"
+    #include "sensor_simulator.c"
+    
+    #define CLEAR 0x0000
+    #define DOWNBEAT 0x01
+    // Merenque in binary covers two bars (in temporal order):  1001 1010 1010 1111
+    // Reverse the order to get the bit sequence: 1111 0101 0101 1001
+    #define MERENGUE 0xf559
+    // Merengue emphasis in binary (in temporal order): 1001 0010 0010 1000
+    // Reverse the order to get the bit sequence: 0001 0100 0100 1001
+    #define MERENGUE_EMPHASIS 0x1449
+        
+    // Constants for playback. These are all coupled.
+    #define SAMPLE_RATE 44100
+    #define BUFFER_SIZE  4410  // 1/10 second
+    #define BUFFER_DURATION_NS 100000000LL;
+    #define MAX_AMPLITUDE 32765
+    
+    char* message[] = {
+        "Type the following keys:",
+        "  a: start and stop all sound",
+        "  x: quit",
+        "  d: down beat",
+        "  m: merengue",
+        "  c: clear"
+    };
+    
+    unsigned int sample_count = 0;
+    
+    pthread_mutex_t audio_mutex = PTHREAD_MUTEX_INITIALIZER;
+    short next_buffer[BUFFER_SIZE];
+    instant_t next_buffer_start_time = NEVER;
+    
+    /**
+     * Function that is called by the audio loop to fill the audio buffer
+     * with the next batch of audio data.  When this callback occurs,
+     * this grabs the mutex lock, copies the buffer that the main program 
+     * has been filling into the destination buffer, clears the next
+     * buffer, and updates the start time of the next buffer.
+     */
+    void callback (void *ignored, AudioQueueRef queue, AudioQueueBufferRef buf_ref) {
+        // Get a C pointer from the reference passed in.
+        AudioQueueBuffer *buf = buf_ref;
+        
+        // Array of samples in the buffer.
+        short *samples = buf->mAudioData;
+        
+        pthread_mutex_lock(&audio_mutex);
+        memcpy(samples, next_buffer, BUFFER_SIZE * sizeof(short));
+        memset(next_buffer, 0, BUFFER_SIZE * sizeof(short));
+        next_buffer_start_time += BUFFER_DURATION_NS;
+        pthread_mutex_unlock(&audio_mutex);
+        
+        AudioQueueEnqueueBuffer (queue, buf_ref, 0, NULL);
+    }
+    
+    /**
+     * Run the audio loop indefinitely.
+     */
+    void* run_audio_loop(void* ignored) {
+        // Create an audio format description.
+        AudioStreamBasicDescription fmt = { 0 };
+        fmt.mSampleRate = 44100;
+        fmt.mFormatID = kAudioFormatLinearPCM;
+        fmt.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
+        fmt.mFramesPerPacket = 1;
+        fmt.mChannelsPerFrame = 1; // 2 for stereo
+        fmt.mBytesPerPacket = fmt.mBytesPerFrame = 2; // x2 for stereo
+        fmt.mBitsPerChannel = 16;
+
+        AudioQueueRef queue;
+
+        // Double buffering. 
+        AudioQueueBufferRef buf_ref, buf_ref2;
+        
+        int buffer_size_bytes = BUFFER_SIZE * 2;
+
+        // Create an audio queue output with the specified format and two buffers.
+        // Third argument is an optional pointer to pass to the callback function.
+        if (AudioQueueNewOutput(&fmt, callback, NULL, CFRunLoopGetCurrent(), kCFRunLoopCommonModes, 0, &queue) != 0
+            || AudioQueueAllocateBuffer (queue, buffer_size_bytes, &buf_ref) != 0
+            || AudioQueueAllocateBuffer (queue, buffer_size_bytes, &buf_ref2) != 0
+        ) {
+            fprintf(stderr, "WARNING: Failed to create audio output. No audio will be produced");
+            return NULL;
+        }
+        
+        // Convert buffer reference to C pointer.
+        AudioQueueBuffer *buf = buf_ref;
+        buf->mAudioDataByteSize = buffer_size_bytes;
+        // Queue the first buffer.
+        callback (NULL, queue, buf_ref);
+        buf = buf_ref2;
+        buf->mAudioDataByteSize = buffer_size_bytes;
+
+        callback (NULL, queue, buf_ref2);
+        
+        // Set the volume. (Ignoring errors)
+        AudioQueueSetParameter (queue, kAudioQueueParam_Volume, 1.0);
+        
+        // Start as soon as possible.
+        if (AudioQueueStart (queue, NULL) != 0) {
+            fprintf(stderr, "WARNING: Failed to start audio output. No audio will be produced");
+        }
+        CFRunLoopRun();
+        return NULL;
+    }
+=}
+
+reactor RhythmSource(sixteenth:time(200 msec)) {
+    timer t(0, sixteenth);
+    
+    output note:double; // Emphasis only, for now.
+    
+    // Count of sixteenth notes.
+    state count:int(0);
+    
+    // Indicator of whether any sound is produced.
+    state sound:bool(false);
+    
+    // Action to be invoked when a key is pressed.
+    physical action key:char;
+    
+    // Indicator of when to make a sound.
+    state rhythm:int(0);
+    
+    // Currently active rhythm.
+    state active_rhythm:int(0);
+        
+    // Position of the cursor in the terminal window.
+    state cursor:int(0);
+    
+    reaction(startup) -> key {=
+        // Start the sensor simulator, which starts ncurses.
+        if (start_sensor_simulator()) {
+            fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
+            exit(1);
+        }
+        // Print sound is off message.
+        int term_height, term_width;
+        getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
+        mvprintw(0, (term_width - 12)/2, "SOUND IS OFF");
+        refresh();
+
+        show_message(message, 6);
+        
+        // Register action to trigger on key press.
+        register_sensor_key('\0', key);
+    =}
+    
+    reaction(key) {=
+        switch (key->value) {
+            case 'a':
+                self->sound = !self->sound;
+                // Ensure there is a downbeat, at least.
+                if (self->rhythm == 0) {
+                    self->rhythm = self->rhythm | DOWNBEAT;
+                }
+                // Update the status message at the top.
+                // First, record current cursor position.
+                int y, x;
+                getyx(stdscr, y, x);
+                // Next, get window dimensions.
+                int term_height, term_width;
+                getmaxyx(stdscr, term_height, term_width);
+                // Next, print.
+                if (self->sound) {
+                    mvprintw(0, (term_width - 12)/2, "SOUND IS ON ");
+                } else {
+                    mvprintw(0, (term_width - 12)/2, "SOUND IS OFF");
+                }
+                refresh();
+                // Finally, restore cursor position.
+                move(y, x);
+                break;
+            case 'c':
+                self->rhythm =  CLEAR;
+                break;
+            case 'd':
+                self->rhythm = self->rhythm ^ DOWNBEAT;
+                break;
+            case 'm':
+                self->rhythm =  MERENGUE;
+                break;
+            case 'x':
+                request_stop();
+                break;
+        }
+    =}
+
+    reaction(t) -> note {=
+        int beeped = 0;
+        int position = 0;
+        if (self->sound) {
+            position = 1 << self->count;
+            if (position & self->active_rhythm) {
+                double emphasis = 0.25;
+                if (position & MERENGUE_EMPHASIS) {
+                    emphasis = 1.0;
+                }
+                SET(note, emphasis);
+                beeped++;
+            }
+        }
+        pthread_mutex_lock(&sensor_mutex);
+        if (beeped > 0) {
+            if (position & MERENGUE_EMPHASIS) {
+                printw("!");
+            } else {
+                printw("*");
+            }
+        } else {
+            printw(".");
+        }
+        self->count++;
+        if (self->count == 16) {
+            self->active_rhythm = self->rhythm;
+            self->count = 0;
+            int term_height, term_width;
+            getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
+            self->cursor++;
+            if (self->cursor >= term_height) {
+                self->cursor = 0;
+            }
+            move(self->cursor, 0);
+        }
+        refresh();
+        pthread_mutex_unlock(&sensor_mutex);
+    =}
+}
+
+/**
+ * Produce an audio tick when an input is received.
+ */
+reactor Tick {
+    input emphasis:double;
+    
+    state loop_thread_id:pthread_t({=NULL=});
+    
+    reaction(startup) {=
+        // Set the start time of the current buffer to the current time.
+        // There will be two empty buffers ahead in the queue, so the
+        // next_buffer should not come into use until 1/10 second later.
+        // Hopefully, that is enough time to start up.
+        next_buffer_start_time = get_logical_time();
+        
+        // Start the audio loop thread.
+        pthread_create(&self->loop_thread_id, NULL, &run_audio_loop, NULL);
+    =}
+    reaction(emphasis) {=
+        pthread_mutex_lock(&audio_mutex);
+        instant_t time_offset = get_logical_time() - next_buffer_start_time;
+        // If this is late, then tick right away.
+        if (time_offset < 0) {
+            time_offset = 0;
+        }
+        // Calculate the index of the tick.
+        size_t index_offset = (time_offset * SAMPLE_RATE) / BILLION;
+        
+        if (index_offset > BUFFER_SIZE) {
+            // FIXME: Panic. What to do?
+            printf("FIXME: Panic!\n");
+        } else {
+            next_buffer[index_offset] = MAX_AMPLITUDE * emphasis->value;
+        }
+        
+        pthread_mutex_unlock(&audio_mutex);
+    =}
+}
+
+main reactor Rhythm {
+    source = new RhythmSource();
+    tick = new Tick();
+    source.note -> tick.emphasis;
+}
