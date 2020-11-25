@@ -1,7 +1,7 @@
 /**
  * Simple demonstration of asynchronous input and timed output.
  * This program opens a simple, terminal-based user interface for
- * specifying a rhymic audio output. The rhythm is displayed in
+ * specifying a rhythmic audio output. The rhythm is displayed in
  * the terminal as it is generated and produced as audio using
  * the terminal's "beep" functionality. Note that not all terminal
  * implementation provide audio output, so you may not hear any
@@ -21,8 +21,7 @@
  * 
  * You can construct simple rhythms with this program.
  * The sixteenth parameter determines the duration of a sixteenth note,
- * the finest resolution this example supports. A bar duration is 16
- * times this number.
+ * the finest resolution this example supports.
  * You can turn on and off several beeps to occur within the bar
  * with keyboard input.
  */
@@ -35,6 +34,7 @@ preamble {=
     #include <unistd.h>
     #include "sensor_simulator.c"
     
+    #define CLEAR 0x0000
     #define DOWNBEAT 0x01
     #define SIXTEENTHNOTE 0x02
     #define EIGHTHNOTE 0x04
@@ -42,7 +42,6 @@ preamble {=
     #define HALFNOTE 0x100
     #define UPBEAT 0x1000
     
-    #define CLEAR 0x0000
     // Merenque in binary covers two bars (in temporal order):  1001 0101 0101 1111
     // Reverse the order to get the bit sequence: 1111 0101 0101 1001
     #define MERENGUE 0xf559
@@ -59,10 +58,11 @@ preamble {=
         "  h: half note",
         "  u: up beat",
         "  m: merengue",
-        "  c: merengue"
+        "  c: clear"
      };
 =}
- reactor Rhythm(sixteenth:time(600 msec)) {
+
+main reactor Rhythm(sixteenth:time(600 msec)) {
     timer t(0, sixteenth);
     
     // Count of sixteenth notes.
@@ -187,6 +187,3 @@ preamble {=
         pthread_mutex_unlock(&sensor_mutex);
     =}
 } 
-main reactor Foo {
-    a = new Rhythm();
-}
