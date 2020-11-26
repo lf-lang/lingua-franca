@@ -1577,16 +1577,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Warn that file hasn't been found.
                 this.reportWarning(value, 
                     '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
+            } else {
+                // Sadly, even with this not null, the file may not exist.
+                try {
+                    stream.read()
+                } catch (IOException ex) {
+                    // Warn that file hasn't been found.
+                    this.
+                        reportWarning(
+                            value, '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
+                }
+                stream.close()
             }
-            // Sadly, even with this not null, the file may not exist.
-            try {
-                stream.read()
-            } catch (IOException ex) {
-                // Warn that file hasn't been found.
-                this.reportWarning(value, 
-                    '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
-            }
-            stream.close()
         }
         return files
     }
