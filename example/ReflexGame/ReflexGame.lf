@@ -1,8 +1,9 @@
-/** This example illustrates the use of logical and physical actions,
- *  asynchronous external inputs, the use of startup and shutdown
- *  reactions, and the use of actions with values.
- *  @author Edward A. Lee
- *  @author Marten Lohstroh
+/**
+ * This example illustrates the use of logical and physical actions,
+ * asynchronous external inputs, the use of startup and shutdown
+ * reactions, and the use of actions with values.
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
  */
 target C {
     threads: 1,
@@ -84,14 +85,14 @@ reactor GetUserInput {
     
     reaction(user_response) -> another {=
         if (user_response->value == EOF) {
-            stop();
+            request_stop();
             return;
         }
         // If the prompt_time is 0, then the user is cheating and
         // hitting return before being prompted.
         if (self->prompt_time == 0LL) {
             printf("YOU CHEATED!\n");
-            stop();
+            request_stop();
         } else {
             int time_in_ms = (get_logical_time() - self->prompt_time) / 1000000LL;
             printf("Response time in milliseconds: %d\n", time_in_ms);
