@@ -869,7 +869,7 @@ handle_t schedule_message_received_from_network_already_locked(
         void* value,
         int length) {
 
-    token_t* token = create_token(trigger->element_size);
+    lf_token_t* token = create_token(trigger->element_size);
     // Return value of the function
     int return_value = 0;
     // Current logical time
