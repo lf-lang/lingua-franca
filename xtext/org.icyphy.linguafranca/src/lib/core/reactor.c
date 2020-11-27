@@ -39,7 +39,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_token(void* action, interval_t extra_delay, token_t* token) {
+handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     return __schedule(trigger, extra_delay, token);
 }
@@ -50,7 +50,7 @@ handle_t _lf_schedule_token(void* action, interval_t extra_delay, token_t* token
  */
 handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
-    token_t* token = create_token(trigger->element_size);
+    lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
     return schedule_token(action, extra_delay, token);
@@ -72,7 +72,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     }
     // printf("DEBUG: schedule_copy: Allocating memory for payload (token value): %p\n", trigger);
     // Initialize token with an array size of length and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, length);
+    lf_token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
     memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.

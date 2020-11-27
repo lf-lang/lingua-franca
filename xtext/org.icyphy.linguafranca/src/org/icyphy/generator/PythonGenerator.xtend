@@ -114,7 +114,7 @@ class PythonGenerator extends CGenerator {
     *         T value;
     *         bool is_present;
     *         int num_destinations;
-    *         token_t* token;
+    *         lf_token_t* token;
     *         int length;
     *     };
     *
@@ -932,7 +932,7 @@ class PythonGenerator extends CGenerator {
                     «action.valueDeclaration»
                     bool is_present;
                     bool has_value;
-                    token_t* token;
+                    lf_token_t* token;
                 } «variableStructType(action, reactor)»;
             ''')
         }
@@ -1287,7 +1287,7 @@ class PythonGenerator extends CGenerator {
             // FIXME: Setting ref_counts of the token directly causes memory leak
             '''
             // Create a token
-            token_t* t = create_token(sizeof(PyObject*));
+            lf_token_t* t = create_token(sizeof(PyObject*));
             t->value = self->__«ref»->value;
             t->length = 1; // Length is 1
             
@@ -1314,8 +1314,8 @@ class PythonGenerator extends CGenerator {
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
             self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
-            self->__«outputName».token = (token_t*)self->___«action.name».token;
-            ((token_t*)self->___«action.name».token)->ref_count++;
+            self->__«outputName».token = (lf_token_t*)self->___«action.name».token;
+            ((lf_token_t*)self->___«action.name».token)->ref_count++;
             self->«getStackPortMember('''__«outputName»''', "is_present")» = true;
             '''
         } else {

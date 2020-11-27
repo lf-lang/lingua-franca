@@ -255,7 +255,7 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_token(void* action, interval_t extra_delay, token_t* token) {
+handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
     pthread_mutex_lock(&mutex);
@@ -287,7 +287,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
     // Initialize token with an array size of length and a reference count of 0.
-    token_t* token = __initialize_token(trigger->token, length);
+    lf_token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
     memcpy(token->value, value, token->element_size * length);
     // The schedule function will increment the reference count.
@@ -309,7 +309,7 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
     // printf("DEBUG: pthread_mutex_lock schedule_token\n");
     pthread_mutex_lock(&mutex);
     // printf("DEBUG: pthread_mutex_locked\n");
-    token_t* token = create_token(trigger->element_size);
+    lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
     int return_value = __schedule(trigger, extra_delay, token);

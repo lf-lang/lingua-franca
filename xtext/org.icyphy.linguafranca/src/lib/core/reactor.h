@@ -115,13 +115,13 @@ do { \
  * @param out The output port (by name).
  * @param val The array to send (a pointer to the first element).
  * @param length The length of the array to send.
- * @see token_t
+ * @see lf_token_t
  */
 #ifndef __cplusplus
 #define _LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
-    token_t* token = __initialize_token_with_value(out->token, val, length); \
+    lf_token_t* token = __initialize_token_with_value(out->token, val, length); \
     token->ref_count = out->num_destinations; \
     out->token = token; \
     out->value = token->value; \
@@ -130,7 +130,7 @@ do { \
 #define _LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
-    token_t* token = __initialize_token_with_value(out->token, val, length); \
+    lf_token_t* token = __initialize_token_with_value(out->token, val, length); \
     token->ref_count = out->num_destinations; \
     out->token = token; \
     out->value = static_cast<decltype(out->value)>(token->value); \
@@ -154,7 +154,7 @@ do { \
 #define _LF_SET_NEW(out) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    lf_token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
     out->value = token->value; \
     out->token = token; \
 } while(0)
@@ -176,7 +176,7 @@ do { \
 #define _LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
+    lf_token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = token->value; \
     out->token = token; \
     out->length = len; \
@@ -185,7 +185,7 @@ do { \
 #define _LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
+    lf_token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = static_cast<decltype(out->value)>(token->value); \
     out->token = token; \
     out->length = len; \
@@ -297,7 +297,7 @@ typedef unsigned short int ushort;
  * preceding event has already been popped off the event queue, the
  * `defer` policy is fallen back to.
  */
-typedef enum {defer, drop, replace} policy_t;
+typedef enum {defer, drop, replace} lf_spacing_policy_t;
 
  /* An enum that enables the C core library to
  * ignore freeing the void* inside a token if the void*
@@ -374,7 +374,7 @@ extern interval_t _lf_global_time_STP_offset;
  * where the size of each value is element_size (in bytes). If it is
  * not an array, the length == 1.
  */
-typedef struct token_t {
+typedef struct lf_token_t {
     /** Pointer to dynamically allocated memory containing a message. */
     void* value;
     /** Size of the struct or array element. */
@@ -390,14 +390,14 @@ typedef struct token_t {
      */
     ok_to_free_t ok_to_free;
     /** For recycling, a pointer to the next token in the recycling bin. */
-    struct token_t* next_free;
-} token_t;
+    struct lf_token_t* next_free;
+} lf_token_t;
 
-/** A struct with a pointer to a token_t and an _is_present variable
+/** A struct with a pointer to a lf_token_t and an _is_present variable
  *  for use to initialize actions in start_time_step().
  */
 typedef struct token_present_t {
-    token_t** token;
+    lf_token_t** token;
     bool* is_present;
     bool reset_is_present; // True to set is_present to false after calling done_using().
 } token_present_t;
@@ -449,7 +449,7 @@ struct event_t {
     instant_t time;           // Time of release.
     trigger_t* trigger;       // Associated trigger, NULL if this is a dummy event.
     size_t pos;               // Position in the priority queue.
-    token_t* token;           // Pointer to the token wrapping the value.
+    lf_token_t* token;           // Pointer to the token wrapping the value.
     bool is_dummy;            // Flag to indicate whether this event is merely a placeholder or an actual event.
 #ifdef _LF_IS_FEDERATED
     tag_t intended_tag; // The tardiness of the event relative to the intended tag.
@@ -467,10 +467,10 @@ struct trigger_t {
     bool is_timer;            // True if this is a timer (a special kind of action), false otherwise.
     interval_t offset;        // Minimum delay of an action. For a timer, this is also the maximum delay.
     interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
-    token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
+    lf_token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action.
     event_t* last;            // Pointer to the last event that was scheduled for this action.
-    policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
+    lf_spacing_policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
@@ -555,7 +555,7 @@ void __pop_events();
  * @param token The token payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __schedule(trigger_t* trigger, interval_t delay, token_t* token);
+handle_t __schedule(trigger_t* trigger, interval_t delay, lf_token_t* token);
 
 /**
  * Function (to be code generated) to schedule timers.
@@ -592,9 +592,9 @@ extern bool absent;
  * The value pointer will be NULL and the length will be 0.
  * @param element_size The size of an element carried in the payload or
  *  0 if there is no payload.
- * @return A pointer to a new or recycled token_t struct.
+ * @return A pointer to a new or recycled lf_token_t struct.
  */
-token_t* create_token(size_t element_size);
+lf_token_t* create_token(size_t element_size);
 
 /**
  * Schedule the specified action with an integer value at a later logical
@@ -634,7 +634,7 @@ void _lf_recycle_event(event_t* e);
  * 
  * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
  */
-int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, token_t* token);
+int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token);
 
 /**
  * Create a dummy event to be used as a spacer in the event queue.
@@ -691,7 +691,7 @@ event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* nex
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t _lf_schedule_token(void* action, interval_t extra_delay, token_t* token);
+handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.

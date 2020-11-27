@@ -199,7 +199,7 @@ import org.icyphy.linguaFranca.Value
  *   `token` field (which is NULL if the action carries no value).
  *   The `___a` field is of type trigger_t.
  *   That struct contains various things, including an array of reactions
- *   sensitive to this trigger and a token_t struct containing the value of
+ *   sensitive to this trigger and a lf_token_t struct containing the value of
  *   the action, if it has a value.  See reactor.h in the C library for
  *   details.
  * 
@@ -257,11 +257,11 @@ import org.icyphy.linguaFranca.Value
  *   this to mark every event absent at the start of a time step. The size of this
  *   table is contained in the variable __is_present_fields_size.
  * 
- * * __tokens_with_ref_count: An array of pointers to structs that point to token_t
+ * * __tokens_with_ref_count: An array of pointers to structs that point to lf_token_t
  *   objects, which carry non-primitive data types between reactors. This is used
  *   by the __start_time_step() function to decrement reference counts, if necessary,
  *   at the conclusion of a time step. Then the reference count reaches zero, the
- *   memory allocated for the token_t object will be freed.  The size of this
+ *   memory allocated for the lf_token_t object will be freed.  The size of this
  *   array is stored in the __tokens_with_ref_count_size variable.
  * 
  * * __shutdown_triggers: An array of pointers to trigger_t structs for shutdown
@@ -1374,7 +1374,7 @@ class CGenerator extends GeneratorBase {
             var token = ''
             if (input.inferredType.isTokenType) {
                 token = '''
-                    token_t* token;
+                    lf_token_t* token;
                     int length;
                 '''
             }
@@ -1394,7 +1394,7 @@ class CGenerator extends GeneratorBase {
             var token = ''
             if (output.inferredType.isTokenType) {
                  token = '''
-                    token_t* token;
+                    lf_token_t* token;
                     int length;
                  '''
             }
@@ -1420,7 +1420,7 @@ class CGenerator extends GeneratorBase {
                     «action.valueDeclaration»
                     bool is_present;
                     bool has_value;
-                    token_t* token;
+                    lf_token_t* token;
                     «intended_tag»
                 } «variableStructType(action, decl)»;
             ''')
@@ -1446,7 +1446,7 @@ class CGenerator extends GeneratorBase {
             reportError(port, "Port is required to have a type: " + port.name)
             return ''
         }
-        // Do not convert to token_t* using lfTypeToTokenType because there
+        // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
         // val portType = lfTypeToTokenType(port.inferredType)
         val portType = port.inferredType.targetType
@@ -1480,7 +1480,7 @@ class CGenerator extends GeneratorBase {
         if (action.type === null && target.requiresTypes === true) {
             return ''
         }
-        // Do not convert to token_t* using lfTypeToTokenType because there
+        // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
         val actionType = action.inferredType.targetType
         // If the input type has the form type[number], then treat it specially
@@ -3258,7 +3258,7 @@ class CGenerator extends GeneratorBase {
             }
         }
 
-        // Next, initialize actions by creating a token_t in the self struct.
+        // Next, initialize actions by creating a lf_token_t in the self struct.
         // This has the information required to allocate memory for the action payload.
         // Skip any action that is not actually used as a trigger.
         val triggersInUse = instance.triggers
@@ -3711,8 +3711,8 @@ class CGenerator extends GeneratorBase {
             '''
             «DISABLE_REACTION_INITIALIZATION_MARKER»
             self->__«outputName».value = («action.inferredType.targetType»)self->___«action.name».token->value;
-            self->__«outputName».token = (token_t*)self->___«action.name».token;
-            ((token_t*)self->___«action.name».token)->ref_count++;
+            self->__«outputName».token = (lf_token_t*)self->___«action.name».token;
+            ((lf_token_t*)self->___«action.name».token)->ref_count++;
             self->«getStackPortMember('''__«outputName»''', "is_present")» = true;
             '''
         } else {
@@ -4356,7 +4356,7 @@ class CGenerator extends GeneratorBase {
         val structType = variableStructType(action, decl)
         // If the action has a type, create variables for accessing the value.
         val type = action.inferredType
-        // Pointer to the token_t sent as the payload in the trigger.
+        // Pointer to the lf_token_t sent as the payload in the trigger.
         val tokenPointer = '''(self->___«action.name».token)'''
         pr(action, builder, '''
             // Expose the action struct as a local variable whose name matches the action name.
@@ -4436,7 +4436,7 @@ class CGenerator extends GeneratorBase {
                 «structType»* «input.name» = &__tmp_«input.name»;
                 if («input.name»->is_present) {
                     «input.name»->length = «input.name»->token->length;
-                    token_t* _lf_input_token = «input.name»->token;
+                    lf_token_t* _lf_input_token = «input.name»->token;
                     «input.name»->token = writable_copy(_lf_input_token);
                     if («input.name»->token != _lf_input_token) {
                         // A copy of the input token has been made.
@@ -4469,7 +4469,7 @@ class CGenerator extends GeneratorBase {
                     // If necessary, copy the tokens.
                     if («input.name»[i]->is_present) {
                         «input.name»[i]->length = «input.name»[i]->token->length;
-                        token_t* _lf_input_token = «input.name»[i]->token;
+                        lf_token_t* _lf_input_token = «input.name»[i]->token;
                         «input.name»[i]->token = writable_copy(_lf_input_token);
                         if («input.name»[i]->token != _lf_input_token) {
                             // A copy of the input token has been made.
@@ -4660,7 +4660,7 @@ class CGenerator extends GeneratorBase {
     }
        
     /** Given a type for an input or output, return true if it should be
-     *  carried by a token_t struct rather than the type itself.
+     *  carried by a lf_token_t struct rather than the type itself.
      *  It should be carried by such a struct if the type ends with *
      *  (it is a pointer) or [] (it is a array with unspecified length).
      *  @param type The type specification.

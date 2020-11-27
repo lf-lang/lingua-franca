@@ -94,7 +94,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
 /**
  * Prototype for the internal API. @see reactor_common.c
  **/
-token_t* __initialize_token_with_value(token_t* token, void* value, int length);
+lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, int length);
 
 /**
  * Prototype for API function. @see lib/core/reactor_common.c
@@ -129,7 +129,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args) {
     }
 
     trigger_t* trigger = _lf_action_to_trigger(action);
-    token_t* t = NULL;
+    lf_token_t* t = NULL;
 
     // Check to see if value exists and token is not NULL
     if (value && (trigger->token != NULL)) {
