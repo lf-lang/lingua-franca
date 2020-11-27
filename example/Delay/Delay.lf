@@ -1,0 +1,41 @@
+target C {timeout: 1 sec};
+
+main reactor Main {
+	ramp = new Ramp();
+	delay = new Delay();
+	print = new Print();
+	ramp.y -> delay.x;
+	delay.y -> print.x;
+}
+
+reactor Ramp {
+    timer t(0, 100 msec);
+    output y:int;
+    state count:int(0);
+    reaction(t) -> y {=
+   		SET(y, self->count);
+   		self->count++;
+    =}
+}
+
+reactor Delay {
+    logical action a(50 msec):int;
+	input x:int;
+	output y:int;
+	reaction(a) -> y {=
+        SET(y, a->value);
+    =}
+    reaction(x) -> a {=
+        schedule_int(a, 0, x->value);
+    =}
+}
+
+reactor Print {
+    input x:int;
+    reaction(x) {=
+        printf("Logical time: %lld, Physical time %lld"
+        		", Value: %d\n",
+        		get_elapsed_logical_time(),
+        		get_elapsed_physical_time(), x->value);
+    =}
+}
