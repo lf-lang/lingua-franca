@@ -27,17 +27,30 @@
  * You can turn on and off several beeps to occur within the bar
  * with keyboard input.
  * 
- * The merengue rhythm comes from here: https://www.8notes.com/school/lessons/percussion/merengue.asp
+ * The merengue rhythm comes from here: 
+ * https://www.8notes.com/school/lessons/percussion/merengue.asp
+ * 
+ * The sound files come from here:
+ * https://freewavesamples.com
+ * 
+ * FIXME: Support for sample waveform files.
+ * Use afconvert on Mac to convert to the assumed input format.
  */
 target C {
     flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
-    files: ["/lib/C/sensor_simulator.c", "/lib/C/sensor_simulator.h"] 
-};
-preamble {=
+    files: ["/lib/C/sensor_simulator.c", "/lib/C/sensor_simulator.h",
+            "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
+            "Bass-Drum-1.wav", "Claves.wav", "Cowbell-1.wav"] 
+}; 
+preamble {= 
     #include <ncurses.h>
     #include <unistd.h>
     #include "AudioToolbox/AudioToolbox.h"
+    #include "wave_file_reader.c"
     #include "sensor_simulator.c"
+    
+    /////////////////////////////
+    // Configuration of the audio.
     
     #define CLEAR 0x0000
     #define DOWNBEAT 0x0101
@@ -50,28 +63,74 @@ preamble {=
         
     // Constants for playback. These are all coupled.
     #define SAMPLE_RATE 44100
-    #define BUFFER_SIZE  4410  // 1/10 second
-    #define BUFFER_DURATION_NS 100000000LL;
+    #define BUFFER_SIZE  2205  // 1/20 second
+    #define BUFFER_DURATION_NS 50000000LL;
+    
     #define MAX_AMPLITUDE 32765
     
-    char* message[] = {
-        "Type the following keys:",
-        "  x: quit",
-        "  d: down beat",
-        "  m: merengue",
-        "  c: clear"
+    #define NUM_NOTES 8  // Maximum number of notes that can play simultaneously.
+    
+    #define NUM_WAVEFORMS 3  // Number of sample waveforms.
+    char* waveform_files[] = {"Bass-Drum-1.wav", "Claves.wav", "Cowbell-1.wav"};  // wav files giving the waveforms
+    Sample_Waveform_t* waveforms[NUM_WAVEFORMS];
+    
+    struct note {
+        Sample_Waveform_t* waveform;
+        int position;   // Starts at 0 when note starts.
+        double volume;  // 0.0 for not active.
     };
-    int message_length = 5;
     
-    unsigned int sample_count = 0;
+    // Array keeping track of notes being played.
+    struct note notes[NUM_NOTES] = { 0 };
     
+    // Notes are added sequentially.
+    // When we reach the end of the notes array, we cycle
+    // back to the beginning. If the oldest note has not
+    // yet finished playing, it will be replaced by the new note.
+    int note_counter = 0;
+    
+    //////////////////////////////////////
+    // Configuration of the user interface.
+
+    char* message[] = {
+        "Basic control:",
+        "  x: quit",
+        "Instrument:",
+        "  0: none",
+        "  1: bass drum",
+        "  2: claves",
+        "  3: cowbell",
+        "Rhythm:",
+        "  d: down beat",
+        "  m: merengue"
+    };
+    int message_length = 10;
+        
     pthread_mutex_t audio_mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t audio_cond = PTHREAD_COND_INITIALIZER;
     
     // Pointer to the buffer into which to currently write.
     // This is null before the buffer is ready.
-    short* next_buffer = NULL;
+    int16_t* next_buffer = NULL;
     instant_t next_buffer_start_time = NEVER;
+    
+    /**
+     * Add the given value to the given buffer at the specified index.
+     * If the resulting value is larger than what can be represented in
+     * the 16-bit short, truncate it.
+     * @param buffer The sound buffer.
+     * @param index Where in the buffer to add.
+     * @param value The value to add.
+     */
+    void add_to_sound(int16_t* buffer, int index_offset, double value) {
+        int sample_value = buffer[index_offset] + value;
+        if (sample_value > MAX_AMPLITUDE) {
+            sample_value = MAX_AMPLITUDE;
+        } else if (sample_value < -MAX_AMPLITUDE) {
+            sample_value = -MAX_AMPLITUDE;
+        }
+        buffer[index_offset] = (int16_t)sample_value;
+    }
     
     /**
      * Function that is called by the audio loop to fill the audio buffer
@@ -85,18 +144,44 @@ preamble {=
         AudioQueueBuffer *buf = buf_ref;
         
         // Array of samples in the buffer.
-        short *samples = buf->mAudioData;
+        int16_t *samples = buf->mAudioData;
         
         pthread_mutex_lock(&audio_mutex);
         // Make this the new buffer to write into.
         next_buffer = buf->mAudioData;
         // Clear out the next buffer.
-        memset(next_buffer, 0, BUFFER_SIZE * sizeof(short));
+        memset(next_buffer, 0, BUFFER_SIZE * sizeof(int16_t));
         next_buffer_start_time += BUFFER_DURATION_NS;
         
-        // FIXME: Fill the buffer with any trailing sample data that
+        // Fill the buffer with any trailing sample data that
         // didn't fit in the previous buffer.
-
+        for (int note_to_use = 0; note_to_use < NUM_NOTES; note_to_use++) {
+            struct note* note_instance = &(notes[note_to_use]);
+        
+            // Add as much of the note instance into the buffer as will fit.
+            for (int i = 0; i < BUFFER_SIZE; i++) {
+                if (note_instance->waveform == NULL || note_instance->volume == 0.0) {
+                    continue;
+                }
+                // Calculate the value to add to the sound by averaging all the channels.
+                int value = 0;
+                for (int channel = 0; channel < note_instance->waveform->num_channels; channel++) {
+                    value += note_instance->waveform->waveform[note_instance->position + channel];
+                }
+                value = value / note_instance->waveform->num_channels;
+                add_to_sound(next_buffer, i, value * note_instance->volume);
+            
+                note_instance->position += note_instance->waveform->num_channels;
+                if (note_instance->position >= note_instance->waveform->length - note_instance->waveform->num_channels) {
+                    // Reached the end of the note. Reset the note.
+                    note_instance->volume = 0.0;
+                    note_instance->position = 0;
+                    note_instance->waveform = NULL;
+                    break;
+                }
+            }
+        }
+        
         // Reinsert this same audio buffer at the end of the queue.
         AudioQueueEnqueueBuffer (queue, buf_ref, 0, NULL);
         
@@ -172,6 +257,7 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
     timer t(0, sixteenth);
     
     output note:double; // Emphasis only, for now.
+    output instrument:int; // Instrument selection.
     
     // Count of sixteenth notes.
     state count:int(0);
@@ -211,9 +297,10 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
         register_sensor_key('\0', key);
     =}
     
-    reaction(key) {=
+    reaction(key) -> instrument {=
+        int numeric;
         switch (key->value) {
-            case 'c':
+            case '0':
                 self->rhythm =  CLEAR;
                 break;
             case 'd':
@@ -227,6 +314,12 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
             case 'x':
                 request_stop();
                 break;
+            default:
+                numeric = (int)key->value;
+                if (numeric >= 49 && numeric <= 57) {
+                    // A digit between 1 and 9.
+                    SET(instrument, numeric - 49);
+                }
         }
     =}
 
@@ -271,14 +364,33 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
 }
 
 /**
- * Produce an audio tick when an input is received.
+ * Produce a note when an input is received.
+ * 
+ * The emphasis input is a number, normally between 0.0 and 1.0,
+ * that specifies the loudness of the note. If the loudness exceeds
+ * 1.0, or if too many notes are played at once, clipping may occur.
+ * 
+ * The waveform input specifies one of the sample waveforms to play.
+ * It is a number between 0 and NUM_WAVEFORMS. If a number outside
+ * this range is specified, then simple tick sounds will be produced.
  */
 reactor Tick {
     input emphasis:double;
+    input waveform:int;
+    
+    // Index of the current waveform.
+    // -1 means no waveform (just make ticks)).
+    state waveform_id:int(0);
     
     state loop_thread_id:pthread_t({=NULL=});
     
     reaction(startup) {=
+        
+        // Open and read waveform files.
+        for (int i = 0; i < NUM_WAVEFORMS; i++) {
+            waveforms[i] = read_wave_file(waveform_files[i]);
+        }
+                 
         // Set the start time of the current buffer to the current time
         // minus twice the buffer duration. The two calls to callback()
         // during setup will increment this to equal to the start time.
@@ -294,6 +406,11 @@ reactor Tick {
         // Start the audio loop thread.
         pthread_create(&self->loop_thread_id, NULL, &run_audio_loop, NULL);
     =}
+    
+    reaction(waveform) {=
+        self->waveform_id = waveform->value;
+    =}
+    
     reaction(emphasis) {=
         pthread_mutex_lock(&audio_mutex);
         
@@ -321,7 +438,45 @@ reactor Tick {
             time_offset = get_logical_time() - next_buffer_start_time;
             index_offset = (time_offset * SAMPLE_RATE) / BILLION;
         }
-        next_buffer[index_offset] = MAX_AMPLITUDE * emphasis->value;
+        
+        if (self->waveform_id < 0 || self->waveform_id >= NUM_WAVEFORMS) {
+            // Waveform ID is out of range. Just emit a tick.
+            add_to_sound(next_buffer, index_offset, MAX_AMPLITUDE * emphasis->value);
+        } else {
+            int note_to_use = note_counter++; // Increment so that the next note uses a new slot.
+            if (note_counter >= NUM_NOTES) {
+                note_counter = 0; // Wrap around.
+            }
+            // Initialize the note instance to start playing.
+            struct note* note_instance = &notes[note_to_use];
+            note_instance->waveform = waveforms[self->waveform_id];
+            if (note_instance->waveform == NULL) {
+                // Must have failed to read this file. Emit a tick.
+                add_to_sound(next_buffer, index_offset, MAX_AMPLITUDE * emphasis->value);
+            } else {
+                note_instance->volume = emphasis->value;
+                note_instance->position = 0;
+                            
+                // Add as much of the note instance into the buffer as will fit.
+                for (int i = index_offset; i < BUFFER_SIZE; i++) {
+                    // Calculate the value to add to the sound by averaging all the channels.
+                    int value = 0;
+                    for (int channel = 0; channel < note_instance->waveform->num_channels; channel++) {
+                        value += note_instance->waveform->waveform[note_instance->position + channel];
+                    }
+                    value = value / note_instance->waveform->num_channels;
+                    add_to_sound(next_buffer, i, value * note_instance->volume);
+                
+                    note_instance->position += note_instance->waveform->num_channels;
+                    if (note_instance->position >= note_instance->waveform->length - note_instance->waveform->num_channels) {
+                        // Reached the end of the note. Reset the note.
+                        note_instance->volume = 0.0;
+                        note_instance->position = 0;
+                        break;
+                    }
+                }
+            }
+        }
         
         pthread_mutex_unlock(&audio_mutex);
     =} // FIXME: Should have a deadline here. But need to couple it to BUFFER_DURATION_NS, which isn't allowed.
@@ -331,4 +486,5 @@ main reactor Rhythm {
     source = new RhythmSource();
     tick = new Tick();
     source.note -> tick.emphasis;
+    source.instrument -> tick.waveform;
 }
