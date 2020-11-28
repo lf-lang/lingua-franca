@@ -42,10 +42,9 @@ lf_sample_waveform_t* read_wave_file(const char* path) {
  
     // Wave file format is described here:
     // https://sites.google.com/site/musicgapi/technical-documents/wav-file-format
-    uint32_t expected_chunk_id = 'FFIR';      // Little-endian version of RIFF.
+    uint32_t expected_chunk_id = 'FFIR';     // Little-endian version of RIFF.
     uint32_t expected_format = 'EVAW';       // Little-endian version of WAVE.
     uint32_t expected_subchunk_id = ' tmf';  // Little-endian version of 'fmt '.
-    uint32_t expected_data_id = 'atad';      // Little-endian version of 'data'.
     if (*(uint32_t*)wav.riff.chunk_id != expected_chunk_id
         || *(uint32_t*)wav.riff.format != expected_format
         || *(uint32_t*)fmt.subchunk_id != expected_subchunk_id
@@ -53,7 +52,6 @@ lf_sample_waveform_t* read_wave_file(const char* path) {
         || fmt.audio_format != 1
         || fmt.sample_rate != 44100
         || fmt.bits_per_sample != 16
-        || *(uint32_t*)data.subchunk_id != expected_data_id
     ) {
         fprintf(stderr, "WARNING: Waveform sample not a supported format.\n");
         fprintf(stderr, "Chunk ID was expected to be 'RIFF'. Got: '%c%c%c%c'.\n",
@@ -70,12 +68,25 @@ lf_sample_waveform_t* read_wave_file(const char* path) {
                 fmt.sample_rate);
         fprintf(stderr, "Bits per sample was expected to be 16. Got: '%d'.\n",
                 fmt.bits_per_sample);
-        fprintf(stderr, "Data ID was expected to be 'data'. Got: '%c%c%c%c'.\n",
+    }
+    // Ignore any intermediate chunks that are not 'data' chunks.
+    // Apparently, Apple software sometimes inserts junk here.
+    uint32_t expected_data_id = 'atad';      // Little-endian version of 'data'.
+    while (*(uint32_t*)data.subchunk_id != expected_data_id) {
+        char junk[data.subchunk_size];
+        size_t bytes_read = fread(junk, 1, data.subchunk_size , fp);
+        if (bytes_read != data.subchunk_size) {
+            fprintf(stderr, "Intermediate junk chunk '%c%c%c%c' could not be read. Giving up.\n",
                 data.subchunk_id[0], data.subchunk_id[1], data.subchunk_id[2], data.subchunk_id[3]);
+            break;
+        }
+        bytes_read = fread(&data, 1, sizeof(lf_wav_data_t) , fp);
+        if (bytes_read != sizeof(lf_wav_data_t)) {
+            fprintf(stderr, "Missing 'data' chunk in file %s.\n", path);
+            break;
+        }
     }
 
-    uint32_t chunk_size = wav.riff.chunk_size;
-    // printf("Chunk size \t%d\n", wav.riff.chunk_size);
     uint16_t num_channels = fmt.num_channels;     
 
     // Ignoring the following fields. Should we?
