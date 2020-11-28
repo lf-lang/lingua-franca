@@ -1,46 +1,64 @@
-typedef struct Sample_Waveform_t {
+/**
+ * Data types for the wave audio format.
+ * 
+ * @author Edward A. Lee
+ */
+
+/**
+ * Waveform in 16-bit linear-PCM format.
+ * The waveform element is an array containing audio samples.
+ * If there are two channels, then they are interleaved
+ * left and right channel. The length is the total number
+ * of samples, a multiple of the number of channels.
+ */
+typedef struct lf_sample_waveform_t {
     uint32_t length;
     uint16_t num_channels;
     int16_t* waveform;
-} Sample_Waveform_t;
+} lf_sample_waveform_t;
 
-typedef struct WAV_RIFF {
-    /* chunk "riff" */
-    char ChunkID[4];   /* "RIFF" */
-    /* sub-chunk-size */
-    uint32_t ChunkSize; /* 36 + Subchunk2Size */
-    /* sub-chunk-data */
-    char Format[4];    /* "WAVE" */
-} RIFF_t;
+/**
+ * The top-level 'chunk' of a .wav file is a 'RIFF'
+ * chunk, identified by an ID that is an int formed
+ * by the sequence of four chars 'RIFF'.
+ */
+typedef struct {
+    char chunk_id[4];    // "RIFF"
+    uint32_t chunk_size; // 36 + subchunk_size
+    char format[4];      // "WAVE"
+} lf_wav_riff_t;
 
-typedef struct WAV_FMT {
-    /* sub-chunk "fmt" */
-    char Subchunk1ID[4];   /* "fmt " */
-    /* sub-chunk-size */
-    uint32_t Subchunk1Size; /* 16 for PCM */
-    /* sub-chunk-data */
-    uint16_t AudioFormat;   /* PCM = 1*/
-    uint16_t NumChannels;   /* Mono = 1, Stereo = 2, etc. */
-    uint32_t SampleRate;    /* 8000, 44100, etc. */
-    uint32_t ByteRate;  /* = SampleRate * NumChannels * BitsPerSample/8 */
-    uint16_t BlockAlign;    /* = NumChannels * BitsPerSample/8 */
-    uint16_t BitsPerSample; /* 8bits, 16bits, etc. */
-} FMT_t;
+/**
+ * The first subchunk within a .wav file is a 'fmt '
+ * chunk, identified by an ID that is an int formed
+ * by the sequence of four chars 'fmt '.
+ */
+typedef struct {
+    char subchunk_id[4];    // 'fmt '
+    uint32_t subchunk_size; // 16 for linear PCM.
+    uint16_t audio_format;  // 1 for linear PCM
+    uint16_t num_channels;  // 1 for mono = 1, 2 for stereo, etc.
+    uint32_t sample_rate;   // 44100
+    uint32_t byte_rate;     // sample_rate * num_channels * bits_per_sample/8
+    uint16_t BlockAlign;    /* = num_channels * bits_per_sample/8 */
+    uint16_t bits_per_sample; /* 8bits, 16bits, etc. */
+} lf_wav_format_t;
 
-typedef struct WAV_data {
-    /* sub-chunk "data" */
-    char Subchunk2ID[4];   /* "data" */
-    /* sub-chunk-size */
-    uint32_t Subchunk2Size; /* data size */
-    /* sub-chunk-data */
-//    Data_block_t block;
-} Data_t;
+/**
+ * Header for the subchunk containing the data.
+ * This is a 'data' chunk, identified by an ID that
+ * is an int formed by the sequenced of four chars 'data'.
+ */
+typedef struct {
+    char subchunk_id[4];    // 'data'
+    uint32_t subchunk_size; // data size in bytes
+} lf_wav_data_t;
 
-//typedef struct WAV_data_block {
-//} Data_block_t;
-
-typedef struct WAV_fotmat {
-   RIFF_t riff;
-   FMT_t fmt;
-   Data_t data;
-} Wav;
+/**
+ * Overall wave data.
+ */
+typedef struct {
+   lf_wav_riff_t riff;
+   lf_wav_format_t fmt;
+   lf_wav_data_t data;
+} lf_wav_t;
