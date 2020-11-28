@@ -1,31 +1,19 @@
 /**
  * Simple demonstration of asynchronous input and timed output.
  * This version is not portable. It runs on MacOS.
+ * It serves as a demonstration for how to write Lingua Franca
+ * programs that use Apple's AudioToolbox.
  * 
  * This program opens a simple, terminal-based user interface for
  * specifying a rhythmic audio output. The rhythm is displayed in
  * the terminal as it is generated and produced as audio using
- * the terminal's "beep" functionality. Note that not all terminal
- * implementation provide audio output, so you may not hear any
- * audible beeps. Moreover, many terminal implementations implement
- * the beep in such a way that it occupies a fixed amount of time
- * that may be longer than the 'sixteenth' parameter given here,
- * in which case the audible rhythm will not be accurate.
- * Regrettably, this "beep" functionality is the closest we have
- * been able to find to any sort of even remotely portable audio
- * output.
+ * sample audio files.
  * 
- * This program uses ncurses, which needs to be installed on your machine
+ * This program also uses ncurses, which needs to be installed on your machine
  * for this to work. It also uses the library utility sensor_simulator,
  * provided with Lingua Franca, which uses keyboard input to simulate
  * asynchronous sensors and beeps to simulate timed output.
- * See lingua-franca/lib/C/sensor_simulator.h.
- * 
- * You can construct simple rhythms with this program.
- * The sixteenth parameter determines the duration of a sixteenth note,
- * the finest resolution this example supports.
- * You can turn on and off several beeps to occur within the bar
- * with keyboard input.
+ * See sensor_simulator.h for documentation.
  * 
  * The merengue rhythm comes from here: 
  * https://www.8notes.com/school/lessons/percussion/merengue.asp
@@ -35,6 +23,8 @@
  * 
  * FIXME: Support for sample waveform files.
  * Use afconvert on Mac to convert to the assumed input format.
+ * 
+ * @author Edward A. Lee
  */
 target C {
     flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
@@ -72,10 +62,10 @@ preamble {=
     
     #define NUM_WAVEFORMS 3  // Number of sample waveforms.
     char* waveform_files[] = {"Bass-Drum-1.wav", "Claves.wav", "Cowbell-1.wav"};  // wav files giving the waveforms
-    Sample_Waveform_t* waveforms[NUM_WAVEFORMS];
+    lf_sample_waveform_t* waveforms[NUM_WAVEFORMS];
     
     struct note {
-        Sample_Waveform_t* waveform;
+        lf_sample_waveform_t* waveform;
         int position;   // Starts at 0 when note starts.
         double volume;  // 0.0 for not active.
     };
