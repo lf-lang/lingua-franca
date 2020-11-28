@@ -21,7 +21,8 @@
  * The sound files come from here:
  * https://freewavesamples.com
  * 
- * FIXME: Support for sample waveform files.
+ * Sound files are assumed to be wav files with sample rate 44,100,
+ * 16-bit samples, linear PCM encoded.
  * Use afconvert on Mac to convert to the assumed input format.
  * 
  * @author Edward A. Lee
@@ -30,7 +31,9 @@ target C {
     flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-            "Bass-Drum-1.wav", "Claves.wav", "Cowbell-1.wav"] 
+            "Bass-Drum-1.wav", "Hi-Bongo.wav", "Claves.wav", "High-Conga-1.wav",
+            "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
+            "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"] 
 }; 
 preamble {= 
     #include <ncurses.h>
@@ -60,9 +63,18 @@ preamble {=
     
     #define NUM_NOTES 8  // Maximum number of notes that can play simultaneously.
     
-    #define NUM_WAVEFORMS 3  // Number of sample waveforms.
-    char* waveform_files[] = {"Bass-Drum-1.wav", "Claves.wav", "Cowbell-1.wav"};  // wav files giving the waveforms
-    lf_sample_waveform_t* waveforms[NUM_WAVEFORMS];
+    // wav files giving the waveforms.
+    // These have to also be included in the files target directive.
+    #define NUM_WAVEFORMS 9  // Number of waveforms.
+    char* waveform_files[] = { "Bass-Drum-1.wav", "Hi-Bongo.wav",
+            "Claves.wav", "High-Conga-1.wav",
+            "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
+            "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"};
+            
+    // The waveforms themselves.
+    lf_sample_waveform_t* waveforms[NUM_WAVEFORMS + 1];
+    
+    lf_sample_waveform_t empty_waveform = { 0 };
     
     struct note {
         lf_sample_waveform_t* waveform;
@@ -88,13 +100,19 @@ preamble {=
         "Instrument:",
         "  0: none",
         "  1: bass drum",
-        "  2: claves",
-        "  3: cowbell",
+        "  2: bongo",
+        "  3: claves",
+        "  4: conga",
+        "  5: cowbell",
+        "  6: cuica",
+        "  7: guiro",
+        "  8: snare",
+        "  9: tom",
         "Rhythm:",
         "  d: down beat",
         "  m: merengue"
     };
-    int message_length = 10;
+    int message_length = 16;
         
     pthread_mutex_t audio_mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t audio_cond = PTHREAD_COND_INITIALIZER;
@@ -291,7 +309,7 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
         int numeric;
         switch (key->value) {
             case '0':
-                self->rhythm =  CLEAR;
+                SET(instrument, 0);
                 break;
             case 'd':
                 self->rhythm = DOWNBEAT;
@@ -308,7 +326,7 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
                 numeric = (int)key->value;
                 if (numeric >= 49 && numeric <= 57) {
                     // A digit between 1 and 9.
-                    SET(instrument, numeric - 49);
+                    SET(instrument, numeric - 48);
                 }
         }
     =}
@@ -376,9 +394,12 @@ reactor Tick {
     
     reaction(startup) {=
         
+        // First waveform is empty.
+        waveforms[0] = &empty_waveform;
+        
         // Open and read waveform files.
         for (int i = 0; i < NUM_WAVEFORMS; i++) {
-            waveforms[i] = read_wave_file(waveform_files[i]);
+            waveforms[i + 1] = read_wave_file(waveform_files[i]);
         }
                  
         // Set the start time of the current buffer to the current time
@@ -429,7 +450,7 @@ reactor Tick {
             index_offset = (time_offset * SAMPLE_RATE) / BILLION;
         }
         
-        if (self->waveform_id < 0 || self->waveform_id >= NUM_WAVEFORMS) {
+        if (self->waveform_id < 0 || self->waveform_id > NUM_WAVEFORMS) {
             // Waveform ID is out of range. Just emit a tick.
             add_to_sound(next_buffer, index_offset, MAX_AMPLITUDE * emphasis->value);
         } else {
@@ -443,7 +464,7 @@ reactor Tick {
             if (note_instance->waveform == NULL) {
                 // Must have failed to read this file. Emit a tick.
                 add_to_sound(next_buffer, index_offset, MAX_AMPLITUDE * emphasis->value);
-            } else {
+            } else if (note_instance->waveform->length > 0) {
                 note_instance->volume = emphasis->value;
                 note_instance->position = 0;
                             
