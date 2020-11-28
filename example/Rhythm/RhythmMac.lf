@@ -31,37 +31,29 @@ target C {
     flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
+            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
             "Bass-Drum-1.wav", "Hi-Bongo.wav", "Claves.wav", "High-Conga-1.wav",
             "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
             "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"] 
 }; 
 preamble {= 
     #include <ncurses.h>
-    #include <unistd.h>
-    #include "AudioToolbox/AudioToolbox.h"
     #include "wave_file_reader.c"
     #include "sensor_simulator.c"
+    #include "audio_loop_mac.c"
     
     /////////////////////////////
     // Configuration of the audio.
     
-    #define CLEAR 0x0000
+    // Beat pattern with 1 note followed by 7 silences, repeated.
     #define DOWNBEAT 0x0101
+    
     // Merenque in binary covers two bars (in temporal order):  1001 1010 1010 1111
     // Reverse the order to get the bit sequence: 1111 0101 0101 1001
     #define MERENGUE 0xf559
     // Merengue emphasis in binary (in temporal order): 1001 0010 0010 1000
     // Reverse the order to get the bit sequence: 0001 0100 0100 1001
     #define MERENGUE_EMPHASIS 0x1449
-        
-    // Constants for playback. These are all coupled.
-    #define SAMPLE_RATE 44100
-    #define BUFFER_SIZE  2205  // 1/20 second
-    #define BUFFER_DURATION_NS 50000000LL;
-    
-    #define MAX_AMPLITUDE 32765
-    
-    #define NUM_NOTES 8  // Maximum number of notes that can play simultaneously.
     
     // wav files giving the waveforms.
     // These have to also be included in the files target directive.
@@ -72,24 +64,9 @@ preamble {=
             "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"};
             
     // The waveforms themselves.
-    lf_sample_waveform_t* waveforms[NUM_WAVEFORMS + 1];
+    lf_waveform_t* waveforms[NUM_WAVEFORMS + 1];
     
-    lf_sample_waveform_t empty_waveform = { 0 };
-    
-    struct note {
-        lf_sample_waveform_t* waveform;
-        int position;   // Starts at 0 when note starts.
-        double volume;  // 0.0 for not active.
-    };
-    
-    // Array keeping track of notes being played.
-    struct note notes[NUM_NOTES] = { 0 };
-    
-    // Notes are added sequentially.
-    // When we reach the end of the notes array, we cycle
-    // back to the beginning. If the oldest note has not
-    // yet finished playing, it will be replaced by the new note.
-    int note_counter = 0;
+    lf_waveform_t empty_waveform = { 0 };
     
     //////////////////////////////////////
     // Configuration of the user interface.
@@ -114,157 +91,12 @@ preamble {=
     };
     int message_length = 16;
         
-    pthread_mutex_t audio_mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_cond_t audio_cond = PTHREAD_COND_INITIALIZER;
-    
-    // Pointer to the buffer into which to currently write.
-    // This is null before the buffer is ready.
-    int16_t* next_buffer = NULL;
-    instant_t next_buffer_start_time = NEVER;
-    
-    /**
-     * Add the given value to the given buffer at the specified index.
-     * If the resulting value is larger than what can be represented in
-     * the 16-bit short, truncate it.
-     * @param buffer The sound buffer.
-     * @param index Where in the buffer to add.
-     * @param value The value to add.
-     */
-    void add_to_sound(int16_t* buffer, int index_offset, double value) {
-        int sample_value = buffer[index_offset] + value;
-        if (sample_value > MAX_AMPLITUDE) {
-            sample_value = MAX_AMPLITUDE;
-        } else if (sample_value < -MAX_AMPLITUDE) {
-            sample_value = -MAX_AMPLITUDE;
-        }
-        buffer[index_offset] = (int16_t)sample_value;
-    }
-    
-    /**
-     * Function that is called by the audio loop to fill the audio buffer
-     * with the next batch of audio data.  When this callback occurs,
-     * this grabs the mutex lock, copies the buffer that the main program 
-     * has been filling into the destination buffer, clears the next
-     * buffer, and updates the start time of the next buffer.
-     */
-    void callback (void *ignored, AudioQueueRef queue, AudioQueueBufferRef buf_ref) {
-        // Get a C pointer from the reference passed in.
-        AudioQueueBuffer *buf = buf_ref;
-        
-        // Array of samples in the buffer.
-        int16_t *samples = buf->mAudioData;
-        
-        pthread_mutex_lock(&audio_mutex);
-        // Make this the new buffer to write into.
-        next_buffer = buf->mAudioData;
-        // Clear out the next buffer.
-        memset(next_buffer, 0, BUFFER_SIZE * sizeof(int16_t));
-        next_buffer_start_time += BUFFER_DURATION_NS;
-        
-        // Fill the buffer with any trailing sample data that
-        // didn't fit in the previous buffer.
-        for (int note_to_use = 0; note_to_use < NUM_NOTES; note_to_use++) {
-            struct note* note_instance = &(notes[note_to_use]);
-        
-            // Add as much of the note instance into the buffer as will fit.
-            for (int i = 0; i < BUFFER_SIZE; i++) {
-                if (note_instance->waveform == NULL || note_instance->volume == 0.0) {
-                    continue;
-                }
-                // Calculate the value to add to the sound by averaging all the channels.
-                int value = 0;
-                for (int channel = 0; channel < note_instance->waveform->num_channels; channel++) {
-                    value += note_instance->waveform->waveform[note_instance->position + channel];
-                }
-                value = value / note_instance->waveform->num_channels;
-                add_to_sound(next_buffer, i, value * note_instance->volume);
-            
-                note_instance->position += note_instance->waveform->num_channels;
-                if (note_instance->position >= note_instance->waveform->length - note_instance->waveform->num_channels) {
-                    // Reached the end of the note. Reset the note.
-                    note_instance->volume = 0.0;
-                    note_instance->position = 0;
-                    note_instance->waveform = NULL;
-                    break;
-                }
-            }
-        }
-        
-        // Reinsert this same audio buffer at the end of the queue.
-        AudioQueueEnqueueBuffer (queue, buf_ref, 0, NULL);
-        
-        // In case the other thread is waiting for this event, notify
-        // (the other thread should not be waiting).
-        pthread_cond_signal(&audio_cond);
-        pthread_mutex_unlock(&audio_mutex);
-    }
-    
-    /**
-     * Run the audio loop indefinitely.
-     */
-    void* run_audio_loop(void* ignored) {
-        // Create an audio format description.
-        AudioStreamBasicDescription fmt = { 0 };
-        fmt.mSampleRate = 44100;
-        fmt.mFormatID = kAudioFormatLinearPCM;
-        fmt.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
-        fmt.mFramesPerPacket = 1;
-        fmt.mChannelsPerFrame = 1; // 2 for stereo
-        fmt.mBytesPerPacket = fmt.mBytesPerFrame = 2; // x2 for stereo
-        fmt.mBitsPerChannel = 16;
-
-        AudioQueueRef queue;
-
-        // Double buffering. 
-        AudioQueueBufferRef buf_ref1, buf_ref2;
-        
-        int buffer_size_bytes = BUFFER_SIZE * 2;
-        
-        // Create an audio queue output with the specified format.
-        // Third argument is an optional pointer to pass to the callback function.
-        if (AudioQueueNewOutput(&fmt, callback, NULL, CFRunLoopGetCurrent(), kCFRunLoopCommonModes, 0, &queue) != 0
-            || AudioQueueAllocateBuffer (queue, buffer_size_bytes, &buf_ref1) != 0
-            || AudioQueueAllocateBuffer (queue, buffer_size_bytes, &buf_ref2) != 0
-        ) {
-            fprintf(stderr, "WARNING: Failed to create audio output. No audio will be produced");
-            return NULL;
-        }
-        // Convert reference to a C pointer.
-        AudioQueueBuffer* buf1 = buf_ref1;
-        AudioQueueBuffer* buf2 = buf_ref2;
-        
-        // Set buffer size
-        buf1->mAudioDataByteSize = buffer_size_bytes;
-        buf2->mAudioDataByteSize = buffer_size_bytes;
-        
-        // Put both buffers in the queue.
-        callback (NULL, queue, buf_ref1);
-        callback (NULL, queue, buf_ref2);
-        // At this point, next_buffer_start_time == start time of the model.
-        
-        // Set the second buffer to be the one being currently written into.
-        next_buffer = buf2->mAudioData;
-        
-        // Set the volume. (Ignoring errors)
-        AudioQueueSetParameter (queue, kAudioQueueParam_Volume, 1.0);
-        
-        // Start audio at start time plus one buffer duration.
-        struct AudioTimeStamp time_stamp = { 0 };
-        time_stamp.mHostTime = next_buffer_start_time + BUFFER_DURATION_NS;
-        
-        // Start as soon as possible.
-        if (AudioQueueStart (queue, &time_stamp) != 0) {
-            fprintf(stderr, "WARNING: Failed to start audio output. No audio will be produced");
-        }
-        CFRunLoopRun();
-        return NULL;
-    }
 =}
 
 reactor RhythmSource(sixteenth:time(200 msec)) {
     timer t(0, sixteenth);
     
-    output note:double; // Emphasis only, for now.
+    output note:float;     // To play a note with the given emphasis.
     output instrument:int; // Instrument selection.
     
     // Count of sixteenth notes.
@@ -372,26 +204,31 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
 }
 
 /**
- * Produce a note when an input is received.
+ * Produce a note when a `note` input is received.
  * 
- * The emphasis input is a number, normally between 0.0 and 1.0,
+ * This reactor provides a small collection of built-in audio
+ * waveforms which are read at startup time from .wav files.
+ * The waveform input specifies which of the waveforms to play
+ * upon the next `note` input received.
+ * It is a number between 0 and NUM_WAVEFORMS. If a number outside
+ * this range is received, then simple tick sounds will be produced.
+ * Number 0 is specially interpreted for silence.
+ *
+ * The `note` input is a number, normally between 0.0 and 1.0,
  * that specifies the loudness of the note. If the loudness exceeds
  * 1.0, or if too many notes are played at once, clipping may occur.
  * 
- * The waveform input specifies one of the sample waveforms to play.
- * It is a number between 0 and NUM_WAVEFORMS. If a number outside
- * this range is specified, then simple tick sounds will be produced.
  */
-reactor Tick {
-    input emphasis:double;
+reactor PlayWaveform {
+    input note:float;
     input waveform:int;
     
-    // Index of the current waveform.
-    // -1 means no waveform (just make ticks)).
+    /**
+     * Index of the current waveform.
+     * -1 means no waveform (just make ticks)).
+     */
     state waveform_id:int(0);
-    
-    state loop_thread_id:pthread_t({=NULL=});
-    
+        
     reaction(startup) {=
         
         // First waveform is empty.
@@ -401,101 +238,34 @@ reactor Tick {
         for (int i = 0; i < NUM_WAVEFORMS; i++) {
             waveforms[i + 1] = read_wave_file(waveform_files[i]);
         }
-                 
-        // Set the start time of the current buffer to the current time
-        // minus twice the buffer duration. The two calls to callback()
-        // during setup will increment this to equal to the start time.
-        // Then create a thread to
-        // start the audio loop. That thread will place
-        // two empty audio buffers in the queue and will schedule the
-        // audio to start at the current logical time plus the buffer
-        // duration. The current buffer being filled (the second buffer)
-        // will have logical start time 0, but will play later by less
-        // than the buffer duration.
-        next_buffer_start_time = get_logical_time() - 2 * BUFFER_DURATION_NS;
         
-        // Start the audio loop thread.
-        pthread_create(&self->loop_thread_id, NULL, &run_audio_loop, NULL);
+        // Start an audio loop that will become ready to receive
+        // amplitude samples of audio data.
+        lf_start_audio_loop(get_logical_time());
     =}
     
     reaction(waveform) {=
         self->waveform_id = waveform->value;
     =}
     
-    reaction(emphasis) {=
-        pthread_mutex_lock(&audio_mutex);
-        
-        // If the buffer into which to write has not yet been set up, wait.
-        while (next_buffer == NULL) {
-            pthread_cond_wait(&audio_cond, &audio_mutex);
-        }
-        instant_t time_offset = get_logical_time() - next_buffer_start_time;
-        // If this is late, then tick right away.
-        if (time_offset < 0) {
-            printf("WARNING: note is early by %lld.\n", time_offset);
-            time_offset = 0;
-        }
-        // Calculate the index of the tick.
-        size_t index_offset = (time_offset * SAMPLE_RATE) / BILLION;
-        
-        // If the offset is beyond the end of the audio buffer, then the program
-        // has gotten ahead of the audio. Wait for audio to catch up.
-        // This happens when a timestamp is at or close to the start time
-        // for the buffer because the audio system has not yet invoked the
-        // callback to swap buffers.  Here, we wait for the callback to
-        // occur.
-        while (index_offset >= BUFFER_SIZE) {
-            pthread_cond_wait(&audio_cond, &audio_mutex);
-            time_offset = get_logical_time() - next_buffer_start_time;
-            index_offset = (time_offset * SAMPLE_RATE) / BILLION;
-        }
-        
+    reaction(note) {=
         if (self->waveform_id < 0 || self->waveform_id > NUM_WAVEFORMS) {
-            // Waveform ID is out of range. Just emit a tick.
-            add_to_sound(next_buffer, index_offset, MAX_AMPLITUDE * emphasis->value);
+            lf_play_audio_waveform(NULL, note->value, get_logical_time());
         } else {
-            int note_to_use = note_counter++; // Increment so that the next note uses a new slot.
-            if (note_counter >= NUM_NOTES) {
-                note_counter = 0; // Wrap around.
-            }
-            // Initialize the note instance to start playing.
-            struct note* note_instance = &notes[note_to_use];
-            note_instance->waveform = waveforms[self->waveform_id];
-            if (note_instance->waveform == NULL) {
-                // Must have failed to read this file. Emit a tick.
-                add_to_sound(next_buffer, index_offset, MAX_AMPLITUDE * emphasis->value);
-            } else if (note_instance->waveform->length > 0) {
-                note_instance->volume = emphasis->value;
-                note_instance->position = 0;
-                            
-                // Add as much of the note instance into the buffer as will fit.
-                for (int i = index_offset; i < BUFFER_SIZE; i++) {
-                    // Calculate the value to add to the sound by averaging all the channels.
-                    int value = 0;
-                    for (int channel = 0; channel < note_instance->waveform->num_channels; channel++) {
-                        value += note_instance->waveform->waveform[note_instance->position + channel];
-                    }
-                    value = value / note_instance->waveform->num_channels;
-                    add_to_sound(next_buffer, i, value * note_instance->volume);
-                
-                    note_instance->position += note_instance->waveform->num_channels;
-                    if (note_instance->position >= note_instance->waveform->length - note_instance->waveform->num_channels) {
-                        // Reached the end of the note. Reset the note.
-                        note_instance->volume = 0.0;
-                        note_instance->position = 0;
-                        break;
-                    }
-                }
-            }
+            lf_play_audio_waveform(waveforms[self->waveform_id], note->value, get_logical_time());
         }
-        
-        pthread_mutex_unlock(&audio_mutex);
-    =} // FIXME: Should have a deadline here. But need to couple it to BUFFER_DURATION_NS, which isn't allowed.
+    =} deadline (10 msec) {=  // NOTE: deadline has to match BUFFER_DURATION_NS.
+        fprintf(stderr, "WARNING: Missed deadline!\n");
+    =}
+    
+    reaction(shutdown) {=
+        lf_stop_audio_loop();
+    =}
 }
 
-main reactor Rhythm {
+main reactor RhythmMac {
     source = new RhythmSource();
-    tick = new Tick();
-    source.note -> tick.emphasis;
-    source.instrument -> tick.waveform;
+    play = new PlayWaveform();
+    source.note -> play.note;
+    source.instrument -> play.waveform;
 }

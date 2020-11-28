@@ -1,8 +1,44 @@
 /**
- * Data types for the wave audio format.
- * 
+ * @file
  * @author Edward A. Lee
+ *
+ * @section LICENSE
+Copyright (c) 2020, The University of California at Berkeley and TU Dresden
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ * @section DESCRIPTION
+ * 
+ * Utility functions and data types for importing audio files with the
+ * wave audio format. The main function is read_wave_file(), which, given
+ * a path to a .wav file, reads the file and, if the format of the file is
+ * supported, returns an lf_waveform_t struct, which contains the raw
+ * audio data in 16-bit linear PCM form.
+ * 
+ * This code has few dependencies, so
+ * it should run on just about any platform.
  */
+
+#ifndef WAVE_FILE_READER_H
+#define WAVE_FILE_READER_H
 
 /**
  * Waveform in 16-bit linear-PCM format.
@@ -11,54 +47,26 @@
  * left and right channel. The length is the total number
  * of samples, a multiple of the number of channels.
  */
-typedef struct lf_sample_waveform_t {
+typedef struct lf_waveform_t {
     uint32_t length;
     uint16_t num_channels;
     int16_t* waveform;
-} lf_sample_waveform_t;
+} lf_waveform_t;
 
 /**
- * The top-level 'chunk' of a .wav file is a 'RIFF'
- * chunk, identified by an ID that is an int formed
- * by the sequence of four chars 'RIFF'.
+ * Open a wave file, check that the format is supported,
+ * allocate memory for the sample data, and fill the memory
+ * with the sample data. It is up to the caller to free the
+ * memory when done with it. That code should first free the
+ * waveform element of the returned struct, then the struct itself.
+ * This implementation supports only 16-bit linear PCM files.
+ * On a Mac, you can convert audio files into this format
+ * using the afconvert utility.
+ * 
+ * @param path The path to the file.
+ * @return An array of sample data or NULL if the file can't be opened
+ *  or has an usupported format.
  */
-typedef struct {
-    char chunk_id[4];    // "RIFF"
-    uint32_t chunk_size; // 36 + subchunk_size
-    char format[4];      // "WAVE"
-} lf_wav_riff_t;
+lf_waveform_t* read_wave_file(const char* path);
 
-/**
- * The first subchunk within a .wav file is a 'fmt '
- * chunk, identified by an ID that is an int formed
- * by the sequence of four chars 'fmt '.
- */
-typedef struct {
-    char subchunk_id[4];    // 'fmt '
-    uint32_t subchunk_size; // 16 for linear PCM.
-    uint16_t audio_format;  // 1 for linear PCM
-    uint16_t num_channels;  // 1 for mono = 1, 2 for stereo, etc.
-    uint32_t sample_rate;   // 44100
-    uint32_t byte_rate;     // sample_rate * num_channels * bits_per_sample/8
-    uint16_t BlockAlign;    /* = num_channels * bits_per_sample/8 */
-    uint16_t bits_per_sample; /* 8bits, 16bits, etc. */
-} lf_wav_format_t;
-
-/**
- * Header for the subchunk containing the data.
- * This is a 'data' chunk, identified by an ID that
- * is an int formed by the sequenced of four chars 'data'.
- */
-typedef struct {
-    char subchunk_id[4];    // 'data'
-    uint32_t subchunk_size; // data size in bytes
-} lf_wav_data_t;
-
-/**
- * Overall wave data.
- */
-typedef struct {
-   lf_wav_riff_t riff;
-   lf_wav_format_t fmt;
-   lf_wav_data_t data;
-} lf_wav_t;
+#endif // WAVE_FILE_READER_H
