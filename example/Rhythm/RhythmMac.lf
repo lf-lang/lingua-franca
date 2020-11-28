@@ -74,6 +74,8 @@ preamble {=
     char* message[] = {
         "Basic control:",
         "  x: quit",
+        "  +: speed up",
+        "  -: slow down",
         "Instrument:",
         "  0: none",
         "  1: bass drum",
@@ -89,15 +91,22 @@ preamble {=
         "  d: down beat",
         "  m: merengue"
     };
-    int message_length = 16;
+    int message_length = 18;
         
 =}
 
-reactor RhythmSource(sixteenth:time(200 msec)) {
-    timer t(0, sixteenth);
-    
+/**
+ * Reactor that outputs notes (which carry an emphasis))
+ * according to a specified rhythm. The minimum time
+ * between notes is given by the 'tick_duration' state
+ * variable. This can be adjusted up or down.
+ */
+reactor RhythmSource(sixteenth:time(200 msec)) {    
     output note:float;     // To play a note with the given emphasis.
     output instrument:int; // Instrument selection.
+    
+    state tick_duration:time(200 msec);
+    logical action tick;
     
     // Count of sixteenth notes.
     state count:int(0);
@@ -122,7 +131,7 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
     // Position of the cursor in the terminal window.
     state cursor:int(0);
     
-    reaction(startup) -> key, note {=
+    reaction(startup) -> key, note, tick {=
         // FIXME: See whether a note can be sent at the start time.
         SET(note, 1.0);
         // Start the sensor simulator, which starts ncurses.
@@ -135,6 +144,8 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
         
         // Register action to trigger on key press.
         register_sensor_key('\0', key);
+        
+        schedule(tick, self->tick_duration);
     =}
     
     reaction(key) -> instrument {=
@@ -154,6 +165,15 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
             case 'x':
                 request_stop();
                 break;
+            case '+':
+                self->tick_duration -= MSEC(20);
+                if (self->tick_duration < MSEC(20)) {
+                    self->tick_duration = MSEC(20);
+                }
+                break;
+            case '-':
+                self->tick_duration += MSEC(20);
+                break;
             default:
                 numeric = (int)key->value;
                 if (numeric >= 49 && numeric <= 57) {
@@ -163,7 +183,7 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
         }
     =}
 
-    reaction(t) -> note {=
+    reaction(tick) -> note, tick {=
         int beeped = 0;
         int position = 0;
         position = 1 << self->count;
@@ -200,6 +220,7 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
         }
         refresh();
         pthread_mutex_unlock(&sensor_mutex);
+        schedule(tick, self->tick_duration);
     =}
 }
 
