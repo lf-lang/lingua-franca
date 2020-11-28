@@ -35,6 +35,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * This code has few dependencies, so
  * it should run on just about any platform.
+ * 
+ * To use this, include the following flags in your target properties:
+ * <pre>
+ * target C {
+ *     files: ["/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h"]
+ * };
+ * </pre>
+ * 
+ * In addition, you need this in your Lingua Franca file:
+ * <pre>
+ * preamble {=
+ *     #include "wave_file_reader.c"
+ * =}
+ * </pre>
  */
 
 #ifndef WAVE_FILE_READER_H

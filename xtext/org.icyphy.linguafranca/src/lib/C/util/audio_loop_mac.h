@@ -34,7 +34,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * synthesized or read from a .wav file using 
  * `read_wave_file()` (see wave_file_reader.h).
  * 
- * @author Edward A. Lee
+ * To use this, include the following flags in your target properties:
+ * <pre>
+ * target C {
+ *     flags: "-framework AudioToolbox -framework CoreFoundation -lm",
+ *     files: ["/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h"]
+ * };
+ * </pre>
+ * 
+ * In addition, you need this in your Lingua Franca file:
+ * <pre>
+ * preamble {=
+ *     #include "audio_loop_mac.c"
+ * =}
+ * </pre>
  */
 
 #ifndef AUDIO_LOOP_MAC_H
