@@ -1,15 +1,89 @@
 /**
+ * @file
+ * @author Edward A. Lee
+ *
+ * @section LICENSE
+Copyright (c) 2020, The University of California at Berkeley and TU Dresden
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ * @section DESCRIPTION
+ *
  * Utility functions for importing audio files with the
  * wave audio format. This code has few dependencies, so
  * it should run on just about any platform.
  * 
- * @author Edward A. Lee
+ * See wave_file_reader.h for instructions.
  */
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include "wave_file_reader.h"
+
+/**
+ * The top-level 'chunk' of a .wav file is a 'RIFF'
+ * chunk, identified by an ID that is an int formed
+ * by the sequence of four chars 'RIFF'.
+ */
+typedef struct {
+    char chunk_id[4];    // "RIFF"
+    uint32_t chunk_size; // 36 + subchunk_size
+    char format[4];      // "WAVE"
+} lf_wav_riff_t;
+
+/**
+ * The first subchunk within a .wav file is a 'fmt '
+ * chunk, identified by an ID that is an int formed
+ * by the sequence of four chars 'fmt '.
+ */
+typedef struct {
+    char subchunk_id[4];    // 'fmt '
+    uint32_t subchunk_size; // 16 for linear PCM.
+    uint16_t audio_format;  // 1 for linear PCM
+    uint16_t num_channels;  // 1 for mono = 1, 2 for stereo, etc.
+    uint32_t sample_rate;   // 44100
+    uint32_t byte_rate;     // sample_rate * num_channels * bits_per_sample/8
+    uint16_t BlockAlign;    /* = num_channels * bits_per_sample/8 */
+    uint16_t bits_per_sample; /* 8bits, 16bits, etc. */
+} lf_wav_format_t;
+
+/**
+ * Header for the subchunk containing the data.
+ * This is a 'data' chunk, identified by an ID that
+ * is an int formed by the sequenced of four chars 'data'.
+ */
+typedef struct {
+    char subchunk_id[4];    // 'data'
+    uint32_t subchunk_size; // data size in bytes
+} lf_wav_data_t;
+
+/**
+ * Overall wave data.
+ */
+typedef struct {
+   lf_wav_riff_t riff;
+   lf_wav_format_t fmt;
+   lf_wav_data_t data;
+} lf_wav_t;
 
 /**
  * Open a wave file, check that the format is supported,
@@ -25,7 +99,7 @@
  * @return An array of sample data or NULL if the file can't be opened
  *  or has an usupported format.
  */
-lf_sample_waveform_t* read_wave_file(const char* path) {
+lf_waveform_t* read_wave_file(const char* path) {
     FILE *fp = NULL;
     
     lf_wav_t wav;
@@ -95,8 +169,8 @@ lf_sample_waveform_t* read_wave_file(const char* path) {
 
     // printf("Data subchunk size \t%d\n", data.subchunk_size);
 
-    lf_sample_waveform_t* result = (lf_sample_waveform_t*)malloc(sizeof(lf_sample_waveform_t));
-    // printf("Size of lf_sample_waveform_t %d", sizeof(lf_sample_waveform_t));
+    lf_waveform_t* result = (lf_waveform_t*)malloc(sizeof(lf_waveform_t));
+    // printf("Size of lf_waveform_t %d", sizeof(lf_waveform_t));
     result->length = data.subchunk_size/2; // Subchunk size is in bytes, but length is number of samples.
     result->num_channels = num_channels;
     result->waveform = (int16_t*)calloc(data.subchunk_size/2, sizeof(int16_t));
