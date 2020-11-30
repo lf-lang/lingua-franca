@@ -32,7 +32,7 @@ reactor Ping(count:int(10)) {
         if (self->pingsLeft > 0) {
             schedule(serve, 0);
         } else {
-            stop();
+            request_stop();
         }
     =}
 } 
@@ -44,7 +44,7 @@ reactor Pong(expected:int(10)) {
         self->count++;
         // printf("At logical time %lld, Pong received %d.\n", get_elapsed_logical_time(), receive->value);
         SET(send, receive->value);
-        if (self->count == self->expected) stop();
+        if (self->count == self->expected) request_stop();
     =}
     reaction(shutdown) {=
         if (self->count != self->expected) {
