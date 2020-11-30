@@ -963,7 +963,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
  * @param token The token wrapping the payload or NULL for no payload.
  * @return A handle to the event, or 0 if no new event was scheduled, or -1 for error.
  */
-handle_t __schedule(trigger_t* trigger, interval_t extra_delay, token_t* token) {
+handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* token) {
     if (compare_tags(current_tag, stop_tag) > 0) {
         // If schedule is called after stop_tag
         // This is a critical condition.
