@@ -134,7 +134,13 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
     }
 }
 
-int __do_step() {
+/**
+ * Execute all the reactions in the reaction queue at the tag.
+ * 
+ * @return Returns 1 if the execution should continue and 0 if the execution
+ *  should stop.
+ */
+int _lf_do_step() {
         // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         //print_snapshot();
@@ -224,7 +230,7 @@ int __do_step() {
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
 
-    if (compare_tags(current_tag, stop_tag) == 0) {
+    if (compare_tags(current_tag, stop_tag) >= 0) {
         return 0;
     }
 
@@ -255,9 +261,9 @@ int next() {
     tag_t next_tag = { .time = LLONG_MAX, .microstep = UINT_MAX};
     if (event == NULL) {
         // No event in the queue.
-        if (!keepalive_specified) {
-            _lf_advance_logical_time(current_tag.time);
-            _lf_set_stop_tag(current_tag);
+        if (!keepalive_specified) { // FIXME: validator should issue a warning for unthreaded implementation
+                                    // schedule is not thread-safe
+            _lf_set_stop_tag((tag_t){.time=current_tag.time,.microstep=current_tag.microstep+1});
         }
     } else {
         next_tag.time = event->time;
@@ -284,7 +290,8 @@ int next() {
         // May have been an asynchronous call to schedule(), or
         // it may have been a control-C to stop the process.
         // Set current time to match physical time, but not less than
-        // current logical time nor more than next time in the event queue.// Get the current physical time.
+        // current logical time nor more than next time in the event queue.
+        // Get the current physical time.
         struct timespec current_physical_time;
         clock_gettime(CLOCK_REALTIME, &current_physical_time);
         long long current_physical_time_ns 
@@ -309,15 +316,12 @@ int next() {
         }
     }
 
-    // Do not advance tag if we are supposed to stop now
-    // This is a corner case that only happens at (0,0)
-    // when timeout is set to 0.
-    if (compare_tags(current_tag, stop_tag) != 0) {
-        _lf_advance_logical_time(next_tag.time);
-    }
+    // At this point, finally, we have an event to process.
+    // Advance current time to match that of the first event on the queue.
+    _lf_advance_logical_time(next_tag.time);
 
-    if (compare_tags(current_tag, stop_tag) == 0) {        
-        __wrapup();
+    if (compare_tags(current_tag, stop_tag) >= 0) {        
+        __trigger_shutdown_reactions();
     }
 
     // Invoke code that must execute before starting a new logical time round,
@@ -329,7 +333,7 @@ int next() {
     // stick them into the reaction queue.
     __pop_events();
 
-    return __do_step();
+    return _lf_do_step();
 }
 
 /**
@@ -349,10 +353,17 @@ int main(int argc, char* argv[]) {
         initialize();
         _lf_execution_started = true;
         __trigger_startup_reactions();
-        __initialize_timers();
-        // Handle reactions triggered at time (T,0).
-        __do_step();
-        while (next() != 0);
+        __initialize_timers(); 
+        // If the stop_tag is (0,0), also insert the shutdown
+        // reactions. This can only happen if the timeout time
+        // was set to 0.
+        if (compare_tags(current_tag, stop_tag) >= 0) {
+            __trigger_shutdown_reactions(); // __trigger_shutdown_reactions();
+        }
+        // Handle reactions triggered at time (T,m).
+        if (_lf_do_step()) {
+            while (next() != 0);
+        }
         termination();
         return 0;
     } else {
