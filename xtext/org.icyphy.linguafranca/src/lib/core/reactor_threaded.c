@@ -533,8 +533,6 @@ int __next() {
         // extract all the reactions triggered by these events, and
         // stick them into the reaction queue.
         __pop_events();
-        // Signal the worker threads.
-        pthread_cond_broadcast(&reaction_q_changed);
         
         return 1;
     } else {
@@ -840,7 +838,7 @@ void* worker(void* arg) {
                 
                 // If we are at the stop tag, do not call __next()
                 // to prevent advancing the logical time.
-                if (compare_tags(current_tag, stop_tag) >= 0) {
+                if (compare_tags(current_tag, stop_tag) == 0) {
                     // Break out of the while loop and notify other
                     // worker threads potentially waiting to continue.
                     pthread_cond_broadcast(&reaction_q_changed);
