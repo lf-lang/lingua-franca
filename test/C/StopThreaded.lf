@@ -51,7 +51,7 @@ reactor Consumer {
             // Check to see if reactions were called correctly
         	fprintf(stderr,"ERROR: Failed to invoke reaction(in) at tag (%llu, %d).\n",
                             current_tag.time - get_start_time(), current_tag.microstep);
-        	// exit(1);            
+        	exit(1);
         }
     =}
 }
