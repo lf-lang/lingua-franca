@@ -431,13 +431,12 @@ bool __first_invocation = true;
  * sorted by time tag.
  *
  * If there is no event in the queue and the keepalive command-line option was
- * not given, set stop_requested to true and return.
+ * not given, set the stop tag to the current tag.
  * If keepalive was given, then wait for either request_stop()
  * to be called or an event appears in the event queue and then return.
  *
- * If a timeout option was specified, then when the next logical time from the
- * event queue exceeds the value of that timeout, set stop_requested to true
- * and return.
+ * Every time tag is advanced, it is checked against stop tag and if they are
+ * equal, shutdown reactions are triggered.
  *
  * This does not acquire the mutex lock. It assumes the lock is already held.
  */
@@ -446,7 +445,15 @@ int __next() {
     // Peek at the earliest event in the event queue.
     event_t* event = (event_t*)pqueue_peek(event_q);
     tag_t next_tag = { .time = FOREVER, .microstep = UINT_MAX };
-    if (event != NULL) {
+    if (event == NULL) {
+        // No event in the queue
+        if (!keepalive_specified) {
+            // keepalive is not set so we should stop.
+            // Note that federated programs always have
+            // keepalive = true         
+            _lf_set_stop_tag((tag_t){.time=current_tag.time,.microstep=current_tag.microstep+1});
+        }
+    } else {
         // There is an event in the event queue.
         next_tag.time = event->time;
         if (next_tag.time == current_tag.time) {
@@ -454,193 +461,106 @@ int __next() {
         } else {
             next_tag.microstep = 0;
         }
+    }
 
-        // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
-        // If a timeout tag was given, adjust the next_tag from the
-        // event tag to that timeout tag.
-        // FIXME: This is primarily done to let the RTI
-        // know about the timeout time? 
-        if (_lf_is_tag_after_stop_tag(next_tag)) {
-            next_tag = stop_tag;
-        }
+    // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
+    // If a timeout tag was given, adjust the next_tag from the
+    // event tag to that timeout tag.
+    // FIXME: This is primarily done to let the RTI
+    // know about the timeout time? 
+    if (_lf_is_tag_after_stop_tag(next_tag)) {
+        next_tag = stop_tag;
+    }
 
 #ifdef _LF_IS_FEDERATED
-        // In case this is in a federation, check whether tag can advance
-        // to the next tag. If there are upstream federates, then this call
-        // will block waiting for a response from the RTI.
-        // If an action triggers during that wait, it will unblock
-        // and return with a time (typically) less than the next_time.
-        tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
-        if (compare_tags(grant_tag, next_tag) != 0) {
-            // RTI has granted tag advance to an earlier tag or the wait
-            // for the RTI response was interrupted by a local physical action.
-            // Continue executing. The event queue may have changed.
-            return 1;
-        }
+    // In case this is in a federation, check whether tag can advance
+    // to the next tag. If there are upstream federates, then this call
+    // will block waiting for a response from the RTI.
+    // If an action triggers during that wait, it will unblock
+    // and return with a time (typically) less than the next_time.
+    tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
+    if (compare_tags(grant_tag, next_tag) != 0) {
+        // RTI has granted tag advance to an earlier tag or the wait
+        // for the RTI response was interrupted by a local physical action.
+        // Continue executing. The event queue may have changed.
+        return 1;
+    }
 
-        // Since next_event_tag releases the mutex lock internally, we need to check
-        // next_tag again in case the stop_tag has changed while the mutex was unlocked.
-        if (_lf_is_tag_after_stop_tag(next_tag)) {
-            next_tag = stop_tag;
-        }
+    // Since next_event_tag releases the mutex lock internally, we need to check
+    // next_tag again in case the stop_tag has changed while the mutex was unlocked.
+    if (_lf_is_tag_after_stop_tag(next_tag)) {
+        next_tag = stop_tag;
+    }
 #endif
 
-        // Wait for physical time to advance to the next event time (or stop time).
-        // This can be interrupted if a physical action triggers (e.g., a message
-        // arrives from an upstream federate or a local physical action triggers).
-        // printf("DEBUG: next(): Waiting until time %lld.\n", (next_tag.time - start_time));
-        if (!wait_until(next_tag.time, next_tag.microstep)) {
-            // printf("DEBUG: __next(): Wait until time interrupted.\n");
-            // Sleep was interrupted or the stop time has been reached.
-            // Time has not advanced to the time of the event.
-            // There may be a new earlier event on the queue.
-            // Mutex lock was reacquired by wait_until.
-            return 1;
-        }
-        
-        // If the event queue has changed, return to iterate.
-        if ((event_t*)pqueue_peek(event_q) != event) {
-            return 1;
-        }
-        
-        // Since wait_until releases the mutex lock internally, we need to check
-        // again for any changes in stop_tag while the mutex was unlocked.
-        if (_lf_is_tag_after_stop_tag(next_tag)) {
-            next_tag = stop_tag;
-        }
-
-        // Do not advance tag if we are supposed to stop now
-        // This is a corner case that only happens at (0,0)
-        // when timeout is set to 0.
-        if (compare_tags(current_tag, stop_tag) != 0) {         
-            // At this point, finally, we have an event to process.
-            // Advance current time to match that of the first event on the queue.
-            _lf_advance_logical_time(next_tag.time);
-        }
-
-        if (compare_tags(current_tag, stop_tag) == 0) {
-            // Pop shutdown events
-            // DEBUG_PRINT("Scheduling shutdown reactions.");
-            __wrapup();
-        }
-
-        // DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_tag.time - start_time);
-
-        // Invoke code that must execute before starting a new logical time round,
-        // such as initializing outputs to be absent.
-        __start_time_step();
-        // Pop all events from event_q with timestamp equal to current_tag.time,
-        // extract all the reactions triggered by these events, and
-        // stick them into the reaction queue.
-        __pop_events();
-        
-        return 1;
-    } else {
-        // There is no event on the event queue.
-        // printf("DEBUG: __next(): event queue is empty.\n");
-        // Adjust the next tag to the stop_tag (which is FOREVER) by default.
-        next_tag = stop_tag;
-
-        // Ask the RTI to advance time to either timeout_time or FOREVER.
-        // This will be granted if there are no upstream federates.
-        // If there are upstream federates, then the call will block
-        // until the upstream federates can grant some time advance,
-        // and in that case, the returned grant may be less than the
-        // requested advance.
-        // printf("DEBUG: __next(): next event time to RTI %lld.\n", next_time - start_time);
-        // FIXME: verify
-        tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
-        // printf("DEBUG: __next(): RTI grants time advance to %lld.\n", grant_time - start_time);
-        if (compare_tags(grant_tag, next_tag) == 0) {
-            // RTI is OK with advancing tag to (timeout_time, 0) or (FOREVER, 0).
-            // Note that keepalive is always set for a federated execution.
-            if (!keepalive_specified) {
-                // Inject shutdown reactions
-                __wrapup();
-                _lf_advance_logical_time(current_tag.time);
-                _lf_set_stop_tag(current_tag);
-                // Invoke code that must execute before starting a new logical time round,
-                // such as initializing outputs to be absent.
-                __start_time_step();
-                // Pop all events from event_q with timestamp equal to current_tag.time,
-                // extract all the reactions triggered by these events, and
-                // stick them into the reaction queue.
-                __pop_events();
-                // Signal the worker threads.
-                pthread_cond_broadcast(&reaction_q_changed);
-                // Since keepalive was not specified, quit.
-                return 0;
+    // Wait for physical time to advance to the next event time (or stop time).
+    // This can be interrupted if a physical action triggers (e.g., a message
+    // arrives from an upstream federate or a local physical action triggers).
+    // printf("DEBUG: next(): Waiting until time %lld.\n", (next_tag.time - start_time));
+    if (!wait_until(next_tag.time, next_tag.microstep)) {
+        // printf("DEBUG: __next(): Wait until time interrupted.\n");
+        // Sleep was interrupted.
+        // May have been an asynchronous call to schedule(), or
+        // it may have been a control-C to stop the process.
+        // Set current time to match physical time, but not less than
+        // current logical time nor more than next time in the event queue.
+        // Get the current physical time.
+        struct timespec current_physical_time;
+        clock_gettime(CLOCK_REALTIME, &current_physical_time);
+        long long current_physical_time_ns 
+                = current_physical_time.tv_sec * BILLION
+                + current_physical_time.tv_nsec;
+        if (current_physical_time_ns > current_tag.time) {
+            if (current_physical_time_ns < next_tag.time) {
+                // Advance current time.
+                _lf_advance_logical_time(current_physical_time_ns);
+                // I am assuming control-C causes this condition. Therefore, the 
+                // program has to stop.
+                // _lf_set_stop_tag((tag_t) {.time = current_physical_time_ns, .microstep = 0});
+                return 1;
             }
-            // printf("DEBUG: __next(): keepalive is specified or in a federation. Keep going.\n");
         } else {
-            // RTI has granted advance to an earlier time.
-            // This means there is an upstream federate that
-            // could send messages. There may be a message on
-            // the event queue. Continue executing.
+            // Current physical time does not exceed current logical
+            // time, so do not advance current time.
+            // I am assuming control-C causes this condition. Therefore, the 
+            // program has to stop.
+            // _lf_set_stop_tag(current_tag);
             return 1;
         }
-
-        // If we get here, the RTI has granted time advance to the stop time
-        // (or there is only federate, or to FOREVER is there is no stop time)
-        // and keepalive has been specified.
-        // If the event queue is no longer empty (e.g. an input message
-        // has arrived exactly at the stop time), then return true to
-        // iterate again and process that message.
-        event = (event_t*)pqueue_peek(event_q);
-        if (event != NULL) {
-            return 1;
-        }        
-
-        // Set the next tag to the stop tag since stop_tag
-        // could have been changed during the execution of next_event_tag().
-        next_tag = stop_tag;
-
-        // The event queue is still empty, but since keepalive has been
-        // specified, we should not stop unless physical time exceeds the
-        // timeout_time.  If --fast has been specified, however, this will
-        // return immediately.
-        // FIXME: --fast becomes useless for federated execution because
-        // the federates proceed immediately to the stop time or FOREVER!
-        // printf("DEBUG: __next(): Empty queue. Waiting until time %lld.\n", next_tag.time - start_time);
-        if (!wait_until(next_tag.time, next_tag.microstep)) {
-            // printf("DEBUG: __next(): Wait until time interrupted.\n");
-            // Sleep was interrupted or the stop time has been reached.
-            // Time has not advanced to the time of the event.
-            // There may be a new earlier event on the queue.
-            // Mutex lock was reacquired by wait_until.
-            // Iterate in case something has appeared on the event queue.
-            // If the event queue is still empty and we have reached the stop
-            // time, then the next iteration will stop.
-            return 1;
-        }
-        // wait_until successfully waited until next_time.
-        // If the event queue is no longer empty, return true to iterate.
-        event = (event_t*)pqueue_peek(event_q);
-        if (event != NULL) {
-            return 1;
-        }
-
-        // Set the next tag to the stop tag since stop_tag
-        // could have been changed during the execution of wait_until().
-        next_tag = stop_tag;
-
-        // Nothing on the event queue and we have reached the stop time.
-        // printf("DEBUG: __next(): Reached stop time of %lld. Requesting stop.\n", next_tag.time - start_time);
-        __wrapup();
-        _lf_set_stop_tag(next_tag);
-        _lf_advance_logical_time(next_tag.time);
-        // Invoke code that must execute before starting a new logical time round,
-        // such as initializing outputs to be absent.
-        __start_time_step();
-        // Pop all events from event_q with timestamp equal to current_tag.time,
-        // extract all the reactions triggered by these events, and
-        // stick them into the reaction queue.
-        __pop_events();
-        // Signal the worker threads.
-        pthread_cond_broadcast(&reaction_q_changed);
-        pthread_cond_signal(&event_q_changed);
-        return 0;
     }
+    
+    // If the event queue has changed, return to iterate.
+    if ((event_t*)pqueue_peek(event_q) != event) {
+        return 1;
+    }
+    
+    // Since wait_until releases the mutex lock internally, we need to check
+    // again for any changes in stop_tag while the mutex was unlocked.
+    if (_lf_is_tag_after_stop_tag(next_tag)) {
+        next_tag = stop_tag;
+    }
+    
+    // At this point, finally, we have an event to process.
+    // Advance current time to match that of the first event on the queue.
+    _lf_advance_logical_time(next_tag.time);
+
+    if (compare_tags(current_tag, stop_tag) >= 0) {
+        // Pop shutdown events
+        // DEBUG_PRINT("Scheduling shutdown reactions.");
+        __trigger_shutdown_reactions();
+    }
+
+    // DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_tag.time - start_time);
+
+    // Invoke code that must execute before starting a new logical time round,
+    // such as initializing outputs to be absent.
+    __start_time_step();
+    // Pop all events from event_q with timestamp equal to current_tag.time,
+    // extract all the reactions triggered by these events, and
+    // stick them into the reaction queue.
+    __pop_events();
+    
+    return 1;
 }
 
 /**
@@ -658,7 +578,7 @@ void request_stop() {
 #ifdef _LF_IS_FEDERATED
     _lf_fd_send_stop_request_to_rti();
     // Notify the RTI that nothing more will happen.
-    // next_event_tag(FOREVER, 0);
+    next_event_tag(FOREVER, 0);
     // Do not set stop_requested
     // since the RTI might grant a
     // later stop tag than the current
@@ -1072,7 +992,7 @@ int main(int argc, char* argv[]) {
         // reactions. This can only happen if the timeout time
         // was set to 0.
         if (compare_tags(current_tag, stop_tag) >= 0) {
-            __wrapup();
+            __trigger_shutdown_reactions();
         }
 
         // At this time, reactions (startup, etc.) are added to the 
