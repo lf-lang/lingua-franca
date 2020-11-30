@@ -1123,7 +1123,7 @@ void handle_tag_advance_grant() {
  * Used to prevent the federate from sending a REQUEST_STOP
  * message multiple times to the RTI.
  */
-bool federate_has_already_sent_a_stop_request_to_rti = false;
+volatile bool federate_has_already_sent_a_stop_request_to_rti = false;
 
 /** 
  * Send a STOP_REQUEST message to the RTI.
@@ -1170,20 +1170,23 @@ void handle_stop_granted_message() {
     // message is transport or being used to determine a TAG.
     pthread_mutex_lock(&mutex);
 
-    instant_t stop_time = extract_ll(buffer);
-    DEBUG_PRINT("Federate %d received from RTI a STOP_GRANTED message with time %lld.", _lf_my_fed_id, stop_time);
-    if (stop_time > current_tag.time) {
-        // We could re-use the timeout mechanism
-        // in which the federate stops at
-        // tag (timeout_time, 0).
-        timeout_time = stop_time;
-    } else if (stop_time == current_tag.time) {
-        // We cannot rely on timeout because the execution
-        // has to stop at the current logical time. In that case,
-        // set stop_requested, which causes shutdown events
-        // to occur at the next microstep.
-        stop_requested = true;
+    tag_t received_stop_tag;
+    received_stop_tag.time = extract_ll(buffer);
+    DEBUG_PRINT("Federate %d received from RTI a STOP_GRANTED message with time %lld.\n", _lf_my_fed_id, received_stop_tag.time - start_time);
+    // Deduce the microstep
+    if (received_stop_tag.time == current_tag.time) {
+        received_stop_tag.microstep = current_tag.microstep + 1;
+    } else if (received_stop_tag.time > current_tag.time) {
+        received_stop_tag.microstep = 0;
+    } else {
+        error_print_and_exit("Received a stop_time in the past.");
     }
+
+    stop_tag = received_stop_tag;
+    DEBUG_PRINT("Federate %d setting the stop tag to (%lld, %u).", 
+                _lf_my_fed_id,
+                stop_tag.time - start_time,
+                stop_tag.microstep);
 
     _lf_decrement_global_tag_barrier_already_locked();
     pthread_cond_broadcast(&reaction_q_changed);
@@ -1219,6 +1222,9 @@ void handle_stop_request_message() {
     // Raise a barrier at current time
     // because we are sending it to the RTI
     _lf_increment_global_tag_barrier_already_locked(current_tag);
+
+    // A subsequent call to request_stop will be a no-op.
+    federate_has_already_sent_a_stop_request_to_rti = true;
 
     pthread_mutex_unlock(&mutex);
 }
@@ -1365,7 +1371,7 @@ void synchronize_with_other_federates() {
 
     if (duration >= 0LL) {
         // A duration has been specified. Recalculate the stop time.
-        timeout_time = current_tag.time + duration;
+       stop_tag = ((tag_t) {.time = current_tag.time + duration, .microstep = 0});
     }
 
     // Start a thread to listen for incoming messages from the RTI.

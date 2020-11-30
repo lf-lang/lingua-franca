@@ -189,8 +189,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////  from federates (that are still connected), it will decide on a common stop timestamp
 ////  which is the maximum of the seen stop times and answer with a STOP_GRANTED. The federate
 ////  sending the STOP_REQUEST and federates sending the STOP_REQUEST_REPLY will freeze
-////  the advancement of logical time until they receive the STOP_GRANTED message, in which
-////  case they might continue their execution until the stop time has been reached.
+////  the advancement of tag until they receive the STOP_GRANTED message, in which
+////  case they might continue their execution until the stop tag has been reached.
 
 /**
  * Byte identifying a stop request. 

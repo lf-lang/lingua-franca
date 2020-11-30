@@ -90,13 +90,6 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  */ 
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
-    if (_lf_is_tag_after_timeout((tag_t) { .time = logical_time_ns, .microstep = 0})) {
-        logical_time_ns = timeout_time;
-        current_tag.microstep = 0;
-        // Indicate on return that the time of the event was not reached.
-        // We still wait for time to elapse in case asynchronous events come in.
-        return_value = -1;
-    }
     if (!fast) {
         // printf("DEBUG: Waiting for logical time %lld.\n", logical_time_ns);
     
@@ -109,8 +102,6 @@ int wait_until(instant_t logical_time_ns) {
                 + current_physical_time.tv_nsec);
     
         if (ns_to_wait <= 0) {
-            // Advance current time.
-            _lf_advance_logical_time(logical_time_ns);
             return return_value;
         }
     
@@ -119,31 +110,8 @@ int wait_until(instant_t logical_time_ns) {
         // printf("DEBUG: Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
         struct timespec remaining_time;
         // FIXME: If the wait time is less than the time resolution, don't sleep.
-        if (nanosleep(&wait_time, &remaining_time) != 0) {
-            // Sleep was interrupted.
-            // May have been an asynchronous call to schedule(), or
-            // it may have been a control-C to stop the process.
-            // Set current time to match physical time, but not less than
-            // current logical time nor more than next time in the event queue.
-            clock_gettime(CLOCK_REALTIME, &current_physical_time);
-            long long current_physical_time_ns 
-                    = current_physical_time.tv_sec * BILLION
-                    + current_physical_time.tv_nsec;
-            if (current_physical_time_ns > current_tag.time) {
-                if (current_physical_time_ns < logical_time_ns) {
-                    // Advance current time.
-                    _lf_advance_logical_time(current_physical_time_ns);
-                    return -1;
-                }
-            } else {
-                // Current physical time does not exceed current logical
-                // time, so do not advance current time.
-                return -1;
-            }
-        }
+        return_value = nanosleep(&wait_time, &remaining_time);
     }
-    // Advance current time.
-    _lf_advance_logical_time(logical_time_ns);
     return return_value;
 }
 
@@ -256,11 +224,10 @@ int __do_step() {
     // No more reactions should be blocked at this point.
     //assert(pqueue_size(blocked_q) == 0);
 
-    if (timeout_time != NEVER && 
-        compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0) {
-        stop_requested = true;
+    if (compare_tags(current_tag, stop_tag) == 0) {
         return 0;
     }
+
     return 1;
 }
 
@@ -285,46 +252,72 @@ int next() {
     // If there is no next event and -keepalive has been specified
     // on the command line, then we will wait the maximum time possible.
     // FIXME: is LLONG_MAX different from FOREVER?
-    tag_t next_tag = { .time = LLONG_MAX, .microstep = 0};
+    tag_t next_tag = { .time = LLONG_MAX, .microstep = UINT_MAX};
     if (event == NULL) {
         // No event in the queue.
         if (!keepalive_specified) {
-            return 0;
+            _lf_advance_logical_time(current_tag.time);
+            _lf_set_stop_tag(current_tag);
         }
     } else {
         next_tag.time = event->time;
+        // Deduce the microstep
+        if (next_tag.time == current_tag.time) {
+            next_tag.microstep = get_microstep() + 1;
+        } else {
+            next_tag.microstep = 0;
+        }
     }
-    // Deduce the microstep
-    if (next_tag.time == current_tag.time) {
-        next_tag.microstep = get_microstep() + 1;
+    
+    if (_lf_is_tag_after_stop_tag(next_tag)) {
+        // Cannot process events after the stop tag.
+        next_tag = stop_tag;
     }
 
-    if (_lf_is_tag_after_timeout(next_tag)) {
-        return 0;
-    }
     //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_tag.time - start_time);
     // Wait until physical time >= event.time.
     // The wait_until function will advance current_tag.time.
-    if (wait_until(next_tag.time) < 0) {
-        // Sleep was interrupted or the timeout time has been reached.
-        // Time has not advanced to the time of the event.
-        // There may be a new earlier event on the queue.
-        event_t* new_event = (event_t*)pqueue_peek(event_q);
-        if (new_event == event) {
-            // There is no new event. If the timeout tag has been surpassed,
-            // or if the maximum time has been reached (unlikely), then return.
-            if (new_event == NULL || 
-                (_lf_is_tag_after_timeout(current_tag))) {
-                stop_requested = true;
-                return 0;
+    if (wait_until(next_tag.time) != 0) {
+        // Sleep was interrupted.
+        // FIXME: I think async calls to schedule() are now limited to the
+        // threaded runtime.
+        // May have been an asynchronous call to schedule(), or
+        // it may have been a control-C to stop the process.
+        // Set current time to match physical time, but not less than
+        // current logical time nor more than next time in the event queue.// Get the current physical time.
+        struct timespec current_physical_time;
+        clock_gettime(CLOCK_REALTIME, &current_physical_time);
+        long long current_physical_time_ns 
+                = current_physical_time.tv_sec * BILLION
+                + current_physical_time.tv_nsec;
+        if (current_physical_time_ns > current_tag.time) {
+            if (current_physical_time_ns < next_tag.time) {
+                // Advance current time.
+                _lf_advance_logical_time(current_physical_time_ns);
+                // I am assuming control-C causes this condition. Therefore, the 
+                // program has to stop.
+                // _lf_set_stop_tag((tag_t) {.time = current_physical_time_ns, .microstep = 0});
+                return 1;
             }
-            printf("DEBUG: Setting current (elapsed) time to %lld.\n", next_tag.time - start_time);
         } else {
-            // Handle the new event.
-            event = new_event;
-            next_tag.time = event->time;
-            printf("DEBUG: New event at (elapsed) time %lld.\n", next_tag.time - start_time);
+            // Current physical time does not exceed current logical
+            // time, so do not advance current time.
+            // I am assuming control-C causes this condition. Therefore, the 
+            // program has to stop.
+            // _lf_set_stop_tag(current_tag);
+            return 1;
         }
+    }
+
+    // Do not advance tag if we are supposed to stop now
+    // This is a corner case that only happens at (0,0)
+    // when timeout is set to 0.
+    if (compare_tags(current_tag, stop_tag) != 0) {
+        _lf_advance_logical_time(next_tag.time);
+    }
+
+    if (compare_tags(current_tag, stop_tag) == 0) {        
+        __wrapup();
     }
 
     // Invoke code that must execute before starting a new logical time round,
@@ -335,59 +328,16 @@ int next() {
     // extract all the reactions triggered by these events, and
     // stick them into the reaction queue.
     __pop_events();
-    
-    // If we are at (timeout_time, 0), there will be shutdown
-    // reactions that will be added to the reaction queue
-    // during wrapup(). Therefore, do not call __do_step()
-    // here.
-    if (timeout_time != NEVER && 
-        compare_tags2(current_tag.time, current_tag.microstep, timeout_time, 0) > 0) {
-        stop_requested = true;
-        return 0;
-    }
 
     return __do_step();
 }
 
-// Stop execution at the conclusion of the current logical time.
-void request_stop() {
-    stop_requested = true;
-}
-
-/*
- * Execute shutdown reactions (those reactions
- * that are triggered at shutdown) during
- * wrapup.
+/**
+ * Stop execution at the conclusion of the next microstep.
  */
-void wrapup() {    
-    if (current_tag.time != timeout_time) {
-        // The cause for stop is not reaching
-        // the timeout. Therefore, either the
-        // request_stop() has been called or starvation
-        // has occurred.
-        // Shutdown reactions need to incur one
-        // microstep.
-        _lf_advance_logical_time(current_tag.time);
-        
-        // Invoke code that must execute before starting a new logical time round,
-        // such as initializing outputs to be absent.
-        __start_time_step();
-        
-        event_t* event = (event_t*)pqueue_peek(event_q);
-        if (event != NULL) {
-            if (event->time == current_tag.time) {
-                // Pop events one last time to retrieve events
-                // scheduled at the next microstep.
-                __pop_events();
-            }
-        }
-    }
-    // Invoke any code-generated wrapup. If this returns true,
-    // then at least one shutdown reaction has been inserted 
-    // into the reaction queue. Note that at (timeout_time, 0)
-    // other reactions might also exist on the queue.
-    __wrapup();
-    __do_step();
+void request_stop() {
+    stop_tag = current_tag;
+    stop_tag.microstep++;
 }
 
 int main(int argc, char* argv[]) {
@@ -402,8 +352,7 @@ int main(int argc, char* argv[]) {
         __initialize_timers();
         // Handle reactions triggered at time (T,0).
         __do_step();
-        while (next() != 0 && !stop_requested);
-        wrapup();
+        while (next() != 0);
         termination();
         return 0;
     } else {
