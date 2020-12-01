@@ -7,13 +7,17 @@
  * @author Soroush Bateni
  */
  
-target C;
+target C {
+    flags: "-lm"
+};
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stdlib.h>
     #include <stddef.h>
+    
+    typedef double message_content_t;
     
     typedef enum MsgType {
       DataItemMsg,
@@ -25,15 +29,15 @@ preamble {=
     
     typedef struct Message {
       msg_type_t type;
-      double data;
+      message_content_t data;
     } message_t;
     
     typedef struct bounded_fifo_t {
         size_t head;
         size_t tail;
-        int* arr;
         size_t max_size;
         bool is_full;
+        void** arr;
     } bounded_fifo_t;
     
     /**
@@ -76,7 +80,7 @@ preamble {=
      */
     bounded_fifo_t* create_fifo(size_t capacity) {
         bounded_fifo_t* queue = malloc(sizeof(bounded_fifo_t));
-        queue->arr = calloc(0, capacity * sizeof(int));
+        queue->arr = calloc(0, capacity * sizeof(void*));
         queue->max_size = capacity;
         clear(queue);
         return queue;
@@ -86,12 +90,12 @@ preamble {=
      * Assign the given pointer to the first element in the queue.
      * Return true if the assignment was successful, false otherwise.
      */
-    bool pop(bounded_fifo_t* queue, int* data) {
+    bool pop(bounded_fifo_t* queue, void* data) {
         if (is_empty(queue)) {
             printf("Buffer is empty.\n");
             return false;
         } else {
-            *data = queue->arr[queue->head];
+            data = queue->arr[queue->head];
             queue->head = (queue->head + 1) % queue->max_size;
             queue->is_full = false;
         	return true;
@@ -101,7 +105,7 @@ preamble {=
     /**
      * Add a new entry to the queue.
      */
-    bool push(bounded_fifo_t* queue, int elem) {
+    bool push(bounded_fifo_t* queue, void* elem) {
         if (queue->is_full) {
         	printf("Buffer is full.\n");
 			return false;        	
@@ -139,7 +143,7 @@ preamble {=
 
 reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:size_t(40)) {
     
-    state adjustedBufferSize:int({=self->bufferSize-self->numProducers=});
+    state adjustedBufferSize:int(0);
     state availableProducers:bounded_fifo_t*;
     state availableConsumers:bounded_fifo_t*;
     state pendingData:bounded_fifo_t*;
@@ -158,6 +162,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     
     reaction(startup) {=
         // init local state
+        self->adjustedBufferSize = self->bufferSize-self->numProducers;
         self->availableProducers = create_fifo(self->numProducers);
         self->availableConsumers = create_fifo(self->numConsumers);
         self->pendingData = create_fifo(self->bufferSize);
@@ -194,7 +199,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             int idx;
             pop(self->availableConsumers, &idx);
             SET(outConsumers[idx], msg);
-            if (!is_empty(self->availableProducers) {
+            if (!is_empty(self->availableProducers)) {
                 int idx;
                 pop(self->availableProducers, &idx);
                 message_t msg = {ProduceDataMsg, 0.0};
@@ -213,10 +218,10 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         
         // start execution
         for(int i = 0; i < self->numProducers; i++) {
-            push(self->availableProducers, i);
+            push(self->availableProducers, &i);
         }
         for(int i = 0; i < self->numConsumers; i++) {
-            push(self->availableConsumers, i);
+            push(self->availableConsumers, &i);
         }
         schedule(produce, 0);
     =}
@@ -225,7 +230,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         for (int i = 0; i < inConsumers_width; i++) {
             if (inConsumers[i]->is_present) {
                 if(inConsumers[i]->value.type == ConsumerAvailableMsg) {
-                    push(self->availableConsumers, i);
+                    push(self->availableConsumers, &i);
                 }
             }
         }
@@ -236,8 +241,8 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         for(int i = 0; i < inProducers_width; i++) {
             if(inProducers[i]->is_present) {
                 if (inProducers[i]->value.type == DataItemMsg) {
-                    push(self->pendingData, inProducers[i]->value); // FIXME: Not the right data type
-                    push(self->availableProducers, i);
+                    push(self->pendingData, &inProducers[i]->value); // FIXME: Not the right data type
+                    push(self->availableProducers, &i);
                     schedule(consume, 0);
                     schedule(produce, 0);
                 } else if(inProducers[i]->value.type == ProducerExitMsg) {
@@ -255,7 +260,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
 
 reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
         
-    state prodItem:double(0.0);
+    state prodItem:message_content_t(0.0);
     state itemsProduced:int(0);
     
     input inManager:message_t;
@@ -273,7 +278,7 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
                 self->itemsProduced = 0;
                 return;
             }
-            message_t tmp = {DataItemMsg, processItem(self->prodItem, self->prodCost));
+            message_t tmp = {DataItemMsg, processItem(self->prodItem, self->prodCost)};
             SET(outManager, tmp);
             self->itemsProduced += 1;
         }
@@ -288,7 +293,7 @@ reactor ConsumerReactor(consCost:int(25)) {
         //#include "PseudoRandom.hh"
     =}
     
-    state consItem:double(0.0);
+    state consItem:message_content_t(0.0);
     
     input inManager:message_t;
     output outManager:message_t;
@@ -296,7 +301,7 @@ reactor ConsumerReactor(consCost:int(25)) {
     reaction(inManager) -> outManager {=
         
         if(inManager->value.type == DataItemMsg) {
-            double dataToConsume =  inManager->value.data;
+            message_content_t dataToConsume =  inManager->value.data;
             self->consItem = processItem(self->consItem + dataToConsume, self->consCost);
             message_t tmp = {ConsumerAvailableMsg, 0.0};
             SET(outManager, tmp);
@@ -338,7 +343,7 @@ main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCo
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("ProdConsBenchmark");
         // FIXME: what is printArgs?
-        printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
+        // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
 
         printSystemInfo();
         SET(runner.inStart, true);
