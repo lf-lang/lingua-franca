@@ -1,5 +1,4 @@
-
-/**
+/*
  * Concurrency benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * @author Hannes Klein
@@ -184,6 +183,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             message_t tmp = {ProduceDataMsg, *idx + 1.0};
             SET(outProducers[*idx], tmp);
             printf("outProducers[%d] = %f.\n", *idx, outProducers[*idx]->value.data);
+            free(idx);
         }
     =}
     
@@ -205,6 +205,8 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             int* idx;
             idx = pop(self->availableConsumers);
             SET(outConsumers[*idx], *msg);
+            free(idx);
+            free(msg);
             if (!is_empty(self->availableProducers)) {
                 int* idx;
                 idx = pop(self->availableProducers);
@@ -212,6 +214,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
                 message_t msg = {ProduceDataMsg, *idx + 1.0};
                 SET(outProducers[*idx], msg);
                 printf("outProducers[%d] = %f.\n", *idx, outProducers[*idx]->value.data);
+                free(idx);
             }
         }
     =}
