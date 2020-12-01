@@ -80,7 +80,7 @@ preamble {=
      */
     bounded_fifo_t* create_fifo(size_t capacity) {
         bounded_fifo_t* queue = malloc(sizeof(bounded_fifo_t));
-        queue->arr = calloc(0, capacity * sizeof(void*));
+        queue->arr = (void**)malloc(capacity * sizeof(void*));
         queue->max_size = capacity;
         clear(queue);
         return queue;
@@ -90,15 +90,14 @@ preamble {=
      * Assign the given pointer to the first element in the queue.
      * Return true if the assignment was successful, false otherwise.
      */
-    bool pop(bounded_fifo_t* queue, void* data) {
+    void* pop(bounded_fifo_t* queue) {
         if (is_empty(queue)) {
             printf("Buffer is empty.\n");
-            return false;
+            return NULL;
         } else {
-            data = queue->arr[queue->head];
             queue->head = (queue->head + 1) % queue->max_size;
             queue->is_full = false;
-        	return true;
+        	return queue->arr[queue->head];
         }
     }
     
@@ -175,14 +174,15 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             if(is_empty(self->availableProducers)) {
                 return;
             }
-            int idx;
-            pop(self->availableProducers, &idx);
+            int* idx;
+            idx = pop(self->availableProducers);
             message_t tmp = {ProduceDataMsg, 0.0};
-            SET(outProducers[idx], tmp);
+            SET(outProducers[*idx], tmp);
         }
     =}
     
     reaction(consume) -> outConsumers, outProducers {=
+        printf("This reaction is not invoked.\n");
         
         if(self->numTerminatedProducers == self->numProducers &&
             size(self->availableConsumers) == self->numConsumers) {
@@ -190,20 +190,20 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         }
         
         for (int i = 0; i < size(self->availableConsumers); i++) {
-            
             if (is_empty(self->pendingData)) {
                 break;
             }
-            message_t msg;
-            pop(self->pendingData, &msg); // FIXME: wrong data tyoe
-            int idx;
-            pop(self->availableConsumers, &idx);
-            SET(outConsumers[idx], msg);
+            message_t* msg;
+            msg = pop(self->pendingData); // FIXME: wrong data type
+            printf("Popped %f.\n", msg->data);
+            int* idx;
+            idx = pop(self->availableConsumers);
+            SET(outConsumers[*idx], *msg);
             if (!is_empty(self->availableProducers)) {
-                int idx;
-                pop(self->availableProducers, &idx);
+                int* idx;
+                idx = pop(self->availableProducers);
                 message_t msg = {ProduceDataMsg, 0.0};
-                SET(outProducers[idx], msg);
+                SET(outProducers[*idx], msg);
             }
         }
     =}
@@ -218,10 +218,14 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         
         // start execution
         for(int i = 0; i < self->numProducers; i++) {
-            push(self->availableProducers, &i);
+			int* producer = (int*)malloc(sizeof(int)); // FIXME: this should be freed
+			*producer = i;
+            push(self->availableProducers, producer);
         }
         for(int i = 0; i < self->numConsumers; i++) {
-            push(self->availableConsumers, &i);
+			int* consumer = (int*)malloc(sizeof(int)); // FIXME: this should be freed
+			*consumer = i;
+            push(self->availableConsumers, consumer);
         }
         schedule(produce, 0);
     =}
@@ -230,7 +234,9 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         for (int i = 0; i < inConsumers_width; i++) {
             if (inConsumers[i]->is_present) {
                 if(inConsumers[i]->value.type == ConsumerAvailableMsg) {
-                    push(self->availableConsumers, &i);
+					int* inConsumer = (int*)malloc(sizeof(int)); // FIXME: this should be freed
+					*inConsumer = i;
+                    push(self->availableConsumers, inConsumer);
                 }
             }
         }
@@ -242,7 +248,9 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             if(inProducers[i]->is_present) {
                 if (inProducers[i]->value.type == DataItemMsg) {
                     push(self->pendingData, &inProducers[i]->value); // FIXME: Not the right data type
-                    push(self->availableProducers, &i);
+					int* producer = (int*)malloc(sizeof(int)); // FIXME: this should be freed
+					*producer = i;                    
+                    push(self->availableProducers, producer);
                     schedule(consume, 0);
                     schedule(produce, 0);
                 } else if(inProducers[i]->value.type == ProducerExitMsg) {
