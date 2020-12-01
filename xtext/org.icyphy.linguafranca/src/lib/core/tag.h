@@ -140,6 +140,13 @@ tag_t get_current_tag();
 unsigned int get_microstep();
 
 /**
+ * Global physical clock offset.
+ * Initially set according to the RTI's clock in federated
+ * programs.
+ */
+interval_t _lf_global_physical_time_offset = 0LL;
+
+/**
  * Return the current physical time in nanoseconds.
  * On many platforms, this is the number of nanoseconds
  * since January 1, 1970, but it is actually platform dependent.

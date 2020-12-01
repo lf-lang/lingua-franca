@@ -125,12 +125,13 @@ microstep_t get_microstep() {
 }
 
 /**
- * Return the current physical time in nanoseconds since January 1, 1970.
+ * Return the current physical time in nanoseconds since January 1, 1970,
+ * adjusted by the global physical time offset.
  */
 instant_t get_physical_time() {
     struct timespec physicalTime;
     clock_gettime(CLOCK_REALTIME, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec;
+    return (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) + _lf_global_physical_time_offset;
 }
 
 /**
