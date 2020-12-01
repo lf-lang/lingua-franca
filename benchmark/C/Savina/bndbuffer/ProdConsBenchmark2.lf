@@ -10,8 +10,8 @@ target C {
     flags: "-lm",
     //logging: DEBUG,
     keepalive: true,
-    files: ../include/PseudoRandom.h
-    //threads: 4
+    files: ../include/PseudoRandom.h,
+    threads: 24
     //timeout: 2 secs
 };
 
@@ -387,34 +387,19 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
     state prodItem:double(0.0);
     state itemsProduced:int(0);
     
-    logical action next;
+    logical action next; 
     output data:double;
     
     reaction(startup, next) -> next, data {=
 		//printf("Producer creating data.\n");
 		//printf("x");
         if (self->itemsProduced == self->numItemsToProduce) {
-        	// reset local state
-            self->prodItem = 0.0;
-            self->itemsProduced = 0;
-            return;
+        	return;
         } else {
             schedule(next, 0);
             SET(data, processItem(self->prodItem, self->prodCost));
             self->itemsProduced += 1;
         }
-    =}
-}
-
-reactor LogicalAnd(width:int(40)) {
-    input[width] inp:bool;
-    output out:bool;
-    reaction(inp) -> out {=
-        bool b = true;
-        for (int i = 0; i < self->width; i++) {
-            b &= inp[i]->value;
-        }
-        SET(out, b);
     =}
 }
 
@@ -483,7 +468,6 @@ main reactor ProdConsBenchmark(bufferSize:int(50), prodCost:int(25), consCost:in
     
     producers = new[40] Producer(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
     consumers = new[40] Consumer(numItemsToConsume=numItemsPerProducer, consCost=consCost);
-    merge = new LogicalAnd();
     
     producers.data -> consumers.data;
    
