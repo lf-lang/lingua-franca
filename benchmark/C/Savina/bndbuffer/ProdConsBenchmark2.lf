@@ -367,6 +367,7 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
             self->itemsProduced = 0;
             return;
         } else {
+            schedule(next, 0);
         	SET(data, processItem(self->prodItem, self->prodCost));
             self->itemsProduced += 1;
         }
