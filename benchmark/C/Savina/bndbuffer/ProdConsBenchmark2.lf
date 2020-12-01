@@ -84,6 +84,7 @@ preamble {=
             return false;
         } else {
             *data = queue->arr[queue->head];
+            printf("Popping: %d\n", *data);
             queue->head = (queue->head + 1) % queue->max_size;
             queue->is_full = false;
         	return true;
@@ -98,6 +99,7 @@ preamble {=
         	printf("Buffer is full.\n");
 			return false;        	
         } else {
+            printf("Pushing: %d\n", elem);
             queue->arr[queue->tail] = elem;
             queue->tail = (queue->tail + 1) % queue->max_size;
             if (queue->head == queue->tail) {
@@ -417,7 +419,8 @@ main reactor Test {
 		int_fifo_push(self->q, 4);
 		while(!int_fifo_is_empty(self->q)) {
 				int ptr;
-				printf("value: %d\n", int_fifo_pop(self->q, &ptr));
+				int_fifo_pop(self->q, &ptr);
+				printf("value: %d\n", ptr);
 				printf("size: %d\n", int_fifo_size(self->q));
         }
         
@@ -428,7 +431,8 @@ main reactor Test {
 		double_fifo_push(self->p, 4.0);
 		while(!double_fifo_is_empty(self->p)) {
 				double ptr;
-				printf("value: %f\n", double_fifo_pop(self->p, &ptr));
+				double_fifo_pop(self->p, &ptr);
+				printf("value: %f\n", ptr);
 				printf("size: %d\n", double_fifo_size(self->p));
         }
     =} 
