@@ -1,0 +1,286 @@
+
+/**
+ * Concurrency benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * @author Hannes Klein
+ * @author Marten Lohstroh
+ * @author Soroush Bateni
+ */
+ 
+target C;
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+preamble {=
+    #include <stdlib.h>
+    
+    enum MsgType {
+      DataItemMsg,
+      ProduceDataMsg,
+      ProducerExitMsg,
+      ConsumerAvailableMsg,
+      ConsumerExitMsg
+    };
+    
+    typedef struct Message {
+      MsgType type;
+      double data;
+    } message_t;
+    
+    // FIXME: implement fifo
+    function bounded_fifo_t* create_fifo(size_t size) {
+        return NULL;
+    }
+    
+    function clear(bounded_fifo_t* queue) {
+        queue->head = queue->init;
+        queue->tail = queue->init;
+    }
+    
+    typedef struct bounded_fifo_t {
+        size_t size;
+        int* head;
+        int* tail;
+        int* init; // for freeing 
+    } bounded_fifo_t;
+=}
+
+reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:size_t(40)) {
+    
+    state adjustedBufferSize:int({=bufferSize-numProducers=});
+    state availableProducers:bounded_fifo_t;
+    state availableConsumers:bounded_fifo_t;
+    state pendingData:bounded_fifo_t;
+    state numTerminatedProducers:int(0);
+    
+    input inStart:bool;
+    output outFinished:bool;
+    
+    logical action consume;
+    logical action produce;
+    
+    input[40] inProducers:message_t;
+    output[40] outProducers:message_t;
+    input[40] inConsumers:message_t;
+    output[40] outConsumers:message_t;
+    
+    reaction(startup) {=
+        // init local state
+        self->availableProducers = create_fifo(self->numProducers);
+        self->availableConsumers = create_fifo(self->numConsumers);
+        self->pendingData = create_fifo(self->bufferSize);
+    =}
+    
+    reaction(produce) -> outProducers {=
+        
+        while(pendingData.size() < adjustedBufferSize) {
+            
+            if(availableProducers.empty()) {
+                return;
+            }
+            
+            outProducers[availableProducers[0]].set(Message{ProduceDataMsg, 0.0});
+            availableProducers.erase(begin(availableProducers));
+        }
+    =}
+    
+    reaction(consume) -> outConsumers, outProducers {=
+        
+        if(numTerminatedProducers == numProducers &&
+            availableConsumers.size() == numConsumers) {
+            return;
+        }
+        
+        for(int i = 0; i < availableConsumers.size(); i++) {
+            
+            if(pendingData.empty()) {
+                break;
+            }
+            
+            outConsumers[availableConsumers[0]].set(pendingData[0]);
+            availableConsumers.erase(begin(availableConsumers));
+            pendingData.erase(begin(pendingData));
+            if(!availableProducers.empty()) {
+                outProducers[availableProducers[0]].set(Message{ProduceDataMsg, 0.0});
+                availableProducers.erase(begin(availableProducers));
+            }
+        }
+    =}
+    
+    reaction(inStart) -> produce {=
+        
+        // reset local state
+        availableProducers.clear();
+        availableConsumers.clear();
+        pendingData.clear();
+        numTerminatedProducers = 0;
+        
+        // start execution
+        for(int i = 0; i < outProducers.size(); i++) {
+            availableProducers.push_back(i);
+        }
+        for(int i = 0; i < outConsumers.size(); i++) {
+            availableConsumers.push_back(i);
+        }
+        produce.schedule();
+    =}
+    
+    reaction(inConsumers) -> consume {=
+        
+        for(int i = 0; i < inConsumers.size(); i++) {
+            if(inConsumers[i].is_present()) {
+                if(inConsumers[i].get()->type == ConsumerAvailableMsg) {
+                    availableConsumers.push_back(i);
+                }
+            }
+        }
+        consume.schedule();
+    =}
+    
+    reaction(inProducers) -> produce, consume, outFinished {=
+        
+        for(int i = 0; i < inProducers.size(); i++) {
+            if(inProducers[i].is_present()) {
+                if(inProducers[i].get()->type == DataItemMsg) {
+                    
+                    pendingData.push_back(inProducers[i].get());
+                    availableProducers.push_back(i);
+                    consume.schedule();
+                    produce.schedule();
+                    
+                } else if(inProducers[i].get()->type == ProducerExitMsg) {
+                    
+                    numTerminatedProducers += 1;
+                    
+                    if(numTerminatedProducers == numProducers &&
+                        availableConsumers.size() == numConsumers) {
+                        outFinished.set();
+                        return;
+                    }
+                }
+            }
+        }
+    =}
+}
+
+reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
+        
+    state prodItem:double(0.0);
+    state itemsProduced:int(0);
+    
+    input inManager:message_t;
+    output outManager:message_t;
+    
+    reaction(inManager) -> outManager {=
+        
+        if(inManager.get()->type == ProduceDataMsg) {
+            if(itemsProduced == numItemsToProduce) {
+                outManager.set(Message{ProducerExitMsg, 0.0});
+                
+                // reset local state
+                prodItem = 0.0;
+                itemsProduced = 0;
+                return;
+            }
+            prodItem = processItem(prodItem, prodCost);
+            outManager.set(Message{DataItemMsg, prodItem});
+            itemsProduced += 1;
+        }
+    =}
+    
+    preamble {=
+        
+        static double processItem(const double curTerm, const int cost) {
+            
+            double res = curTerm;
+            
+            PseudoRandom random(cost);
+            if(cost > 0) {
+                for(int i = 0; i < cost; i++) {
+                    for(int j = 0; j < 100; j++) {
+                        res += log(abs(random.nextDouble()) + 0.01);
+                    }
+                }
+            } else {
+                res += log(abs(random.nextDouble()) + 0.01);
+            }
+            
+            return res;
+        }
+    =}
+}
+
+reactor ConsumerReactor(consCost:int(25)) {
+    
+    preamble {=
+        //#include <cmath>
+        //#include "PseudoRandom.hh"
+    =}
+    
+    state consItem:double(0.0);
+    
+    input inManager:message_t;
+    output outManager:message_t;
+    
+    reaction(inManager) -> outManager {=
+        
+        if(inManager.get()->type == DataItemMsg) {
+            double dataToConsume =  inManager.get()->data;
+            consItem = processItem(consItem + dataToConsume, consCost);
+            outManager.set(Message{ConsumerAvailableMsg, 0.0});
+        } else if(inManager.get()->type == ConsumerExitMsg) {
+            // reset local state
+            consItem = 0.0;
+        }
+    =}
+    
+    preamble {=
+        
+        static double processItem(const double curTerm, const int cost) {
+            
+            double res = curTerm;
+            
+            PseudoRandom random(cost);
+            if(cost > 0) {
+                for(int i = 0; i < cost; i++) {
+                    for(int j = 0; j < 100; j++) {
+                        res += log(abs(random.nextDouble()) + 0.01);
+                    }
+                }
+            } else {
+                res += log(abs(random.nextDouble()) + 0.01);
+            }
+            
+            return res;
+        }
+    =}
+}
+
+main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+    
+    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
+    
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> manager.inStart;
+    manager.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ProdConsBenchmark");
+        printArgs("numIterations", numIterations, "bufferSize", bufferSize, "prodCost", prodCost, "consCost", consCost, "numItemsPerProducer", numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
+
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    producers = new[40] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
+    consumers = new[40] ConsumerReactor(consCost=consCost);
+    
+    manager.outProducers -> producers.inManager;
+    producers.outManager -> manager.inProducers;
+    
+    manager.outConsumers -> consumers.inManager;
+    consumers.outManager -> manager.inConsumers;
+    
+}
+ 
