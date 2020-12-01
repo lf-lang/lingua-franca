@@ -9,7 +9,7 @@
  
 target C;
 
-//import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stdlib.h>
@@ -113,13 +113,33 @@ preamble {=
             }
         	return true;
         }
-    }    
+    }
+    
+        #include <math.h>
+        
+        static double processItem(const double curTerm, const int cost) {
+            
+            double res = curTerm;
+            
+            srand(cost);
+            if(cost > 0) {
+                for(int i = 0; i < cost; i++) {
+                    for(int j = 0; j < 100; j++) {
+                        res += log(abs(rand()) + 0.01);
+                    }
+                }
+            } else {
+                res += log(abs(rand()) + 0.01);
+            }
+            
+            return res;
+        }
     
 =}
 
 reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:size_t(40)) {
     
-    state adjustedBufferSize:int({=bufferSize-numProducers=});
+    state adjustedBufferSize:int({=self->bufferSize-self->numProducers=});
     state availableProducers:bounded_fifo_t*;
     state availableConsumers:bounded_fifo_t*;
     state pendingData:bounded_fifo_t*;
@@ -150,9 +170,10 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             if(is_empty(self->availableProducers)) {
                 return;
             }
-            
-            outProducers[availableProducers[0]].set(Message{ProduceDataMsg, 0.0});
-            availableProducers.erase(begin(availableProducers));
+            int idx;
+            pop(self->availableProducers, &idx);
+            message_t tmp = {ProduceDataMsg, 0.0};
+            SET(outProducers[idx], tmp);
         }
     =}
     
@@ -163,18 +184,21 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             return;
         }
         
-        for(int i = 0; i < size(self->availableConsumers); i++) {
+        for (int i = 0; i < size(self->availableConsumers); i++) {
             
-            if(is_empty(self->pendingData)) {
+            if (is_empty(self->pendingData)) {
                 break;
             }
-            
-            outConsumers[availableConsumers[0]].set(pendingData[0]);
-            availableConsumers.erase(begin(availableConsumers));
-            pendingData.erase(begin(pendingData));
-            if(!is_empty(self->availableProducers) {
-                outProducers[availableProducers[0]].set(Message{ProduceDataMsg, 0.0});
-                availableProducers.erase(begin(availableProducers));
+            message_t msg;
+            pop(self->pendingData, &msg); // FIXME: wrong data tyoe
+            int idx;
+            pop(self->availableConsumers, &idx);
+            SET(outConsumers[idx], msg);
+            if (!is_empty(self->availableProducers) {
+                int idx;
+                pop(self->availableProducers, &idx);
+                message_t msg = {ProduceDataMsg, 0.0};
+                SET(outProducers[idx], msg);
             }
         }
     =}
@@ -188,21 +212,20 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         self->numTerminatedProducers = 0;
         
         // start execution
-        for(int i = 0; i < outProducers_width; i++) {
-            //availableProducers.push_back(i); // FIXME
+        for(int i = 0; i < self->numProducers; i++) {
+            push(self->availableProducers, i);
         }
-        for(int i = 0; i < outConsumers_width; i++) {
-            //availableConsumers.push_back(i); // FIXME
+        for(int i = 0; i < self->numConsumers; i++) {
+            push(self->availableConsumers, i);
         }
         schedule(produce, 0);
     =}
     
     reaction(inConsumers) -> consume {=
-        
-        for(int i = 0; i < inConsumers.size(); i++) {
-            if(inConsumers[i].is_present()) {
-                if(inConsumers[i].get()->type == ConsumerAvailableMsg) {
-                    availableConsumers.push_back(i);
+        for (int i = 0; i < inConsumers_width; i++) {
+            if (inConsumers[i]->is_present) {
+                if(inConsumers[i]->value.type == ConsumerAvailableMsg) {
+                    push(self->availableConsumers, i);
                 }
             }
         }
@@ -210,23 +233,18 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(inProducers) -> produce, consume, outFinished {=
-        
-        for(int i = 0; i < inProducers.size(); i++) {
-            if(inProducers[i].is_present()) {
-                if(inProducers[i].get()->type == DataItemMsg) {
-                    
-                    pendingData.push_back(inProducers[i].get());
-                    availableProducers.push_back(i);
-                    consume.schedule();
-                    produce.schedule();
-                    
-                } else if(inProducers[i].get()->type == ProducerExitMsg) {
-                    
-                    numTerminatedProducers += 1;
-                    
-                    if(numTerminatedProducers == numProducers &&
-                        availableConsumers.size() == numConsumers) {
-                        outFinished.set();
+        for(int i = 0; i < inProducers_width; i++) {
+            if(inProducers[i]->is_present) {
+                if (inProducers[i]->value.type == DataItemMsg) {
+                    push(self->pendingData, inProducers[i]->value); // FIXME: Not the right data type
+                    push(self->availableProducers, i);
+                    schedule(consume, 0);
+                    schedule(produce, 0);
+                } else if(inProducers[i]->value.type == ProducerExitMsg) {
+                    self->numTerminatedProducers += 1;
+                    if(self->numTerminatedProducers == self->numProducers &&
+                        size(self->availableConsumers) == self->numConsumers) {
+                        SET(outFinished, true);
                         return;
                     }
                 }
@@ -245,42 +263,22 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
     
     reaction(inManager) -> outManager {=
         
-        if(inManager->value->type == ProduceDataMsg) {
-            if(itemsProduced == numItemsToProduce) {
-                SET(outManager, Message{ProducerExitMsg, 0.0});
+        if(inManager->value.type == ProduceDataMsg) {
+            if(self->itemsProduced == self->numItemsToProduce) {
+                message_t tmp = {ProducerExitMsg, 0.0};
+                SET(outManager, tmp);
                 
                 // reset local state
-                prodItem = 0.0;
-                itemsProduced = 0;
+                self->prodItem = 0.0;
+                self->itemsProduced = 0;
                 return;
             }
-            prodItem = processItem(prodItem, prodCost);
-            SET(outManager, Message{DataItemMsg, prodItem});
-            itemsProduced += 1;
+            message_t tmp = {DataItemMsg, processItem(self->prodItem, self->prodCost));
+            SET(outManager, tmp);
+            self->itemsProduced += 1;
         }
     =}
     
-    preamble {=
-        #include <math.h>
-        
-        static double processItem(const double curTerm, const int cost) {
-            
-            double res = curTerm;
-            
-            srand(cost);
-            if(cost > 0) {
-                for(int i = 0; i < cost; i++) {
-                    for(int j = 0; j < 100; j++) {
-                        res += log(abs(rand()) + 0.01);
-                    }
-                }
-            } else {
-                res += log(abs(rand()) + 0.01);
-            }
-            
-            return res;
-        }
-    =}
 }
 
 reactor ConsumerReactor(consCost:int(25)) {
@@ -297,37 +295,18 @@ reactor ConsumerReactor(consCost:int(25)) {
     
     reaction(inManager) -> outManager {=
         
-        if(inManager.get()->type == DataItemMsg) {
-            double dataToConsume =  inManager.get()->data;
-            consItem = processItem(consItem + dataToConsume, consCost);
-            outManager.set(Message{ConsumerAvailableMsg, 0.0});
-        } else if(inManager.get()->type == ConsumerExitMsg) {
+        if(inManager->value.type == DataItemMsg) {
+            double dataToConsume =  inManager->value.data;
+            self->consItem = processItem(self->consItem + dataToConsume, self->consCost);
+            message_t tmp = {ConsumerAvailableMsg, 0.0};
+            SET(outManager, tmp);
+        } else if(inManager->value.type == ConsumerExitMsg) {
             // reset local state
-            consItem = 0.0;
+            self->consItem = 0.0;
         }
     =}
     
-    preamble {=
-        
-        static double processItem(const double curTerm, const int cost) {
-            
-            double res = curTerm;
-            
-            PseudoRandom random(cost);
-            if(cost > 0) {
-                for(int i = 0; i < cost; i++) {
-                    for(int j = 0; j < 100; j++) {
-                        res += log(abs(random.nextDouble()) + 0.01);
-                    }
-                }
-            } else {
-                res += log(abs(random.nextDouble()) + 0.01);
-            }
-            
-            return res;
-        }
-    =}
-}
+    }
 
 //main reactor Test {
 //	state q:bounded_fifo_t*;
@@ -358,10 +337,11 @@ main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCo
     
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("ProdConsBenchmark");
-        printArgs("numIterations", numIterations, "bufferSize", bufferSize, "prodCost", prodCost, "consCost", consCost, "numItemsPerProducer", numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
+        // FIXME: what is printArgs?
+        printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
 
         printSystemInfo();
-        runner.inStart.set();
+        SET(runner.inStart, true);
     =}
     
     producers = new[40] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
