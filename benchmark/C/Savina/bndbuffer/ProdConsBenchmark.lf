@@ -13,38 +13,58 @@ import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stdlib.h>
+    #include <stddef.h>
     
-    enum MsgType {
+    typedef enum MsgType {
       DataItemMsg,
       ProduceDataMsg,
       ProducerExitMsg,
       ConsumerAvailableMsg,
       ConsumerExitMsg
-    };
+    } msg_type_t;
     
     typedef struct Message {
-      MsgType type;
+      msg_type_t type;
       double data;
     } message_t;
+    
+    typedef struct bounded_fifo_t {
+        int* head;
+        int* tail;
+        int* init;
+        size_t capacity;
+    } bounded_fifo_t;
     
     /**
      * Create a new bounded FIFO queue.
      */
-    bounded_fifo_t* create_fifo(size_t size) {
+    bounded_fifo_t* create_fifo(size_t capacity) {
         bounded_fifo_t* queue = malloc(sizeof(bounded_fifo));
-        queue->init = malloc(sizeof(size * sizeof(int)));
+        queue->init = malloc(sizeof(capacity * sizeof(int)));
         clear(queue);
         return queue;
     }
     
     /**
+     * Report how many elements are inside the given queue.
+     */
+    void size_t size(bounded_fifo_t* queue) {
+        if (queue->head == queue->tail) {
+			return 0;
+        } else if (queue->tail > queue->head) {
+            return (queue->tail - queue->head) / sizeof(int);
+        } else {
+            (queue->head - queue->tail) / sizeof(int)
+        }
+    }
+    
+    
+    /**
      * Report whether or not the given queue is empty.
      */
     bool is_empty(bounded_fifo_t* queue) {
-        if (queue->head == queue->tail) {
+        if (size(queue) == 0) {
             return true;
-        } else {
-            return false;
         }
     }
 
@@ -56,20 +76,14 @@ preamble {=
         queue->tail = queue->init;
     }
     
-    typedef struct bounded_fifo_t {
-        size_t size;
-        int* head;
-        int* tail;
-        int* init;
-    } bounded_fifo_t;
 =}
 
 reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:size_t(40)) {
     
     state adjustedBufferSize:int({=bufferSize-numProducers=});
-    state availableProducers:bounded_fifo_t;
-    state availableConsumers:bounded_fifo_t;
-    state pendingData:bounded_fifo_t;
+    state availableProducers:bounded_fifo_t*;
+    state availableConsumers:bounded_fifo_t*;
+    state pendingData:bounded_fifo_t*;
     state numTerminatedProducers:int(0);
     
     input inStart:bool;
@@ -78,10 +92,10 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     logical action consume;
     logical action produce;
     
-    input[40] inProducers:message_t;
-    output[40] outProducers:message_t;
-    input[40] inConsumers:message_t;
-    output[40] outConsumers:message_t;
+    input[numProducers] inProducers:message_t;
+    output[numProducers] outProducers:message_t;
+    input[numConsumers] inConsumers:message_t;
+    output[numConsumers] outConsumers:message_t;
     
     reaction(startup) {=
         // init local state
@@ -105,8 +119,8 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     
     reaction(consume) -> outConsumers, outProducers {=
         
-        if(numTerminatedProducers == numProducers &&
-            availableConsumers.size() == numConsumers) {
+        if(self->numTerminatedProducers == self->numProducers &&
+            size(self->availableConsumers) == self->numConsumers) {
             return;
         }
         
@@ -129,14 +143,14 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     reaction(inStart) -> produce {=
         
         // reset local state
-        availableProducers.clear();
-        availableConsumers.clear();
-        pendingData.clear();
-        numTerminatedProducers = 0;
+        clear(self->availableProducers);
+        clear(self->availableConsumers);
+        clear(self->pendingData);
+        self->numTerminatedProducers = 0;
         
         // start execution
-        for(int i = 0; i < outProducers.size(); i++) {
-            availableProducers.push_back(i);
+        for(int i = 0; i < outProducers_width; i++) {
+            //availableProducers.push_back(i);
         }
         for(int i = 0; i < outConsumers.size(); i++) {
             availableConsumers.push_back(i);
