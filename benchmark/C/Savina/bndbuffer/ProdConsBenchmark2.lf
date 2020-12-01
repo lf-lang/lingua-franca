@@ -9,7 +9,8 @@
 target C {
     flags: "-lm",
     //logging: DEBUG,
-    keepalive: true
+    keepalive: true,
+    files: ../include/PseudoRandom.h
     //timeout: 2 secs
 };
 
@@ -19,6 +20,7 @@ preamble {=
     #include <stdlib.h>
     #include <stddef.h>
     #include <math.h>
+    #include "PseudoRandom.h"
     
     typedef struct int_fifo_t {
         size_t head;
@@ -199,15 +201,16 @@ preamble {=
     
     static double processItem(const double curTerm, const int cost) {
 		double res = curTerm;
-        srand(cost);
+        struct PseudoRandom random;
+        initPseudoRandom(&random, cost);
         if(cost > 0) {
         	for(int i = 0; i < cost; i++) {
             	for(int j = 0; j < 100; j++) {
-                	res += log(abs(rand()) + 0.01);
+                	res += log(abs(nextDouble(random)) + 0.01);
 				}
 			}
 		} else {
-			res += log(abs(rand()) + 0.01);
+			res += log(abs(nextDouble(random)) + 0.01);
 		}
         return res;
 	}
