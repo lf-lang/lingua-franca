@@ -8,12 +8,12 @@
  
 target C {
     flags: "-lm",
-    logging: DEBUG,
-    keepalive: true,
-    timeout: 2 secs
+    //logging: DEBUG,
+    keepalive: true
+    //timeout: 2 secs
 };
 
-//import BenchmarkRunner from "../BenchmarkRunner.lf";
+import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stdlib.h>
@@ -213,12 +213,12 @@ preamble {=
 	}
 =}
 
-reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:size_t(40)) {
+reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:size_t(40)) {
     
     state adjustedBufferSize:int(0);
     state availableProducers:int_fifo_t*;
     state availableConsumers:int_fifo_t*;
-    state pendingData:bounded_fifo_t*;
+    state pendingData:double_fifo_t*;
     state numTerminatedProducers:int(0);
     
     input inStart:bool;
@@ -227,18 +227,18 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     logical action consume;
     logical action produce;
     
-    input[numProducers] inProducers:message_t;
-    output[numProducers] outProducers:message_t;
-    input[numConsumers] inConsumers:message_t;
-    output[numConsumers] outConsumers:message_t;
+    input[numProducers] inProducers:double;
+    output[numProducers] outProducers:bool;
+    input[numConsumers] inConsumers:bool;
+    output[numConsumers] outConsumers:double;
     
     reaction(startup) {=
         printf("startup reaction is invoked.\n");
         // init local state
         self->adjustedBufferSize = self->bufferSize-self->numProducers;
-        self->availableProducers = create_fifo(self->numProducers);
-        self->availableConsumers = create_fifo(self->numConsumers);
-        self->pendingData = create_fifo(self->bufferSize);
+        self->availableProducers = int_fifo_create(self->numProducers);
+        self->availableConsumers = int_fifo_create(self->numConsumers);
+        self->pendingData = double_fifo_create(self->bufferSize);
     =}
     
     reaction(produce) -> outProducers {=
@@ -249,12 +249,10 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
                 printf("Ran out of available producers.\n");
                 break;
             }
-            int* idx;
-            idx = pop(self->availableProducers);
-            message_t tmp = {ProduceDataMsg, *idx + 1.0};
-            SET(outProducers[*idx], tmp);
-            printf("outProducers[%d] = %f.\n", *idx, outProducers[*idx]->value.data);
-            free(idx);
+            int idx;
+            idx = pop(self->availableProducers, &idx);
+            SET(outProducers[idx], idx + 1.0);
+            printf("outProducers[%d] = %f.\n", idx, outProducers[idx]->value.data);
         }
     =}
     
@@ -351,126 +349,122 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
 }
 
-reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
+reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
         
-    state prodItem:message_content_t(0.0);
+    state prodItem:double(0.0);
     state itemsProduced:int(0);
     
-    input inManager:message_t;
-    output outManager:message_t;
+    logical action next;
+    input start:bool;
+    output data:double;
     
-    reaction(inManager) -> outManager {=
-        printf("Producer inManager reaction is not invoked.\n");
+    reaction(start, next) -> next, data {=
+		printf("Producer creating data.\n");
         
-        if(inManager->value.type == ProduceDataMsg) {
-            if(self->itemsProduced == self->numItemsToProduce) {
-                message_t tmp = {ProducerExitMsg, 0.0};
-                SET(outManager, tmp);
-                
-                // reset local state
-                self->prodItem = 0.0;
-                self->itemsProduced = 0;
-                return;
-            }
-            message_t tmp = {DataItemMsg, processItem(self->prodItem, self->prodCost)};
-            SET(outManager, tmp);
+        if (self->itemsProduced == self->numItemsToProduce) {
+        	// reset local state
+            self->prodItem = 0.0;
+            self->itemsProduced = 0;
+            return;
+        } else {
+        	SET(data, processItem(self->prodItem, self->prodCost));
             self->itemsProduced += 1;
         }
     =}
-    
 }
 
-reactor ConsumerReactor(consCost:int(25)) {
-    
-    preamble {=
-        //#include <cmath>
-        //#include "PseudoRandom.hh"
+reactor LogicalAnd(width:int(40)) {
+    input[width] inp:bool;
+    output out:bool;
+    reaction(inp) -> out {=
+        bool b = true;
+        for (int i = 0; i < self->width; i++) {
+            b &= inp[i]->value;
+        }
+        SET(out, b);
     =}
+}
+
+reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
     
-    state consItem:message_content_t(0.0);
+    state consItem:double(0.0);
+    state itemsConsumed:int(0);
+    input data:double;
+    output done:bool;
     
-    input inManager:message_t;
-    output outManager:message_t;
-    
-    reaction(inManager) -> outManager {=
-        printf("Consumer inManager reaction is not invoked.\n");
-        
-        if(inManager->value.type == DataItemMsg) {
-            message_content_t dataToConsume =  inManager->value.data;
-            self->consItem = processItem(self->consItem + dataToConsume, self->consCost);
-            message_t tmp = {ConsumerAvailableMsg, 0.0};
-            SET(outManager, tmp);
-        } else if(inManager->value.type == ConsumerExitMsg) {
-            // reset local state
-            self->consItem = 0.0;
+    reaction(data) -> done {=
+        printf("Consumer processing data.\n");
+        self->consItem = processItem(self->consItem + data->value, self->consCost);
+        self->itemsConsumed += 1;
+        printf("%d", self->itemsConsumed);
+        if (self->itemsConsumed == self->numItemsToConsume) {
+			self->consItem = 0.0;
+			SET(done, true);
         }
     =}
     
     }
 
-main reactor Test {
-	state p:double_fifo_t*;
-	state q:int_fifo_t*;
-	reaction(startup) {=
-    	self->q = int_fifo_create(4);
-    	int_fifo_push(self->q, 1);
-		int_fifo_push(self->q, 2);
-		int_fifo_push(self->q, 3);
-		int_fifo_push(self->q, 4);
-		while(!int_fifo_is_empty(self->q)) {
-				int ptr;
-				int_fifo_pop(self->q, &ptr);
-				printf("value: %d\n", ptr);
-				printf("size: %d\n", int_fifo_size(self->q));
-        }
-        
-        self->p = double_fifo_create(4);
-    	double_fifo_push(self->p, 1.0);
-		double_fifo_push(self->p, 2.0);
-		double_fifo_push(self->p, 3.0);
-		double_fifo_push(self->p, 4.0);
-		while(!double_fifo_is_empty(self->p)) {
-				double ptr;
-				double_fifo_pop(self->p, &ptr);
-				printf("value: %f\n", ptr);
-				printf("size: %d\n", double_fifo_size(self->p));
-        }
-    =} 
-
-}
-//main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
-//    
-//    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
-//    
-//    runner = new BenchmarkRunner(numIterations=numIterations);
-//    
-//    runner.outIterationStart -> manager.inStart;
-//    manager.outFinished -> runner.inIterationFinish;
-//    
-//    reaction(startup) -> runner.inStart {=
-//        printBenchmarkInfo("ProdConsBenchmark");
-//        // FIXME: what is printArgs?
-//        // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
-//        printf("numIterations: %d.\n", self->numIterations);
-//        printf("bufferSize: %d.\n", self->bufferSize);
-//        printf("prodCost: %d.\n", self->prodCost);
-//        printf("consCost: %d.\n", self->consCost);
-//        printf("numItemsPerProducer: %d.\n", self->numItemsPerProducer);
-//        printf("numProducers: %d.\n", 40);
-//        printf("numConsumers: %d.\n", 40);
-//		
-//		
-//        printSystemInfo();
-//        SET(runner.inStart, true);
-//    =}
-//    
-//    producers = new[40] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
-//    consumers = new[40] ConsumerReactor(consCost=consCost);
-//    
-//    manager.outProducers -> producers.inManager;
-//    producers.outManager -> manager.inProducers;
-//    
-//    manager.outConsumers -> consumers.inManager;
-//    consumers.outManager -> manager.inConsumers;
-//    
+//main reactor Test {
+//	state p:double_fifo_t*;
+//	state q:int_fifo_t*;
+//	reaction(startup) {=
+//    	self->q = int_fifo_create(4);
+//    	int_fifo_push(self->q, 1);
+//		int_fifo_push(self->q, 2);
+//		int_fifo_push(self->q, 3);
+//		int_fifo_push(self->q, 4);
+//		while(!int_fifo_is_empty(self->q)) {
+//				int ptr;
+//				int_fifo_pop(self->q, &ptr);
+//				printf("value: %d\n", ptr);
+//				printf("size: %d\n", int_fifo_size(self->q));
+//        }
+//        
+//        self->p = double_fifo_create(4);
+//    	double_fifo_push(self->p, 1.0);
+//		double_fifo_push(self->p, 2.0);
+//		double_fifo_push(self->p, 3.0);
+//		double_fifo_push(self->p, 4.0);
+//		while(!double_fifo_is_empty(self->p)) {
+//				double ptr;
+//				double_fifo_pop(self->p, &ptr);
+//				printf("value: %f\n", ptr);
+//				printf("size: %d\n", double_fifo_size(self->p));
+//        }
+//    =} 
+//
 //}
+main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+    
+    runner = new BenchmarkRunner(numIterations=numIterations);
+        
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ProdConsBenchmark");
+        // FIXME: what is printArgs?
+        // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
+        printf("numIterations: %d.\n", self->numIterations);
+        printf("bufferSize: %d.\n", self->bufferSize);
+        printf("prodCost: %d.\n", self->prodCost);
+        printf("consCost: %d.\n", self->consCost);
+        printf("numItemsPerProducer: %d.\n", self->numItemsPerProducer);
+        printf("numProducers: %d.\n", 40);
+        printf("numConsumers: %d.\n", 40);
+		
+		
+        printSystemInfo();
+        SET(runner.inStart, true);
+    =}
+    
+    producers = new[40] Producer(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
+    consumers = new[40] Consumer(numItemsToConsume=numItemsPerProducer, consCost=consCost);
+    merge = new LogicalAnd();
+    
+    
+    (runner.outIterationStart)+ -> producers.start;
+    consumers.done -> merge.inp;
+    merge.out -> runner.inIterationFinish;
+    producers.data -> consumers.data;
+    
+    
+}
