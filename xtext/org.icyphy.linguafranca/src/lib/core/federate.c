@@ -1182,7 +1182,7 @@ void handle_stop_granted_message() {
         error_print_and_exit("Received a stop_time in the past.");
     }
 
-    stop_tag = received_stop_tag;
+    _lf_set_stop_tag(received_stop_tag);
     DEBUG_PRINT("Federate %d setting the stop tag to (%lld, %u).", 
                 _lf_my_fed_id,
                 stop_tag.time - start_time,
