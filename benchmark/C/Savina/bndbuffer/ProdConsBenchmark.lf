@@ -106,7 +106,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     
     reaction(produce) -> outProducers {=
         
-        while(self->pendingData.size < self->adjustedBufferSize) { // FIXME: Why?
+        while(size(self->pendingData) < self->adjustedBufferSize) { // FIXME: Why?
             
             if(is_empty(self->availableProducers)) {
                 return;
@@ -124,7 +124,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             return;
         }
         
-        for(int i = 0; i < availableConsumers.size(); i++) {
+        for(int i = 0; i < size(self->availableConsumers); i++) {
             
             if(is_empty(self->pendingData)) {
                 break;
@@ -133,7 +133,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             outConsumers[availableConsumers[0]].set(pendingData[0]);
             availableConsumers.erase(begin(availableConsumers));
             pendingData.erase(begin(pendingData));
-            if(!availableProducers.empty()) {
+            if(!is_empty(self->availableProducers) {
                 outProducers[availableProducers[0]].set(Message{ProduceDataMsg, 0.0});
                 availableProducers.erase(begin(availableProducers));
             }
@@ -150,12 +150,12 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         
         // start execution
         for(int i = 0; i < outProducers_width; i++) {
-            //availableProducers.push_back(i);
+            //availableProducers.push_back(i); // FIXME
         }
-        for(int i = 0; i < outConsumers.size(); i++) {
-            availableConsumers.push_back(i);
+        for(int i = 0; i < outConsumers_width; i++) {
+            //availableConsumers.push_back(i); // FIXME
         }
-        produce.schedule();
+        schedule(produce, 0);
     =}
     
     reaction(inConsumers) -> consume {=
@@ -167,7 +167,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
                 }
             }
         }
-        consume.schedule();
+        schedule(consume, 0);
     =}
     
     reaction(inProducers) -> produce, consume, outFinished {=
@@ -227,15 +227,15 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
             
             double res = curTerm;
             
-            PseudoRandom random(cost);
+            srand(cost);
             if(cost > 0) {
                 for(int i = 0; i < cost; i++) {
                     for(int j = 0; j < 100; j++) {
-                        res += log(abs(random.nextDouble()) + 0.01);
+                        res += log(abs(rand()) + 0.01);
                     }
                 }
             } else {
-                res += log(abs(random.nextDouble()) + 0.01);
+                res += log(abs(rand()) + 0.01);
             }
             
             return res;
