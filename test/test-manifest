@@ -91,6 +91,7 @@ MultiportOut.lf
 MultiportToBank.lf
 MultiportToBankAfter.lf
 MultiportToBankHierarchy.lf
+MultiportToBankStruct.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
@@ -128,6 +129,8 @@ SimpleImport.lf
 SlowingClock.lf
 SlowingClockPhysical.lf
 StartupOutFromInside.lf
+Starvation.lf
+StarvationThreaded.lf
 Stop.lf
 StopThreaded.lf
 StopZero.lf

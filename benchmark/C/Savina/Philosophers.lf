@@ -2,8 +2,11 @@
  * Philosopher benchmark from the Savina benchmark suite for actor languages and frameworks.
  * The original benchmarks are available at https://github.com/shamsmahmood/savina.
  * 
- * This program takes advantage of particular feature of LF to model the timing of the
- * philosophers.
+ * This program takes advantage of particular features of LF to model the timing of the
+ * philosophers. Specifically, it has top-level parameters that specify the amount of time
+ * that philosophers spend eating and thinking.  With the "fast" target option set to true,
+ * this does not actually affect the execution time, but rather better models a physical
+ * scenario.
  * 
  * See, Shams Imam and Vivek  Sarkar, "Savina - An Actor Benchmark Suite: Enabling Empirical
  * Evaluation of Actor Libraries," AGERE! '14: Proceedings of the 4th International Workshop

@@ -13,39 +13,25 @@ target C {
     timeout: 2 secs
 };
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+//import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stdlib.h>
     #include <stddef.h>
+    #include <math.h>
     
-    typedef double message_content_t;
-    
-    typedef enum MsgType {
-      DataItemMsg,
-      ProduceDataMsg,
-      ProducerExitMsg,
-      ConsumerAvailableMsg,
-      ConsumerExitMsg
-    } msg_type_t;
-    
-    typedef struct Message {
-      msg_type_t type;
-      message_content_t data;
-    } message_t;
-    
-    typedef struct bounded_fifo_t {
+    typedef struct int_fifo_t {
         size_t head;
         size_t tail;
         size_t max_size;
         bool is_full;
-        void** arr;
-    } bounded_fifo_t;
+        int* arr;
+    } int_fifo_t;
     
     /**
      * Report whether the given queue is empty.
      */
-    bool is_empty(bounded_fifo_t* queue) {
+    bool int_fifo_is_empty(int_fifo_t* queue) {
         if (queue->head == queue->tail && !queue->is_full) {
             return true;
         } else {
@@ -56,8 +42,8 @@ preamble {=
     /**
      * Report how many elements are in the queue.
      */
-    size_t size(bounded_fifo_t* queue) {
-        if (is_empty(queue)) {
+    size_t int_fifo_size(int_fifo_t* queue) {
+        if (int_fifo_is_empty(queue)) {
             return 0;
         } else if (queue->is_full) {
             return queue->max_size;
@@ -71,7 +57,7 @@ preamble {=
     /**
      * Clear the given queue by resetting its head and tail pointer.
      */    
-    void clear(bounded_fifo_t* queue) {
+    void int_fifo_clear(int_fifo_t* queue) {
         queue->head = 0;
         queue->tail = 0;
         queue->is_full = false;
@@ -80,11 +66,11 @@ preamble {=
     /**
      * Create a new bounded FIFO queue.
      */
-    bounded_fifo_t* create_fifo(size_t capacity) {
-        bounded_fifo_t* queue = malloc(sizeof(bounded_fifo_t));
-        queue->arr = (void**)malloc(capacity * sizeof(void*));
+    int_fifo_t* int_fifo_create(size_t capacity) {
+        int_fifo_t* queue = malloc(sizeof(int_fifo_t));
+        queue->arr = malloc(capacity * sizeof(int));
         queue->max_size = capacity;
-        clear(queue);
+        int_fifo_clear(queue);
         return queue;
     }
     
@@ -92,21 +78,111 @@ preamble {=
      * Assign the given pointer to the first element in the queue.
      * Return true if the assignment was successful, false otherwise.
      */
-    void* pop(bounded_fifo_t* queue) {
-        if (is_empty(queue)) {
+    bool int_fifo_pop(int_fifo_t* queue, int* data) {
+        if (int_fifo_is_empty(queue)) {
             printf("Buffer is empty.\n");
-            return NULL;
+            return false;
         } else {
+            *data = queue->arr[queue->head];
+            printf("Popping: %d\n", *data);
             queue->head = (queue->head + 1) % queue->max_size;
             queue->is_full = false;
-        	return queue->arr[queue->head];
+        	return true;
         }
     }
     
     /**
      * Add a new entry to the queue.
      */
-    bool push(bounded_fifo_t* queue, void* elem) {
+    bool int_fifo_push(int_fifo_t* queue, int elem) {
+        if (queue->is_full) {
+        	printf("Buffer is full.\n");
+			return false;        	
+        } else {
+            printf("Pushing: %d\n", elem);
+            queue->arr[queue->tail] = elem;
+            queue->tail = (queue->tail + 1) % queue->max_size;
+            if (queue->head == queue->tail) {
+            	queue->is_full = true;
+            }
+        	return true;
+        }
+    }
+    
+	typedef struct double_fifo_t {
+        size_t head;
+        size_t tail;
+        size_t max_size;
+        bool is_full;
+        double* arr;
+    } double_fifo_t;
+    
+    /**
+     * Report whether the given queue is empty.
+     */
+    bool double_fifo_is_empty(double_fifo_t* queue) {
+        if (queue->head == queue->tail && !queue->is_full) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    /**
+     * Report how many elements are in the queue.
+     */
+    size_t double_fifo_size(double_fifo_t* queue) {
+        if (double_fifo_is_empty(queue)) {
+            return 0;
+        } else if (queue->is_full) {
+            return queue->max_size;
+        } else if (queue->tail > queue->head) {
+            return queue->tail - queue->head;
+        } else {
+            return queue->max_size - (queue->head - queue->tail);
+        }
+    }
+        
+    /**
+     * Clear the given queue by resetting its head and tail pointer.
+     */    
+    void double_fifo_clear(double_fifo_t* queue) {
+        queue->head = 0;
+        queue->tail = 0;
+        queue->is_full = false;
+    }
+    
+    /**
+     * Create a new bounded FIFO queue.
+     */
+    double_fifo_t* double_fifo_create(size_t capacity) {
+        double_fifo_t* queue = malloc(sizeof(double_fifo_t));
+        queue->arr = malloc(capacity * sizeof(double));
+        queue->max_size = capacity;
+        double_fifo_clear(queue);
+        return queue;
+    }
+    
+    /**
+     * Assign the given pointer to the first element in the queue.
+     * Return true if the assignment was successful, false otherwise.
+     */
+    bool double_fifo_pop(double_fifo_t* queue, double* data) {
+        if (double_fifo_is_empty(queue)) {
+            printf("Buffer is empty.\n");
+            return false;
+        } else {
+            *data = queue->arr[queue->head];
+            queue->head = (queue->head + 1) % queue->max_size;
+            queue->is_full = false;
+        	return true;
+        }
+    }
+    
+    /**
+     * Add a new entry to the queue.
+     */
+    bool double_fifo_push(double_fifo_t* queue, int elem) {
         if (queue->is_full) {
         	printf("Buffer is full.\n");
 			return false;        	
@@ -120,33 +196,28 @@ preamble {=
         }
     }
     
-        #include <math.h>
-        
-        static double processItem(const double curTerm, const int cost) {
-            
-            double res = curTerm;
-            
-            srand(cost);
-            if(cost > 0) {
-                for(int i = 0; i < cost; i++) {
-                    for(int j = 0; j < 100; j++) {
-                        res += log(abs(rand()) + 0.01);
-                    }
-                }
-            } else {
-                res += log(abs(rand()) + 0.01);
-            }
-            
-            return res;
-        }
     
+    static double processItem(const double curTerm, const int cost) {
+		double res = curTerm;
+        srand(cost);
+        if(cost > 0) {
+        	for(int i = 0; i < cost; i++) {
+            	for(int j = 0; j < 100; j++) {
+                	res += log(abs(rand()) + 0.01);
+				}
+			}
+		} else {
+			res += log(abs(rand()) + 0.01);
+		}
+        return res;
+	}
 =}
 
 reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:size_t(40)) {
     
     state adjustedBufferSize:int(0);
-    state availableProducers:bounded_fifo_t*;
-    state availableConsumers:bounded_fifo_t*;
+    state availableProducers:int_fifo_t*;
+    state availableConsumers:int_fifo_t*;
     state pendingData:bounded_fifo_t*;
     state numTerminatedProducers:int(0);
     
@@ -337,57 +408,69 @@ reactor ConsumerReactor(consCost:int(25)) {
     
     }
 
-//main reactor Test {
-//	state q:bounded_fifo_t*;
-//	reaction(startup) {=
-//    	self->q = create_fifo(4);
-//    	push(self->q, 1);
-//		push(self->q, 2);
-//		push(self->q, 3);
-//		push(self->q, 4);
-//		while(!is_empty(self->q)) {
-//			int data;
-//			if (pop(self->q, &data)) {
-//            	printf("value: %d\n", data);
-//				printf("size: %d\n", size(self->q));
-//            }
-//        }
-//    =} 
-//
-//}
-main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
-    
-    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
-    
-    runner = new BenchmarkRunner(numIterations=numIterations);
-    
-    runner.outIterationStart -> manager.inStart;
-    manager.outFinished -> runner.inIterationFinish;
-    
-    reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("ProdConsBenchmark");
-        // FIXME: what is printArgs?
-        // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
-        printf("numIterations: %d.\n", self->numIterations);
-        printf("bufferSize: %d.\n", self->bufferSize);
-        printf("prodCost: %d.\n", self->prodCost);
-        printf("consCost: %d.\n", self->consCost);
-        printf("numItemsPerProducer: %d.\n", self->numItemsPerProducer);
-        printf("numProducers: %d.\n", 40);
-        printf("numConsumers: %d.\n", 40);
-		
-		
-        printSystemInfo();
-        SET(runner.inStart, true);
-    =}
-    
-    producers = new[40] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
-    consumers = new[40] ConsumerReactor(consCost=consCost);
-    
-    manager.outProducers -> producers.inManager;
-    producers.outManager -> manager.inProducers;
-    
-    manager.outConsumers -> consumers.inManager;
-    consumers.outManager -> manager.inConsumers;
-    
+main reactor Test {
+	state p:double_fifo_t*;
+	state q:int_fifo_t*;
+	reaction(startup) {=
+    	self->q = int_fifo_create(4);
+    	int_fifo_push(self->q, 1);
+		int_fifo_push(self->q, 2);
+		int_fifo_push(self->q, 3);
+		int_fifo_push(self->q, 4);
+		while(!int_fifo_is_empty(self->q)) {
+				int ptr;
+				int_fifo_pop(self->q, &ptr);
+				printf("value: %d\n", ptr);
+				printf("size: %d\n", int_fifo_size(self->q));
+        }
+        
+        self->p = double_fifo_create(4);
+    	double_fifo_push(self->p, 1.0);
+		double_fifo_push(self->p, 2.0);
+		double_fifo_push(self->p, 3.0);
+		double_fifo_push(self->p, 4.0);
+		while(!double_fifo_is_empty(self->p)) {
+				double ptr;
+				double_fifo_pop(self->p, &ptr);
+				printf("value: %f\n", ptr);
+				printf("size: %d\n", double_fifo_size(self->p));
+        }
+    =} 
+
 }
+//main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+//    
+//    manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
+//    
+//    runner = new BenchmarkRunner(numIterations=numIterations);
+//    
+//    runner.outIterationStart -> manager.inStart;
+//    manager.outFinished -> runner.inIterationFinish;
+//    
+//    reaction(startup) -> runner.inStart {=
+//        printBenchmarkInfo("ProdConsBenchmark");
+//        // FIXME: what is printArgs?
+//        // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
+//        printf("numIterations: %d.\n", self->numIterations);
+//        printf("bufferSize: %d.\n", self->bufferSize);
+//        printf("prodCost: %d.\n", self->prodCost);
+//        printf("consCost: %d.\n", self->consCost);
+//        printf("numItemsPerProducer: %d.\n", self->numItemsPerProducer);
+//        printf("numProducers: %d.\n", 40);
+//        printf("numConsumers: %d.\n", 40);
+//		
+//		
+//        printSystemInfo();
+//        SET(runner.inStart, true);
+//    =}
+//    
+//    producers = new[40] ProducerReactor(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
+//    consumers = new[40] ConsumerReactor(consCost=consCost);
+//    
+//    manager.outProducers -> producers.inManager;
+//    producers.outManager -> manager.inProducers;
+//    
+//    manager.outConsumers -> consumers.inManager;
+//    consumers.outManager -> manager.inConsumers;
+//    
+//}
