@@ -160,6 +160,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     output[numConsumers] outConsumers:message_t;
     
     reaction(startup) {=
+        printf("startup reaction is invoked.\n");
         // init local state
         self->adjustedBufferSize = self->bufferSize-self->numProducers;
         self->availableProducers = create_fifo(self->numProducers);
@@ -168,9 +169,9 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(produce) -> outProducers {=
+        printf("produce reaction is invoked.\n");
         
-        while(size(self->pendingData) < self->adjustedBufferSize) { // FIXME: Why?
-            
+        while(size(self->pendingData) < self->adjustedBufferSize) { // FIXME: Why?            
             if(is_empty(self->availableProducers)) {
                 return;
             }
@@ -182,7 +183,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(consume) -> outConsumers, outProducers {=
-        printf("This reaction is not invoked.\n");
+        printf("consume reaction is not invoked.\n");
         
         if(self->numTerminatedProducers == self->numProducers &&
             size(self->availableConsumers) == self->numConsumers) {
@@ -202,6 +203,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
             if (!is_empty(self->availableProducers)) {
                 int* idx;
                 idx = pop(self->availableProducers);
+                printf("Popped %d.\n", *idx);
                 message_t msg = {ProduceDataMsg, 0.0};
                 SET(outProducers[*idx], msg);
             }
@@ -209,6 +211,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(inStart) -> produce {=
+        printf("inStart reaction is invoked.\n");
         
         // reset local state
         clear(self->availableProducers);
@@ -231,6 +234,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(inConsumers) -> consume {=
+        printf("inConsumers reaction is not invoked.\n");
         for (int i = 0; i < inConsumers_width; i++) {
             if (inConsumers[i]->is_present) {
                 if(inConsumers[i]->value.type == ConsumerAvailableMsg) {
@@ -244,6 +248,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(inProducers) -> produce, consume, outFinished {=
+        printf("inProducers reaction is not invoked.\n");
         for(int i = 0; i < inProducers_width; i++) {
             if(inProducers[i]->is_present) {
                 if (inProducers[i]->value.type == DataItemMsg) {
@@ -275,6 +280,7 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
     output outManager:message_t;
     
     reaction(inManager) -> outManager {=
+        printf("inManager reaction is not invoked.\n");
         
         if(inManager->value.type == ProduceDataMsg) {
             if(self->itemsProduced == self->numItemsToProduce) {
@@ -352,7 +358,15 @@ main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCo
         printBenchmarkInfo("ProdConsBenchmark");
         // FIXME: what is printArgs?
         // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
-
+        printf("numIterations: %d.\n", self->numIterations);
+        printf("bufferSize: %d.\n", self->bufferSize);
+        printf("prodCost: %d.\n", self->prodCost);
+        printf("consCost: %d.\n", self->consCost);
+        printf("numItemsPerProducer: %d.\n", self->numItemsPerProducer);
+        printf("numProducers: %d.\n", 40);
+        printf("numConsumers: %d.\n", 40);
+		
+		
         printSystemInfo();
         SET(runner.inStart, true);
     =}
