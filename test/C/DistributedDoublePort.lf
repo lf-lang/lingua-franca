@@ -10,7 +10,8 @@
 target C {
     timeout: 900 msec,
     fast: true,
-    coordination: centralized
+    coordination: centralized,
+    logging: DEBUG
 };
 
 import Count from "lib/Count.lf";
