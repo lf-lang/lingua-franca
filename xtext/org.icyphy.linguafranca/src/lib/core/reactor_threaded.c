@@ -113,7 +113,7 @@ pthread_cond_t global_tag_barrier_requestors_reached_zero = PTHREAD_COND_INITIAL
 void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
     // Check if future_tag is after stop tag
     if (_lf_is_tag_after_stop_tag(future_tag)) {
-        printf("WARNING: attempting to raise a barrier after the stop tag.");
+        printf("WARNING: attempting to raise a barrier after the stop tag.\n");
         future_tag = stop_tag;
     }
     tag_t current_tag = get_current_tag();
@@ -763,7 +763,7 @@ void* worker(void* arg) {
                 
                 // If we are at the stop tag, do not call __next()
                 // to prevent advancing the logical time.
-                if (compare_tags(current_tag, stop_tag) == 0) {
+                if (compare_tags(current_tag, stop_tag) >= 0) {
                     // Break out of the while loop and notify other
                     // worker threads potentially waiting to continue.
                     pthread_cond_broadcast(&reaction_q_changed);
