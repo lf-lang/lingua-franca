@@ -135,7 +135,7 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
 }
 
 /**
- * Execute all the reactions in the reaction queue at the tag.
+ * Execute all the reactions in the reaction queue at the current tag.
  * 
  * @return Returns 1 if the execution should continue and 0 if the execution
  *  should stop.
