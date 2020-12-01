@@ -278,6 +278,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define P2P_TIMED_MESSAGE 16
 
+
+/**
+ * Physical time synchronization message.
+ * The next 8 bytes will be a timestamp sent according to
+ * PTP.
+ */
+#define PHYSICAL_TIME_SYNC_MESSAGE 17
+
 /////////////////////////////////////////////
 //// Rejection codes
 

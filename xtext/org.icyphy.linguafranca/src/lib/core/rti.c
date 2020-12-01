@@ -786,6 +786,21 @@ void handle_timestamp(federate_t *my_fed) {
 }
 
 /**
+ * Take a snapshot of the physical clock time and send
+ * it to federate fed_id.
+ * 
+ * @param fed_id The federate to send the physical time to.
+ */
+void _lf_rti_send_physical_time(int fed_id) {
+    unsigned char buffer[sizeof(instant_t) + 1];
+    buffer[0] = PHYSICAL_TIME_SYNC_MESSAGE;
+    encode_ll(get_physical_time(), &(buffer[1]));
+    write_to_socket(federates[fed_id].socket, sizeof(instant_t)+1, buffer,
+                    "RTI failed to send physical time to federate %d.".
+                    fed_id);
+}
+
+/**
  * A function to handle messages labeled
  * as RESIGN sent by a federate. This 
  * message is sent at the time of termination
@@ -898,6 +913,13 @@ void* federate(void* fed) {
                 }
                 handle_stop_request_reply(my_fed);
                 break;
+            case PHYSICAL_TIME_SYNC_MESSAGE:
+                if (my_fed->state == NOT_CONNECTED) {
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    return NULL;
+                }
+                _lf_rti_send_physical_time(my_fed->id);
+                break;
             default:
                 error_print("RTI received from federate %d an unrecognized message type: %hhx.", my_fed->id, buffer[0]);
         }
@@ -1005,6 +1027,9 @@ void connect_to_federates(int socket_descriptor) {
             // Ignore errors on this response.
             write_to_socket(socket_id, 1, response, "RTI failed to write ACK message to federate %d.", fed_id);
         }
+
+        // Send the RTI's current physical time to the federate
+        _lf_rti_send_physical_time(fed_id);
 
         // Assign the address information for federate
         // The IP address is stored here as an in_addr struct (in .server_ip_addr) that can be useful
