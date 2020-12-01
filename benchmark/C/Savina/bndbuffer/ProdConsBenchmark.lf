@@ -9,7 +9,7 @@
  
 target C;
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+//import BenchmarkRunner from "../BenchmarkRunner.lf";
 
 preamble {=
     #include <stdlib.h>
@@ -29,52 +29,91 @@ preamble {=
     } message_t;
     
     typedef struct bounded_fifo_t {
-        int* head;
-        int* tail;
-        int* init;
-        size_t capacity;
+        size_t head;
+        size_t tail;
+        int* arr;
+        size_t max_size;
+        bool is_full;
     } bounded_fifo_t;
+    
+    /**
+     * Report whether the given queue is empty.
+     */
+    bool is_empty(bounded_fifo_t* queue) {
+        if (queue->head == queue->tail && !queue->is_full) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    /**
+     * Report how many elements are in the queue.
+     */
+    size_t size(bounded_fifo_t* queue) {
+        if (is_empty(queue)) {
+            return 0;
+        } else if (queue->is_full) {
+            return queue->max_size;
+        } else if (queue->tail > queue->head) {
+            return queue->tail - queue->head;
+        } else {
+            return queue->max_size - (queue->head - queue->tail);
+        }
+    }
+        
+    /**
+     * Clear the given queue by resetting its head and tail pointer.
+     */    
+    void clear(bounded_fifo_t* queue) {
+        queue->head = 0;
+        queue->tail = 0;
+        queue->is_full = false;
+    }
     
     /**
      * Create a new bounded FIFO queue.
      */
     bounded_fifo_t* create_fifo(size_t capacity) {
-        bounded_fifo_t* queue = malloc(sizeof(bounded_fifo));
-        queue->init = malloc(sizeof(capacity * sizeof(int)));
+        bounded_fifo_t* queue = malloc(sizeof(bounded_fifo_t));
+        queue->arr = calloc(0, capacity * sizeof(int));
+        queue->max_size = capacity;
         clear(queue);
         return queue;
     }
     
     /**
-     * Report how many elements are inside the given queue.
+     * Assign the given pointer to the first element in the queue.
+     * Return true if the assignment was successful, false otherwise.
      */
-    void size_t size(bounded_fifo_t* queue) {
-        if (queue->head == queue->tail) {
-			return 0;
-        } else if (queue->tail > queue->head) {
-            return (queue->tail - queue->head) / sizeof(int);
+    bool pop(bounded_fifo_t* queue, int* data) {
+        if (is_empty(queue)) {
+            printf("Buffer is empty.\n");
+            return false;
         } else {
-            (queue->head - queue->tail) / sizeof(int)
+            *data = queue->arr[queue->head];
+            queue->head = (queue->head + 1) % queue->max_size;
+            queue->is_full = false;
+        	return true;
         }
     }
     
-    
     /**
-     * Report whether or not the given queue is empty.
+     * Add a new entry to the queue.
      */
-    bool is_empty(bounded_fifo_t* queue) {
-        if (size(queue) == 0) {
-            return true;
+    bool push(bounded_fifo_t* queue, int elem) {
+        if (queue->is_full) {
+        	printf("Buffer is full.\n");
+			return false;        	
+        } else {
+            queue->arr[queue->tail] = elem;
+            queue->tail = (queue->tail + 1) % queue->max_size;
+            if (queue->head == queue->tail) {
+            	queue->is_full = true;
+            }
+        	return true;
         }
-    }
-
-    /**
-     * Clear the given queue is empty by resetting its head and tail pointer.
-     */    
-    void clear(bounded_fifo_t* queue) {
-        queue->head = queue->init;
-        queue->tail = queue->init;
-    }
+    }    
     
 =}
 
@@ -290,6 +329,24 @@ reactor ConsumerReactor(consCost:int(25)) {
     =}
 }
 
+//main reactor Test {
+//	state q:bounded_fifo_t*;
+//	reaction(startup) {=
+//    	self->q = create_fifo(4);
+//    	push(self->q, 1);
+//		push(self->q, 2);
+//		push(self->q, 3);
+//		push(self->q, 4);
+//		while(!is_empty(self->q)) {
+//			int data;
+//			if (pop(self->q, &data)) {
+//            	printf("value: %d\n", data);
+//				printf("size: %d\n", size(self->q));
+//            }
+//        }
+//    =} 
+//
+//}
 main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
     
     manager = new ManagerReactor(bufferSize=bufferSize, numProducers=40, numConsumers=40);
@@ -317,4 +374,3 @@ main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCo
     consumers.outManager -> manager.inConsumers;
     
 }
- 
