@@ -206,9 +206,9 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
     
     reaction(inManager) -> outManager {=
         
-        if(inManager.get()->type == ProduceDataMsg) {
+        if(inManager->value->type == ProduceDataMsg) {
             if(itemsProduced == numItemsToProduce) {
-                outManager.set(Message{ProducerExitMsg, 0.0});
+                SET(outManager, Message{ProducerExitMsg, 0.0});
                 
                 // reset local state
                 prodItem = 0.0;
@@ -216,12 +216,13 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
                 return;
             }
             prodItem = processItem(prodItem, prodCost);
-            outManager.set(Message{DataItemMsg, prodItem});
+            SET(outManager, Message{DataItemMsg, prodItem});
             itemsProduced += 1;
         }
     =}
     
     preamble {=
+        #include <math.h>
         
         static double processItem(const double curTerm, const int cost) {
             
