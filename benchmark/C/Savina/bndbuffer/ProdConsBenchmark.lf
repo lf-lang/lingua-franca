@@ -27,12 +27,31 @@ preamble {=
       double data;
     } message_t;
     
-    // FIXME: implement fifo
-    function bounded_fifo_t* create_fifo(size_t size) {
-        return NULL;
+    /**
+     * Create a new bounded FIFO queue.
+     */
+    bounded_fifo_t* create_fifo(size_t size) {
+        bounded_fifo_t* queue = malloc(sizeof(bounded_fifo));
+        queue->init = malloc(sizeof(size * sizeof(int)));
+        clear(queue);
+        return queue;
     }
     
-    function clear(bounded_fifo_t* queue) {
+    /**
+     * Report whether or not the given queue is empty.
+     */
+    bool is_empty(bounded_fifo_t* queue) {
+        if (queue->head == queue->tail) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Clear the given queue is empty by resetting its head and tail pointer.
+     */    
+    void clear(bounded_fifo_t* queue) {
         queue->head = queue->init;
         queue->tail = queue->init;
     }
@@ -41,7 +60,7 @@ preamble {=
         size_t size;
         int* head;
         int* tail;
-        int* init; // for freeing 
+        int* init;
     } bounded_fifo_t;
 =}
 
@@ -73,9 +92,9 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     
     reaction(produce) -> outProducers {=
         
-        while(pendingData.size() < adjustedBufferSize) {
+        while(self->pendingData.size < self->adjustedBufferSize) { // FIXME: Why?
             
-            if(availableProducers.empty()) {
+            if(is_empty(self->availableProducers)) {
                 return;
             }
             
@@ -93,7 +112,7 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         
         for(int i = 0; i < availableConsumers.size(); i++) {
             
-            if(pendingData.empty()) {
+            if(is_empty(self->pendingData)) {
                 break;
             }
             
