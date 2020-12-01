@@ -1,0 +1,72 @@
+ // Check multiport output to bank of recipients when type
+ // of the ports is a struct.
+target C {
+    timeout: 2 sec,
+    threads: 4,
+    fast: true,
+    files: include/hello.h
+}; 
+
+preamble {=
+	#include "hello.h"
+=}
+
+/**
+ * Start reactor is responsible
+ * for advancing tag to (0,2) before
+ * triggering Source. This is for
+ * testing purposes only.
+ */
+reactor Start {
+    output start:bool;
+    logical action a;
+    reaction(startup) -> a {=
+        schedule(a,0);
+    =}
+    reaction(a) -> start {=
+        if (get_microstep() == 1) {
+            schedule(a,0);
+        } else {
+            // Start at tag (0,3)
+            // For testing purposes only
+            SET(start, true);
+        }
+    =}
+}
+
+reactor Source {
+    output[40] out:hello_t;
+    input start:bool;
+    reaction(start) -> out {=
+        for(int i = 0; i < out_width; i++) {
+            SET(out[i], ((hello_t) {"Earth", i}));
+        }
+    =}
+}
+reactor Destination {
+    input in:hello_t;
+    state received:bool(false);
+    reaction(in) {=
+        printf("Destination %d received {%s,%d}.\n", self->bank_index, in->value.name, in->value.value);
+        if (self->bank_index != in->value.value) {
+            printf("ERROR: Expected %d.\n", self->bank_index);
+            exit(1);
+        }
+        self->received = true;
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor MultiportToBank {
+    dummy = new Start();
+    a = new Source();
+    b = new[40] Destination();
+    dummy.start -> a.start;
+    a.out -> b.in;
+}
