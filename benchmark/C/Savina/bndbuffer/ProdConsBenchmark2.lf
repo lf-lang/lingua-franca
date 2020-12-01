@@ -11,6 +11,7 @@ target C {
     //logging: DEBUG,
     keepalive: true,
     files: ../include/PseudoRandom.h
+    //threads: 4
     //timeout: 2 secs
 };
 
@@ -362,8 +363,8 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
     output data:double;
     
     reaction(start, next) -> next, data {=
-		printf("Producer creating data.\n");
-        
+		//printf("Producer creating data.\n");
+		//printf("x");
         if (self->itemsProduced == self->numItemsToProduce) {
         	// reset local state
             self->prodItem = 0.0;
@@ -371,7 +372,7 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
             return;
         } else {
             schedule(next, 0);
-        	SET(data, processItem(self->prodItem, self->prodCost));
+            SET(data, processItem(self->prodItem, self->prodCost));
             self->itemsProduced += 1;
         }
     =}
@@ -397,11 +398,12 @@ reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
     output done:bool;
     
     reaction(data) -> done {=
-        printf("Consumer processing data.\n");
+        //printf(".");
         self->consItem = processItem(self->consItem + data->value, self->consCost);
         self->itemsConsumed += 1;
-        printf("%d", self->itemsConsumed);
+        //printf("%d", self->itemsConsumed);
         if (self->itemsConsumed == self->numItemsToConsume) {
+			self->itemsConsumed = 0;
 			self->consItem = 0.0;
 			SET(done, true);
         }
@@ -445,7 +447,6 @@ main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCo
         
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("ProdConsBenchmark");
-        // FIXME: what is printArgs?
         // printArgs("numIterations", self->numIterations, "bufferSize", self->bufferSize, "prodCost", self->prodCost, "consCost", self>consCost, "numItemsPerProducer", self->numItemsPerProducer, "numProducers", 40, "numConsumers", 40);
         printf("numIterations: %d.\n", self->numIterations);
         printf("bufferSize: %d.\n", self->bufferSize);
@@ -454,7 +455,6 @@ main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCo
         printf("numItemsPerProducer: %d.\n", self->numItemsPerProducer);
         printf("numProducers: %d.\n", 40);
         printf("numConsumers: %d.\n", 40);
-		
 		
         printSystemInfo();
         SET(runner.inStart, true);
