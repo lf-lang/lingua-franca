@@ -575,12 +575,9 @@ void __trigger_startup_reactions();
 void __termination();
 
 /**
- * Function (to be code generated) to wrap up execution.
- * If this returns true, then one more invocation of next()
- * be executed in order to invoke reactions that are triggered
- * by shutdown.
+ * Function (to be code generated) to trigger shutdown reactions.
  */
-bool __wrapup();
+bool __trigger_shutdown_reactions();
 
 /**
  * Indicator for the absence of values for ports that remain disconnected.

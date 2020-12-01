@@ -659,7 +659,7 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
                 pr('''
-                    bool __wrapup() {                          
+                    bool __trigger_shutdown_reactions() {                          
                         for (int i = 0; i < __shutdown_reactions_size; i++) {
                             if (__shutdown_reactions[i] != NULL) {
                                 _lf_enqueue_reaction(__shutdown_reactions[i]);

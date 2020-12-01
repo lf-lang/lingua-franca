@@ -55,6 +55,19 @@ preamble {=
     // Reverse the order to get the bit sequence: 0001 0100 0100 1001
     #define MERENGUE_EMPHASIS 0x1449
     
+    // Bossa nova: In temporal order: 1001 0010 0010 0110
+    // Note: last '1' is questionable. Held over from previous '1'.
+    // Reverse order: 0110 0100 0100 1001
+    #define BOSSA_NOVA 0x6449
+    #define BOSSA_NOVA_EMPHASIS 0x2449
+    
+    // Samba: Temporal order: 0000 1010 1101 1010
+    // Reversed: 0101 1011 0101 0000
+    // Alt: 0101 1011 1011 1011
+    // Rev: 1101 1101 1101 1010
+    #define SAMBA 0xddda
+    #define SAMBA_EMPHASIS 0x99ca
+    
     // wav files giving the waveforms.
     // These have to also be included in the files target directive.
     #define NUM_WAVEFORMS 9  // Number of waveforms.
@@ -89,9 +102,11 @@ preamble {=
         "  9: tom",
         "Rhythm:",
         "  d: down beat",
-        "  m: merengue"
+        "  m: merengue",
+        "  b: bossa nova",
+        "  s: samba"
     };
-    int message_length = 18;
+    int message_length = 20;
         
 =}
 
@@ -159,8 +174,16 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
                 self->emphasis = DOWNBEAT;
                 break;
             case 'm':
-                self->rhythm =  MERENGUE;
-                self->emphasis =  MERENGUE_EMPHASIS;
+                self->rhythm = MERENGUE;
+                self->emphasis = MERENGUE_EMPHASIS;
+                break;
+            case 'b':
+                self->rhythm = BOSSA_NOVA;
+                self->emphasis = BOSSA_NOVA_EMPHASIS;
+                break;
+            case 's':
+                self->rhythm = SAMBA;
+                self->emphasis = SAMBA_EMPHASIS;
                 break;
             case 'x':
                 request_stop();
