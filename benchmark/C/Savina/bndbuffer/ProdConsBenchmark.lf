@@ -8,7 +8,8 @@
  */
  
 target C {
-    flags: "-lm"
+    flags: "-lm",
+    logging: DEBUG
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
@@ -173,12 +174,14 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
         
         while(size(self->pendingData) < self->adjustedBufferSize) { // FIXME: Why?            
             if(is_empty(self->availableProducers)) {
-                return;
+                printf("Ran out of available producers.\n");
+                break;
             }
             int* idx;
             idx = pop(self->availableProducers);
-            message_t tmp = {ProduceDataMsg, 0.0};
+            message_t tmp = {ProduceDataMsg, *idx + 1.0};
             SET(outProducers[*idx], tmp);
+            printf("outProducers[%d] = %f.\n", *idx, outProducers[*idx]->value.data);
         }
     =}
     
@@ -204,8 +207,9 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
                 int* idx;
                 idx = pop(self->availableProducers);
                 printf("Popped %d.\n", *idx);
-                message_t msg = {ProduceDataMsg, 0.0};
+                message_t msg = {ProduceDataMsg, *idx + 1.0};
                 SET(outProducers[*idx], msg);
+                printf("outProducers[%d] = %f.\n", *idx, outProducers[*idx]->value.data);
             }
         }
     =}
@@ -280,7 +284,7 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
     output outManager:message_t;
     
     reaction(inManager) -> outManager {=
-        printf("inManager reaction is not invoked.\n");
+        printf("Producer inManager reaction is not invoked.\n");
         
         if(inManager->value.type == ProduceDataMsg) {
             if(self->itemsProduced == self->numItemsToProduce) {
@@ -313,6 +317,7 @@ reactor ConsumerReactor(consCost:int(25)) {
     output outManager:message_t;
     
     reaction(inManager) -> outManager {=
+        printf("Consumer inManager reaction is not invoked.\n");
         
         if(inManager->value.type == DataItemMsg) {
             message_content_t dataToConsume =  inManager->value.data;
