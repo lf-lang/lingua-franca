@@ -585,21 +585,21 @@ void handle_stop_request_message(federate_t* fed) {
     pthread_mutex_lock(&rti_mutex);    
     // Extract the proposed stop time for the federate
     instant_t stop_time = extract_ll(buffer);
+    
+    if (stop_time > max_stop_time) {
+        max_stop_time = stop_time;
+    }
 
     // Check if we have already received a stop_time
     // from this federate
-    if (!federates[fed->id].requested_stop) {
-        if (stop_time > max_stop_time) {
-            max_stop_time = stop_time;
-        }
-        // If this federate has not already asked
-        // for a stop, add it to the tally.
-        _lf_rti_mark_federate_requesting_stop(fed);
-    } else {
+    if (federates[fed->id].requested_stop) {
         // Ignore this request
         pthread_mutex_unlock(&rti_mutex);  
         return;
     }
+    // If this federate has not already asked
+    // for a stop, add it to the tally.
+    _lf_rti_mark_federate_requesting_stop(fed);
 
     if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
         // We now have information about the stop time of all
@@ -618,6 +618,7 @@ void handle_stop_request_message(federate_t* fed) {
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         if (federates[i].id != fed->id && federates[i].requested_stop == false) {
             if (federates[i].state == NOT_CONNECTED) {
+                _lf_rti_mark_federate_requesting_stop(&federates[i]);
                 continue;
             }
             write_to_socket(federates[i].socket, 1 + sizeof(instant_t), stop_request_buffer, "RTI failed to broadcast message to federate %d.", federates[i].id);
@@ -650,13 +651,11 @@ void handle_stop_request_reply(federate_t* fed) {
     // Acquire the mutex lock so that we can change the state of the RTI
     pthread_mutex_lock(&rti_mutex);
     // If the federate has not requested stop before,
-    // count the reply    
-    if (!fed->requested_stop) {
-        if (federate_stop_time > max_stop_time) {
-            max_stop_time = federate_stop_time;
-        }
-        _lf_rti_mark_federate_requesting_stop(fed);
+    // count the reply
+    if (federate_stop_time > max_stop_time) {
+        max_stop_time = federate_stop_time;
     }
+    _lf_rti_mark_federate_requesting_stop(fed);
     pthread_mutex_unlock(&rti_mutex);
 }
 //////////////////////////////////////////////////
