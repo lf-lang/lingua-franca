@@ -250,7 +250,6 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     
     input[numProducers] producerData:double;
     output[numProducers] produceNext:bool;
-    input[numConsumers] consumerDone:bool;
     input[numProducers] producerDone:bool; 
     input[numConsumers] consumerReady:bool;
     output[numConsumers] consumerData:double;
