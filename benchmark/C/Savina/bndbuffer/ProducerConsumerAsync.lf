@@ -254,9 +254,12 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     output[numProducers] produceNext:bool;
     input[numConsumers] consumerDone:bool;
     input[numProducers] producerDone:bool; 
+    input[numConsumers] consumerReady:bool;
     output[numConsumers] consumerData:double;
     
+    
     logical action requestData;
+    logical action consumeMore;
     
     /**
      * Populate the "available" FIFO queues and schedule
@@ -299,7 +302,7 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     /**
      * Respond to new data coming in.
      */
-    reaction(producerData) -> consumerData, requestData {=
+    reaction(producerData) {=
 		// Stick all incoming data in a buffer.
 		for (int i = 0; i < producerData_width; i++) {
             if (producerData[i]->is_present) {
@@ -307,7 +310,10 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
 				int_fifo_push(self->availableProducers, i);
             }
 		}
-		// Find a consumer for all pending data.
+    =}
+    
+    reaction(producerData, consumeMore) -> consumerData, requestData {=
+        // Find a consumer for all pending data.
 		int idx;
 		double data;
 		while (!double_fifo_is_empty(self->pendingData)) {
@@ -332,8 +338,25 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
 			}
 		}
 	=}
+	
+	reaction(consumerReady) -> consumeMore {=
+        for (int i = 0; i < consumerReady_width; i++) {
+			printf("Consumer %d is ready for more data.\n", i);
+			if (consumerReady[i]->is_present) {
+				int_fifo_push(self->availableConsumers, i);
+			}
+		}
+    =}
     
-    
+    reaction(consumerDone) {=
+//        for (int i = 0; i < consumerReady_width; i++) {
+//			printf("Consumer %d is ready for more data.\n", i);
+//			if (consumerReady[i]->is_present) {
+//				int_fifo_push(self->availableConsumers, i);
+//			}
+//		}
+request_stop();
+    =}
     
 //    reaction(consume) -> outConsumers, outProducers {=
 //        printf("consume reaction is not invoked.\n");
@@ -444,14 +467,17 @@ reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
     state itemsConsumed:int(0);
     input data:double;
     output done:bool;
+    output ready:bool;
     
-    reaction(data) -> done {=
+    reaction(data) -> ready, done {=
         printf("One consumer got new data.\n");
         self->consItem = processItem(self->consItem + data->value, self->consCost);
         self->itemsConsumed += 1;
         if (self->itemsConsumed == self->numItemsToConsume) {
 			printf("One consumer finished...\n");
 			SET(done, true);
+        } else {
+            SET(ready, true);
         }
     =}
     
@@ -513,6 +539,7 @@ main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25
     producers.data -> manager.producerData;
     producers.done -> manager.producerDone;
     consumers.done -> manager.consumerDone;
+    consumers.ready -> manager.consumerReady;
     
     
 }
