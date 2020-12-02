@@ -131,6 +131,7 @@ reactor BenchmarkRunner(numIterations:int(12), useInit:bool(false), useCleanupIt
         printf("Best Time:\t %.3f msec\n", measuredMSTimes[0]);
         printf("Worst Time:\t %.3f msec\n", measuredMSTimes[self->numIterations - 1]);
         printf("Median Time:\t %.3f msec\n", median(measuredMSTimes, self->numIterations));
+        request_stop();
     =}
     
     preamble {=
