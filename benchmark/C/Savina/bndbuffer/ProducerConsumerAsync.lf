@@ -327,8 +327,8 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     
     reaction(consumerReady) -> consumeMore {=
         for (int i = 0; i < consumerReady_width; i++) {
-			printf("Consumer %d is ready for more data.\n", i);
 			if (consumerReady[i]->is_present) {
+				printf("Consumer %d is ready for more data.\n", i);
 				int_fifo_push(self->availableConsumers, i);
 			}
 		}
@@ -366,7 +366,7 @@ reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
         printf("One consumer got new data.\n");
         self->consItem = processItem(self->consItem + data->value, self->consCost);
         self->itemsConsumed += 1;
-            SET(ready, true);
+        SET(ready, true);    
     =}
 }
 
@@ -398,6 +398,7 @@ reactor ProducerRelayer {
     =}
     
     reaction(relay) -> data_out {=
+        printf("<<>>");
         SET(data_out, self->data);
     =}
  }
