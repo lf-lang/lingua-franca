@@ -29,7 +29,7 @@ target C;
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor Ping(count:unsigned(40000)) {
+reactor Ping(count:unsigned(1000000)) {
     
     state pings_left:unsigned(0);
     
@@ -52,7 +52,7 @@ reactor Ping(count:unsigned(40000)) {
     
     reaction(serve) -> outPing {=
         self->pings_left -= 1;
-        SET(outPing, true);
+        SET(outPing, true); 
     =}
     
     reaction (inPong) -> serve, outFinished {=
@@ -76,7 +76,7 @@ reactor Pong {
 }
 
 
-main reactor PingPong(numIterations:int(12), count:unsigned(40000)) {
+main reactor PingPong(numIterations:int(12), count:unsigned(1000000)) {
     
     ping = new Ping(count=count);
     runner = new BenchmarkRunner(numIterations=numIterations);
