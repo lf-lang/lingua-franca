@@ -247,7 +247,6 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     state availableProducers:int_fifo_t*;
     state availableConsumers:int_fifo_t*;
     state pendingData:double_fifo_t*;
-    state numTerminatedProducers:int(0);
     
     input[numProducers] producerData:double;
     output[numProducers] produceNext:bool;
@@ -285,9 +284,7 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
 	 */
     reaction(requestData) -> produceNext {=
         printf("Manager requesting more data.\n");
-        if (self->numTerminatedProducers == self->numProducers) {
-            return;
-        }
+        
         while(double_fifo_size(self->pendingData) < self->adjustedBufferSize) {            
             if (int_fifo_is_empty(self->availableProducers)) {
                 printf("All producers are now busy.\n");
@@ -329,18 +326,7 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
         schedule(requestData, 0);
     =}
     
-    /**
-     * Register producers that are done. 
-     */
-    reaction(producerDone) {=
-        for (int i = 0; i < producerDone_width; i++) {
-			if (producerDone[i]->is_present) {
-				self->numTerminatedProducers += 1;
-			}
-		}
-	=}
-	
-	reaction(consumerReady) -> consumeMore {=
+    reaction(consumerReady) -> consumeMore {=
         for (int i = 0; i < consumerReady_width; i++) {
 			printf("Consumer %d is ready for more data.\n", i);
 			if (consumerReady[i]->is_present) {
@@ -443,10 +429,10 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
     output data:double;
     
     reaction(next) -> data, done {=
-		printf("Producer creating data.\n");
 		if (self->itemsProduced == self->numItemsToProduce) {
         	SET(done, true);
         } else {
+            printf("Producer creating data.\n");
             SET(data, processItem(self->prodItem, self->prodCost));
             self->itemsProduced += 1;
         }
@@ -519,7 +505,7 @@ main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25
     // FIXME: We should use physical connections along the data path.
     // These are not supported yet. We could use banks of reactors that schedule a phys. action.
     
-    manager.produceNext -> producers.next after 0;
+    manager.produceNext -> producers.next;
     manager.consumerData -> consumers.data;
     producers.data -> manager.producerData;
     producers.done -> manager.producerDone;
