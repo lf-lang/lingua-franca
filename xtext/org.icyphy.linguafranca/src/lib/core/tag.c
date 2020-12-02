@@ -49,6 +49,13 @@ instant_t physical_start_time = NEVER;
 instant_t start_time = NEVER;
 
 /**
+ * Global physical clock offset.
+ * Initially set according to the RTI's clock in federated
+ * programs.
+ */
+interval_t _lf_global_physical_time_offset = 0LL;
+
+/**
  * Compare two tags. Return -1 if the first is less than
  * the second, 0 if they are equal, and +1 if the first is
  * greater than the second. A tag is greater than another if
