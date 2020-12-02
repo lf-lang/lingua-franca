@@ -11,7 +11,7 @@ target C {
     //logging: DEBUG,
     keepalive: true,
     files: ../include/PseudoRandom.h,
-    threads: 4,
+    threads: 24,
     coordination: centralized
 };
 
