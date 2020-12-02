@@ -370,6 +370,38 @@ reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
     =}
 }
 
+reactor ProducerRelayer {
+    input data_in:double;
+    output data_out:double;
+    state data:double;
+    physical action relay;
+    
+    reaction(data_in) -> relay {=
+        self->data = data_in->value;
+        schedule(relay, 0);
+    =}
+    
+    reaction(relay) -> data_out {=
+        SET(data_out, self->data);
+    =}
+ }
+ 
+ reactor ConsumerRelayer {
+    input data_in:bool;
+    output data_out:bool;
+    state data:bool;
+    physical action relay;
+    
+    reaction(data_in) -> relay {=
+        self->data = data_in->value;
+        schedule(relay, 0);
+    =}
+    
+    reaction(relay) -> data_out {=
+        SET(data_out, self->data);
+    =}
+ }
+ 
 main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
     
     reaction(startup) {=
@@ -387,14 +419,19 @@ main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25
     manager = new Manager(bufferSize=bufferSize, numProducers=40, numConsumers=40);
     producers = new[40] Producer(numItemsToProduce=numItemsPerProducer, prodCost=prodCost);
     consumers = new[40] Consumer(numItemsToConsume=numItemsPerProducer, consCost=consCost);
+    prodRelayers = new[40] ProducerRelayer();
+    consRelayers = new[40] ConsumerRelayer();
     
     // FIXME: We should use physical connections along the data path.
     // These are not supported yet. We could use banks of reactors that schedule a phys. action.
     
     manager.produceNext -> producers.next;
     manager.consumerData -> consumers.data;
-    producers.data -> manager.producerData;
+    producers.data -> prodRelayers.data_in;
+    prodRelayers.data_out -> manager.producerData; 
+    
     producers.done -> manager.producerDone;
-    consumers.ready -> manager.consumerReady;
+    consumers.ready -> consRelayers.data_in;
+    consRelayers.data_out -> manager.consumerReady;
     
 }
