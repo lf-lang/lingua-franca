@@ -100,7 +100,6 @@ reactor BenchmarkRunner(numIterations:int(12), useInit:bool(false), useCleanupIt
     =}
     
     reaction(nextIteration) -> outIterationStart, finish {=
-        
         if (self->count < self->numIterations) { 
             self->startTime = get_physical_time();
             SET(outIterationStart, true);
@@ -110,7 +109,6 @@ reactor BenchmarkRunner(numIterations:int(12), useInit:bool(false), useCleanupIt
     =}
     
     reaction(inIterationFinish) -> nextIteration, cleanupIteration {=
-        
         interval_t end_time = get_physical_time();
         interval_t duration = end_time - self->startTime;
         self->measuredTimes[self->count] = duration;
