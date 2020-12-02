@@ -111,13 +111,14 @@ pthread_cond_t global_tag_barrier_requestors_reached_zero = PTHREAD_COND_INITIAL
  * will freeze advancement of logical time.
  */
 void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
-    // Check if future_tag is after stop tag
+    // Check if future_tag is after stop tag.
+    // This should not occur!
     if (_lf_is_tag_after_stop_tag(future_tag)) {
         printf("WARNING: attempting to raise a barrier after the stop tag.\n");
         future_tag = stop_tag;
     }
     tag_t current_tag = get_current_tag();
-    // Check to see if future_tag is actually in the future
+    // Check to see if future_tag is actually in the future (or present).
     if (compare_tags(current_tag, future_tag) < 0) {
         if (compare_tags(future_tag, _lf_global_tag_advancement_barrier.horizon) < 0) {
             // The future tag is smaller than the current horizon of the barrier.
@@ -231,7 +232,6 @@ void _lf_decrement_global_tag_barrier() {
  * A function that will wait if the proposed tag
  * is larger than a requested barrier on tag until
  * that barrier is lifted.
- * 
  * 
  * This function assumes the mutex is already locked.
  * Thus, it unlocks the mutex while it's waiting to allow
