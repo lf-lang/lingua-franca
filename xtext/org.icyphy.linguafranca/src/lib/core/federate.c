@@ -1195,7 +1195,10 @@ void handle_stop_granted_message() {
     } else if (received_stop_tag.time > current_tag.time) {
         received_stop_tag.microstep = 0;
     } else {
-        error_print_and_exit("Federate %d received a stop_time in the past from the RTI.", _lf_my_fed_id);
+        error_print("Federate %d received a stop_time %lld in the past from the RTI. "
+                    "Stopping at the next microstep.", received_stop_tag.time - start_time, _lf_my_fed_id);
+        received_stop_tag = current_tag;
+        received_stop_tag.microstep++;
     }
 
     stop_tag = received_stop_tag;

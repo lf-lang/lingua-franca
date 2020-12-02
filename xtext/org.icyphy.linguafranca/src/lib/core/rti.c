@@ -101,6 +101,19 @@ int final_port = -1;
 /** The socket descriptor for the socket server. */
 int socket_descriptor = -1;
 
+/**
+ * Mark a federate requesting stop.
+ * 
+ * If the number of federates handling stop reaches the
+ * NUM_OF_FEDERATES, broadcast STOP_GRANTED to every federate.
+ * 
+ * This function assumes the rti_mutex is already locked.
+ * 
+ * @param fed The federate that has requested a stop or has suddenly
+ *  stopped (disconnected).
+ */
+void _lf_rti_mark_federate_requesting_stop(federate_t* fed);
+
 /** 
  * Create a server and enable listening for socket connections.
  * 
@@ -285,6 +298,7 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
         error_print("RTI failed to send time advance grant to federate %d.", fed->id);
         if (bytes_read < 0) {
             fed->state = NOT_CONNECTED;
+            _lf_rti_mark_federate_requesting_stop(fed);
         }
     }
     DEBUG_PRINT("RTI sent to federate %d the TAG (%lld, %u).", fed->id, tag.time - start_time, tag.microstep);
@@ -823,6 +837,7 @@ void handle_federate_resign(federate_t *my_fed) {
     unsigned char temporary_read_buffer[1];
     pthread_mutex_lock(&rti_mutex);
     my_fed->state = NOT_CONNECTED;
+    _lf_rti_mark_federate_requesting_stop(my_fed);
     my_fed->next_event.time = NEVER;
     my_fed->next_event.microstep = 0;
     close(my_fed->socket); //  from unistd.h

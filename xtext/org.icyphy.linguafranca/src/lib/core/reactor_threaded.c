@@ -112,7 +112,8 @@ pthread_cond_t global_tag_barrier_requestors_reached_zero = PTHREAD_COND_INITIAL
  */
 void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
     // Check if future_tag is after stop tag.
-    // This should not occur!
+    // This will only occur when a federate receives a timed message with 
+    // a tag that is after the stop tag
     if (_lf_is_tag_after_stop_tag(future_tag)) {
         printf("WARNING: attempting to raise a barrier after the stop tag.\n");
         future_tag = stop_tag;
