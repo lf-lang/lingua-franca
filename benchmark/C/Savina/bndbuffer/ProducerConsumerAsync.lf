@@ -247,11 +247,9 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     state availableProducers:int_fifo_t*;
     state availableConsumers:int_fifo_t*;
     state pendingData:double_fifo_t*;
-    state numTerminatedProducers:int(0);
     
     input[numProducers] producerData:double;
     output[numProducers] produceNext:bool;
-    input[numConsumers] consumerDone:bool;
     input[numProducers] producerDone:bool; 
     input[numConsumers] consumerReady:bool;
     output[numConsumers] consumerData:double;
@@ -285,9 +283,7 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
 	 */
     reaction(requestData) -> produceNext {=
         printf("Manager requesting more data.\n");
-        if (self->numTerminatedProducers == self->numProducers) {
-            return;
-        }
+        
         while(double_fifo_size(self->pendingData) < self->adjustedBufferSize) {            
             if (int_fifo_is_empty(self->availableProducers)) {
                 printf("All producers are now busy.\n");
@@ -329,18 +325,7 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
         schedule(requestData, 0);
     =}
     
-    /**
-     * Register producers that are done. 
-     */
-    reaction(producerDone) {=
-        for (int i = 0; i < producerDone_width; i++) {
-			if (producerDone[i]->is_present) {
-				self->numTerminatedProducers += 1;
-			}
-		}
-	=}
-	
-	reaction(consumerReady) -> consumeMore {=
+    reaction(consumerReady) -> consumeMore {=
         for (int i = 0; i < consumerReady_width; i++) {
 			printf("Consumer %d is ready for more data.\n", i);
 			if (consumerReady[i]->is_present) {
@@ -348,89 +333,6 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
 			}
 		}
     =}
-    
-        
-//    reaction(consume) -> outConsumers, outProducers {=
-//        printf("consume reaction is not invoked.\n");
-//        
-//        if(self->numTerminatedProducers == self->numProducers &&
-//            size(self->availableConsumers) == self->numConsumers) {
-//            return;
-//        }
-//        
-//        for (int i = 0; i < size(self->availableConsumers); i++) {
-//            if (is_empty(self->pendingData)) {
-//                break;
-//            }
-//            message_t* msg;
-//            msg = pop(self->pendingData); // FIXME: wrong data type
-//            printf("Popped %f.\n", msg->data);
-//            int* idx;
-//            idx = pop(self->availableConsumers);
-//            SET(outConsumers[*idx], *msg);
-//            free(idx);
-//            free(msg);
-//            if (!is_empty(self->availableProducers)) {
-//                int* idx;
-//                idx = pop(self->availableProducers);
-//                printf("Popped %d.\n", *idx);
-//                message_t msg = {ProduceDataMsg, *idx + 1.0};
-//                SET(outProducers[*idx], msg);
-//                printf("outProducers[%d] = %f.\n", *idx, outProducers[*idx]->value.data);
-//                free(idx);
-//            }
-//        }
-//    =}
-    
-//    reaction(inStart) -> produce {=
-//        printf("inStart reaction is invoked.\n");
-//        
-//        // reset local state
-//        clear(self->availableProducers);
-//        clear(self->availableConsumers);
-//        clear(self->pendingData);
-//        self->numTerminatedProducers = 0;
-//        
-//        // start execution
-//       
-//    =}
-//    
-//    reaction(inConsumers) -> consume {=
-//        printf("inConsumers reaction is not invoked.\n");
-//        for (int i = 0; i < inConsumers_width; i++) {
-//            if (inConsumers[i]->is_present) {
-//                if(inConsumers[i]->value.type == ConsumerAvailableMsg) {
-//					int* inConsumer = (int*)malloc(sizeof(int)); // FIXME: this should be freed
-//					*inConsumer = i;
-//                    push(self->availableConsumers, inConsumer);
-//                }
-//            }
-//        }
-//        schedule(consume, 0);
-//    =}
-//    
-//    reaction(inProducers) -> produce, consume, outFinished {=
-//        printf("inProducers reaction is not invoked.\n");
-//        for(int i = 0; i < inProducers_width; i++) {
-//            if(inProducers[i]->is_present) {
-//                if (inProducers[i]->value.type == DataItemMsg) {
-//                    push(self->pendingData, &inProducers[i]->value); // FIXME: Not the right data type
-//					int* producer = (int*)malloc(sizeof(int)); // FIXME: this should be freed
-//					*producer = i;                    
-//                    push(self->availableProducers, producer);
-//                    schedule(consume, 0);
-//                    schedule(produce, 0);
-//                } else if(inProducers[i]->value.type == ProducerExitMsg) {
-//                    self->numTerminatedProducers += 1;
-//                    if(self->numTerminatedProducers == self->numProducers &&
-//                        size(self->availableConsumers) == self->numConsumers) {
-//                        SET(outFinished, true);
-//                        return;
-//                    }
-//                }
-//            }
-//        }
-//    =}
 }
 
 reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
@@ -443,10 +345,10 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
     output data:double;
     
     reaction(next) -> data, done {=
-		printf("Producer creating data.\n");
 		if (self->itemsProduced == self->numItemsToProduce) {
         	SET(done, true);
         } else {
+            printf("Producer creating data.\n");
             SET(data, processItem(self->prodItem, self->prodCost));
             self->itemsProduced += 1;
         }
@@ -468,36 +370,6 @@ reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
     =}
 }
 
-//main reactor Test {
-//	state p:double_fifo_t*;
-//	state q:int_fifo_t*;
-//	reaction(startup) {=
-//    	self->q = int_fifo_create(4);
-//    	int_fifo_push(self->q, 1);
-//		int_fifo_push(self->q, 2);
-//		int_fifo_push(self->q, 3);
-//		int_fifo_push(self->q, 4);
-//		while(!int_fifo_is_empty(self->q)) {
-//				int ptr;
-//				int_fifo_pop(self->q, &ptr);
-//				printf("value: %d\n", ptr);
-//				printf("size: %d\n", int_fifo_size(self->q));
-//        }
-//        
-//        self->p = double_fifo_create(4);
-//    	double_fifo_push(self->p, 1.0);
-//		double_fifo_push(self->p, 2.0);
-//		double_fifo_push(self->p, 3.0);
-//		double_fifo_push(self->p, 4.0);
-//		while(!double_fifo_is_empty(self->p)) {
-//				double ptr;
-//				double_fifo_pop(self->p, &ptr);
-//				printf("value: %f\n", ptr);
-//				printf("size: %d\n", double_fifo_size(self->p));
-//        }
-//    =} 
-//
-//}
 main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
     
     reaction(startup) {=
@@ -523,8 +395,6 @@ main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25
     manager.consumerData -> consumers.data;
     producers.data -> manager.producerData;
     producers.done -> manager.producerDone;
-    //consumers.done -> manager.consumerDone;
     consumers.ready -> manager.consumerReady;
-    
     
 }
