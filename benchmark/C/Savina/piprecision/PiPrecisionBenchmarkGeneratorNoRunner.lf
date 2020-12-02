@@ -93,11 +93,12 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
         } else {
             printf("Result is incorrect: %s.\n", self->resultString);
         }
-        free(solutionPruned);
+        // FIXME: these free statements report memory corruption on my machine
+        // free(solutionPruned);
         mpf_clear(self->result);
         mpf_clear(self->tolerance);
-        free(self->workersNeedWork);
-        free(self->resultString);
+        // free(self->workersNeedWork);
+        // free(self->resultString);
     =}
     
     reaction(startup) -> generateWork {=
