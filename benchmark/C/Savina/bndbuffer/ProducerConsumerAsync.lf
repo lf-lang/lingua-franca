@@ -8,7 +8,6 @@
  
 target C {
     flags: "-lm",
-    keepalive: true,
     files: ../include/PseudoRandom.h,
     coordination: centralized
 };
@@ -79,11 +78,11 @@ preamble {=
      */
     bool int_fifo_pop(int_fifo_t* queue, int* data) {
         if (int_fifo_is_empty(queue)) {
-            printf("Buffer is empty.\n");
+            //printf("Buffer is empty.\n");
             return false;
         } else {
             *data = queue->arr[queue->head];
-            printf("Popping: %d\n", *data);
+            //printf("Popping: %d\n", *data);
             queue->head = (queue->head + 1) % queue->max_size;
             queue->is_full = false;
         	return true;
@@ -95,10 +94,10 @@ preamble {=
      */
     bool int_fifo_push(int_fifo_t* queue, int elem) {
         if (queue->is_full) {
-        	printf("Buffer is full.\n");
+        	//printf("Buffer is full.\n");
 			return false;        	
         } else {
-            printf("Pushing: %d\n", elem);
+            //printf("Pushing: %d\n", elem);
             queue->arr[queue->tail] = elem;
             queue->tail = (queue->tail + 1) % queue->max_size;
             if (queue->head == queue->tail) {
@@ -251,82 +250,106 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     state numTerminatedProducers:int(0);
     
     input[numProducers] producerData:double;
-    output[numProducers] producerStart:bool;
+    output[numProducers] produceNext:bool;
     input[numConsumers] consumerDone:bool;
     input[numProducers] producerDone:bool; 
+    input[numConsumers] consumerReady:bool;
     output[numConsumers] consumerData:double;
     
-    logical action produce;
+    logical action requestData;
+    logical action consumeMore;
     
-    reaction(startup) {=
-        printf("startup reaction is invoked.\n");
+    /**
+     * Populate the "available" FIFO queues and schedule
+     * the produce action.
+     */
+    reaction(startup) -> requestData {=
+        printf("Manager started up.\n");
         self->adjustedBufferSize = self->bufferSize - self->numProducers;
         self->availableProducers = int_fifo_create(self->numProducers);
         self->availableConsumers = int_fifo_create(self->numConsumers);
         self->pendingData = double_fifo_create(self->bufferSize);
         
         for (int i = 0; i < self->numConsumers; i++) {
-			push(self->availableConsumers, consumer);
+			int_fifo_push(self->availableConsumers, i);
         }
         for (int i = 0; i < self->numProducers; i++) {
-			SET(producerStart[i], true);
+			int_fifo_push(self->availableProducers, i);
         }
+        schedule(requestData, 0);
     =}
-    
-    reaction(produce) -> producerStart {=
-        printf("produce reaction is invoked.\n");
-        
-        while(size(self->pendingData) < self->adjustedBufferSize) { // FIXME: Why?            
-            if(is_empty(self->availableProducers)) {
-                printf("Ran out of available producers.\n");
+
+	/**
+	 * Tell producers to start producing, provided that there is enough
+	 * space in the pending data FIFO and the producers are not all done.
+	 */
+    reaction(requestData) -> produceNext {=
+        printf("Manager requesting more data.\n");
+        if (self->numTerminatedProducers == self->numProducers) {
+            return;
+        }
+        while(double_fifo_size(self->pendingData) < self->adjustedBufferSize) {            
+            if (int_fifo_is_empty(self->availableProducers)) {
+                printf("All producers are now busy.\n");
                 break;
             }
             int idx;
-            idx = pop(self->availableProducers, &idx);
-            SET(outProducers[idx], idx + 1.0);
-            printf("outProducers[%d] = %f.\n", idx, outProducers[idx]->value.data);
+            int_fifo_pop(self->availableProducers, &idx);
+            printf("Asking producer %d to start.\n", idx);
+            SET(produceNext[idx], true);
         }
     =}
     
     /**
      * Respond to new data coming in.
      */
-    reaction(producerData) -> consumerData, produce {=
+    reaction(producerData) {=
 		// Stick all incoming data in a buffer.
 		for (int i = 0; i < producerData_width; i++) {
             if (producerData[i]->is_present) {
-                push(self->pendingData, producerData[i]->value);
-				push(self->availableProducers, i);
+                double_fifo_push(self->pendingData, producerData[i]->value);
+				int_fifo_push(self->availableProducers, i);
             }
 		}
-		// Find a consumer for all pending data.
+    =}
+    
+    reaction(producerData, consumeMore) -> consumerData, requestData {=
+        // Find a consumer for all pending data.
 		int idx;
 		double data;
 		while (!double_fifo_is_empty(self->pendingData)) {
             if (int_fifo_pop(self->availableConsumers, &idx)) {
-            	double_fifo_pop(self->availableConsumers, &data);
+            	double_fifo_pop(self->pendingData, &data);
             	SET(consumerData[idx], data);  
             } else {
                 break;
             }
         }
         // Ask the producers to produce more.
-        schedule(produce, 0);
+        schedule(requestData, 0);
     =}
     
     /**
      * Register producers that are done. 
      */
     reaction(producerDone) {=
-        for (int i = 0; i < producerData_width; i++) {
-			if (producerDone->is_present) {
+        for (int i = 0; i < producerDone_width; i++) {
+			if (producerDone[i]->is_present) {
 				self->numTerminatedProducers += 1;
 			}
 		}
 	=}
+	
+	reaction(consumerReady) -> consumeMore {=
+        for (int i = 0; i < consumerReady_width; i++) {
+			printf("Consumer %d is ready for more data.\n", i);
+			if (consumerReady[i]->is_present) {
+				int_fifo_push(self->availableConsumers, i);
+			}
+		}
+    =}
     
-    
-    
+        
 //    reaction(consume) -> outConsumers, outProducers {=
 //        printf("consume reaction is not invoked.\n");
 //        
@@ -419,8 +442,8 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
     output done:bool;
     output data:double;
     
-    reaction(startup, next) -> data, done {=
-		//printf("Producer creating data.\n");
+    reaction(next) -> data, done {=
+		printf("Producer creating data.\n");
 		if (self->itemsProduced == self->numItemsToProduce) {
         	SET(done, true);
         } else {
@@ -435,19 +458,15 @@ reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
     state consItem:double(0.0);
     state itemsConsumed:int(0);
     input data:double;
-    output done:bool;
+    output ready:bool;
     
-    reaction(data) {=
-        //printf(".");
+    reaction(data) -> ready {=
+        printf("One consumer got new data.\n");
         self->consItem = processItem(self->consItem + data->value, self->consCost);
         self->itemsConsumed += 1;
-        //printf("%d", self->itemsConsumed);
-        if (self->itemsConsumed == self->numItemsToConsume) {
-			request_stop();
-        }
+            SET(ready, true);
     =}
-    
-    }
+}
 
 //main reactor Test {
 //	state p:double_fifo_t*;
@@ -500,11 +519,12 @@ main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25
     // FIXME: We should use physical connections along the data path.
     // These are not supported yet. We could use banks of reactors that schedule a phys. action.
     
-    manager.producerStart -> producers.next;
+    manager.produceNext -> producers.next;
     manager.consumerData -> consumers.data;
     producers.data -> manager.producerData;
     producers.done -> manager.producerDone;
-    consumers.done -> manager.consumerDone;
+    //consumers.done -> manager.consumerDone;
+    consumers.ready -> manager.consumerReady;
     
     
 }
