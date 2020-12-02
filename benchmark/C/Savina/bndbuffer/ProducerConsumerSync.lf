@@ -12,8 +12,7 @@ target C {
     //logging: DEBUG,
     keepalive: true,
     files: ../include/PseudoRandom.h,
-    threads: 24,
-    coordination: centralized
+    threads: 24
 };
 
 //import BenchmarkRunner from "../BenchmarkRunner.lf";
