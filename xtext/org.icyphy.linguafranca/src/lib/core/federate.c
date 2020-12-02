@@ -658,6 +658,18 @@ void connect_to_federate(ushort remote_federate_id) {
 }
 
 /**
+ * Handle physical time messages coming from the RTI.
+ * 
+ * FIXME: not implemented
+ */
+void handle_physical_time_sync_message() {
+    unsigned char buffer[sizeof(instant_t)];
+    read_from_socket(_lf_rti_socket, sizeof(instant_t), buffer,
+                     "Federate %d failed to receive physical time from RTI.", _lf_my_fed_id);
+    return;
+}
+
+/**
  * Connect to the RTI at the specified host and port and return
  * the socket descriptor for the connection. If this fails, the
  * program exits. If it succeeds, it sets the _lf_rti_socket global
@@ -790,6 +802,10 @@ void connect_to_rti(char* hostname, int port) {
                 error_print_and_exit("RTI Rejected FED_ID message with response (see rti.h): %d. Error code: %d. Federate quits.\n", response, cause);
             }
             printf("Federate %d: connected to RTI at %s:%d.\n", _lf_my_fed_id, hostname, port);
+
+            // Wait for a physical time.
+            read_from_socket(_lf_rti_socket, 1, &response, "Federate %d failed to read physical time RTI.", _lf_my_fed_id);
+            handle_physical_time_sync_message();
         }
     }
 }
@@ -1179,7 +1195,7 @@ void handle_stop_granted_message() {
     } else if (received_stop_tag.time > current_tag.time) {
         received_stop_tag.microstep = 0;
     } else {
-        error_print_and_exit("Received a stop_time in the past.");
+        error_print_and_exit("Federate %d received a stop_time in the past.", _lf_my_fed_id);
     }
 
     stop_tag = received_stop_tag;
@@ -1335,6 +1351,9 @@ void* listen_to_rti(void* args) {
                 break;
             case STOP_GRANTED:
                 handle_stop_granted_message();
+                break;
+            case PHYSICAL_TIME_SYNC_MESSAGE:
+                handle_physical_time_sync_message();
                 break;
             default:
                 error_print_and_exit("Federate %d received from RTI an unrecognized message type: %hhx.", _lf_my_fed_id, buffer[0]);

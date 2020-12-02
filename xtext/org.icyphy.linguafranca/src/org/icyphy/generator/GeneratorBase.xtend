@@ -966,10 +966,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val relativeBinFilename = "bin" + File.separator + fileToCompile;
 
         var compileArgs = newArrayList
-        if (targetCompilerFlags !== null && !targetCompilerFlags.isEmpty()) {
-            val flags = targetCompilerFlags.split(' ')
-            compileArgs.addAll(flags)
-        }
         compileArgs.add(relativeSrcFilename)
         compileArgs.addAll(compileAdditionalSources)
         compileArgs.addAll(compileLibraries)
@@ -983,6 +979,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // If threaded computation is requested, add a -pthread option.
         if (targetThreads !== 0 || targetTracing) {
             compileArgs.add("-pthread")
+        }
+        // Finally add the compiler flags in target parameters (if any)
+        if (targetCompilerFlags !== null && !targetCompilerFlags.isEmpty()) {
+            val flags = targetCompilerFlags.split(' ')
+            compileArgs.addAll(flags)
         }
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
