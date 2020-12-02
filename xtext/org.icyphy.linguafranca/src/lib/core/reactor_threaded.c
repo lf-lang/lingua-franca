@@ -248,7 +248,7 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
     }
     // Wait if the global barrier semaphore on logical time is zero
     // and the proposed_time is larger than the horizon.
-    while (compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) &&
+    while ((compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) > 0) &&
           _lf_global_tag_advancement_barrier.requestors > 0) {
         DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time, proposed_tag.microstep);
         // Wait until no requestor remains for the barrier on logical time
