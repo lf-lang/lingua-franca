@@ -506,8 +506,7 @@ int __next() {
     if (!wait_until(next_tag.time, next_tag.microstep)) {
         // printf("DEBUG: __next(): Wait until time interrupted.\n");
         // Sleep was interrupted.
-        // May have been an asynchronous call to schedule(), or
-        // it may have been a control-C to stop the process.
+        // May have been an asynchronous call to schedule().
         // Set current time to match physical time, but not less than
         // current logical time nor more than next time in the event queue.
         // Get the current physical time.
@@ -776,14 +775,18 @@ void* worker(void* arg) {
                 // to appear on the event queue. Note that we already
                 // hold the mutex lock.
                 __advancing_time = true;
+                tracepoint_worker_advancing_time_starts(worker_number);
                 __next();
+                tracepoint_worker_advancing_time_ends(worker_number);
                 __advancing_time = false;
                 // printf("DEBUG: worker %d: Done waiting for __next().\n", worker_number);
             } else {
                 // Wait for something to change (either a stop request or
                 // something went on the reaction queue.
                 // printf("DEBUG: worker %d: Waiting for items on the reaction queue.\n", worker_number);
+                tracepoint_worker_wait_starts(worker_number);
                 pthread_cond_wait(&reaction_q_changed, &mutex);
+                tracepoint_worker_wait_ends(worker_number);
                 // printf("DEBUG: worker %d: Done waiting.\n", worker_number);
             }
         } else {
