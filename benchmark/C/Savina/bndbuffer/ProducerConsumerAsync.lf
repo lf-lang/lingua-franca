@@ -258,6 +258,10 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     
     logical action produce;
     
+    /**
+     * Populate the "available" FIFO queues and schedule
+     * the produce action.
+     */
     reaction(startup) -> produce {=
         printf("startup reaction is invoked.\n");
         self->adjustedBufferSize = self->bufferSize - self->numProducers;
@@ -272,7 +276,11 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
 			int_fifo_push(self->availableProducers, i);
         }
     =}
-    
+
+	/**
+	 * Tell producers to start producing provided that there is enough
+	 * space in the pending data FIFO.
+	 */
     reaction(produce) -> producerStart {=
         printf("produce reaction is invoked.\n");
         while(double_fifo_size(self->pendingData) < self->adjustedBufferSize) {            
@@ -418,7 +426,7 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
     output data:double;
     
     reaction(startup, next) -> data, done {=
-		//printf("Producer creating data.\n");
+		printf("Producer creating data.\n");
 		if (self->itemsProduced == self->numItemsToProduce) {
         	SET(done, true);
         } else {
@@ -435,13 +443,13 @@ reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
     input data:double;
     output done:bool;
     
-    reaction(data) {=
-        //printf(".");
+    reaction(data) -> done {=
+        printf("One consumer got new data.\n");
         self->consItem = processItem(self->consItem + data->value, self->consCost);
         self->itemsConsumed += 1;
-        //printf("%d", self->itemsConsumed);
         if (self->itemsConsumed == self->numItemsToConsume) {
-			request_stop();
+			printf("One consumer finished...\n");
+			SET(done, true);
         }
     =}
     
