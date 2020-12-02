@@ -258,7 +258,7 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
     
     logical action produce;
     
-    reaction(startup) {=
+    reaction(startup) -> produce {=
         printf("startup reaction is invoked.\n");
         self->adjustedBufferSize = self->bufferSize - self->numProducers;
         self->availableProducers = int_fifo_create(self->numProducers);
@@ -266,25 +266,23 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
         self->pendingData = double_fifo_create(self->bufferSize);
         
         for (int i = 0; i < self->numConsumers; i++) {
-			push(self->availableConsumers, consumer);
+			int_fifo_push(self->availableConsumers, i);
         }
         for (int i = 0; i < self->numProducers; i++) {
-			SET(producerStart[i], true);
+			int_fifo_push(self->availableProducers, i);
         }
     =}
     
     reaction(produce) -> producerStart {=
         printf("produce reaction is invoked.\n");
-        
-        while(size(self->pendingData) < self->adjustedBufferSize) { // FIXME: Why?            
-            if(is_empty(self->availableProducers)) {
+        while(double_fifo_size(self->pendingData) < self->adjustedBufferSize) {            
+            if (int_fifo_is_empty(self->availableProducers)) {
                 printf("Ran out of available producers.\n");
                 break;
             }
             int idx;
-            idx = pop(self->availableProducers, &idx);
-            SET(outProducers[idx], idx + 1.0);
-            printf("outProducers[%d] = %f.\n", idx, outProducers[idx]->value.data);
+            int_fifo_pop(self->availableProducers, &idx);
+            SET(producerStart[idx], true);
         }
     =}
     
@@ -295,8 +293,8 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
 		// Stick all incoming data in a buffer.
 		for (int i = 0; i < producerData_width; i++) {
             if (producerData[i]->is_present) {
-                push(self->pendingData, producerData[i]->value);
-				push(self->availableProducers, i);
+                double_fifo_push(self->pendingData, producerData[i]->value);
+				int_fifo_push(self->availableProducers, i);
             }
 		}
 		// Find a consumer for all pending data.
@@ -304,7 +302,7 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
 		double data;
 		while (!double_fifo_is_empty(self->pendingData)) {
             if (int_fifo_pop(self->availableConsumers, &idx)) {
-            	double_fifo_pop(self->availableConsumers, &data);
+            	double_fifo_pop(self->pendingData, &data);
             	SET(consumerData[idx], data);  
             } else {
                 break;
@@ -318,8 +316,8 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
      * Register producers that are done. 
      */
     reaction(producerDone) {=
-        for (int i = 0; i < producerData_width; i++) {
-			if (producerDone->is_present) {
+        for (int i = 0; i < producerDone_width; i++) {
+			if (producerDone[i]->is_present) {
 				self->numTerminatedProducers += 1;
 			}
 		}
