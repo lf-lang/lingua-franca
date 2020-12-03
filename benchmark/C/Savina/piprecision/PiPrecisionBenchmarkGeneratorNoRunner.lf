@@ -87,7 +87,7 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
         char* solutionPruned = (char*)calloc(99200, sizeof(char));
         strncpy(solutionPruned, solution, strlen(self->resultString));
         int correct = strncmp(self->resultString, solutionPruned,
-                              1542); // 1542 is the maximum number of correct digits I can get on my machine
+                              5000);
         if (correct == 0) {
         	printf("Result is correct.\n");
         } else {
@@ -103,12 +103,13 @@ reactor Master(numWorkers:int(20), scale:int(5000)) {
     
     reaction(startup) -> generateWork {=
         self->resultString = (char*)calloc(99200, sizeof(char));
-        mpf_set_default_prec(self->scale);
+        self->scaleBinary = 16610; // result of ld(10^scale) with scale = 5000
+                                   // FIXME: this only works with scale = 5000
+        mpf_set_default_prec(self->scaleBinary);
         self->workersNeedWork = (bool*)malloc(self->numWorkers * sizeof(bool));        
         mpf_init(self->result);
         mpf_init(self->tolerance);
         // initialization
-        self->scaleBinary = 16610; // result of ld(10^scale) with scale = 5000
         mpf_init2(self->tolerance, self->scaleBinary);
         mpf_t base;
         mpf_init2(base, self->scaleBinary);
@@ -214,7 +215,8 @@ reactor Worker(scale:int(5000)) {
     input inMaster:WorkMessage;
     output outMaster:mpf_t;
     reaction(startup) {=
-        mpf_set_default_prec(self->scale);
+        mpf_set_default_prec(16610); // result of ld(10^scale) with scale = 5000
+                                    // FIXME: this only works with scale = 5000
     =}
     
     reaction(inMaster) -> outMaster {=
