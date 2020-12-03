@@ -50,17 +50,18 @@ int max_thread_id = 0;
  * Print a usage message.
  */
 void usage() {
-    printf("\nUsage: trace_to_chrome [options] trace_file_root (without .lft extension)\n\n");
-    /* No options yet:
-    printf("\nOptions: \n\n");
-    printf("  -f, --fast [true | false]\n");
-    printf("   Whether to wait for physical time to match logical time.\n\n");
-    printf("\n\n");
-    */
+    printf("\nUsage: trace_to_chrome [options] trace_file (with or without .lft extension)\n");
+    printf("Options: \n");
+    printf("  -p, --physical\n");
+    printf("   Use only physical time, not logical time, for all horizontal axes.\n");
+    printf("\n");
 }
 
 /** Maximum reaction number encountered. */
 int max_reaction_number = 0;
+
+/** Indicator to plot vs. physical time only. */
+bool physical_time_only = false;
 
 /**
  * Read a trace in the specified file and write it to the specified json file.
@@ -143,18 +144,26 @@ size_t read_and_write_trace() {
             case schedule_called:
                 phase = "i";
                 pid = reactor_index + 1; // One pid per reactor.
-                timestamp = elapsed_logical_time + trace[i].extra_delay/1000;
+                if (!physical_time_only) {
+                    timestamp = elapsed_logical_time + trace[i].extra_delay/1000;
+                }
                 thread_id = trigger_index;
                 name = trigger_name;
                 break;
             case user_event:
                 pid = PID_FOR_USER_EVENT;
                 phase= "i";
+                if (!physical_time_only) {
+                    timestamp = elapsed_logical_time;
+                }
                 thread_id = reactor_index;
                 break;
             case user_value:
                 pid = PID_FOR_USER_EVENT;
                 phase= "C";
+                if (!physical_time_only) {
+                    timestamp = elapsed_logical_time;
+                }
                 thread_id = reactor_index;
                 free(args);
                 asprintf(&args, "{\"value\": %lld}", trace[i].extra_delay);
@@ -203,9 +212,10 @@ size_t read_and_write_trace() {
         if (trace[i].worker > max_thread_id) {
             max_thread_id = trace[i].worker;
         }
-        // If the event is reaction_starts, then also generate an instantaneous
+        // If the event is reaction_starts and physical_time_only is not set,
+        // then also generate an instantaneous
         // event to be shown in the reactor's section, along with timers and actions.
-        if (trace[i].event_type == reaction_starts) {
+        if (trace[i].event_type == reaction_starts && !physical_time_only) {
             phase = "i";
             pid = reactor_index + 1;
             reaction_name = (char*)malloc(4);
@@ -394,11 +404,23 @@ void write_metadata_events() {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
+    char* filename = NULL;
+    for (int i = 1; i < argc; i++) {
+        printf("FIXME %s\n", argv[i]);
+        if (strncmp(argv[i], "-p", 2) == 0 || strncmp(argv[i], "--physical", 10) == 0) {
+            physical_time_only = true;
+        } else if (argv[i][0] == '-') {
+            usage();
+            return(1);
+        } else {
+           filename = argv[i];
+        }
+    }
+    if (filename == NULL) {
         usage();
         exit(0);
     }
-    open_files(argv[1], "json");
+    open_files(filename, "json");
 
     if (read_header(trace_file) >= 0) {
         // Write the opening bracket into the json file.
