@@ -36,8 +36,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "trace_util.h"
 
 #define PID_FOR_USER_EVENT 1000000 // Assumes no more than a million reactors.
-#define PID_FOR_WORKER_WAIT 1000001
-#define PID_FOR_WORKER_ADVANCING_TIME 1000002
+#define PID_FOR_WORKER_WAIT 0  // Use 1000001 to show in separate trace.
+#define PID_FOR_WORKER_ADVANCING_TIME 0 // Use 1000002 to show in separate trace.
 #define PID_FOR_UNKNOWN_EVENT 2000000
 
 /** Buffer for reading trace records. */
@@ -80,7 +80,14 @@ size_t read_and_write_trace() {
         int reactor_index;
         char* reactor_name = get_object_description(trace[i].pointer, &reactor_index);
         if (reactor_name == NULL) {
-            reactor_name = "NO REACTOR";
+            if (trace[i].event_type == worker_wait_starts || trace[i].event_type == worker_wait_ends) {
+                reactor_name = "WAIT";
+            } else if (trace[i].event_type == worker_advancing_time_starts 
+                    || trace[i].event_type == worker_advancing_time_starts) {
+                reactor_name = "ADVANCE TIME";
+            } else {
+                reactor_name = "NO REACTOR";
+            }
         }
         // Default name is the reactor name.
         char* name = reactor_name;
@@ -352,8 +359,9 @@ void write_metadata_events() {
                         "\"name\": \"Execution of %s\"" 
                     "}},\n",
                 top_level);
-    // Name the "process" for "Worker Waiting"
-    fprintf(output_file, "{"
+    // Name the "process" for "Worker Waiting" if the PID is not the main execution one.
+    if (PID_FOR_WORKER_WAIT > 0) {
+        fprintf(output_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "Workers waiting for reaction queue".
@@ -361,8 +369,10 @@ void write_metadata_events() {
                         "\"name\": \"Workers waiting for reaction queue\"" 
                     "}},\n",
                 PID_FOR_WORKER_WAIT);
-    // Name the "process" for "Worker advancing time"
-    fprintf(output_file, "{"
+    }
+    // Name the "process" for "Worker advancing time" if the PID is not the main execution one.
+    if (PID_FOR_WORKER_ADVANCING_TIME > 0) {
+        fprintf(output_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "Workers waiting for reaction queue".
@@ -370,6 +380,7 @@ void write_metadata_events() {
                         "\"name\": \"Workers advancing time\"" 
                     "}},\n",
                 PID_FOR_WORKER_ADVANCING_TIME);
+    }
     // Name the "process" for "User Events"
     // Last metadata entry lacks a comma.
     fprintf(output_file, "{"
