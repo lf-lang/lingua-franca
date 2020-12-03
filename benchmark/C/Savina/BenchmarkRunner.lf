@@ -141,8 +141,8 @@ reactor BenchmarkRunner(numIterations:int(12), useInit:bool(false), useCleanupIt
         }
         
         int comp (const void * elem1, const void * elem2) {
-			int f = *((int*)elem1);
-			int s = *((int*)elem2);
+			int f = *((double*)elem1);
+			int s = *((double*)elem2);
 			if (f > s) return  1;
 			if (f < s) return -1;
 			return 0;
