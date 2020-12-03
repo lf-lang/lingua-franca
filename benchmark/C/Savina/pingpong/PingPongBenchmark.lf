@@ -25,7 +25,9 @@
  * @author Shaokai Lin
  */
 
-target C;
+target C {
+    fast: true
+};
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
