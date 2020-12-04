@@ -29,7 +29,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Definitions of tracepoint events for use with the C code generator and any other
  * code generator that uses the C infrastructure (such as the Python code generator).
  *
- * FIXME: How to use.
+ * See: https://github.com/icyphy/lingua-franca/wiki/Tracing#TracingInC
  *
  * The trace file is named trace.lft and is a binary file with the following format:
  *
@@ -152,7 +152,7 @@ void start_trace(char* filename);
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
  * @param reactor The pointer to the self struct of the reactor instance in the trace table.
- * @param reaction_index The index of the reaction or -1 if the trace is not of a reaction.
+ * @param reaction_number The index of the reaction or -1 if the trace is not of a reaction.
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
