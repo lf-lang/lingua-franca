@@ -4,17 +4,12 @@
  * @author Hannes Klein
  * @author Marten Lohstroh
  * @author Soroush Bateni
-<<<<<<< HEAD
- * @author Shaokai Lin
-=======
  * @author Shoakai Lin
->>>>>>> 6211efd7 (Removed physical connections from benchmark because it makes it slower)
  */
  
 target C {
     flags: "-lm",
     files: ../include/PseudoRandom.h,
-    coordination: centralized,
     threads:24
 };
 
@@ -266,8 +261,8 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
      * Populate the "available" FIFO queues and schedule
      * the produce action.
      */
-    reaction(startup) -> requestData {=
-        //printf("Manager started up.\n");
+    reaction(startup) {=
+        printf("Manager started up.\n");
         self->adjustedBufferSize = self->bufferSize - self->numProducers;
         self->availableProducers = int_fifo_create(self->numProducers);
         self->availableConsumers = int_fifo_create(self->numConsumers);
@@ -279,65 +274,99 @@ reactor Manager(bufferSize:size_t(50), numProducers:size_t(40), numConsumers:siz
         for (int i = 0; i < self->numProducers; i++) {
 			int_fifo_push(self->availableProducers, i);
         }
-        schedule(requestData, 0);
     =}
 
 	/**
 	 * Tell producers to start producing, provided that there is enough
 	 * space in the pending data FIFO and the producers are not all done.
 	 */
-    reaction(requestData) -> produceNext {=
-        //printf("Manager requesting more data.\n");
+    reaction(startup, requestData) -> produceNext {=
+        printf("Manager requesting data production.\n");
         
         while(double_fifo_size(self->pendingData) < self->adjustedBufferSize) {            
             if (int_fifo_is_empty(self->availableProducers)) {
-                //printf("All producers are now busy.\n");
+                printf("All producers are now busy.\n");
                 break;
             }
             int idx;
             int_fifo_pop(self->availableProducers, &idx);
-            //printf("Asking producer %d to start.\n", idx);
+            printf("Asking producer %d to start.\n", idx);
             SET(produceNext[idx], true);
         }
     =}
     
     /**
+     * If consumers are ready, schedule a consumeMore action, which will
+     * result in the buffer being drained and new data being requested.
+     */
+    reaction(consumeMore) -> consumerData, produceNext {=
+        
+        while(!int_fifo_is_empty(self->availableConsumers)) {
+            if (double_fifo_is_empty(self->pendingData)) {
+                break;
+            }
+            
+            double data;
+            double_fifo_pop(self->pendingData, &data);
+            int idx;
+            int_fifo_pop(self->availableConsumers, &idx);
+            SET(consumerData[idx], data);
+        	
+        	if (!int_fifo_is_empty(self->availableProducers)) {
+            	int_fifo_pop(self->availableProducers, &idx);
+            	SET(produceNext[idx], true);
+        	}
+        }
+    =}
+    
+    reaction(consumerReady) -> consumeMore {=
+		for (int i = 0; i < consumerReady_width; i++) {
+			if (consumerReady[i]->is_present) {
+				printf("Consumer %d is ready for more data.\n", i);
+				int_fifo_push(self->availableConsumers, i);
+			}
+		}
+	    schedule(consumeMore, 0);
+    =}
+    
+    
+    /**
      * Respond to new data coming in.
      */
-    reaction(producerData) {=
+    reaction(producerData) -> requestData, consumeMore {=
 		// Stick all incoming data in a buffer.
 		for (int i = 0; i < producerData_width; i++) {
             if (producerData[i]->is_present) {
                 double_fifo_push(self->pendingData, producerData[i]->value);
 				int_fifo_push(self->availableProducers, i);
             }
+			schedule(requestData, 0);
+			schedule(consumeMore, 0);
 		}
+		
     =}
     
-    reaction(producerData, consumeMore) -> consumerData, requestData {=
-        // Find a consumer for all pending data.
-		int idx;
-		double data;
-		while (!double_fifo_is_empty(self->pendingData)) {
-            if (int_fifo_pop(self->availableConsumers, &idx)) {
-            	double_fifo_pop(self->pendingData, &data);
-            	SET(consumerData[idx], data);  
-            } else {
-                break;
-            }
-        }
-        // Ask the producers to produce more.
-        schedule(requestData, 0);
-    =}
+    /**
+     * If there is fresh data or consumers became available, drain the buffer.
+     * Also schedule a requestData action so that producers will be asked to
+     * produce more data.
+     */
+//    reaction(producerData, consumeMore) -> consumerData, requestData {=
+//        // Find a consumer for all pending data.
+//		int idx;
+//		double data;
+//		while (!double_fifo_is_empty(self->pendingData)) {
+//            if (int_fifo_pop(self->availableConsumers, &idx)) {
+//            	double_fifo_pop(self->pendingData, &data);
+//            	SET(consumerData[idx], data);  
+//            } else {
+//                break;
+//            }
+//        }
+//        schedule(requestData, 0);
+//    =}
+//    
     
-    reaction(consumerReady) -> consumeMore {=
-        for (int i = 0; i < consumerReady_width; i++) {
-			if (consumerReady[i]->is_present) {
-				//printf("Consumer %d is ready for more data.\n", i);
-				int_fifo_push(self->availableConsumers, i);
-			}
-		}
-    =}
 }
 
 reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
@@ -349,8 +378,9 @@ reactor Producer(numItemsToProduce:int(1000), prodCost:int(25)) {
     output data:double;
     
     reaction(next) -> data {=
+        printf(">>>>\n");
 		if (self->itemsProduced < self->numItemsToProduce) {
-            //printf("Producer creating data.\n");
+            printf("Producer creating data.\n");
             SET(data, processItem(self->prodItem, self->prodCost));
             self->itemsProduced += 1;
         }
@@ -365,7 +395,7 @@ reactor Consumer(numItemsToConsume:int(1000), consCost:int(25)) {
     output ready:bool;
     
     reaction(data) -> ready {=
-        //printf("One consumer got new data.\n");
+        printf("One consumer got new data.\n");
         self->consItem = processItem(self->consItem + data->value, self->consCost);
         self->itemsConsumed += 1;
         SET(ready, true);    
@@ -405,7 +435,7 @@ reactor ProducerRelayer {
     =}
  }
  
-main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+main reactor ProdConsAsync(bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(5000)) {
     
     reaction(startup) {=
         printBenchmarkInfo("ProdConsBenchmark");
