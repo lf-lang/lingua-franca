@@ -241,6 +241,7 @@ reactor Worker(scale:int(5000)) {
         mpf_clear(self->one);
         mpf_clear(self->intermediate);
         mpf_clear(self->term);
+        mpf_clear(self->result);
     =}
 }
 
