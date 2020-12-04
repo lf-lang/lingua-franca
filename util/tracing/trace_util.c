@@ -38,10 +38,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 char buffer[BUFFER_SIZE];
 
 /** File containing the trace binary data. */
-FILE* trace_file;
+FILE* trace_file = NULL;
 
 /** File for writing the output data. */
-FILE* output_file;
+FILE* output_file = NULL;
+
+/** File for writing summary statistics. */
+FILE* summary_file = NULL;
 
 /** Buffer for reading trace records. */
 trace_record_t trace[TRACE_BUFFER_CAPACITY];
@@ -65,19 +68,30 @@ void termination() {
     for (int i = 0; i < object_table_size; i++) {
         free(object_table[i].description);
     }
-    fclose(trace_file);
-    fclose(output_file);
+    if (trace_file != NULL) {
+        fclose(trace_file);
+    }
+    if (output_file != NULL) {
+        fclose(output_file);
+    }
+    if (summary_file != NULL) {
+        fclose(summary_file);
+    }
     printf("Done!\n");
 }
 
 /**
  * Open the trace file and the output file using the given filename.
+ * This leaves the FILE* pointers in the global variables trace_file and output_file.
+ * If the extension if "csv", then it also opens a summary_file.
  * The filename argument can include path information.
  * It can include the ".lft" extension or not.
  * The output file will have the same path and name except that the
  * extension will be given by the second argument.
+ * The summary_file, if opened, will have the filename with "_summary.csv" appended.
  * @param filename The file name.
  * @param output_file_extension The extension to put on the output file name (e.g. "csv").
+ * @return A pointer to the file.
  */
 void open_files(char* filename, char* output_file_extension) {
     // Open the input file for reading.
@@ -108,6 +122,21 @@ void open_files(char* filename, char* output_file_extension) {
         fprintf(stderr, "Could not create output file named %s.\n", output_file_name);
         usage();
         exit(2);
+    }
+
+    if (strcmp("csv", output_file_extension) == 0) {
+        // Also open a summary_file.
+        char* suffix = "_summary.csv";
+        char summary_file_name[length + strlen(suffix) + 1];
+        strncpy(summary_file_name, filename, length);
+        summary_file_name[length] = 0;
+        strcat(summary_file_name, suffix);
+        summary_file = fopen(summary_file_name, "w");
+        if (summary_file == NULL) {
+            fprintf(stderr, "Could not create summary file named %s.\n", summary_file_name);
+            usage();
+            exit(2);
+        }
     }
 
     if (atexit(termination) != 0) {
