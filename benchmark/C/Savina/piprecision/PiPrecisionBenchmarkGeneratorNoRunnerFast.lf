@@ -16,7 +16,7 @@
 target C {
     flags: "-lgmp -g", // FIXME: Statically linking GMP
     keepalive: true,
-    threads: 20
+    threads: 24
 };
 
 preamble {=
