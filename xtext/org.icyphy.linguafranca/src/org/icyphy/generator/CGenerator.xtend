@@ -769,10 +769,15 @@ class CGenerator extends GeneratorBase {
             
             pr('''
                 // Connect to the RTI. This sets _lf_rti_socket.
-                connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);                
-                // Synchronize the physical time with RTI
-                synchronize_physical_time_with_rti();
+                connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
             ''');
+            
+            if (targetClockSync) {
+                pr('''
+                    // Synchronize the physical time with RTI
+                    synchronize_physical_time_with_rti();
+                ''')
+            }
         
             if (numberOfInboundConnections > 0) {
                 pr('''
@@ -866,6 +871,9 @@ class CGenerator extends GeneratorBase {
         pr(rtiCode, '''
             «IF targetLoggingLevel?.equals("DEBUG")»
                 #define VERBOSE
+            «ENDIF»
+            «IF targetClockSync»
+                #define _LF_CLOCK_SYNC
             «ENDIF»
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES

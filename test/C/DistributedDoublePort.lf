@@ -9,9 +9,7 @@
  */
 target C {
     timeout: 900 msec,
-    fast: true,
-    coordination: centralized,
-    clock-sync: true
+    coordination: centralized
 };
 
 import Count from "lib/Count.lf";
