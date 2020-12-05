@@ -1731,6 +1731,7 @@ void initialize() {
     // Initialize logical time to match physical time.
     struct timespec actualStartTime;
     clock_gettime(CLOCK_REALTIME, &actualStartTime);
+    real_time_physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
 
     printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
             ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);

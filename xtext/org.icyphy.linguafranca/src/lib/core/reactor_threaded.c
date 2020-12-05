@@ -408,6 +408,14 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
     wait_until_time_ns += _lf_global_time_STP_offset;
 #endif
     if (!fast) {
+        // pthread_cond_timedwait can only accept an absolute time
+        // based on CLOCK_REALTIME in a portable way. If _LF_CLOCK
+        // is not CLOCK_REALTIME, we need to convert wait_until_time_ns
+        if (_LF_CLOCK != CLOCK_REALTIME) {
+            interval_t ticks_since_start = wait_until_time_ns - start_time;
+            wait_until_time_ns = real_time_physical_start_time + ticks_since_start;
+        }
+
         // Convert the logical time to a timespec.
         // timespec is seconds and nanoseconds.
         struct timespec wait_until_time = {(time_t)wait_until_time_ns / BILLION, (long)wait_until_time_ns % BILLION};
@@ -1033,14 +1041,6 @@ int main(int argc, char* argv[]) {
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mutex, &attr);
-
-    // Initialize the event_q_changed conditional variable 
-    // to use the _LF_CLOCK. This is important for wait_until
-    // to properly wait depending on _LF_CLOCK.
-    pthread_condattr_t cond_attr;
-    pthread_condattr_init(&cond_attr);
-    pthread_condattr_setclock(&cond_attr, _LF_CLOCK);
-    pthread_cond_init(&event_q_changed, &cond_attr);
 
     if (atexit(termination) != 0) {
         fprintf(stderr, "WARNING: Failed to register termination function!");
