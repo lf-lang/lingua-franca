@@ -1034,6 +1034,14 @@ int main(int argc, char* argv[]) {
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&mutex, &attr);
 
+    // Initialize the event_q_changed conditional variable 
+    // to use the _LF_CLOCK. This is important for wait_until
+    // to properly wait depending on _LF_CLOCK.
+    pthread_condattr_t cond_attr;
+    pthread_condattr_init(&cond_attr);
+    pthread_condattr_setclock(&cond_attr, _LF_CLOCK);
+    pthread_cond_init(&event_q_changed, &cond_attr);
+
     if (atexit(termination) != 0) {
         fprintf(stderr, "WARNING: Failed to register termination function!");
     }

@@ -55,7 +55,7 @@ instant_t start_time = NEVER;
  * Initially set according to the RTI's clock in federated
  * programs.
  */
-interval_t _lf_global_physical_time_offset = 0LL;
+volatile interval_t _lf_global_physical_time_offset = 0LL;
 
 /**
  * Compare two tags. Return -1 if the first is less than
@@ -165,7 +165,7 @@ instant_t get_start_time() {
 instant_t get_elapsed_physical_time() {
     struct timespec physicalTime;
     clock_gettime(_LF_CLOCK, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
+    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time + _lf_global_physical_time_offset;;
 }
 
 /**

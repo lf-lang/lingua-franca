@@ -1309,7 +1309,7 @@ void _lf_advance_logical_time(instant_t next_time) {
     } else {
         current_tag.microstep++;
     }
-    DEBUG_PRINT("Advanced logical tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
+    DEBUG_PRINT("Advanced tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
 }
 
 /**
@@ -1730,13 +1730,16 @@ void initialize() {
 
     // Initialize logical time to match physical time.
     struct timespec actualStartTime;
-    clock_gettime(_LF_CLOCK, &actualStartTime);
-    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
+    clock_gettime(CLOCK_REALTIME, &actualStartTime);
 
     printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
             ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);
+
+    clock_gettime(_LF_CLOCK, &actualStartTime);
     current_tag.time = physical_start_time;
     start_time = current_tag.time;
+
+    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
     
     if (duration >= 0LL) {
         // A duration has been specified. Calculate the stop time.

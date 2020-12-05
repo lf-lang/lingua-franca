@@ -149,7 +149,7 @@ unsigned int get_microstep();
  * Initially set according to the RTI's clock in federated
  * programs.
  */
-extern interval_t _lf_global_physical_time_offset;
+extern volatile interval_t _lf_global_physical_time_offset;
 
 /**
  * Return the current physical time in nanoseconds.
