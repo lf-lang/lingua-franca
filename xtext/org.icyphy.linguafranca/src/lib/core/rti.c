@@ -58,8 +58,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rti.h"        // Defines TIMESTAMP. Includes <pthread.h> and "reactor.h".
 #include "tag.c"        // Time-related types and functions.
 
+#ifdef _LF_CLOCK_SYNC
 /** Delay the start of all federates by this amount. */
-#define DELAY_START 0
+#define DELAY_START MSEC(1)
+#else
+#define DELAY_START SEC(1)
+#endif // _LF_CLOCK_SYNC
 
 /** The interval at which physical clock synchronization happens */
 #define CLOCK_SYNCHRONIZATION_INTERVAL_NS SEC(2)
