@@ -70,7 +70,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
         return -1;
     }
-    // printf("DEBUG: schedule_copy: Allocating memory for payload (token value): %p\n", trigger);
+    DEBUG_PRINT("schedule_copy: Allocating memory for payload (token value): %p.", trigger);
     // Initialize token with an array size of length and a reference count of 0.
     lf_token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
@@ -91,7 +91,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (!fast) {
-        // printf("DEBUG: Waiting for logical time %lld.\n", logical_time_ns);
+        DEBUG_PRINT("Waiting for logical time %lld.", logical_time_ns);
     
         // Get the current physical time.
         struct timespec current_physical_time;
@@ -107,7 +107,7 @@ int wait_until(instant_t logical_time_ns) {
     
         // timespec is seconds and nanoseconds.
         struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
-        // printf("DEBUG: Waiting %lld seconds, %lld nanoseconds.\n", ns_to_wait / BILLION, ns_to_wait % BILLION);
+        DEBUG_PRINT("Waiting %lld seconds, %lld nanoseconds.", ns_to_wait / BILLION, ns_to_wait % BILLION);
         struct timespec remaining_time;
         // FIXME: If the wait time is less than the time resolution, don't sleep.
         return_value = nanosleep(&wait_time, &remaining_time);
@@ -129,7 +129,7 @@ void print_snapshot() {
 void _lf_enqueue_reaction(reaction_t* reaction) {
     // Do not enqueue this reaction twice.
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-        // printf("DEBUG: Enqueing downstream reaction %p.\n", reaction);
+        DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
         pqueue_insert(reaction_q, reaction);
     }
 }
@@ -146,8 +146,8 @@ int _lf_do_step() {
         //print_snapshot();
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         
-        // printf("DEBUG: Popped from reaction_q reaction with deadline: %lld\n", reaction->deadline);
-        // printf("DEBUG: Address of reaction: %p\n", reaction);
+        DEBUG_PRINT("Popped from reaction_q reaction with deadline: %lld.", reaction->deadline);
+        DEBUG_PRINT("Address of reaction: %p.", reaction);
 
         bool violation = false;
         // If the reaction is tardy,
@@ -201,7 +201,7 @@ int _lf_do_step() {
             // They can have different deadlines, so we have to check both.
             // Handle the local deadline first.
             if (reaction->deadline > 0LL && physical_time > current_tag.time + reaction->deadline) {
-                printf("Deadline violation.\n");
+                DEBUG_PRINT("Deadline violation.");
                 // Deadline violation has occurred.
                 violation = true;
                 // Invoke the local handler, if there is one.
@@ -284,6 +284,7 @@ int next() {
     // Wait until physical time >= event.time.
     // The wait_until function will advance current_tag.time.
     if (wait_until(next_tag.time) != 0) {
+        DEBUG_PRINT("***** wait_until was interrupted.");
         // Sleep was interrupted.
         // FIXME: I think async calls to schedule() are now limited to the
         // threaded runtime.

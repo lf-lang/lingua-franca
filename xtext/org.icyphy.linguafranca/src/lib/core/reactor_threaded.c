@@ -263,13 +263,13 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
  */
 handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
-    // printf("DEBUG: pthread_mutex_lock schedule_token\n");
+    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_token.");
     pthread_mutex_lock(&mutex);
-    // printf("DEBUG: pthread_mutex_locked\n");
+    DEBUG_PRINT("pthread_mutex_locked.");
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
+    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_token.");
     pthread_mutex_unlock(&mutex);
     return return_value;
 }
@@ -289,9 +289,9 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
         return -1;
     }
-    // printf("DEBUG: pthread_mutex_lock schedule_token\n");
+    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_copy.");
     pthread_mutex_lock(&mutex);
-    // printf("DEBUG: pthread_mutex_locked\n");
+    DEBUG_PRINT("pthread_mutex_locked.");
     // Initialize token with an array size of length and a reference count of 0.
     lf_token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
@@ -300,7 +300,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     handle_t result = __schedule(trigger, offset, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
+    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_copy.");
     pthread_mutex_unlock(&mutex);
     return result;
 }
@@ -312,16 +312,16 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
 handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
 
-    // printf("DEBUG: pthread_mutex_lock schedule_token\n");
+    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_value.");
     pthread_mutex_lock(&mutex);
-    // printf("DEBUG: pthread_mutex_locked\n");
+    DEBUG_PRINT("pthread_mutex_locked.");
     lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    // printf("DEBUG: pthread_mutex_unlock schedule_token\n");
+    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_value.");
     pthread_mutex_unlock(&mutex);
     return return_value;
 }
@@ -382,7 +382,7 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
 bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
     bool return_value = true;
     if (logical_time_ns > stop_tag.time) {
-        // printf("DEBUG: -------- Wait time after stop time.\n");
+        DEBUG_PRINT("-------- Wait time after stop time.");
         // Modify the time to wait until to be the timeout time.
         logical_time_ns = stop_tag.time;
         // Indicate on return that the time of the event was not reached.
@@ -399,11 +399,11 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
         // timespec is seconds and nanoseconds.
         struct timespec wait_until_time = {(time_t)wait_until_time_ns / BILLION, (long)wait_until_time_ns % BILLION};
 
-        // printf("DEBUG: -------- Waiting for physical time to match logical time %llu.\n", logical_time_ns);
-        // printf("DEBUG: -------- which is %splus %ld nanoseconds.\n", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
+        DEBUG_PRINT("-------- Waiting for physical time to match logical time %llu.", logical_time_ns);
+        DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
 
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
-            // printf("DEBUG: -------- Wait interrupted.\n");
+            DEBUG_PRINT("-------- Wait interrupted.");
 
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule().
@@ -412,7 +412,7 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
             // and current_tag.time will be set to that time when that event is pulled.
             return_value = false;
         }
-        // printf("DEBUG: -------- Returned from wait.\n");
+        DEBUG_PRINT("-------- Returned from wait.");
 
     }
 #ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
@@ -502,9 +502,9 @@ int __next() {
     // Wait for physical time to advance to the next event time (or stop time).
     // This can be interrupted if a physical action triggers (e.g., a message
     // arrives from an upstream federate or a local physical action triggers).
-    // printf("DEBUG: next(): Waiting until time %lld.\n", (next_tag.time - start_time));
+    DEBUG_PRINT("next(): Waiting until time %lld.", (next_tag.time - start_time));
     if (!wait_until(next_tag.time, next_tag.microstep)) {
-        // printf("DEBUG: __next(): Wait until time interrupted.\n");
+        DEBUG_PRINT("__next(): Wait until time interrupted.");
         // Sleep was interrupted.
         // May have been an asynchronous call to schedule().
         // Set current time to match physical time, but not less than
@@ -577,9 +577,9 @@ int __next() {
  * all federates stop at the same logical time.
  */
 void request_stop() {
-    // printf("DEBUG: pthread_mutex_lock stop\n");
+    DEBUG_PRINT("pthread_mutex_lock in request_stop.");
     pthread_mutex_lock(&mutex);
-    // printf("DEBUG: pthread_mutex_locked\n");
+    DEBUG_PRINT("pthread_mutex_locked.");
 #ifdef _LF_IS_FEDERATED
     _lf_fd_send_stop_request_to_rti();
     // Notify the RTI that nothing more will happen.
@@ -597,7 +597,7 @@ void request_stop() {
     pthread_cond_broadcast(&reaction_q_changed);
     pthread_cond_signal(&event_q_changed);
 #endif
-    // printf("DEBUG: pthread_mutex_unlock stop\n");
+    DEBUG_PRINT("pthread_mutex_unlock in request_stop.");
     pthread_mutex_unlock(&mutex);
 }
 
@@ -708,17 +708,17 @@ volatile bool __advancing_time = false;
  */
 void _lf_enqueue_reaction(reaction_t* reaction) {
     // Acquire the mutex lock.
-    // printf("DEBUG: pthread_mutex_lock worker to queue downstream reaction.\n");
+    DEBUG_PRINT("pthread_mutex_lock to queue downstream reaction %p.", reaction);
     pthread_mutex_lock(&mutex);
-    // printf("DEBUG: pthread_mutex_locked\n");
+    DEBUG_PRINT("pthread_mutex_locked.");
     // Do not enqueue this reaction twice.
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-        // printf("DEBUG: Enqueing downstream reaction %p.\n", reaction);
+        DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
         pqueue_insert(reaction_q, reaction);
         pthread_cond_signal(&reaction_q_changed);
     }
     pthread_mutex_unlock(&mutex);
-    // printf("DEBUG: pthread_mutex_unlock after queueing downstream reaction.\n");
+    DEBUG_PRINT("pthread_mutex_unlock after queueing downstream reaction.");
 }
 
 /** For logging and debugging, each worker thread is numbered. */
@@ -728,15 +728,15 @@ int worker_thread_count = 0;
  * Worker thread for the thread pool.
  */
 void* worker(void* arg) {
-    // printf("DEBUG: Worker thread started.\n");
     // Keep track of whether we have decremented the idle thread count.
     bool have_been_busy = false;
-    // printf("DEBUG: pthread_mutex_lock worker\n");
+    DEBUG_PRINT("pthread_mutex_lock in worker.");
     pthread_mutex_lock(&mutex);
+    DEBUG_PRINT("pthread_mutex_locked.");
 
     int worker_number = ++worker_thread_count;
+    DEBUG_PRINT("Worker thread %d started.", worker_number);
 
-    // printf("DEBUG: pthread_mutex_locked\n");
     // Iterate until the stop_tag is reached or reaction queue is
     // empty
     while (true) {
@@ -779,19 +779,19 @@ void* worker(void* arg) {
                 __next();
                 tracepoint_worker_advancing_time_ends(worker_number);
                 __advancing_time = false;
-                // printf("DEBUG: worker %d: Done waiting for __next().\n", worker_number);
+                DEBUG_PRINT("Worker %d: Done waiting for __next().", worker_number);
             } else {
                 // Wait for something to change (either a stop request or
                 // something went on the reaction queue.
-                // printf("DEBUG: worker %d: Waiting for items on the reaction queue.\n", worker_number);
+                DEBUG_PRINT("Worker %d: Waiting for items on the reaction queue.", worker_number);
                 tracepoint_worker_wait_starts(worker_number);
                 pthread_cond_wait(&reaction_q_changed, &mutex);
                 tracepoint_worker_wait_ends(worker_number);
-                // printf("DEBUG: worker %d: Done waiting.\n", worker_number);
+                DEBUG_PRINT("Worker %d: Done waiting.", worker_number);
             }
         } else {
             // Got a reaction that is ready to run.
-            // printf("DEBUG: worker %d: Popped from reaction_q reaction with index: %lld\n and deadline %lld.\n", worker_number, reaction->index, reaction->deadline);
+            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: %lld\n and deadline %lld.", worker_number, reaction->index, reaction->deadline);
 
             // This thread will no longer be idle.
             if (!have_been_busy) {
@@ -868,7 +868,7 @@ void* worker(void* arg) {
                     reaction_function_t handler = reaction->deadline_violation_handler;
                     if (handler != NULL) {
                         // Unlock the mutex to run the reaction.
-                        // printf("DEBUG: Worker %d: pthread_mutex_unlock to run deadline handler.\n", worker_number);
+                        DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run deadline handler.", worker_number);
                         pthread_mutex_unlock(&mutex);
                         (*handler)(reaction->self);
 
@@ -882,9 +882,9 @@ void* worker(void* arg) {
             if (violation) {
                 // Need to acquire the mutex lock to remove this from the executing queue
                 // and to obtain the next reaction to execute.
-                // printf("DEBUG: Worker %d: pthread_mutex_lock worker after running deadline handler\n", worker_number);
+                DEBUG_PRINT("Worker %d: pthread_mutex_lock worker after running deadline handler.", worker_number);
                 pthread_mutex_lock(&mutex);
-                // printf("DEBUG: Worker %d: pthread_mutex_locked\n", worker_number);
+                DEBUG_PRINT("Worker %d: pthread_mutex_locked.", worker_number);
 
                 // The reaction is not going to be executed. However,
                 // this thread holds the mutex lock, so if this is the last
@@ -893,7 +893,7 @@ void* worker(void* arg) {
                 pqueue_remove(executing_q, reaction);
             } else {
                 // Unlock the mutex to run the reaction.
-                // printf("DEBUG: Worker %d: pthread_mutex_unlock to invoke reaction function\n", worker_number);
+                DEBUG_PRINT("Worker %d: pthread_mutex_unlock to invoke reaction function.", worker_number);
                 pthread_mutex_unlock(&mutex);
                 // Invoke the reaction function.
                 DEBUG_PRINT("Worker %d: Invoking reaction.", worker_number);
@@ -906,9 +906,9 @@ void* worker(void* arg) {
                 schedule_output_reactions(reaction, worker_number);
 
                 // Reacquire the mutex lock.
-                // printf("DEBUG: Worker %d: pthread_mutex_lock worker after invoking reaction function\n", worker_number);
+                DEBUG_PRINT("Worker %d: pthread_mutex_lock worker after invoking reaction function.", worker_number);
                 pthread_mutex_lock(&mutex);
-                // printf("DEBUG: Worker %d: pthread_mutex_locked\n", worker_number);
+                DEBUG_PRINT("Worker %d: pthread_mutex_locked.", worker_number);
 
                 // Remove the reaction from the executing queue.
                 // This thread holds the mutex lock, so if this is the last
@@ -920,14 +920,14 @@ void* worker(void* arg) {
             // down the chain
             reaction->is_tardy = false;
 
-            // printf("DEBUG: Worker %d: Done invoking reaction.\n", worker_number);
+            DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
         }
     } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
     _lf_number_of_threads--;
 
-    // printf("DEBUG: Worker %d: Stop requested. Exiting.\n", worker_number);
-    // printf("DEBUG: Worker %d: pthread_mutex_unlock\n", worker_number);
+    DEBUG_PRINT("Worker %d: Stop requested. Exiting.", worker_number);
+    DEBUG_PRINT("Worker %d: pthread_mutex_unlock.", worker_number);
     // Signal the main thread.
     pthread_cond_signal(&executing_q_emptied);
     pthread_mutex_unlock(&mutex);
@@ -949,7 +949,7 @@ pthread_t* __thread_ids;
 
 // Start threads in the thread pool.
 void start_threads() {
-    // printf("DEBUG: Starting %d worker threads.\n", _lf_number_of_threads);
+    DEBUG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
     __thread_ids = (pthread_t*)malloc(_lf_number_of_threads * sizeof(pthread_t));
     number_of_idle_threads = _lf_number_of_threads;
     for (int i = 0; i < _lf_number_of_threads; i++) {
@@ -983,9 +983,9 @@ int main(int argc, char* argv[]) {
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
-        // printf("DEBUG: pthread_mutex_lock main\n");
+        DEBUG_PRINT("pthread_mutex_lock main.");
         pthread_mutex_lock(&mutex);
-        // printf("DEBUG: pthread_mutex_locked\n");
+        DEBUG_PRINT("pthread_mutex_locked.");
         initialize();
         transfer_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
@@ -1019,13 +1019,13 @@ int main(int argc, char* argv[]) {
         DEBUG_PRINT("Started execution.");
 
         start_threads();
-        // printf("DEBUG: pthread_mutex_unlock main\n");
+        DEBUG_PRINT("pthread_mutex_unlock main.");
         pthread_mutex_unlock(&mutex);
-        // printf("DEBUG: Waiting for worker threads to exit.\n");
+        DEBUG_PRINT("Waiting for worker threads to exit.");
 
         // Wait for the worker threads to exit.
         void* worker_thread_exit_status;
-        // printf("DEBUG: number of threads: %d\n", _lf_number_of_threads);
+        DEBUG_PRINT("Number of threads: %d.", _lf_number_of_threads);
         
         int ret = 0;
         for (int i = 0; i < _lf_number_of_threads; i++) {
