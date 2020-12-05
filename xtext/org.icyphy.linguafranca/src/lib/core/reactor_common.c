@@ -333,14 +333,14 @@ token_freed __done_using(lf_token_t* token) {
     } else {
         token->ref_count--;
     }
-    // printf("DEBUG: __done_using: ref_count = %d.\n", token->ref_count);
+    DEBUG_PRINT("__done_using: ref_count = %d.", token->ref_count);
     if (token->ref_count == 0) {
         if (token->value != NULL) {
             // Count frees to issue a warning if this is never freed.
             // Do not free the value field if it is garbage collected.
             __count_payload_allocations--;
             if(OK_TO_FREE != token_only) {
-                // printf("DEBUG: __done_using: Freeing allocated memory for payload (token value): %p\n", token->value);
+                DEBUG_PRINT("__done_using: Freeing allocated memory for payload (token value): %p", token->value);
                 free(token->value);
             }
             token->value = NULL;
@@ -361,7 +361,7 @@ token_freed __done_using(lf_token_t* token) {
                 free(token);
             }
             __count_token_allocations--;
-            // printf("DEBUG: __done_using: Freeing allocated memory for token: %p\n", token);
+            DEBUG_PRINT("__done_using: Freeing allocated memory for token: %p", token);
             result = TOKEN_FREED;
         }
     }
@@ -382,6 +382,7 @@ void _lf_enqueue_reaction(reaction_t* reaction);
  * counts between time steps and at the end of execution.
  */
 void __start_time_step() {
+    DEBUG_PRINT("--------- Start time step.");
     for(int i = 0; i < __tokens_with_ref_count_size; i++) {
         if (*(__tokens_with_ref_count[i].is_present)) {
             if (__tokens_with_ref_count[i].reset_is_present) {
@@ -423,10 +424,10 @@ lf_token_t* __create_token(size_t element_size) {
         token = __token_recycling_bin;
         __token_recycling_bin = token->next_free;
         __token_recycling_bin_size--;
-        // printf("DEBUG: __create_token: Retrieved token from the recycling bin: %p\n", token);
+        DEBUG_PRINT("__create_token: Retrieved token from the recycling bin: %p", token);
     } else {
         token = (lf_token_t*)malloc(sizeof(lf_token_t));
-        // printf("DEBUG: __create_token: Allocated memory for token: %p\n", token);
+        DEBUG_PRINT("__create_token: Allocated memory for token: %p", token);
     }
     token->value = NULL;
     token->length = 0;
@@ -445,7 +446,7 @@ lf_token_t* __create_token(size_t element_size) {
  * @return A new or recycled lf_token_t struct.
  */
 lf_token_t* create_token(size_t element_size) {
-    // printf("DEBUG: create_token: element_size: %zu\n", element_size);
+    DEBUG_PRINT("create_token: element_size: %zu", element_size);
     __count_token_allocations++;
     lf_token_t* result = __create_token(element_size);
     result->ok_to_free = OK_TO_FREE;
@@ -472,7 +473,7 @@ lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, int le
     // If necessary, allocate memory for a new lf_token_t struct.
     // This assumes that the lf_token_t* in the self struct has been initialized to NULL.
     lf_token_t* result = token;
-    // printf("DEBUG: initializing a token %p with ref_count %d.\n", token, token->ref_count);
+    DEBUG_PRINT("Initializing a token %p with ref_count %d.", token, token->ref_count);
     if (token == NULL || token->ref_count > 0) {
         // The specified token is not available.
         result = create_token(token->element_size);
@@ -538,7 +539,7 @@ void __pop_events() {
 
         // Put the corresponding reactions onto the reaction queue.
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            // printf("DEBUG: Pushed onto reaction_q: %p\n", event->trigger->reactions[i]);
+            DEBUG_PRINT("Pushed onto reaction_q: %p", event->trigger->reactions[i]);
             reaction_t *reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
@@ -564,7 +565,7 @@ void __pop_events() {
                     }
                 }
 #endif
-                // printf("DEBUG: Enqueing reaction %p.\n", reaction);
+                DEBUG_PRINT("Enqueing reaction %p.", reaction);
                 pqueue_insert(reaction_q, reaction);
             }
         }
@@ -766,10 +767,8 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
     }
 
     // Do not schedule events if the tag is after the stop tag
-    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n",
-    //        e->time - start_time, timeout_time - start_time);
     if (_lf_is_tag_after_stop_tag(tag)) {
-        // printf("DEBUG: _lf_schedule_at_tag: event time is past the timeout. Discarding event.\n");
+        DEBUG_PRINT("_lf_schedule_at_tag: event time is past the timeout. Discarding event.");
         __done_using(token);
         return -1;
     }
@@ -995,8 +994,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
     interval_t intended_time = current_tag.time + delay;
-    // printf("DEBUG: __schedule: current_tag.time = %lld.\n", current_tag.time);
-    // printf("DEBUG: __schedule: total logical delay = %lld.\n", delay);
+    DEBUG_PRINT("__schedule: current_tag.time = %lld.", current_tag.time);
+    DEBUG_PRINT("__schedule: total logical delay = %lld.", delay);
     interval_t min_spacing = trigger->period;
 
     event_t* e = _lf_get_new_event();
@@ -1139,10 +1138,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
 
     // Do not schedule events if if the event time is past the stop time
     // (current microsteps are checked earlier).
-    // printf("DEBUG: Comparing event with elapsed time %lld against stop time %lld.\n",
-    //         e->time - start_time, stop_tag.time - start_time);
+    DEBUG_PRINT("Comparing event with elapsed time %lld against stop time %lld.", e->time - start_time, stop_tag.time - start_time);
     if (e->time > stop_tag.time) {
-        // printf("DEBUG: __schedule: event time is past the timeout. Discarding event.\n");
+        DEBUG_PRINT("__schedule: event time is past the timeout. Discarding event.");
         __done_using(token);
         _lf_recycle_event(e);
         return(0);
@@ -1160,7 +1158,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
     // and any new events added at this tag will go into the reaction_q
     // rather than the event_q, so anything put in the event_q with this
     // same time will automatically be executed at the next microstep.
-    // printf("DEBUG: Inserting event in the event queue with elapsed time %lld.\n", e->time - start_time);
+    DEBUG_PRINT("Inserting event in the event queue with elapsed time %lld.", e->time - start_time);
     pqueue_insert(event_q, e);
 
     tracepoint_schedule(trigger, e->time - current_tag.time);
@@ -1262,14 +1260,12 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     // when this is called, the execution has not started
     // and the (0,0) tag has not been acquired yet.
     for (int i = 0; i < trigger->number_of_reactions; i++) {
-        // printf("DEBUG: Pushed onto reaction_q: %p\n", event->trigger->reactions[i]);
         reaction_t* reaction = trigger->reactions[i];
         // Do not enqueue this reaction twice.
         if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-            // printf("DEBUG: Enqueing reaction %p.\n", reaction);
             pqueue_insert(reaction_q, reaction);
+            DEBUG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
         }
-        DEBUG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
     }
 
     // FIXME: make a record of handle and implement unschedule.
@@ -1354,7 +1350,7 @@ lf_token_t* __set_new_array_impl(lf_token_t* token, int length, int num_destinat
     // First, initialize the token, reusing the one given if possible.
     lf_token_t* new_token = __initialize_token(token, length);
     new_token->ref_count = num_destinations;
-    // printf("DEBUG: __set_new_array_impl: Allocated memory for payload %p\n", new_token->value);
+    DEBUG_PRINT("__set_new_array_impl: Allocated memory for payload %p.", new_token->value);
     return new_token;
 }
 
@@ -1382,16 +1378,16 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     // Extract the inherited tardiness
     bool inherited_tardiness = reaction->is_tardy;
 #endif
-    // printf("DEBUG: There are %d outputs from reaction %p.\n", reaction->num_outputs, reaction);
+    DEBUG_PRINT("There are %d outputs from reaction %p.", reaction->num_outputs, reaction);
     for (int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
-            // printf("DEBUG: Output %d has been produced.\n", i);
+            DEBUG_PRINT("Output %d has been produced.", i);
             trigger_t** triggerArray = (reaction->triggers)[i];
-            // printf("DEBUG: There are %d trigger arrays associated with output %d.\n", reaction->triggered_sizes[i], i);
+            DEBUG_PRINT("There are %d trigger arrays associated with output %d.", reaction->triggered_sizes[i], i);
             for (int j=0; j < reaction->triggered_sizes[i]; j++) {
                 trigger_t* trigger = triggerArray[j];
                 if (trigger != NULL) {
-                    // printf("DEBUG: Trigger %p lists %d reactions.\n", trigger, trigger->number_of_reactions);
+                    DEBUG_PRINT("Trigger %p lists %d reactions.", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
 #ifdef _LF_COORD_DECENTRALIZED // Only pass down tardiness for federated LF programs
@@ -1461,9 +1457,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                 // If there is no tardy handler, pass the is_tardy
                 // to downstream reactions.
                 violation = true;
-                DEBUG_PRINT("Tardiness handler %p.", handler);
-                // Unlock the mutex to run the reaction.
-                // printf("DEBUG: pthread_mutex_unlock to run deadline handler.\n");
+                DEBUG_PRINT("Invoke tardiness handler %p.", handler);
                 (*handler)(downstream_to_execute_now->self);
 
                 // If the reaction produced outputs, put the resulting
@@ -1473,7 +1467,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                 // Reset the tardiness because it has been dealt with in the
                 // tardy handler
                 downstream_to_execute_now->is_tardy = false;
-                DEBUG_PRINT("Reset reaction is_tardy to false.");
+                DEBUG_PRINT("Reset reaction's is_tardy field to false.");
             }
         }
 #endif
@@ -1503,7 +1497,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         }
         if (!violation) {
             // Invoke the downstream_reaction function.
-            // printf("DEBUG: worker: Invoking downstream reaction immediately, bypassing reaction queue.\n");
+            DEBUG_PRINT("worker %d: Invoking downstream reaction immediately, bypassing reaction queue.", worker);
             tracepoint_reaction_starts(downstream_to_execute_now, worker);
             downstream_to_execute_now->function(downstream_to_execute_now->self);
             tracepoint_reaction_ends(downstream_to_execute_now, worker);
@@ -1516,7 +1510,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         // Reset the is_tardy because it has been passed
         // down the chain
         downstream_to_execute_now->is_tardy = false;
-        DEBUG_PRINT("Finally, reset reaction is_tardy to false.");
+        DEBUG_PRINT("Finally, reset reaction's is_tardy field to false.");
     }
 }
 
@@ -1531,18 +1525,18 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
  * using schedule_token().
  */
 lf_token_t* writable_copy(lf_token_t* token) {
-    // printf("DEBUG: writable_copy: Requesting writable copy of token %p with reference count %d.\n", token, token->ref_count);
+    DEBUG_PRINT("writable_copy: Requesting writable copy of token %p with reference count %d.", token, token->ref_count);
     if (token->ref_count == 1) {
-        // printf("DEBUG: writable_copy: Avoided copy because reference count is %d.\n", token->ref_count);
+        DEBUG_PRINT("writable_copy: Avoided copy because reference count is %d.", token->ref_count);
         return token;
    } else {
-        // printf("DEBUG: writable_copy: Copying array because reference count is greater than 1. It is %d.\n", token->ref_count);
+        DEBUG_PRINT("writable_copy: Copying array because reference count is greater than 1. It is %d.", token->ref_count);
         size_t size = token->element_size * token->length;
         if (size == 0) {
             return token;
         }
         void* copy = malloc(size);
-        // printf("DEBUG: Allocating memory for writable copy %p.\n", copy);
+        DEBUG_PRINT("Allocating memory for writable copy %p.", copy);
         memcpy(copy, token->value, size);
         // Count allocations to issue a warning if this is never freed.
         __count_payload_allocations++;
