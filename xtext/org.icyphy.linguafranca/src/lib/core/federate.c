@@ -709,9 +709,9 @@ void handle_physical_time_sync_message_already_locked() {
                                                _lf_rti_socket_stat.remote_physical_clock_snapshot_T1) - \
                                               _lf_rti_socket_stat.local_round_trip_delay_bound;
         // FIXME: taking the maximum might not be a good idea
-        if (_lf_rti_socket_stat.network_round_trip_delay_bound < network_round_trip_delay) {
-            _lf_rti_socket_stat.network_round_trip_delay_bound = network_round_trip_delay;
-        }
+        // if (_lf_rti_socket_stat.network_round_trip_delay_bound < network_round_trip_delay) {
+        _lf_rti_socket_stat.network_round_trip_delay_bound = network_round_trip_delay;
+        //}
         // Calculate the new physical time offset
         _lf_global_physical_time_offset = _lf_rti_socket_stat.local_physical_clock_snapshot_T2  - \
                                           _lf_rti_socket_stat.remote_physical_clock_snapshot_T1 - \
@@ -729,9 +729,9 @@ void handle_physical_time_sync_message_already_locked() {
                                             _lf_rti_socket_stat.local_physical_clock_snapshot_T2 + \
                                             USEC(100); // Assume a 100 usec discrepency
         // FIXME: taking the maximum might not be a good idea
-        if (_lf_rti_socket_stat.local_round_trip_delay_bound < local_round_trip_delay) {
-            _lf_rti_socket_stat.local_round_trip_delay_bound = local_round_trip_delay;
-        }
+        // if (_lf_rti_socket_stat.local_round_trip_delay_bound < local_round_trip_delay) {
+        _lf_rti_socket_stat.local_round_trip_delay_bound = local_round_trip_delay;
+        // }
         _lf_rti_socket_stat.clock_sync_in_progress = true;
     }
     return;
