@@ -770,6 +770,9 @@ class CGenerator extends GeneratorBase {
             pr('''
                 // Connect to the RTI. This sets _lf_rti_socket.
                 connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
+                
+                // Synchronize the physical time with RTI
+                synchronize_physical_time_with_rti();
             ''');
         
             if (numberOfInboundConnections > 0) {

@@ -33,7 +33,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tag.h"
 
 /**
- * Current time in nanoseconds since January 1, 1970.
+ * Current time in nanoseconds.
+ * The starting point of the clock is actually platform 
+ * dependent and depends on the clock type.
  * This is not in scope for reactors.
  */
 tag_t current_tag = {.time = 0LL, .microstep = 0};
@@ -118,7 +120,9 @@ tag_t get_current_tag() {
 }
 
 /**
- * Return the current logical time in nanoseconds since January 1, 1970.
+ * Return the current logical time in nanoseconds.
+ * The starting point of the clock is platform 
+ * dependent and depends on the clock type.
  */
 instant_t get_logical_time() {
     return current_tag.time;
@@ -132,19 +136,22 @@ microstep_t get_microstep() {
 }
 
 /**
- * Return the current physical time in nanoseconds since January 1, 1970,
+ * Return the current physical time in nanoseconds,
  * adjusted by the global physical time offset.
+ * The starting point of the clock is platform 
+ * dependent and depends on the clock type.
  */
 instant_t get_physical_time() {
     struct timespec physicalTime;
-    clock_gettime(CLOCK_REALTIME, &physicalTime);
+    clock_gettime(_LF_CLOCK, &physicalTime);
     return (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) + _lf_global_physical_time_offset;
 }
 
 /**
  * Return the physical time of the start of execution in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
+ * 
+ * The starting point of the clock is platform 
+ * dependent and depends on the clock type.
  * @return A time instant.
  */
 instant_t get_start_time() {
@@ -157,7 +164,7 @@ instant_t get_start_time() {
  */
 instant_t get_elapsed_physical_time() {
     struct timespec physicalTime;
-    clock_gettime(CLOCK_REALTIME, &physicalTime);
+    clock_gettime(_LF_CLOCK, &physicalTime);
     return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
 }
 

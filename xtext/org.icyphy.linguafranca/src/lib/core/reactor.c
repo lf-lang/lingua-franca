@@ -29,6 +29,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 
 #include "reactor_common.c"
@@ -95,7 +96,7 @@ int wait_until(instant_t logical_time_ns) {
     
         // Get the current physical time.
         struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
+        clock_gettime(_LF_CLOCK, &current_physical_time);
     
         long long ns_to_wait = logical_time_ns
                 - (current_physical_time.tv_sec * BILLION
@@ -189,7 +190,7 @@ int _lf_do_step() {
         if (reaction->deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;
-            clock_gettime(CLOCK_REALTIME, &current_physical_time);
+            clock_gettime(_LF_CLOCK, &current_physical_time);
             // Convert to instant_t.
             instant_t physical_time = 
                     current_physical_time.tv_sec * BILLION

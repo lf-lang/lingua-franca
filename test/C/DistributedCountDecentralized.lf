@@ -6,7 +6,8 @@
  */
 target C {
     timeout: 5 sec,
-    coordination: decentralized
+    coordination: decentralized,
+    logging: DEBUG
 };
 
 import Count from "lib/Count.lf";

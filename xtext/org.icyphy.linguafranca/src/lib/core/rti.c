@@ -753,7 +753,7 @@ void handle_timestamp(federate_t *my_fed) {
 
 
     instant_t timestamp = swap_bytes_if_big_endian_ll(*((long long *)(&buffer)));
-    DEBUG_PRINT("RTI received timestamp message: %llx.", timestamp);
+    DEBUG_PRINT("RTI received timestamp message: %lld.", timestamp);
 
     pthread_mutex_lock(&rti_mutex);
     num_feds_proposed_start++;
@@ -795,22 +795,97 @@ void handle_timestamp(federate_t *my_fed) {
     my_fed->state = GRANTED;
     pthread_cond_broadcast(&sent_start_time);
     pthread_mutex_unlock(&rti_mutex);
-    DEBUG_PRINT("RTI sent start time %llx to federate %d.", start_time, my_fed->id);
+    DEBUG_PRINT("RTI sent start time %lld to federate %d.", start_time, my_fed->id);
 }
 
 /**
  * Take a snapshot of the physical clock time and send
  * it to federate fed_id.
  * 
+ * This version assumes the caller holds the mutex lock.
+ * 
  * @param fed_id The federate to send the physical time to.
  */
-void _lf_rti_send_physical_time(int fed_id) {
+void _lf_rti_send_physical_time_already_locked(int fed_id) {
     unsigned char buffer[sizeof(instant_t) + 1];
     buffer[0] = PHYSICAL_TIME_SYNC_MESSAGE;
-    encode_ll(get_physical_time(), &(buffer[1]));
+    instant_t current_physical_time = get_physical_time();
+    encode_ll(current_physical_time, &(buffer[1]));
     write_to_socket(federates[fed_id].socket, sizeof(instant_t)+1, buffer,
                     "RTI failed to send physical time to federate %d.",
                     federates[fed_id].id);
+    DEBUG_PRINT("RTI sending PHYSICAL_TIME_SYNC_MESSAGE with timestamp %lld to federate %d.",
+                 current_physical_time,
+                 fed_id);
+}
+
+/**
+ * Take a snapshot of the physical clock time and send
+ * it to federate fed_id.
+ * 
+ * This version assumes the caller does not hold the
+ * rti_mutex. It will acquire it itself.
+ * 
+ * @param fed_id The federate to send the physical time to.
+ */
+void _lf_rti_send_physical_time(int fed_id) {
+    pthread_mutex_lock(&rti_mutex);
+    _lf_rti_send_physical_time_already_locked(fed_id);
+    pthread_mutex_unlock(&rti_mutex);
+}
+
+/**
+ * A (semi-)periodic thread that sends a snapshot of the RTI's physical clock
+ * to every federate. It acquires the mutex each time.
+ */
+void* time_synchronization_thread() {
+    // Send a pre-start physical time snapshot to every
+    // federate. This will be used to synchronize the federates'
+    // local physical time with the RTI before deciding
+    // on a start logical time.
+    pthread_mutex_lock(&rti_mutex);
+    for (int fed = 0; fed < NUMBER_OF_FEDERATES; fed++) {
+        if (federates[fed].state == NOT_CONNECTED) {
+            _lf_rti_mark_federate_requesting_stop(&federates[fed]);
+            continue;
+        }
+        // Send the RTI's current physical time to the federate
+        _lf_rti_send_physical_time_already_locked(federates[fed].id);
+    }
+    while (num_feds_proposed_start < NUMBER_OF_FEDERATES) {
+        // FIXME: Should have a timeout here?
+        pthread_cond_wait(&received_start_times, &rti_mutex);
+    }
+    pthread_mutex_unlock(&rti_mutex);
+
+    // Afterwards, aim to initate a clock synchronization every 5 msecs
+    struct timespec sleep_time = {(time_t) 0, (long)5000000};
+
+    // However, because of the DELAY_START, this thread has to wait
+    // longer for the first round.
+    // FIXME: DELAY_START might not be needed anymore
+    interval_t initial_sleep_time_ns = DELAY_START;
+    struct timespec initial_sleep_time = {(time_t) initial_sleep_time_ns / BILLION, initial_sleep_time_ns % BILLION};
+    
+    struct timespec remaining_time;
+    
+    // Initial sleep
+    nanosleep(&initial_sleep_time, &remaining_time);
+
+    while (1) {
+        // Sleep
+        nanosleep(&sleep_time, &remaining_time); // Can be interrupted
+        pthread_mutex_lock(&rti_mutex);
+        for (int fed = 0; fed < NUMBER_OF_FEDERATES; fed++) {
+            if (federates[fed].state == NOT_CONNECTED) {
+                _lf_rti_mark_federate_requesting_stop(&federates[fed]);
+                continue;
+            }
+            // Send the RTI's current physical time to the federate
+            _lf_rti_send_physical_time_already_locked(federates[fed].id);
+        }
+        pthread_mutex_unlock(&rti_mutex);
+    }
 }
 
 /**
@@ -842,6 +917,14 @@ void handle_federate_resign(federate_t *my_fed) {
     close(my_fed->socket); //  from unistd.h
     pthread_mutex_unlock(&rti_mutex);
     printf("Federate %d has resigned.\n", my_fed->id);
+}
+
+void handle_physical_time_sync_message(federate_t* my_fed) {
+    unsigned char buffer[sizeof(instant_t)];
+    read_from_socket(my_fed->socket, sizeof(instant_t), buffer,
+                     "RTI failed to read the content of PHYSICAL_TIME_SYNC_MESSAGE from federate %d.",
+                     my_fed->id); // Not using the payload for now.
+    _lf_rti_send_physical_time(my_fed->id);
 }
 
 /** 
@@ -946,7 +1029,7 @@ void* federate(void* fed) {
                     pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
-                _lf_rti_send_physical_time(my_fed->id);
+                handle_physical_time_sync_message(my_fed);
                 break;
             default:
                 error_print("RTI received from federate %d an unrecognized message type: %hhx.", my_fed->id, buffer[0]);
@@ -1075,16 +1158,21 @@ void connect_to_federates(int socket_descriptor) {
 
         DEBUG_PRINT("RTI got address %s from federate %d.", federates[fed_id].server_hostname, fed_id);
 #endif
-        federates[fed_id].socket = socket_id;        
-
-        // Send the RTI's current physical time to the federate
-        _lf_rti_send_physical_time(fed_id);
+        federates[fed_id].socket = socket_id;
 
         // Create a thread to communicate with the federate.
         pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id]));
+
+        // Set the federate's state as pending
+        // because it is waiting for the start time to be
+        // sent by the RTI before beginning its execution
+        federates[fed_id].state = PENDING;
     }
 
     DEBUG_PRINT("All federates have connected to RTI.");
+    // Create the time synchronization thread
+    pthread_t time_thread; // This thread is going to die when the RTI exits
+    pthread_create(&time_thread, NULL, time_synchronization_thread, NULL);
 }
 
 /**

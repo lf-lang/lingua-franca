@@ -524,7 +524,7 @@ int __next() {
         // current logical time nor more than next time in the event queue.
         // Get the current physical time.
         struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
+        clock_gettime(_LF_CLOCK, &current_physical_time);
         long long current_physical_time_ns 
                 = current_physical_time.tv_sec * BILLION
                 + current_physical_time.tv_nsec;
@@ -918,7 +918,7 @@ void* worker(void* arg) {
             if (current_reaction_to_execute->deadline > 0LL) {
                 // Get the current physical time.
                 struct timespec current_physical_time;
-                clock_gettime(CLOCK_REALTIME, &current_physical_time);
+                clock_gettime(_LF_CLOCK, &current_physical_time);
                 // Convert to instant_t.
                 instant_t physical_time =
                         current_physical_time.tv_sec * BILLION
