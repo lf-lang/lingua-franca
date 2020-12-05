@@ -1169,15 +1169,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkTargetProperties(KeyValuePairs targetProperties) {
 
-        if (info.model.reactors.exists(
-            reactor |
-                // Check to see if the program has a federated reactor
-                reactor.isFederated
+        if (targetProperties.pairs.exists(
+            pair |
+                // Check to see if fast is defined
+                TargetProperties.get(pair.name) == TargetProperties.FAST
         )) {
-            if (targetProperties.pairs.exists(
-                pair |
-                    // Check to see if fast is defined
-                    TargetProperties.get(pair.name) == TargetProperties.FAST
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a federated reactor
+                    reactor.isFederated
             )) {
                 error(
                     "The fast target property is incompatible with federated programs.",
@@ -1185,14 +1185,19 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
 
-        } else {
-            // The program is not federated. Check for clock-sync, which should be disallowed
-            if (targetProperties.pairs.exists(
-                pair |
-                    // Check to see if fast is defined
-                    TargetProperties.get(pair.name) == TargetProperties.CLOCK_SYNC
+        }
+        if (targetProperties.pairs.exists(
+            pair |
+                // Check to see if clock-sync is defined
+                TargetProperties.get(pair.name) == TargetProperties.CLOCK_SYNC
+        )) {
+            if (!info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a main reactor
+                    reactor.isFederated
             )) {
-                error(
+                // The program is not federated. clock-sync should be disallowed
+                warning(
                     "The clock-sync target property is incompatible with non-federated programs.",
                     Literals.KEY_VALUE_PAIRS__PAIRS
                 )

@@ -1730,16 +1730,23 @@ void initialize() {
 
     // Initialize logical time to match physical time.
     struct timespec actualStartTime;
-    clock_gettime(CLOCK_REALTIME, &actualStartTime);
-    real_time_physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
-
-    printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
-            ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);
-
     clock_gettime(_LF_CLOCK, &actualStartTime);
     physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
     current_tag.time = physical_start_time;
     start_time = current_tag.time;
+
+    if (_LF_CLOCK != CLOCK_REALTIME) {
+        // Take a snapshot of the CLOCK_REALTIME
+        // This is done after start_time is set so that
+        // real_time_physical_start_time >= start_time
+        clock_gettime(CLOCK_REALTIME, &actualStartTime);
+        real_time_physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
+    } else {
+        real_time_physical_start_time = physical_start_time;
+    }
+
+    printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
+            ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);
     
     if (duration >= 0LL) {
         // A duration has been specified. Calculate the stop time.

@@ -546,6 +546,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetTracing = true
                         }
+                    case "clock-sync": {
+                        if (param.value.literal == 'true') {
+                            targetClockSync = true
+                        }
+                    }
                 }
             }
         }

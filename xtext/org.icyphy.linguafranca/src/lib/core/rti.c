@@ -1165,9 +1165,11 @@ void connect_to_federates(int socket_descriptor) {
     }
 
     DEBUG_PRINT("All federates have connected to RTI.");
+#ifdef _LF_CLOCK_SYNC
     // Create the time synchronization thread
     pthread_t time_thread; // This thread is going to die when the RTI exits
     pthread_create(&time_thread, NULL, time_synchronization_thread, NULL);
+#endif // _LF_CLOCK_SYNC
 }
 
 /**
