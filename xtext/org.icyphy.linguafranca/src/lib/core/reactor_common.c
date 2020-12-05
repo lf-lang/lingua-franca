@@ -1470,7 +1470,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         if (downstream_to_execute_now->deadline > 0LL) {
             // Get the current physical time.
             struct timespec current_physical_time;
-            clock_gettime(CLOCK_REALTIME, &current_physical_time);
+            clock_gettime(_LF_CLOCK, &current_physical_time);
             // Convert to instant_t.
             instant_t physical_time =
                     current_physical_time.tv_sec * BILLION
@@ -1730,7 +1730,7 @@ void initialize() {
 
     // Initialize logical time to match physical time.
     struct timespec actualStartTime;
-    clock_gettime(CLOCK_REALTIME, &actualStartTime);
+    clock_gettime(_LF_CLOCK, &actualStartTime);
     physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
 
     printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",

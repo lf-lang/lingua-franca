@@ -325,6 +325,18 @@ typedef enum fed_state_t {
     PENDING         // Waiting for upstream federates.
 } fed_state_t;
 
+/** Statistics for a given socket **/
+typedef struct socket_stat_t {
+    bool clock_sync_in_progress;                  // True if a clock synchronization is in progress.
+    instant_t remote_physical_clock_snapshot_T1;  // T1 in PTP. The first snapshot of the physical
+                                                  // clock of the remote device.
+    instant_t local_physical_clock_snapshot_T2;   // T2 in PTP. The first snapshot of the physical
+                                                  // clock of the local device.    
+    interval_t local_round_trip_delay_bound;      // T3 - T2. Estimated delay between a consecutive
+                                                  // receive and send on the socket for one byte.
+    interval_t network_round_trip_delay_bound;    // The estimated round-trip delay of the socket.
+} socket_stat_t;
+
 /** Information about a federate, including its runtime state,
  *  mode of execution, and connectivity with other federates.
  *  The list of upstream and downstream federates does not include

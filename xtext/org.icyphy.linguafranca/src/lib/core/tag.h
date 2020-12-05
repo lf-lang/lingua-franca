@@ -58,6 +58,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Convenience for converting times
 #define BILLION 1000000000LL
 
+// The underlying physical clock
+#define _LF_CLOCK CLOCK_MONOTONIC
+
 /**
  * Time instant. Both physical and logical times are represented
  * using this typedef.
@@ -123,8 +126,10 @@ interval_t get_elapsed_logical_time();
 
 /**
  * Return the current logical time in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
+ * 
+ * The starting point of the clock is platform 
+ * dependent and depends on the clock type.
+ * 
  * @return A time instant.
  */
 instant_t get_logical_time();
@@ -148,16 +153,19 @@ extern interval_t _lf_global_physical_time_offset;
 
 /**
  * Return the current physical time in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
+ * 
+ * The starting point of the clock is platform 
+ * dependent and depends on the clock type.
  * @return A time instant.
  */
 instant_t get_physical_time();
 
 /**
  * Return the physical time of the start of execution in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
+ *
+ * The starting point of the clock is platform 
+ * dependent and depends on the clock type.
+ * 
  * @return A time instant.
  */
 instant_t get_start_time();
