@@ -727,7 +727,7 @@ void handle_physical_time_sync_message_already_locked() {
         // Send a clock snapshot to the RTI and calculate the local round-trip
         interval_t local_round_trip_delay = _lf_fd_send_physical_time(_lf_rti_socket) - \
                                             _lf_rti_socket_stat.local_physical_clock_snapshot_T2 + \
-                                            MSEC(1); // Assume a 1 MSEC discrepency
+                                            USEC(100); // Assume a 100 usec discrepency
         // FIXME: taking the maximum might not be a good idea
         if (_lf_rti_socket_stat.local_round_trip_delay_bound < local_round_trip_delay) {
             _lf_rti_socket_stat.local_round_trip_delay_bound = local_round_trip_delay;

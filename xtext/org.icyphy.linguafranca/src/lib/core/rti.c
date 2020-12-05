@@ -59,7 +59,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tag.c"        // Time-related types and functions.
 
 /** Delay the start of all federates by this amount. */
-#define DELAY_START SEC(1)
+#define DELAY_START 0
+
+/** The interval at which physical clock synchronization happens */
+#define CLOCK_SYNCHRONIZATION_INTERVAL_NS SEC(2)
 
 // The one and only mutex lock.
 pthread_mutex_t rti_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -858,19 +861,11 @@ void* time_synchronization_thread() {
     }
     pthread_mutex_unlock(&rti_mutex);
 
-    // Afterwards, aim to initate a clock synchronization every 5 msecs
-    struct timespec sleep_time = {(time_t) 0, (long)5000000};
-
-    // However, because of the DELAY_START, this thread has to wait
-    // longer for the first round.
-    // FIXME: DELAY_START might not be needed anymore
-    interval_t initial_sleep_time_ns = DELAY_START;
-    struct timespec initial_sleep_time = {(time_t) initial_sleep_time_ns / BILLION, initial_sleep_time_ns % BILLION};
+    // Afterwards, aim to initate a clock synchronization every CLOCK_SYNCHRONIZATION_INTERVAL_NS
+    struct timespec sleep_time = {(time_t) CLOCK_SYNCHRONIZATION_INTERVAL_NS / BILLION,
+                                  CLOCK_SYNCHRONIZATION_INTERVAL_NS % BILLION};
     
     struct timespec remaining_time;
-    
-    // Initial sleep
-    nanosleep(&initial_sleep_time, &remaining_time);
 
     while (1) {
         // Sleep
