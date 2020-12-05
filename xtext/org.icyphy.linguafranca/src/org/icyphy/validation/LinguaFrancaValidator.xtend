@@ -1168,30 +1168,36 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
      */
     @Check(FAST)
     def checkTargetProperties(KeyValuePairs targetProperties) {
-        if (targetProperties.pairs.exists(
-            pair |
-                // Check to see if fast is defined
-                TargetProperties.get(pair.name) == TargetProperties.FAST
+
+        if (info.model.reactors.exists(
+            reactor |
+                // Check to see if the program has a federated reactor
+                reactor.isFederated
         )) {
             if (targetProperties.pairs.exists(
                 pair |
-                    // Check to see if timeout is defined
-                    TargetProperties.get(pair.name) == TargetProperties.TIMEOUT
+                    // Check to see if fast is defined
+                    TargetProperties.get(pair.name) == TargetProperties.FAST
             )) {
-                if (info.model.reactors.exists(
-                    reactor |
-                        // Check to see if the program has a federated reactor and if there is a physical connection
-                        // defined.
-                        reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
-                )) {
-                    warning(
-                        "The fast target property is incompatible with the timeout target property " +
-                        "when physical connections are present.",
-                        Literals.KEY_VALUE_PAIRS__PAIRS
-                    )
-                }
+                error(
+                    "The fast target property is incompatible with federated programs.",
+                    Literals.KEY_VALUE_PAIRS__PAIRS
+                )
             }
 
+        } else {
+            // The program is not federated. Check for clock-sync, which should be disallowed
+            if (targetProperties.pairs.exists(
+                pair |
+                    // Check to see if fast is defined
+                    TargetProperties.get(pair.name) == TargetProperties.CLOCK_SYNC
+            )) {
+                error(
+                    "The clock-sync target property is incompatible with non-federated programs.",
+                    Literals.KEY_VALUE_PAIRS__PAIRS
+                )
+
+            }
         }
     }
 

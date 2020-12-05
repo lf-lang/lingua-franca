@@ -407,6 +407,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
       * The type of the bank index, which must be an integer in the target language
       */
      protected String targetBankIndexType = "int"
+     
+     /**
+      * The clock sync target parameter for federated programs.
+      * true: Software clock synchronization with the RTI's clock
+      * false: No clock synchronization
+      */
+     protected boolean targetClockSync = false
 
     ////////////////////////////////////////////
     //// Private fields.
