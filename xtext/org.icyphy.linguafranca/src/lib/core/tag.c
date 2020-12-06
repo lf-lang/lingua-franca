@@ -37,25 +37,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The starting point of the clock is actually platform 
  * dependent and depends on the clock type.
  * This is not in scope for reactors.
+ * FIXME: Should this be volatile?
  */
 tag_t current_tag = {.time = 0LL, .microstep = 0};
 
 /**
  * Physical time at the start of the execution.
+ * FIXME: Should this be volatile?
  */
 instant_t physical_start_time = NEVER;
 
 /**
- * Physical time at the start of the execution based
- * on CLOCK_REALTIME. This record is kept because some
- * POSIX APIs insist on taking CLOCK_REALTIME values.
- */
-volatile instant_t real_time_physical_start_time = NEVER;
-
-/**
  * Logical time at the start of execution.
+ * FIXME: Should this be volatile?
  */
-volatile instant_t start_time = NEVER;
+instant_t start_time = NEVER;
 
 /**
  * Global physical clock offset.

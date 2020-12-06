@@ -413,17 +413,22 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
     if (!fast) {
         // We should not wait if the physical time is sufficiently ahead
         // of logical time.
-        if (wait_until_time_ns - get_physical_time() <= 0) {
+        interval_t ns_to_wait = wait_until_time_ns - get_physical_time();
+        if (ns_to_wait <= 0) {
             return return_value;
         }
 
-        // pthread_cond_timedwait can only accept an absolute time
-        // based on CLOCK_REALTIME in a portable way. If _LF_CLOCK
-        // is not CLOCK_REALTIME, we need to convert wait_until_time_ns
+        // pthread_cond_timedwait can only accept an absolute time based on CLOCK_REALTIME 
+        // in a portable way. If _LF_CLOCK is not CLOCK_REALTIME, we need to convert 
+        // wait_until_time_ns to CLOCK_REALTIME.
         if (_LF_CLOCK != CLOCK_REALTIME && wait_until_time_ns != FOREVER) {
-            interval_t ticks_since_start = wait_until_time_ns - start_time;
-            wait_until_time_ns = real_time_physical_start_time + ticks_since_start;
-            DEBUG_PRINT("Adjusted wait_until_time_ns to %lld.", wait_until_time_ns);
+            struct timespec realtime_clock_snapshot;
+            // Take a snapshot of the CLOCK_REALTIME
+            clock_gettime(CLOCK_REALTIME, &realtime_clock_snapshot);
+            instant_t realtime_clock_snapshot_ns = realtime_clock_snapshot.tv_sec * BILLION + realtime_clock_snapshot.tv_nsec;
+            // Convert wait_until_time_ns from _LF_CLOCK to CLOCK_REALTIME
+            wait_until_time_ns = ns_to_wait + realtime_clock_snapshot_ns;
+            DEBUG_PRINT("wait_until(): Adjusted wait_until_time_ns to %lld.", wait_until_time_ns);
         }
 
         // Convert the logical time to a timespec.
@@ -548,19 +553,13 @@ int __next() {
                 + current_physical_time.tv_nsec;
         if (current_physical_time_ns > current_tag.time) {
             if (current_physical_time_ns < next_tag.time) {
-                // Advance current time.
+                // Advance tag.
                 _lf_advance_logical_time(current_physical_time_ns);
-                // I am assuming control-C causes this condition. Therefore, the 
-                // program has to stop.
-                // _lf_set_stop_tag((tag_t) {.time = current_physical_time_ns, .microstep = 0});
                 return 1;
             }
         } else {
             // Current physical time does not exceed current logical
-            // time, so do not advance current time.
-            // I am assuming control-C causes this condition. Therefore, the 
-            // program has to stop.
-            // _lf_set_stop_tag(current_tag);
+            // time, so do not advance tag.
             return 1;
         }
     }
@@ -826,7 +825,6 @@ void* worker(void* arg) {
             // unless some other worker thread is already advancing time.
             if (pqueue_size(reaction_q) == 0
                     && pqueue_size(executing_q) == 0
-                    && pqueue_size(transfer_q) == 0
                     && !__advancing_time) {
                 logical_time_complete(current_tag.time, current_tag.microstep);
                 
