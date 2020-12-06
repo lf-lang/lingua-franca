@@ -255,8 +255,13 @@ void _lf_decrement_global_tag_barrier() {
  *  to advance to.
  */
 void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
-    // Do not wait for FOREVER
+    // Do not wait for tags after the stop tag
+    if (_lf_is_tag_after_stop_tag(proposed_tag)) {
+        proposed_tag = stop_tag;
+    }
+    // Do not wait forever
     if (proposed_tag.time == FOREVER) {
+        printf("Warning: Global tag barrier should not handle FOREVER proposed tags.\n");
         return;
     }
     // Wait if the global barrier semaphore on logical time is zero
