@@ -54,6 +54,9 @@ extern FILE* trace_file;
 /** File for writing the output data. */
 extern FILE* output_file;
 
+/** File for writing summary statistics. */
+extern FILE* summary_file;
+
 /**
  * Print a usage message.
  */
@@ -71,6 +74,13 @@ extern char* top_level;
 
 /**
  * Open the trace file and the output file using the given filename.
+ * This leaves the FILE* pointers in the global variables trace_file and output_file.
+ * If the extension if "csv", then it also opens a summary_file.
+ * The filename argument can include path information.
+ * It can include the ".lft" extension or not.
+ * The output file will have the same path and name except that the
+ * extension will be given by the second argument.
+ * The summary_file, if opened, will have the filename with "_summary.csv" appended.
  * @param filename The file name.
  * @param output_file_extension The extension to put on the output file name (e.g. "csv").
  */
@@ -79,7 +89,7 @@ void open_files(char* filename, char* output_file_extension);
 /**
  * Get the description of the object pointed to by the specified pointer.
  * For example, this can be the name of a reactor (pointer points to
- * the self struct) or a user-define string.
+ * the self struct) or a user-defined string.
  * If there is no such pointer in the symbol table, return NULL.
  * If the index argument is non-null, then put the index
  * of the entry in the table into the int pointed to

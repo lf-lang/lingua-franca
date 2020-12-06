@@ -345,10 +345,11 @@ void start_trace(char* filename) {
 }
 
 /**
- * Trace an event identified by a type and a pointer to the self struct of the reactor instance.
+ * Trace an event identified by a type and an identifying pointer.
+ * The pointer can be, for example, to the self struct of the reactor instance.
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
- * @param reactor The pointer to the self struct of the reactor instance in the trace table.
+ * @param pointer The identifying pointer.
  * @param reaction_number The number of the reaction or -1 if the trace is not of a reaction
  *  or the reaction number if not known.
  * @param worker The thread number of the worker thread or 0 for unthreaded execution
@@ -362,7 +363,7 @@ void start_trace(char* filename) {
  */
 void tracepoint(
         trace_event_t event_type,
-        void* reactor,
+        void* pointer,
         int reaction_number,
         int worker,
         instant_t* physical_time,
@@ -380,7 +381,7 @@ void tracepoint(
     int i = _lf_trace_buffer_size[index];
     // Write to memory buffer.
     _lf_trace_buffer[index][i].event_type = event_type;
-    _lf_trace_buffer[index][i].pointer = reactor;
+    _lf_trace_buffer[index][i].pointer = pointer;
     _lf_trace_buffer[index][i].reaction_number = reaction_number;
     _lf_trace_buffer[index][i].worker = worker;
     _lf_trace_buffer[index][i].logical_time = get_logical_time();
@@ -455,6 +456,40 @@ void tracepoint_user_event(char* description) {
 void tracepoint_user_value(char* description, long long value) {
     // -1s indicate unknown reaction number and worker thread.
     tracepoint(user_value, description,  -1, -1, NULL, NULL, value);
+}
+
+/**
+ * Trace the start of a worker waiting for something to change on the event or reaction queue.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ */
+void tracepoint_worker_wait_starts(int worker) {
+    tracepoint(worker_wait_starts, NULL, -1, worker, NULL, NULL, 0);
+}
+
+/**
+ * Trace the end of a worker waiting for something to change on the event or reaction queue.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ */
+void tracepoint_worker_wait_ends(int worker) {
+    tracepoint(worker_wait_ends, NULL, -1, worker, NULL, NULL, 0);
+}
+
+/**
+ * Trace the start of a worker waiting for logical time to advance or an event to
+ * appear on the event queue.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ */
+void tracepoint_worker_advancing_time_starts(int worker) {
+    tracepoint(worker_advancing_time_starts, NULL, -1, worker, NULL, NULL, 0);
+}
+
+/**
+ * Trace the end of a worker waiting for logical time to advance or an event to
+ * appear on the event queue.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ */
+void tracepoint_worker_advancing_time_ends(int worker) {
+    tracepoint(worker_advancing_time_ends, NULL, -1, worker, NULL, NULL, 0);
 }
 
 /**

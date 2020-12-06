@@ -36,6 +36,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "trace_util.h"
 
 #define PID_FOR_USER_EVENT 1000000 // Assumes no more than a million reactors.
+#define PID_FOR_WORKER_WAIT 0  // Use 1000001 to show in separate trace.
+#define PID_FOR_WORKER_ADVANCING_TIME 0 // Use 1000002 to show in separate trace.
 #define PID_FOR_UNKNOWN_EVENT 2000000
 
 /** Buffer for reading trace records. */
@@ -48,17 +50,18 @@ int max_thread_id = 0;
  * Print a usage message.
  */
 void usage() {
-    printf("\nUsage: trace_to_chrome [options] trace_file_root (without .lft extension)\n\n");
-    /* No options yet:
-    printf("\nOptions: \n\n");
-    printf("  -f, --fast [true | false]\n");
-    printf("   Whether to wait for physical time to match logical time.\n\n");
-    printf("\n\n");
-    */
+    printf("\nUsage: trace_to_chrome [options] trace_file (with or without .lft extension)\n");
+    printf("Options: \n");
+    printf("  -p, --physical\n");
+    printf("   Use only physical time, not logical time, for all horizontal axes.\n");
+    printf("\n");
 }
 
 /** Maximum reaction number encountered. */
 int max_reaction_number = 0;
+
+/** Indicator to plot vs. physical time only. */
+bool physical_time_only = false;
 
 /**
  * Read a trace in the specified file and write it to the specified json file.
@@ -78,7 +81,14 @@ size_t read_and_write_trace() {
         int reactor_index;
         char* reactor_name = get_object_description(trace[i].pointer, &reactor_index);
         if (reactor_name == NULL) {
-            reactor_name = "NO REACTOR";
+            if (trace[i].event_type == worker_wait_starts || trace[i].event_type == worker_wait_ends) {
+                reactor_name = "WAIT";
+            } else if (trace[i].event_type == worker_advancing_time_starts 
+                    || trace[i].event_type == worker_advancing_time_starts) {
+                reactor_name = "ADVANCE TIME";
+            } else {
+                reactor_name = "NO REACTOR";
+            }
         }
         // Default name is the reactor name.
         char* name = reactor_name;
@@ -95,6 +105,15 @@ size_t read_and_write_trace() {
         interval_t elapsed_physical_time = (trace[i].physical_time - start_time)/1000;
         interval_t timestamp = elapsed_physical_time;
         interval_t elapsed_logical_time = (trace[i].logical_time - start_time)/1000;
+
+        if (elapsed_physical_time < 0) {
+            fprintf(stderr, "WARNING: Negative elapsed physical time %lld. Skipping trace entry.\n", elapsed_physical_time);
+            continue;
+        }
+        if (elapsed_logical_time < 0) {
+            fprintf(stderr, "WARNING: Negative elapsed logical time %lld. Skipping trace entry.\n", elapsed_logical_time);
+            continue;
+        }
 
         // Default thread id is the worker number.
         int thread_id = trace[i].worker;
@@ -125,21 +144,45 @@ size_t read_and_write_trace() {
             case schedule_called:
                 phase = "i";
                 pid = reactor_index + 1; // One pid per reactor.
-                timestamp = elapsed_logical_time + trace[i].extra_delay/1000;
+                if (!physical_time_only) {
+                    timestamp = elapsed_logical_time + trace[i].extra_delay/1000;
+                }
                 thread_id = trigger_index;
                 name = trigger_name;
                 break;
             case user_event:
                 pid = PID_FOR_USER_EVENT;
                 phase= "i";
+                if (!physical_time_only) {
+                    timestamp = elapsed_logical_time;
+                }
                 thread_id = reactor_index;
                 break;
             case user_value:
                 pid = PID_FOR_USER_EVENT;
                 phase= "C";
+                if (!physical_time_only) {
+                    timestamp = elapsed_logical_time;
+                }
                 thread_id = reactor_index;
                 free(args);
                 asprintf(&args, "{\"value\": %lld}", trace[i].extra_delay);
+                break;
+            case worker_wait_starts:
+                pid = PID_FOR_WORKER_WAIT;
+                phase = "B";
+                break;
+            case worker_wait_ends:
+                pid = PID_FOR_WORKER_WAIT;
+                phase = "E";
+                break;
+            case worker_advancing_time_starts:
+                pid = PID_FOR_WORKER_ADVANCING_TIME;
+                phase = "B";
+                break;
+            case worker_advancing_time_ends:
+                pid = PID_FOR_WORKER_ADVANCING_TIME;
+                phase = "E";
                 break;
             default:
                 fprintf(stderr, "WARNING: Unrecognized event type %d: %s", 
@@ -169,9 +212,10 @@ size_t read_and_write_trace() {
         if (trace[i].worker > max_thread_id) {
             max_thread_id = trace[i].worker;
         }
-        // If the event is reaction_starts, then also generate an instantaneous
+        // If the event is reaction_starts and physical_time_only is not set,
+        // then also generate an instantaneous
         // event to be shown in the reactor's section, along with timers and actions.
-        if (trace[i].event_type == reaction_starts) {
+        if (trace[i].event_type == reaction_starts && !physical_time_only) {
             phase = "i";
             pid = reactor_index + 1;
             reaction_name = (char*)malloc(4);
@@ -237,6 +281,26 @@ void write_metadata_events() {
                     "}},\n",
                 i, i
         );
+        fprintf(output_file, "{"
+                    "\"name\": \"thread_name\", "
+                    "\"ph\": \"M\", "      // mark as metadata.
+                    "\"pid\": %d, "
+                    "\"tid\": %d, "
+                    "\"args\": {"
+                        "\"name\": \"Worker %d\""
+                    "}},\n",
+                PID_FOR_WORKER_WAIT, i, i
+        );
+        fprintf(output_file, "{"
+                    "\"name\": \"thread_name\", "
+                    "\"ph\": \"M\", "      // mark as metadata.
+                    "\"pid\": %d, "
+                    "\"tid\": %d, "
+                    "\"args\": {"
+                        "\"name\": \"Worker %d\""
+                    "}},\n",
+                PID_FOR_WORKER_ADVANCING_TIME, i, i
+        );
     }
 
     // Name reactions for each reactor.
@@ -297,7 +361,6 @@ void write_metadata_events() {
         }
     }
     // Name the "process" for "Execution"
-    // Last metadata entry lacks a comma.
     fprintf(output_file, "{"
                     "\"name\": \"process_name\", "   // metadata for process name.
                     "\"ph\": \"M\", "      // mark as metadata.
@@ -306,6 +369,28 @@ void write_metadata_events() {
                         "\"name\": \"Execution of %s\"" 
                     "}},\n",
                 top_level);
+    // Name the "process" for "Worker Waiting" if the PID is not the main execution one.
+    if (PID_FOR_WORKER_WAIT > 0) {
+        fprintf(output_file, "{"
+                    "\"name\": \"process_name\", "   // metadata for process name.
+                    "\"ph\": \"M\", "      // mark as metadata.
+                    "\"pid\": %d, "        // the "process" to label "Workers waiting for reaction queue".
+                    "\"args\": {"
+                        "\"name\": \"Workers waiting for reaction queue\"" 
+                    "}},\n",
+                PID_FOR_WORKER_WAIT);
+    }
+    // Name the "process" for "Worker advancing time" if the PID is not the main execution one.
+    if (PID_FOR_WORKER_ADVANCING_TIME > 0) {
+        fprintf(output_file, "{"
+                    "\"name\": \"process_name\", "   // metadata for process name.
+                    "\"ph\": \"M\", "      // mark as metadata.
+                    "\"pid\": %d, "        // the "process" to label "Workers waiting for reaction queue".
+                    "\"args\": {"
+                        "\"name\": \"Workers advancing time\"" 
+                    "}},\n",
+                PID_FOR_WORKER_ADVANCING_TIME);
+    }
     // Name the "process" for "User Events"
     // Last metadata entry lacks a comma.
     fprintf(output_file, "{"
@@ -319,11 +404,23 @@ void write_metadata_events() {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
+    char* filename = NULL;
+    for (int i = 1; i < argc; i++) {
+        printf("FIXME %s\n", argv[i]);
+        if (strncmp(argv[i], "-p", 2) == 0 || strncmp(argv[i], "--physical", 10) == 0) {
+            physical_time_only = true;
+        } else if (argv[i][0] == '-') {
+            usage();
+            return(1);
+        } else {
+           filename = argv[i];
+        }
+    }
+    if (filename == NULL) {
         usage();
         exit(0);
     }
-    open_files(argv[1], "json");
+    open_files(filename, "json");
 
     if (read_header(trace_file) >= 0) {
         // Write the opening bracket into the json file.
