@@ -263,7 +263,7 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
     // and the proposed_time is larger than the horizon.
     while ((compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) > 0) &&
           _lf_global_tag_advancement_barrier.requestors > 0) {
-        DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time, proposed_tag.microstep);
+        DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time - start_time, proposed_tag.microstep);
         // Wait until no requestor remains for the barrier on logical time
         pthread_cond_wait(&global_tag_barrier_requestors_reached_zero, &mutex);
     }
@@ -369,8 +369,7 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
 
 /**
  * Wait until physical time matches or exceeds the specified logical time,
- * unless -fast is given. If a barrier on logical time is raised at an earlier
- * logical time, wait until the barrier is removed.
+ * unless -fast is given.
  *
  * If an event is put on the event queue during the wait, then the wait is
  * interrupted and this function returns false. It also returns false if the
@@ -385,14 +384,12 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
  * the specified time.
  *
  * @param logical_time_ns Logical time to wait on.
- * @param mirostep The microstep to wait on used exclusively for federated 
- *  applications with decentralized coordination. Ignored otherwise. 
  * 
  * @return False if the wait is interrupted either because of an event
  *  queue signal or if the wait time was interrupted early by reaching
  *  the stop time, if one was specified.
  */
-bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
+bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
     if (logical_time_ns > stop_tag.time) {
         DEBUG_PRINT("-------- Wait time after stop time.");
@@ -405,6 +402,7 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
     interval_t wait_until_time_ns = logical_time_ns;
 #ifdef _LF_COORD_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
     // Apply the STP offset to the logical time
+    // Prevent an overflow
     if (wait_until_time_ns != FOREVER) {
         // If wait_time is not forever
         wait_until_time_ns += _lf_global_time_STP_offset;
@@ -451,13 +449,6 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
         DEBUG_PRINT("-------- Returned from wait.");
 
     }
-#ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
-    // Wait until the global barrier on tag (horizon) is larger
-    // than the tag.
-    // This can effectively add to the STP offset in certain cases, for example,
-    // when a message with timestamp (0,0) has arrived at (0,0).
-    _lf_wait_on_global_tag_barrier((tag_t) { .time = logical_time_ns, .microstep = microstep } );
-#endif
     return return_value;
 }
 
@@ -533,7 +524,7 @@ int __next() {
     if (_lf_is_tag_after_stop_tag(next_tag)) {
         next_tag = stop_tag;
     }
-#endif
+#endif // _LF_IS_FEDERATED
 
     // Wait for physical time to advance to the next event time (or stop time).
     // This can be interrupted if a physical action triggers (e.g., a message
@@ -553,6 +544,17 @@ int __next() {
                 + current_physical_time.tv_nsec;
         if (current_physical_time_ns > current_tag.time) {
             if (current_physical_time_ns < next_tag.time) {
+                // In federated programs, barriers could be raised on a specific tag.
+                // If next_tag is larger than the barrier, next() should wait until the barrier
+                // is removed before advancing the tag
+#ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
+                // Wait until the global barrier on tag (horizon) is larger than the next_tag.
+                // This can effectively add to the STP offset in certain cases, for example,
+                // when a message with timestamp (0,0) has arrived at (0,0).
+                _lf_wait_on_global_tag_barrier((tag_t){
+                                                .time = current_physical_time_ns,
+                                                .microstep = 0});
+#endif
                 // Advance tag.
                 _lf_advance_logical_time(current_physical_time_ns);
                 return 1;
@@ -575,6 +577,22 @@ int __next() {
         next_tag = stop_tag;
     }
     
+    // In federated programs, barriers could be raised on a specific tag.
+    // If next_tag is larger than the barrier, next() should wait until the barrier
+    // is removed before advancing the tag
+#ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
+    // Wait until the global barrier on tag (horizon) is larger than the next_tag.
+    // This can effectively add to the STP offset in certain cases, for example,
+    // when a message with timestamp (0,0) has arrived at (0,0).
+    _lf_wait_on_global_tag_barrier(next_tag);
+#endif
+
+    // Since _lf_wait_on_global_tag_barrier releases the mutex lock internally, we need to check
+    // again for any changes in stop_tag while the mutex was unlocked.
+    if (_lf_is_tag_after_stop_tag(next_tag)) {
+        next_tag = stop_tag;
+    }
+
     // At this point, finally, we have an event to process.
     // Advance current time to match that of the first event on the queue.
     _lf_advance_logical_time(next_tag.time);
