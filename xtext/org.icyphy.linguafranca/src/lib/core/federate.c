@@ -1504,20 +1504,6 @@ void synchronize_with_other_federates() {
     // be very different.
     physical_start_time = get_physical_time();
 
-    // Recalculate the real_time_physical_start_time so that
-    // wait_until would work correctly
-    if (_LF_CLOCK != CLOCK_REALTIME) {
-        struct timespec actualStartTime;
-        // Take a snapshot of the CLOCK_REALTIME
-        // This is done after start_time is set so that
-        // real_time_physical_start_time >= start_time
-        clock_gettime(CLOCK_REALTIME, &actualStartTime);
-        real_time_physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
-        DEBUG_PRINT("Federate %d set real_time_physical_start_time to %lld.", _lf_my_fed_id, real_time_physical_start_time);
-    } else {
-        real_time_physical_start_time = physical_start_time;
-    }
-
     // Start a thread to listen for incoming messages from the RTI.
     pthread_t thread_id;
     pthread_create(&thread_id, NULL, listen_to_rti, NULL);
