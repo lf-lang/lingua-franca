@@ -708,11 +708,13 @@ void handle_physical_time_sync_message_already_locked() {
         interval_t network_round_trip_delay = (rti_physical_clock_snapshot - \
                                                _lf_rti_socket_stat.remote_physical_clock_snapshot_T1) - \
                                               _lf_rti_socket_stat.local_round_trip_delay_bound;
-        // FIXME: taking the maximum might not be a good idea
+        // FIXME: Taking the maximum might not be a good idea
         // if (_lf_rti_socket_stat.network_round_trip_delay_bound < network_round_trip_delay) {
         _lf_rti_socket_stat.network_round_trip_delay_bound = network_round_trip_delay;
-        //}
+        // }
         // Calculate the new physical time offset
+        // FIXME: This could cause the clock to jump back in time.
+        // A better solution would be to slowdown or speedup the clock
         _lf_global_physical_time_offset = _lf_rti_socket_stat.local_physical_clock_snapshot_T2  - \
                                           _lf_rti_socket_stat.remote_physical_clock_snapshot_T1 - \
                                           _lf_rti_socket_stat.network_round_trip_delay_bound/2;
