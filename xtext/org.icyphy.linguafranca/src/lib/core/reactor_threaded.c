@@ -531,6 +531,11 @@ int __next() {
     // arrives from an upstream federate or a local physical action triggers).
     DEBUG_PRINT("next(): Waiting until time %lld.", (next_tag.time - start_time));
     if (!wait_until(next_tag.time, next_tag.microstep)) {
+        // Since wait_until releases the mutex lock internally, we need to check
+        // again for any changes in stop_tag while the mutex was unlocked.
+        if (_lf_is_tag_after_stop_tag(next_tag)) {
+            next_tag = stop_tag;
+        }
         DEBUG_PRINT("__next(): Wait until time interrupted.");
         // Sleep was interrupted.
         // May have been an asynchronous call to schedule().
