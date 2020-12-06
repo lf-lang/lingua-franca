@@ -408,6 +408,12 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
     wait_until_time_ns += _lf_global_time_STP_offset;
 #endif
     if (!fast) {
+        // We should not wait if the physical time is sufficiently ahead
+        // of logical time.
+        if (wait_until_time_ns - get_physical_time() <= 0) {
+            return return_value;
+        }
+
         // pthread_cond_timedwait can only accept an absolute time
         // based on CLOCK_REALTIME in a portable way. If _LF_CLOCK
         // is not CLOCK_REALTIME, we need to convert wait_until_time_ns
