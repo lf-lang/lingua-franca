@@ -413,7 +413,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
       * true: Software clock synchronization with the RTI's clock
       * false: No clock synchronization
       */
-     protected boolean targetClockSync = false
+     protected boolean targetClockSync = true
 
     ////////////////////////////////////////////
     //// Private fields.
@@ -547,8 +547,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetTracing = true
                         }
                     case "clock-sync": {
-                        if (param.value.literal == 'true') {
-                            targetClockSync = true
+                        if (param.value.literal == 'false') {
+                            targetClockSync = false
                         }
                     }
                 }

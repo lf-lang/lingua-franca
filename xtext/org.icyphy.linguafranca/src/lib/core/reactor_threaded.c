@@ -405,7 +405,10 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
     interval_t wait_until_time_ns = logical_time_ns;
 #ifdef _LF_COORD_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
     // Apply the STP offset to the logical time
-    wait_until_time_ns += _lf_global_time_STP_offset;
+    if (wait_until_time_ns != FOREVER) {
+        // If wait_time is not forever
+        wait_until_time_ns += _lf_global_time_STP_offset;
+    }
 #endif
     if (!fast) {
         // We should not wait if the physical time is sufficiently ahead
@@ -417,9 +420,10 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
         // pthread_cond_timedwait can only accept an absolute time
         // based on CLOCK_REALTIME in a portable way. If _LF_CLOCK
         // is not CLOCK_REALTIME, we need to convert wait_until_time_ns
-        if (_LF_CLOCK != CLOCK_REALTIME) {
+        if (_LF_CLOCK != CLOCK_REALTIME && wait_until_time_ns != FOREVER) {
             interval_t ticks_since_start = wait_until_time_ns - start_time;
             wait_until_time_ns = real_time_physical_start_time + ticks_since_start;
+            DEBUG_PRINT("Adjusted wait_until_time_ns to %lld.", wait_until_time_ns);
         }
 
         // Convert the logical time to a timespec.
