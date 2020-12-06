@@ -1510,7 +1510,7 @@ void synchronize_with_other_federates() {
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time. Microstep is ignored.
-    wait_until(current_tag.time, 0u);
+    wait_until(current_tag.time);
     DEBUG_PRINT("Done waiting for start time %lld.", current_tag.time);
     DEBUG_PRINT("Physical time is ahead of current time by %lld.", get_physical_time() - current_tag.time);
 }
