@@ -50,12 +50,12 @@ instant_t physical_start_time = NEVER;
  * on CLOCK_REALTIME. This record is kept because some
  * POSIX APIs insist on taking CLOCK_REALTIME values.
  */
-instant_t real_time_physical_start_time = NEVER;
+volatile instant_t real_time_physical_start_time = NEVER;
 
 /**
  * Logical time at the start of execution.
  */
-instant_t start_time = NEVER;
+volatile instant_t start_time = NEVER;
 
 /**
  * Global physical clock offset.

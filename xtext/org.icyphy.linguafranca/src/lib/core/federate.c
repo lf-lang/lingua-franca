@@ -922,6 +922,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 
     instant_t timestamp = extract_ll(&(buffer[1]));
     printf("Federate %d: starting timestamp is: %lld.\n", _lf_my_fed_id, timestamp);
+    DEBUG_PRINT("Federate %d: current physical time is: %lld.", _lf_my_fed_id, get_physical_time());
 
     return timestamp;
 }
@@ -1497,6 +1498,25 @@ void synchronize_with_other_federates() {
         // A duration has been specified. Recalculate the stop time.
        stop_tag = ((tag_t) {.time = current_tag.time + duration, .microstep = 0});
     }
+    
+    // Reinitialize the physical start time to match the current physical time.
+    // This will be different on each federate. If --fast was given, it could
+    // be very different.
+    physical_start_time = get_physical_time();
+
+    // Recalculate the real_time_physical_start_time so that
+    // wait_until would work correctly
+    if (_LF_CLOCK != CLOCK_REALTIME) {
+        struct timespec actualStartTime;
+        // Take a snapshot of the CLOCK_REALTIME
+        // This is done after start_time is set so that
+        // real_time_physical_start_time >= start_time
+        clock_gettime(CLOCK_REALTIME, &actualStartTime);
+        real_time_physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
+        DEBUG_PRINT("Federate %d set real_time_physical_start_time to %lld.", _lf_my_fed_id, real_time_physical_start_time);
+    } else {
+        real_time_physical_start_time = physical_start_time;
+    }
 
     // Start a thread to listen for incoming messages from the RTI.
     pthread_t thread_id;
@@ -1507,11 +1527,6 @@ void synchronize_with_other_federates() {
     wait_until(current_tag.time, 0u);
     DEBUG_PRINT("Done waiting for start time %lld.", current_tag.time);
     DEBUG_PRINT("Physical time is ahead of current time by %lld.", get_physical_time() - current_tag.time);
-
-    // Reinitialize the physical start time to match the current physical time.
-    // This will be different on each federate. If --fast was given, it could
-    // be very different.
-    physical_start_time = get_physical_time();
 }
 
 /** Indicator of whether this federate has upstream federates.
