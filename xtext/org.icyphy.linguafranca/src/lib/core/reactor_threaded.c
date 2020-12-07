@@ -73,7 +73,7 @@ typedef struct _lf_tag_advancement_barrier {
  *  Create a global tag barrier and
  * initialize the barrier's semaphore to 0 and its horizon to (FOREVER, 0).
  */
-_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, 
+volatile _lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, 
                                                                   (tag_t) {
                                                                     .time = FOREVER,
                                                                     .microstep = 0 
@@ -81,7 +81,7 @@ _lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0,
                                                                  };
 
 // Queue of currently executing reactions.
-pqueue_t* executing_q;  // Sorted by index (precedence sort)
+pqueue_t* executing_q; // Sorted by index (precedence sort)
 
 pqueue_t* transfer_q;  // To store reactions that are still blocked by other reactions.
 
@@ -658,6 +658,9 @@ void request_stop() {
     _lf_set_stop_tag((tag_t) {.time = current_tag.time, .microstep = current_tag.microstep+1});
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
+    // We signal instead of broadcast under the assumption that only
+    // one worker thread can call wait_until at a given time because
+    // the call to wait_until is protected by a mutex lock
     pthread_cond_signal(&event_q_changed);
 #endif
     DEBUG_PRINT("pthread_mutex_unlock in request_stop.");
