@@ -49,6 +49,13 @@ instant_t physical_start_time = NEVER;
 instant_t start_time = NEVER;
 
 /**
+ * Global physical clock offset.
+ * Initially set according to the RTI's clock in federated
+ * programs.
+ */
+interval_t _lf_global_physical_time_offset = 0LL;
+
+/**
  * Compare two tags. Return -1 if the first is less than
  * the second, 0 if they are equal, and +1 if the first is
  * greater than the second. A tag is greater than another if
@@ -125,12 +132,13 @@ microstep_t get_microstep() {
 }
 
 /**
- * Return the current physical time in nanoseconds since January 1, 1970.
+ * Return the current physical time in nanoseconds since January 1, 1970,
+ * adjusted by the global physical time offset.
  */
 instant_t get_physical_time() {
     struct timespec physicalTime;
     clock_gettime(CLOCK_REALTIME, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec;
+    return (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) + _lf_global_physical_time_offset;
 }
 
 /**

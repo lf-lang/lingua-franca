@@ -1,14 +1,14 @@
 /**
- * Upon receiving a `start` input, this reactor resets its counts
- * and send a `hungry` message. It then waits for an `eat` or
- * `denied` input. If it receives `eat`, then it schedules to send
+ * Upon receiving a `start` message, this reactor sends a `hungry`
+ * message. It then waits for an `eat` or `denied` input.
+ * If it receives `eat`, then it schedules to send
  * a `done` message after `eating_time` has elapsed (in logical
  * time). If it receives a `denied` message, then it schedules to
  * send a `hungry` message after `thinking_time` has elapsed.
  * When it sends the `done` message after eating, it schedules to
  * send a `hungry` message after `thinking_time` has elapsed.
- * When it has eated a total of `count` times, it sends a `finished`
- * message.
+ * When it has eaten a total of `count` times, it sends a
+ * `finished` message.
  */
 target C;
 
