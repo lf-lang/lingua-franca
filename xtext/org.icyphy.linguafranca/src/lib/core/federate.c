@@ -1213,6 +1213,9 @@ void handle_tag_advance_grant() {
 /**
  * Used to prevent the federate from sending a REQUEST_STOP
  * message multiple times to the RTI.
+ * 
+ * @note Access to this variable should always be protected by
+ *  mutex lock.
  */
 volatile bool federate_has_already_sent_a_stop_request_to_rti = false;
 
@@ -1286,7 +1289,11 @@ void handle_stop_granted_message() {
                 stop_tag.microstep);
 
     _lf_decrement_global_tag_barrier_already_locked();
+    // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
+    // We signal instead of broadcast under the assumption that only
+    // one worker thread can call wait_until at a given time because
+    // the call to wait_until is protected by a mutex lock
     pthread_cond_signal(&event_q_changed);
     pthread_mutex_unlock(&mutex);
 }
@@ -1304,6 +1311,10 @@ void handle_stop_request_message() {
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
     pthread_mutex_lock(&mutex);
+    // Don't send a stop tag twice
+    if (federate_has_already_sent_a_stop_request_to_rti == true) {
+        return;
+    }
 
     instant_t stop_time = extract_ll(buffer); // Note: ignoring the payload of the incoming stop request from the RTI
     DEBUG_PRINT("Federate %d received from RTI a STOP_REQUEST message with time %lld.", FED_ID, stop_time - start_time);
