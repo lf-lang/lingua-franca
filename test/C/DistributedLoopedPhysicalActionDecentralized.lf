@@ -7,8 +7,7 @@
 
 target C {
     timeout: 1 sec,
-    coordination: decentralized,
-    logging: DEBUG
+    coordination: decentralized
 };
 
 import Sender, Receiver from "DistributedLoopedPhysicalAction.lf"

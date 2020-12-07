@@ -2,8 +2,11 @@
  * Philosopher benchmark from the Savina benchmark suite for actor languages and frameworks.
  * The original benchmarks are available at https://github.com/shamsmahmood/savina.
  * 
- * This program takes advantage of particular feature of LF to model the timing of the
- * philosophers.
+ * This program takes advantage of particular features of LF to model the timing of the
+ * philosophers. Specifically, it has top-level parameters that specify the amount of time
+ * that philosophers spend eating and thinking.  With the "fast" target option set to true,
+ * this does not actually affect the execution time, but rather better models a physical
+ * scenario.
  * 
  * See, Shams Imam and Vivek  Sarkar, "Savina - An Actor Benchmark Suite: Enabling Empirical
  * Evaluation of Actor Libraries," AGERE! '14: Proceedings of the 4th International Workshop
@@ -18,15 +21,12 @@ target C {
 };
 
 import Philosopher from "lib/Philosopher.lf";
-import Master from "lib/Master.lf";
-
 
 reactor Arbitrator(
     num_philosophers:int(20),
     count:int(10000),
     verbose:bool(false)
 ) {
-    
     preamble {=
         /*
          * Try to acquire both forks for a philosopher. Returns true if
@@ -55,10 +55,7 @@ reactor Arbitrator(
             forks[(instance + 1) % num_philosophers] = false; // right
          }
     =}
-    
-    input start:bool;
-    output finished:bool;
-    
+        
     /** Signal to philosopher to start an iteration. */
     output[num_philosophers] philosopher_start:bool; 
     /** Signal from philosopher that it has eaten enough times in the iteration. */
@@ -82,7 +79,7 @@ reactor Arbitrator(
         self->forks = calloc(self->num_philosophers, sizeof(bool));
     =}
     
-    reaction(start) -> philosopher_start {=
+    reaction(startup) -> philosopher_start {=
         if (self->verbose) {
             printf("Starting the arbitrator\n");
         }
@@ -118,13 +115,11 @@ reactor Arbitrator(
                 }
                 if (acquire_forks(self->forks, j, self->num_philosophers)) {
                     if (self->verbose) {
-                        printf("*********** Current time is %lld\n", get_elapsed_logical_time());
                         printf("Arbitrator tells philosopher %d to eat.\n", j);
                     }
                     SET(eat[j], true); 
                 } else {
                     if (self->verbose) {
-                        printf("*********** Current time is %lld\n", get_elapsed_logical_time());
                         printf("Arbitrator denies philosopher %d to eat.\n", j);
                     }
                     SET(denied[j], true);
@@ -139,7 +134,7 @@ reactor Arbitrator(
         }
     =}
     
-    reaction (philosopher_finished) -> finished {=
+    reaction (philosopher_finished) {=
         for(int i = 0; i < philosopher_finished_width; i++) {
             if (philosopher_finished[i]->is_present) {
                 self->finished_philosophers++;
@@ -152,7 +147,7 @@ reactor Arbitrator(
         
         if (self->finished_philosophers == self->num_philosophers) {
             printf("Arbitrator: All philosophers are sated. Number of denials to philosophers: %d\n", self->retries);
-            SET(finished, true);
+            request_stop();
         }        
     =}
 }
@@ -160,13 +155,11 @@ reactor Arbitrator(
 main reactor Philosophers(
     num_philosophers:int(20),
     iterations:int(12),
-    count:int(10000),
+    count:int(10),
     eating_time:time(1 sec), // (Logical) time spent eating.
     thinking_time:time(600 msec), // (Logical) time spent thinking.
-    verbose:bool(false) 
-) {
-    master = new Master(iterations=iterations);
-    
+    verbose:bool(true) 
+) {    
     arbitrator = new Arbitrator(count=count, verbose=verbose, num_philosophers = num_philosophers);
     philosophers = new[num_philosophers] Philosopher(
         count=count,
@@ -174,9 +167,6 @@ main reactor Philosophers(
         eating_time=eating_time,
         thinking_time = thinking_time
     );
-
-    master.start -> arbitrator.start;
-    arbitrator.finished -> master.finished;
     
     arbitrator.philosopher_start -> philosophers.start;
     philosophers.finished -> arbitrator.philosopher_finished;

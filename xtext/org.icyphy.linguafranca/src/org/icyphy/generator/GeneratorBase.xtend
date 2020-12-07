@@ -55,10 +55,13 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.InferredType
+import org.icyphy.Targets
 import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
 import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.Instantiation
@@ -79,8 +82,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Code
-import org.icyphy.Targets
 
 /**
  * Generator base class for shared code between code generators.
@@ -341,17 +342,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * List of files to be copied to src-gen.
      */
-    protected List<File> targetFiles = newLinkedList
+    protected List<String> targetFiles = newLinkedList
     
     /**
      * List of proto files to be processed by the code generator.
      */
-    protected List<File> protoFiles = newLinkedList
+    protected List<String> protoFiles = newLinkedList
     
     /**
      * Contents of $LF_CLASSPATH, if it was set.
      */
-    protected String classpath
+    protected String classpathLF
     
     /**
      * The value of the keepalive target parameter, or false if there is none.
@@ -411,6 +412,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
+
+    /**
+     * Returns the desired source gen. path
+     */
+    def getSrcGenPath() {
+          directory + File.separator + "src-gen"
+    }
+     
+    /**
+     * Returns the desired output path
+     */
+    def getBinGenPath() {
+          directory + File.separator + "bin"
+    }
+    
     def String getTargetCoordination() {
         return targetCoordination
     }
@@ -458,6 +474,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         // Figure out the file name for the target code from the source file name.
         resource.analyzeResource
+        
+        // If there are any physical actions, ensure the threaded engine is used.
+        for (action : resource.allContents.toIterable.filter(Action)) {
+            if (action.origin == ActionOrigin.PHYSICAL) {
+                targetThreads = 1
+            }
+        }
         
         var target = resource.findTarget
         targetName = target.name
@@ -569,7 +592,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         analyzeModel(resource, fsa, context)
         
         // Process target files. Copy each of them into the src-gen dir.
-        copyUserFiles()
+        copyUserFiles(getSrcGenPath())
         
         // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
@@ -620,17 +643,37 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     /**
-     * Copy all files listed in the target property `files` into the src-gen
-     * directory.
+     * Copy all files listed in the target property `files` into the
+     * specified directory.
      */
-    protected def copyUserFiles() {
+    protected def copyUserFiles(String targetDirectory) {
+        // Make sure the target directory exists.
+        val srcGenDir = new File(targetDirectory + File.separator)
+        srcGenDir.mkdirs
         
-        for (file : this.targetFiles) {
-            val target = new File(directory + File.separator + "src-gen/" + file.name)
-            if (target.exists) {
-                target.delete
+        for (filename : this.targetFiles) {
+            val file = filename.findFile
+            if (file !== null) {
+                val target = new File(targetDirectory + File.separator + file.name)
+                if (target.exists) {
+                    target.delete
+                }
+                Files.copy(file.toPath, target.toPath)
+            } else {
+                // Try to copy the file as a resource.
+                // If this is missing, it should have been previously reported as an error.
+                try {
+                    var filenameWithoutPath = filename
+                    val lastSeparator = filename.lastIndexOf(File.separator)
+                    if (lastSeparator > 0) {
+                        filenameWithoutPath = filename.substring(lastSeparator + 1)
+                    }
+                    copyFileFromClassPath(filename, targetDirectory + File.separator + filenameWithoutPath)
+                } catch (IOException ex) {
+                    // Ignore. Previously reported as a warning.
+                    System.err.println('''WARNING: Failed to find file «filename».''')
+                }
             }
-            Files.copy(file.toPath, target.toPath)
         }
     }
     
@@ -923,10 +966,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val relativeBinFilename = "bin" + File.separator + fileToCompile;
 
         var compileArgs = newArrayList
-        if (targetCompilerFlags !== null && !targetCompilerFlags.isEmpty()) {
-            val flags = targetCompilerFlags.split(' ')
-            compileArgs.addAll(flags)
-        }
         compileArgs.add(relativeSrcFilename)
         compileArgs.addAll(compileAdditionalSources)
         compileArgs.addAll(compileLibraries)
@@ -938,8 +977,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         // If threaded computation is requested, add a -pthread option.
-        if (targetThreads !== 0) {
+        if (targetThreads !== 0 || targetTracing) {
             compileArgs.add("-pthread")
+        }
+        // Finally add the compiler flags in target parameters (if any)
+        if (targetCompilerFlags !== null && !targetCompilerFlags.isEmpty()) {
+            val flags = targetCompilerFlags.split(' ')
+            compileArgs.addAll(flags)
         }
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
@@ -1218,6 +1262,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // This means that generated reactors **have** to be
             // added to a resource; not doing so will result in a NPE.
             models.add(r.toDefinition.eContainer as Model)
+        }
+        // Add the main reactor if it is defined
+        if (this.mainDef !== null) {
+            models.add(this.mainDef.reactorClass.toDefinition.eContainer as Model)
         }
         for (m : models) {
             for (p : m.preambles) {
@@ -1499,12 +1547,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * the files that the property lists.
      * 
      * Arrays are traversed, so files are collected recursively. If elements
-     * are found that do not denote files or denote files that cannot be found,
-     * warnings are reported.
+     * are found that do not denote files, warnings are reported.
      * @param value The right-hand side of a target property.
      */
-    def List<File> collectFiles(Element value) {
-        var allFound = true;
+    def List<String> collectFiles(Element value) {
         val files = newLinkedList
         var filename = ""
         if (value.array !== null) {
@@ -1514,35 +1560,44 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             return files
         } else if (value.literal !== null) {
             filename = value.literal.withoutQuotes
+            files.add(filename)
         } else if (value.id !== "") {
             filename = value.id
+            files.add(filename)
         } else {
             this.
                 reportWarning(
                     value, '''Expected a string, path, or array but found something else.''')
         }
+        // Make sure the file exists and issue a warning if not.
         val file = filename.findFile
-        if (file !== null) {
-            files.add(file)
-        } else {
-            // Warn that file hasn't been found.
-            allFound = false
-            this.reportWarning(value, '''Could not find «filename».''')
+        if (file === null) {
+            // See if it can be found as a resource.
+            val stream = this.class.getResourceAsStream(filename)
+            if (stream === null) {
+                // Warn that file hasn't been found.
+                this.reportWarning(value, 
+                    '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
+            } else {
+                // Sadly, even with this not null, the file may not exist.
+                try {
+                    stream.read()
+                } catch (IOException ex) {
+                    // Warn that file hasn't been found.
+                    this.
+                        reportWarning(
+                            value, '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
+                }
+                stream.close()
+            }
         }
-
-        if (!allFound && this.classpath.isNullOrEmpty) {
-            // Report that LF_CLASSPATH hasn't been set 
-            // and something hasn't been found.
-            this.reportWarning(value,
-                "LF_CLASSPATH environment variable is not set.")
-        }
-
         return files
     }
 
     /**
      * Search for a given file name in the current directory.
      * If not found, search in directories in LF_CLASSPATH.
+     * If not found there, search relative to the CLASSPATH.
      * The first file found will be returned.
      * 
      * @param fileName The file name or relative path + file name
@@ -1561,9 +1616,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Check in LF_CLASSPATH
         // Load all the resources in LF_CLASSPATH if it is set.
-        this.classpath = System.getenv("LF_CLASSPATH");
-        if (this.classpath !== null) {
-            var String[] paths = this.classpath.split(
+        this.classpathLF = System.getenv("LF_CLASSPATH");
+        if (this.classpathLF !== null) {
+            var String[] paths = this.classpathLF.split(
                 System.getProperty("path.separator"));
             for (String path : paths) {
                 foundFile = new File(path + '/' + fileName);
@@ -2316,6 +2371,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     abstract def boolean supportsGenerics()
     
     abstract def String getTargetTimeType()
+
+    abstract def String getTargetTagType()
+
+    abstract def String getTargetTagIntervalType()
 
     abstract def String getTargetUndefinedType()
     

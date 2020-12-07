@@ -140,7 +140,7 @@ typedef struct {
     PyObject* value;
     bool is_present;
     int num_destinations;
-    token_t* token;
+    lf_token_t* token;
     int length;
 } generic_port_instance_with_token_struct;
 
