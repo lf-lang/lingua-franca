@@ -636,16 +636,6 @@ void handle_stop_request_message(federate_t* fed) {
  * @param fed The federate replying the STOP_REQUEST
  */
 void handle_stop_request_reply(federate_t* fed) {
-    // Read federate's response
-    if (fed->state == NOT_CONNECTED) {
-        pthread_mutex_lock(&rti_mutex);
-        // The federate has disconnected. We can assume it has 
-        // requested stop.
-        _lf_rti_mark_federate_requesting_stop(fed);
-        pthread_mutex_unlock(&rti_mutex);
-        return;
-    }
-
     unsigned char buffer_stop_time[sizeof(instant_t)];
     read_from_socket(fed->socket, sizeof(instant_t), buffer_stop_time, "RTI failed to read the reply to STOP_REQUEST message from federate %d.", fed->id);
     instant_t federate_stop_time = extract_ll(buffer_stop_time);
