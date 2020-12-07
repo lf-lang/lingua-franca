@@ -1,11 +1,11 @@
 # This config is runs the micro-benchmarks from Savina.
 #
-# Each experiment uses in general multiple different
-# values for the problem size as parameters.
+# Each experiment only has one sequence parameter, they are
+# intended to produce box plots and not line diagrams.
 #
 # It runs the Akka implementation and LF C++ implementations.
 #
-# Recommended plotter module: plotterDefault
+# Recommended plotter module: plotterBoxerrorbar
 
 import os
 
@@ -98,9 +98,8 @@ experiments = {}
 binName = 'PingPongBenchmark'
 lfSrcPath = f'pingpong/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.pingpong.PingPongAkkaActorBenchmark'
-variableParamNameLF = f'--count'
-runParamNameLf1 = f''
-runParamValue1 = ''
+runParamNameLf1 = f'--count'
+runParamValue1 = '6000000'
 runParamNameLf2 = f''
 runParamValue2 = ''
 runParamNameLf3 = f''
@@ -117,11 +116,10 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
-runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n '
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {runParamValue1}'
 experiments['PingPong'] = {
     'description': f'Benchmark Ping Pong from the Savina suite with {runParamValue1} pings.',
     'plotTitle': f'Ping Pong',
-    'plotXAxisLabel': 'Number of pings in millions',
     'plotYAxisLabel': 'Execution time in ms (median)',
     'plotSequenceColors': sequenceColors,
     'plotSequenceNames': sequenceNames,
@@ -131,39 +129,11 @@ experiments['PingPong'] = {
     'sequences': [
         ('1', {
             'lf-cpp-1': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'{runCmdLf1} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 1000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 1000000'.split() ]
-        }),
-        ('2', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 2000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 2000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 2000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 2000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 2000000'.split() ]
-        }),
-        ('3', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 3000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 3000000'.split() ]
-        }),
-        ('4', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 4000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 4000000'.split() ]
-        }),
-        ('5', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 5000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 5000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 5000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 5000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 5000000'.split() ]
+                         runCmdLf1.split() ],
+            'lf-cpp-4': [ runCmdLf4.split() ],
+            'lf-cpp-8': [ runCmdLf8.split() ],
+            'lf-cpp-16': [ runCmdLf16.split() ],
+            'savina-akka-default': [ f'{runCmdAkka} 300'.split() ]
         })
     ]
 }
@@ -172,9 +142,8 @@ experiments['PingPong'] = {
 binName = 'ThreadRingBenchmarkGenerator'
 lfSrcPath = f'threadring/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.threadring.ThreadRingAkkaActorBenchmark'
-variableParamNameLF = f'--numPings'
-runParamNameLf1 = f''
-runParamValue1 = ''
+runParamNameLf1 = f'--numPings'
+runParamValue1 = '8000000'
 runParamNameLf2 = f''
 runParamValue2 = ''
 runParamNameLf3 = f''
@@ -191,11 +160,10 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
-runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {preParamValue1} -r '
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {preParamValue1} -r {runParamValue1}'
 experiments['ThreadRing'] = {
     'description': f'Thread Ring from the Savina suite with {preParamValue1} actors/reactors.',
     'plotTitle': f'Thread Ring',
-    'plotXAxisLabel': 'Number of pings in millions',
     'plotYAxisLabel': 'Execution time in ms (median)',
     'plotSequenceColors': sequenceColors,
     'plotSequenceNames': sequenceNames,
@@ -206,32 +174,11 @@ experiments['ThreadRing'] = {
         ('1', {
             'lf-cpp-1': [ f'{pythonExe} -m cogapp -r {preParamString1} {preParamString2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'{runCmdLf1} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 1000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 1000000'.split() ]
-        }),
-        ('3', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 3000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 3000000'.split() ]
-        }),
-        ('4', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 4000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 4000000'.split() ]
-        }),
-        ('5', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 5000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 5000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 5000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 5000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 5000000'.split() ]
+                         runCmdLf1.split() ],
+            'lf-cpp-4': [ runCmdLf4.split() ],
+            'lf-cpp-8': [ runCmdLf8.split() ],
+            'lf-cpp-16': [ runCmdLf16.split() ],
+            'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
     ]
 }
@@ -240,9 +187,8 @@ experiments['ThreadRing'] = {
 binName = 'CountingBenchmark'
 lfSrcPath = f'count/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.count.CountingAkkaActorBenchmark'
-variableParamNameLF = f'--countTo'
-runParamNameLf1 = f''
-runParamValue1 = ''
+runParamNameLf1 = f'--countTo'
+runParamValue1 = '20000000'
 runParamNameLf2 = f''
 runParamValue2 = ''
 runParamNameLf3 = f''
@@ -259,11 +205,10 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
-runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n '
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -n {runParamValue1}'
 experiments['Counting'] = {
     'description': f'Counting benchmark from the Savina suite.',
     'plotTitle': f'Counting',
-    'plotXAxisLabel': 'Value to count to in millions',
     'plotYAxisLabel': 'Execution time in ms (median)',
     'plotSequenceColors': sequenceColors,
     'plotSequenceNames': sequenceNames,
@@ -273,32 +218,11 @@ experiments['Counting'] = {
     'sequences': [
         ('1', {
             'lf-cpp-1': [ f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'{runCmdLf1} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 1000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 1000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 1000000'.split() ]
-        }),
-        ('2', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 2000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 2000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 2000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 2000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 2000000'.split() ]
-        }),
-        ('3', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 3000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 3000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 3000000'.split() ]
-        }),
-        ('4', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 4000000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 4000000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 4000000'.split() ]
+                         runCmdLf1.split() ],
+            'lf-cpp-4': [ runCmdLf4.split() ],
+            'lf-cpp-8': [ runCmdLf8.split() ],
+            'lf-cpp-16': [ runCmdLf16.split() ],
+            'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
     ]
 }
@@ -307,9 +231,8 @@ experiments['Counting'] = {
 binName = 'ThroughputBenchmarkGenerator'
 lfSrcPath = f'fjthrput/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.fjthrput.ThroughputAkkaActorBenchmark'
-variableParamNameLF = f'--numMessagesPerReactor'
-runParamNameLf1 = f''
-runParamValue1 = ''
+runParamNameLf1 = f'--numMessagesPerReactor'
+runParamValue1 = '100000'
 runParamNameLf2 = f''
 runParamValue2 = ''
 runParamNameLf3 = f''
@@ -326,11 +249,10 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
-runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -a {preParamValue1} -n '
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -a {preParamValue1} -n {runParamValue1}'
 experiments['Throughput'] = {
     'description': f'Fork join (throughput) benchmark from the Savina suite.',
     'plotTitle': f'Fork Join (throughput)',
-    'plotXAxisLabel': 'Number of messages per reactor in thds.',
     'plotYAxisLabel': 'Execution time in ms (median)',
     'plotSequenceColors': sequenceColors,
     'plotSequenceNames': sequenceNames,
@@ -338,35 +260,14 @@ experiments['Throughput'] = {
     'parsers': parsers,
     'finalCleanupExperiment': cleanup,
     'sequences': [
-        ('100', {
+        ('1', {
             'lf-cpp-1': [ f'{pythonExe} -m cogapp -r {preParamString1} {preParamString2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'{runCmdLf1} {variableParamNameLF} 100000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 100000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 100000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 100000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 100000'.split() ]
-        }),
-        ('200', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 200000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 200000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 200000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 200000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 200000'.split() ]
-        }),
-        ('300', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 300000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 300000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 300000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 300000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 300000'.split() ]
-        }),
-        ('400', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 400000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 400000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 400000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 400000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 400000'.split() ]
+                         runCmdLf1.split() ],
+            'lf-cpp-4': [ runCmdLf4.split() ],
+            'lf-cpp-8': [ runCmdLf8.split() ],
+            'lf-cpp-16': [ runCmdLf16.split() ],
+            'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
     ]
 }
@@ -375,9 +276,8 @@ experiments['Throughput'] = {
 binName = 'ChameneosBenchmarkGenerator'
 lfSrcPath = f'chameneos/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.chameneos.ChameneosAkkaActorBenchmark'
-variableParamNameLF = f'--numMeetings'
-runParamNameLf1 = f''
-runParamValue1 = ''
+runParamNameLf1 = f'--numMeetings'
+runParamValue1 = '500000'
 runParamNameLf2 = f''
 runParamValue2 = ''
 runParamNameLf3 = f''
@@ -394,11 +294,10 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
-runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -numChameneos {preParamValue1} -numMeetings '
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -numChameneos {preParamValue1} -numMeetings {runParamValue1}'
 experiments['Chameneos'] = {
     'description': f'Chameneos benchmark from the Savina suite.',
     'plotTitle': f'Chameneos',
-    'plotXAxisLabel': 'Number of meetings in thds.',
     'plotYAxisLabel': 'Execution time in ms (median)',
     'plotSequenceColors': sequenceColors,
     'plotSequenceNames': sequenceNames,
@@ -406,35 +305,14 @@ experiments['Chameneos'] = {
     'parsers': parsers,
     'finalCleanupExperiment': cleanup,
     'sequences': [
-        ('100', {
+        ('1', {
             'lf-cpp-1': [ f'{pythonExe} -m cogapp -r {preParamString1} {preParamString2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'{runCmdLf1} {variableParamNameLF} 100000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 100000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 100000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 100000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 100000'.split() ]
-        }),
-        ('200', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 200000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 200000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 200000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 200000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 200000'.split() ]
-        }),
-        ('300', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 300000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 300000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 300000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 300000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 300000'.split() ]
-        }),
-        ('400', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 400000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 400000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 400000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 400000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 400000'.split() ]
+                         runCmdLf1.split() ],
+            'lf-cpp-4': [ runCmdLf4.split() ],
+            'lf-cpp-8': [ runCmdLf8.split() ],
+            'lf-cpp-16': [ runCmdLf16.split() ],
+            'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
     ]
 }
@@ -444,9 +322,8 @@ experiments['Chameneos'] = {
 binName = 'BigBenchmarkGenerator'
 lfSrcPath = f'big/{binName}.lf'
 akkaPkgPath = f'{savinaPackagePathBase}.big.BigAkkaActorBenchmark'
-variableParamNameLF = f'--numPingsPerReactor'
-runParamNameLf1 = f''
-runParamValue1 = ''
+runParamNameLf1 = f'--numPingsPerReactor'
+runParamValue1 = '20000'
 runParamNameLf2 = f''
 runParamValue2 = ''
 runParamNameLf3 = f''
@@ -463,11 +340,10 @@ runCmdLf1 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --thre
 runCmdLf4 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp4} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf8 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp8} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
 runCmdLf16 = f'bin/{binName} --fast --numIterations {numIterationsDefault} --threads {numThreadsLfCpp16} {runParamNameLf1} {runParamValue1} {runParamNameLf2} {runParamValue2} {runParamNameLf3} {runParamValue3} {runParamNameLf4} {runParamValue4}'
-runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -w {preParamValue1} -n '
+runCmdAkka = f'{javaExe} -classpath {savinaJarPath} {akkaPkgPath} -iter {numIterationsAkka} -w {preParamValue1} -n {runParamValue1}'
 experiments['Big'] = {
     'description': f'Big benchmark from the Savina suite.',
     'plotTitle': f'Big',
-    'plotXAxisLabel': 'Number of pings in thds.',
     'plotYAxisLabel': 'Execution time in ms (median)',
     'plotSequenceColors': sequenceColors,
     'plotSequenceNames': sequenceNames,
@@ -475,35 +351,14 @@ experiments['Big'] = {
     'parsers': parsers,
     'finalCleanupExperiment': cleanup,
     'sequences': [
-        ('20', {
+        ('1', {
             'lf-cpp-1': [ f'{pythonExe} -m cogapp -r {preParamString1} {preParamString2} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
                          f'{lfcExe} {os.path.join(lfCppSourceFilePathBase, lfSrcPath)}'.split(),
-                         f'{runCmdLf1} {variableParamNameLF} 20000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 20000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 20000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 20000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 20000'.split() ]
-        }),
-        ('40', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 40000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 40000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 40000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 40000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 40000'.split() ]
-        }),
-        ('60', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 60000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 60000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 60000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 60000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 60000'.split() ]
-        }),
-        ('80', {
-            'lf-cpp-1': [ f'{runCmdLf1} {variableParamNameLF} 80000'.split() ],
-            'lf-cpp-4': [ f'{runCmdLf4} {variableParamNameLF} 80000'.split() ],
-            'lf-cpp-8': [ f'{runCmdLf8} {variableParamNameLF} 80000'.split() ],
-            'lf-cpp-16': [ f'{runCmdLf16} {variableParamNameLF} 80000'.split() ],
-            'savina-akka-default': [ f'{runCmdAkka} 80000'.split() ]
+                         runCmdLf1.split() ],
+            'lf-cpp-4': [ runCmdLf4.split() ],
+            'lf-cpp-8': [ runCmdLf8.split() ],
+            'lf-cpp-16': [ runCmdLf16.split() ],
+            'savina-akka-default': [ f'{runCmdAkka}'.split() ]
         })
     ]
 }

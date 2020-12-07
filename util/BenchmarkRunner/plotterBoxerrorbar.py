@@ -1,7 +1,7 @@
-''' This plotter creates a simple horizontal box plot.
-It take a single value from each sequence in an experiment.
-Then it plots 1 horizontal box for each sequence. The width
-of the box corresponds to the measured value.
+''' This plotter expects 3-tuples
+(median, firstQuantile, thirdQuantile) as input.
+The output is the default Boxerrorbar plot
+from gnuplot.
 '''
 
 import os
@@ -15,19 +15,19 @@ def _writePlotHeaderData(gnuplotFile, outputFileName, config, additionalCommands
     # For details see the gnuplot manual.
     # See https://stackoverflow.com/questions/62848395/horizontal-bar-chart-in-gnuplot
     
-    print("set terminal pdfcairo enhanced color size 13.5cm, 3.80cm", file=gnuplotFile)
+    print("set terminal pdfcairo enhanced color size 7cm, 7cm", file=gnuplotFile)
     print(f'set output "{outputFileName}"', file=gnuplotFile)
     print(f'set datafile separator "{separator}"', file=gnuplotFile)
     
-    print('set yrange [0:*]', file=gnuplotFile)
     print('set style fill solid', file=gnuplotFile)
     print('unset key', file=gnuplotFile)
-    print(f'set xlabel "{config["plotYAxisLabel"]}"', file=gnuplotFile)
-    #print('set boxwidth 0.9 relative')
+    #print('set pointsize 0', file=gnuplotFile)
+    #print(f'set xlabel "{config["plotYAxisLabel"]}"', file=gnuplotFile)
+    print('set boxwidth 0.4 relative', file=gnuplotFile)
     print(f'set title "{config["plotTitle"]}"', file=gnuplotFile)
     
-    print('myBoxWidth = 0.8', file=gnuplotFile)
-    print('set offsets 0,0,0.5-myBoxWidth/2.,0.5', file=gnuplotFile)
+    #print('myBoxWidth = 0.8', file=gnuplotFile)
+    #print('set offsets 0,0,0.5-myBoxWidth/2.,0.5', file=gnuplotFile)
     
     if additionalCommands:
         print(additionalCommands, file=gnuplotFile)
@@ -54,7 +54,10 @@ def plot(valuesOfSequences, outputPath, experimentId, config):
             if sequenceId in valuesOfSequences.keys():
                 sequence = valuesOfSequences[sequenceId]
                 parameter, value = sequence[0]
-                dataFile.write(config['plotSequenceNames'][sequenceId] + separator + str(value[0]) + separator + str(colors.get(sequenceId, 1)) + '\n')
+                #dataFile.write(config['plotSequenceNames'][sequenceId] + separator + str(value[0]) + separator +
+                #               str(value[1]) + separator + str(value[2]) + separator + str(colors.get(sequenceId, 1)) + '\n')
+                dataFile.write(config['plotSequenceNames'][sequenceId] + separator + str(value[0]) + separator +
+                               str(value[1]) + separator + str(value[2]) + separator + str(colors.get(sequenceId, 1)) + '\n')
     
     # create file for gnuplot and execute gnuplot
     gnuPlotFilePath = os.path.join(outputPath, gnuplotFileName)
@@ -65,7 +68,9 @@ def plot(valuesOfSequences, outputPath, experimentId, config):
             config = config,
             additionalCommands = config.get('plotAdditionalGnuplotHeaderCommands') )
         plot_commands = []
-        plot_commands.append(f'"{dataFileName}" using 2:0:(0):2:($0-myBoxWidth/2.):($0+myBoxWidth/2.):3:ytic(1) with boxxyerror linecolor variable')
+        #plot_commands.append(f'"{dataFileName}" using ($0):2:3:4:xticlabels(1) with boxes linecolor variable')
+        #plot_commands.append(f'"{dataFileName}" using ($0):2:5:xticlabels(1) with boxes linecolor variable, "" using ($0):2:3:4 with yerrorbars linecolor 0')
+        plot_commands.append(f'"{dataFileName}" using ($0):2:5:xticlabels(1) with boxes linecolor variable, "" using ($0):2:3:4 with yerrorbars linecolor 0')
          
         print("plot " + ",\\\n".join(plot_commands), file=gnuPlotFile)
     try:
