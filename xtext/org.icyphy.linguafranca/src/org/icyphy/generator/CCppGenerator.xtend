@@ -166,7 +166,7 @@ import org.icyphy.linguaFranca.ReactorDecl
  *   `token` field (which is NULL if the action carries no value).
  *   The `___a` field is of type trigger_t.
  *   That struct contains various things, including an array of reactions
- *   sensitive to this trigger and a token_t struct containing the value of
+ *   sensitive to this trigger and a lf_token_t struct containing the value of
  *   the action, if it has a value.  See reactor.h in the C library for
  *   details.
  * 
@@ -231,11 +231,11 @@ import org.icyphy.linguaFranca.ReactorDecl
  *   this to mark every event absent at the start of a time step. The size of this
  *   table is contained in the variable __is_present_fields_size.
  * 
- * * __tokens_with_ref_count: An array of pointers to structs that point to token_t
+ * * __tokens_with_ref_count: An array of pointers to structs that point to lf_token_t
  *   objects, which carry non-primitive data types between reactors. This is used
  *   by the __start_time_step() function to decrement reference counts, if necessary,
  *   at the conclusion of a time step. Then the reference count reaches zero, the
- *   memory allocated for the token_t object will be freed.  The size of this
+ *   memory allocated for the lf_token_t object will be freed.  The size of this
  *   array is stored in the __tokens_with_ref_count_size variable.
  * 
  * * __shutdown_triggers: An array of pointers to trigger_t structs for shutdown
@@ -292,7 +292,7 @@ class CCppGenerator extends CGenerator {
     *         T value;
     *         bool is_present;
     *         int num_destinations;
-    *         token_t* token;
+    *         lf_token_t* token;
     *         int length;
     *     };
     *
@@ -357,7 +357,7 @@ class CCppGenerator extends CGenerator {
                     «action.valueDeclaration»
                     bool is_present;
                     bool has_value;
-                    token_t* token;
+                    lf_token_t* token;
                 } «variableStructType(action, reactor)»;
             ''')
         }

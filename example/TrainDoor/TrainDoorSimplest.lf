@@ -1,0 +1,39 @@
+// This simple example is considered in this paper:
+//   https://www.mdpi.com/2227-7390/8/7/1068
+// where it is studied for its verifiability.
+target C;
+reactor Controller {
+  output lock:bool;
+  output move:bool;
+  physical action external_move:bool;
+  reaction(startup) {=
+    // ... Set up sensing.
+  =}
+  reaction(external_move)->lock, move {=
+    SET(lock, external_move->value);
+    SET(move, external_move->value);
+  =}
+}
+reactor Train {
+  input move:bool;
+  state moving:bool(false);
+  reaction(move) {=
+    // ... actuate to move or stop
+    self->moving = move->value;
+  =}
+}
+reactor Door {
+  input lock:bool;
+  state locked:bool(false);
+  reaction(lock) {=
+    // ... Actuate to lock or unlock door.
+    self->locked = lock->value;
+  =}
+}
+main reactor TrainSystem {
+  controller = new Controller();
+  door = new Door();
+  train = new Train();
+  controller.lock -> door.lock;
+  controller.move -> train.move;
+}

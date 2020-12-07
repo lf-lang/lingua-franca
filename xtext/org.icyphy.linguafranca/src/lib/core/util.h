@@ -1,6 +1,7 @@
 /**
  * @file
- * @author Edward A. Lee (eal@berkeley.edu)
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  *
  * @section LICENSE
 Copyright (c) 2020, The University of California at Berkeley.
@@ -58,6 +59,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * A macro used to print useful debug information. It can be enabled
+ * by setting the target property 'logging' to 'DEBUG' or
  * by defining VERBOSE in the top-level preamble.
  * The input to this macro is exactly like printf: (format, ...).
  * A "DEBUG: " moniker is appended to the beginning of the message

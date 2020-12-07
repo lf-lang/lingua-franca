@@ -57,7 +57,7 @@ reactor recvSpatMessage2 {
     	printf("EVENT: phase: %d\n", self->signal_phase);
     	printf("spatReceiver: At phy time %lld, Phase:%d residual:%llu nsec.\n", get_physical_time(), self->signal_phase, self->residual);
    	=} deadline (10 msec) {=
-        printf("EVENT: deadline_miss: 1\n");
+        printf("EVENT: deadline_miss: true\n");
     =}
 }
 

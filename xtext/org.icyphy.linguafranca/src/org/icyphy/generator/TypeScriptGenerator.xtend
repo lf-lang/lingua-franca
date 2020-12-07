@@ -266,7 +266,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts",
                 "--js_out=import_style=commonjs,binary:" + outPath,
                 "--ts_out=" + srcGenPath)
-            protocArgs.addAll(protoFiles.fold(newLinkedList, [list, file | list.add(file.name); list]))
+            protocArgs.addAll(protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
             val protoc = createCommand("protoc", protocArgs)
                 
             if (protoc === null) {
@@ -1316,8 +1316,8 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("// Imports for protocol buffers")
         // Generate imports for .proto files
         for (file : protoFiles) {
+            var name = file
             // Remove any extension the file name may have.
-            var name = file.name
             val dot = name.lastIndexOf('.')
             if (dot > 0) {
                 name = name.substring(0, dot)
@@ -1490,6 +1490,14 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
         
     override String getTargetTimeType() {
         "TimeValue"
+    }
+    
+    override getTargetTagType() {
+        "TimeValue"
+    }
+    
+    override getTargetTagIntervalType() {
+        return getTargetUndefinedType()
     }
     
     override String getTargetUndefinedType() {

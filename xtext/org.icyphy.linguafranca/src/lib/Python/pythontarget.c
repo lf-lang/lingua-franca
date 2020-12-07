@@ -94,7 +94,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
 /**
  * Prototype for the internal API. @see reactor_common.c
  **/
-token_t* __initialize_token_with_value(token_t* token, void* value, int length);
+lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, int length);
 
 /**
  * Prototype for API function. @see lib/core/reactor_common.c
@@ -129,7 +129,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args) {
     }
 
     trigger_t* trigger = _lf_action_to_trigger(action);
-    token_t* t = NULL;
+    lf_token_t* t = NULL;
 
     // Check to see if value exists and token is not NULL
     if (value && (trigger->token != NULL)) {
@@ -218,12 +218,18 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
  */
 int main(int argc, char *argv[]);
 
+/**
+ * Prototype for request_stop().
+ * @see reactor.c and reactor_threaded.c
+ */
+void request_stop();
+
 ///////////////// Other useful functions /////////////////////
 /**
  * Stop execution at the conclusion of the current logical time.
  */
-static PyObject* py_stop(PyObject *self) {
-    stop();
+static PyObject* py_request_stop(PyObject *self) {
+    request_stop();
     
     Py_INCREF(Py_None);
     return Py_None;
@@ -701,7 +707,7 @@ static PyTypeObject action_capsule_t = {
  * @see get_logical_time
  * @see get_physical_time
  * @see get_elapsed_physical_time
- * @see stop
+ * @see request_stop
  */
 static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"start", py_main, METH_VARARGS, NULL},
@@ -710,7 +716,7 @@ static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
   {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
   {"get_elapsed_physical_time", py_get_elapsed_physical_time, METH_NOARGS, NULL},
-  {"stop", py_stop, METH_NOARGS, NULL},
+  {"request_stop", py_request_stop, METH_NOARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
 

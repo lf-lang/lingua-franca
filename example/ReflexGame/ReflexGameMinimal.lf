@@ -38,7 +38,7 @@ reactor GetUserInput {
             while(1) {
                 while((c = getchar()) != '\n') {
                     if (c == EOF) {
-                        stop();
+                        request_stop();
                         break;
                     }
                 }

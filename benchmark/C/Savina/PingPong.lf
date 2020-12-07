@@ -37,7 +37,7 @@ reactor Ping(count:int(1000000)) {
         if (self->pingsLeft > 0) {
             schedule(serve, 0);
         } else {
-            stop();
+            request_stop();
         }
     =}
 }

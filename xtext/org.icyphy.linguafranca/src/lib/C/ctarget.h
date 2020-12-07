@@ -42,7 +42,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CTARGET_H
 
 #include "core/reactor.h"
-#include "core/pqueue.c" // FIXME: Ideally this should be hidden
 
 //////////////////////////////////////////////////////////////
 /////////////  SET Functions (to produce an output)
@@ -80,7 +79,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param out The output port (by name).
  * @param val The array to send (a pointer to the first element).
  * @param length The length of the array to send.
- * @see token_t
+ * @see lf_token_t
  */
 #define SET_ARRAY(out, val, element_size, length) _LF_SET_ARRAY(out, val, element_size, length)
 
@@ -168,7 +167,7 @@ handle_t schedule_int(void* action, interval_t extra_delay, int value)
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     return _lf_schedule_token(action, extra_delay, token);
 }
 

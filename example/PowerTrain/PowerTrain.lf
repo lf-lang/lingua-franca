@@ -1,180 +1,251 @@
+target C {threads: 1, keepalive: true, flags: "-lncurses"};
 
+/**
+ * FIXME: there are still two problems with this implementation:
+ * 1. Use of a global variable to let the ncurses thread find the actions
+ * that it should schedule. It would be helpful to have some kind of generic
+ * framework for setting up interactive tests.
+ * 2. When the program runs out of space on the terminal, newlines are ignored.
+ * It is not clear to me why this is the case, but I've only just now started
+ * using ncurses, which is a pretty rich toolkit. More on ncurses here:
+ * http://web.mit.edu/barnowl/src/ncurses/ncurses-5.4/doc/html/ncurses-intro.html
+ * 
+ * @author Marten Lohstroh
+ */
+preamble {=
+    #include <stdio.h>
+	#include <stdlib.h>
+	#include <curses.h>
 
-target C;
+	struct {
+        void* brake;
+        void* accelerate;
+    } pedals;
 
-reactor EngineControl {
+	int calc_brake_force(int angle) {  // ~0-600 Nm in Tesla Model 3
+        return 100 * angle + 50;
+    }
+
+	int calc_motor_torque(int angle) {
+        return 100 * angle;
+    }
+
+	void* read_input(void* arg) {
+        initscr();
+	    noecho();		   // Don't echo input
+	    cbreak();          // Don't interrupt for user input
+	    timeout(1);        // Wait for key press in ms
+	    printw("***************************************************************\n");
+        printw("Press '1-6' to change the angle of the accelerator\n");
+        printw("Press 'q-y' to change the angle of the brake pedal\n");
+	    char c = 0;         // Command: [1-6|q-y]
+	    int v = 0;
+	    while (true) {
+	    	bool skip = false; // Whether to schedule and event or not  	
+	      	c = getch();
+	      	switch(c) {
+                case 'q':
+                	v = 0;
+                	break;
+                case 'w':
+                	v = 1;
+                	break;
+                case 'e':
+                	v = 2;
+                	break;
+                case 'r':
+                	v = 3;
+                	break;
+                case 't':
+                	v = 4;
+                	break;
+                case 'y':
+                	v = 5;
+                	break;
+                default:
+                	skip = true;
+                	break;
+            }
+	      	
+	      	if (!skip) {
+                schedule_int(pedals.brake, 0, v);
+            }
+            
+           	skip = false;
+	      	switch(c) {
+                case '1':
+                	v = 0;
+                	break;
+                case '2':
+                	v = 1;
+                	break;
+                case '3':
+                	v = 2;
+                	break;
+                case '4':
+                	v = 3;
+                	break;
+                case '5':
+                	v = 4;
+                	break;
+                case '6':
+                	v = 5;
+                	break;
+                default:
+                	skip = true;
+                	break;
+            }
+	      	
+	      	if (!skip) {
+                schedule_int(pedals.accelerate, 0, v);
+            }
+	   }
+	   endwin();
+	   return 0;
+	}
+	pthread_t curses_thread;
+	bool initialized = false;
+	void init_sensors() {
+        if (!initialized) {
+        	pthread_create(&curses_thread, NULL, &read_input, NULL);
+        	initialized = true;
+        }
+    }
+=}
+
+reactor MotorControl {
 	
-	input on_off:bool;
-	input angle:int;
+	input brkOn:bool;
+	input accRate:int;
 	output torque:int;
-	output check:int; 
 	state braking:bool(true);
-	physical action crank(0, 5 msec, "drop"):bool;
+	state accelerating:bool(false);
 	
-	reaction(on_off) -> torque {=
-		if(self->braking) {
-			self->braking = true;
+	//@label Set torque to zero if car is accelerating
+	reaction(brkOn) -> torque {=
+		self->braking = brkOn->value;
+		if(self->accelerating) {
 			SET(torque, 0);
-		} else {
-			self->braking = false;
 		}
 	=}
-	 
-	reaction(angle) -> torque {= 
-		if (!self->braking) { 
-			SET(torque, calc_torq(angle->value));
-		}	
-	=}
 	
-	reaction(crank) -> check {=
-		SET(check, true);	
-	=} 
+	//@label Adjust torque unless car is braking 
+	reaction(accRate) -> torque {= 
+		if (!self->braking) {
+			SET(torque, calc_motor_torque(accRate->value));
+			if (accRate->value > 0) {
+            	self->accelerating = true; 
+            } else {
+                self->accelerating = false;
+            }
+		} else if (accRate->value > 0){
+            printw("Cannot accelerate; release brake pedal first.\n");
+        }
+	=}
 }
 
-reactor LeftPedal { 
-	preamble {=
-	  	#define ZERO_MAX 3
-	  	#define ZERO_MIN 0
-	    volatile unsigned char* mm_reg = (unsigned char*) 0x1ffff670;    
-	=}
-	
+reactor BrakePedal { 
 	output angle:int;
-	output on_off:bool;
+	output applied:bool;
 	
 	physical action a(0, 1 msec, "replace"):int;
-	state pressed:int(0);
-   
-    reaction(a) -> angle, on_off {=
-        int a = (int) *mm_reg;
-        if(!self->pressed && a > ZERO_MAX) {
-          SET(on_off, true);
-          self->pressed = true;
+	state last:int(1);
+	
+	// @label Setup callback
+   	reaction(startup) -> a {=
+        pedals.brake = a;
+        init_sensors();
+	=}
+    
+    // @label Output reported angle
+    reaction(a) -> angle, applied {=
+    	if (self->last != a->value) {
+        	if (self->last == 0) {
+                SET(applied, true); // zero to nonzero
+            } else if (a->value == 0) {
+                SET(applied, false); // nonzero to zero
+            }
+            
+        	self->last = a->value;
+        	
+ 			SET(angle, a->value);       	
         }
-        if (self->pressed && a < ZERO_MIN) {
-          SET(on_off, false);
-          self->pressed = false;
-        }
-        SET(angle, a);
      =}
 }
 
-reactor RightPedal {
-    preamble {=
-    	// volatile unsigned char* mm_reg = (char*) 0x1ffff670;
-        void callback() {
-            int value = (int) *mm_reg;
-            self->pedal = value;
-        }
-        void init_poll() {
-            setup_poll(&callback);
-        }
-    =}
-   
-    // Assume all valid pedal values are non-negative.
+reactor Accelerator {
+       
     state pedal:int(-1);
-    logical action response(2 msec);
-    input check:int;
+    physical action a(0, 2 msec, "replace"):int;
     output angle:int;
+    state last:int(0);
     
-    // Swapping these two reactions creates a cycle.
+    // @label Setup callback
+    reaction(startup) -> a {=
+        pedals.accelerate = a;
+        init_sensors();
+	=}
     
-    reaction(response) -> angle {=
-        if (self->pedal < 0) {
-            // handle error
-        } else {
-            SET(angle, self->pedal); 
+    // @label Output reported angle
+    reaction(a) -> angle {=
+        if (self->last != a->value) {
+			SET(angle, a->value);
+			self->last = a->value;
         }
-    =}
-    
-    reaction(check) -> response {=
-        self->pedal = -1;
-        init_poll();
-        schedule(response, 0);
-    =}
-    
+    =}    
     
 }
 
-//
-//reactor RightPedal {
-//      
-//    input check:void;
-//    output angle:int;
-//    action response(30);//:int; FIXME: the delay should be a time *unit missing)
-//                       // also the response has to carry a value
-//    
-//    // The desired behavior here is that > 30 ms after a 'check' event triggers
-//    // this reaction, another reaction occurs that reports the angle retrieved
-//    // from a sensor. The polling with take up physical time.
-//    // If we request a new angle using
-//    // a blocking call, the result will be reported approximately 30 ms
-//    // (physical time) later as long as the blocking call (and the processing
-//    // of whatever else is sitting in the event queue for the current logical time)
-//    // does not exceed 30 ms.
-//    // If we do this asynchronously, with a callback, we don't hold up the
-//    // processing of events from the event queue, which is good, but even if all
-//    // events can be processed well in time, the response will emerge approximately
-//    // 30 ms + the polling delay later because the asynchronous call to schedule
-//    // will be based off the physical time at which the callback is invoked.
-//    // It seems more appropriate to schedule the event relative to the time at
-//    // which the reaction that initiated the request was triggered (like in the
-//    // blocking case). Moreover, if the response comes too late, this can be detected
-//    // if we keep track of the time at which the request was issued. 
-//    // How do we do this?
-//    reaction(check) -> response {=
-//    	// poll sensor & schedule response
-//        schedule(response, poll_accellerator_pedal());
-//    =}
-//
-//    reaction(response) -> angle {=
-//        set(angle, get(response));
-//    =}
-//}
-
-// Simply apply the requested force
+// @label Apply the requested force
 reactor Brakes {
 	input force:int;
 	
+	// @label Reaction with deadline
 	reaction(force) {=
-        
-    =} deadline (3 msec) {=
-        
+        printw("Adjusting brake power to %dN; on time!\n", force->value);
+    =} deadline (2 msec) {=
+        printw("Adjusting brake power to %dN; too late!\n", force->value);
     =}
 }
 
-// Simply apply the requested torque
-reactor Engine {
+// @label Apply the requested torque
+reactor Motor {
 	input torque:int;
 	
+	// @label Reaction with deadline
 	reaction(torque) {=
-        
-    =} deadline (5 msec) {=
-        
+        printw("Adjusting engine torque to %dNm; on time!\n", torque->value);
+    =} deadline (3 msec) {=
+        printw("Adjusting engine torque to %dNm; too late!\n", torque->value);
     =}
 }
 
+// @label Adjust the force
 reactor BrakeControl {
 	input angle:int;
 	output force:int;
 	
 	reaction(angle) -> force {=
-        
+        SET(force, calc_brake_force(angle->value));
     =}
 }
 
+/**
+ * Reactor that implements a simplified power train control module.
+ */
 main reactor PowerTrain {
-	lp = new LeftPedal();
-	rp = new RightPedal();
-	bc = new BrakeControl(); // FIXME: check for referencing unknown reactor classes
-	ec = new EngineControl();
+    
+	bp = new BrakePedal();
+	a = new Accelerator();
+	bc = new BrakeControl();
+	mc = new MotorControl();
 	b = new Brakes();
-	e = new Engine();
+	m = new Motor();
 	
-	lp.angle -> bc.angle;
+	bp.angle -> bc.angle;
 	bc.force -> b.force;
-	lp.on_off -> ec.on_off;
-	ec.torque -> e.torque;
-	ec.check -> rp.check;
-	rp.angle -> ec.angle;
+	bp.applied -> mc.brkOn;
+	mc.torque -> m.torque;
+	a.angle -> mc.accRate;
 	
 }

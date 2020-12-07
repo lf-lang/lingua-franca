@@ -35,7 +35,7 @@ main reactor KeyListener {
     reaction(a) {=
         if (*a->value == EOF) {
             printf("\nEnd of file received.\n");
-            stop();
+            request_stop();
         } else if (*a->value == '\n') {
             printf("Enter character(s) followed by return: ");
             self->request_time = get_logical_time();

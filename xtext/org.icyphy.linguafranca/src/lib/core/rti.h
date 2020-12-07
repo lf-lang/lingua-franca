@@ -153,34 +153,71 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define TIMED_MESSAGE 5
 
-/** Byte identifying a next event time (NET) message sent from a federate.
- *  The next eight bytes will be the timestamp. This message from a
- *  federate tells the RTI the time of the earliest event on that federate's
- *  event queue. In other words, absent any further inputs from other federates,
- *  this will be the logical time of the next set of reactions on that federate.
+/** 
+ * Byte identifying a next event tag (NET) message sent from a federate.
+ * The next eight bytes will be the timestep.
+ * The next four bytes will be the microstep.
+ * This message from a federate tells the RTI the tag of the earliest event 
+ * on that federate's event queue. In other words, absent any further inputs 
+ * from other federates, this will be the logical time of the next set of
+ * reactions on that federate.
  */
 #define NEXT_EVENT_TIME 6
 
-/** Byte identifying a time advance grant (TAG) sent to a federate.
- *  The next eight bytes will be the timestamp.
+/** 
+ * Byte identifying a time advance grant (TAG) sent to a federate.
+ * The next eight bytes will be the timestamp.
+ * The next four bytes will be the microstep.
  */
 #define TIME_ADVANCE_GRANT 7
 
-/** Byte identifying a logical time complete (LTC) message sent by a federate
- *  to the RTI. The next eight bytes will be the timestamp.
+/** 
+ * Byte identifying a logical tag complete (LTC) message sent by a federate
+ * to the RTI.
+ * The next eight bytes will be the timestep of the completed tag.
+ * The next four bytes will be the microsteps of the completed tag.
  */
 #define LOGICAL_TIME_COMPLETE 8
 
-/** Byte identifying a stop message. When any federate calls stop(), it will
- *  send this message to the RTI, which will then broadcast it to all other
- *  federates. The next 8 bytes will be the timestamp.
- *  NOTE: It is not clear whether sending a stopping timestamp is useful.
- *  If any federate can send a STOP message that specifies the stop time on
- *  all other federates, then every federate depends on every other federate
- *  and time cannot be advanced. Hence, the current implementations may result
- *  in nondeterministic stop times.
+/////////// Messages used in request_stop() ///////////////
+//// Overview of the algorithm:
+////  When any federate calls request_stop(), it will
+////  send a STOP_REQUEST message to the RTI, which will then forward a STOP_REQUEST message
+////  to any federate that has not yet provided a stop time to the RTI. The federates will reply
+////  with a STOP_REQUEST_REPLY and a stop time (which shall be their current logical time
+////  at the time they receive the STOP_REQUEST). When the RTI has gathered all the stop times
+////  from federates (that are still connected), it will decide on a common stop timestamp
+////  which is the maximum of the seen stop times and answer with a STOP_GRANTED. The federate
+////  sending the STOP_REQUEST and federates sending the STOP_REQUEST_REPLY will freeze
+////  the advancement of tag until they receive the STOP_GRANTED message, in which
+////  case they might continue their execution until the stop tag has been reached.
+
+/**
+ * Byte identifying a stop request. 
+ * The next 8 bytes will be the timestamp.
+ * 
+ * NOTE: It is not clear whether sending a stopping timestamp is useful.
+ * If any federate can send a STOP_REQUEST message that specifies the stop time on
+ * all other federates, then every federate depends on every other federate
+ * and time cannot be advanced. Hence, the current implementations may result
+ * in nondeterministic stop times.
  */
-#define STOP 9
+#define STOP_REQUEST 9
+
+/**
+ * Byte indicating a federate's reply to a STOP_REQUEST that was originally sent
+ * by the RTI.
+ * The next 8 bytes will be the timestamp.
+ */
+#define STOP_REQUEST_REPLY 10
+
+/**
+ * Byte sent by the RTI indicating that the stop request from this federate
+ * or from other federates has been granted. The next 8 bytes will be the
+ * time at which the federates will stop.
+ */
+#define STOP_GRANTED 11
+/////////// End of request_stop() messages ////////////////
 
 /**
  * Byte identifying a address query message, sent by a federate to RTI
@@ -191,7 +228,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * the other federate), followed by the IP address of the other
  * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
  */
-#define ADDRESS_QUERY 10
+#define ADDRESS_QUERY 12
 
 /**
  * Byte identifying a message advertising the port for the physical connection server
@@ -200,7 +237,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The sending federate will not wait for a response from the RTI and assumes its
  * request will be processed eventually by the RTI.
  */
-#define ADDRESS_AD 11
+#define ADDRESS_AD 13
 
 /**
  * Byte identifying a first message that is sent by a federate directly to another federate
@@ -211,7 +248,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * federate does not expect this federate or federation to connect, it will respond
  * instead with REJECT.
  */
-#define P2P_SENDING_FED_ID 12
+#define P2P_SENDING_FED_ID 14
+
+/**
+ * Byte identifying a message to send directly to another federate.
+ * 
+ * The next two bytes will be the ID of the destination port.
+ * The next two bytes are the destination federate ID. This is checked against
+ * the _lf_my_fed_id of the receiving federate to ensure the message was intended for
+ * The four bytes after will be the length of the message.
+ * The ramaining bytes are the message.
+ */
+#define P2P_MESSAGE 15
 
 /**
  * Byte identifying a timestamped message to send directly to another federate.
@@ -228,7 +276,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next four bytes will be the microstep of the sender.
  * The ramaining bytes are the message.
  */
-#define P2P_TIMED_MESSAGE 13
+#define P2P_TIMED_MESSAGE 16
+
+
+/**
+ * Physical time synchronization message.
+ * The next 8 bytes will be a timestamp sent according to
+ * PTP.
+ */
+#define PHYSICAL_TIME_SYNC_MESSAGE 17
 
 /////////////////////////////////////////////
 //// Rejection codes
@@ -280,8 +336,8 @@ typedef struct federate_t {
     int id;                 // ID of this federate.
     pthread_t thread_id;    // The ID of the thread handling communication with this federate.
     int socket;             // The socket descriptor for communicating with this federate.
-    instant_t completed;    // The largest logical time completed by the federate (or NEVER).
-    instant_t next_event;   // Most recent NET received from the federate (or NEVER).
+    tag_t completed;        // The largest logical tag completed by the federate (or NEVER).
+    tag_t next_event;       // Most recent NET received from the federate (or NEVER).
     fed_state_t state;      // State of the federate.
     int* upstream;          // Array of upstream federate ids.
     interval_t* upstream_delay;    // Minimum delay on connections from upstream federates.
@@ -296,6 +352,9 @@ typedef struct federate_t {
                             // RTI has not been informed of the port number.
     struct in_addr server_ip_addr; // Information about the IP address of the socket
                                 // server of the federate.
+    bool requested_stop;    // Indicates that the federate has requested stop or has replied
+                            // to a request for stop from the RTI. Used to prevent double-counting
+                            // a federate when handling request_stop().
 } federate_t;
 
 

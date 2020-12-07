@@ -1,0 +1,66 @@
+/**
+ * Test that the starvation functionality in absence of 
+ * the "keepalive: true" target property indeed works as
+ * expected.
+ * 
+ * @author Soroush Bateni 
+ */
+ target C;
+ reactor SuperDenseSender(number_of_iterations:int(10)){
+    logical action loop;
+    output out:int;
+    state iterator:int(0);
+    reaction(startup, loop) -> out {=
+        if (self->iterator < self->number_of_iterations) {
+            schedule(loop, 0);
+        }        
+        self->iterator++;
+        SET(out, 42);
+    =}
+    
+    reaction(shutdown) {=
+        tag_t current_tag = get_current_tag();
+        if (current_tag.time == start_time
+            && current_tag.microstep == self->number_of_iterations + 1) {
+            printf("SUCCESS: Sender successfully detected starvation.\n");
+        } else {
+            fprintf(stderr, "ERROR: Failed to properly enforce starvation at sender. "
+                            "Shutting down at tag (%lld, %u).\n",
+                             current_tag.time - start_time,
+                             current_tag.microstep);
+            exit(1);
+        }
+    =}
+ }
+ 
+ reactor SuperDenseReceiver(number_of_iterations:int(10)) {
+    input in:int;
+    reaction(in) {=
+        tag_t current_tag = get_current_tag();
+        printf("Received %d at tag (%lld, %u).\n",
+                in->value,
+                current_tag.time - start_time,
+                current_tag.microstep);
+    =}
+    
+    reaction(shutdown) {=
+        tag_t current_tag = get_current_tag();
+        if (current_tag.time == start_time
+            && current_tag.microstep == self->number_of_iterations + 1) {
+            printf("SUCCESS: Receiver successfully detected starvation.\n");
+        } else {
+            fprintf(stderr, "ERROR: Failed to properly enforce starvation at receiver. "
+                            "Shutting down at tag (%lld, %u).\n",
+                             current_tag.time - start_time,
+                             current_tag.microstep);
+            exit(1);
+        }        
+    =}
+}
+
+main reactor Starvation {
+    sender = new SuperDenseSender();
+    receiver = new SuperDenseReceiver();
+    
+    sender.out -> receiver.in;
+}

@@ -685,7 +685,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     ]) {
                         error(
                             "Target property logging is required to be one of " +
-                                LoggingLevels.values(),
+                                LoggingLevels.values().join(', '),
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
                 case NO_COMPILE:
@@ -854,7 +854,60 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 		if (reaction.triggers === null || reaction.triggers.size == 0) {
 			warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS)
 		}
+		val triggers = new HashSet<Variable>
+	    // Make sure input triggers have no container and output sources do.
+        for (trigger : reaction.triggers) {
+            if (trigger instanceof VarRef) {
+                triggers.add(trigger.variable)
+                if (trigger.variable instanceof Input) {
+                    if ((trigger as VarRef).container !== null) {
+                        error('''Cannot have an input of a contained reactor as a trigger: «trigger.container.name».«trigger.variable.name»''',
+                                Literals.REACTION__TRIGGERS)
+                    }
+                } else if (trigger.variable instanceof Output) {
+                        if (trigger.container === null) {
+                            error('''Cannot have an output of this reactor as a trigger: «trigger.variable.name»''',
+                                    Literals.REACTION__TRIGGERS)
+                        }
+                }
+            }
+        }
+
+		// Make sure input sources have no container and output sources do.
+        // Also check that a source is not already listed as a trigger.
+		for (source : reaction.sources) {
+		    if (triggers.contains(source.variable)) {
+		        error('''Source is already listed as a trigger: «source.variable.name»''',
+		                Literals.REACTION__SOURCES)
+		    }
+		    if (source.variable instanceof Input) {
+		        if (source.container !== null) {
+		            error('''Cannot have an input of a contained reactor as a source: «source.container.name».«source.variable.name»''',
+		                    Literals.REACTION__SOURCES)
+		        }
+		    } else if (source.variable instanceof Output) {
+                if (source.container === null) {
+                    error('''Cannot have an output of this reactor as a source: «source.variable.name»''',
+                            Literals.REACTION__SOURCES)
+                }
+            }
+		}
 		
+	    // Make sure output effects have no container and input effects do.
+        for (effect : reaction.effects) {
+            if (effect.variable instanceof Input) {
+                if (effect.container === null) {
+                    error('''Cannot have an input of this reactor as an effect: «effect.variable.name»''',
+                            Literals.REACTION__EFFECTS)
+                }
+            } else if (effect.variable instanceof Output) {
+                if (effect.container !== null) {
+                    error('''Cannot have an output of a contained reactor as an effect: «effect.container.name».«effect.variable.name»''',
+                            Literals.REACTION__EFFECTS)
+                }
+            }
+        }
+
 		// Report error if this reaction is part of a cycle.
         for (cycle : this.info.reactionGraph.cycles) {
             val reactor = (reaction.eContainer) as Reactor

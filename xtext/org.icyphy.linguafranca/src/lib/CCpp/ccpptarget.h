@@ -75,7 +75,7 @@ struct template_port_instance_with_token_struct {
     T value;
     bool is_present;
     int num_destinations;
-    token_t* token;
+    lf_token_t* token;
     int length;
 };
 
@@ -115,7 +115,7 @@ void SET(template_port_instance_struct<T>* out, T val)
  * @param out The output port (by name).
  * @param val The array to send (a pointer to the first element).
  * @param length The length of the array to send.
- * @see token_t
+ * @see lf_token_t
  */
 template <class T>
 void SET(template_port_instance_with_token_struct<T>* out, T val, int element_size, int length)
@@ -187,7 +187,7 @@ void SET(template_port_instance_struct<T>* out)
  * @param token A pointer to token obtained from an input or action.
  */
 template <class T>
-void SET(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
+void SET(template_port_instance_with_token_struct<T>* out, lf_token_t* newtoken)
 {
     _LF_SET_TOKEN(out, newtoken);
 }
@@ -223,7 +223,7 @@ handle_t schedule(void* action, interval_t extra_delay, int value)
  * specified trigger plus the delay.
  * See reactor.h for documentation.
  */
-handle_t schedule(void* action, interval_t extra_delay, token_t* token) {
+handle_t schedule(void* action, interval_t extra_delay, lf_token_t* token) {
     return _lf_schedule_token(action, extra_delay, token);
 }
 
@@ -291,7 +291,7 @@ void SET_PRESENT(template_port_instance_struct<T>* out)
 }
 
 template <class T>
-void SET_TOKEN(template_port_instance_with_token_struct<T>* out, token_t* newtoken)
+void SET_TOKEN(template_port_instance_with_token_struct<T>* out, lf_token_t* newtoken)
 {
     SET(out, newtoken);
 }
@@ -302,7 +302,7 @@ handle_t schedule_int(void* action, interval_t extra_delay, int value)
     return schedule(action, extra_delay, value);
 }
 
-handle_t schedule_token(void* action, interval_t extra_delay, token_t* token) {
+handle_t schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     return schedule(action, extra_delay, token);
 }
 

@@ -3,9 +3,9 @@
 // are sent after a big enough delay to violate the deadline.
 target Cpp {
     threads: 1,
-    timeout: 2 sec
+    timeout: 4 sec
 };
-reactor Source(period:time(1 sec)) {
+reactor Source(period:time(2 sec)) {
     private preamble {=
         #include <thread>
     =}
@@ -16,7 +16,7 @@ reactor Source(period:time(1 sec)) {
         if (count % 2 == 1) {
             // The count variable is odd.
             // Take time to cause a deadline violation.
-            std::this_thread::sleep_for(200ms);
+            std::this_thread::sleep_for(400ms);
         }
         std::cout << "Source sends: " << count << std::endl;
         y.set(count);
@@ -50,6 +50,6 @@ reactor Destination(timeout:time(1 sec)) {
 }
 main reactor Deadline {
     s = new Source();
-    d = new Destination(timeout = 100 msec);
+    d = new Destination(timeout = 200 msec);
     s.y -> d.x;
 }

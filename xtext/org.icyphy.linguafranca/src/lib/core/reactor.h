@@ -51,6 +51,7 @@
 #ifndef REACTOR_H
 #define REACTOR_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,41 +60,20 @@
 #include <errno.h>
 #include "pqueue.h"
 #include "util.h"
+#include "tag.h"    // Time-related types and functions.
+
+// The following file is also included, but must be included
+// after its requirements are met, so the #include appears at
+// then end.
+// #include "trace.h"
 
 //  ======== Macros ========  //
 #define CONSTRUCTOR(classname) (new_ ## classname)
 #define SELF_STRUCT_T(classname) (classname ## _self_t)
 
-
-// Commonly used time values.
-#define NEVER -0xFFFFFFFFFFFFFFFFLL
-#define FOREVER 0x7FFFFFFFFFFFFFFFLL
-
-// Convenience for converting times
-#define BILLION 1000000000LL
-
 // FIXME: May want these to application dependent, hence code generated.
 #define INITIAL_EVENT_QUEUE_SIZE 10
 #define INITIAL_REACT_QUEUE_SIZE 10
-
-/* Conversion of time to nanoseconds. */
-#define NSEC(t) (t * 1LL)
-#define NSECS(t) (t * 1LL)
-#define USEC(t) (t * 1000LL)
-#define USECS(t) (t * 1000LL)
-#define MSEC(t) (t * 1000000LL)
-#define MSECS(t) (t * 1000000LL)
-#define SEC(t)  (t * 1000000000LL)
-#define SECS(t) (t * 1000000000LL)
-#define MINUTE(t)   (t * 60000000000LL)
-#define MINUTES(t)  (t * 60000000000LL)
-#define HOUR(t)  (t * 3600000000000LL)
-#define HOURS(t) (t * 3600000000000LL)
-#define DAY(t)   (t * 86400000000000LL)
-#define DAYS(t)  (t * 86400000000000LL)
-#define WEEK(t)  (t * 604800000000000LL)
-#define WEEKS(t) (t * 604800000000000LL)
-
 
 ////////////////////////////////////////////////////////////
 //// Macros for producing outputs.
@@ -135,13 +115,13 @@ do { \
  * @param out The output port (by name).
  * @param val The array to send (a pointer to the first element).
  * @param length The length of the array to send.
- * @see token_t
+ * @see lf_token_t
  */
 #ifndef __cplusplus
 #define _LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
-    token_t* token = __initialize_token_with_value(out->token, val, length); \
+    lf_token_t* token = __initialize_token_with_value(out->token, val, length); \
     token->ref_count = out->num_destinations; \
     out->token = token; \
     out->value = token->value; \
@@ -150,7 +130,7 @@ do { \
 #define _LF_SET_ARRAY(out, val, element_size, length) \
 do { \
     out->is_present = true; \
-    token_t* token = __initialize_token_with_value(out->token, val, length); \
+    lf_token_t* token = __initialize_token_with_value(out->token, val, length); \
     token->ref_count = out->num_destinations; \
     out->token = token; \
     out->value = static_cast<decltype(out->value)>(token->value); \
@@ -174,7 +154,7 @@ do { \
 #define _LF_SET_NEW(out) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
+    lf_token_t* token = __set_new_array_impl(out->token, 1, out->num_destinations); \
     out->value = token->value; \
     out->token = token; \
 } while(0)
@@ -196,7 +176,7 @@ do { \
 #define _LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
+    lf_token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = token->value; \
     out->token = token; \
     out->length = len; \
@@ -205,7 +185,7 @@ do { \
 #define _LF_SET_NEW_ARRAY(out, len) \
 do { \
     out->is_present = true; \
-    token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
+    lf_token_t* token = __set_new_array_impl(out->token, len, out->num_destinations); \
     out->value = static_cast<decltype(out->value)>(token->value); \
     out->token = token; \
     out->length = len; \
@@ -296,11 +276,13 @@ do { \
 //  ======== Type definitions ========  //
 
 /**
- * Booleans. This needs to be defined only if the target language
- * is C and the compiler is not a C++ compiler.
+ * ushort type. Redefine here for portability if sys/types.h is not included.
+ * @see sys/types.h
+ * 
+ * @note using sizeof(ushort) should be okay but not sizeof ushort.
  */
-#ifndef __cplusplus
-typedef enum {false, true} bool;
+#ifndef _SYS_TYPES_H
+typedef unsigned short int ushort;
 #endif
 
 /**
@@ -315,7 +297,7 @@ typedef enum {false, true} bool;
  * preceding event has already been popped off the event queue, the
  * `defer` policy is fallen back to.
  */
-typedef enum {defer, drop, replace} policy_t;
+typedef enum {defer, drop, replace} lf_spacing_policy_t;
 
  /* An enum that enables the C core library to
  * ignore freeing the void* inside a token if the void*
@@ -340,23 +322,6 @@ typedef enum {no=0, token_and_value, token_only} ok_to_free_t;
  * implemented yet.
  */
 typedef int handle_t;
-
-/**
- * Time instant. Both physical and logical times are represented
- * using this typedef. FIXME: Perhaps distinct typedefs should
- * be used.
- * WARNING: If this code is used after about the year 2262,
- * then representing time as a long long will be insufficient.
- */
-typedef long long instant_t;
-
-/** Interval of time. */
-typedef long long interval_t;
-
-/**
- * Microstep instant.
- */
-typedef unsigned int microstep_t;
 
 /**
  * String type so that we don't have to use {= char* =}.
@@ -384,6 +349,14 @@ typedef void(*reaction_function_t)(void*);
 typedef struct trigger_t trigger_t;
 
 /**
+ * Global STP offset uniformly applied to advancement of each 
+ * time step in federated execution. This can be retrieved in 
+ * user code by calling get_stp_offset() and adjusted by 
+ * calling set_stp_offset(interval_t offset).
+ */
+extern interval_t _lf_global_time_STP_offset;
+
+/**
  * Token type for dynamically allocated arrays and structs sent as messages.
  *
  * In the C LF target, a type for an output that ends in '*' is
@@ -401,7 +374,7 @@ typedef struct trigger_t trigger_t;
  * where the size of each value is element_size (in bytes). If it is
  * not an array, the length == 1.
  */
-typedef struct token_t {
+typedef struct lf_token_t {
     /** Pointer to dynamically allocated memory containing a message. */
     void* value;
     /** Size of the struct or array element. */
@@ -417,14 +390,14 @@ typedef struct token_t {
      */
     ok_to_free_t ok_to_free;
     /** For recycling, a pointer to the next token in the recycling bin. */
-    struct token_t* next_free;
-} token_t;
+    struct lf_token_t* next_free;
+} lf_token_t;
 
-/** A struct with a pointer to a token_t and an _is_present variable
+/** A struct with a pointer to a lf_token_t and an _is_present variable
  *  for use to initialize actions in start_time_step().
  */
 typedef struct token_present_t {
-    token_t** token;
+    lf_token_t** token;
     bool* is_present;
     bool reset_is_present; // True to set is_present to false after calling done_using().
 } token_present_t;
@@ -443,6 +416,7 @@ typedef struct reaction_t reaction_t;
 struct reaction_t {
     reaction_function_t function; // The reaction function. COMMON.
     void* self;    // Pointer to a struct with the reactor's state. INSTANCE.
+    int number;    // The number of the reaction in the reactor (0 is the first reaction).
     index_t index; // Inverse priority determined by dependency analysis. INSTANCE.
     unsigned long long chain_id; // Binary encoding of the branches that this reaction has upstream in the dependency graph. INSTANCE.
     size_t pos;       // Current position in the priority queue. RUNTIME.
@@ -453,7 +427,7 @@ struct reaction_t {
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
     interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
-    bool tardiness;           // Indicator of tardiness in one of the input triggers to this reaction. default = 0.
+    bool is_tardy;           // Indicator of tardiness in one of the input triggers to this reaction. default = false.
                               // Value of True indicates to the runtime that this reaction contains trigger(s)
                               // that are triggered at a later logical time that was originally anticipated.
                               // Currently, this is only possible if logical
@@ -475,8 +449,11 @@ struct event_t {
     instant_t time;           // Time of release.
     trigger_t* trigger;       // Associated trigger, NULL if this is a dummy event.
     size_t pos;               // Position in the priority queue.
-    token_t* token;           // Pointer to the token wrapping the value.
+    lf_token_t* token;           // Pointer to the token wrapping the value.
     bool is_dummy;            // Flag to indicate whether this event is merely a placeholder or an actual event.
+#ifdef _LF_IS_FEDERATED
+    tag_t intended_tag; // The tardiness of the event relative to the intended tag.
+#endif
     event_t* next;            // Pointer to the next event lined up in superdense time.
 };
 
@@ -490,47 +467,45 @@ struct trigger_t {
     bool is_timer;            // True if this is a timer (a special kind of action), false otherwise.
     interval_t offset;        // Minimum delay of an action. For a timer, this is also the maximum delay.
     interval_t period;        // Minimum interarrival time of an action. For a timer, this is also the maximal interarrival time.
-    token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
+    lf_token_t* token;           // Pointer to a token wrapping the payload (or NULL if there is none).
     bool is_physical;         // Indicator that this denotes a physical action.
     event_t* last;            // Pointer to the last event that was scheduled for this action.
-    policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
+    lf_spacing_policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
-    interval_t tardiness;     // The amount of discrepency in logical time between the original intended
+#ifdef _LF_IS_FEDERATED
+    tag_t intended_tag;          // The amount of discrepency in logical time between the original intended
                               // trigger time of this trigger and the actual trigger time. This currently
                               // can only happen when logical connections are used using a decentralized coordination
                               // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
+#endif
 };
 //  ======== Function Declarations ========  //
 
 /**
- * Return the elapsed logical time in nanoseconds
- * since the start of execution.
- * @return A time interval.
- */
-interval_t get_elapsed_logical_time();
-
-/**
- * Return the current logical time in nanoseconds.
+ * Return the time of the start of execution in nanoseconds.
+ * This is both the starting physical and starting logical time.
  * On many platforms, this is the number of nanoseconds
  * since January 1, 1970, but it is actually platform dependent.
  * @return A time instant.
  */
-instant_t get_logical_time();
+instant_t get_start_time();
 
 /**
- * Return the current microstep.
+ * Return the global STP offset on advancement of logical
+ * time for federated execution.
  */
-unsigned int get_microstep();
+interval_t get_stp_offset();
 
 /**
- * Return the current physical time in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
- * @return A time instant.
+ * Set the global STP offset on advancement of logical
+ * time for federated execution.
+ * 
+ * @param offset A positive time value to be applied
+ *  as the STP offset.
  */
-instant_t get_physical_time();
+void set_stp_offset(interval_t offset);
 
 /**
  * Print a snapshot of the priority queues used during execution
@@ -539,9 +514,14 @@ instant_t get_physical_time();
 void print_snapshot();
 
 /**
- * Function to request stopping execution at the end of the current logical time.
+ * Request a stop to execution as soon as possible.
+ * In a non-federated execution, this will occur
+ * at the conclusion of the current logical time.
+ * In a federated execution, it will likely occur at
+ * a later logical time determined by the RTI so that
+ * all federates stop at the same logical time.
  */
-void stop();
+void request_stop();
 
 /** 
  * Generated function that optionally sets default command-line options.
@@ -575,7 +555,7 @@ void __pop_events();
  * @param token The token payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t __schedule(trigger_t* trigger, interval_t delay, token_t* token);
+handle_t __schedule(trigger_t* trigger, interval_t delay, lf_token_t* token);
 
 /**
  * Function (to be code generated) to schedule timers.
@@ -595,12 +575,9 @@ void __trigger_startup_reactions();
 void __termination();
 
 /**
- * Function (to be code generated) to wrap up execution.
- * If this returns true, then one more invocation of next()
- * be executed in order to invoke reactions that are triggered
- * by shutdown.
+ * Function (to be code generated) to trigger shutdown reactions.
  */
-bool __wrapup();
+bool __trigger_shutdown_reactions();
 
 /**
  * Indicator for the absence of values for ports that remain disconnected.
@@ -612,9 +589,9 @@ extern bool absent;
  * The value pointer will be NULL and the length will be 0.
  * @param element_size The size of an element carried in the payload or
  *  0 if there is no payload.
- * @return A pointer to a new or recycled token_t struct.
+ * @return A pointer to a new or recycled lf_token_t struct.
  */
-token_t* create_token(size_t element_size);
+lf_token_t* create_token(size_t element_size);
 
 /**
  * Schedule the specified action with an integer value at a later logical
@@ -648,14 +625,13 @@ void _lf_recycle_event(event_t* e);
  * If there is an event found at the requested tag, the payload
  * is replaced and 0 is returned.
  *
- * @param time Logical time of the event
- * @param microstep The microstep of the event in the given logical time
  * @param trigger The trigger to be invoked at a later logical time.
+ * @param tag Logical tag of the event
  * @param token The token wrapping the payload or NULL for no payload.
  * 
  * @return 1 for success, 0 if no new event was scheduled (instead, the payload was updated), or -1 for error.
  */
-int _lf_schedule_at_tag(instant_t time, microstep_t microstep, trigger_t* trigger, token_t* token);
+int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token);
 
 /**
  * Create a dummy event to be used as a spacer in the event queue.
@@ -712,7 +688,7 @@ event_t* _lf_create_dummy_event(trigger_t* trigger, instant_t time, event_t* nex
  * @param token The token to carry the payload or null for no payload.
  * @return A handle to the event, or 0 if no event was scheduled, or -1 for error.
  */
-handle_t _lf_schedule_token(void* action, interval_t extra_delay, token_t* token);
+handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token);
 
 /**
  * Variant of schedule_token that creates a token to carry the specified value.
@@ -744,9 +720,10 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
 handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int length);
 
 /**
- * For a federated execution, broadcast stop() to all federates.
+ * For a federated execution, send a STOP_REQUEST message
+ * to the RTI.
  */
-void __broadcast_stop();
+void _lf_fd_send_stop_request_to_rti();
 
 /**
  * Advance from the current tag to the next. If the given next_time is equal to
@@ -754,6 +731,15 @@ void __broadcast_stop();
  * time and set the microstep to zero.
  */ 
 void _lf_advance_logical_time(instant_t next_time);
+
+//  ******** Global Variables ********  //
+
+/**
+ * The number of worker threads for threaded execution.
+ * By default, execution is not threaded and this variable will have value 0,
+ * meaning that the execution is not threaded.
+ */
+extern unsigned int _lf_number_of_threads;
 
 //  ******** Begin Windows Support ********  //
 // Windows is not POSIX, so we include here compatibility definitions.
@@ -791,6 +777,8 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp);
 int nanosleep(const struct timespec *req, struct timespec *rem);
 #endif
 //  ******** End Windows Support ********  //
+
+#include "trace.h"
 
 #endif /* REACTOR_H */
 /** @} */
