@@ -1313,6 +1313,7 @@ void handle_stop_request_message() {
     pthread_mutex_lock(&mutex);
     // Don't send a stop tag twice
     if (federate_has_already_sent_a_stop_request_to_rti == true) {
+        pthread_mutex_unlock(&mutex);
         return;
     }
 
