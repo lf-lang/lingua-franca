@@ -31,6 +31,7 @@ import java.io.FileOutputStream
 import java.math.BigInteger
 import java.util.ArrayList
 import java.util.Collection
+import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -3069,6 +3070,9 @@ class CGenerator extends GeneratorBase {
 
         // For each reaction, allocate the arrays that will be used to
         // trigger downstream reactions.
+        // Avoid allocating more than once (in case a port is in the
+        // effects field of more than once reactor).
+        val portAllocatedAlready = new HashSet<Port>()
         var reactionCount = 0
         for (reaction : reactorClass.toDefinition. allReactions) {
             if (federate === null || federate.containsReaction(reactorClass.toDefinition, reaction)) {
@@ -3083,13 +3087,14 @@ class CGenerator extends GeneratorBase {
                 val initialization = new StringBuilder()
                 for (effect : reaction.effects) {
                     if (effect.variable instanceof Port) {
+                        // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
+                        val port = effect.variable as Port
+                        
                         // Create an expression for the starting index of the output_produced array.
                         var index = '' + outputCount
                         if (widthExpressions.size > 0) {
                             index += ' + ' + widthExpressions.join(' + ')
                         }
-                        // The port name may be something like "out" or "c.in", where "c" is a contained reactor.
-                        val port = effect.variable as Port
                         // Create the entry in the output_produced array for this port.
                         // If the port is a multiport, then we need to create an entry for each
                         // individual port.
@@ -3098,7 +3103,11 @@ class CGenerator extends GeneratorBase {
                             // to the output count. Otherwise, assume it is a reference to one or more parameters.
                             val widthSpec = multiportWidthSpecInC(port, effect.container, instance)
                             
-                            initializeReactionEffectMultiport(initializeTriggerObjectsEnd, initialization, effect, instance, reactionCount, index)
+                            if (!portAllocatedAlready.contains(effect.variable)) {
+                                // Prevent allocating memory more than once for the same port.
+                                portAllocatedAlready.add(port)
+                                initializeReactionEffectMultiport(initializeTriggerObjectsEnd, initialization, effect, instance, reactionCount, index)
+                            }
                             // Append the width of this port to an expression for the total number of
                             // outputs from this reaction.
                             try {
@@ -3480,7 +3489,8 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Generate instantiation and initialization code for an output multiport of a reaction.
-     * The instantiations and the initializations are put into two separate StringBuilders in case delayed initialization is desirable
+     * The instantiations and the initializations are put into two separate StringBuilders
+     * in case delayed initialization is desirable.
      * @param instantiation The StringBuilder used to put code that allocates overall memory for a multiport
      * @param initialization The StringBuilderused to put code that initializes members of a multiport
      * @param effect The output effect of a given reaction
@@ -3488,15 +3498,21 @@ class CGenerator extends GeneratorBase {
      * @param reactionIdx The index of the reaction in the Reactor
      * @param startIdx The index used to figure out the starting position of the output_produced array
      */
-    def initializeReactionEffectMultiport(StringBuilder instantiation, StringBuilder initialization, VarRef effect, ReactorInstance instance, int reationIdx, String startIdx)
-    {
+    def initializeReactionEffectMultiport(
+        StringBuilder instantiation, 
+        StringBuilder initialization, 
+        VarRef effect, 
+        ReactorInstance instance, 
+        int reationIdx, 
+        String startIdx
+    ) {
         val port = effect.variable as Port
         val reactorClass = instance.definition.reactorClass
         val nameOfSelfStruct = selfStructName(instance)
         // If the width is given as a numeric constant, then add that constant
         // to the output count. Otherwise, assume it is a reference to one or more parameters.
         val widthSpec = multiportWidthSpecInC(port, effect.container, instance)
-        // Allocate memory where the data will produced by the reaction will be stored
+        // Allocate memory where the data produced by the reaction will be stored
         // and made available to the input of the contained reactor.
         // This is done differently for ports like "c.in" than "out".
         // This has to go at the end of the initialize_trigger_objects() function
@@ -3507,7 +3523,7 @@ class CGenerator extends GeneratorBase {
             val portStructType = variableStructType(port, reactorClass)
             pr(instantiation, '''
                 «nameOfSelfStruct»->__«port.name»__width = «widthSpec»;
-                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
+                // Allocate memory to store output of reaction.
                 «nameOfSelfStruct»->__«port.name» = («portStructType»*)malloc(sizeof(«portStructType») 
                         * «nameOfSelfStruct»->__«port.name»__width); 
             ''')

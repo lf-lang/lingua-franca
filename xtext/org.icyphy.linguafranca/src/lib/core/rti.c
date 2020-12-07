@@ -101,6 +101,19 @@ int final_port = -1;
 /** The socket descriptor for the socket server. */
 int socket_descriptor = -1;
 
+/**
+ * Mark a federate requesting stop.
+ * 
+ * If the number of federates handling stop reaches the
+ * NUM_OF_FEDERATES, broadcast STOP_GRANTED to every federate.
+ * 
+ * This function assumes the rti_mutex is already locked.
+ * 
+ * @param fed The federate that has requested a stop or has suddenly
+ *  stopped (disconnected).
+ */
+void _lf_rti_mark_federate_requesting_stop(federate_t* fed);
+
 /** 
  * Create a server and enable listening for socket connections.
  * 
@@ -285,6 +298,7 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
         error_print("RTI failed to send time advance grant to federate %d.", fed->id);
         if (bytes_read < 0) {
             fed->state = NOT_CONNECTED;
+            _lf_rti_mark_federate_requesting_stop(fed);
         }
     }
     DEBUG_PRINT("RTI sent to federate %d the TAG (%lld, %u).", fed->id, tag.time - start_time, tag.microstep);
@@ -508,24 +522,6 @@ void _lf_rti_broadcast_message_to_federates_already_locked(unsigned char* buffer
 }
 
 /////////////////// STOP functions ////////////////////
-
-/**
- * Mark a federate requesting stop.
- * 
- * This function assumes the rti_mutex is already locked.
- * 
- * @param fed The federate that has requested a stop or has suddenly
- *  stopped (disconnected).
- */
-void _lf_rti_mark_federate_requesting_stop(federate_t* fed) {    
-    if (!fed->requested_stop) {
-        // Assume that the federate
-        // has requested stop
-        num_feds_handling_stop++;
-        fed->requested_stop = true;
-    }
-}
-
 /**
  * Boolean used to prevent the RTI from sending the
  * STOP_GRANTED message multiple times.
@@ -552,6 +548,31 @@ void _lf_rti_broadcast_stop_time_to_federates_already_locked() {
 }
 
 /**
+ * Mark a federate requesting stop.
+ * 
+ * If the number of federates handling stop reaches the
+ * NUM_OF_FEDERATES, broadcast STOP_GRANTED to every federate.
+ * 
+ * This function assumes the rti_mutex is already locked.
+ * 
+ * @param fed The federate that has requested a stop or has suddenly
+ *  stopped (disconnected).
+ */
+void _lf_rti_mark_federate_requesting_stop(federate_t* fed) {    
+    if (!fed->requested_stop) {
+        // Assume that the federate
+        // has requested stop
+        num_feds_handling_stop++;
+        fed->requested_stop = true;
+    }
+    if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
+        // We now have information about the stop time of all
+        // federates.
+        _lf_rti_broadcast_stop_time_to_federates_already_locked();
+    }
+}
+
+/**
  * Handle a STOP_REQUEST message.
  * @param fed The federate sending a STOP_REQUEST message.
  */
@@ -564,26 +585,26 @@ void handle_stop_request_message(federate_t* fed) {
     pthread_mutex_lock(&rti_mutex);    
     // Extract the proposed stop time for the federate
     instant_t stop_time = extract_ll(buffer);
+    
+    if (stop_time > max_stop_time) {
+        max_stop_time = stop_time;
+    }
 
     // Check if we have already received a stop_time
     // from this federate
-    if (!federates[fed->id].requested_stop) {
-        if (stop_time > max_stop_time) {
-            max_stop_time = stop_time;
-        }
-        // If this federate has not already asked
-        // for a stop, add it to the tally.
-        _lf_rti_mark_federate_requesting_stop(fed);
-    } else {
+    if (federates[fed->id].requested_stop) {
         // Ignore this request
         pthread_mutex_unlock(&rti_mutex);  
         return;
     }
+    // If this federate has not already asked
+    // for a stop, add it to the tally.
+    _lf_rti_mark_federate_requesting_stop(fed);
 
     if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
         // We now have information about the stop time of all
-        // federates.
-        _lf_rti_broadcast_stop_time_to_federates_already_locked();
+        // federates. This is extremely unlikely, but it can occur
+        // all federates call request_stop() at the same tag.
         pthread_mutex_unlock(&rti_mutex);    
         return;
     }
@@ -597,6 +618,7 @@ void handle_stop_request_message(federate_t* fed) {
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
         if (federates[i].id != fed->id && federates[i].requested_stop == false) {
             if (federates[i].state == NOT_CONNECTED) {
+                _lf_rti_mark_federate_requesting_stop(&federates[i]);
                 continue;
             }
             write_to_socket(federates[i].socket, 1 + sizeof(instant_t), stop_request_buffer, "RTI failed to broadcast message to federate %d.", federates[i].id);
@@ -617,9 +639,6 @@ void handle_stop_request_reply(federate_t* fed) {
         // The federate has disconnected. We can assume it has 
         // requested stop.
         _lf_rti_mark_federate_requesting_stop(fed);
-        if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
-            _lf_rti_broadcast_stop_time_to_federates_already_locked();
-        }
         pthread_mutex_unlock(&rti_mutex);
         return;
     }
@@ -632,17 +651,11 @@ void handle_stop_request_reply(federate_t* fed) {
     // Acquire the mutex lock so that we can change the state of the RTI
     pthread_mutex_lock(&rti_mutex);
     // If the federate has not requested stop before,
-    // count the reply    
-    if (!fed->requested_stop) {
-        if (federate_stop_time > max_stop_time) {
-            max_stop_time = federate_stop_time;
-        }
-        _lf_rti_mark_federate_requesting_stop(fed);
+    // count the reply
+    if (federate_stop_time > max_stop_time) {
+        max_stop_time = federate_stop_time;
     }
-
-    if (num_feds_handling_stop == NUMBER_OF_FEDERATES) {
-        _lf_rti_broadcast_stop_time_to_federates_already_locked();
-    }
+    _lf_rti_mark_federate_requesting_stop(fed);
     pthread_mutex_unlock(&rti_mutex);
 }
 //////////////////////////////////////////////////
@@ -786,6 +799,21 @@ void handle_timestamp(federate_t *my_fed) {
 }
 
 /**
+ * Take a snapshot of the physical clock time and send
+ * it to federate fed_id.
+ * 
+ * @param fed_id The federate to send the physical time to.
+ */
+void _lf_rti_send_physical_time(int fed_id) {
+    unsigned char buffer[sizeof(instant_t) + 1];
+    buffer[0] = PHYSICAL_TIME_SYNC_MESSAGE;
+    encode_ll(get_physical_time(), &(buffer[1]));
+    write_to_socket(federates[fed_id].socket, sizeof(instant_t)+1, buffer,
+                    "RTI failed to send physical time to federate %d.",
+                    federates[fed_id].id);
+}
+
+/**
  * A function to handle messages labeled
  * as RESIGN sent by a federate. This 
  * message is sent at the time of termination
@@ -808,6 +836,7 @@ void handle_federate_resign(federate_t *my_fed) {
     unsigned char temporary_read_buffer[1];
     pthread_mutex_lock(&rti_mutex);
     my_fed->state = NOT_CONNECTED;
+    _lf_rti_mark_federate_requesting_stop(my_fed);
     my_fed->next_event.time = NEVER;
     my_fed->next_event.microstep = 0;
     close(my_fed->socket); //  from unistd.h
@@ -853,7 +882,9 @@ void* federate(void* fed) {
             case TIMED_MESSAGE:
                 DEBUG_PRINT("RTI handling timed message.");
                 if (my_fed->state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
                     _lf_rti_mark_federate_requesting_stop(my_fed);
+                    pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
                 handle_timed_message(my_fed->socket, buffer);
@@ -861,7 +892,9 @@ void* federate(void* fed) {
             case RESIGN:
                 DEBUG_PRINT("RTI handling resign.");
                 if (my_fed->state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
                     _lf_rti_mark_federate_requesting_stop(my_fed);
+                    pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
                 handle_federate_resign(my_fed);
@@ -870,7 +903,9 @@ void* federate(void* fed) {
             case NEXT_EVENT_TIME:            
                 DEBUG_PRINT("RTI handling next event time.");
                 if (my_fed->state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
                     _lf_rti_mark_federate_requesting_stop(my_fed);
+                    pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
                 handle_next_event_time(my_fed);
@@ -878,7 +913,9 @@ void* federate(void* fed) {
             case LOGICAL_TIME_COMPLETE:            
                 DEBUG_PRINT("RTI handling logical time completion.");
                 if (my_fed->state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
                     _lf_rti_mark_federate_requesting_stop(my_fed);
+                    pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
                 handle_logical_time_complete(my_fed);
@@ -886,17 +923,30 @@ void* federate(void* fed) {
             case STOP_REQUEST:
                 DEBUG_PRINT("RTI handling stop request from federate %d.", my_fed->id);
                 if (my_fed->state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
                     _lf_rti_mark_federate_requesting_stop(my_fed);
+                    pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
                 handle_stop_request_message(my_fed);
                 break;
             case STOP_REQUEST_REPLY:
                 if (my_fed->state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
                     _lf_rti_mark_federate_requesting_stop(my_fed);
+                    pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
                 handle_stop_request_reply(my_fed);
+                break;
+            case PHYSICAL_TIME_SYNC_MESSAGE:
+                if (my_fed->state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    pthread_mutex_unlock(&rti_mutex);
+                    return NULL;
+                }
+                _lf_rti_send_physical_time(my_fed->id);
                 break;
             default:
                 error_print("RTI received from federate %d an unrecognized message type: %hhx.", my_fed->id, buffer[0]);
@@ -1025,7 +1075,10 @@ void connect_to_federates(int socket_descriptor) {
 
         DEBUG_PRINT("RTI got address %s from federate %d.", federates[fed_id].server_hostname, fed_id);
 #endif
-        federates[fed_id].socket = socket_id;
+        federates[fed_id].socket = socket_id;        
+
+        // Send the RTI's current physical time to the federate
+        _lf_rti_send_physical_time(fed_id);
 
         // Create a thread to communicate with the federate.
         pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id]));

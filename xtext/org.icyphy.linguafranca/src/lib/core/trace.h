@@ -29,7 +29,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Definitions of tracepoint events for use with the C code generator and any other
  * code generator that uses the C infrastructure (such as the Python code generator).
  *
- * FIXME: How to use.
+ * See: https://github.com/icyphy/lingua-franca/wiki/Tracing#TracingInC
  *
  * The trace file is named trace.lft and is a binary file with the following format:
  *
@@ -57,7 +57,11 @@ typedef enum {
     reaction_ends,
     schedule_called,
     user_event,
-    user_value
+    user_value,
+    worker_wait_starts,
+    worker_wait_ends,
+    worker_advancing_time_starts,
+    worker_advancing_time_ends
 } trace_event_t;
 
 /**
@@ -68,7 +72,11 @@ static const char* trace_event_names[] = {
         "Reaction ends",
         "Schedule called",
         "User-defined event",
-        "User-defined valued event"
+        "User-defined valued event",
+        "Worker wait starts",
+        "Worker wait ends",
+        "Worker advancing time starts",
+        "Worker advancing time ends"
 };
 
 #ifdef LINGUA_FRANCA_TRACE
@@ -144,7 +152,7 @@ void start_trace(char* filename);
  * This is a generic tracepoint function. It is better to use one of the specific functions.
  * @param event_type The type of event (see trace_event_t in trace.h)
  * @param reactor The pointer to the self struct of the reactor instance in the trace table.
- * @param reaction_index The index of the reaction or -1 if the trace is not of a reaction.
+ * @param reaction_number The index of the reaction or -1 if the trace is not of a reaction.
  * @param worker The thread number of the worker thread or 0 for unthreaded execution.
  * @param physical_time If the caller has already accessed physical time, provide it here.
  *  Otherwise, provide NULL. This argument avoids a second call to get_physical_time
@@ -204,6 +212,32 @@ void tracepoint_user_event(char* description);
  */
 void tracepoint_user_value(char* description, long long value);
 
+/**
+ * Trace the start of a worker waiting for something to change on the reaction queue.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ */
+void tracepoint_worker_wait_starts(int worker);
+
+/**
+ * Trace the end of a worker waiting for something to change on reaction queue.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ */
+void tracepoint_worker_wait_ends(int worker);
+
+/**
+ * Trace the start of a worker waiting for logical time to advance or an event to
+ * appear on the event queue.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ */
+void tracepoint_worker_advancing_time_starts(int worker);
+
+/**
+ * Trace the end of a worker waiting for logical time to advance or an event to
+ * appear on the event queue.
+ * @param worker The thread number of the worker thread or 0 for unthreaded execution.
+ */
+void tracepoint_worker_advancing_time_ends(int worker);
+
 void stop_trace();
 
 #else
@@ -216,6 +250,11 @@ void stop_trace();
 #define tracepoint_schedule(...)
 #define tracepoint_user_event(...)
 #define tracepoint_user_value(...)
+#define tracepoint_worker_wait_starts(...)
+#define tracepoint_worker_wait_ends(...)
+#define tracepoint_worker_advancing_time_starts(...);
+#define tracepoint_worker_advancing_time_ends(...);
+
 #define start_trace(...)
 #define stop_trace(...)
 
