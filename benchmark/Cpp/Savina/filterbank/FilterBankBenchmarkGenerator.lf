@@ -38,10 +38,11 @@
   cog.outl(f'// numChannels = {numChannels}')
 ]]] */
 // Generated file with the following parameters:
-// numChannels = 12
+// numChannels = 8
 // [[[end]]]
 
 target Cpp {
+    tracing: true,
     build-type : RelWithDebInfo,
     cmake-include: "FilterBank.cmake"
 };
@@ -151,8 +152,8 @@ reactor BranchesReactor(numChannels:int(8), numColumns:int(16384)) {
       cog.outl(f'output[{numChannels}] outBanksValue:{{=double=}};')
       cog.outl(f'output[{numChannels}] outBanksControl:{{=Message=}};')
     ]]] */
-    output[12] outBanksValue:{=double=};
-    output[12] outBanksControl:{=Message=};
+    output[8] outBanksValue:{=double=};
+    output[8] outBanksControl:{=Message=};
     // [[[end]]]
     input inPredecessorValue:{=double=};
     input inPredecessorControl:{=Message=};
@@ -402,8 +403,8 @@ reactor IntegratorReactor(numChannels:int(8)) {
       cog.outl(f'input[{numChannels}] inPredecessorsValue:{{=double=}};')
       cog.outl(f'input[{numChannels}] inPredecessorsControl:{{=Message=}};')
     ]]] */
-    input[12] inPredecessorsValue:{=double=};
-    input[12] inPredecessorsControl:{=Message=};
+    input[8] inPredecessorsValue:{=double=};
+    input[8] inPredecessorsControl:{=Message=};
     // [[[end]]]
     output outSuccessorCollection:{=std::vector<double>=};
     output outSuccessorControl:{=Message=};
@@ -535,7 +536,7 @@ main reactor FilterBankBenchmark(numIterations:int(12), numSimulations:int(34816
     /* [[[cog
       cog.outl(f'producer = new ProducerReactor(numSimulations=numSimulations, numChannels={numChannels}, numColumns=numColumns);')
     ]]] */
-    producer = new ProducerReactor(numSimulations=numSimulations, numChannels=12, numColumns=numColumns);
+    producer = new ProducerReactor(numSimulations=numSimulations, numChannels=8, numColumns=numColumns);
     // [[[end]]]
     runner = new BenchmarkRunner(numIterations=numIterations, useInit=true);
     sink = new SinkReactor(printRate=100);
@@ -547,11 +548,11 @@ main reactor FilterBankBenchmark(numIterations:int(12), numSimulations:int(34816
     sink.outFinished -> runner.inIterationFinish;
     
     reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("GuidedSearchBenchmark");
+        printBenchmarkInfo("FilterBankBenchmark");
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", {numChannels});')
         ]]] */
-        printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", 12);
+        printArgs("numIterations", numIterations, "numSimulations", numSimulations, "numColumns", numColumns, "numChannels", 8);
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
@@ -565,9 +566,9 @@ main reactor FilterBankBenchmark(numIterations:int(12), numSimulations:int(34816
       cog.outl(f'branches = new BranchesReactor(numChannels={numChannels}, numColumns=numColumns);')
       cog.outl(f'banks = new[{numChannels}] BankReactor(numColumns=numColumns);')
     ]]] */
-    integrator = new IntegratorReactor(numChannels=12);
-    branches = new BranchesReactor(numChannels=12, numColumns=numColumns);
-    banks = new[12] BankReactor(numColumns=numColumns);
+    integrator = new IntegratorReactor(numChannels=8);
+    branches = new BranchesReactor(numChannels=8, numColumns=numColumns);
+    banks = new[8] BankReactor(numColumns=numColumns);
     // [[[end]]]
     
     producer.outSource -> source.inProducer;
