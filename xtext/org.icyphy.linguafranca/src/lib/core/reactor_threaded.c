@@ -271,6 +271,11 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
         DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time - start_time, proposed_tag.microstep);
         // Wait until no requestor remains for the barrier on logical time
         pthread_cond_wait(&global_tag_barrier_requestors_reached_zero, &mutex);
+        
+        // Do not wait for tags after the stop tag
+        if (_lf_is_tag_after_stop_tag(proposed_tag)) {
+            proposed_tag = stop_tag;
+        }
     }
 }
 
