@@ -690,8 +690,9 @@ class CGenerator extends GeneratorBase {
                                 }
                             }
                             «IF federate.inboundP2PConnections.length > 0»
-                                void* thread_return;
-                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                                «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
+                                // void* thread_return;
+                                // pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
                             write_to_socket(_lf_rti_socket, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
