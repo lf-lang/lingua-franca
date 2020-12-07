@@ -286,35 +286,14 @@ int next() {
     if (wait_until(next_tag.time) != 0) {
         DEBUG_PRINT("***** wait_until was interrupted.");
         // Sleep was interrupted.
-        // FIXME: I think async calls to schedule() are now limited to the
-        // threaded runtime.
-        // May have been an asynchronous call to schedule(), or
-        // it may have been a control-C to stop the process.
-        // Set current time to match physical time, but not less than
-        // current logical time nor more than next time in the event queue.
-        // Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
-        long long current_physical_time_ns 
-                = current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec;
-        if (current_physical_time_ns > current_tag.time) {
-            if (current_physical_time_ns < next_tag.time) {
-                // Advance current time.
-                _lf_advance_logical_time(current_physical_time_ns);
-                // I am assuming control-C causes this condition. Therefore, the 
-                // program has to stop.
-                // _lf_set_stop_tag((tag_t) {.time = current_physical_time_ns, .microstep = 0});
-                return 1;
-            }
-        } else {
-            // Current physical time does not exceed current logical
-            // time, so do not advance current time.
-            // I am assuming control-C causes this condition. Therefore, the 
-            // program has to stop.
-            // _lf_set_stop_tag(current_tag);
-            return 1;
-        }
+        // FIXME: It is unclear what would cause this to occur in this unthreaded
+        // runtime since schedule() is not thread safe here and should not
+        // be called asynchronously. Perhaps in some runtime such as for a
+        // PRET machine this will be supported, so here we handle this as
+        // if an asynchronous call to schedule has occurred. In that case,
+        // we should return 1 to let the runtime loop around to see what
+        // is on the event queue.
+        return 1;
     }
 
     // At this point, finally, we have an event to process.
