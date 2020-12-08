@@ -203,11 +203,11 @@ preamble {=
         if(cost > 0) {
         	for(int i = 0; i < cost; i++) {
             	for(int j = 0; j < 100; j++) {
-                	res += log(abs(nextDouble(random)) + 0.01);
+                	res += log(fabs(nextDouble(random)) + 0.01);
 				}
 			}
 		} else {
-			res += log(abs(nextDouble(random)) + 0.01);
+			res += log(fabs(nextDouble(random)) + 0.01);
 		}
         return res;
 	}
