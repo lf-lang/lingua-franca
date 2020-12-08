@@ -90,6 +90,7 @@ MultiportMutableInputArray.lf
 MultiportOut.lf
 MultiportToBank.lf
 MultiportToBankAfter.lf
+MultiportToBankDouble.lf
 MultiportToBankHierarchy.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
