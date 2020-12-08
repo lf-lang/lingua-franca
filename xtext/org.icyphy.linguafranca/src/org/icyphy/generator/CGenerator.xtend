@@ -3103,11 +3103,13 @@ class CGenerator extends GeneratorBase {
                             // to the output count. Otherwise, assume it is a reference to one or more parameters.
                             val widthSpec = multiportWidthSpecInC(port, effect.container, instance)
                             
+                            var allocate = false
                             if (!portAllocatedAlready.contains(effect.variable)) {
                                 // Prevent allocating memory more than once for the same port.
                                 portAllocatedAlready.add(port)
-                                initializeReactionEffectMultiport(initializeTriggerObjectsEnd, initialization, effect, instance, reactionCount, index)
+                                allocate = true
                             }
+                            initializeReactionEffectMultiport(initializeTriggerObjectsEnd, initialization, effect, instance, reactionCount, index, allocate)
                             // Append the width of this port to an expression for the total number of
                             // outputs from this reaction.
                             try {
@@ -3497,6 +3499,7 @@ class CGenerator extends GeneratorBase {
      * @param instance The reaction instance itself
      * @param reactionIdx The index of the reaction in the Reactor
      * @param startIdx The index used to figure out the starting position of the output_produced array
+     * @param allocate If true, then allocate memory. Otherwise, assume the memory has been previously allocated.
      */
     def initializeReactionEffectMultiport(
         StringBuilder instantiation, 
@@ -3504,7 +3507,8 @@ class CGenerator extends GeneratorBase {
         VarRef effect, 
         ReactorInstance instance, 
         int reationIdx, 
-        String startIdx
+        String startIdx,
+        boolean allocate
     ) {
         val port = effect.variable as Port
         val reactorClass = instance.definition.reactorClass
@@ -3521,12 +3525,14 @@ class CGenerator extends GeneratorBase {
         if (effect.container === null) {
             // This has form "out".
             val portStructType = variableStructType(port, reactorClass)
-            pr(instantiation, '''
-                «nameOfSelfStruct»->__«port.name»__width = «widthSpec»;
-                // Allocate memory to store output of reaction.
-                «nameOfSelfStruct»->__«port.name» = («portStructType»*)malloc(sizeof(«portStructType») 
+            if (allocate) {
+                pr(instantiation, '''
+                    «nameOfSelfStruct»->__«port.name»__width = «widthSpec»;
+                    // Allocate memory to store output of reaction.
+                    «nameOfSelfStruct»->__«port.name» = («portStructType»*)malloc(sizeof(«portStructType») 
                         * «nameOfSelfStruct»->__«port.name»__width); 
-            ''')
+                ''')
+            }
             pr(initialization, '''
                 for (int i = 0; i < «widthSpec»; i++) {
                     «nameOfSelfStruct»->___reaction_«reationIdx».output_produced[«startIdx» + i]
@@ -3537,15 +3543,17 @@ class CGenerator extends GeneratorBase {
             // This has form "c.in".
             val containerName = effect.container.name
             val portStructType = variableStructType(port, effect.container.reactorClass)
-            pr(instantiation, '''
-                «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
-                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+            if (allocate) {
+                pr(instantiation, '''
+                    «nameOfSelfStruct»->__«containerName».«port.name»__width = «widthSpec»;
+                    // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
+                    «nameOfSelfStruct»->__«containerName».«port.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
                         * «nameOfSelfStruct»->__«containerName».«port.name»__width);
-                for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«port.name»__width; i++) {
-                    «nameOfSelfStruct»->__«containerName».«port.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
+                    for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«port.name»__width; i++) {
+                        «nameOfSelfStruct»->__«containerName».«port.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
+                    }
+                ''')
                 }
-            ''')
             pr(initialization, '''
                 for (int i = 0; i < «widthSpec»; i++) {
                     «nameOfSelfStruct»->___reaction_«reationIdx».output_produced[«startIdx» + i]
