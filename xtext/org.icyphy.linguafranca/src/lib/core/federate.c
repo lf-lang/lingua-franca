@@ -728,7 +728,7 @@ void handle_physical_clock_sync_message_locked(unsigned char message_type) {
         // FIXME: This could cause the clock to jump back in time.
         // A better solution would be to slowdown or speedup the clock
         if (_lf_global_physical_clock_offset != 0LL) {
-            // Apply an attenuation to the estimated clock error to prevent
+            // Apply a jitter attunator to the estimated clock error to prevent
             // large jumps in the underlying clock 
             _lf_global_physical_clock_offset +=  estimated_clock_error / 10;
         } else {

@@ -65,7 +65,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Time instant. Both physical and logical times are represented
  * using this typedef.
  * WARNING: If this code is used after about the year 2262,
- * then representing time as a long long will be insufficient.
+ * then representing time as a 64-bit long long will be insufficient.
  */
 typedef long long instant_t;
 
@@ -126,9 +126,8 @@ interval_t get_elapsed_logical_time();
 
 /**
  * Return the current logical time in nanoseconds.
- * 
- * The starting point of the clock is platform 
- * dependent and depends on the clock type.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
  * 
  * @return A time instant.
  */
@@ -164,19 +163,16 @@ extern interval_t _lf_epoch_offset;
 
 /**
  * Return the current physical time in nanoseconds.
- * 
- * The starting point of the clock is platform 
- * dependent and depends on the clock type.
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent.
  * @return A time instant.
  */
 instant_t get_physical_time();
 
 /**
  * Return the physical time of the start of execution in nanoseconds.
- *
- * The starting point of the clock is platform 
- * dependent and depends on the clock type.
- * 
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent. 
  * @return A time instant.
  */
 instant_t get_start_time();
