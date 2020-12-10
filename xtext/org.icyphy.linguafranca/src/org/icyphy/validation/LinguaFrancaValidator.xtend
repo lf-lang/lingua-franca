@@ -739,6 +739,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             "Target property tracing is required to be true or false.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
+                case CLOCK_SYNC: {
+                    if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
+                        error("Target property clock-sync is required to be true or false.",
+                            Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                }
             }
         }
     }
@@ -1176,11 +1182,24 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         )) {
             if (info.model.reactors.exists(
                 reactor |
-                    // Check to see if the program has a federated reactor
-                    reactor.isFederated
+                    // Check to see if the program has a federated reactor and if there is a physical connection
+                    // defined.
+                    reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
             )) {
                 error(
-                    "The fast target property is incompatible with federated programs.",
+                    "The fast target property is incompatible with physical connections.",
+                    Literals.KEY_VALUE_PAIRS__PAIRS
+                )
+            }
+
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a federated reactor and if there is a physical connection
+                    // defined.
+                    reactor.isFederated && reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
+            )) {
+                error(
+                    "The fast target property is incompatible with physical actions.",
                     Literals.KEY_VALUE_PAIRS__PAIRS
                 )
             }
@@ -1191,17 +1210,16 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 // Check to see if clock-sync is defined
                 TargetProperties.get(pair.name) == TargetProperties.CLOCK_SYNC
         )) {
-            if (!info.model.reactors.exists(
-                reactor |
-                    // Check to see if the program has a main reactor
-                    reactor.isFederated
-            )) {
-                // The program is not federated. clock-sync should be disallowed
+
+            if (info.model.reactors.exists( reactor |
+                // Check to see if the program has a federated reactor and if there is a physical connection
+                // defined.
+                reactor.isFederated
+            ) == false) {
                 warning(
                     "The clock-sync target property is incompatible with non-federated programs.",
                     Literals.KEY_VALUE_PAIRS__PAIRS
                 )
-
             }
         }
     }
