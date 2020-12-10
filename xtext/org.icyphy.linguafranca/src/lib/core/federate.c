@@ -45,6 +45,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
 
+/**
+ * Define a guard band to filter clock synchronization
+ * messages based on discrepencies in the network delay.
+ * @see Coded probes in Geng, Yilong, et al.
+ * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
+ */
+#define _LF_CLOCK_SYNC_GUARD_BAND USEC(100)
+
 // Error messages.
 char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via RTI";
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
@@ -713,6 +721,28 @@ void handle_physical_clock_sync_message_locked(unsigned char message_type) {
                 _lf_my_fed_id, rti_physical_clock_snapshot);
     
     if (message_type == PHYSICAL_CLOCK_SYNC_MESSAGE_T4) {
+        // Filter out noise
+        instant_t r2 = get_physical_time();
+        interval_t coded_probe_distance = llabs(( r2 -
+                                              _lf_rti_socket_stat.local_physical_clock_snapshot_T2) -
+                                              (rti_physical_clock_snapshot - 
+                                               _lf_rti_socket_stat.remote_physical_clock_snapshot_T1));
+        // Check against the guard band
+        // Do not discard if this is the inital clock synchronization
+        if ((coded_probe_distance >= _LF_CLOCK_SYNC_GUARD_BAND) &&
+            (_lf_global_physical_clock_offset != 0LL)) {
+            // Discard this clock sync cycle
+            printf("Federate %d skipping the current clock synchronization cycle due to impure coded probes.\n",
+                    _lf_my_fed_id);
+            printf("Federate %d coded probe packet stats:  Distance: %lld. r2 - r1 = %lld. t2 - t1 = %lld.\n",
+                    _lf_my_fed_id,
+                    coded_probe_distance,
+                    r2 - _lf_rti_socket_stat.local_physical_clock_snapshot_T2,
+                    rti_physical_clock_snapshot -
+                    _lf_rti_socket_stat.remote_physical_clock_snapshot_T1);
+            return;
+        }
+
         // (T4 - T1) - (T3 - T2)
         interval_t network_round_trip_delay = (rti_physical_clock_snapshot -
                                                _lf_rti_socket_stat.remote_physical_clock_snapshot_T1) + 

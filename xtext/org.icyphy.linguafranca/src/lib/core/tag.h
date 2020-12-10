@@ -148,7 +148,7 @@ unsigned int get_microstep();
  * Initially set according to the RTI's clock in federated
  * programs.
  */
-extern volatile interval_t _lf_global_physical_clock_offset;
+extern interval_t _lf_global_physical_clock_offset;
 
 /**
  * Offset to _LF_CLOCK that would convert it
