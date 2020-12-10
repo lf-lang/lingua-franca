@@ -426,19 +426,6 @@ bool wait_until(instant_t logical_time_ns) {
             return return_value;
         }
 
-        // pthread_cond_timedwait can only accept an absolute time based on CLOCK_REALTIME 
-        // in a portable way. If _LF_CLOCK is not CLOCK_REALTIME, we need to convert 
-        // wait_until_time_ns to CLOCK_REALTIME.
-        if (_LF_CLOCK != CLOCK_REALTIME && wait_until_time_ns != FOREVER) {
-            struct timespec realtime_clock_snapshot;
-            // Take a snapshot of the CLOCK_REALTIME
-            clock_gettime(CLOCK_REALTIME, &realtime_clock_snapshot);
-            instant_t realtime_clock_snapshot_ns = realtime_clock_snapshot.tv_sec * BILLION + realtime_clock_snapshot.tv_nsec;
-            // Convert wait_until_time_ns from _LF_CLOCK to CLOCK_REALTIME
-            wait_until_time_ns = ns_to_wait + realtime_clock_snapshot_ns;
-            DEBUG_PRINT("wait_until(): Adjusted wait_until_time_ns to %lld.", wait_until_time_ns);
-        }
-
         // Convert the logical time to a timespec.
         // timespec is seconds and nanoseconds.
         struct timespec wait_until_time = {(time_t)wait_until_time_ns / BILLION, (long)wait_until_time_ns % BILLION};
@@ -552,11 +539,7 @@ int __next() {
         // Set current time to match physical time, but not less than
         // current logical time nor more than next time in the event queue.
         // Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(_LF_CLOCK, &current_physical_time);
-        long long current_physical_time_ns 
-                = current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec;
+        instant_t current_physical_time_ns = get_physical_time();
         if (current_physical_time_ns > current_tag.time) {
             if (current_physical_time_ns < next_tag.time) {
                 // In federated programs, barriers could be raised on a specific tag.
@@ -969,12 +952,7 @@ void* worker(void* arg) {
             // then the reaction will be invoked and the violation reaction will not be invoked again.
             if (current_reaction_to_execute->deadline > 0LL) {
                 // Get the current physical time.
-                struct timespec current_physical_time;
-                clock_gettime(_LF_CLOCK, &current_physical_time);
-                // Convert to instant_t.
-                instant_t physical_time =
-                        current_physical_time.tv_sec * BILLION
-                        + current_physical_time.tv_nsec;
+                instant_t physical_time = get_physical_time();
                 // Check for deadline violation.
                 if (physical_time > current_tag.time + current_reaction_to_execute->deadline) {
                     // Deadline violation has occurred.

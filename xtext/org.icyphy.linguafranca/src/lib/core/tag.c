@@ -33,6 +33,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tag.h"
 
 /**
+ * Offset to _LF_CLOCK that would convert it
+ * to epoch time.
+ * For CLOCK_REALTIME, this offset is always zero.
+ * For CLOCK_MONOTONIC, it is the difference between those
+ * clocks at the start of the execution.
+ */
+interval_t _lf_epoch_offset = 0LL;
+
+/**
  * Current time in nanoseconds.
  * The starting point of the clock is actually platform 
  * dependent and depends on the clock type.
@@ -58,7 +67,7 @@ instant_t start_time = NEVER;
  * Initially set according to the RTI's clock in federated
  * programs.
  */
-volatile interval_t _lf_global_physical_time_offset = 0LL;
+volatile interval_t _lf_global_physical_clock_offset = 0LL;
 
 /**
  * Compare two tags. Return -1 if the first is less than
@@ -147,7 +156,7 @@ microstep_t get_microstep() {
 instant_t get_physical_time() {
     struct timespec physicalTime;
     clock_gettime(_LF_CLOCK, &physicalTime);
-    return (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) + _lf_global_physical_time_offset;
+    return (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) + _lf_global_physical_clock_offset + _lf_epoch_offset;
 }
 
 /**
@@ -168,7 +177,7 @@ instant_t get_start_time() {
 instant_t get_elapsed_physical_time() {
     struct timespec physicalTime;
     clock_gettime(_LF_CLOCK, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time + _lf_global_physical_time_offset;;
+    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time + _lf_global_physical_clock_offset + _lf_epoch_offset;
 }
 
 /**

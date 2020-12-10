@@ -92,6 +92,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (!fast) {
+<<<<<<< HEAD
         DEBUG_PRINT("Waiting for logical time %lld.", logical_time_ns);
     
         // Get the current physical time.
@@ -101,6 +102,10 @@ int wait_until(instant_t logical_time_ns) {
         long long ns_to_wait = logical_time_ns
                 - (current_physical_time.tv_sec * BILLION
                 + current_physical_time.tv_nsec);
+=======
+        // printf("DEBUG: Waiting for logical time %lld.\n", logical_time_ns);    
+        interval_t ns_to_wait = logical_time_ns - get_physical_time();
+>>>>>>> Changed time to be relative to epoch time. Optimized clock sync messages for corner cases. Added attenuation.
     
         if (ns_to_wait <= 0) {
             return return_value;
@@ -189,12 +194,7 @@ int _lf_do_step() {
         // then the reaction will be invoked and the violation reaction will not be invoked again.
         if (reaction->deadline > 0LL) {
             // Get the current physical time.
-            struct timespec current_physical_time;
-            clock_gettime(_LF_CLOCK, &current_physical_time);
-            // Convert to instant_t.
-            instant_t physical_time = 
-                    current_physical_time.tv_sec * BILLION
-                    + current_physical_time.tv_nsec;
+            instant_t physical_time = get_physical_time();
             // Check for deadline violation.
             // There are currently two distinct deadline mechanisms:
             // local deadlines are defined with the reaction;

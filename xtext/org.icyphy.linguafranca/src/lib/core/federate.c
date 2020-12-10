@@ -137,7 +137,6 @@ int _lf_server_port = -1;
  * and the remote physical clock of the RTI.
  */
 socket_stat_t _lf_rti_socket_stat = {
-    .clock_sync_in_progress = false,
     .remote_physical_clock_snapshot_T1 = NEVER,
     .local_physical_clock_snapshot_T2 = NEVER,
     .local_round_trip_delay_bound = 0LL,
@@ -673,18 +672,25 @@ void connect_to_federate(ushort remote_federate_id) {
  * Take a snapshot of the physical clock time and send
  * it on socket.
  * 
+ * @param message_type The type of clock synchronization message (see rti.c)
  * @param socket The socket to send the physical time on.
  * @return The physical clock snapshot
  */
-instant_t _lf_fd_send_physical_time(int socket_id) {
+instant_t _lf_fd_send_physical_clock(unsigned char message_type, int socket_id) {
     unsigned char buffer[sizeof(instant_t) + 1];
-    buffer[0] = PHYSICAL_TIME_SYNC_MESSAGE;
+    buffer[0] = message_type;
     instant_t current_physical_time_snapshot = get_physical_time();
-    encode_ll(current_physical_time_snapshot, &(buffer[1]));
-    write_to_socket(socket_id, sizeof(instant_t)+1, buffer,
-                    "Federate %d failed to send physical time to RTI.",
-                    _lf_my_fed_id);
-    DEBUG_PRINT("Federate %d sent physical time snapshot %lld to RTI.", _lf_my_fed_id, current_physical_time_snapshot);
+    if (message_type != PHYSICAL_CLOCK_SYNC_MESSAGE_T3) {
+        encode_ll(current_physical_time_snapshot, &(buffer[1]));
+        write_to_socket(socket_id, sizeof(instant_t)+1, buffer,
+                        "Federate %d failed to send physical time to RTI.",
+                        _lf_my_fed_id);
+        DEBUG_PRINT("Federate %d sent physical time snapshot %lld to RTI.", _lf_my_fed_id, current_physical_time_snapshot);
+    } else {        
+        write_to_socket(socket_id, 1, &(buffer[0]),
+                        "Federate %d failed to send T3 message to RTI.",
+                        _lf_my_fed_id);
+    }
     return current_physical_time_snapshot;
 }
 
@@ -693,8 +699,11 @@ instant_t _lf_fd_send_physical_time(int socket_id) {
  * 
  * This version assumes the caller holds the mutex lock.
  * It will acquire it itself.
+ * 
+ * @param message_type The type of clock synchronization message.
+ *  Can be PHYSICAL_CLOCK_SYNC_MESSAGE_T1 or PHYSICAL_CLOCK_SYNC_MESSAGE_T4.
  */
-void handle_physical_time_sync_message_already_locked() {
+void handle_physical_clock_sync_message_locked(unsigned char message_type) {
     unsigned char buffer[sizeof(instant_t)];
     instant_t rti_physical_clock_snapshot;
     read_from_socket(_lf_rti_socket, sizeof(instant_t), buffer,
@@ -703,38 +712,52 @@ void handle_physical_time_sync_message_already_locked() {
     DEBUG_PRINT("Federate %d received PHYSICAL_TIME_SYNC_MESSAGE message with time payload %lld from RTI.",
                 _lf_my_fed_id, rti_physical_clock_snapshot);
     
-    if (_lf_rti_socket_stat.clock_sync_in_progress == true) {
+    if (message_type == PHYSICAL_CLOCK_SYNC_MESSAGE_T4) {
         // (T4 - T1) - (T3 - T2)
-        interval_t network_round_trip_delay = (rti_physical_clock_snapshot - \
-                                               _lf_rti_socket_stat.remote_physical_clock_snapshot_T1) - \
-                                              _lf_rti_socket_stat.local_round_trip_delay_bound;
+        interval_t network_round_trip_delay = (rti_physical_clock_snapshot -
+                                               _lf_rti_socket_stat.remote_physical_clock_snapshot_T1) + 
+                                               _lf_rti_socket_stat.local_round_trip_delay_bound;
         // FIXME: Taking the maximum might not be a good idea
         // if (_lf_rti_socket_stat.network_round_trip_delay_bound < network_round_trip_delay) {
         _lf_rti_socket_stat.network_round_trip_delay_bound = network_round_trip_delay;
         // }
         // Calculate the new physical time offset
+        interval_t estimated_clock_error = (_lf_rti_socket_stat.local_physical_clock_snapshot_T2  -
+                                            _lf_rti_socket_stat.remote_physical_clock_snapshot_T1) -
+                                            (_lf_rti_socket_stat.network_round_trip_delay_bound/2);
         // FIXME: This could cause the clock to jump back in time.
         // A better solution would be to slowdown or speedup the clock
-        _lf_global_physical_time_offset = _lf_rti_socket_stat.local_physical_clock_snapshot_T2  - \
-                                          _lf_rti_socket_stat.remote_physical_clock_snapshot_T1 - \
-                                          _lf_rti_socket_stat.network_round_trip_delay_bound/2;
-        // Done with the clock synchronization for this period
-        _lf_rti_socket_stat.clock_sync_in_progress = false;
-        DEBUG_PRINT("Federate %d updated its physical time offset to %lld.",
-                    _lf_my_fed_id, _lf_global_physical_time_offset);
-    } else {
+        if (_lf_global_physical_clock_offset != 0LL) {
+            // Apply an attenuation to the estimated clock error to prevent
+            // large jumps in the underlying clock 
+            _lf_global_physical_clock_offset +=  estimated_clock_error / 10;
+        } else {
+            _lf_global_physical_clock_offset =  estimated_clock_error;
+        }
+        printf("Federate %d updated its physical clock offset to %lld.\n",
+                    _lf_my_fed_id, _lf_global_physical_clock_offset);
+        DEBUG_PRINT("Federate %d: Network round trip delay to RTI: %lld. "
+                     "Local round trip delay: %lld. "
+                     "Local clock snapshot T2: %lld. "
+                     "Calculated clock synchronization offset %lld.",
+                     _lf_my_fed_id,
+                     _lf_rti_socket_stat.network_round_trip_delay_bound,
+                     _lf_rti_socket_stat.local_round_trip_delay_bound,
+                     _lf_rti_socket_stat.local_physical_clock_snapshot_T2,
+                     estimated_clock_error);
+    } else if (message_type == PHYSICAL_CLOCK_SYNC_MESSAGE_T1) {
+        // Store snapshots of remote (master) and local physical clock
         _lf_rti_socket_stat.remote_physical_clock_snapshot_T1 = rti_physical_clock_snapshot;
-        _lf_rti_socket_stat.local_physical_clock_snapshot_T2  = get_physical_time(); // FIXME: This includes
-                                                                                     // the previous offset.
+        _lf_rti_socket_stat.local_physical_clock_snapshot_T2  = get_physical_time();
         // Send a clock snapshot to the RTI and calculate the local round-trip
-        interval_t local_round_trip_delay = _lf_fd_send_physical_time(_lf_rti_socket) - \
-                                            _lf_rti_socket_stat.local_physical_clock_snapshot_T2 + \
-                                            USEC(100); // Assume a 100 usec discrepency
+        interval_t local_round_trip_delay = _lf_fd_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T3,_lf_rti_socket) -
+                                            _lf_rti_socket_stat.local_physical_clock_snapshot_T2;
         // FIXME: taking the maximum might not be a good idea
         // if (_lf_rti_socket_stat.local_round_trip_delay_bound < local_round_trip_delay) {
         _lf_rti_socket_stat.local_round_trip_delay_bound = local_round_trip_delay;
         // }
-        _lf_rti_socket_stat.clock_sync_in_progress = true;
+    } else {
+        printf("WARNING: Federate %d called handle_physical_clock_sync_message_locked() with the wrong message type.\n", _lf_my_fed_id);
     }
     return;
 }
@@ -744,11 +767,14 @@ void handle_physical_time_sync_message_already_locked() {
  * 
  * This version assumes the caller does not hold the mutex lock.
  * It will acquire it itself.
+ * 
+ * @param message_type The type of clock synchronization message.
+ *  Can be PHYSICAL_CLOCK_SYNC_MESSAGE_T1 or PHYSICAL_CLOCK_SYNC_MESSAGE_T4.
  */
-void handle_physical_time_sync_message() {
+void handle_physical_clock_sync_message(unsigned char message_type) {
     // Need to lock the mutex to change the socket stats
     pthread_mutex_lock(&mutex);
-    handle_physical_time_sync_message_already_locked();
+    handle_physical_clock_sync_message_locked(message_type);
     pthread_mutex_unlock(&mutex);
     return;
 }
@@ -1445,8 +1471,9 @@ void* listen_to_rti(void* args) {
             case STOP_GRANTED:
                 handle_stop_granted_message();
                 break;
-            case PHYSICAL_TIME_SYNC_MESSAGE:
-                handle_physical_time_sync_message();
+            case PHYSICAL_CLOCK_SYNC_MESSAGE_T1:
+            case PHYSICAL_CLOCK_SYNC_MESSAGE_T4:
+                handle_physical_clock_sync_message(buffer[0]);
                 break;
             default:
                 error_print_and_exit("Federate %d received from RTI an unrecognized message type: %hhx.", _lf_my_fed_id, buffer[0]);
@@ -1469,15 +1496,15 @@ void synchronize_physical_time_with_rti(){
     // its physical clock at the beginning
     unsigned char buffer[1];
     read_from_socket(_lf_rti_socket, 1, buffer, "Federate %d failed to read PHYSICAL_TIME_SYNC_MESSAGE from RTI.", _lf_my_fed_id);
-    if (buffer[0] != PHYSICAL_TIME_SYNC_MESSAGE) {
+    if (buffer[0] != PHYSICAL_CLOCK_SYNC_MESSAGE_T1) {
         error_print_and_exit("Federate %d failed to sync time with RTI. Got %x.", _lf_my_fed_id, buffer[0]);
     }
-    handle_physical_time_sync_message_already_locked();
+    handle_physical_clock_sync_message_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1);
     read_from_socket(_lf_rti_socket, 1, buffer, "Federate %d failed to read PHYSICAL_TIME_SYNC_MESSAGE from RTI.", _lf_my_fed_id);
-    if (buffer[0] != PHYSICAL_TIME_SYNC_MESSAGE) {
+    if (buffer[0] != PHYSICAL_CLOCK_SYNC_MESSAGE_T4) {
         error_print_and_exit("Federate %d failed to sync time with RTI. Got %x.", _lf_my_fed_id, buffer[0]);
     }
-    handle_physical_time_sync_message_already_locked();
+    handle_physical_clock_sync_message_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T4);
 }
 
 /** 
