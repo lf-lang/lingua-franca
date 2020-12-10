@@ -594,6 +594,13 @@ class CGenerator extends GeneratorBase {
                 pr(startTimeStep.toString)
                 
                 setReactionPriorities(main, federate)
+                
+                // Calculate the epcoh offset so that subsequent calls
+                // to get_physical_time() return epoch time.
+                pr('''
+                    calculate_epoch_offset();
+                ''')
+                
                 initializeFederate(federate)
                 unindent()
                 pr('}\n')
@@ -771,11 +778,10 @@ class CGenerator extends GeneratorBase {
             pr('''
                 // Connect to the RTI. This sets _lf_rti_socket.
                 connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
-            ''');
-            
+            ''');            
+        
             if (targetClockSync) {
                 pr('''
-                    // Synchronize the physical time with RTI
                     synchronize_physical_time_with_rti();
                 ''')
             }

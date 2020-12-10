@@ -278,13 +278,27 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define P2P_TIMED_MESSAGE 16
 
-
+////////////////////////////////////////////////
 /**
- * Physical time synchronization message.
+ * Physical clock synchronization messages according to PTP.
+ */
+
+/*
  * The next 8 bytes will be a timestamp sent according to
  * PTP.
  */
-#define PHYSICAL_TIME_SYNC_MESSAGE 17
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T1 17
+
+/*
+ * Prompts the master to send a T4
+ */
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T3 18
+
+/*
+ * The next 8 bytes will be a timestamp sent according to
+ * PTP.
+ */
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4 19
 
 /////////////////////////////////////////////
 //// Rejection codes
@@ -327,7 +341,6 @@ typedef enum fed_state_t {
 
 /** Statistics for a given socket **/
 typedef struct socket_stat_t {
-    bool clock_sync_in_progress;                  // True if a clock synchronization is in progress.
     instant_t remote_physical_clock_snapshot_T1;  // T1 in PTP. The first snapshot of the physical
                                                   // clock of the remote device.
     instant_t local_physical_clock_snapshot_T2;   // T2 in PTP. The first snapshot of the physical

@@ -1469,12 +1469,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
 #endif
         if (downstream_to_execute_now->deadline > 0LL) {
             // Get the current physical time.
-            struct timespec current_physical_time;
-            clock_gettime(_LF_CLOCK, &current_physical_time);
-            // Convert to instant_t.
-            instant_t physical_time =
-                    current_physical_time.tv_sec * BILLION
-                    + current_physical_time.tv_nsec;
+            instant_t physical_time = get_physical_time();
             // Check for deadline violation.
             if (physical_time > current_tag.time + downstream_to_execute_now->deadline) {
                 // Deadline violation has occurred.
@@ -1694,6 +1689,27 @@ int process_args(int argc, char* argv[]) {
 }
 
 /**
+ * Calculate the necessary offset to bring _LF_CLOCK in parity
+ * with the epoch time.
+ */
+void calculate_epoch_offset() {
+    // Initialize logical time to match physical time.
+    struct timespec physical_clock_snapshot;
+    clock_gettime(_LF_CLOCK, &physical_clock_snapshot);
+    instant_t physical_clock_snapshot_ns = physical_clock_snapshot.tv_sec * BILLION + physical_clock_snapshot.tv_nsec;
+
+    struct timespec real_time_start = physical_clock_snapshot;
+    // Set the epoch offset to zero (see tag.h)
+    _lf_epoch_offset = 0;
+    if (_LF_CLOCK != CLOCK_REALTIME) {
+        clock_gettime(CLOCK_REALTIME, &real_time_start);
+        instant_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
+        // If the clock is not CLOCK_REALTIME, find the necessary epoch offset
+        _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
+    }
+}
+
+/**
  * Initialize the priority queues and set logical time to match
  * physical time. This also prints a message reporting the start time.
  */
@@ -1728,15 +1744,14 @@ void initialize() {
     // Initialize the trigger table.
     __initialize_trigger_objects();
 
-    // Initialize logical time to match physical time.
-    struct timespec actualStartTime;
-    clock_gettime(_LF_CLOCK, &actualStartTime);
-    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
+    physical_start_time = get_physical_time();
     current_tag.time = physical_start_time;
     start_time = current_tag.time;
 
+    struct timespec physical_time_timespec = {physical_start_time / BILLION, physical_start_time % BILLION};
+
     printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
-            ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);
+            ctime(&physical_time_timespec.tv_sec), physical_time_timespec.tv_nsec);
     
     if (duration >= 0LL) {
         // A duration has been specified. Calculate the stop time.

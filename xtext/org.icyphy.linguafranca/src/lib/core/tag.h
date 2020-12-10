@@ -149,7 +149,18 @@ unsigned int get_microstep();
  * Initially set according to the RTI's clock in federated
  * programs.
  */
-extern volatile interval_t _lf_global_physical_time_offset;
+extern volatile interval_t _lf_global_physical_clock_offset;
+
+/**
+ * Offset to _LF_CLOCK that would convert it
+ * to epoch time. This is applied to the physical clock
+ * to get a more meaningful and universal time.
+ * 
+ * For CLOCK_REALTIME, this offset is always zero.
+ * For CLOCK_MONOTONIC, it is the difference between those
+ * clocks at the start of the execution.
+ */
+extern interval_t _lf_epoch_offset;
 
 /**
  * Return the current physical time in nanoseconds.
