@@ -42,9 +42,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 interval_t _lf_epoch_offset = 0LL;
 
 /**
- * Current time in nanoseconds.
- * The starting point of the clock is actually platform 
- * dependent and depends on the clock type.
+ * Current time in nanoseconds since January 1, 1970
  * This is not in scope for reactors.
  * FIXME: Should this be volatile?
  */
@@ -132,9 +130,7 @@ tag_t get_current_tag() {
 }
 
 /**
- * Return the current logical time in nanoseconds.
- * The starting point of the clock is platform 
- * dependent and depends on the clock type.
+ * Return the current logical time in nanoseconds since January 1, 1970.
  */
 instant_t get_logical_time() {
     return current_tag.time;
@@ -147,23 +143,36 @@ microstep_t get_microstep() {
     return current_tag.microstep;
 }
 
+/** 
+ * Stores the last value returned by
+ * get_physical_time(). Used to ensure
+ * monotonicity of the clock.
+ */
+instant_t _lf_last_reported_physical_time_ns = 0LL;
+
 /**
- * Return the current physical time in nanoseconds,
+ * Return the current physical time in nanoseconds since January 1, 1970,
  * adjusted by the global physical time offset.
- * The starting point of the clock is platform 
- * dependent and depends on the clock type.
  */
 instant_t get_physical_time() {
+    // Get the current clock value
     struct timespec physicalTime;
     clock_gettime(_LF_CLOCK, &physicalTime);
-    return (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) + _lf_global_physical_clock_offset + _lf_epoch_offset;
+    instant_t current_reported_clock_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) +
+                                           _lf_global_physical_clock_offset + _lf_epoch_offset;
+    // Check if the clock has progressed since the last reported value
+    // This ensures that the clock is monotonic
+    if (current_reported_clock_ns > _lf_last_reported_physical_time_ns) {
+        // Update the last reported clock time
+        _lf_last_reported_physical_time_ns = current_reported_clock_ns;
+    }
+    return _lf_last_reported_physical_time_ns;
 }
 
 /**
- * Return the physical time of the start of execution in nanoseconds.
- * 
- * The starting point of the clock is platform 
- * dependent and depends on the clock type.
+ * Return the physical time of the start of execution in nanoseconds. * 
+ * On many platforms, this is the number of nanoseconds
+ * since January 1, 1970, but it is actually platform dependent. * 
  * @return A time instant.
  */
 instant_t get_start_time() {
@@ -176,8 +185,16 @@ instant_t get_start_time() {
  */
 instant_t get_elapsed_physical_time() {
     struct timespec physicalTime;
-    clock_gettime(_LF_CLOCK, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time + _lf_global_physical_clock_offset + _lf_epoch_offset;
+    clock_gettime(_LF_CLOCK, &physicalTime);    
+    instant_t current_reported_clock_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) +
+                                           _lf_global_physical_clock_offset + _lf_epoch_offset;
+    // Check if the clock has progressed since the last reported value
+    // This ensures that the clock is monotonic
+    if (current_reported_clock_ns > _lf_last_reported_physical_time_ns) {
+        // Update the last reported clock time
+        _lf_last_reported_physical_time_ns = current_reported_clock_ns;
+    }
+    return _lf_last_reported_physical_time_ns - physical_start_time;
 }
 
 /**
