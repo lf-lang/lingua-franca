@@ -65,7 +65,7 @@ instant_t start_time = NEVER;
  * Initially set according to the RTI's clock in federated
  * programs.
  */
-volatile interval_t _lf_global_physical_clock_offset = 0LL;
+interval_t _lf_global_physical_clock_offset = 0LL;
 
 /**
  * Compare two tags. Return -1 if the first is less than

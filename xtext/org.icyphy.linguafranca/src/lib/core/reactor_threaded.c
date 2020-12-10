@@ -73,7 +73,7 @@ typedef struct _lf_tag_advancement_barrier {
  *  Create a global tag barrier and
  * initialize the barrier's semaphore to 0 and its horizon to (FOREVER, 0).
  */
-volatile _lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, 
+_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, 
                                                                   (tag_t) {
                                                                     .time = FOREVER,
                                                                     .microstep = 0 
