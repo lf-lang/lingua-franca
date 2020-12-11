@@ -300,6 +300,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define PHYSICAL_CLOCK_SYNC_MESSAGE_T4 19
 
+/**
+ * Coded probe message.
+ * This messages is sent by the server (master)
+ * right after PHYSICAL_CLOCK_SYNC_MESSAGE_T4(t1) with a new physical clock snapshot t2.
+ * At the receiver, the previous PHYSICAL_CLOCK_SYNC_MESSAGE_T4 message and this message
+ * are assigned a receive timestamp r1 and r2. If |(r2 - r1) - (t2 - t1)| < GUARD_BAND,
+ * then the current clock sync cycle is considered pure and can be processed.
+ * @see Geng, Yilong, et al.
+ * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
+ */
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 20
+
 /////////////////////////////////////////////
 //// Rejection codes
 

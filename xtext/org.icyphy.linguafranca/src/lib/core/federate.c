@@ -712,21 +712,33 @@ instant_t _lf_fd_send_physical_clock(unsigned char message_type, int socket_id) 
  *  Can be PHYSICAL_CLOCK_SYNC_MESSAGE_T1 or PHYSICAL_CLOCK_SYNC_MESSAGE_T4.
  */
 void handle_physical_clock_sync_message_locked(unsigned char message_type) {
-    unsigned char buffer[sizeof(instant_t)];
+    unsigned char buffer[sizeof(instant_t) + 1];
     instant_t rti_physical_clock_snapshot;
     read_from_socket(_lf_rti_socket, sizeof(instant_t), buffer,
                      "Federate %d failed to receive physical time from RTI.", _lf_my_fed_id);
     rti_physical_clock_snapshot = extract_ll(buffer);
+    // Coded probes
+    instant_t t1 = rti_physical_clock_snapshot;  
+    instant_t r1 = get_physical_time();
     DEBUG_PRINT("Federate %d received PHYSICAL_TIME_SYNC_MESSAGE message with time payload %lld from RTI.",
                 _lf_my_fed_id, rti_physical_clock_snapshot);
     
     if (message_type == PHYSICAL_CLOCK_SYNC_MESSAGE_T4) {
+        // Read the second coded probe message
+        read_from_socket(_lf_rti_socket, sizeof(instant_t) + 1, buffer,
+                     "Federate %d failed to read the coded probe message from RTI.", _lf_my_fed_id);
+        if (buffer[0] != PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE) {
+            printf("WARNING: Federate %d was expecting a coded probe message from the RTI. Got %hhx instead.",
+                   _lf_my_fed_id, buffer[0]);
+            return;
+        }
         // Filter out noise
+        instant_t t2 = extract_ll(&(buffer[1]));
         instant_t r2 = get_physical_time();
-        interval_t coded_probe_distance = llabs(( r2 -
-                                              _lf_rti_socket_stat.local_physical_clock_snapshot_T2) -
-                                              (rti_physical_clock_snapshot - 
-                                               _lf_rti_socket_stat.remote_physical_clock_snapshot_T1));
+        interval_t coded_probe_distance = llabs((r2-r1) - ( t2-t1));
+        
+        DEBUG_PRINT("Federate %d received PHYSICAL_TIME_SYNC_MESSAGE message with time payload %lld from RTI.",
+                    _lf_my_fed_id, t2);
         // Check against the guard band
         // Do not discard if this is the inital clock synchronization
         if ((coded_probe_distance >= _LF_CLOCK_SYNC_GUARD_BAND) &&
@@ -737,9 +749,8 @@ void handle_physical_clock_sync_message_locked(unsigned char message_type) {
             printf("Federate %d coded probe packet stats:  Distance: %lld. r2 - r1 = %lld. t2 - t1 = %lld.\n",
                     _lf_my_fed_id,
                     coded_probe_distance,
-                    r2 - _lf_rti_socket_stat.local_physical_clock_snapshot_T2,
-                    rti_physical_clock_snapshot -
-                    _lf_rti_socket_stat.remote_physical_clock_snapshot_T1);
+                    r2 - r1,
+                    t2 - t1);
             return;
         }
 
