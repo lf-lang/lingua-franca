@@ -799,7 +799,7 @@ void handle_timestamp(federate_t *my_fed) {
  * 
  * @param fed_id The federate to send the physical time to.
  */
-void _lf_rti_send_physical_clock_already_locked(unsigned char message_type, int fed_id) {
+void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id) {
     unsigned char buffer[sizeof(instant_t) + 1];
     buffer[0] = message_type;
     instant_t current_physical_time = get_physical_time();
@@ -823,7 +823,7 @@ void _lf_rti_send_physical_clock_already_locked(unsigned char message_type, int 
  */
 void _lf_rti_send_physical_clock(unsigned char message_type, int fed_id) {
     pthread_mutex_lock(&rti_mutex);
-    _lf_rti_send_physical_clock_already_locked(message_type, fed_id);
+    _lf_rti_send_physical_clock_locked(message_type, fed_id);
     pthread_mutex_unlock(&rti_mutex);
 }
 
@@ -843,7 +843,7 @@ void* clock_synchronization_thread() {
             continue;
         }
         // Send the RTI's current physical time to the federate
-        _lf_rti_send_physical_clock_already_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1,federates[fed].id);
+        _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1,federates[fed].id);
     }
     while (num_feds_proposed_start < NUMBER_OF_FEDERATES) {
         // FIXME: Should have a timeout here?
@@ -867,7 +867,7 @@ void* clock_synchronization_thread() {
                 continue;
             }
             // Send the RTI's current physical time to the federate
-            _lf_rti_send_physical_clock_already_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, federates[fed].id);
+            _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, federates[fed].id);
         }
         pthread_mutex_unlock(&rti_mutex);
     }
@@ -905,8 +905,14 @@ void handle_federate_resign(federate_t *my_fed) {
 }
 
 void handle_physical_clock_sync_message(federate_t* my_fed) {
+    // Lock the mutex to prevent interference between sending the two
+    // coded probe messages.
+    pthread_mutex_lock(&rti_mutex);
     // Reply with a T4 type message
-    _lf_rti_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T4, my_fed->id);
+    _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T4, my_fed->id);
+    // Send the corresponding coded probe immediately after
+    _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE, my_fed->id);
+    pthread_mutex_unlock(&rti_mutex);
 }
 
 /** 
@@ -1247,7 +1253,7 @@ void initialize_clock() {
     
     struct timespec real_time_start = actualStartTime;
     // Set the epoch offset to zero (see tag.h)
-    _lf_epoch_offset = 0;
+    _lf_epoch_offset = 0LL;
     if (_LF_CLOCK != CLOCK_REALTIME) {
         clock_gettime(CLOCK_REALTIME, &real_time_start);
         instant_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
