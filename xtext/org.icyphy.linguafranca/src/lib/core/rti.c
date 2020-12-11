@@ -800,13 +800,25 @@ void handle_timestamp(federate_t *my_fed) {
  * @param fed_id The federate to send the physical time to.
  */
 void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id) {
+    if (federates[fed_id].state == NOT_CONNECTED) {
+        printf("WARNING: RTI failed to send physical time to federate %d. Socket not connected.", federates[fed_id].id);
+        return;
+    }
     unsigned char buffer[sizeof(instant_t) + 1];
     buffer[0] = message_type;
     instant_t current_physical_time = get_physical_time();
     encode_ll(current_physical_time, &(buffer[1]));
-    write_to_socket(federates[fed_id].socket, sizeof(instant_t)+1, buffer,
-                    "RTI failed to send physical time to federate %d.",
-                    federates[fed_id].id);
+    int bytes_written = write_to_socket2(federates[fed_id].socket, sizeof(instant_t)+1, buffer);
+    if (bytes_written < sizeof(instant_t) + 1) {
+        printf("WARNING: RTI failed to send physical time to federate %d: %s\n",
+                    federates[fed_id].id,
+                    strerror(errno));
+        if (errno == ENOTCONN) {
+            federates[fed_id].state = NOT_CONNECTED;
+            _lf_rti_mark_federate_requesting_stop(&federates[fed_id]);
+        }
+        return;
+    }
     DEBUG_PRINT("RTI sending PHYSICAL_TIME_SYNC_MESSAGE with timestamp %lld to federate %d.",
                  current_physical_time,
                  fed_id);
