@@ -1,0 +1,269 @@
+target Cpp;
+
+/**
+ * Reactor that starts the kernel of a benchmark, measures its runtime and outputs
+ * the results for a given number of iterations.
+ * 
+ * This reactor is instantiated by the main reactor of a benchmark and
+ * the startup reaction of this reactor is the starting point for that benchmark.
+ * The reactor runs a given number of iterations of the benchmark, measures
+ * the runtime of each iteration and outputs them. The benchmark itself is responsible
+ * to reset its state between the iterations.
+ * A benchmark can have an optional initialization phase that is run once before
+ * the first iteration and is not measured.
+ * A benchmark can have an optional cleanup phase after each iteration before
+ * the next iteration start which is not considered in the runtime measurement.
+ * 
+ * How to use:
+ * - Instantiate this reactor in the main reactor of the benchmark.
+ * - Connect the ports inStart, outIterationStart, inIterationFinish with
+ *   the appropriate reactors of the benchmark.
+ * - Optionally connect the ports for initialization and cleanup.
+ * - Create a startup reaction in the main reactor that calls printBenchmarkInfo(),
+ * 
+ * Prototype startup reaction in the main reactor of a benchmark:
+ *     runner = new BenchmarkRunner(numIterations=numIterations);
+ *     reaction(startup) -> runner.inStart {=
+ *         printBenchmarkInfo("ThreadRingReactorLFCppBenchmark");
+ *         printArgs("numIterations", numIterations, "numPings", numPings);
+ *         printSystemInfo();
+ *         runner.inStart.set();
+ *     =}
+ * 
+ * @param numIterations How many times to execute the kernel of the benchmark to measure.
+ * @param useInit Benchmarks needs initialization and handles the corresponding signals.
+ * @param useCleanupIteration Benchmark needs cleanup after each iteration and handles the corresponding signals.
+ * 
+ * @author Hannes Klein
+ */
+reactor BenchmarkRunner(numIterations:int(12), useInit:bool(false), useCleanupIteration:bool(false)) {
+    
+    private preamble {=
+        #include <algorithm>
+    =}
+    
+    /** Signal to start execution. Set this input from a startup reaction in the main reactor. */
+    input inStart:void;
+    
+    /** Signals for starting and finishing the kernel and runtime measurement. */
+    output outIterationStart:void;
+    input inIterationFinish:void;
+    
+    /** Signals for initializations that are not part of the measured kernel. */
+    output outInitializeStart:void;
+    input inInitializeFinish:void;
+    
+    /** Signals for cleanup operations after each iteration of the kernel. */
+    output outCleanupIterationStart:void;
+    input inCleanupIterationFinish:void;
+    
+    /** Events to switch between the phases of running the iterations. */
+    logical action initBenchmark:void;
+    logical action cleanupIteration:void;
+    logical action nextIteration:void;
+    logical action finish:void;
+    
+    /** Number of iterations already executed. */
+    state count:unsigned(0);
+    /** Start time for runtime measurement. */
+    state startTime:{=reactor::TimePoint=};
+    /** Runtime measurements. */
+    state measuredTimes:{=std::vector<reactor::Duration>=};
+    
+    
+    reaction(startup) {=
+        // initializations
+        measuredTimes = std::vector<reactor::Duration>( static_cast<std::vector<reactor::Duration>::size_type>(numIterations) );
+    =}
+    
+    reaction(inStart) -> nextIteration, initBenchmark {=
+        
+        if(useInit) {
+            initBenchmark.schedule();
+        } else {
+            nextIteration.schedule();
+        }
+    =}
+    
+    reaction(initBenchmark) -> outInitializeStart {=
+        outInitializeStart.set();
+    =}
+    
+    reaction(inInitializeFinish) -> nextIteration {=
+        nextIteration.schedule();
+    =}
+    
+    reaction(cleanupIteration) -> outCleanupIterationStart {=
+        outCleanupIterationStart.set();
+    =}
+    
+    reaction(inCleanupIterationFinish) -> nextIteration {=
+        nextIteration.schedule();
+    =}
+    
+    reaction(nextIteration) -> outIterationStart, finish {=
+        
+        if (count < numIterations) { 
+            startTime = get_physical_time();
+            outIterationStart.set();
+        } else {
+            finish.schedule();
+        }
+    =}
+    
+    reaction(inIterationFinish) -> nextIteration, cleanupIteration {=
+        
+        auto end_time = get_physical_time();
+        auto duration = end_time - startTime;
+        measuredTimes[count] = duration;
+        count += 1;
+        
+        auto duration_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(duration);
+        std::cout << "Iteration " << count << " - " << duration_ms.count() << " ms\n";
+        
+        if(useCleanupIteration) {
+            cleanupIteration.schedule();
+        } else {
+            nextIteration.schedule();
+        }
+    =}
+    
+    reaction(finish) {=
+        
+        std::vector<double> measuredMillis;
+        for(auto& t: measuredTimes) {
+            measuredMillis.push_back(std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(t).count());
+        } 
+        std::sort(begin(measuredMillis), end(measuredMillis));
+        
+        std::cout << std::endl << "Execution - Summary:" << std::endl;
+        printf(execTimeOutputFormat.c_str(), "Best Time", measuredMillis.front());
+        printf(execTimeOutputFormat.c_str(), "Worst Time", measuredMillis.back());
+        printf(execTimeOutputFormat.c_str(), "Median", median(measuredMillis));
+        
+        environment()->sync_shutdown();
+    =}
+    
+    private preamble {=
+        
+        static double median(std::vector<double> execTimes) {
+            if(execTimes.empty()) {
+                return 0.0;
+            }
+            
+            int size = execTimes.size();
+            int middle = size / 2;
+            if(size % 2 == 1) {
+                return execTimes[middle];
+            } else {
+                return (execTimes[middle-1] + execTimes[middle]) / 2;
+            }
+        }
+    =}
+    
+    public preamble {=
+        
+        static std::string argOutputFormat = "%25s = ";
+        static std::string argsLine = "Arguments:";
+        static std::string execTimeOutputFormat = "%20s: %9.3f ms\n";
+        
+        /**
+         * Global functions to print info about the benchmark that are supposed
+         * to be called by the main reactor of the benchmark.
+         */
+        void printBenchmarkInfo(std::string benchmarkId = "unknown");
+        void printSystemInfo();
+        
+        // primary template undefined
+        template <typename... Tn>
+        void printArgsRecursion(Tn... args);
+        
+        // template specialization
+        template <>
+        void printArgsRecursion<>();
+        
+        // template specialization
+        template <typename T, typename... Tn>
+        void printArgsRecursion(std::string name, T arg, Tn... args) {
+            printf(argOutputFormat.c_str(), name.c_str());
+            std::cout << arg << std::endl;
+            printArgsRecursion(args...);
+        }
+        
+        // template specialization
+        template <typename T, typename... Tn>
+        void printArgsRecursion(const char * name, T arg, Tn... args) {
+            printf(argOutputFormat.c_str(), name);
+            std::cout << arg << std::endl;
+            printArgsRecursion(args...);
+        }
+        
+        // primary template undefined
+        template <typename... Tn>
+        void printArgs(Tn... args);
+        
+        // template specialization
+        template <typename T, typename... Tn>
+        void printArgs(std::string name, T arg, Tn... args) {
+            std::cout << argsLine << std::endl;
+            printArgsRecursion(name, arg, args...);
+        }
+        
+        // template specialization
+        template <typename T, typename... Tn>
+        void printArgs(const char * name, T arg, Tn... args) {
+            std::cout << argsLine << std::endl;
+            printArgsRecursion(name, arg, args...);
+        }
+        
+        // template specialization
+        template <>
+        void printArgs<>();
+    =}
+    
+    private preamble {=
+        
+        void printBenchmarkInfo(std::string benchmarkId) {
+            std::cout << "Benchmark: " << benchmarkId << std::endl;
+        }
+        
+        void printSystemInfo() {
+            
+            //TODO print more system info?
+            // other platform independent approach to find system info than preprocessor symbols?
+            
+            std::cout << "System information:" << std::endl; 
+            printf(argOutputFormat.c_str(), "O/S Name");
+            
+            #ifdef _WIN32
+            std::cout << "Windows 32-bit";
+            #elif _WIN64
+            std::cout << "Windows 64-bit";
+            #elif __APPLE__ || __MACH__
+            std::cout << "Mac OSX";
+            #elif __linux__
+            std::cout << "Linux";
+            #elif __FreeBSD__
+            std::cout << "FreeBSD";
+            #elif __unix || __unix__
+            std::cout << "Unix";
+            #else
+            std::cout << "Other";
+            #endif
+            
+            std::cout << std::endl;
+        }
+        
+        // template specialization
+        template <>
+        void printArgsRecursion<>() {
+            // do nothing
+        }
+        
+        // template specialization
+        template <>
+        void printArgs<>() {
+            std::cout << argsLine << " none" << std::endl;
+        }
+    =}
+}
