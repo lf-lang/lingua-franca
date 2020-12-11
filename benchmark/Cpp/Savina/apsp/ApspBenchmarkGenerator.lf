@@ -1,0 +1,977 @@
+/**
+ * Parallelism benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * This version manually connects the reactors.
+ * 
+ * @author Hannes Klein
+ */
+
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D blockSize=50
+# -D numNodes=300
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'blockSize' in globals():
+    blockSize = int(blockSize)
+  else:
+    globals()['blockSize'] = 50
+  
+  if 'numNodes' in globals():
+    numNodes = int(numNodes)
+  else:
+    globals()['numNodes'] = 300
+  
+  if numNodes % blockSize != 0:
+    cog.error(f'numNodes={numNodes} must be a multiple of blockSize={blockSize}')
+  
+  # define the following variables for convenience
+  globals()['numBlocksInSingleDim'] = int(numNodes / blockSize);
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// blockSize = {blockSize}')
+  cog.outl(f'// numNodes = {numNodes}')
+]]] */
+// Generated file with the following parameters:
+// blockSize = 50
+// numNodes = 300
+// [[[end]]]
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "../IncludeHeaders.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+public preamble {=
+    using MatrixOfLong = std::vector<std::vector<long>>;
+    
+    struct ApspResultMessage {
+      int k;
+      int myBlockId;
+      reactor::ImmutableValuePtr<MatrixOfLong> initData;
+    
+      ApspResultMessage() {}
+    
+      ApspResultMessage(int _k, int _myBlockId, reactor::ImmutableValuePtr<MatrixOfLong> _initData):
+        k(_k), myBlockId(_myBlockId), initData(_initData) {}
+    };
+=}
+
+reactor ApspFloydWarshallBlockReactor(myBlockId:int(-1), graphSize:int(300), blockSize:int(50)) {
+    
+    // initialized state
+    state neighborDataPerIteration:{=std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>=};
+    state numBlocksInSingleDim:int(-1);
+    state numNeighbors:int(-1);
+    state rowOffset:int(-1); // row offset of the block of this reactor
+    state colOffset:int(-1); // column offset of the block of this reactor
+    state currentIterData:{=reactor::ImmutableValuePtr<MatrixOfLong>=};
+    state k:int(-1); // iteration counter
+    state reportedFinish:{=bool=}(false);
+    
+    state inNeighborsRow:{=std::vector<reactor::Input<ApspResultMessage> *>=};
+    state inNeighborsCol:{=std::vector<reactor::Input<ApspResultMessage> *>=};
+    
+    output outNeighborsBroadcast:{=ApspResultMessage=};
+    
+    /* [[[cog
+      for i in range(numBlocksInSingleDim):
+        cog.outl(f'input inNeighborRow{i}:{{=ApspResultMessage=}};')
+      for i in range(numBlocksInSingleDim):
+        cog.outl(f'input inNeighborCol{i}:{{=ApspResultMessage=}};')
+    ]]] */
+    input inNeighborRow0:{=ApspResultMessage=};
+    input inNeighborRow1:{=ApspResultMessage=};
+    input inNeighborRow2:{=ApspResultMessage=};
+    input inNeighborRow3:{=ApspResultMessage=};
+    input inNeighborRow4:{=ApspResultMessage=};
+    input inNeighborRow5:{=ApspResultMessage=};
+    input inNeighborCol0:{=ApspResultMessage=};
+    input inNeighborCol1:{=ApspResultMessage=};
+    input inNeighborCol2:{=ApspResultMessage=};
+    input inNeighborCol3:{=ApspResultMessage=};
+    input inNeighborCol4:{=ApspResultMessage=};
+    input inNeighborCol5:{=ApspResultMessage=};
+    // [[[end]]]
+    
+    input inInitializeMatrix:{=MatrixOfLong=};
+    output outFinished:void;
+    
+    logical action notifyNeighbors;
+    
+    reaction(startup) {=
+        
+        // one time initializations
+        numBlocksInSingleDim = graphSize / blockSize;
+        numNeighbors = 2 * (numBlocksInSingleDim - 1);
+        rowOffset = (myBlockId / numBlocksInSingleDim) * blockSize;
+        colOffset = (myBlockId % numBlocksInSingleDim) * blockSize;
+        
+        // init collection of ports
+        /* [[[cog
+          cog.outl(f'inNeighborsRow = std::vector<reactor::Input<ApspResultMessage> *>({numBlocksInSingleDim});')
+          cog.outl(f'inNeighborsCol = std::vector<reactor::Input<ApspResultMessage> *>({numBlocksInSingleDim});')
+          for i in range(numBlocksInSingleDim):
+            cog.outl(f'inNeighborsRow[{i}] = &inNeighborRow{i};')
+            cog.outl(f'inNeighborsCol[{i}] = &inNeighborCol{i};')
+        ]]] */
+        inNeighborsRow = std::vector<reactor::Input<ApspResultMessage> *>(6);
+        inNeighborsCol = std::vector<reactor::Input<ApspResultMessage> *>(6);
+        inNeighborsRow[0] = &inNeighborRow0;
+        inNeighborsCol[0] = &inNeighborCol0;
+        inNeighborsRow[1] = &inNeighborRow1;
+        inNeighborsCol[1] = &inNeighborCol1;
+        inNeighborsRow[2] = &inNeighborRow2;
+        inNeighborsCol[2] = &inNeighborCol2;
+        inNeighborsRow[3] = &inNeighborRow3;
+        inNeighborsCol[3] = &inNeighborCol3;
+        inNeighborsRow[4] = &inNeighborRow4;
+        inNeighborsCol[4] = &inNeighborCol4;
+        inNeighborsRow[5] = &inNeighborRow5;
+        inNeighborsCol[5] = &inNeighborCol5;
+        // [[[end]]]
+    =}
+    
+    reaction(inInitializeMatrix) -> notifyNeighbors {=
+        
+        currentIterData = reactor::ImmutableValuePtr<MatrixOfLong>(getBlock(inInitializeMatrix.get(), myBlockId, graphSize, blockSize));
+        
+        // reset local state
+        neighborDataPerIteration.clear();
+        k = -1;
+        reportedFinish =false;
+        
+        // start execution
+        notifyNeighbors.schedule();
+    =}
+    
+    reaction(notifyNeighbors) -> outNeighborsBroadcast {=
+        
+        //notify all neighbors
+        reactor::ImmutableValuePtr<ApspResultMessage> resultMessage =
+          reactor::make_immutable_value<ApspResultMessage>(k, myBlockId, currentIterData);
+        outNeighborsBroadcast.set(resultMessage);
+    =}
+    
+    reaction(
+        /* [[[cog
+          for i in range(numBlocksInSingleDim):
+            cog.outl(f'inNeighborRow{i},')
+            cog.out(f'inNeighborCol{i}')
+            if(i < numBlocksInSingleDim-1):
+              cog.outl(',')
+            else:
+              cog.outl('')
+        ]]] */
+        inNeighborRow0,
+        inNeighborCol0,
+        inNeighborRow1,
+        inNeighborCol1,
+        inNeighborRow2,
+        inNeighborCol2,
+        inNeighborRow3,
+        inNeighborCol3,
+        inNeighborRow4,
+        inNeighborCol4,
+        inNeighborRow5,
+        inNeighborCol5
+        // [[[end]]]
+      ) -> notifyNeighbors, outFinished {=
+        
+        // do nothing if complete
+        if(k == graphSize - 1) {
+            if(doPrint && !printed && myBlockId == 0) {
+                // debugging and result checking
+                print(*currentIterData);
+                printed = 1;
+            }
+            return;
+        }
+        
+        // collect all input messages
+        bool haveAllData = false;
+        for(int i = 0; i < inNeighborsRow.size(); ++i) {
+            if(inNeighborsRow[i]->is_present()) {
+                haveAllData |= storeIterationData(inNeighborsRow[i]->get(), neighborDataPerIteration, numNeighbors);
+            }
+        }
+        for(int i = 0; i < inNeighborsCol.size(); ++i) {
+            if(inNeighborsCol[i]->is_present()) {
+                haveAllData |= storeIterationData(inNeighborsCol[i]->get(), neighborDataPerIteration, numNeighbors);
+            }
+        }
+        
+        if(!haveAllData) return;
+        
+        k += 1;
+        
+        // perform computation
+        reactor::MutableValuePtr<MatrixOfLong> nextIterData =
+          reactor::make_mutable_value<MatrixOfLong>(blockSize, std::vector<long>(blockSize, 0));
+        
+        for(int i = 0; i < blockSize; i++) {
+            for(int j = 0; j < blockSize; j++) {
+                int gi = rowOffset + i;
+                int gj = colOffset + j;
+                
+                long newIterData =
+                    elementAt(gi, k, k - 1, currentIterData,
+                        blockSize, numBlocksInSingleDim, myBlockId, neighborDataPerIteration) +
+                    elementAt(k, gj, k - 1, currentIterData,
+                        blockSize, numBlocksInSingleDim, myBlockId, neighborDataPerIteration);
+                (*nextIterData)[i][j] = std::min((*currentIterData)[i][j], newIterData);
+            }
+        }
+        
+        currentIterData = reactor::ImmutableValuePtr(std::move(nextIterData));
+        neighborDataPerIteration.clear();
+        notifyNeighbors.schedule();
+        
+        if(k == graphSize - 1) {
+            outFinished.set();
+        }
+    =}
+    
+    private preamble {=
+        
+        // invisible local state for debugging
+        static int printed = 0;
+        static int doPrint = 1;
+        
+        //helper functions
+        
+        reactor::MutableValuePtr<MatrixOfLong> getBlock(
+            const reactor::ImmutableValuePtr<MatrixOfLong>& srcData, int myBlockId, int N, int B) {
+            
+            reactor::MutableValuePtr<MatrixOfLong> localData =
+                reactor::make_mutable_value<MatrixOfLong>(std::vector(B, std::vector<long>(B, 0)));
+            
+            int numBlocksPerDim = N/B;
+            int globalStartRow = (myBlockId / numBlocksPerDim) * B;
+            int globalStartCol = (myBlockId % numBlocksPerDim) * B;
+            
+            for(int i = 0; i < B; i++) {
+                for(int j = 0; j < B; j++) {
+                    (*localData)[i][j] = (*srcData)[i + globalStartRow][j + globalStartCol];
+                }
+            }
+            return localData;
+        }
+        
+        bool storeIterationData(const reactor::ImmutableValuePtr<ApspResultMessage>& inData,
+          std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>& neighborDataPerIteration,
+          int numNeighbors) {
+          neighborDataPerIteration.insert(
+                std::pair<int, reactor::ImmutableValuePtr<MatrixOfLong>>(inData->myBlockId, inData->initData));
+            return neighborDataPerIteration.size() == numNeighbors;
+        }
+        
+        long elementAt(int row, int col, int srcIter, const reactor::ImmutableValuePtr<MatrixOfLong>& prevIterData,
+            int blockSize, int numBlocksInSingleDim, int myBlockId,
+            std::map<int, reactor::ImmutableValuePtr<MatrixOfLong>>& neighborDataPerIteration) {
+            
+            int destBlockId = ((row / blockSize) * numBlocksInSingleDim) + (col / blockSize);
+            int localRow = row % blockSize;
+            int localCol = col % blockSize;
+            
+            if(destBlockId == myBlockId) {
+                return (*prevIterData)[localRow][localCol];
+            } else {
+                reactor::ImmutableValuePtr<MatrixOfLong>& blockData = neighborDataPerIteration.at(destBlockId);
+                return (*blockData)[localRow][localCol];
+            }
+        }
+        
+        void print(const MatrixOfLong& array) {
+            for(auto vec: array) {
+                for(auto lon: vec) {
+                    std::cout << lon << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+    =}
+}
+
+reactor MatrixInitializerReactor(graphSize:int(300), blockSize:int(50), maxEdgeWeight:int(100)) {
+    
+    state graphData:{=reactor::ImmutableValuePtr<MatrixOfLong>=};
+    state numBlocksFinished:int(0);
+    
+    /* [[[cog
+      cog.outl(f'output[{numBlocksInSingleDim * numBlocksInSingleDim}] outSendInitialMatrix:{{=MatrixOfLong=}};')
+      cog.outl(f'input[{numBlocksInSingleDim * numBlocksInSingleDim}] inFinished:void;')
+    ]]] */
+    output[36] outSendInitialMatrix:{=MatrixOfLong=};
+    input[36] inFinished:void;
+    // [[[end]]]
+    
+    input inInitializationStart:void;
+    output outInitializationFinished:void;
+    input inCleanupIterationStart:void;
+    output outCleanupIterationFinished:void;
+    input inStart:void;
+    output outFinished:void;
+    
+    reaction(inInitializationStart) -> outInitializationFinished {=
+        // initialization of graph is not measured
+        graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(graphSize, maxEdgeWeight));
+        outInitializationFinished.set();
+    =}
+    
+    reaction(inCleanupIterationStart) -> outCleanupIterationFinished {=
+        
+        //TODO check if result is correct
+        
+        // initialization of the graph for the next iteration
+        graphData = reactor::ImmutableValuePtr<MatrixOfLong>(generateGraph(graphSize, maxEdgeWeight));
+        outCleanupIterationFinished.set();
+    =}
+    
+    reaction(inStart) -> outSendInitialMatrix {=
+        
+        // reset local state
+        numBlocksFinished = 0;
+        
+        // start execution
+        for(int i = 0; i < outSendInitialMatrix.size(); ++i) {
+            outSendInitialMatrix[i].set(graphData);
+        }
+    =}
+    
+    reaction(inFinished) -> outFinished {=
+        
+        for(int i = 0; i < inFinished.size(); ++i) {
+            if(inFinished[i].is_present()) {
+                numBlocksFinished += 1;
+                if(numBlocksFinished >= ((graphSize / blockSize) * (graphSize / blockSize))) {
+                    outFinished.set();
+                }
+            }
+        }
+    =}
+    
+    private preamble {=
+        
+        #include "PseudoRandom.hh"
+        
+        reactor::MutableValuePtr<MatrixOfLong> generateGraph(int N, int W) {
+            PseudoRandom random(N);
+            reactor::MutableValuePtr<MatrixOfLong> localData =
+                reactor::make_mutable_value<MatrixOfLong>(std::vector(N, std::vector<long>(N, 0)));
+            //MatrixOfLong localData(N, std::vector<long>(N, 0));
+            
+            for(int i = 0; i < N; i++) {
+                for(int j = i+1; j < N; j++) {
+                    int r = random.nextInt(W)+1;
+                    (*localData)[i][j] = r;
+                    (*localData)[j][i] = r;
+                }
+            }
+            
+            return localData;
+        }
+    =}
+}
+
+
+main reactor ApspFloydWarshallReactor(numIterations:int(12), maxEdgeWeight:int(100)) {
+    
+    /* [[[cog
+      cog.outl(f'init = new MatrixInitializerReactor(graphSize={numNodes}, maxEdgeWeight=maxEdgeWeight);')
+    ]]] */
+    init = new MatrixInitializerReactor(graphSize=300, maxEdgeWeight=maxEdgeWeight);
+    // [[[end]]]
+    runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
+    
+    runner.outInitializeStart -> init.inInitializationStart;
+    init.outInitializationFinished -> runner.inInitializeFinish;
+    runner.outCleanupIterationStart -> init.inCleanupIterationStart;
+    init.outCleanupIterationFinished -> runner.inCleanupIterationFinish;
+    runner.outIterationStart -> init.inStart;
+    init.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("ApspBenchmark");
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", {numNodes}, "blockSize", {blockSize});')
+        ]]] */
+        printArgs("numIterations", numIterations, "maxEdgeWeight", maxEdgeWeight, "numNodes", 300, "blockSize", 50);
+        /// [[[end]]]
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      for i in range(numBlocksInSingleDim):
+        for j in range(numBlocksInSingleDim):
+          cog.outl(f'block{i}_{j} = new ApspFloydWarshallBlockReactor(myBlockId={i * numBlocksInSingleDim + j}, graphSize={numNodes}, blockSize={blockSize});')
+    ]]] */
+    block0_0 = new ApspFloydWarshallBlockReactor(myBlockId=0, graphSize=300, blockSize=50);
+    block0_1 = new ApspFloydWarshallBlockReactor(myBlockId=1, graphSize=300, blockSize=50);
+    block0_2 = new ApspFloydWarshallBlockReactor(myBlockId=2, graphSize=300, blockSize=50);
+    block0_3 = new ApspFloydWarshallBlockReactor(myBlockId=3, graphSize=300, blockSize=50);
+    block0_4 = new ApspFloydWarshallBlockReactor(myBlockId=4, graphSize=300, blockSize=50);
+    block0_5 = new ApspFloydWarshallBlockReactor(myBlockId=5, graphSize=300, blockSize=50);
+    block1_0 = new ApspFloydWarshallBlockReactor(myBlockId=6, graphSize=300, blockSize=50);
+    block1_1 = new ApspFloydWarshallBlockReactor(myBlockId=7, graphSize=300, blockSize=50);
+    block1_2 = new ApspFloydWarshallBlockReactor(myBlockId=8, graphSize=300, blockSize=50);
+    block1_3 = new ApspFloydWarshallBlockReactor(myBlockId=9, graphSize=300, blockSize=50);
+    block1_4 = new ApspFloydWarshallBlockReactor(myBlockId=10, graphSize=300, blockSize=50);
+    block1_5 = new ApspFloydWarshallBlockReactor(myBlockId=11, graphSize=300, blockSize=50);
+    block2_0 = new ApspFloydWarshallBlockReactor(myBlockId=12, graphSize=300, blockSize=50);
+    block2_1 = new ApspFloydWarshallBlockReactor(myBlockId=13, graphSize=300, blockSize=50);
+    block2_2 = new ApspFloydWarshallBlockReactor(myBlockId=14, graphSize=300, blockSize=50);
+    block2_3 = new ApspFloydWarshallBlockReactor(myBlockId=15, graphSize=300, blockSize=50);
+    block2_4 = new ApspFloydWarshallBlockReactor(myBlockId=16, graphSize=300, blockSize=50);
+    block2_5 = new ApspFloydWarshallBlockReactor(myBlockId=17, graphSize=300, blockSize=50);
+    block3_0 = new ApspFloydWarshallBlockReactor(myBlockId=18, graphSize=300, blockSize=50);
+    block3_1 = new ApspFloydWarshallBlockReactor(myBlockId=19, graphSize=300, blockSize=50);
+    block3_2 = new ApspFloydWarshallBlockReactor(myBlockId=20, graphSize=300, blockSize=50);
+    block3_3 = new ApspFloydWarshallBlockReactor(myBlockId=21, graphSize=300, blockSize=50);
+    block3_4 = new ApspFloydWarshallBlockReactor(myBlockId=22, graphSize=300, blockSize=50);
+    block3_5 = new ApspFloydWarshallBlockReactor(myBlockId=23, graphSize=300, blockSize=50);
+    block4_0 = new ApspFloydWarshallBlockReactor(myBlockId=24, graphSize=300, blockSize=50);
+    block4_1 = new ApspFloydWarshallBlockReactor(myBlockId=25, graphSize=300, blockSize=50);
+    block4_2 = new ApspFloydWarshallBlockReactor(myBlockId=26, graphSize=300, blockSize=50);
+    block4_3 = new ApspFloydWarshallBlockReactor(myBlockId=27, graphSize=300, blockSize=50);
+    block4_4 = new ApspFloydWarshallBlockReactor(myBlockId=28, graphSize=300, blockSize=50);
+    block4_5 = new ApspFloydWarshallBlockReactor(myBlockId=29, graphSize=300, blockSize=50);
+    block5_0 = new ApspFloydWarshallBlockReactor(myBlockId=30, graphSize=300, blockSize=50);
+    block5_1 = new ApspFloydWarshallBlockReactor(myBlockId=31, graphSize=300, blockSize=50);
+    block5_2 = new ApspFloydWarshallBlockReactor(myBlockId=32, graphSize=300, blockSize=50);
+    block5_3 = new ApspFloydWarshallBlockReactor(myBlockId=33, graphSize=300, blockSize=50);
+    block5_4 = new ApspFloydWarshallBlockReactor(myBlockId=34, graphSize=300, blockSize=50);
+    block5_5 = new ApspFloydWarshallBlockReactor(myBlockId=35, graphSize=300, blockSize=50);
+    // [[[end]]]
+    
+    init.outSendInitialMatrix ->
+        /* [[[cog
+          for i in range(numBlocksInSingleDim):
+            for j in range(numBlocksInSingleDim):
+              cog.out(f'block{i}_{j}.inInitializeMatrix')
+              if (i * numBlocksInSingleDim + j) < (numBlocksInSingleDim * numBlocksInSingleDim - 1):
+                cog.outl(',')
+              else:
+                cog.outl('')
+        ]]] */
+        block0_0.inInitializeMatrix,
+        block0_1.inInitializeMatrix,
+        block0_2.inInitializeMatrix,
+        block0_3.inInitializeMatrix,
+        block0_4.inInitializeMatrix,
+        block0_5.inInitializeMatrix,
+        block1_0.inInitializeMatrix,
+        block1_1.inInitializeMatrix,
+        block1_2.inInitializeMatrix,
+        block1_3.inInitializeMatrix,
+        block1_4.inInitializeMatrix,
+        block1_5.inInitializeMatrix,
+        block2_0.inInitializeMatrix,
+        block2_1.inInitializeMatrix,
+        block2_2.inInitializeMatrix,
+        block2_3.inInitializeMatrix,
+        block2_4.inInitializeMatrix,
+        block2_5.inInitializeMatrix,
+        block3_0.inInitializeMatrix,
+        block3_1.inInitializeMatrix,
+        block3_2.inInitializeMatrix,
+        block3_3.inInitializeMatrix,
+        block3_4.inInitializeMatrix,
+        block3_5.inInitializeMatrix,
+        block4_0.inInitializeMatrix,
+        block4_1.inInitializeMatrix,
+        block4_2.inInitializeMatrix,
+        block4_3.inInitializeMatrix,
+        block4_4.inInitializeMatrix,
+        block4_5.inInitializeMatrix,
+        block5_0.inInitializeMatrix,
+        block5_1.inInitializeMatrix,
+        block5_2.inInitializeMatrix,
+        block5_3.inInitializeMatrix,
+        block5_4.inInitializeMatrix,
+        block5_5.inInitializeMatrix
+        // [[[end]]]
+    ;
+    
+    /* [[[cog
+      for i in range(numBlocksInSingleDim):
+        for j in range(numBlocksInSingleDim):
+          cog.out(f'block{i}_{j}.outFinished')
+          if (i * numBlocksInSingleDim + j) < (numBlocksInSingleDim * numBlocksInSingleDim - 1):
+            cog.outl(',')
+          else:
+            cog.outl('')
+    ]]] */
+    block0_0.outFinished,
+    block0_1.outFinished,
+    block0_2.outFinished,
+    block0_3.outFinished,
+    block0_4.outFinished,
+    block0_5.outFinished,
+    block1_0.outFinished,
+    block1_1.outFinished,
+    block1_2.outFinished,
+    block1_3.outFinished,
+    block1_4.outFinished,
+    block1_5.outFinished,
+    block2_0.outFinished,
+    block2_1.outFinished,
+    block2_2.outFinished,
+    block2_3.outFinished,
+    block2_4.outFinished,
+    block2_5.outFinished,
+    block3_0.outFinished,
+    block3_1.outFinished,
+    block3_2.outFinished,
+    block3_3.outFinished,
+    block3_4.outFinished,
+    block3_5.outFinished,
+    block4_0.outFinished,
+    block4_1.outFinished,
+    block4_2.outFinished,
+    block4_3.outFinished,
+    block4_4.outFinished,
+    block4_5.outFinished,
+    block5_0.outFinished,
+    block5_1.outFinished,
+    block5_2.outFinished,
+    block5_3.outFinished,
+    block5_4.outFinished,
+    block5_5.outFinished
+    // [[[end]]]
+    -> init.inFinished;
+    
+    // create connection pattern of the matrix
+    /* [[[cog
+      for i in range(numBlocksInSingleDim):
+       for j in range(numBlocksInSingleDim):
+        for neighbor in range(numBlocksInSingleDim):
+         if neighbor != j:
+          cog.outl(f'block{i}_{j}.outNeighborsBroadcast -> block{i}_{neighbor}.inNeighborRow{j};')
+         if neighbor != i:
+          cog.outl(f'block{i}_{j}.outNeighborsBroadcast -> block{neighbor}_{j}.inNeighborCol{i};')
+        cog.outl('')
+    ]]] */
+    block0_0.outNeighborsBroadcast -> block0_1.inNeighborRow0;
+    block0_0.outNeighborsBroadcast -> block1_0.inNeighborCol0;
+    block0_0.outNeighborsBroadcast -> block0_2.inNeighborRow0;
+    block0_0.outNeighborsBroadcast -> block2_0.inNeighborCol0;
+    block0_0.outNeighborsBroadcast -> block0_3.inNeighborRow0;
+    block0_0.outNeighborsBroadcast -> block3_0.inNeighborCol0;
+    block0_0.outNeighborsBroadcast -> block0_4.inNeighborRow0;
+    block0_0.outNeighborsBroadcast -> block4_0.inNeighborCol0;
+    block0_0.outNeighborsBroadcast -> block0_5.inNeighborRow0;
+    block0_0.outNeighborsBroadcast -> block5_0.inNeighborCol0;
+
+    block0_1.outNeighborsBroadcast -> block0_0.inNeighborRow1;
+    block0_1.outNeighborsBroadcast -> block1_1.inNeighborCol0;
+    block0_1.outNeighborsBroadcast -> block0_2.inNeighborRow1;
+    block0_1.outNeighborsBroadcast -> block2_1.inNeighborCol0;
+    block0_1.outNeighborsBroadcast -> block0_3.inNeighborRow1;
+    block0_1.outNeighborsBroadcast -> block3_1.inNeighborCol0;
+    block0_1.outNeighborsBroadcast -> block0_4.inNeighborRow1;
+    block0_1.outNeighborsBroadcast -> block4_1.inNeighborCol0;
+    block0_1.outNeighborsBroadcast -> block0_5.inNeighborRow1;
+    block0_1.outNeighborsBroadcast -> block5_1.inNeighborCol0;
+
+    block0_2.outNeighborsBroadcast -> block0_0.inNeighborRow2;
+    block0_2.outNeighborsBroadcast -> block0_1.inNeighborRow2;
+    block0_2.outNeighborsBroadcast -> block1_2.inNeighborCol0;
+    block0_2.outNeighborsBroadcast -> block2_2.inNeighborCol0;
+    block0_2.outNeighborsBroadcast -> block0_3.inNeighborRow2;
+    block0_2.outNeighborsBroadcast -> block3_2.inNeighborCol0;
+    block0_2.outNeighborsBroadcast -> block0_4.inNeighborRow2;
+    block0_2.outNeighborsBroadcast -> block4_2.inNeighborCol0;
+    block0_2.outNeighborsBroadcast -> block0_5.inNeighborRow2;
+    block0_2.outNeighborsBroadcast -> block5_2.inNeighborCol0;
+
+    block0_3.outNeighborsBroadcast -> block0_0.inNeighborRow3;
+    block0_3.outNeighborsBroadcast -> block0_1.inNeighborRow3;
+    block0_3.outNeighborsBroadcast -> block1_3.inNeighborCol0;
+    block0_3.outNeighborsBroadcast -> block0_2.inNeighborRow3;
+    block0_3.outNeighborsBroadcast -> block2_3.inNeighborCol0;
+    block0_3.outNeighborsBroadcast -> block3_3.inNeighborCol0;
+    block0_3.outNeighborsBroadcast -> block0_4.inNeighborRow3;
+    block0_3.outNeighborsBroadcast -> block4_3.inNeighborCol0;
+    block0_3.outNeighborsBroadcast -> block0_5.inNeighborRow3;
+    block0_3.outNeighborsBroadcast -> block5_3.inNeighborCol0;
+
+    block0_4.outNeighborsBroadcast -> block0_0.inNeighborRow4;
+    block0_4.outNeighborsBroadcast -> block0_1.inNeighborRow4;
+    block0_4.outNeighborsBroadcast -> block1_4.inNeighborCol0;
+    block0_4.outNeighborsBroadcast -> block0_2.inNeighborRow4;
+    block0_4.outNeighborsBroadcast -> block2_4.inNeighborCol0;
+    block0_4.outNeighborsBroadcast -> block0_3.inNeighborRow4;
+    block0_4.outNeighborsBroadcast -> block3_4.inNeighborCol0;
+    block0_4.outNeighborsBroadcast -> block4_4.inNeighborCol0;
+    block0_4.outNeighborsBroadcast -> block0_5.inNeighborRow4;
+    block0_4.outNeighborsBroadcast -> block5_4.inNeighborCol0;
+
+    block0_5.outNeighborsBroadcast -> block0_0.inNeighborRow5;
+    block0_5.outNeighborsBroadcast -> block0_1.inNeighborRow5;
+    block0_5.outNeighborsBroadcast -> block1_5.inNeighborCol0;
+    block0_5.outNeighborsBroadcast -> block0_2.inNeighborRow5;
+    block0_5.outNeighborsBroadcast -> block2_5.inNeighborCol0;
+    block0_5.outNeighborsBroadcast -> block0_3.inNeighborRow5;
+    block0_5.outNeighborsBroadcast -> block3_5.inNeighborCol0;
+    block0_5.outNeighborsBroadcast -> block0_4.inNeighborRow5;
+    block0_5.outNeighborsBroadcast -> block4_5.inNeighborCol0;
+    block0_5.outNeighborsBroadcast -> block5_5.inNeighborCol0;
+
+    block1_0.outNeighborsBroadcast -> block0_0.inNeighborCol1;
+    block1_0.outNeighborsBroadcast -> block1_1.inNeighborRow0;
+    block1_0.outNeighborsBroadcast -> block1_2.inNeighborRow0;
+    block1_0.outNeighborsBroadcast -> block2_0.inNeighborCol1;
+    block1_0.outNeighborsBroadcast -> block1_3.inNeighborRow0;
+    block1_0.outNeighborsBroadcast -> block3_0.inNeighborCol1;
+    block1_0.outNeighborsBroadcast -> block1_4.inNeighborRow0;
+    block1_0.outNeighborsBroadcast -> block4_0.inNeighborCol1;
+    block1_0.outNeighborsBroadcast -> block1_5.inNeighborRow0;
+    block1_0.outNeighborsBroadcast -> block5_0.inNeighborCol1;
+
+    block1_1.outNeighborsBroadcast -> block1_0.inNeighborRow1;
+    block1_1.outNeighborsBroadcast -> block0_1.inNeighborCol1;
+    block1_1.outNeighborsBroadcast -> block1_2.inNeighborRow1;
+    block1_1.outNeighborsBroadcast -> block2_1.inNeighborCol1;
+    block1_1.outNeighborsBroadcast -> block1_3.inNeighborRow1;
+    block1_1.outNeighborsBroadcast -> block3_1.inNeighborCol1;
+    block1_1.outNeighborsBroadcast -> block1_4.inNeighborRow1;
+    block1_1.outNeighborsBroadcast -> block4_1.inNeighborCol1;
+    block1_1.outNeighborsBroadcast -> block1_5.inNeighborRow1;
+    block1_1.outNeighborsBroadcast -> block5_1.inNeighborCol1;
+
+    block1_2.outNeighborsBroadcast -> block1_0.inNeighborRow2;
+    block1_2.outNeighborsBroadcast -> block0_2.inNeighborCol1;
+    block1_2.outNeighborsBroadcast -> block1_1.inNeighborRow2;
+    block1_2.outNeighborsBroadcast -> block2_2.inNeighborCol1;
+    block1_2.outNeighborsBroadcast -> block1_3.inNeighborRow2;
+    block1_2.outNeighborsBroadcast -> block3_2.inNeighborCol1;
+    block1_2.outNeighborsBroadcast -> block1_4.inNeighborRow2;
+    block1_2.outNeighborsBroadcast -> block4_2.inNeighborCol1;
+    block1_2.outNeighborsBroadcast -> block1_5.inNeighborRow2;
+    block1_2.outNeighborsBroadcast -> block5_2.inNeighborCol1;
+
+    block1_3.outNeighborsBroadcast -> block1_0.inNeighborRow3;
+    block1_3.outNeighborsBroadcast -> block0_3.inNeighborCol1;
+    block1_3.outNeighborsBroadcast -> block1_1.inNeighborRow3;
+    block1_3.outNeighborsBroadcast -> block1_2.inNeighborRow3;
+    block1_3.outNeighborsBroadcast -> block2_3.inNeighborCol1;
+    block1_3.outNeighborsBroadcast -> block3_3.inNeighborCol1;
+    block1_3.outNeighborsBroadcast -> block1_4.inNeighborRow3;
+    block1_3.outNeighborsBroadcast -> block4_3.inNeighborCol1;
+    block1_3.outNeighborsBroadcast -> block1_5.inNeighborRow3;
+    block1_3.outNeighborsBroadcast -> block5_3.inNeighborCol1;
+
+    block1_4.outNeighborsBroadcast -> block1_0.inNeighborRow4;
+    block1_4.outNeighborsBroadcast -> block0_4.inNeighborCol1;
+    block1_4.outNeighborsBroadcast -> block1_1.inNeighborRow4;
+    block1_4.outNeighborsBroadcast -> block1_2.inNeighborRow4;
+    block1_4.outNeighborsBroadcast -> block2_4.inNeighborCol1;
+    block1_4.outNeighborsBroadcast -> block1_3.inNeighborRow4;
+    block1_4.outNeighborsBroadcast -> block3_4.inNeighborCol1;
+    block1_4.outNeighborsBroadcast -> block4_4.inNeighborCol1;
+    block1_4.outNeighborsBroadcast -> block1_5.inNeighborRow4;
+    block1_4.outNeighborsBroadcast -> block5_4.inNeighborCol1;
+
+    block1_5.outNeighborsBroadcast -> block1_0.inNeighborRow5;
+    block1_5.outNeighborsBroadcast -> block0_5.inNeighborCol1;
+    block1_5.outNeighborsBroadcast -> block1_1.inNeighborRow5;
+    block1_5.outNeighborsBroadcast -> block1_2.inNeighborRow5;
+    block1_5.outNeighborsBroadcast -> block2_5.inNeighborCol1;
+    block1_5.outNeighborsBroadcast -> block1_3.inNeighborRow5;
+    block1_5.outNeighborsBroadcast -> block3_5.inNeighborCol1;
+    block1_5.outNeighborsBroadcast -> block1_4.inNeighborRow5;
+    block1_5.outNeighborsBroadcast -> block4_5.inNeighborCol1;
+    block1_5.outNeighborsBroadcast -> block5_5.inNeighborCol1;
+
+    block2_0.outNeighborsBroadcast -> block0_0.inNeighborCol2;
+    block2_0.outNeighborsBroadcast -> block2_1.inNeighborRow0;
+    block2_0.outNeighborsBroadcast -> block1_0.inNeighborCol2;
+    block2_0.outNeighborsBroadcast -> block2_2.inNeighborRow0;
+    block2_0.outNeighborsBroadcast -> block2_3.inNeighborRow0;
+    block2_0.outNeighborsBroadcast -> block3_0.inNeighborCol2;
+    block2_0.outNeighborsBroadcast -> block2_4.inNeighborRow0;
+    block2_0.outNeighborsBroadcast -> block4_0.inNeighborCol2;
+    block2_0.outNeighborsBroadcast -> block2_5.inNeighborRow0;
+    block2_0.outNeighborsBroadcast -> block5_0.inNeighborCol2;
+
+    block2_1.outNeighborsBroadcast -> block2_0.inNeighborRow1;
+    block2_1.outNeighborsBroadcast -> block0_1.inNeighborCol2;
+    block2_1.outNeighborsBroadcast -> block1_1.inNeighborCol2;
+    block2_1.outNeighborsBroadcast -> block2_2.inNeighborRow1;
+    block2_1.outNeighborsBroadcast -> block2_3.inNeighborRow1;
+    block2_1.outNeighborsBroadcast -> block3_1.inNeighborCol2;
+    block2_1.outNeighborsBroadcast -> block2_4.inNeighborRow1;
+    block2_1.outNeighborsBroadcast -> block4_1.inNeighborCol2;
+    block2_1.outNeighborsBroadcast -> block2_5.inNeighborRow1;
+    block2_1.outNeighborsBroadcast -> block5_1.inNeighborCol2;
+
+    block2_2.outNeighborsBroadcast -> block2_0.inNeighborRow2;
+    block2_2.outNeighborsBroadcast -> block0_2.inNeighborCol2;
+    block2_2.outNeighborsBroadcast -> block2_1.inNeighborRow2;
+    block2_2.outNeighborsBroadcast -> block1_2.inNeighborCol2;
+    block2_2.outNeighborsBroadcast -> block2_3.inNeighborRow2;
+    block2_2.outNeighborsBroadcast -> block3_2.inNeighborCol2;
+    block2_2.outNeighborsBroadcast -> block2_4.inNeighborRow2;
+    block2_2.outNeighborsBroadcast -> block4_2.inNeighborCol2;
+    block2_2.outNeighborsBroadcast -> block2_5.inNeighborRow2;
+    block2_2.outNeighborsBroadcast -> block5_2.inNeighborCol2;
+
+    block2_3.outNeighborsBroadcast -> block2_0.inNeighborRow3;
+    block2_3.outNeighborsBroadcast -> block0_3.inNeighborCol2;
+    block2_3.outNeighborsBroadcast -> block2_1.inNeighborRow3;
+    block2_3.outNeighborsBroadcast -> block1_3.inNeighborCol2;
+    block2_3.outNeighborsBroadcast -> block2_2.inNeighborRow3;
+    block2_3.outNeighborsBroadcast -> block3_3.inNeighborCol2;
+    block2_3.outNeighborsBroadcast -> block2_4.inNeighborRow3;
+    block2_3.outNeighborsBroadcast -> block4_3.inNeighborCol2;
+    block2_3.outNeighborsBroadcast -> block2_5.inNeighborRow3;
+    block2_3.outNeighborsBroadcast -> block5_3.inNeighborCol2;
+
+    block2_4.outNeighborsBroadcast -> block2_0.inNeighborRow4;
+    block2_4.outNeighborsBroadcast -> block0_4.inNeighborCol2;
+    block2_4.outNeighborsBroadcast -> block2_1.inNeighborRow4;
+    block2_4.outNeighborsBroadcast -> block1_4.inNeighborCol2;
+    block2_4.outNeighborsBroadcast -> block2_2.inNeighborRow4;
+    block2_4.outNeighborsBroadcast -> block2_3.inNeighborRow4;
+    block2_4.outNeighborsBroadcast -> block3_4.inNeighborCol2;
+    block2_4.outNeighborsBroadcast -> block4_4.inNeighborCol2;
+    block2_4.outNeighborsBroadcast -> block2_5.inNeighborRow4;
+    block2_4.outNeighborsBroadcast -> block5_4.inNeighborCol2;
+
+    block2_5.outNeighborsBroadcast -> block2_0.inNeighborRow5;
+    block2_5.outNeighborsBroadcast -> block0_5.inNeighborCol2;
+    block2_5.outNeighborsBroadcast -> block2_1.inNeighborRow5;
+    block2_5.outNeighborsBroadcast -> block1_5.inNeighborCol2;
+    block2_5.outNeighborsBroadcast -> block2_2.inNeighborRow5;
+    block2_5.outNeighborsBroadcast -> block2_3.inNeighborRow5;
+    block2_5.outNeighborsBroadcast -> block3_5.inNeighborCol2;
+    block2_5.outNeighborsBroadcast -> block2_4.inNeighborRow5;
+    block2_5.outNeighborsBroadcast -> block4_5.inNeighborCol2;
+    block2_5.outNeighborsBroadcast -> block5_5.inNeighborCol2;
+
+    block3_0.outNeighborsBroadcast -> block0_0.inNeighborCol3;
+    block3_0.outNeighborsBroadcast -> block3_1.inNeighborRow0;
+    block3_0.outNeighborsBroadcast -> block1_0.inNeighborCol3;
+    block3_0.outNeighborsBroadcast -> block3_2.inNeighborRow0;
+    block3_0.outNeighborsBroadcast -> block2_0.inNeighborCol3;
+    block3_0.outNeighborsBroadcast -> block3_3.inNeighborRow0;
+    block3_0.outNeighborsBroadcast -> block3_4.inNeighborRow0;
+    block3_0.outNeighborsBroadcast -> block4_0.inNeighborCol3;
+    block3_0.outNeighborsBroadcast -> block3_5.inNeighborRow0;
+    block3_0.outNeighborsBroadcast -> block5_0.inNeighborCol3;
+
+    block3_1.outNeighborsBroadcast -> block3_0.inNeighborRow1;
+    block3_1.outNeighborsBroadcast -> block0_1.inNeighborCol3;
+    block3_1.outNeighborsBroadcast -> block1_1.inNeighborCol3;
+    block3_1.outNeighborsBroadcast -> block3_2.inNeighborRow1;
+    block3_1.outNeighborsBroadcast -> block2_1.inNeighborCol3;
+    block3_1.outNeighborsBroadcast -> block3_3.inNeighborRow1;
+    block3_1.outNeighborsBroadcast -> block3_4.inNeighborRow1;
+    block3_1.outNeighborsBroadcast -> block4_1.inNeighborCol3;
+    block3_1.outNeighborsBroadcast -> block3_5.inNeighborRow1;
+    block3_1.outNeighborsBroadcast -> block5_1.inNeighborCol3;
+
+    block3_2.outNeighborsBroadcast -> block3_0.inNeighborRow2;
+    block3_2.outNeighborsBroadcast -> block0_2.inNeighborCol3;
+    block3_2.outNeighborsBroadcast -> block3_1.inNeighborRow2;
+    block3_2.outNeighborsBroadcast -> block1_2.inNeighborCol3;
+    block3_2.outNeighborsBroadcast -> block2_2.inNeighborCol3;
+    block3_2.outNeighborsBroadcast -> block3_3.inNeighborRow2;
+    block3_2.outNeighborsBroadcast -> block3_4.inNeighborRow2;
+    block3_2.outNeighborsBroadcast -> block4_2.inNeighborCol3;
+    block3_2.outNeighborsBroadcast -> block3_5.inNeighborRow2;
+    block3_2.outNeighborsBroadcast -> block5_2.inNeighborCol3;
+
+    block3_3.outNeighborsBroadcast -> block3_0.inNeighborRow3;
+    block3_3.outNeighborsBroadcast -> block0_3.inNeighborCol3;
+    block3_3.outNeighborsBroadcast -> block3_1.inNeighborRow3;
+    block3_3.outNeighborsBroadcast -> block1_3.inNeighborCol3;
+    block3_3.outNeighborsBroadcast -> block3_2.inNeighborRow3;
+    block3_3.outNeighborsBroadcast -> block2_3.inNeighborCol3;
+    block3_3.outNeighborsBroadcast -> block3_4.inNeighborRow3;
+    block3_3.outNeighborsBroadcast -> block4_3.inNeighborCol3;
+    block3_3.outNeighborsBroadcast -> block3_5.inNeighborRow3;
+    block3_3.outNeighborsBroadcast -> block5_3.inNeighborCol3;
+
+    block3_4.outNeighborsBroadcast -> block3_0.inNeighborRow4;
+    block3_4.outNeighborsBroadcast -> block0_4.inNeighborCol3;
+    block3_4.outNeighborsBroadcast -> block3_1.inNeighborRow4;
+    block3_4.outNeighborsBroadcast -> block1_4.inNeighborCol3;
+    block3_4.outNeighborsBroadcast -> block3_2.inNeighborRow4;
+    block3_4.outNeighborsBroadcast -> block2_4.inNeighborCol3;
+    block3_4.outNeighborsBroadcast -> block3_3.inNeighborRow4;
+    block3_4.outNeighborsBroadcast -> block4_4.inNeighborCol3;
+    block3_4.outNeighborsBroadcast -> block3_5.inNeighborRow4;
+    block3_4.outNeighborsBroadcast -> block5_4.inNeighborCol3;
+
+    block3_5.outNeighborsBroadcast -> block3_0.inNeighborRow5;
+    block3_5.outNeighborsBroadcast -> block0_5.inNeighborCol3;
+    block3_5.outNeighborsBroadcast -> block3_1.inNeighborRow5;
+    block3_5.outNeighborsBroadcast -> block1_5.inNeighborCol3;
+    block3_5.outNeighborsBroadcast -> block3_2.inNeighborRow5;
+    block3_5.outNeighborsBroadcast -> block2_5.inNeighborCol3;
+    block3_5.outNeighborsBroadcast -> block3_3.inNeighborRow5;
+    block3_5.outNeighborsBroadcast -> block3_4.inNeighborRow5;
+    block3_5.outNeighborsBroadcast -> block4_5.inNeighborCol3;
+    block3_5.outNeighborsBroadcast -> block5_5.inNeighborCol3;
+
+    block4_0.outNeighborsBroadcast -> block0_0.inNeighborCol4;
+    block4_0.outNeighborsBroadcast -> block4_1.inNeighborRow0;
+    block4_0.outNeighborsBroadcast -> block1_0.inNeighborCol4;
+    block4_0.outNeighborsBroadcast -> block4_2.inNeighborRow0;
+    block4_0.outNeighborsBroadcast -> block2_0.inNeighborCol4;
+    block4_0.outNeighborsBroadcast -> block4_3.inNeighborRow0;
+    block4_0.outNeighborsBroadcast -> block3_0.inNeighborCol4;
+    block4_0.outNeighborsBroadcast -> block4_4.inNeighborRow0;
+    block4_0.outNeighborsBroadcast -> block4_5.inNeighborRow0;
+    block4_0.outNeighborsBroadcast -> block5_0.inNeighborCol4;
+
+    block4_1.outNeighborsBroadcast -> block4_0.inNeighborRow1;
+    block4_1.outNeighborsBroadcast -> block0_1.inNeighborCol4;
+    block4_1.outNeighborsBroadcast -> block1_1.inNeighborCol4;
+    block4_1.outNeighborsBroadcast -> block4_2.inNeighborRow1;
+    block4_1.outNeighborsBroadcast -> block2_1.inNeighborCol4;
+    block4_1.outNeighborsBroadcast -> block4_3.inNeighborRow1;
+    block4_1.outNeighborsBroadcast -> block3_1.inNeighborCol4;
+    block4_1.outNeighborsBroadcast -> block4_4.inNeighborRow1;
+    block4_1.outNeighborsBroadcast -> block4_5.inNeighborRow1;
+    block4_1.outNeighborsBroadcast -> block5_1.inNeighborCol4;
+
+    block4_2.outNeighborsBroadcast -> block4_0.inNeighborRow2;
+    block4_2.outNeighborsBroadcast -> block0_2.inNeighborCol4;
+    block4_2.outNeighborsBroadcast -> block4_1.inNeighborRow2;
+    block4_2.outNeighborsBroadcast -> block1_2.inNeighborCol4;
+    block4_2.outNeighborsBroadcast -> block2_2.inNeighborCol4;
+    block4_2.outNeighborsBroadcast -> block4_3.inNeighborRow2;
+    block4_2.outNeighborsBroadcast -> block3_2.inNeighborCol4;
+    block4_2.outNeighborsBroadcast -> block4_4.inNeighborRow2;
+    block4_2.outNeighborsBroadcast -> block4_5.inNeighborRow2;
+    block4_2.outNeighborsBroadcast -> block5_2.inNeighborCol4;
+
+    block4_3.outNeighborsBroadcast -> block4_0.inNeighborRow3;
+    block4_3.outNeighborsBroadcast -> block0_3.inNeighborCol4;
+    block4_3.outNeighborsBroadcast -> block4_1.inNeighborRow3;
+    block4_3.outNeighborsBroadcast -> block1_3.inNeighborCol4;
+    block4_3.outNeighborsBroadcast -> block4_2.inNeighborRow3;
+    block4_3.outNeighborsBroadcast -> block2_3.inNeighborCol4;
+    block4_3.outNeighborsBroadcast -> block3_3.inNeighborCol4;
+    block4_3.outNeighborsBroadcast -> block4_4.inNeighborRow3;
+    block4_3.outNeighborsBroadcast -> block4_5.inNeighborRow3;
+    block4_3.outNeighborsBroadcast -> block5_3.inNeighborCol4;
+
+    block4_4.outNeighborsBroadcast -> block4_0.inNeighborRow4;
+    block4_4.outNeighborsBroadcast -> block0_4.inNeighborCol4;
+    block4_4.outNeighborsBroadcast -> block4_1.inNeighborRow4;
+    block4_4.outNeighborsBroadcast -> block1_4.inNeighborCol4;
+    block4_4.outNeighborsBroadcast -> block4_2.inNeighborRow4;
+    block4_4.outNeighborsBroadcast -> block2_4.inNeighborCol4;
+    block4_4.outNeighborsBroadcast -> block4_3.inNeighborRow4;
+    block4_4.outNeighborsBroadcast -> block3_4.inNeighborCol4;
+    block4_4.outNeighborsBroadcast -> block4_5.inNeighborRow4;
+    block4_4.outNeighborsBroadcast -> block5_4.inNeighborCol4;
+
+    block4_5.outNeighborsBroadcast -> block4_0.inNeighborRow5;
+    block4_5.outNeighborsBroadcast -> block0_5.inNeighborCol4;
+    block4_5.outNeighborsBroadcast -> block4_1.inNeighborRow5;
+    block4_5.outNeighborsBroadcast -> block1_5.inNeighborCol4;
+    block4_5.outNeighborsBroadcast -> block4_2.inNeighborRow5;
+    block4_5.outNeighborsBroadcast -> block2_5.inNeighborCol4;
+    block4_5.outNeighborsBroadcast -> block4_3.inNeighborRow5;
+    block4_5.outNeighborsBroadcast -> block3_5.inNeighborCol4;
+    block4_5.outNeighborsBroadcast -> block4_4.inNeighborRow5;
+    block4_5.outNeighborsBroadcast -> block5_5.inNeighborCol4;
+
+    block5_0.outNeighborsBroadcast -> block0_0.inNeighborCol5;
+    block5_0.outNeighborsBroadcast -> block5_1.inNeighborRow0;
+    block5_0.outNeighborsBroadcast -> block1_0.inNeighborCol5;
+    block5_0.outNeighborsBroadcast -> block5_2.inNeighborRow0;
+    block5_0.outNeighborsBroadcast -> block2_0.inNeighborCol5;
+    block5_0.outNeighborsBroadcast -> block5_3.inNeighborRow0;
+    block5_0.outNeighborsBroadcast -> block3_0.inNeighborCol5;
+    block5_0.outNeighborsBroadcast -> block5_4.inNeighborRow0;
+    block5_0.outNeighborsBroadcast -> block4_0.inNeighborCol5;
+    block5_0.outNeighborsBroadcast -> block5_5.inNeighborRow0;
+
+    block5_1.outNeighborsBroadcast -> block5_0.inNeighborRow1;
+    block5_1.outNeighborsBroadcast -> block0_1.inNeighborCol5;
+    block5_1.outNeighborsBroadcast -> block1_1.inNeighborCol5;
+    block5_1.outNeighborsBroadcast -> block5_2.inNeighborRow1;
+    block5_1.outNeighborsBroadcast -> block2_1.inNeighborCol5;
+    block5_1.outNeighborsBroadcast -> block5_3.inNeighborRow1;
+    block5_1.outNeighborsBroadcast -> block3_1.inNeighborCol5;
+    block5_1.outNeighborsBroadcast -> block5_4.inNeighborRow1;
+    block5_1.outNeighborsBroadcast -> block4_1.inNeighborCol5;
+    block5_1.outNeighborsBroadcast -> block5_5.inNeighborRow1;
+
+    block5_2.outNeighborsBroadcast -> block5_0.inNeighborRow2;
+    block5_2.outNeighborsBroadcast -> block0_2.inNeighborCol5;
+    block5_2.outNeighborsBroadcast -> block5_1.inNeighborRow2;
+    block5_2.outNeighborsBroadcast -> block1_2.inNeighborCol5;
+    block5_2.outNeighborsBroadcast -> block2_2.inNeighborCol5;
+    block5_2.outNeighborsBroadcast -> block5_3.inNeighborRow2;
+    block5_2.outNeighborsBroadcast -> block3_2.inNeighborCol5;
+    block5_2.outNeighborsBroadcast -> block5_4.inNeighborRow2;
+    block5_2.outNeighborsBroadcast -> block4_2.inNeighborCol5;
+    block5_2.outNeighborsBroadcast -> block5_5.inNeighborRow2;
+
+    block5_3.outNeighborsBroadcast -> block5_0.inNeighborRow3;
+    block5_3.outNeighborsBroadcast -> block0_3.inNeighborCol5;
+    block5_3.outNeighborsBroadcast -> block5_1.inNeighborRow3;
+    block5_3.outNeighborsBroadcast -> block1_3.inNeighborCol5;
+    block5_3.outNeighborsBroadcast -> block5_2.inNeighborRow3;
+    block5_3.outNeighborsBroadcast -> block2_3.inNeighborCol5;
+    block5_3.outNeighborsBroadcast -> block3_3.inNeighborCol5;
+    block5_3.outNeighborsBroadcast -> block5_4.inNeighborRow3;
+    block5_3.outNeighborsBroadcast -> block4_3.inNeighborCol5;
+    block5_3.outNeighborsBroadcast -> block5_5.inNeighborRow3;
+
+    block5_4.outNeighborsBroadcast -> block5_0.inNeighborRow4;
+    block5_4.outNeighborsBroadcast -> block0_4.inNeighborCol5;
+    block5_4.outNeighborsBroadcast -> block5_1.inNeighborRow4;
+    block5_4.outNeighborsBroadcast -> block1_4.inNeighborCol5;
+    block5_4.outNeighborsBroadcast -> block5_2.inNeighborRow4;
+    block5_4.outNeighborsBroadcast -> block2_4.inNeighborCol5;
+    block5_4.outNeighborsBroadcast -> block5_3.inNeighborRow4;
+    block5_4.outNeighborsBroadcast -> block3_4.inNeighborCol5;
+    block5_4.outNeighborsBroadcast -> block4_4.inNeighborCol5;
+    block5_4.outNeighborsBroadcast -> block5_5.inNeighborRow4;
+
+    block5_5.outNeighborsBroadcast -> block5_0.inNeighborRow5;
+    block5_5.outNeighborsBroadcast -> block0_5.inNeighborCol5;
+    block5_5.outNeighborsBroadcast -> block5_1.inNeighborRow5;
+    block5_5.outNeighborsBroadcast -> block1_5.inNeighborCol5;
+    block5_5.outNeighborsBroadcast -> block5_2.inNeighborRow5;
+    block5_5.outNeighborsBroadcast -> block2_5.inNeighborCol5;
+    block5_5.outNeighborsBroadcast -> block5_3.inNeighborRow5;
+    block5_5.outNeighborsBroadcast -> block3_5.inNeighborCol5;
+    block5_5.outNeighborsBroadcast -> block5_4.inNeighborRow5;
+    block5_5.outNeighborsBroadcast -> block4_5.inNeighborCol5;
+
+    // [[[end]]]
+}
