@@ -715,7 +715,8 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
         DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
         pqueue_insert(reaction_q, reaction);
-        pthread_cond_signal(&reaction_q_changed);
+        // FIXME
+        // pthread_cond_signal(&reaction_q_changed);
     }
     pthread_mutex_unlock(&mutex);
     DEBUG_PRINT("pthread_mutex_unlock after queueing downstream reaction.");
@@ -781,11 +782,19 @@ void* worker(void* arg) {
                 __advancing_time = false;
                 DEBUG_PRINT("Worker %d: Done waiting for __next().", worker_number);
             } else {
+                // Logical time is not complete, and nothing on the reaction queue
+                // is ready to run.
                 // Wait for something to change (either a stop request or
                 // something went on the reaction queue.
                 DEBUG_PRINT("Worker %d: Waiting for items on the reaction queue.", worker_number);
                 tracepoint_worker_wait_starts(worker_number);
-                pthread_cond_wait(&reaction_q_changed, &mutex);
+                // FIXME:
+                struct timespec physical_time;
+                clock_gettime(CLOCK_REALTIME, &physical_time);
+                physical_time.tv_nsec += 1000000;
+                pthread_cond_timedwait(&reaction_q_changed, &mutex, &physical_time);
+                // pthread_cond_wait(&reaction_q_changed, &mutex);
+                // end of FIXME
                 tracepoint_worker_wait_ends(worker_number);
                 DEBUG_PRINT("Worker %d: Done waiting.", worker_number);
             }
@@ -806,9 +815,11 @@ void* worker(void* arg) {
             // If there are additional reactions on the reaction_q, notify one other
             // idle thread, if there is one, so that it can attempt to execute
             // that reaction.
+            /* FIXME
             if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
                 pthread_cond_signal(&reaction_q_changed);
-            }        
+            }
+            */
 
             bool violation = false;
             // If the reaction is tardy,
