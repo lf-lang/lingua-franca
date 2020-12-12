@@ -1093,7 +1093,7 @@ class CGenerator extends GeneratorBase {
                 '
                 pushd src-gen/core > /dev/null
                 echo "Copying LF core files for RTI to host «target»"
-                scp rti.c rti.h util.h util.c reactor.h pqueue.h trace.h «target»:«path»/src-gen/core
+                scp rti.c rti.h tag.c tag.h util.h util.c reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"
@@ -1155,11 +1155,11 @@ class CGenerator extends GeneratorBase {
                     '
                     pushd src-gen/core > /dev/null
                     echo "Copying LF core files to host «federate.host»"
-                    scp reactor_common.c reactor.h pqueue.c pqueue.h trace.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    scp federate.c pqueue.c pqueue.h reactor_common.c reactor_threaded.c reactor.h tag.c tag.h trace.c trace.h util.c util.h rti.h «federate.host»:«path»/src-gen/core
                     popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
+                    scp «filename»_«federate.name».c «FOR file:targetFilesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «compileCommand»"
                     ssh «federate.host» '\
@@ -1186,21 +1186,24 @@ class CGenerator extends GeneratorBase {
                 ''')                
             }
         }
-        pr(shCode, '''
-            echo "#### Bringing the RTI back to foreground"
-            fg 1
-            RTI=$! # Store the new pid of the RTI
-        ''')
-        // Wait for launched processes to finish
-        pr(shCode, '''
-            
-            # Wait for launched processes to finish.
-            # The errors are handled separately via trap.
-            for pid in ${pids[*]}; do
-                wait $pid
-            done
-            wait $RTI
-        ''')
+        if (host == 'localhost' || host == '0.0.0.0') {
+            // Local PID managements
+            pr(shCode, '''
+                echo "#### Bringing the RTI back to foreground"
+                fg 1
+                RTI=$! # Store the new pid of the RTI
+            ''')
+            // Wait for launched processes to finish
+            pr(shCode, '''
+                
+                # Wait for launched processes to finish.
+                # The errors are handled separately via trap.
+                for pid in ${pids[*]}; do
+                    wait $pid
+                done
+                wait $RTI
+            ''')
+        }
 
         // Write the launcher file.
         // Delete file previously produced, if any.
