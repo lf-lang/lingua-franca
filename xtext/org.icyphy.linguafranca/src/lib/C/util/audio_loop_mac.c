@@ -99,7 +99,7 @@ void callback (void *ignored, AudioQueueRef queue, AudioQueueBufferRef buf_ref) 
     // Make this the new buffer to write into.
     next_buffer = buf->mAudioData;
     // Clear out the next buffer.
-    memset(next_buffer, 0, BUFFER_SIZE * sizeof(int16_t));
+    memset(next_buffer, 0, AUDIO_BUFFER_SIZE * sizeof(int16_t));
     next_buffer_start_time += BUFFER_DURATION_NS;
     
     // Fill the buffer with any trailing sample data that
@@ -108,7 +108,7 @@ void callback (void *ignored, AudioQueueRef queue, AudioQueueBufferRef buf_ref) 
         struct note* note_instance = &(notes[note_to_use]);
     
         // Add as much of the note instance into the buffer as will fit.
-        for (int i = 0; i < BUFFER_SIZE; i++) {
+        for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
             if (note_instance->waveform == NULL || note_instance->volume == 0.0) {
                 continue;
             }
@@ -159,7 +159,7 @@ void* run_audio_loop(void* ignored) {
     // Double buffering. 
     AudioQueueBufferRef buf_ref1, buf_ref2;
     
-    int buffer_size_bytes = BUFFER_SIZE * 2;
+    int buffer_size_bytes = AUDIO_BUFFER_SIZE * 2;
     
     // Create an audio queue output with the specified format.
     // Third argument is an optional pointer to pass to the callback function.
@@ -281,7 +281,7 @@ int lf_play_audio_waveform(lf_waveform_t* waveform, float emphasis, instant_t st
     // for the buffer because the audio system has not yet invoked the
     // callback to swap buffers.  Here, we wait for the callback to
     // occur.
-    while (index_offset >= BUFFER_SIZE) {
+    while (index_offset >= AUDIO_BUFFER_SIZE) {
         pthread_cond_wait(&lf_audio_cond, &lf_audio_mutex);
         time_offset = get_logical_time() - next_buffer_start_time;
         index_offset = (time_offset * SAMPLE_RATE) / BILLION;
@@ -304,7 +304,7 @@ int lf_play_audio_waveform(lf_waveform_t* waveform, float emphasis, instant_t st
             note_instance->position = 0;
                         
             // Add as much of the note instance into the buffer as will fit.
-            for (int i = index_offset; i < BUFFER_SIZE; i++) {
+            for (int i = index_offset; i < AUDIO_BUFFER_SIZE; i++) {
                 // Calculate the value to add to the sound by averaging all the channels.
                 int value = 0;
                 for (int channel = 0; channel < waveform->num_channels; channel++) {
