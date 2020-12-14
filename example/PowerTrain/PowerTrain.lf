@@ -23,7 +23,7 @@ preamble {=
     } pedals;
 
 	int calc_brake_force(int angle) {  // ~0-600 Nm in Tesla Model 3
-        return 100 * angle + 50;
+        return 110 * angle;
     }
 
 	int calc_motor_torque(int angle) {
@@ -116,7 +116,7 @@ preamble {=
 reactor MotorControl {
 	
 	input brkOn:bool;
-	input accRate:int;
+	input angle:int;
 	output torque:int;
 	state braking:bool(true);
 	state accelerating:bool(false);
@@ -130,15 +130,15 @@ reactor MotorControl {
 	=}
 	
 	//@label Adjust torque unless car is braking 
-	reaction(accRate) -> torque {= 
+	reaction(angle) -> torque {= 
 		if (!self->braking) {
-			SET(torque, calc_motor_torque(accRate->value));
-			if (accRate->value > 0) {
+			SET(torque, calc_motor_torque(angle->value));
+			if (angle->value > 0) {
             	self->accelerating = true; 
             } else {
                 self->accelerating = false;
             }
-		} else if (accRate->value > 0){
+		} else if (angle->value > 0){
             printw("Cannot accelerate; release brake pedal first.\n");
         }
 	=}
@@ -246,6 +246,6 @@ main reactor PowerTrain {
 	bc.force -> b.force;
 	bp.applied -> mc.brkOn;
 	mc.torque -> m.torque;
-	a.angle -> mc.accRate;
+	a.angle -> mc.angle;
 	
 }
