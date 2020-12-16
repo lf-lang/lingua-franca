@@ -467,7 +467,8 @@
     </targlet>
   </setupTask>
   <setupTask
-      xsi:type="projects:ProjectsBuildTask"/>
+      xsi:type="projects:ProjectsBuildTask"
+      onlyNewProjects="true"/>
   <setupTask
       xsi:type="launching:LaunchTask"
       launcher="Generate LinguaFranca (lf) Language Infrastructure">
