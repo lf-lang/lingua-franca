@@ -59,6 +59,8 @@ def main(cfg):
 
     if target["run"] is not None:
         output = execute_command(target["run"])
+        times = hydra.utils.call(target["parser"], output)
+        print(times)
     else:
         raise ValueError(f"No run command provided for target {target_name}")
 
