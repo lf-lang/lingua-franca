@@ -151,12 +151,10 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
     
     reaction(startup) -> key, note, tick {=
         // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator()) {
+        if (start_sensor_simulator(master_message, master_message_length, 16)) {
             fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
             exit(1);
         }
-
-        show_message(master_message, master_message_length);
         
         // Register action to trigger on key press.
         register_sensor_key('\0', key);
@@ -225,31 +223,22 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
             SET(note, emphasis);
             beeped++;
         }
-        pthread_mutex_lock(&sensor_mutex);
         if (beeped > 0) {
             if (position & self->active_emphasis) {
-                printw("!");
+                show_tick("!");
             } else {
-                printw("*");
+                show_tick("*");
             }
         } else {
-            printw(".");
+            show_tick(".");
         }
         self->count++;
         if (self->count == 16) {
             self->active_rhythm = self->rhythm;
             self->active_emphasis = self->emphasis;
             self->count = 0;
-            int term_height, term_width;
-            getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-            self->cursor++;
-            if (self->cursor >= term_height) {
-                self->cursor = 0;
-            }
-            move(self->cursor, 0);
         }
-        refresh();
-        pthread_mutex_unlock(&sensor_mutex);
+        
         schedule(tick, self->tick_duration);
     =}
 }
@@ -294,12 +283,10 @@ reactor Player(sixteenth:time(200 msec)) {
     
     reaction(startup) -> key, note, tick {=
         // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator()) {
+        if (start_sensor_simulator(player_message, player_message_length, 16)) {
             fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
             exit(1);
         }
-
-        show_message(player_message, player_message_length);
         
         // Register action to trigger on key press.
         register_sensor_key('\0', key);
