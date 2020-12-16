@@ -5,3 +5,5 @@ gen: ["cog", "-r", "${benchmark.targets.lf-cpp.src_path}",
 compile: ["${lf_path}/bin/lfc", "${benchmark.targets.lf-cpp.src_path}"]
 run: ["bin/${benchmark.targets.lf-cpp.binary}",
       "${args:benchmark.targets.lf-cpp.run_args}"]
+parser:
+  _target_: "parser.parse_lfcpp_output"
