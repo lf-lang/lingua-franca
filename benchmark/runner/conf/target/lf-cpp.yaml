@@ -1,0 +1,7 @@
+# @package _group_
+name: lf-cpp
+gen: ["cog", "-r", "${benchmark.targets.lf-cpp.src_path}",
+      "${args:benchmark.targets.lf-cpp.gen_args}"]
+compile: ["${lf_path}/bin/lfc", "${benchmark.targets.lf-cpp.src_path}"]
+run: ["bin/${benchmark.targets.lf-cpp.binary}",
+      "${args:benchmark.targets.lf-cpp.run_args}"]
