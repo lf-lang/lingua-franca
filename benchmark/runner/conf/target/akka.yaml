@@ -1,0 +1,7 @@
+# @package _group_
+name: akka
+gen: null
+compile: null
+run: ["java", "-classpath", "${benchmark.targets.akka.jar}",
+      "${benchmark.targets.akka.class}",
+      "${args:benchmark.targets.akka.run_args}"]
