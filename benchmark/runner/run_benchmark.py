@@ -44,6 +44,16 @@ def main(cfg):
         return res
 
     # register the resolver for 'args:'
+
+    # HACK: When using multirun, we need to update the resolver for the new
+    # 'cfg.  However, OmegaConf throws an exception when the resolver was
+    # already registerd in another run.  Since OmegaConf does not seem to offer
+    # a way for deregistering a resolver we use this hack.
+    try:
+        omegaconf.basecontainer.BaseContainer._resolvers.pop("args")
+    except KeyError:
+        pass
+
     omegaconf.OmegaConf.register_resolver("args", resolve_args)
 
     log.info(f"Running {benchmark_name} using the {target_name} target.")
