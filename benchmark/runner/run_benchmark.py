@@ -5,10 +5,9 @@ import logging
 import multiprocessing
 import omegaconf
 import subprocess
-import sys
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("run_benchmark")
 
 
 @hydra.main(config_path="conf", config_name="default")
@@ -119,13 +118,14 @@ def execute_command(command):
     with subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
     ) as process:
+        cmd_log = logging.getLogger(command[0])
         while True:
             nextline = process.stdout.readline()
             if nextline == "" and process.poll() is not None:
                 break
             else:
                 output.append(nextline)
-                sys.stdout.write(nextline)
+                cmd_log.info(nextline.rstrip())
 
         if process.returncode != 0:
             raise RuntimeError(
