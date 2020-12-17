@@ -750,16 +750,12 @@ void* worker(void* arg) {
     int worker_number = ++worker_thread_count;
     DEBUG_PRINT("Worker thread %d started.", worker_number);
 
-    // The current reaction to be executed by this worker
-    reaction_t* current_reaction_to_execute;
-
-    // Iterate until the stop_tag is reached or reaction queue is
-    // empty
+    // Iterate until the stop_tag is reached or reaction queue is empty
     while (true) {
         // Obtain a reaction from the reaction_q that is ready to execute
         // (i.e., it is not blocked by concurrently executing reactions
         // that it depends on).
-        current_reaction_to_execute = first_ready_reaction();
+        reaction_t* current_reaction_to_execute = first_ready_reaction();
         if (current_reaction_to_execute == NULL) {
             // There are no reactions ready to run.
             // If we were previously busy, count this thread as idle now.
