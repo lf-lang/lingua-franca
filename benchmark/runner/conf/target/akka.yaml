@@ -1,5 +1,6 @@
 # @package _group_
 name: akka
+copy: null
 gen: null
 compile: null
 run: ["java", "-classpath", "${benchmark.targets.akka.jar}",

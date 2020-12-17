@@ -61,12 +61,12 @@ def main(cfg):
     # perform some sanity checks
     check_benchmark_target_config(benchmark, target_name)
 
-    if target["gen"] is not None:
-        execute_command(target["gen"])
+    # prepare the benchmark
+    for step in ["copy", "gen", "compile"]:
+        if target[step] is not None:
+            execute_command(target[step])
 
-    if target["compile"] is not None:
-        execute_command(target["compile"])
-
+    # run the benchmark
     if target["run"] is not None:
         output = execute_command(target["run"])
         times = hydra.utils.call(target["parser"], output)
@@ -106,7 +106,7 @@ def execute_command(command):
     # the resolvers are called.
     cmd = []
     for i in command:
-        if isinstance(i, list):
+        if isinstance(i, list) or isinstance(i, omegaconf.listconfig.ListConfig):
             cmd.extend(i)
         else:
             cmd.append(str(i))
