@@ -11,7 +11,10 @@ targets:
     run_args:
       num_pings: ["-n", "<value>"]
   lf-cpp:
-    src_path: "${lf_path}/benchmark/Cpp/Savina/pingpong/PingPongBenchmark.lf"
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/pingpong"
+    lf_file: "pingpong/PingPongBenchmark.lf"
     binary: "PingPongBenchmark"
     gen_args: null
     run_args:
