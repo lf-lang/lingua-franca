@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import csv
 import hydra
 import logging
 import multiprocessing
@@ -69,7 +70,7 @@ def main(cfg):
     if target["run"] is not None:
         output = execute_command(target["run"])
         times = hydra.utils.call(target["parser"], output)
-        print(times)
+        write_results(times, cfg)
     else:
         raise ValueError(f"No run command provided for target {target_name}")
 
@@ -133,6 +134,29 @@ def execute_command(command):
             )
 
     return output
+
+
+def write_results(times, cfg):
+    row = {
+        "benchmark": cfg["benchmark"]["name"],
+        "target": cfg["target"]["name"],
+        "total iterations": cfg["iterations"],
+        "threads": cfg["threads"],
+        "iteration": None,
+        "time (ms)": None,
+    }
+    # also add all parameters and their values
+    row.update(cfg["benchmark"]["params"])
+
+    with open("results.csv", "w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=row.keys())
+        writer.writeheader()
+        i = 0
+        for t in times:
+            row["iteration"] = i
+            row["time (ms)"] = t
+            writer.writerow(row)
+            i += 1
 
 
 if __name__ == "__main__":
