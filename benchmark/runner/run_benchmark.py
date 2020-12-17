@@ -109,7 +109,7 @@ def execute_command(command):
         if isinstance(i, list):
             cmd.extend(i)
         else:
-            cmd.append(i)
+            cmd.append(str(i))
 
     cmd_str = " ".join(cmd)
     log.info(f"run command: {cmd_str}")
