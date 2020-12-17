@@ -54,11 +54,7 @@ target C {
     threads: 1
     // [[[end]]]
 };
-/* [[[cog
-  cog.outl(f"reactor Ping(count:int({count})) {{")
-]]] */
 reactor Ping(count:int(1000000)) {
-// [[[end]]]
     input receive:int;
     output send:int;
     state pingsLeft:int(count);
@@ -94,8 +90,13 @@ reactor Pong(expected:int(1000000)) {
 }
 
 main reactor PingPong {
-    ping = new Ping();
-    pong = new Pong();
+/* [[[cog
+  cog.outl(f"ping = new Ping(count={count});")
+  cog.outl(f"pong = new Pong(expected={count});")
+]]] */
+    ping = new Ping(count=1000000);
+    pong = new Pong(count=1000000);
+// [[[end]]]
     ping.send -> pong.receive;
     pong.send -> ping.receive; 
 }
