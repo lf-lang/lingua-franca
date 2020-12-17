@@ -1,8 +1,6 @@
 # @package benchmark
 name: "Ping Pong"
 params:
-  threads: "${threads}"
-  iterations: "${iterations}"
   num_pings: 1000000
 
 # target specific configuration
@@ -11,14 +9,10 @@ targets:
     jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
     class: "edu.rice.habanero.benchmarks.pingpong.PingPongAkkaActorBenchmark"
     run_args:
-      threads: ["-workers", "<value>"]
-      iterations: ["-iter", "<value>"]
       num_pings: ["-n", "<value>"]
   lf-cpp:
     src_path: "${lf_path}/benchmark/Cpp/Savina/pingpong/PingPongBenchmark.lf"
     binary: "PingPongBenchmark"
     gen_args: null
     run_args:
-      threads: ["--threads", "<value>"]
-      iterations: ["--numIterations", "<value>"]
       num_pings: ["--count", "<value>"]
