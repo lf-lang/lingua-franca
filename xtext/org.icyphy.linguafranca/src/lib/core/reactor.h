@@ -732,6 +732,20 @@ void _lf_fd_send_stop_request_to_rti();
  */ 
 void _lf_advance_logical_time(instant_t next_time);
 
+/**
+ * If multithreaded, notify workers that something has changed
+ * on the reaction_q. Otherwise, do nothing.
+ */
+void _lf_notify_workers();
+
+/**
+ * If multithreaded and the reaction is blocked by
+ * a currently executing reaction, return true.
+ * Otherwise, return false.
+ * @param reaction The reaction.
+ */
+bool _lf_is_blocked_by_executing_reaction();
+
 //  ******** Global Variables ********  //
 
 /**
