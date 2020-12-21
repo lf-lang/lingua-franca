@@ -62,7 +62,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DELAY_START SEC(1)
 
 /** The interval at which physical clock synchronization happens */
-#define CLOCK_SYNCHRONIZATION_INTERVAL_NS SEC(2)
+#define CLOCK_SYNCHRONIZATION_INTERVAL_NS MSEC(500)
 
 // The one and only mutex lock.
 pthread_mutex_t rti_mutex = PTHREAD_MUTEX_INITIALIZER;

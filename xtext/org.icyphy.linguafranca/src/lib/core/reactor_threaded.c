@@ -527,7 +527,7 @@ int __next() {
     // This can be interrupted if a physical action triggers (e.g., a message
     // arrives from an upstream federate or a local physical action triggers).
     DEBUG_PRINT("next(): Waiting until time %lld.", (next_tag.time - start_time));
-    if (!wait_until(next_tag.time, next_tag.microstep)) {
+    if (!wait_until(next_tag.time)) {
         // Since wait_until releases the mutex lock internally, we need to check
         // again for any changes in stop_tag while the mutex was unlocked.
         if (_lf_is_tag_after_stop_tag(next_tag)) {
