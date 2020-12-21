@@ -952,26 +952,21 @@ void handle_physical_clock_sync_message(federate_t* my_fed) {
 }
 
 /** 
- * Thread handling UDP communication with all federates.
+ * Thread handling received UDP from all other federates.
  */
 void* federates_thread_UDP(void* noarg) {
     // Buffer for incoming messages.
-    // This does not constrain the message size because messages
-    // are forwarded piece by piece.
     unsigned char buffer[FED_COM_BUFFER_SIZE];
     
     // Listen for messages from the federate.
     while (1) {
-        // Read no more than one byte to get the message type.
-        struct sockaddr_in federate_address;
         int fed_id;
-        int federate_address_length = sizeof(federate_address);
         int bytes_read = recvfrom(socket_descriptor_UDP, 
                                   buffer,  
-                                  1 + sizeof(int), 
-                                  0, 
-                                  (struct sockaddr*)&federate_address, 
-                                  &federate_address_length);
+                                  1 + sizeof(int),    // Number of bytes to read.
+                                  0,                  // No flags. Pure UDP.
+                                  NULL,               // Don't care who the sender is.
+                                  NULL);              // Don't care how long the sender's address is.
         if (bytes_read == 0) {
             continue;
         } else if (bytes_read < 0) {
@@ -1204,7 +1199,7 @@ void connect_to_federates(int socket_descriptor) {
 
             // Wait for the UDP response
             unsigned char udp_buffer[1];
-            int federate_address_length = sizeof(federates[fed_id].UDP_addr);
+            socklen_t federate_address_length = sizeof(federates[fed_id].UDP_addr);
             int bytes_read = recvfrom(socket_descriptor_UDP, udp_buffer,  1, 0, (struct sockaddr*)&federates[fed_id].UDP_addr, &federate_address_length);
             if (bytes_read <= 0) {
                 error_print("ERROR: RTI's UDP socket broken. "
