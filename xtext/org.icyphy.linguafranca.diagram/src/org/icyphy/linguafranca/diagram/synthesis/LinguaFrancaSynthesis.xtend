@@ -535,10 +535,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		var shutdownUsed = false
 
 		// Transform instances
-		for (entry : reactor.instantiations.indexed) {
+		for (entry : reactor.instantiations.reverseView.indexed) {
 			val instance = entry.value
 			val rNodes = instance.reactorClass.toDefinition.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors, allReactorNodes)
-			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, reactor.instantiations.size - entry.key)
+			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
 			nodes += rNodes
 		}
 		
