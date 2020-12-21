@@ -154,7 +154,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
         if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__LHS) {
             val defn = (assignment.eContainer as Instantiation).reactorClass.toDefinition
             if (defn !== null) {
-                return Scopes.scopeFor(defn.parameters)
+                return Scopes.scopeFor(defn.allParameters)
             }
             
         }

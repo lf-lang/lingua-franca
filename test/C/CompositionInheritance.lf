@@ -10,7 +10,7 @@ reactor Source(period:time(2 sec)) {
 	timer t(1 sec, period);
 	state count:int(0);
 	reaction(t) -> y {=
-		printf("Hello World. My count is: %d.\n", self->count);
+		printf("Hello World. At time %lld, my count is: %d.\n", get_elapsed_logical_time(), self->count);
 		SET(y, self->count);
 	=}
 }
@@ -20,7 +20,7 @@ reactor SourceExtended extends Source {
 	timer t2(1 sec, 3 sec);
 	reaction(t2) -> y2 {=
 		(self->count)++;
-		printf("Source sending %d.\n", self->count);
+		printf("At time %lld, source sending %d.\n", get_elapsed_logical_time(), self->count);
 		SET(y2, self->count);
 	=}
 }
@@ -43,7 +43,7 @@ reactor Test {
 	=}
 }
 main reactor Composition {
-	s = new SourceExtended();
+	s = new SourceExtended(period = 2 sec);
 	
 	d = new Test();
 	s.y2 -> d.x;
