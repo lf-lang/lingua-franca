@@ -1518,7 +1518,6 @@ void* listen_to_rti_UDP(void* args) {
 
     // Listen for messages from the federate.
     while (1) {
-        printf("Federate %d waiting.\n", _lf_my_fed_id);
         // Read one byte to get the message type.
         int bytes_read = read_from_socket2(_lf_rti_socket_UDP, 1, buffer);
         if (bytes_read == 0) {
