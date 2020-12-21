@@ -105,6 +105,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * Byte identifying an acknowledgment of the previously received message.
+ * The next four bytes will be the port number for the UDP server, or
+ * -1 if there is no UDP server.
  */
 #define ACK 255
 
@@ -290,7 +292,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PHYSICAL_CLOCK_SYNC_MESSAGE_T1 17
 
 /*
- * Prompts the master to send a T4
+ * Prompts the master to send a T4.
+ * The next four bytes will be the sendin federate's id
  */
 #define PHYSICAL_CLOCK_SYNC_MESSAGE_T3 18
 
@@ -311,6 +314,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
  */
 #define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 20
+
 
 /////////////////////////////////////////////
 //// Rejection codes
@@ -372,7 +376,8 @@ typedef struct socket_stat_t {
 typedef struct federate_t {
     int id;                 // ID of this federate.
     pthread_t thread_id;    // The ID of the thread handling communication with this federate.
-    int socket;             // The socket descriptor for communicating with this federate.
+    int socket;             // The TCP socket descriptor for communicating with this federate.
+    struct sockaddr_in UDP_addr;           // The UDP address for the federate.
     tag_t completed;        // The largest logical tag completed by the federate (or NEVER).
     tag_t next_event;       // Most recent NET received from the federate (or NEVER).
     fed_state_t state;      // State of the federate.

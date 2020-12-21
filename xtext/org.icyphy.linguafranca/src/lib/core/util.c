@@ -140,6 +140,7 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* fo
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
+            DEBUG_PRINT("Reading from socket was blocked. Will try again.");
             continue;
         } else if (more < 0) {
             fprintf(stderr, "ERROR socket is not connected. ");

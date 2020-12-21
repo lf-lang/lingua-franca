@@ -98,11 +98,19 @@ volatile bool all_federates_exited = false;
  */
 char* federation_id = "Unidentified Federation";
 
-/** The final port number that the socket server ends up using. */
-int final_port = -1;
+/************* TCP server information *************/
+/** The final port number that the TCP socket server ends up using. */
+ushort final_port_TCP = -1;
 
-/** The socket descriptor for the socket server. */
-int socket_descriptor = -1;
+/** The TCP socket descriptor for the socket server. */
+int socket_descriptor_TCP = -1;
+
+/************* UDP server information *************/
+/** The final port number that the UDP socket server ends up using. */
+ushort final_port_UDP = -1;
+
+/** The UDP socket descriptor for the socket server. */
+int socket_descriptor_UDP = -1;
 
 /**
  * Mark a federate requesting stop.
@@ -125,11 +133,12 @@ void _lf_rti_mark_federate_requesting_stop(federate_t* fed);
  * to the RTI.
  * 
  * @param port The port number to use.
+ * @param type The type of the socket for the server (see socket_type.h).
  * @return The socket descriptor on which to accept connections.
  */
-int create_server(int specified_port, int port) {
+int create_server(int specified_port, ushort port, int type) {
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-    int socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
+    int socket_descriptor = socket(AF_INET, type, 0);
     if (socket_descriptor < 0) {
         error_print_and_exit("Failed to create RTI socket.");
     }
@@ -199,12 +208,16 @@ int create_server(int specified_port, int port) {
     }
     printf("RTI for federation %s started using port %d.\n", federation_id, port);
 
-    final_port = port;
-
-    // Enable listening for socket connections.
-    // The second argument is the maximum number of queued socket requests,
-    // which according to the Mac man page is limited to 128.
-    listen(socket_descriptor, 128);
+    if (type == SOCK_STREAM) {
+        final_port_TCP = port;
+        // Enable listening for socket connections.
+        // The second argument is the maximum number of queued socket requests,
+        // which according to the Mac man page is limited to 128.
+        listen(socket_descriptor, 128);
+    } else if (type == SOCK_DGRAM) {
+        final_port_UDP = port;
+        // No need to listen on the UDP socket
+    }
 
     return socket_descriptor;
 }
@@ -808,15 +821,26 @@ void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id) 
     buffer[0] = message_type;
     instant_t current_physical_time = get_physical_time();
     encode_ll(current_physical_time, &(buffer[1]));
-    int bytes_written = write_to_socket2(federates[fed_id].socket, sizeof(instant_t)+1, buffer);
-    if (bytes_written < sizeof(instant_t) + 1) {
+    // Send the header
+    int bytes_written = sendto(socket_descriptor_UDP, buffer, 1, 0,
+                               (struct sockaddr*)&federates[fed_id].UDP_addr, sizeof(federates[fed_id].UDP_addr));
+    if (bytes_written < 1) {
+        printf("WARNING: RTI failed to send physical time header to federate %d: %s\n",
+                    federates[fed_id].id,
+                    strerror(errno));
+        return;
+    }
+
+    // Send the body separately
+    // This has to be done for UDP because reading a packet is a one-off operation
+    // @FIXME: the payload can be lost while the header is delivered. If this happens for the initial
+    // clock synchronization, the destination federate could hang.
+    bytes_written = sendto(socket_descriptor_UDP, &(buffer[1]), sizeof(instant_t), 0,
+                               (struct sockaddr*)&federates[fed_id].UDP_addr, sizeof(federates[fed_id].UDP_addr));
+    if (bytes_written < sizeof(instant_t)) {
         printf("WARNING: RTI failed to send physical time to federate %d: %s\n",
                     federates[fed_id].id,
                     strerror(errno));
-        if (errno == ENOTCONN) {
-            federates[fed_id].state = NOT_CONNECTED;
-            _lf_rti_mark_federate_requesting_stop(&federates[fed_id]);
-        }
         return;
     }
     DEBUG_PRINT("RTI sending PHYSICAL_TIME_SYNC_MESSAGE with timestamp %lld to federate %d.",
@@ -928,11 +952,58 @@ void handle_physical_clock_sync_message(federate_t* my_fed) {
 }
 
 /** 
- * Thread handling communication with a federate.
- * @param fed A pointer to an int that is the
+ * Thread handling UDP communication with all federates.
+ */
+void* federates_thread_UDP(void* noarg) {
+    // Buffer for incoming messages.
+    // This does not constrain the message size because messages
+    // are forwarded piece by piece.
+    unsigned char buffer[FED_COM_BUFFER_SIZE];
+    
+    // Listen for messages from the federate.
+    while (1) {
+        // Read no more than one byte to get the message type.
+        struct sockaddr_in federate_address;
+        int fed_id;
+        int federate_address_length = sizeof(federate_address);
+        int bytes_read = recvfrom(socket_descriptor_UDP, 
+                                  buffer,  
+                                  1 + sizeof(int), 
+                                  0, 
+                                  (struct sockaddr*)&federate_address, 
+                                  &federate_address_length);
+        if (bytes_read == 0) {
+            continue;
+        } else if (bytes_read < 0) {
+            error_print("ERROR: RTI UDP socket broken.\n");
+            break;
+        }
+        fed_id = extract_int(&(buffer[1]));
+        assert(fed_id > -1);
+        assert(fed_id < 65536);
+        DEBUG_PRINT("RTI received UDP message of type %hhx from federate %d.", buffer[0], fed_id);
+        switch(buffer[0]) {
+            case PHYSICAL_CLOCK_SYNC_MESSAGE_T3:
+                if (federates[fed_id].state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
+                    _lf_rti_mark_federate_requesting_stop(&federates[fed_id]);
+                    pthread_mutex_unlock(&rti_mutex);
+                    return NULL;
+                }
+                handle_physical_clock_sync_message(&federates[fed_id]);
+                break;
+        }
+    }
+
+    return NULL;
+}
+
+/** 
+ * Thread handling TCP communication with a federate.
+ * @param fed A pointer to the federate's struct that has the
  *  socket descriptor for the federate.
  */
-void* federate(void* fed) {
+void* federate_thread_TCP(void* fed) {
     federate_t* my_fed = (federate_t*)fed;
 
     // Buffer for incoming messages.
@@ -947,7 +1018,7 @@ void* federate(void* fed) {
         if (bytes_read == 0) {
             continue;
         } else if (bytes_read < 0) {
-            error_print_and_exit("ERROR: RTI socket to federate %d broken.\n", my_fed->id);
+            error_print_and_exit("ERROR: RTI TCP socket to federate %d broken.\n", my_fed->id);
         }
         switch(buffer[0]) {
             case TIMESTAMP:
@@ -1022,15 +1093,6 @@ void* federate(void* fed) {
                 }
                 handle_stop_request_reply(my_fed);
                 break;
-            case PHYSICAL_CLOCK_SYNC_MESSAGE_T3:
-                if (my_fed->state == NOT_CONNECTED) {
-                    pthread_mutex_lock(&rti_mutex);
-                    _lf_rti_mark_federate_requesting_stop(my_fed);
-                    pthread_mutex_unlock(&rti_mutex);
-                    return NULL;
-                }
-                handle_physical_clock_sync_message(my_fed);
-                break;
             default:
                 error_print("RTI received from federate %d an unrecognized message type: %hhx.", my_fed->id, buffer[0]);
         }
@@ -1052,7 +1114,7 @@ void connect_to_federates(int socket_descriptor) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
-        int socket_id = accept(socket_descriptor, &client_fd, &client_length);
+        int socket_id = accept(socket_descriptor_TCP, &client_fd, &client_length);
         if (socket_id < 0) {
             error_print_and_exit("RTI failed to accept the socket.");
         }
@@ -1132,11 +1194,27 @@ void connect_to_federates(int socket_descriptor) {
             i--;
             continue;
         } else {
-            // Send an ACK message.
-            unsigned char response[1];
+            DEBUG_PRINT("RTI responding with ACK to federate %d.", fed_id);
+            // Send an ACK message and the server's UDP port number
+            unsigned char response[1 + sizeof(ushort)];
             response[0] = ACK;
+            encode_ushort(final_port_UDP, &(response[1]));
             // Ignore errors on this response.
-            write_to_socket(socket_id, 1, response, "RTI failed to write ACK message to federate %d.", fed_id);
+            write_to_socket(socket_id, 1 + sizeof(ushort) , response, "RTI failed to write ACK message to federate %d.", fed_id);
+
+            // Wait for the UDP response
+            unsigned char udp_buffer[1];
+            int federate_address_length = sizeof(federates[fed_id].UDP_addr);
+            int bytes_read = recvfrom(socket_descriptor_UDP, udp_buffer,  1, 0, (struct sockaddr*)&federates[fed_id].UDP_addr, &federate_address_length);
+            if (bytes_read <= 0) {
+                error_print("ERROR: RTI's UDP socket broken. "
+                            "This might cause clocks to go out of sync.\n");
+            }
+            if (udp_buffer[0] == ACK) {
+                DEBUG_PRINT("RTI received ACK on the UDP connection from federate %d.", fed_id);
+            } else {
+                error_print("RTI received the wrong type of message on the UDP connection from federate %d.", fed_id);
+            }
         }
 
         // Assign the address information for federate
@@ -1161,14 +1239,17 @@ void connect_to_federates(int socket_descriptor) {
         federates[fed_id].socket = socket_id;
 
         // Create a thread to communicate with the federate.
-        pthread_create(&(federates[fed_id].thread_id), NULL, federate, &(federates[fed_id]));
+        pthread_create(&(federates[fed_id].thread_id), NULL, federate_thread_TCP, &(federates[fed_id]));
 
         // Set the federate's state as pending
         // because it is waiting for the start time to be
         // sent by the RTI before beginning its execution
         federates[fed_id].state = PENDING;
     }
-
+        
+    // Create the UDP server thread
+    pthread_t UDP_thread; // This thread is going to die when the RTI exits
+    pthread_create(&UDP_thread, NULL, federates_thread_UDP, NULL);
     DEBUG_PRINT("All federates have connected to RTI.");
 #ifdef _LF_CLOCK_SYNC
     // Create the clock synchronization thread
@@ -1187,7 +1268,7 @@ void* respond_to_erroneous_connections(void* nothing) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
-        int socket_id = accept(socket_descriptor, &client_fd, &client_length);
+        int socket_id = accept(socket_descriptor_TCP, &client_fd, &client_length);
         if (socket_id < 0) return NULL;
 
         if (all_federates_exited) {
@@ -1281,16 +1362,20 @@ void initialize_clock() {
  * @param port The port on which to listen for socket connections, or
  *  0 to use the default port range.
  */
-int start_rti_server(int port) {
+int start_rti_server(ushort port) {
     int specified_port = port;
     if (port == 0) {
         // Use the default starting port.
         port = STARTING_PORT;
     }
     initialize_clock();
-    socket_descriptor = create_server(specified_port, port);
+    // Create the TCP socket server
+    socket_descriptor_TCP = create_server(specified_port, port, SOCK_STREAM);
     printf("RTI: Listening for federates.\n");
-    return socket_descriptor;
+    // Create the UDP socket server
+    // Try to get the final_port_TCP + 1 port
+    socket_descriptor_UDP = create_server(specified_port, final_port_TCP + 1, SOCK_DGRAM);
+    return socket_descriptor_TCP;
 }
 
 /** 
@@ -1341,7 +1426,7 @@ void wait_for_federates(int socket_descriptor) {
                  (char *)&server_fd.sin_addr.s_addr,
                  server->h_length);
             // Convert the port number from host byte order to network byte order.
-            server_fd.sin_port = htons(final_port);
+            server_fd.sin_port = htons(final_port_TCP);
             connect(
                 tmp_socket,
                 (struct sockaddr *)&server_fd,
