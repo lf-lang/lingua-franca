@@ -150,9 +150,10 @@ microstep_t get_microstep() {
 }
 
 /**
- * Stores the last bare metal value retrieved from clock_gettime
+ * Stores the last reported absolute snapshot of the 
+ * physical clock.
  */
-instant_t _lf_last_unadjusted_clock_get_time_ns = 0LL;
+instant_t _lf_last_reported_physical_time_ns = 0LL;
 
 
 /**
@@ -166,28 +167,28 @@ volatile instant_t _lf_last_clock_sync_instant = 0LL;
  * adjusted by the global physical time offset.
  */
 instant_t get_physical_time() {
-    instant_t time_to_return;
     // Get the current clock value
     struct timespec physicalTime;
     clock_gettime(_LF_CLOCK, &physicalTime);
     instant_t current_unadjusted_reported_clock_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec);
-       
-    // Check if the clock has progressed since the last reported value
-    // This ensures that the clock is monotonic
-    if (current_unadjusted_reported_clock_ns > _lf_last_unadjusted_clock_get_time_ns) {
-        _lf_last_unadjusted_clock_get_time_ns = current_unadjusted_reported_clock_ns;
-    }
     
-    // Update the last reported clock time with the static offsets
-    time_to_return = _lf_last_unadjusted_clock_get_time_ns + _lf_global_physical_clock_offset + _lf_epoch_offset;
+    // Adjust the reported clock with the appropriate offsets
+    instant_t adjusted_clock_ns = current_unadjusted_reported_clock_ns + _lf_global_physical_clock_offset + _lf_epoch_offset;
 
     if (_lf_last_clock_sync_instant != 0 &&
             _lf_global_physical_clock_drift != 0) {
-        // Apply the calculated drift
-        time_to_return += (current_unadjusted_reported_clock_ns - _lf_last_clock_sync_instant) *
+        // Apply the calculated drift, if appropriate
+        adjusted_clock_ns += (adjusted_clock_ns - _lf_last_clock_sync_instant) *
                            _lf_global_physical_clock_drift;
     }
-    return time_to_return;
+    
+    // Check if the clock has progressed since the last reported value
+    // This ensures that the clock is monotonic
+    if (adjusted_clock_ns > _lf_last_reported_physical_time_ns) {
+        _lf_last_reported_physical_time_ns = adjusted_clock_ns;
+    }
+    
+    return _lf_last_reported_physical_time_ns;
 }
 
 /**
