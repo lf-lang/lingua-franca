@@ -1616,14 +1616,14 @@ void* listen_to_rti_TCP(void* args) {
 }
 
 /**
- * Synchronize the physical clock with the RTI.
+ * Synchronize the initial physical clock with the RTI.
  * 
  * This is a blocking function that expects
  * to read a PHYSICAL_TIME_SYNC_MESSAGE from the buffer.
  * It will then follow the PTP protocol to synchronize the local
  * physical clock with the RTI.
  */
-void synchronize_physical_time_with_rti(){
+void synchronize_initial_physical_time_with_rti(){
     DEBUG_PRINT("Federate %d waiting on initial clock synchronization messages from the RTI.", _lf_my_fed_id);
     // We need to synchronize our clocks with the RTI
     // For this to happen, the RTI will send two snapshots of

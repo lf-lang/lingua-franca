@@ -782,7 +782,7 @@ class CGenerator extends GeneratorBase {
         
             if (targetClockSync) {
                 pr('''
-                    synchronize_physical_time_with_rti();
+                    synchronize_initial_physical_time_with_rti();
                 ''')
             }
         
