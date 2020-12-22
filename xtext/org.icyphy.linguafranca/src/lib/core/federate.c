@@ -771,30 +771,36 @@ void handle_physical_clock_sync_message_locked(unsigned char message_type) {
         // if (_lf_rti_socket_stat.network_round_trip_delay_bound < network_round_trip_delay) {
         _lf_rti_socket_stat.network_round_trip_delay_bound = network_round_trip_delay;
         // }
-        // Calculate the new physical time offset
-        interval_t estimated_clock_error = (_lf_rti_socket_stat.local_physical_clock_snapshot_T2  -
-                                            _lf_rti_socket_stat.remote_physical_clock_snapshot_T1) -
-                                            (_lf_rti_socket_stat.network_round_trip_delay_bound/2);
         // FIXME: This could cause the clock to jump back in time.
         // A better solution would be to slowdown or speedup the clock
         if (_lf_global_physical_clock_offset != 0LL) {
             // Apply a jitter attunator to the estimated clock error to prevent
             // large jumps in the underlying clock 
             _lf_global_physical_clock_offset +=  (estimated_clock_error - _lf_global_physical_clock_offset) / 10;
+            // _lf_global_physical_clock_drift = ((r1 - rti_physical_clock_snapshot) - 
+            //                                    (_lf_rti_socket_stat.local_physical_clock_snapshot_T2 - 
+            //                                    _lf_rti_socket_stat.remote_physical_clock_snapshot_T1)) /
+            //                                    (rti_physical_clock_snapshot - _lf_rti_socket_stat.remote_physical_clock_snapshot_T1);
         } else {
+            // Calculate the new physical time offset
+            interval_t estimated_clock_error = (_lf_rti_socket_stat.local_physical_clock_snapshot_T2  -
+                                                _lf_rti_socket_stat.remote_physical_clock_snapshot_T1) -
+                                                (_lf_rti_socket_stat.network_round_trip_delay_bound/2);
             _lf_global_physical_clock_offset =  estimated_clock_error;
+            DEBUG_PRINT("Federate %d: Network round trip delay to RTI: %lld. "
+                        "Local round trip delay: %lld. "
+                        "Local clock snapshot T2: %lld. "
+                        "Calculated clock synchronization offset %lld.",
+                        _lf_my_fed_id,
+                        _lf_rti_socket_stat.network_round_trip_delay_bound,
+                        _lf_rti_socket_stat.local_round_trip_delay_bound,
+                        _lf_rti_socket_stat.local_physical_clock_snapshot_T2,
+                        estimated_clock_error);
         }
-        printf("Federate %d updated its physical clock offset to %lld.\n",
-                    _lf_my_fed_id, _lf_global_physical_clock_offset);
-        DEBUG_PRINT("Federate %d: Network round trip delay to RTI: %lld. "
-                     "Local round trip delay: %lld. "
-                     "Local clock snapshot T2: %lld. "
-                     "Calculated clock synchronization offset %lld.",
-                     _lf_my_fed_id,
-                     _lf_rti_socket_stat.network_round_trip_delay_bound,
-                     _lf_rti_socket_stat.local_round_trip_delay_bound,
-                     _lf_rti_socket_stat.local_physical_clock_snapshot_T2,
-                     estimated_clock_error);
+        printf("Federate %d updated its physical clock offset to %lld and drift to %lld.\n",
+                    _lf_my_fed_id, _lf_global_physical_clock_offset, _lf_global_physical_clock_drift);
+        // Set the last instant at which the clocks were synchronized
+        _lf_last_clock_sync_instant = r1;
     } else if (message_type == PHYSICAL_CLOCK_SYNC_MESSAGE_T1) {
         // Store snapshots of remote (master) and local physical clock
         _lf_rti_socket_stat.remote_physical_clock_snapshot_T1 = rti_physical_clock_snapshot;
