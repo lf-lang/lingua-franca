@@ -821,21 +821,9 @@ void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id) 
     buffer[0] = message_type;
     instant_t current_physical_time = get_physical_time();
     encode_ll(current_physical_time, &(buffer[1]));
-    // Send the header
-    int bytes_written = sendto(socket_descriptor_UDP, buffer, 1, 0,
-                               (struct sockaddr*)&federates[fed_id].UDP_addr, sizeof(federates[fed_id].UDP_addr));
-    if (bytes_written < 1) {
-        printf("WARNING: RTI failed to send physical time header to federate %d: %s\n",
-                    federates[fed_id].id,
-                    strerror(errno));
-        return;
-    }
-
-    // Send the body separately
-    // This has to be done for UDP because reading a packet is a one-off operation
-    // @FIXME: the payload can be lost while the header is delivered. If this happens for the initial
-    // clock synchronization, the destination federate could hang.
-    bytes_written = sendto(socket_descriptor_UDP, &(buffer[1]), sizeof(instant_t), 0,
+    
+    // Send the message
+    int bytes_written = sendto(socket_descriptor_UDP, buffer, 1 + sizeof(instant_t), 0,
                                (struct sockaddr*)&federates[fed_id].UDP_addr, sizeof(federates[fed_id].UDP_addr));
     if (bytes_written < sizeof(instant_t)) {
         printf("WARNING: RTI failed to send physical time to federate %d: %s\n",
@@ -961,6 +949,8 @@ void* federates_thread_UDP(void* noarg) {
     // Listen for messages from the federate.
     while (1) {
         int fed_id;
+        // Read the byte identifying the message type and the next 
+        // four bytes identifying the fed_id of the sender.
         int bytes_read = recvfrom(socket_descriptor_UDP, 
                                   buffer,  
                                   1 + sizeof(int),    // Number of bytes to read.
