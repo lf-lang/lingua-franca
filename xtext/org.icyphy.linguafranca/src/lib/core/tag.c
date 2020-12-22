@@ -68,6 +68,12 @@ instant_t start_time = NEVER;
 interval_t _lf_global_physical_clock_offset = 0LL;
 
 /**
+ * A measure of calculating the drift between the federate's
+ * clock and the RTI's clock
+ */
+interval_t _lf_global_physical_clock_drift = 0LL;
+
+/**
  * Compare two tags. Return -1 if the first is less than
  * the second, 0 if they are equal, and +1 if the first is
  * greater than the second. A tag is greater than another if
@@ -143,30 +149,45 @@ microstep_t get_microstep() {
     return current_tag.microstep;
 }
 
-/** 
- * Stores the last value returned by
- * get_physical_time(). Used to ensure
- * monotonicity of the clock.
+/**
+ * Stores the last bare metal value retrieved from clock_gettime
  */
-instant_t _lf_last_reported_physical_time_ns = 0LL;
+instant_t _lf_last_unadjusted_clock_get_time_ns = 0LL;
+
+
+/**
+ * Records the physical time at which the clock of this federate was 
+ * synchronized with the RTI. Used to calculate the drift.
+ */
+volatile instant_t _lf_last_clock_sync_instant = 0LL;
 
 /**
  * Return the current physical time in nanoseconds since January 1, 1970,
  * adjusted by the global physical time offset.
  */
 instant_t get_physical_time() {
+    instant_t time_to_return;
     // Get the current clock value
     struct timespec physicalTime;
     clock_gettime(_LF_CLOCK, &physicalTime);
-    instant_t current_reported_clock_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) +
-                                           _lf_global_physical_clock_offset + _lf_epoch_offset;
+    instant_t current_unadjusted_reported_clock_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec);
+       
     // Check if the clock has progressed since the last reported value
     // This ensures that the clock is monotonic
-    if (current_reported_clock_ns > _lf_last_reported_physical_time_ns) {
-        // Update the last reported clock time
-        _lf_last_reported_physical_time_ns = current_reported_clock_ns;
+    if (current_unadjusted_reported_clock_ns > _lf_last_unadjusted_clock_get_time_ns) {
+        _lf_last_unadjusted_clock_get_time_ns = current_unadjusted_reported_clock_ns;
     }
-    return _lf_last_reported_physical_time_ns;
+    
+    // Update the last reported clock time with the static offsets
+    time_to_return = _lf_last_unadjusted_clock_get_time_ns + _lf_global_physical_clock_offset + _lf_epoch_offset;
+
+    if (_lf_last_clock_sync_instant != 0 &&
+            _lf_global_physical_clock_drift != 0) {
+        // Apply the calculated drift
+        time_to_return += (current_unadjusted_reported_clock_ns - _lf_last_clock_sync_instant) *
+                           _lf_global_physical_clock_drift;
+    }
+    return time_to_return;
 }
 
 /**
@@ -184,17 +205,7 @@ instant_t get_start_time() {
  * Return the elapsed physical time in nanoseconds.
  */
 instant_t get_elapsed_physical_time() {
-    struct timespec physicalTime;
-    clock_gettime(_LF_CLOCK, &physicalTime);    
-    instant_t current_reported_clock_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) +
-                                           _lf_global_physical_clock_offset + _lf_epoch_offset;
-    // Check if the clock has progressed since the last reported value
-    // This ensures that the clock is monotonic
-    if (current_reported_clock_ns > _lf_last_reported_physical_time_ns) {
-        // Update the last reported clock time
-        _lf_last_reported_physical_time_ns = current_reported_clock_ns;
-    }
-    return _lf_last_reported_physical_time_ns - physical_start_time;
+    return get_physical_time() - physical_start_time;
 }
 
 /**
