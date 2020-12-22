@@ -944,7 +944,10 @@ void handle_physical_clock_sync_message(federate_t* my_fed) {
  */
 void* federates_thread_UDP(void* noarg) {
     // Buffer for incoming messages.
-    unsigned char buffer[FED_COM_BUFFER_SIZE];
+    // For now the messages consist of just a header with a byte
+    // identifying the type of the message and the fed_id of the
+    // sender.
+    unsigned char buffer[1 + sizeof(int)];
     
     // Listen for messages from the federate.
     while (1) {
