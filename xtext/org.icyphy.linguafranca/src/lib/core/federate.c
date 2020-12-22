@@ -1566,11 +1566,9 @@ unsigned char peek_one_byte_from_RTI_UDP() {
 
 /** 
  * Thread that listens for UDP inputs from the RTI.
- *  When a physical message arrives, this calls schedule.
  */
 void* listen_to_rti_UDP(void* args) {
-
-    // Listen for messages from the federate.
+    // Listen for UDP messages from the RTI.
     while (1) {
         unsigned char first_byte = peek_one_byte_from_RTI_UDP();
         switch (first_byte) {
