@@ -992,7 +992,7 @@ void connect_to_rti(char* hostname, int port) {
                     struct sockaddr_in rti_UDP_addr;
                     rti_UDP_addr.sin_family = AF_INET;
                     rti_UDP_addr.sin_port = htons(rti_udp_port);
-                    rti_UDP_addr.sin_addr.s_addr = INADDR_ANY;
+                    rti_UDP_addr.sin_addr.s_addr = server_fd.sin_addr.s_addr;
                     // Initialize the UDP socket
                     _lf_rti_socket_UDP = socket(AF_INET, SOCK_DGRAM, 0);
                     // Connect to the UDP server (this sets the default address for the socket)
@@ -1006,10 +1006,13 @@ void connect_to_rti(char* hostname, int port) {
                         int bytes_written = write_to_socket2(_lf_rti_socket_UDP, 1, ack_buffer); // Ignore any errors
                         printf("Federate %d connected to the RTI's UDP server. Port: %u. Bytes written: %d.\n", 
                                 _lf_my_fed_id, rti_udp_port, bytes_written);
+                        DEBUG_PRINT("Federate %d connected to the RTI's UDP server. Port: %u. Bytes written: %d.",
+                                _lf_my_fed_id, rti_udp_port, bytes_written);
                     }
                 }
             }
             printf("Federate %d: connected to RTI at %s:%d.\n", _lf_my_fed_id, hostname, port);
+            DEBUG_PRINT("Federate %d: connected to RTI at %s:%d.", _lf_my_fed_id, hostname, port);
         }
     }
 }
