@@ -810,9 +810,11 @@ void handle_timestamp(federate_t *my_fed) {
  * 
  * This version assumes the caller holds the mutex lock.
  * 
+ * @param message_type The type of the clock sync message (see rti.h).
  * @param fed_id The federate to send the physical time to.
+ * @param socket_type The socket type (TCP or UDP).
  */
-void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id) {
+void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id, socket_type_t socket_type) {
     if (federates[fed_id].state == NOT_CONNECTED) {
         printf("WARNING: RTI failed to send physical time to federate %d. Socket not connected.", federates[fed_id].id);
         return;
@@ -823,13 +825,20 @@ void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id) 
     encode_ll(current_physical_time, &(buffer[1]));
     
     // Send the message
-    int bytes_written = sendto(socket_descriptor_UDP, buffer, 1 + sizeof(instant_t), 0,
-                               (struct sockaddr*)&federates[fed_id].UDP_addr, sizeof(federates[fed_id].UDP_addr));
-    if (bytes_written < sizeof(instant_t)) {
-        printf("WARNING: RTI failed to send physical time to federate %d: %s\n",
-                    federates[fed_id].id,
-                    strerror(errno));
-        return;
+    if (socket_type == UDP) {
+        int bytes_written = sendto(socket_descriptor_UDP, buffer, 1 + sizeof(instant_t), 0,
+                                (struct sockaddr*)&federates[fed_id].UDP_addr, sizeof(federates[fed_id].UDP_addr));
+        if (bytes_written < sizeof(instant_t)) {
+            printf("WARNING: RTI failed to send physical time to federate %d: %s\n",
+                        federates[fed_id].id,
+                        strerror(errno));
+            return;
+        }
+    } else if (socket_type == TCP) {
+        write_to_socket(federates[fed_id].socket, 1 + sizeof(instant_t), buffer,
+                        "RTI failed to send physical time to federate %d: %s.",
+                        federates[fed_id].id,
+                        strerror(errno));
     }
     DEBUG_PRINT("RTI sending PHYSICAL_TIME_SYNC_MESSAGE with timestamp %lld to federate %d.",
                  current_physical_time,
@@ -844,10 +853,11 @@ void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id) 
  * rti_mutex. It will acquire it itself.
  * 
  * @param fed_id The federate to send the physical time to.
+ * @param socket_type The socket type to send the message on (TCP or UDP).
  */
-void _lf_rti_send_physical_clock(unsigned char message_type, int fed_id) {
+void _lf_rti_send_physical_clock(unsigned char message_type, int fed_id, socket_type_t socket_type) {
     pthread_mutex_lock(&rti_mutex);
-    _lf_rti_send_physical_clock_locked(message_type, fed_id);
+    _lf_rti_send_physical_clock_locked(message_type, fed_id, socket_type);
     pthread_mutex_unlock(&rti_mutex);
 }
 
@@ -867,7 +877,10 @@ void* clock_synchronization_thread() {
             continue;
         }
         // Send the RTI's current physical time to the federate
-        _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1,federates[fed].id);
+        // Send the first clock synchronization message on the TCP channel
+        // because it is critically needed for a proper startup. The subsequent
+        // messages will be sent on the UDP channel.
+        _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1,federates[fed].id, TCP);
     }
     while (num_feds_proposed_start < NUMBER_OF_FEDERATES) {
         // FIXME: Should have a timeout here?
@@ -891,7 +904,8 @@ void* clock_synchronization_thread() {
                 continue;
             }
             // Send the RTI's current physical time to the federate
-            _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, federates[fed].id);
+            // Send on UDP.
+            _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, federates[fed].id, UDP);
         }
         pthread_mutex_unlock(&rti_mutex);
     }
@@ -928,14 +942,20 @@ void handle_federate_resign(federate_t *my_fed) {
     printf("Federate %d has resigned.\n", my_fed->id);
 }
 
-void handle_physical_clock_sync_message(federate_t* my_fed) {
+/**
+ * Handle PHYSICAL_CLOCK_SYNC_MESSAGE(s) from federates
+ * 
+ * @param my_fed The sending federate
+ * @param socket_type The RTI's socket type used for the communication (TCP or UDP)
+ */
+void handle_physical_clock_sync_message(federate_t* my_fed, socket_type_t socket_type) {
     // Lock the mutex to prevent interference between sending the two
     // coded probe messages.
     pthread_mutex_lock(&rti_mutex);
     // Reply with a T4 type message
-    _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T4, my_fed->id);
+    _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T4, my_fed->id, socket_type);
     // Send the corresponding coded probe immediately after
-    _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE, my_fed->id);
+    _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE, my_fed->id, socket_type);
     pthread_mutex_unlock(&rti_mutex);
 }
 
@@ -978,7 +998,7 @@ void* federates_thread_UDP(void* noarg) {
                     pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
-                handle_physical_clock_sync_message(&federates[fed_id]);
+                handle_physical_clock_sync_message(&federates[fed_id], UDP);
                 break;
         }
     }
@@ -1080,6 +1100,15 @@ void* federate_thread_TCP(void* fed) {
                     return NULL;
                 }
                 handle_stop_request_reply(my_fed);
+                break;
+            case PHYSICAL_CLOCK_SYNC_MESSAGE_T3:
+                if (my_fed->state == NOT_CONNECTED) {
+                    pthread_mutex_lock(&rti_mutex);
+                    _lf_rti_mark_federate_requesting_stop(my_fed);
+                    pthread_mutex_unlock(&rti_mutex);
+                    return NULL;
+                }
+                handle_physical_clock_sync_message(my_fed, TCP);
                 break;
             default:
                 error_print("RTI received from federate %d an unrecognized message type: %hhx.", my_fed->id, buffer[0]);
