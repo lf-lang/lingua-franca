@@ -342,6 +342,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /////////////////////////////////////////////
 //// Data structures
 
+typedef enum socket_type_t {
+    TCP,
+    UDP
+} socket_type_t;
+
 /** Mode of execution of a federate. */
 typedef enum execution_mode_t {
     FAST,
