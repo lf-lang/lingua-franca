@@ -1710,9 +1710,11 @@ void synchronize_with_other_federates() {
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time. Microstep is ignored.
+    DEBUG_PRINT("Federate %d waiting for start time %lld.", _lf_my_fed_id, current_tag.time);
     wait_until(current_tag.time);
-    DEBUG_PRINT("Done waiting for start time %lld.", current_tag.time);
-    DEBUG_PRINT("Physical time is ahead of current time by %lld.", get_physical_time() - current_tag.time);
+    DEBUG_PRINT("Federate %d done waiting for start time %lld.", _lf_my_fed_id, current_tag.time);
+    DEBUG_PRINT("Federate %d: Physical time is ahead of current time by %lld.",
+            _lf_my_fed_id, get_physical_time() - current_tag.time);
 }
 
 /** Indicator of whether this federate has upstream federates.
