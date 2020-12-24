@@ -713,22 +713,24 @@ void handle_address_query(ushort fed_id) {
     // debug_print("Received address query from %d for %d.\n", fed_id, remote_fed_id);
 
     assert(federates[remote_fed_id].server_port < 65536);
-    if (federates[remote_fed_id].server_port == -1) {
-        //debug_print("Warning: RTI received request for a federate %d server that does not exist yet.\n", remote_fed_id);
-    }
-    // Retrieve the port number
+    // NOTE: server_port initializes to -1, which means the RTI does not know
+    // the port number because it has not yet received an ADDRESS_AD message
+    // from this federate. It will respond by sending -1.
+
+    // Encode the port number.
     encode_int(federates[remote_fed_id].server_port, (unsigned char*)buffer);
-    // Send the port number (which could be -1)
+    // Send the port number (which could be -1).
     write_to_socket(federates[fed_id].socket, sizeof(int), (unsigned char*)buffer,
                         "Failed to write port number to socket of federate %d.", fed_id);
 
-    // Send the server ip address to federate
+    // Send the server IP address to federate.
     write_to_socket(federates[fed_id].socket, sizeof(federates[remote_fed_id].server_ip_addr),
                         (unsigned char *)&federates[remote_fed_id].server_ip_addr,
                         "Failed to write ip address to socket of federate %d.", fed_id);
 
     if (federates[remote_fed_id].server_port != -1) {
-        DEBUG_PRINT("Replied address query from %d with address %s:%d.", fed_id, federates[remote_fed_id].server_hostname, federates[remote_fed_id].server_port);
+        DEBUG_PRINT("Replied to address query from federate %d with address %s:%d.",
+                fed_id, federates[remote_fed_id].server_hostname, federates[remote_fed_id].server_port);
     }
 }
 
@@ -751,19 +753,19 @@ void handle_address_ad(ushort federate_id) {
     // connections to other federates
     int server_port = -1;
     unsigned char buffer[sizeof(int)];
-    int bytes_written = read_from_socket2(federates[federate_id].socket, sizeof(int), (unsigned char *)buffer);
+    int bytes_read = read_from_socket2(federates[federate_id].socket, sizeof(int), (unsigned char *)buffer);
 
-    if (bytes_written == 0) {
+    if (bytes_read <= sizeof(int)) {
         DEBUG_PRINT("Error reading port data from federate %d.", federates[federate_id].id);
+        // Leave the server port at -1, which mean "I don't know".
+        return;
     }
 
     server_port = extract_int(buffer);
-
     
     pthread_mutex_lock(&rti_mutex);
     federates[federate_id].server_port = server_port;
     pthread_mutex_unlock(&rti_mutex);
-
 
     DEBUG_PRINT("Got physical connection server address %s:%d from federate %d.\n", federates[federate_id].server_hostname, federates[federate_id].server_port, federates[federate_id].id);
 }
@@ -851,7 +853,7 @@ void _lf_rti_send_physical_clock_locked(unsigned char message_type, int fed_id, 
     if (socket_type == UDP) {
         int bytes_written = sendto(socket_descriptor_UDP, buffer, 1 + sizeof(instant_t), 0,
                                 (struct sockaddr*)&federates[fed_id].UDP_addr, sizeof(federates[fed_id].UDP_addr));
-        if (bytes_written < sizeof(instant_t)) {
+        if (bytes_written < sizeof(instant_t) + 1) {
             printf("WARNING: RTI failed to send physical time to federate %d: %s\n",
                         federates[fed_id].id,
                         strerror(errno));
@@ -911,27 +913,31 @@ void* clock_synchronization_thread() {
     }
     pthread_mutex_unlock(&rti_mutex);
 
-    // Afterwards, aim to initate a clock synchronization every CLOCK_SYNCHRONIZATION_INTERVAL_NS
+    // Afterwards, aim to initiate a clock synchronization every CLOCK_SYNCHRONIZATION_INTERVAL_NS
     struct timespec sleep_time = {(time_t) CLOCK_SYNCHRONIZATION_INTERVAL_NS / BILLION,
                                   CLOCK_SYNCHRONIZATION_INTERVAL_NS % BILLION};
     
     struct timespec remaining_time;
 
-    while (1) {
+    bool any_federates_connected = true;
+    while (any_federates_connected) {
         // Sleep
         nanosleep(&sleep_time, &remaining_time); // Can be interrupted
         pthread_mutex_lock(&rti_mutex);
+        any_federates_connected = false;
         for (int fed = 0; fed < NUMBER_OF_FEDERATES; fed++) {
             if (federates[fed].state == NOT_CONNECTED) {
                 _lf_rti_mark_federate_requesting_stop(&federates[fed]);
                 continue;
             }
+            any_federates_connected = true;
             // Send the RTI's current physical time to the federate
             // Send on UDP.
             _lf_rti_send_physical_clock_locked(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, federates[fed].id, UDP);
         }
         pthread_mutex_unlock(&rti_mutex);
     }
+    return NULL;
 }
 
 /**
