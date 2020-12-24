@@ -141,6 +141,7 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* fo
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
             DEBUG_PRINT("Reading from socket was blocked. Will try again.");
+            bytes_read += more;
             continue;
         } else if (more < 0) {
             fprintf(stderr, "ERROR socket is not connected. ");
@@ -149,7 +150,6 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* fo
             fprintf(stderr, "ERROR peer sent EOF. ");
             error_print_and_exit(format, args);
         }
-        bytes_read += more;
     }
 }
 
@@ -194,6 +194,7 @@ void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* for
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
+            bytes_written += more;
             continue;
         } else if (more < 0) {
             fprintf(stderr, "ERROR socket is not connected. ");
@@ -202,7 +203,6 @@ void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* for
             fprintf(stderr, "ERROR peer sent EOF.");
             error_print_and_exit(format, args);
         }
-        bytes_written += more;
     }
 }
 
