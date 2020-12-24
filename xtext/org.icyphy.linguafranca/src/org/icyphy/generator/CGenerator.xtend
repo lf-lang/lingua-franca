@@ -1197,6 +1197,7 @@ class CGenerator extends GeneratorBase {
                         date >> «logFileName»; \
                         echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
                         «executeCommand» 2>&1 | tee -a «logFileName»' &
+                    pids[«federateIndex++»]=$!
                 ''')                
             } else {
                 pr(shCode, '''
@@ -1213,17 +1214,17 @@ class CGenerator extends GeneratorBase {
                 fg 1
                 RTI=$! # Store the new pid of the RTI
             ''')
-            // Wait for launched processes to finish
-            pr(shCode, '''
-                
-                # Wait for launched processes to finish.
-                # The errors are handled separately via trap.
-                for pid in ${pids[*]}; do
-                    wait $pid
-                done
-                wait $RTI
-            ''')
         }
+        // Wait for launched processes to finish
+        pr(shCode, '''
+                
+            # Wait for launched processes to finish.
+            # The errors are handled separately via trap.
+            for pid in ${pids[*]}; do
+                wait $pid
+            done
+            wait $RTI
+        ''')
 
         // Write the launcher file.
         // Delete file previously produced, if any.
