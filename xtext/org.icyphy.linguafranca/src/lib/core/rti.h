@@ -39,7 +39,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The timeout time in ns for TCP operations.
  * Default value is 1 sec.
  */
-#define TCP_TIMEOUT_TIME SEC(1)
+#define TCP_TIMEOUT_TIME SEC(10)
 
 /**
  * The timeout time in ns for UDP operations.
