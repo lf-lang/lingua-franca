@@ -615,6 +615,7 @@ void _lf_rti_mark_federate_requesting_stop(federate_t* fed) {
  * @param fed The federate sending a STOP_REQUEST message.
  */
 void handle_stop_request_message(federate_t* fed) {
+    DEBUG_PRINT("RTI handling stop_request from federate %d.", fed->id);
     unsigned char buffer[sizeof(instant_t)];
     read_from_socket(fed->socket, sizeof(instant_t), buffer, "RTI failed to read the stop message timestamp from federate %d.", fed->id);
 
@@ -1002,8 +1003,13 @@ void* federates_thread_UDP(void* noarg) {
                                   0,                  // No flags. Pure UDP.
                                   NULL,               // Don't care who the sender is.
                                   NULL);              // Don't care how long the sender's address is.
-        if (bytes_read == 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // The error is to try again
+            DEBUG_PRINT("RTI got error \"%s\" when attempting to read the UDP socket.", strerror(errno));
             continue;
+        } else if (bytes_read == 0) {
+            printf("RTI received EOF on its UDP socket.");
+            break;
         } else if (bytes_read < 0) {
             error_print("ERROR: RTI UDP socket broken.\n");
             break;
@@ -1047,10 +1053,13 @@ void* federate_thread_TCP(void* fed) {
     while (1) {
         // Read no more than one byte to get the message type.
         int bytes_read = read_from_socket2(my_fed->socket, 1, buffer);
-        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
-            // 0 bytes are read or the error is to try again
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // The error is to try again
+            DEBUG_PRINT("RTI got error \"%s\" when attempting to read the TCP socket to federate %d.",
+                         strerror(errno), my_fed->id);
             continue;
         } else if (bytes_read == 0) {
+            // 0 bytes are read
             // Socket is closed
             printf("RTI socket to federate %d is closed (EOF). Exiting the thread.", my_fed->id);
             my_fed->state = NOT_CONNECTED;
@@ -1498,6 +1507,7 @@ void wait_for_federates(int socket_descriptor) {
     // the OS is preventing another program from accidentally receiving
     // duplicated packets intended for this program.
     close(socket_descriptor);
+    close(socket_descriptor_UDP);
 }
 
 /**

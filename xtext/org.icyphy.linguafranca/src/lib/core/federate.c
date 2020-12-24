@@ -1665,6 +1665,8 @@ void* listen_to_rti_UDP(void* args) {
             case PHYSICAL_CLOCK_SYNC_MESSAGE_T4:
                 handle_physical_clock_sync_message(first_byte, _lf_rti_socket_UDP);
                 break;
+            case REJECT: // peek_one_byte_from_RTI_UDP() can return REJECT
+                return NULL;
             default:
                 error_print("Federate %d received from RTI an unrecognized UDP message type: %hhx.", _lf_my_fed_id, first_byte);
         }
