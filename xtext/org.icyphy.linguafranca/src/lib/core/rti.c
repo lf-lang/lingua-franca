@@ -133,14 +133,35 @@ void _lf_rti_mark_federate_requesting_stop(federate_t* fed);
  * to the RTI.
  * 
  * @param port The port number to use.
- * @param type The type of the socket for the server (see socket_type.h).
+ * @param socket_type The type of the socket for the server (TCP or UDP).
  * @return The socket descriptor on which to accept connections.
  */
-int create_server(int specified_port, ushort port, int type) {
+int create_server(int specified_port, ushort port, socket_type_t socket_type) {
+    // Timeout time for the communications of the server
+    struct timeval timeout_time = {.tv_sec = TCP_TIMEOUT_TIME / BILLION, .tv_usec = (TCP_TIMEOUT_TIME % BILLION) / 1000};
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
-    int socket_descriptor = socket(AF_INET, type, 0);
+    int socket_descriptor = -1;
+    if (socket_type == TCP) {
+        socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
+    } else if (socket_type == UDP) {
+        socket_descriptor = socket(AF_INET, SOCK_DGRAM, 0);
+        // Set the appropriate timeout time
+        timeout_time = (struct timeval){.tv_sec = UDP_TIMEOUT_TIME / BILLION, .tv_usec = (UDP_TIMEOUT_TIME % BILLION) / 1000};        
+    }
     if (socket_descriptor < 0) {
         error_print_and_exit("Failed to create RTI socket.");
+    }
+
+    // Set the option for this socket to reuse the same address 
+    if (setsockopt(socket_descriptor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+        error_print("RTI failed to set SO_REUSEADDR option on the socket: %s.", strerror(errno));
+    }
+    // Set the timeout on the socket so that read and write operations don't block for too long
+    if (setsockopt(socket_descriptor, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
+        error_print("RTI failed to set SO_RCVTIMEO option on the socket: %s.", strerror(errno));
+    }
+    if (setsockopt(socket_descriptor, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
+        error_print("RTI failed to set SO_SNDTIMEO option on the socket: %s.", strerror(errno));
     }
 
     /*
@@ -185,6 +206,7 @@ int create_server(int specified_port, ushort port, int type) {
             socket_descriptor,
             (struct sockaddr *) &server_fd,
             sizeof(server_fd));
+
     // If the binding fails with this port and no particular port was specified
     // in the LF program, then try the next few ports in sequence.
     while (result != 0
@@ -208,13 +230,13 @@ int create_server(int specified_port, ushort port, int type) {
     }
     printf("RTI for federation %s started using port %d.\n", federation_id, port);
 
-    if (type == SOCK_STREAM) {
+    if (socket_type == TCP) {
         final_port_TCP = port;
         // Enable listening for socket connections.
         // The second argument is the maximum number of queued socket requests,
         // which according to the Mac man page is limited to 128.
         listen(socket_descriptor, 128);
-    } else if (type == SOCK_DGRAM) {
+    } else if (socket_type == UDP) {
         final_port_UDP = port;
         // No need to listen on the UDP socket
     }
@@ -1000,6 +1022,8 @@ void* federates_thread_UDP(void* noarg) {
                 }
                 handle_physical_clock_sync_message(&federates[fed_id], UDP);
                 break;
+            default:
+                error_print("RTI received from federate %d an unrecognized UDP message type: %hhx.", fed_id, buffer[0]);
         }
     }
 
@@ -1023,10 +1047,22 @@ void* federate_thread_TCP(void* fed) {
     while (1) {
         // Read no more than one byte to get the message type.
         int bytes_read = read_from_socket2(my_fed->socket, 1, buffer);
-        if (bytes_read == 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
+            // 0 bytes are read or the error is to try again
             continue;
+        } else if (bytes_read == 0) {
+            // Socket is closed
+            printf("RTI socket to federate %d is closed (EOF). Exiting the thread.", my_fed->id);
+            my_fed->state = NOT_CONNECTED;
+            my_fed->socket = -1;
+            _lf_rti_mark_federate_requesting_stop(my_fed);
+            break;
         } else if (bytes_read < 0) {
-            error_print_and_exit("ERROR: RTI TCP socket to federate %d broken.\n", my_fed->id);
+            error_print("RTI TCP socket to federate %d broken: %s.\n", my_fed->id, strerror(errno));
+            my_fed->state = NOT_CONNECTED;
+            my_fed->socket = -1;
+            _lf_rti_mark_federate_requesting_stop(my_fed);
+            break;
         }
         switch(buffer[0]) {
             case TIMESTAMP:
@@ -1108,10 +1144,12 @@ void* federate_thread_TCP(void* fed) {
                     pthread_mutex_unlock(&rti_mutex);
                     return NULL;
                 }
+                // Read the federate's id. We ignore this for the TCP channel.
+                read_from_socket2(my_fed->socket, sizeof(int), buffer);
                 handle_physical_clock_sync_message(my_fed, TCP);
                 break;
             default:
-                error_print("RTI received from federate %d an unrecognized message type: %hhx.", my_fed->id, buffer[0]);
+                error_print("RTI received from federate %d an unrecognized TCP message type: %hhx.", my_fed->id, buffer[0]);
         }
     }
 
@@ -1229,6 +1267,8 @@ void connect_to_federates(int socket_descriptor) {
             }
             if (udp_buffer[0] == ACK) {
                 DEBUG_PRINT("RTI received ACK on the UDP connection from federate %d.", fed_id);
+                // Send back the ACK to complete the connection
+                sendto(socket_descriptor_UDP, udp_buffer, 1, 0, (struct sockaddr*)&federates[fed_id].UDP_addr, federate_address_length);
             } else {
                 error_print("RTI received the wrong type of message on the UDP connection from federate %d.", fed_id);
             }
@@ -1387,11 +1427,11 @@ int start_rti_server(ushort port) {
     }
     initialize_clock();
     // Create the TCP socket server
-    socket_descriptor_TCP = create_server(specified_port, port, SOCK_STREAM);
+    socket_descriptor_TCP = create_server(specified_port, port, TCP);
     printf("RTI: Listening for federates.\n");
     // Create the UDP socket server
     // Try to get the final_port_TCP + 1 port
-    socket_descriptor_UDP = create_server(specified_port, final_port_TCP + 1, SOCK_DGRAM);
+    socket_descriptor_UDP = create_server(specified_port, final_port_TCP + 1, UDP);
     return socket_descriptor_TCP;
 }
 

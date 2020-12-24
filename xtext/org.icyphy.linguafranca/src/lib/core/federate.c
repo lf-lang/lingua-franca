@@ -993,21 +993,59 @@ void connect_to_rti(char* hostname, int port) {
                     rti_UDP_addr.sin_family = AF_INET;
                     rti_UDP_addr.sin_port = htons(rti_udp_port);
                     rti_UDP_addr.sin_addr.s_addr = server_fd.sin_addr.s_addr;
+
                     // Initialize the UDP socket
                     _lf_rti_socket_UDP = socket(AF_INET, SOCK_DGRAM, 0);
+                    if (_lf_rti_socket_UDP < 0) {
+                        error_print_and_exit("Federate %d failed to create the UDP socket.", _lf_my_fed_id);
+                    }
+                    // Set the option for this socket to reuse the same address 
+                    if (setsockopt(_lf_rti_socket_UDP, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+                        error_print("Federate %d failed to set SO_REUSEADDR option on the socket: %s.", _lf_my_fed_id, strerror(errno));
+                    }
+                    // Set the timeout on the UDP socket so that read and write operations don't block for too long
+                    struct timeval timeout_time = {.tv_sec = UDP_TIMEOUT_TIME / BILLION, .tv_usec = (UDP_TIMEOUT_TIME % BILLION) / 1000}; 
+                    if (setsockopt(_lf_rti_socket_UDP, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
+                        error_print("Federate %d failed to set SO_RCVTIMEO option on the socket: %s.", _lf_my_fed_id, strerror(errno));
+                    }
+                    if (setsockopt(_lf_rti_socket_UDP, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
+                        error_print("Federate %d failed to set SO_SNDTIMEO option on the socket: %s.", _lf_my_fed_id, strerror(errno));
+                    }
+
                     // Connect to the UDP server (this sets the default address for the socket)
                     if( connect(_lf_rti_socket_UDP, (struct sockaddr *)&rti_UDP_addr, sizeof(rti_UDP_addr)) < 0) {
                         error_print("Federate %d failed to connect to the RTI's UDP server. "
                          "The related functionalities (e.g., clock sync) will be disabled.", _lf_my_fed_id);
                     } else {
-                        unsigned char ack_buffer[1];
-                        ack_buffer[0] = ACK;
-                        // Send an ack on the UDP channel so that the RTI can have the UDP address of this federate
-                        int bytes_written = write_to_socket2(_lf_rti_socket_UDP, 1, ack_buffer); // Ignore any errors
-                        printf("Federate %d connected to the RTI's UDP server. Port: %u. Bytes written: %d.\n", 
-                                _lf_my_fed_id, rti_udp_port, bytes_written);
-                        DEBUG_PRINT("Federate %d connected to the RTI's UDP server. Port: %u. Bytes written: %d.",
-                                _lf_my_fed_id, rti_udp_port, bytes_written);
+                        // Send an ACK on the UDP socket to the RTI to advertise the federate's UDP socket address.
+                        // The RTI will send back an ACK on the same UDP socket.
+                        // Because outgoing ACK is going on a UDP connection, we shall try again a few times
+                        // if we don't hear back from the RTI.
+                        int number_of_tries = 5;
+                        while (number_of_tries > -1) {
+                            unsigned char ack_buffer[1];
+                            ack_buffer[0] = ACK;
+                            // Send an ack on the UDP channel so that the RTI can have the UDP address of this federate
+                            int bytes_written = write_to_socket2(_lf_rti_socket_UDP, 1, ack_buffer); // Ignore any errors
+                            // Wait for an ack from the RTI
+                            // There is a timeout on the read operations for this socket (UDP_TIMEOUT_TIME)
+                            int bytes_read = read_from_socket2(_lf_rti_socket_UDP, 1, ack_buffer);
+
+                            if (bytes_read == 1 && ack_buffer[0] == ACK) {                                
+                                printf("Federate %d connected to the RTI's UDP server. Port: %u. Bytes written: %d.\n", 
+                                        _lf_my_fed_id, rti_udp_port, bytes_written);
+                                DEBUG_PRINT("Federate %d connected to the RTI's UDP server. Port: %u. Bytes written: %d.",
+                                        _lf_my_fed_id, rti_udp_port, bytes_written);
+                                break;
+                            } else {
+                                number_of_tries--;
+                                continue;
+                            }
+
+                            if (number_of_tries == -1) {
+                                error_print("Federate %d failed to establish a UDP connection to the RTI.", _lf_my_fed_id);
+                            }
+                        }
                     }
                 }
             }
@@ -1601,15 +1639,15 @@ unsigned char peek_one_byte_from_RTI_TCP() {
         // We should not exit the federate here since there might be
         // a termination in progress.
         error_print("Federate %d received EOF from RTI. Closing the TCP socket.", _lf_my_fed_id);
-        close(_lf_rti_socket_UDP);
-        _lf_rti_socket_UDP = -1;
+        close(_lf_rti_socket_TCP);
+        _lf_rti_socket_TCP = -1;
         return REJECT;
     } else if (bytes_read < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
         // If the error condition was not indicating to try again, then
         // the socket to the RTI is broken, which is an error condition.
         error_print("TCP socket between federate %d and RTI broken.", _lf_my_fed_id);
-        close(_lf_rti_socket_UDP);
-        _lf_rti_socket_UDP = -1;
+        close(_lf_rti_socket_TCP);
+        _lf_rti_socket_TCP = -1;
         return REJECT;
     }
     return buffer[0];
