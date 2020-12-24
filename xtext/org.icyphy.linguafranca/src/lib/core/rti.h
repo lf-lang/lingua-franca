@@ -35,6 +35,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 #include "reactor.h"
 
+/**
+ * The timeout time in ns for TCP operations.
+ * Default value is 1 sec.
+ */
+#define TCP_TIMEOUT_TIME SEC(1)
+
+/**
+ * The timeout time in ns for UDP operations.
+ * Default value is 10 msec.
+ */
+#define UDP_TIMEOUT_TIME SEC(1)
+
+
 /** Size of the buffer used for messages sent between federates.
  *  This is used by both the federates and the rti, so message lengths
  *  should generally match.
