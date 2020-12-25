@@ -228,7 +228,11 @@ int create_server(int specified_port, ushort port, socket_type_t socket_type) {
             error_print_and_exit("Failed to bind the RTI socket. Specified port is not available. Consider leaving the port unspecified");
         }
     }
-    printf("RTI for federation %s started using port %d.\n", federation_id, port);
+    char* type = "TCP";
+    if (socket_type == UDP) {
+        type = "UDP";
+    }
+    printf("RTI for federation %s started using port %d for %s.\n", federation_id, port, type);
 
     if (socket_type == TCP) {
         final_port_TCP = port;
@@ -1017,7 +1021,7 @@ void* federates_thread_UDP(void* noarg) {
             printf("RTI received EOF on its UDP socket.");
             break;
         } else if (bytes_read < 0) {
-            error_print("ERROR: RTI UDP socket broken.\n");
+            printf("RTI UDP socket broken. Socket server thread exiting.\n");
             break;
         }
         fed_id = extract_int(&(buffer[1]));
