@@ -759,7 +759,7 @@ void handle_address_ad(ushort federate_id) {
     unsigned char buffer[sizeof(int)];
     int bytes_read = read_from_socket2(federates[federate_id].socket, sizeof(int), (unsigned char *)buffer);
 
-    if (bytes_read <= sizeof(int)) {
+    if (bytes_read < sizeof(int)) {
         DEBUG_PRINT("Error reading port data from federate %d.", federates[federate_id].id);
         // Leave the server port at -1, which mean "I don't know".
         return;
