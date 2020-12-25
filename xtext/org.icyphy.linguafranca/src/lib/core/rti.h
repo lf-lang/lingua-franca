@@ -373,15 +373,22 @@ typedef enum fed_state_t {
     PENDING         // Waiting for upstream federates.
 } fed_state_t;
 
-/** Statistics for a given socket **/
+/**
+ * Statistics for a given socket.
+ * The RTI initiates a clock synchronization action by sending its
+ * current physical time T1 to a federate.  The federate records
+ * the local time T2 that it receives T1. It sends a reply at
+ * local time T3, which the RTI receives at its time T4. The RTI
+ * sends back T4.  The round trip delay on the socket is therefore
+ * estimated as:  (T4 - T1) - (T3 - T2).
+ */
 typedef struct socket_stat_t {
     instant_t remote_physical_clock_snapshot_T1;  // T1 in PTP. The first snapshot of the physical
-                                                  // clock of the remote device.
+                                                  // clock of the remote device (the RTI).
     instant_t local_physical_clock_snapshot_T2;   // T2 in PTP. The first snapshot of the physical
-                                                  // clock of the local device.    
-    interval_t local_round_trip_delay_bound;      // T3 - T2. Estimated delay between a consecutive
+                                                  // clock of the local device (the federate).
+    interval_t local_delay;                       // T3 - T2. Estimated delay between a consecutive
                                                   // receive and send on the socket for one byte.
-    interval_t network_round_trip_delay_bound;    // The estimated round-trip delay of the socket.
 } socket_stat_t;
 
 /** Information about a federate, including its runtime state,
