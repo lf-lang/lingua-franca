@@ -137,11 +137,11 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* fo
     va_list args;
     while (bytes_read < num_bytes) {
         int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
+        bytes_read += more;
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
             DEBUG_PRINT("Reading from socket was blocked. Will try again.");
-            bytes_read += more;
             continue;
         } else if (more < 0) {
             fprintf(stderr, "ERROR socket is not connected. ");
@@ -191,10 +191,10 @@ void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* for
     va_list args;
     while (bytes_written < num_bytes) {
         int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
+        bytes_written += more;
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
-            bytes_written += more;
             continue;
         } else if (more < 0) {
             fprintf(stderr, "ERROR socket is not connected. ");
