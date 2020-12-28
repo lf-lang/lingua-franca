@@ -34,12 +34,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The startup sequence is as follows:
  *
  * Each federate attempts to connect with an RTI at the IP address
- * put into its code by the code generator. It starts by trying the
+ * put into its code by the code generator (i.e., it attempts to
+ * open a TCP connection). It starts by trying the
  * port number given by STARTING_PORT and increments the port number
  * from there until it successfully connects. The maximum port number
  * it will try before giving up is STARTING_PORT + PORT_RANGE_LIMIT.
  *
- * When it has successfully opened a socket, the first message it sends
+ * When it has successfully opened a TCP connection, the first message it sends
  * to the RTI is a FED_ID message, which contains the ID of this federate
  * within the federation, contained in the global variable _lf_my_fed_id
  * (which is initialized by the code generator) and the unique ID of
@@ -51,26 +52,28 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * default ID "Unidentified Federation" will be used.
  *
  * The RTI will respond with a REJECT message if the federation IDs
- * do not match, at which point the federate will increment the port
- * number and try again to find an RTI that matches.
+ * do not match and close the connection. At this point the federate
+ * will increment the port number and try again to find an RTI that matches.
  *
- * When the federation IDs match, the RTI will respond with either
- * ACK or UDP_PORT.  The latter response is sent if the RTI has also
- * opened a socket server for UDP messages (the socket that was just
- * opened is a TCP socket).  UDP messages are currently used only
- * for clock synchronization messages. If the response is UDP_PORT,
- * then the federate will open a socket for UDP messages at the IP
- * address of the RTI and the port number given in the UDP_PORT
- * response.
+ * When the federation IDs match, the RTI will respond with an
+ * ACK. If clock synchronization is enabled (the default), then the next
+ * step is for the federate to send to the RTI a UDP_PORT message, the
+ * payload of which is the port number on which the federate will listen
+ * for UDP packets.  That port is currently only used to send
+ * clock synchronization messages, and only after the initial clock
+ * synchronization has been completed using the TCP connection.
  *
- * If clock synchronization is enabled (the default), then the next
- * step is to perform the initial clock synchronization, which attempts
- * to find an offset to the physical clock of the federate to make it
- * better match the physical clock at the RTI. Clock synchronization
- * can be disabled by setting the target property "clock-sync" to "false".
- * (NOTE: This step may also be skipped if the RTI determines that
- * the federate is running on the same host as the RTI, in which case
- * the RTI will send ACK rather than UDP_PORT).
+ * Note that clock synchronization can be disabled by setting the
+ * target property "clock-sync" to "false". Clock sync will also be
+ * disabled for any federate that is mapped to the same IP address
+ * as the RTI. This is determined at code generation time, and it
+ * assumes that the federate will be accessing the same physical clock
+ * as the RTI.
+ *
+ * If clock sync is enabled, the next step is to perform the initial
+ * clock synchronization (using the TCP connection), which attempts
+ * to find an initial offset to the physical clock of the federate to make it
+ * better match the physical clock at the RTI.
  *
  * Clock synchronization is initiated by the RTI by sending a message
  * of type PHYSICAL_CLOCK_SYNC_MESSAGE_T1, the payload of which is the
