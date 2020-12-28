@@ -531,6 +531,8 @@ typedef struct federate_t {
     pthread_t thread_id;    // The ID of the thread handling communication with this federate.
     int socket;             // The TCP socket descriptor for communicating with this federate.
     struct sockaddr_in UDP_addr;           // The UDP address for the federate.
+    bool clock_synchronization_enabled;    // Indicates the status of clock synchronization 
+                                           // for this federate. Enabled by default.
     tag_t completed;        // The largest logical tag completed by the federate (or NEVER).
     tag_t next_event;       // Most recent NET received from the federate (or NEVER).
     fed_state_t state;      // State of the federate.

@@ -79,7 +79,7 @@ class FederateInstance {
     public var Set<String> containedReactorNames = new LinkedHashSet<String>
     
     /** The host, if specified using the 'at' keyword. */
-    public var String host = null
+    public var String host = 'localhost'
     
     /** The instantiation of the top-level reactor, or null if there is no federation. */
     public var Instantiation instantiation;

@@ -404,12 +404,21 @@ class CGenerator extends GeneratorBase {
             startTimeStepTokens = 0
             
             // Only generate one output if there is no federation.
-            if (!federate.isSingleton) {
+            if (!federate.isSingleton) {                
                 filename = baseFilename + '_' + federate.name
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
-                initializeTriggerObjectsEnd = new StringBuilder()
+                initializeTriggerObjectsEnd = new StringBuilder()                
+                        
+                // Enable clock synchronization if the federate is not local and clock-sync is enabled
+                if (!federationRTIProperties.get('host').toString.equals(federate.host) && targetClockSync) {
+                    // Insert the #define at the beginning
+                    code.insert(0, '''
+                        #define _LF_CLOCK_SYNC
+                    ''')
+                    System.out.println("Clock synchronization is enabled for federate " + federate.id);
+                }
                 
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
@@ -779,8 +788,9 @@ class CGenerator extends GeneratorBase {
                 // Connect to the RTI. This sets _lf_rti_socket_TCP and _lf_rti_socket_UDP.
                 connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
             ''');            
-        
-            if (targetClockSync) {
+            
+            // Disable clock synchronization for the federate if it resides on the same host as the RTI
+            if (!federationRTIProperties.get('host').toString.equals(federate.host) && targetClockSync) {
                 pr('''
                     synchronize_initial_physical_time_with_rti();
                 ''')
@@ -3978,12 +3988,6 @@ class CGenerator extends GeneratorBase {
                 // The coordination is decentralized
                 pr('''
                     #define _LF_COORD_DECENTRALIZED
-                ''')
-            }
-            
-            if (targetClockSync) {
-                pr('''
-                    #define _LF_CLOCK_SYNC
                 ''')
             }
         }

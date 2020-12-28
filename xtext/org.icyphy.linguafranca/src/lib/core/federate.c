@@ -1030,6 +1030,12 @@ void connect_to_rti(char* hostname, int port) {
                 if (setsockopt(_lf_rti_socket_UDP, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
                     error_print("Federate %d failed to set SO_SNDTIMEO option on the socket: %s.", _lf_my_fed_id, strerror(errno));
                 }
+#else // No clock synchronization. Send port 0 instead.
+                unsigned char UDP_port_number[1 + sizeof(ushort)];
+                UDP_port_number[0] = UDP_PORT;
+                encode_ushort(0, &(UDP_port_number[1]));
+                write_to_socket(_lf_rti_socket_TCP, 1 + sizeof(ushort), UDP_port_number, 
+                                 "Federate %d failed to send the UDP port number 0 to the RTI.", _lf_my_fed_id);
 #endif
             } else {
                 error_print_and_exit("Federate %d received unexpected response %u from the RTI (see rti.h).",
@@ -1813,8 +1819,10 @@ void synchronize_with_other_federates() {
     pthread_t thread_id;
     pthread_create(&thread_id, NULL, listen_to_rti_TCP, NULL);
 
-    // One for UDP messages
+#ifdef _LF_CLOCK_SYNC
+    // One for UDP messages if clock synchronization is enabled for this federate
     pthread_create(&thread_id, NULL, listen_to_rti_UDP_thread, NULL);
+#endif
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time. Microstep is ignored.
