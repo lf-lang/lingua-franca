@@ -56,19 +56,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * will increment the port number and try again to find an RTI that matches.
  *
  * When the federation IDs match, the RTI will respond with an
- * ACK. If clock synchronization is enabled (the default), then the next
- * step is for the federate to send to the RTI a UDP_PORT message, the
- * payload of which is the port number on which the federate will listen
- * for UDP packets.  That port is currently only used to send
- * clock synchronization messages, and only after the initial clock
- * synchronization has been completed using the TCP connection.
- *
- * Note that clock synchronization can be disabled by setting the
- * target property "clock-sync" to "false". Clock sync will also be
- * disabled for any federate that is mapped to the same IP address
- * as the RTI. This is determined at code generation time, and it
- * assumes that the federate will be accessing the same physical clock
- * as the RTI.
+ * ACK. If clock synchronization is enabled for the federate(the default), 
+ * then the next step is for the federate to send to the RTI a UDP_PORT message, 
+ * the payload of which is the port number on which the federate will listen
+ * for UDP packets. This UDP port is currently only used
+ * to send clock synchronization messages, and only after the initial clock 
+ * synchronization has been completed using the TCP connection. If clock 
+ * synchronization is disabled for the federate, then the port number that is 
+ * sent as the payload of the UDP_PORT message will be 0. Note that clock 
+ * synchronization can be universally disabled by setting the target property 
+ * "clock-sync" to "false". Clock sync will also be selectively disabled for 
+ * any federate that is mapped to the same IP address as the RTI in .lf code
+ * using the 'at' directive. The appropriate functionality is thus determined 
+ * at code generation time, and it assumes that the federate will be accessing
+ * the same physical clock as the RTI.
  *
  * If clock sync is enabled, the next step is to perform the initial
  * clock synchronization (using the TCP connection), which attempts
