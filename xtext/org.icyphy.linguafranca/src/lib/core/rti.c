@@ -855,7 +855,7 @@ void _lf_rti_send_physical_clock(unsigned char message_type, federate_t* fed, so
     // Send the message
     if (socket_type == UDP) {
         // FIXME: UDP_addr is never initialized.
-        printf("******* RTI sending UDP message type %u.\n", buffer[0]);
+        DEBUG_PRINT("******* RTI sending UDP message type %u.\n", buffer[0]);
         int bytes_written = sendto(socket_descriptor_UDP, buffer, 1 + sizeof(instant_t), 0,
                                 (struct sockaddr*)&fed->UDP_addr, sizeof(fed->UDP_addr));
         if (bytes_written < sizeof(instant_t) + 1) {
@@ -865,7 +865,7 @@ void _lf_rti_send_physical_clock(unsigned char message_type, federate_t* fed, so
             return;
         }
     } else if (socket_type == TCP) {
-        printf("******* RTI sending TCP message type %u.\n", buffer[0]);
+        DEBUG_PRINT("******* RTI sending TCP message type %u.\n", buffer[0]);
         write_to_socket(fed->socket, 1 + sizeof(instant_t), buffer,
                         "RTI failed to send physical time to federate %d: %s.",
                         fed->id,
@@ -1218,17 +1218,31 @@ void connect_to_federates(int socket_descriptor) {
             // because it is waiting for the start time to be
             // sent by the RTI before beginning its execution
             federates[fed_id].state = PENDING;
+
+            DEBUG_PRINT("RTI responding with ACK to federate %d.", fed_id);
+            // Send an ACK message and the server's UDP port number
+            unsigned char ack_message = ACK;
+            write_to_socket(socket_id, 1, &ack_message,
+                    "RTI failed to write ACK message to federate %d.", fed_id);
 #ifdef _LF_CLOCK_SYNC
 
             // FIXME: if the federate is running on the same host as the RTI, send ACK instead.
             // How can we tell whether they are running on the same host?
 
-            DEBUG_PRINT("RTI responding with UDP_PORT to federate %d.", fed_id);
+            DEBUG_PRINT("RTI waiting for UDP_PORT from federate %d.", fed_id);
             unsigned char response[1 + sizeof(ushort)];
-            response[0] = UDP_PORT;
-            encode_ushort(final_port_UDP, &(response[1]));
-            write_to_socket(socket_id, 1 + sizeof(ushort) , response,
-                    "RTI failed to write UDP_PORT message to federate %d.", fed_id);
+            read_from_socket(socket_id, 1 + sizeof(ushort) , response,
+                    "RTI failed to read UDP_PORT message from federate %d.", fed_id);
+            if (response[0] != UDP_PORT) {
+                error_print_and_exit("RTI was expecting a UDP_PORT message from federate %d. Got %hhx instead.",
+                                     fed_id, response[0]);
+            }
+
+            ushort federate_UDP_port_number = extract_ushort(&(response[1]));
+            // Initialize the UDP_addr field of the federate struct
+            federates[fed_id].UDP_addr.sin_family = AF_INET;
+            federates[fed_id].UDP_addr.sin_port = htons(federate_UDP_port_number);
+            federates[fed_id].UDP_addr.sin_addr = federates[fed_id].server_ip_addr;
 
             // Perform the initialization clock synchronization with the federate.
             // Send the RTI's current physical time T1 to the federate.
@@ -1249,14 +1263,7 @@ void connect_to_federates(int socket_descriptor) {
                 error_print_and_exit("Unexpected message %u from federate %d.", buffer[0], fed_id);
             }
             DEBUG_PRINT("******* RTI finished clock synchronization with federate %d at index %d.", fed_id, i);
-
-#else  // not _LF_CLOCK_SYNC
-            DEBUG_PRINT("RTI responding with ACK to federate %d.", fed_id);
-            // Send an ACK message and the server's UDP port number
-            unsigned char response = ACK;
-            write_to_socket(socket_id, 1, &response,
-                    "RTI failed to write ACK message to federate %d.", fed_id);
-#endif // _LF_CLOCK_SYNC
+#endif
         }
 
         // Create a thread to communicate with the federate.
@@ -1272,8 +1279,7 @@ void connect_to_federates(int socket_descriptor) {
     // Create the thread that performs periodic PTP clock synchronization sessions
     // over the UDP channel, but only if the UDP channel is open.
     if (final_port_UDP != USHRT_MAX) {
-        // FIXME: Temporarily disable runtime clock synchronization.
-        // pthread_create(&clock_thread, NULL, clock_synchronization_thread, NULL);
+        pthread_create(&clock_thread, NULL, clock_synchronization_thread, NULL);
     }
 #endif // _LF_CLOCK_SYNC
 }
