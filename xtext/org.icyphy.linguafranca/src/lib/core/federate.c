@@ -1637,20 +1637,22 @@ void* listen_to_rti_UDP_thread(void* args) {
             break;
         }
         DEBUG_PRINT ("Federate %d received UDP message from RTI on port %u.\n", _lf_my_fed_id, ntohs(RTI_UDP_addr.sin_port));
-        // The reply (or return) address is given in RTI_UDP_addr.
-        // We utilize the connect() function to set the default address
-        // of the _lf_rti_socket_UDP socket to RTI_UDP_addr. This is convenient
-        // because subsequent calls to write_to_socket do not need this address.
-        if (connect(_lf_rti_socket_UDP,
-                    (struct sockaddr*)&RTI_UDP_addr,
-                     RTI_UDP_addr_length) < 0) {
-            error_print("Federate %d failed to register RTI's UDP reply address.",
-                        _lf_my_fed_id);
-            continue;
-        }
         // Handle the message
         if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T1 && waiting_for_T1) {
             waiting_for_T1 = false;
+            // The reply (or return) address is given in RTI_UDP_addr.
+            // We utilize the connect() function to set the default address
+            // of the _lf_rti_socket_UDP socket to RTI_UDP_addr. This is convenient
+            // because subsequent calls to write_to_socket do not need this address.
+            // Note that this only needs to be done for handle_T1_clock_sync_message()
+            // because it is the only function that needs to reply to the RTI.
+            if (connect(_lf_rti_socket_UDP,
+                        (struct sockaddr*)&RTI_UDP_addr,
+                        RTI_UDP_addr_length) < 0) {
+                error_print("Federate %d failed to register RTI's UDP reply address.",
+                            _lf_my_fed_id);
+                continue;
+            }
             pthread_mutex_lock(&socket_mutex);
             handle_T1_clock_sync_message(buffer, _lf_rti_socket_UDP);
             pthread_mutex_unlock(&socket_mutex);
