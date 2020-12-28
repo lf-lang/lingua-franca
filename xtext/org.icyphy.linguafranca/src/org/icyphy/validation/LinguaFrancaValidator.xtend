@@ -1172,7 +1172,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
      * @param targetProperties The target properties defined
      *  in the current Lingua Franca program.
      */
-    @Check(FAST)
+    @Check(EXPENSIVE)
     def checkTargetProperties(KeyValuePairs targetProperties) {
 
         if (targetProperties.pairs.exists(

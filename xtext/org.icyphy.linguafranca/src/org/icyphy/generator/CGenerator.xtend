@@ -3980,6 +3980,12 @@ class CGenerator extends GeneratorBase {
                     #define _LF_COORD_DECENTRALIZED
                 ''')
             }
+            
+            if (targetClockSync) {
+                pr('''
+                    #define _LF_CLOCK_SYNC
+                ''')
+            }
         }
         
         includeTargetLanguageHeaders()
