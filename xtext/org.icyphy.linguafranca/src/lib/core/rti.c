@@ -923,6 +923,8 @@ void* clock_synchronization_thread(void* noargs) {
             if (federates[fed].state == NOT_CONNECTED) {
                 _lf_rti_mark_federate_requesting_stop(&federates[fed]);
                 continue;
+            } else if (!federates[fed].clock_synchronization_enabled) {
+                continue;
             }
             any_federates_connected = true;
             // Send the RTI's current physical time to the federate
@@ -1239,30 +1241,35 @@ void connect_to_federates(int socket_descriptor) {
             }
 
             ushort federate_UDP_port_number = extract_ushort(&(response[1]));
-            // Initialize the UDP_addr field of the federate struct
-            federates[fed_id].UDP_addr.sin_family = AF_INET;
-            federates[fed_id].UDP_addr.sin_port = htons(federate_UDP_port_number);
-            federates[fed_id].UDP_addr.sin_addr = federates[fed_id].server_ip_addr;
+            if (federate_UDP_port_number > 0) {
+                // Initialize the UDP_addr field of the federate struct
+                federates[fed_id].UDP_addr.sin_family = AF_INET;
+                federates[fed_id].UDP_addr.sin_port = htons(federate_UDP_port_number);
+                federates[fed_id].UDP_addr.sin_addr = federates[fed_id].server_ip_addr;
 
-            // Perform the initialization clock synchronization with the federate.
-            // Send the RTI's current physical time T1 to the federate.
-            _lf_rti_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, &federates[fed_id], TCP);
+                // Perform the initialization clock synchronization with the federate.
+                // Send the RTI's current physical time T1 to the federate.
+                _lf_rti_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, &federates[fed_id], TCP);
 
-            // Listen for reply message, which should be T3.
-            size_t message_size = 1 + sizeof(int);
-            unsigned char buffer[message_size];
-            read_from_socket(socket_id, message_size, buffer,
-                    "Socket to federate %d unexpectedly closed.", fed_id);
-            if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T3) {
-                int fed_id = extract_int(&(buffer[1]));
-                assert(fed_id > -1);
-                assert(fed_id < 65536);
-                DEBUG_PRINT("RTI received T3 clock sync message from federate %d.", fed_id);
-                handle_physical_clock_sync_message(&federates[fed_id], TCP);
+                // Listen for reply message, which should be T3.
+                size_t message_size = 1 + sizeof(int);
+                unsigned char buffer[message_size];
+                read_from_socket(socket_id, message_size, buffer,
+                        "Socket to federate %d unexpectedly closed.", fed_id);
+                if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T3) {
+                    int fed_id = extract_int(&(buffer[1]));
+                    assert(fed_id > -1);
+                    assert(fed_id < 65536);
+                    DEBUG_PRINT("RTI received T3 clock sync message from federate %d.", fed_id);
+                    handle_physical_clock_sync_message(&federates[fed_id], TCP);
+                } else {
+                    error_print_and_exit("Unexpected message %u from federate %d.", buffer[0], fed_id);
+                }
+                DEBUG_PRINT("******* RTI finished clock synchronization with federate %d at index %d.", fed_id, i);
             } else {
-                error_print_and_exit("Unexpected message %u from federate %d.", buffer[0], fed_id);
+                federates[fed_id].clock_synchronization_enabled = false;
+                printf("RTI: Clock synchronization has been disabled for federate %d.\n", fed_id);
             }
-            DEBUG_PRINT("******* RTI finished clock synchronization with federate %d at index %d.", fed_id, i);
 #endif
         }
 
@@ -1319,6 +1326,7 @@ void* respond_to_erroneous_connections(void* nothing) {
 void initialize_federate(int id) {
     federates[id].id = id;
     federates[id].socket = -1;      // No socket.
+    federates[id].clock_synchronization_enabled = true;
     federates[id].completed.time = NEVER;
     federates[id].completed.microstep = 0u;
     federates[id].next_event.time = NEVER;
