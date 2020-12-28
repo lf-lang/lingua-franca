@@ -1033,7 +1033,7 @@ void connect_to_rti(char* hostname, int port) {
 #else // No clock synchronization. Send port 0 instead.
                 unsigned char UDP_port_number[1 + sizeof(ushort)];
                 UDP_port_number[0] = UDP_PORT;
-                encode_ushort(0, &(UDP_port_number[1]));
+                encode_ushort(0u, &(UDP_port_number[1]));
                 write_to_socket(_lf_rti_socket_TCP, 1 + sizeof(ushort), UDP_port_number, 
                                  "Federate %d failed to send the UDP port number 0 to the RTI.", _lf_my_fed_id);
 #endif
