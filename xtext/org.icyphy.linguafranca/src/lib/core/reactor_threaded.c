@@ -909,7 +909,7 @@ void* worker(void* arg) {
 
             // Unlock the mutex to run the reaction.
             pthread_mutex_unlock(&mutex);
-            DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run the reaction (or its fault vairants).\n", worker_number);
+            DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run the reaction (or its fault variants).", worker_number);
 
             bool violation = false;
             // If the reaction is tardy,
