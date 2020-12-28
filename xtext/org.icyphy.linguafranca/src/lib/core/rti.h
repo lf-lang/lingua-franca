@@ -27,6 +27,110 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
  * Header file for the runtime infrastructure for distributed Lingua Franca programs.
+ *
+ * This file defines the message types for the federate to communicate with the RTI.
+ * Each message type has a unique one-byte ID.
+ *
+ * The startup sequence is as follows:
+ *
+ * Each federate attempts to connect with an RTI at the IP address
+ * put into its code by the code generator. It starts by trying the
+ * port number given by STARTING_PORT and increments the port number
+ * from there until it successfully connects. The maximum port number
+ * it will try before giving up is STARTING_PORT + PORT_RANGE_LIMIT.
+ *
+ * When it has successfully opened a socket, the first message it sends
+ * to the RTI is a FED_ID message, which contains the ID of this federate
+ * within the federation, contained in the global variable _lf_my_fed_id
+ * (which is initialized by the code generator) and the unique ID of
+ * the federation, a GUID that is created at code generation time.
+ * The federation ID is a string that is optionally given to the federate
+ * on the command line when it is launched. The federate will connect
+ * successfully only to an RTI that is given the same federation ID on
+ * its command line. If no ID is given on the command line, then the
+ * default ID "Unidentified Federation" will be used.
+ *
+ * The RTI will respond with a REJECT message if the federation IDs
+ * do not match, at which point the federate will increment the port
+ * number and try again to find an RTI that matches.
+ *
+ * When the federation IDs match, the RTI will respond with either
+ * ACK or UDP_PORT.  The latter response is sent if the RTI has also
+ * opened a socket server for UDP messages (the socket that was just
+ * opened is a TCP socket).  UDP messages are currently used only
+ * for clock synchronization messages. If the response is UDP_PORT,
+ * then the federate will open a socket for UDP messages at the IP
+ * address of the RTI and the port number given in the UDP_PORT
+ * response.
+ *
+ * If clock synchronization is enabled (the default), then the next
+ * step is to perform the initial clock synchronization, which attempts
+ * to find an offset to the physical clock of the federate to make it
+ * better match the physical clock at the RTI. Clock synchronization
+ * can be disabled by setting the target property "clock-sync" to "false".
+ * (NOTE: This step may also be skipped if the RTI determines that
+ * the federate is running on the same host as the RTI, in which case
+ * the RTI will send ACK rather than UDP_PORT).
+ *
+ * Clock synchronization is initiated by the RTI by sending a message
+ * of type PHYSICAL_CLOCK_SYNC_MESSAGE_T1, the payload of which is the
+ * current physical clock reading at the RTI. The federate records
+ * the physical time when it receives this message (T2) and sends
+ * a reply message of type PHYSICAL_CLOCK_SYNC_MESSAGE_T3 to the RTI.
+ * It records the time (T3) at which this message has gone out.
+ * The payload of the PHYSICAL_CLOCK_SYNC_MESSAGE_T3 message is the
+ * federate ID.  The RTI responds to the T3 message with a message
+ * of type PHYSICAL_CLOCK_SYNC_MESSAGE_T4, which has as a payload
+ * the time at which that response was sent.
+ *
+ * The times T1 and T4 are taken from the physical clock at the RTI,
+ * whereas the times T2 and T3 are taken from the physical clock at
+ * the federate.  The round trip latency on the connection to the RTI
+ * is therefore measured as (T4 - T1) - (T3 - T2). Half this quantity
+ * is an estimate L of the one-way latency.  The estimated clock error
+ * E is therefore L - (T2 - T1). E becomes the initial offset for the
+ * clock at the federate.  Henceforth, when get_physical_time() is
+ * called, E will be added to whatever the physical clock says.
+ *
+ * If clock synchronization is enabled, then the federate will also
+ * start a thread to listen for incoming UDP messages from the RTI.
+ * With period given by CLOCK_SYNCHRONIZATION_INTERVAL_NS, the RTI
+ * will initiate a clock synchronization round by sending to the
+ * federate a PHYSICAL_CLOCK_SYNC_MESSAGE_T1 message. A similar
+ * protocol to that above is followed to estimate the clock
+ * synchronization error E, with two exceptions. First, a fraction
+ * of E (given by CLOCK_SYNC_ATTENUATION) is used to adjust the
+ * offset up or down rather than just setting the offset equal to E.
+ * Second, after PHYSICAL_CLOCK_SYNC_MESSAGE_T4, the RTI immediately
+ * sends a following message of type PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE.
+ * The federate measures the time difference between its receipt of
+ * T4 and this code probe and compares that time difference against
+ * the time difference at the RTI (the difference between the two
+ * payloads). If that difference is larger than CLOCK_SYNC_GUARD_BAND
+ * in magnitude, then the clock synchronization round is skipped
+ * and no adjustement is made. The round will also be skipped if
+ * any of the expected UDP messages fails to arrive.
+ *
+ * The next step depends on the coordination mode. If the coordination
+ * parameter of the target is "decentralized" and the federate has
+ * inbound connections from other federates, then it starts a socket
+ * server to listen for incoming connections from those federates.
+ * It attempts to create the server at the port given by STARTING_PORT,
+ * and if this fails, increments the port number from there until a
+ * port is available. It then sends to the RTI an ADDRESS_AD message
+ * with the port number as a payload. The federate then creates a thread
+ * to listen for incoming socket connections and messages.
+ *
+ * If the federate has outbound connections to other federates, then it
+ * establishes a socket connection to those federates.  It does this by
+ * first sending to the RTI an ADDRESS_QUERY message with the payload
+ * being the ID of the federate it wishes to connect to. If the RTI
+ * responds with a -1, then the RTI does not (yet) know the remote federate's
+ * port number and IP address, so the local federate will try again
+ * after waiting ADDRESS_QUERY_RETRY_INTERVAL. When it gets a valid port
+ * number and IP address in reply, it will establish a socket connection
+ * to that remote federate.
+ *
  */
 
 #ifndef RTI_H
@@ -103,6 +207,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define PORT_RANGE_LIMIT 1024
 
+/** Delay the start of all federates by this amount. */
+#define DELAY_START SEC(1)
+
+/** The interval at which physical clock synchronization happens */
+#define CLOCK_SYNCHRONIZATION_INTERVAL_NS MSEC(500)
+
 ////////////////////////////////////////////
 //// Message types
 
@@ -118,10 +228,17 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * Byte identifying an acknowledgment of the previously received message.
+ * This message carries no payload.
+ */
+#define ACK 255
+
+/**
+ * Byte identifying an acknowledgment of the previously received message
+ * with a payload indicating the UDP port to use for clock synchronization.
  * The next four bytes will be the port number for the UDP server, or
  * -1 if there is no UDP server.
  */
-#define ACK 255
+#define UDP_PORT 254
 
 /** Byte identifying a message from a federate to an RTI containing
  *  the federation ID and the federate ID. The message contains, in
@@ -134,7 +251,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  NUMBER_OF_FEDERATES-1.
  *  Each federate, when starting up, should send this message
  *  to the RTI. This is its first message to the RTI.
- *  The RTI will respond with either REJECT or ACK.
+ *  The RTI will respond with either REJECT, ACK, or UDP_PORT.
  *  If the federate is a C target LF program, the generated
  *  code does this by calling synchronize_with_other_federates(),
  *  passing to it its federate ID.
@@ -327,6 +444,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
  */
 #define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 20
+
+/**
+ * Define a guard band to filter clock synchronization
+ * messages based on discrepencies in the network delay.
+ * @see Coded probes in Geng, Yilong, et al.
+ * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
+ */
+#define CLOCK_SYNC_GUARD_BAND USEC(100)
 
 
 /////////////////////////////////////////////

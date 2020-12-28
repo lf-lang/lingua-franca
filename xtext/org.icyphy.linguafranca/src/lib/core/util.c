@@ -37,10 +37,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <string.h>     // Defines memcpy()
 #include <stdarg.h>     // Defines va_list
+#include <time.h>       // Defines nanosleep()
 
 #ifndef NUMBER_OF_FEDERATES
 #define NUMBER_OF_FEDERATES 1
 #endif
+
+/** Number of nanoseconds to sleep before retrying a socket read. */
+#define SOCKET_READ_RETRY_INTERVAL 1000000
 
 /**
  * A function that can be used in lieu of fprintf(stderr, ...).
@@ -119,7 +123,6 @@ int host_is_big_endian() {
 }
 
 // Error messages.
-char* ERROR_DISCONNECTED = "ERROR socket is not connected.";
 char* ERROR_EOF = "ERROR peer sent EOF.";
 
 /** 
@@ -141,13 +144,18 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* fo
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
-            DEBUG_PRINT("Reading from socket was blocked. Will try again.");
+            DEBUG_PRINT("Reading from socket was blocked. Will try again after some time.");
+            struct timespec wait_time = {0L, SOCKET_READ_RETRY_INTERVAL};
+            struct timespec remaining_time;
+            nanosleep(&wait_time, &remaining_time);
             continue;
         } else if (more < 0) {
-            fprintf(stderr, "ERROR socket is not connected. ");
+            fprintf(stderr, "ERROR on read: socket %d is not connected: ", socket);
+            close(socket);
             error_print_and_exit(format, args);
         } else if (more == 0) {
             fprintf(stderr, "ERROR peer sent EOF. ");
+            close(socket);
             error_print_and_exit(format, args);
         }
     }
@@ -197,7 +205,7 @@ void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* for
             // that we should try again (@see man errno).
             continue;
         } else if (more < 0) {
-            fprintf(stderr, "ERROR socket is not connected. ");
+            fprintf(stderr, "ERROR on write: socket %d is not connected: ", socket);
             error_print_and_exit(format, args);
         } else if (more == 0) {
             fprintf(stderr, "ERROR peer sent EOF.");
