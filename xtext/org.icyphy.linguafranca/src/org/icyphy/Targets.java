@@ -485,7 +485,12 @@ public enum Targets {
         /**
          * Directive to let the federate execution handle clock synchronization in software.
          */
-        CLOCK_SYNC("clock-sync", Arrays.asList(Targets.C));
+        CLOCK_SYNC("clock-sync", Arrays.asList(Targets.C)),
+
+        /**
+         * Directive to let the generator use the custom build command.
+         */
+        BUILD("build", Arrays.asList(Targets.C));
 
         /**
          * List of targets that support this property. If a property is used for

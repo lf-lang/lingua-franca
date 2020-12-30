@@ -402,18 +402,24 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * of the reactor in a bank of reactors. The value must be set to zero
      * in generated code for reactors that are not in a bank
      */
-     protected String targetBankIndex = "bank_index"
+    protected String targetBankIndex = "bank_index"
      
-     /**
-      * The type of the bank index, which must be an integer in the target language
-      */
-     protected String targetBankIndexType = "int"
+    /**
+     * The type of the bank index, which must be an integer in the target language
+     */
+    protected String targetBankIndexType = "int"
      
-     /**
-      * The clock sync target parameter for federated programs.
-      */
-     protected clockSyncMethod targetClockSync = clockSyncMethod.INITIAL
-
+    /**
+     * The clock sync target parameter for federated programs.
+     */
+    protected clockSyncMethod targetClockSync = clockSyncMethod.INITIAL
+    
+    /**
+     * The custom build command, which replaces the default build process of
+     * invoking GCC. A common usage of this target property is to set the command
+     * to "make", provide a Makefile, and include it using the "files" parameter. 
+     */
+    protected String targetBuildCommand
 
     /**
      * The clock synchronization technique that is used.
@@ -565,6 +571,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetClockSync = clockSyncMethod.ON
                         }
                     }
+                    case "build":
+                        targetBuildCommand = param.value.literal.withoutQuotes
                 }
             }
         }
@@ -976,6 +984,30 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         if (returnCode != 0 && mode !== Mode.INTEGRATED) {
             reportError('''«targetCompiler»r returns error code «returnCode»''')
+        }
+        // For warnings (vs. errors), the return code is 0.
+        // But we still want to mark the IDE.
+        if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
+            reportCommandErrors(stderr.toString())
+        }
+    }
+    
+    /**
+     * Run the custom build command specified in "build" parameter
+     */
+    protected def runBuildCommand() {
+	var _buildCommand = newArrayList('-c', targetBuildCommand)
+        val buildCommand = createCommand("bash", _buildCommand)
+	
+        if (buildCommand === null) {
+            return
+        }
+
+        val stderr = new ByteArrayOutputStream()
+        val returnCode = buildCommand.executeCommand(stderr)
+
+        if (returnCode != 0 && mode !== Mode.INTEGRATED) {
+            reportError('''Build command "«targetBuildCommand»" returns error code «returnCode»''')
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
