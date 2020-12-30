@@ -728,9 +728,13 @@ class CGenerator extends GeneratorBase {
         }
         // Restore the base filename.
         filename = baseFilename
-                
+        
         if (!targetNoCompile) {
-            compileCode()
+            if (targetBuildCommand !== null) {
+                runBuildCommand()    
+            } else {
+                compileCode()
+            }
         } else {
             println("Exiting before invoking target compiler.")
         }
