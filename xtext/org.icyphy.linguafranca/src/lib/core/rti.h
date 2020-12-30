@@ -215,7 +215,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DELAY_START SEC(1)
 
 /** The interval at which physical clock synchronization happens */
-#define CLOCK_SYNCHRONIZATION_INTERVAL_NS MSEC(500)
+#define CLOCK_SYNCHRONIZATION_INTERVAL_NS MSEC(5)
+
+/** Runtime clock offset updates will be divided by this number. */
+#define CLOCK_SYNC_ATTENUATION 10
+
+/**
+ * Define a guard band to filter clock synchronization
+ * messages based on discrepancies in the network delay.
+ * @see Coded probes in Geng, Yilong, et al.
+ * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
+ */
+#define CLOCK_SYNC_GUARD_BAND USEC(100)
 
 ////////////////////////////////////////////
 //// Message types
@@ -448,14 +459,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
  */
 #define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 20
-
-/**
- * Define a guard band to filter clock synchronization
- * messages based on discrepencies in the network delay.
- * @see Coded probes in Geng, Yilong, et al.
- * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
- */
-#define CLOCK_SYNC_GUARD_BAND USEC(100)
 
 
 /////////////////////////////////////////////
