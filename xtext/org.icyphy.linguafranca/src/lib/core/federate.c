@@ -812,7 +812,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket) {
         }
         // Apply a jitter attenuator to the estimated clock error to prevent
         // large jumps in the underlying clock.
-        interval_t adjustment = estimated_clock_error / 10;  // FIXME: Naked constant.
+        interval_t adjustment = estimated_clock_error / CLOCK_SYNC_ATTENUATION;
         _lf_global_physical_clock_offset += adjustment;
 
         DEBUG_PRINT("Federate %d adjusting clock offset by %lld to get %lld.",
@@ -829,16 +829,16 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket) {
         // rather than adjust the clock offset, we simply set it to the
         // estimated error.
         _lf_global_physical_clock_offset =  estimated_clock_error;
-
-        DEBUG_PRINT("Federate %d: Clock sync:"
-                    " Round trip delay to RTI: %lld."
-                    " Local round trip delay: %lld."
-                    " Offset: %lld.",
-                    _lf_my_fed_id,
-                    network_round_trip_delay,
-                    _lf_rti_socket_stat.local_delay,
-                    estimated_clock_error);
     }
+    DEBUG_PRINT("Federate %d: Clock sync:"
+                " Round trip delay to RTI: %lld."
+                " Local round trip delay: %lld."
+                " Offset: %lld.",
+                _lf_my_fed_id,
+                network_round_trip_delay,
+                _lf_rti_socket_stat.local_delay,
+                _lf_global_physical_clock_offset);
+
     // Set the last instant at which the clocks were synchronized
     _lf_last_clock_sync_instant = r4;
 }
@@ -997,17 +997,19 @@ void connect_to_rti(char* hostname, int port) {
                                                         // socket. This is okay because
                                                         // the port number is then sent
                                                         // to the RTI.
-                federate_UDP_addr.sin_addr.s_addr = server_fd.sin_addr.s_addr;
+                federate_UDP_addr.sin_addr.s_addr = INADDR_ANY;
                 if (bind(
                     _lf_rti_socket_UDP,
                     (struct sockaddr *) &federate_UDP_addr,
                     sizeof(federate_UDP_addr)) < 0) {
-                        error_print_and_exit("Ferderate %d failed to bind its UDP socket: %s.",
+                        error_print_and_exit("Federate %d failed to bind its UDP socket: %s.",
                                               _lf_my_fed_id, strerror(errno));
                 }
                 // Retrieve the port number that was assigned by the operating system
                 socklen_t addr_length = sizeof(federate_UDP_addr);
                 if (getsockname(_lf_rti_socket_UDP, (struct sockaddr *)&federate_UDP_addr, &addr_length) == -1) {
+                    // FIXME: Send 0 UDP_PORT message instead of exiting.
+                    // That will disable clock synchronization.
                     error_print_and_exit("Federate %d failed to retrieve UDP port: %s.",
                                           _lf_my_fed_id, strerror(errno));
                 }
