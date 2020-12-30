@@ -12,7 +12,7 @@
  * @author Edward A. Lee
  */
 target C {
-    coordination: decentralized,
+    coordination: centralized,
     flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
@@ -463,9 +463,9 @@ reactor RhythmMacPlayer {
     tempo -> source.tempo;
 }
 
-federated reactor RhythmMacDistributed at 10.0.0.202 {
-    player1 = new RhythmMacMaster() at 10.0.0.202;
-    player2 = new RhythmMacPlayer() at 10.0.0.199;
+federated reactor RhythmMacDistributed at 10.0.0.219 {
+    player1 = new RhythmMacMaster() at 10.0.0.219;
+    player2 = new RhythmMacPlayer() at 10.0.0.206;
     player1.rhythm_change -> player2.rhythm_change after 20 msec;
     player1.tempo -> player2.tempo after 20 msec;
 }
