@@ -1661,6 +1661,11 @@ void* listen_to_rti_UDP_thread(void* args) {
             pthread_mutex_lock(&socket_mutex);
             handle_T4_clock_sync_message(buffer, _lf_rti_socket_UDP);
             pthread_mutex_unlock(&socket_mutex);
+        } else if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T1 || 
+                   buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T4) {
+            DEBUG_PRINT("Federate %d received from RTI an out of order UDP message type: %u. Skipping this round.",
+                       _lf_my_fed_id, buffer[0]);
+            continue;
         } else {
             error_print("Federate %d received from RTI an unrecognized UDP message type: %u.",
                     _lf_my_fed_id, buffer[0]);
