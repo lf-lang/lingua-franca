@@ -119,25 +119,17 @@ reactor MotorControl {
 	input angle:int;
 	output torque:int;
 	state braking:bool(true);
-	state accelerating:bool(false);
 	
-	//@label Set torque to zero if car is accelerating
+	//@label Set torque to zero if car is braking
 	reaction(brkOn) -> torque {=
 		self->braking = brkOn->value;
-		if(self->accelerating) {
-			SET(torque, 0);
-		}
+		SET(torque, 0);
 	=}
 	
-	//@label Adjust torque unless car is braking 
+	//@label Adjust torque unless car is braking
 	reaction(angle) -> torque {= 
 		if (!self->braking) {
 			SET(torque, calc_motor_torque(angle->value));
-			if (angle->value > 0) {
-            	self->accelerating = true; 
-            } else {
-                self->accelerating = false;
-            }
 		} else if (angle->value > 0){
             printw("Cannot accelerate; release brake pedal first.\n");
         }
