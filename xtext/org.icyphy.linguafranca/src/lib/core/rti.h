@@ -85,23 +85,28 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The payload of the PHYSICAL_CLOCK_SYNC_MESSAGE_T3 message is the
  * federate ID.  The RTI responds to the T3 message with a message
  * of type PHYSICAL_CLOCK_SYNC_MESSAGE_T4, which has as a payload
- * the time at which that response was sent.
+ * the time at which that response was sent. This cycles will happen
+ * many number of times at startup to account for network delay variations
+ * (see below).
  *
  * The times T1 and T4 are taken from the physical clock at the RTI,
  * whereas the times T2 and T3 are taken from the physical clock at
  * the federate.  The round trip latency on the connection to the RTI
  * is therefore measured as (T4 - T1) - (T3 - T2). Half this quantity
  * is an estimate L of the one-way latency.  The estimated clock error
- * E is therefore L - (T2 - T1). E becomes the initial offset for the
- * clock at the federate.  Henceforth, when get_physical_time() is
- * called, E will be added to whatever the physical clock says.
+ * E is therefore L - (T2 - T1). To account for any variations in network
+ * delay, this clock synchronization cycle is performed many times (based on
+ * CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL). The average value of E after
+ * the pre-specified number of synchronization cycles becomes the initial offset for the
+ * clock at the federate. Henceforth, when get_physical_time() is
+ * called, the offset will be added to whatever the physical clock says.
  *
  * If clock synchronization is enabled, then the federate will also
  * start a thread to listen for incoming UDP messages from the RTI.
  * With period given by CLOCK_SYNCHRONIZATION_INTERVAL_NS, the RTI
  * will initiate a clock synchronization round by sending to the
  * federate a PHYSICAL_CLOCK_SYNC_MESSAGE_T1 message. A similar
- * protocol to that above is followed to estimate the clock
+ * protocol to that above is followed to estimate the average clock
  * synchronization error E, with two exceptions. First, a fraction
  * of E (given by CLOCK_SYNC_ATTENUATION) is used to adjust the
  * offset up or down rather than just setting the offset equal to E.
@@ -112,7 +117,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * the time difference at the RTI (the difference between the two
  * payloads). If that difference is larger than CLOCK_SYNC_GUARD_BAND
  * in magnitude, then the clock synchronization round is skipped
- * and no adjustement is made. The round will also be skipped if
+ * and no adjustment is made. The round will also be skipped if
  * any of the expected UDP messages fails to arrive.
  *
  * The next step depends on the coordination mode. If the coordination
