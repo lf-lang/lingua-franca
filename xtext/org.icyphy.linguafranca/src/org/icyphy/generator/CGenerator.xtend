@@ -412,10 +412,10 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjectsEnd = new StringBuilder()                
                         
                 // Enable clock synchronization if the federate is not local and clock-sync is enabled
-                if (!federationRTIProperties.get('host').toString.equals(federate.host) && targetClockSync) {
+                if (!federationRTIProperties.get('host').toString.equals(federate.host) && targetClockSync != clockSyncMethod.OFF) {
                     // Insert the #define at the beginning
                     code.insert(0, '''
-                        #define _LF_CLOCK_SYNC
+                        #define _LF_CLOCK_SYNC «targetClockSync»
                     ''')
                     System.out.println("Clock synchronization is enabled for federate " + federate.id);
                 }
@@ -784,13 +784,24 @@ class CGenerator extends GeneratorBase {
                 ''')                    
             }
             
+            if (targetClockSync == clockSyncMethod.AVG) {
+                pr('''
+                    // Initialize history as a running averageL
+                    _lf_rti_socket_stat.history = (int*)malloc(sizeof(int));
+                ''')
+            } else if (targetClockSync == clockSyncMethod.REGRESSION) {
+                pr('''
+                    // FIXME: REGRESSION not implemented yet.
+                ''')
+            }
+            
             pr('''
                 // Connect to the RTI. This sets _lf_rti_socket_TCP and _lf_rti_socket_UDP.
                 connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
             ''');            
             
             // Disable clock synchronization for the federate if it resides on the same host as the RTI
-            if (!federationRTIProperties.get('host').toString.equals(federate.host) && targetClockSync) {
+            if (!federationRTIProperties.get('host').toString.equals(federate.host) && targetClockSync != clockSyncMethod.OFF) {
                 pr('''
                     synchronize_initial_physical_time_with_rti();
                 ''')
@@ -889,8 +900,8 @@ class CGenerator extends GeneratorBase {
             «IF targetLoggingLevel?.equals("DEBUG")»
                 #define VERBOSE
             «ENDIF»
-            «IF targetClockSync»
-                #define _LF_CLOCK_SYNC
+            «IF targetClockSync != clockSyncMethod.OFF»
+                #define _LF_CLOCK_SYNC «targetClockSync»
             «ENDIF»
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES

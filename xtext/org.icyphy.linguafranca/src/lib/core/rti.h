@@ -214,8 +214,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Delay the start of all federates by this amount. */
 #define DELAY_START SEC(1)
 
-/** The interval at which physical clock synchronization happens */
-#define CLOCK_SYNCHRONIZATION_INTERVAL_NS MSEC(5)
+/** 
+ * The period at which physical clock synchronization 
+ * message T1 is sent.
+ */
+#define CLOCK_SYNCHRONIZATION_T1_PERIOD_NS MSEC(5)
+
+/**
+ * Number of required clock sync T4 messages per synchronization
+ * interval. The offset to the clock will not be adjusted until 
+ * this number of T4 clock synchronization messages have been received.
+ */
+#define CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL 400
 
 /** Runtime clock offset updates will be divided by this number. */
 #define CLOCK_SYNC_ATTENUATION 10
@@ -486,6 +496,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /////////////////////////////////////////////
 //// Data structures
+/**
+ * The clock synchronization algorithm to be used if
+ * clock sync is enabled (default is AVG).
+ */
+typedef enum clock_synchronization_t {
+    AVG,          // Average clock synchronization error calculated according to PTP.
+    REGRESSION    // Slope (clock drift) and intercept (clock offset) calculated using a simple linear regression.
+} clock_synchronization_t;
 
 typedef enum socket_type_t {
     TCP,
@@ -521,6 +539,10 @@ typedef struct socket_stat_t {
                                                   // clock of the local device (the federate).
     interval_t local_delay;                       // T3 - T2. Estimated delay between a consecutive
                                                   // receive and send on the socket for one byte.
+    int received_T4_messages_in_current_sync_window; // Checked against CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL
+                                                     // Must be reset to 0 every time it reaches the threshold. 
+    void* history;                                // A history of clock synchronization data. The exact
+                                                  // type of data depends on the clock sync algorithm used.
 } socket_stat_t;
 
 /** Information about a federate, including its runtime state,

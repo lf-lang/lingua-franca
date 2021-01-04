@@ -740,8 +740,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
                 case CLOCK_SYNC: {
-                    if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
-                        error("Target property clock-sync is required to be true or false.",
+                    if (!param.value.id.equals('off') && !param.value.id.equals('avg') && !param.value.id.equals('regression')) {
+                        error("Target property clock-sync is required to be off, avg or regression.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
                 }

@@ -909,9 +909,9 @@ void handle_physical_clock_sync_message(federate_t* my_fed, socket_type_t socket
  */
 void* clock_synchronization_thread(void* noargs) {
 
-    // Initiate a clock synchronization every CLOCK_SYNCHRONIZATION_INTERVAL_NS
-    struct timespec sleep_time = {(time_t) CLOCK_SYNCHRONIZATION_INTERVAL_NS / BILLION,
-                                  CLOCK_SYNCHRONIZATION_INTERVAL_NS % BILLION};
+    // Initiate a clock synchronization every CLOCK_SYNCHRONIZATION_T1_PERIOD_NS
+    struct timespec sleep_time = {(time_t) CLOCK_SYNCHRONIZATION_T1_PERIOD_NS / BILLION,
+                                  CLOCK_SYNCHRONIZATION_T1_PERIOD_NS % BILLION};
     struct timespec remaining_time;
 
     bool any_federates_connected = true;
@@ -1248,22 +1248,25 @@ void connect_to_federates(int socket_descriptor) {
                     federates[fed_id].UDP_addr.sin_addr = federates[fed_id].server_ip_addr;
 
                     // Perform the initialization clock synchronization with the federate.
-                    // Send the RTI's current physical time T1 to the federate.
-                    _lf_rti_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, &federates[fed_id], TCP);
+                    // Send the required number of messages for clock synchronization
+                    for (int i=0; i < CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL; i++) {
+                        // Send the RTI's current physical time T1 to the federate.
+                        _lf_rti_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, &federates[fed_id], TCP);
 
-                    // Listen for reply message, which should be T3.
-                    size_t message_size = 1 + sizeof(int);
-                    unsigned char buffer[message_size];
-                    read_from_socket(socket_id, message_size, buffer,
-                            "Socket to federate %d unexpectedly closed.", fed_id);
-                    if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T3) {
-                        int fed_id = extract_int(&(buffer[1]));
-                        assert(fed_id > -1);
-                        assert(fed_id < 65536);
-                        DEBUG_PRINT("RTI received T3 clock sync message from federate %d.", fed_id);
-                        handle_physical_clock_sync_message(&federates[fed_id], TCP);
-                    } else {
-                        error_print_and_exit("Unexpected message %u from federate %d.", buffer[0], fed_id);
+                        // Listen for reply message, which should be T3.
+                        size_t message_size = 1 + sizeof(int);
+                        unsigned char buffer[message_size];
+                        read_from_socket(socket_id, message_size, buffer,
+                                "Socket to federate %d unexpectedly closed.", fed_id);
+                        if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T3) {
+                            int fed_id = extract_int(&(buffer[1]));
+                            assert(fed_id > -1);
+                            assert(fed_id < 65536);
+                            DEBUG_PRINT("RTI received T3 clock sync message from federate %d.", fed_id);
+                            handle_physical_clock_sync_message(&federates[fed_id], TCP);
+                        } else {
+                            error_print_and_exit("Unexpected message %u from federate %d.", buffer[0], fed_id);
+                        }
                     }
                     DEBUG_PRINT("******* RTI finished clock synchronization with federate %d at index %d.", fed_id, i);
                 } else {

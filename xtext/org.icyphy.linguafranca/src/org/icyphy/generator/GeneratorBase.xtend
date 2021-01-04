@@ -410,11 +410,20 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      
      /**
       * The clock sync target parameter for federated programs.
-      * true: Software clock synchronization with the RTI's clock
-      * false: No clock synchronization
       */
-     protected boolean targetClockSync = true
+     protected clockSyncMethod targetClockSync = clockSyncMethod.AVG
 
+
+    /**
+     * The clock synchronization technique that is used when clock-sync is enabled.
+     * OFF: The clock synchronization is universally off
+     * AVG: The calculate clock offset is an average of multiple measurements
+     * REGRESSION: A regression is applied to find a linear slope and intercept for the clock
+     *  synchronization error
+     */
+    protected enum clockSyncMethod {
+        OFF, AVG, REGRESSION;
+    }
     ////////////////////////////////////////////
     //// Private fields.
 
@@ -547,8 +556,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetTracing = true
                         }
                     case "clock-sync": {
-                        if (param.value.literal == 'false') {
-                            targetClockSync = false
+                        if (param.value.literal.equalsIgnoreCase('off')) {
+                            targetClockSync = clockSyncMethod.OFF
+                        } else if (param.value.literal.equalsIgnoreCase('AVG')) {
+                            targetClockSync = clockSyncMethod.AVG
+                        } else if (param.value.literal.equalsIgnoreCase('REGRESSION')) {
+                            targetClockSync = clockSyncMethod.REGRESSION
                         }
                     }
                 }
