@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/icyphy/lingua-franca.svg?branch=master)](https://travis-ci.com/icyphy/lingua-franca)
+[![Build Status](https://github.com/icyphy/lingua-franca/workflows/CI/badge.svg)](https://github.com/icyphy/lingua-franca/actions/)
 
 # Lingua Franca
 
