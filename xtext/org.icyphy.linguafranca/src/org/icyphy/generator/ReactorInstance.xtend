@@ -1073,7 +1073,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         val origins = graph.getOrigins(current)
         var mask = chainID
         var first = true
-        var id = chainID
+        var id = current.chainID.bitwiseOr(chainID)
+        current.visitsLeft--
+        if (current.visitsLeft > 0) {
+            current.chainID = id
+            return chainID;
+        }
         // Iterate over the upstream neighbors by level from high to low.
         for (upstream : origins.sortBy[-level]) {
             if (first) {
@@ -1088,7 +1093,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             mask = mask.bitwiseOr(
                     propagateUp(upstream, graph, id))
         }    
-        
         // Apply the mask to the current chain ID.
         // If there were no upstream neighbors, the mask will
         // just be the chainID that was passed as an argument.
@@ -1112,6 +1116,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             boolean optimize) {
         val leafs = graph.leafNodes
         this.branchCount = 0
+        for (node : graph.nodes) {
+            node.visitsLeft = graph.getEffects(node).size
+        }
         if (optimize) {
             // Start propagation from the leaf nodes,
             // ordered by level from high to low.
