@@ -186,6 +186,13 @@ class ReactionInstance extends NamedInstance<Reaction> {
     public var visited = new LinkedHashSet<ReactionInstance>
 
     /**
+     * Counter that indicates how many times this node has been visited during
+     * the graph traversal that sets the chainIDs. Only when this counter hits zero
+     * shall the traversal continue to explore chains beyond this node.
+     */
+    public var visitsLeft = 0;
+
+    /**
      * Return the name of this reaction, which is 'reaction_n',
      * where n is replaced by the reactionIndex. 
      * @return The name of this reaction.
