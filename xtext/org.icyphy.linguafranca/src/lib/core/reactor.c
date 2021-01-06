@@ -324,6 +324,21 @@ void request_stop() {
     stop_tag.microstep++;
 }
 
+/**
+ * Do nothing. This implementation is not multithreaded.
+ */
+void _lf_notify_workers() {
+}
+
+/**
+ * Return false.
+ * @param reaction The reaction.
+ */
+bool _lf_is_blocked_by_executing_reaction() {
+    return false;
+}
+
+
 int main(int argc, char* argv[]) {
     // Invoke the function that optionally provides default command-line options.
     __set_default_command_line_options();

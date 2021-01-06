@@ -15,15 +15,16 @@ reactor Player(id:char(0)) {
 
     reaction(startup, repeat) -> reveal {=
         srand(time(0) / self->id);
-        self->choice = rand() % 2;
+        self->choice = rand() % 3;
         SET(reveal, self->choice);
         printf("Player %d chose '%s'\n", self->id, symbol_names[self->choice]);
     =}
 	
     reaction(observe) -> repeat {=
         if (observe->value == self->choice) {
+            printf("Player %d declares a tie.\n", self->id);    
             schedule(repeat, 0);
-        } else if (observe->value = (self->choice + 1) % 2) {
+        } else if (observe->value == (self->choice + 1) % 3) {
         	printf("Player %d won!\n", self->id);    
         }
     =}
