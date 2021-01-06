@@ -1,0 +1,158 @@
+/**
+ * This example illustrates a first idea for the use of modes.
+ * 
+ * It is inspired by the Chronometer example by 
+ * Jean-Louis Colaço, Bruno Pagano, Marc Pouzet,
+ * A conservative extension of synchronous data-flow with state machines,
+ * EMSOFT 2005.
+ * 
+ * The code was originally derived from ReflexGame.lf
+ * 
+ * @author Alexander Schulz-Rosengarten
+ * @author Reinhard von Hanxleden
+ */
+target C {
+    threads: 1,
+    keepalive: true
+};
+
+/* POSSIBLE NEW SYNTAX FOR DESCRIBING MODES AT LF-LEVEL
+ * Still open questions include 
+ * Q1: Do we want hierarchy, ie, mixing state/dataflow across levels as in Ptolemy/SCADE?
+  modes Stop, Start;            // Q2: This is actually redundant - still useful?
+  
+  mode Stop() { ...             // Q3: Should possible successor states ("Start") be listed here as well?
+    reaction(enter) {=
+      printf("Entered Stop!");
+    }
+
+    reaction(stst) -> Start {=  // Q4: Should transitions be encoded as reactions?
+      changemode(Start);        // Q5: Should this be hostcode? Should this be instantaneous?
+    =}
+  }
+
+  mode Start() { ...
+    timer dTimer(10 msec, 10 msec);
+
+    reaction(enter) {=
+      printf("Entered Start!");
+    }
+
+    reaction(dTimer) -> d, s, m {= ... =}
+    
+    reaction(stst) -> Stop {=
+      changemode(Stop);
+    =}
+  }
+
+*/
+
+reactor ChronoLogic {
+    input stst:int;
+    
+    // time output
+    output m:int;
+    output s:int;
+    output d:int;
+    
+    // time state
+    state dState:int(0);
+    state sState:int(0);
+    state mState:int(0);
+    
+    // active state
+    state ststState:int(0); // 0 = STOP, 1 = START
+    
+    // provide base time
+    timer dTimer(10 msec, 10 msec);
+    
+    reaction(startup) {=
+        printf("'x' + 'Enter' kills the program.\n");
+        printf("Just 'Enter' alternates between modes STOP and START.\n\n");
+    =}
+    
+    reaction(stst) {=
+		self->ststState = 1 - self->ststState;
+		if (self->ststState) {
+            printf("Entered START!\n");
+        } else {
+            printf("Entered STOP!\n"); 
+        }
+	=}
+   
+    reaction(dTimer) -> d, s, m {=
+        if (self->ststState) {
+            self->dState = (self->dState + 1) % 100;
+            if (self->dState == 0) {
+                self->sState = (self->sState + 1) % 60;
+            	if (self->sState == 0) {
+                	self->mState = (self->mState + 1) % 60;
+            	}
+            }
+            // Only create outputs for changes
+        	SET(d, self->dState);
+        	SET(s, self->sState);
+        	SET(m, self->mState);
+        }
+    =}
+}
+
+reactor GetUserInput {
+    preamble {=
+		void* read_input(void* user_input) {
+            int c;
+            while(1) {
+				c = getchar();
+                schedule_copy(user_input, 0, &c, 1);
+                if (c == EOF) break;
+            }
+            return NULL;
+        }
+    =}
+
+    physical action user_input:char;
+    output stst:int;
+    
+    reaction(startup) -> user_input {=
+        // Start the thread that listens for Enter or Return.
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, &read_input, user_input);        
+    =}
+    
+    reaction(user_input) -> stst {=
+        if (user_input->value == 'x') {
+            request_stop();
+        } else {
+            SET(stst, 42);            
+        }
+    =}
+}
+
+reactor PrintOutput {
+    input m:int;
+    input s:int;
+    input d:int;
+    
+    reaction(m) {=
+        printf("m = %d, ", m->value);
+	=}
+    
+    reaction(s) {=
+        printf("s = %d, ", s->value);
+	=}
+	
+    reaction(d) {=
+        printf("d = %d\n", d->value);
+    =}
+ }
+
+main reactor Chrono {
+    in = new GetUserInput();
+    chrono = new ChronoLogic();
+    out = new PrintOutput();
+    
+    in.stst -> chrono.stst;
+    chrono.m -> out.m;
+    chrono.s -> out.s;
+    chrono.d -> out.d;
+}

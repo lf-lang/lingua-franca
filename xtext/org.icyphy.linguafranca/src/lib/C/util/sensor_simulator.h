@@ -54,10 +54,24 @@ preamble {=
 /**
  * Start the sensor simulator if it has not been already
  * started. This must be called at least once before any
- * call to register_sensor_key.
- * @return 0 for success, error code for failure.
+ * call to register_sensor_key. If given, this will
+ * put a message in the center of the terminal window.
+ * The message will be left justified, with each string
+ * in the specified array on a new line.
+ * If a tick_window_width is given, then a second window
+ * will be created that is intended to show activity,
+ * typically using a single character per event.
+ * @param message_lines The message lines or NULL for none.
+ * @param number_of_lines The number of message lines or 0 for none.
+ * @param tick_window_width The width of the tick window or 0 for none.
  */
-int start_sensor_simulator();
+int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width);
+
+/**
+ * Place a tick (usually a single character) in the tick window.
+ * @param character The tick character.
+ */
+void show_tick(char* character);
 
 /**
  * Register a keyboard key to trigger the specified action.
@@ -78,15 +92,5 @@ int start_sensor_simulator();
  * @return 0 for success, error code for failure.
  */
 int register_sensor_key(char key, void* action);
-
-/**
- * Put a message in the center of the terminal window.
- * The message will be left justified, with each string
- * in the specified array on a new line.
- * The cursor is then moved to the (0,0) position (upper right).
- * @param message_lines The message lines.
- * @param number_of_lines The number of lines.
- */
-void show_message(char* message_lines[], int number_of_lines);
 
 #endif // SENSOR_SIMULATOR_H

@@ -1,0 +1,308 @@
+/**
+ * Parallelism benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * TODO evaluate the maxValue parameter and create the pipeline accordingly.
+ * 
+ * @author Hannes Klein
+ */
+
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include : "../IncludeHeaders.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}(2048)) {
+    
+    public preamble {=
+        #include "PseudoRandom.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state random:{=PseudoRandom=};
+    state numValuesSent:int(0);
+    
+    input inStart:void;
+    
+    output outNextSortReactor:{=long=};
+    
+    logical action sendRandomNum:void;
+    
+    reaction(inStart) -> sendRandomNum {=
+        
+        // reset local state
+        random = PseudoRandom(seed);
+        numValuesSent = 0;
+        
+        // start execution
+        sendRandomNum.schedule();
+    =}
+    
+    reaction(sendRandomNum) -> outNextSortReactor, sendRandomNum {=
+        
+        if(numValuesSent < numValues) {
+             long candidate = abs(random.nextLong()) % maxValue;
+             reactor::log::Debug() << candidate;
+             outNextSortReactor.set(candidate);
+             numValuesSent += 1;
+             sendRandomNum.schedule();
+        }
+    =}
+}
+
+
+reactor SortActor(numValues:int(100000), radixIndex:int(-1)) {
+    
+    public preamble {=
+        #include <list>
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state orderingArray:{=std::vector<reactor::ImmutableValuePtr<long>>=};
+    state valuesSoFar:int(0);
+    state radix:{=long=}(-1);
+    state pos:int(0);
+    state sendPos:int(0);
+    
+    input inValue:{=long=};
+    output outValue:{=long=};
+    
+    logical action sendBufferedValues:void;
+    
+    reaction(startup) {=
+        radix = 1l << radixIndex;
+        orderingArray = std::vector<reactor::ImmutableValuePtr<long>>(numValues);
+    =}
+    
+    reaction(inValue) -> outValue, sendBufferedValues {=
+        
+        valuesSoFar += 1;
+        long current = *(inValue.get());
+        if((current & radix) == 0) {
+            // number with leading 0 (small) go through
+            outValue.set(current);
+        } else {
+            orderingArray[pos] = (inValue.get());
+            pos += 1;
+        }
+        
+        if(valuesSoFar == numValues) {
+            sendBufferedValues.schedule();
+        }
+    =}
+    
+    reaction(sendBufferedValues) -> outValue, sendBufferedValues {=
+        
+        if(sendPos < pos) {
+            outValue.set(orderingArray[sendPos]);
+            sendPos += 1;
+            sendBufferedValues.schedule();
+        } else {
+            
+            // reset local state
+            valuesSoFar = 0;
+            pos = 0;
+            sendPos = 0;
+        }
+    =}
+}
+
+reactor ValidationReactor(numValues:int(100000)) {
+    
+    private preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state sumSoFar:double(0.0);
+    state valuesSoFar:int(0);
+    state prevValue:{=long=}(0);
+    state errorValueLong:{=long=}(-1);
+    state errorValueInt:int(-1);
+    
+    input inValue:{=long=};
+    output outFinished:void;
+    
+    reaction(inValue) -> outFinished {=
+        
+        long value = *inValue.get();
+        valuesSoFar += 1;
+        if(value < prevValue && errorValueLong < 0) {
+            errorValueLong = value;
+            errorValueInt = valuesSoFar - 1;
+        }
+        prevValue = value;
+        sumSoFar += prevValue;
+        
+        if(valuesSoFar == numValues) {
+            if(errorValueLong >= 0) {
+                reactor::log::Error() << "ERROR: Value out of place: " << errorValueLong << " at index " << errorValueInt;
+            } else {
+                reactor::log::Info() << "Elements sum: " << sumSoFar;
+            }
+            
+            // reset local state
+            sumSoFar = 0.0;
+            valuesSoFar = 0;
+            prevValue = 0;
+            errorValueLong = -1;
+            errorValueInt = -1;
+            
+            outFinished.set();
+        }
+    =}
+}
+
+main reactor RadixSortBenchmark(numIterations:int(12), dataSize:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}({=2048l=})) {
+    
+    source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
+    validator = new ValidationReactor(numValues=dataSize);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> source.inStart;
+    validator.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("RadixSortBenchmark");
+        printArgs("numIterations", numIterations, "dataSize", dataSize, "maxValue", maxValue, "seed", seed);
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      for i in range(60):
+        cog.outl(f'sorter{i} = new SortActor(numValues=dataSize, radixIndex={i});')
+    ]]] */
+    sorter0 = new SortActor(numValues=dataSize, radixIndex=0);
+    sorter1 = new SortActor(numValues=dataSize, radixIndex=1);
+    sorter2 = new SortActor(numValues=dataSize, radixIndex=2);
+    sorter3 = new SortActor(numValues=dataSize, radixIndex=3);
+    sorter4 = new SortActor(numValues=dataSize, radixIndex=4);
+    sorter5 = new SortActor(numValues=dataSize, radixIndex=5);
+    sorter6 = new SortActor(numValues=dataSize, radixIndex=6);
+    sorter7 = new SortActor(numValues=dataSize, radixIndex=7);
+    sorter8 = new SortActor(numValues=dataSize, radixIndex=8);
+    sorter9 = new SortActor(numValues=dataSize, radixIndex=9);
+    sorter10 = new SortActor(numValues=dataSize, radixIndex=10);
+    sorter11 = new SortActor(numValues=dataSize, radixIndex=11);
+    sorter12 = new SortActor(numValues=dataSize, radixIndex=12);
+    sorter13 = new SortActor(numValues=dataSize, radixIndex=13);
+    sorter14 = new SortActor(numValues=dataSize, radixIndex=14);
+    sorter15 = new SortActor(numValues=dataSize, radixIndex=15);
+    sorter16 = new SortActor(numValues=dataSize, radixIndex=16);
+    sorter17 = new SortActor(numValues=dataSize, radixIndex=17);
+    sorter18 = new SortActor(numValues=dataSize, radixIndex=18);
+    sorter19 = new SortActor(numValues=dataSize, radixIndex=19);
+    sorter20 = new SortActor(numValues=dataSize, radixIndex=20);
+    sorter21 = new SortActor(numValues=dataSize, radixIndex=21);
+    sorter22 = new SortActor(numValues=dataSize, radixIndex=22);
+    sorter23 = new SortActor(numValues=dataSize, radixIndex=23);
+    sorter24 = new SortActor(numValues=dataSize, radixIndex=24);
+    sorter25 = new SortActor(numValues=dataSize, radixIndex=25);
+    sorter26 = new SortActor(numValues=dataSize, radixIndex=26);
+    sorter27 = new SortActor(numValues=dataSize, radixIndex=27);
+    sorter28 = new SortActor(numValues=dataSize, radixIndex=28);
+    sorter29 = new SortActor(numValues=dataSize, radixIndex=29);
+    sorter30 = new SortActor(numValues=dataSize, radixIndex=30);
+    sorter31 = new SortActor(numValues=dataSize, radixIndex=31);
+    sorter32 = new SortActor(numValues=dataSize, radixIndex=32);
+    sorter33 = new SortActor(numValues=dataSize, radixIndex=33);
+    sorter34 = new SortActor(numValues=dataSize, radixIndex=34);
+    sorter35 = new SortActor(numValues=dataSize, radixIndex=35);
+    sorter36 = new SortActor(numValues=dataSize, radixIndex=36);
+    sorter37 = new SortActor(numValues=dataSize, radixIndex=37);
+    sorter38 = new SortActor(numValues=dataSize, radixIndex=38);
+    sorter39 = new SortActor(numValues=dataSize, radixIndex=39);
+    sorter40 = new SortActor(numValues=dataSize, radixIndex=40);
+    sorter41 = new SortActor(numValues=dataSize, radixIndex=41);
+    sorter42 = new SortActor(numValues=dataSize, radixIndex=42);
+    sorter43 = new SortActor(numValues=dataSize, radixIndex=43);
+    sorter44 = new SortActor(numValues=dataSize, radixIndex=44);
+    sorter45 = new SortActor(numValues=dataSize, radixIndex=45);
+    sorter46 = new SortActor(numValues=dataSize, radixIndex=46);
+    sorter47 = new SortActor(numValues=dataSize, radixIndex=47);
+    sorter48 = new SortActor(numValues=dataSize, radixIndex=48);
+    sorter49 = new SortActor(numValues=dataSize, radixIndex=49);
+    sorter50 = new SortActor(numValues=dataSize, radixIndex=50);
+    sorter51 = new SortActor(numValues=dataSize, radixIndex=51);
+    sorter52 = new SortActor(numValues=dataSize, radixIndex=52);
+    sorter53 = new SortActor(numValues=dataSize, radixIndex=53);
+    sorter54 = new SortActor(numValues=dataSize, radixIndex=54);
+    sorter55 = new SortActor(numValues=dataSize, radixIndex=55);
+    sorter56 = new SortActor(numValues=dataSize, radixIndex=56);
+    sorter57 = new SortActor(numValues=dataSize, radixIndex=57);
+    sorter58 = new SortActor(numValues=dataSize, radixIndex=58);
+    sorter59 = new SortActor(numValues=dataSize, radixIndex=59);
+    // [[[end]]]
+    
+    source.outNextSortReactor -> sorter0.inValue;
+    sorter59.outValue -> validator.inValue;
+    
+    /* [[[cog
+      for i in range(60-1):
+        cog.outl(f'sorter{i}.outValue -> sorter{i+1}.inValue;')
+    ]]] */
+    sorter0.outValue -> sorter1.inValue;
+    sorter1.outValue -> sorter2.inValue;
+    sorter2.outValue -> sorter3.inValue;
+    sorter3.outValue -> sorter4.inValue;
+    sorter4.outValue -> sorter5.inValue;
+    sorter5.outValue -> sorter6.inValue;
+    sorter6.outValue -> sorter7.inValue;
+    sorter7.outValue -> sorter8.inValue;
+    sorter8.outValue -> sorter9.inValue;
+    sorter9.outValue -> sorter10.inValue;
+    sorter10.outValue -> sorter11.inValue;
+    sorter11.outValue -> sorter12.inValue;
+    sorter12.outValue -> sorter13.inValue;
+    sorter13.outValue -> sorter14.inValue;
+    sorter14.outValue -> sorter15.inValue;
+    sorter15.outValue -> sorter16.inValue;
+    sorter16.outValue -> sorter17.inValue;
+    sorter17.outValue -> sorter18.inValue;
+    sorter18.outValue -> sorter19.inValue;
+    sorter19.outValue -> sorter20.inValue;
+    sorter20.outValue -> sorter21.inValue;
+    sorter21.outValue -> sorter22.inValue;
+    sorter22.outValue -> sorter23.inValue;
+    sorter23.outValue -> sorter24.inValue;
+    sorter24.outValue -> sorter25.inValue;
+    sorter25.outValue -> sorter26.inValue;
+    sorter26.outValue -> sorter27.inValue;
+    sorter27.outValue -> sorter28.inValue;
+    sorter28.outValue -> sorter29.inValue;
+    sorter29.outValue -> sorter30.inValue;
+    sorter30.outValue -> sorter31.inValue;
+    sorter31.outValue -> sorter32.inValue;
+    sorter32.outValue -> sorter33.inValue;
+    sorter33.outValue -> sorter34.inValue;
+    sorter34.outValue -> sorter35.inValue;
+    sorter35.outValue -> sorter36.inValue;
+    sorter36.outValue -> sorter37.inValue;
+    sorter37.outValue -> sorter38.inValue;
+    sorter38.outValue -> sorter39.inValue;
+    sorter39.outValue -> sorter40.inValue;
+    sorter40.outValue -> sorter41.inValue;
+    sorter41.outValue -> sorter42.inValue;
+    sorter42.outValue -> sorter43.inValue;
+    sorter43.outValue -> sorter44.inValue;
+    sorter44.outValue -> sorter45.inValue;
+    sorter45.outValue -> sorter46.inValue;
+    sorter46.outValue -> sorter47.inValue;
+    sorter47.outValue -> sorter48.inValue;
+    sorter48.outValue -> sorter49.inValue;
+    sorter49.outValue -> sorter50.inValue;
+    sorter50.outValue -> sorter51.inValue;
+    sorter51.outValue -> sorter52.inValue;
+    sorter52.outValue -> sorter53.inValue;
+    sorter53.outValue -> sorter54.inValue;
+    sorter54.outValue -> sorter55.inValue;
+    sorter55.outValue -> sorter56.inValue;
+    sorter56.outValue -> sorter57.inValue;
+    sorter57.outValue -> sorter58.inValue;
+    sorter58.outValue -> sorter59.inValue;
+    // [[[end]]]
+}

@@ -224,8 +224,8 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
     unsigned int total_bytes_to_read = length + header_size;
     unsigned int bytes_to_read = length;
     // Prevent a buffer overflow.
-    if (bytes_to_read + header_size > BUFFER_SIZE) {
-        bytes_to_read = BUFFER_SIZE - header_size;
+    if (bytes_to_read + header_size > FED_COM_BUFFER_SIZE) {
+        bytes_to_read = FED_COM_BUFFER_SIZE - header_size;
     }
 
     read_from_socket(sending_socket, bytes_to_read, &(buffer[header_size]),
@@ -266,8 +266,8 @@ void handle_timed_message(int sending_socket, unsigned char* buffer) {
     while (total_bytes_read < total_bytes_to_read) {
         DEBUG_PRINT("Forwarding message in chunks.");
         bytes_to_read = total_bytes_to_read - total_bytes_read;
-        if (bytes_to_read > BUFFER_SIZE) {
-            bytes_to_read = BUFFER_SIZE;
+        if (bytes_to_read > FED_COM_BUFFER_SIZE) {
+            bytes_to_read = FED_COM_BUFFER_SIZE;
         }
         read_from_socket(sending_socket, bytes_to_read, buffer, "RTI failed to read message chunks.");
         total_bytes_read += bytes_to_read;
@@ -855,7 +855,7 @@ void* federate(void* fed) {
     // Buffer for incoming messages.
     // This does not constrain the message size because messages
     // are forwarded piece by piece.
-    unsigned char buffer[BUFFER_SIZE];
+    unsigned char buffer[FED_COM_BUFFER_SIZE];
 
     // Listen for messages from the federate.
     while (1) {

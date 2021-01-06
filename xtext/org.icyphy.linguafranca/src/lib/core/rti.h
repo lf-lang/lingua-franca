@@ -39,7 +39,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  This is used by both the federates and the rti, so message lengths
  *  should generally match.
  */
-#define BUFFER_SIZE 256
+#define FED_COM_BUFFER_SIZE 256
 
 /** Number of seconds that elapse between a federate's attempts
  *  to connect to the RTI.

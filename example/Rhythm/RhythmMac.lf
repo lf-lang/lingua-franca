@@ -150,12 +150,10 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
         // FIXME: See whether a note can be sent at the start time.
         SET(note, 1.0);
         // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator()) {
+        if (start_sensor_simulator(message, message_length, 16)) {
             fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
             exit(1);
         }
-
-        show_message(message, message_length);
         
         // Register action to trigger on key press.
         register_sensor_key('\0', key);
@@ -218,35 +216,26 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
             SET(note, emphasis);
             beeped++;
         }
-        pthread_mutex_lock(&sensor_mutex);
         if (beeped > 0) {
             if (position & self->active_emphasis) {
-                printw("!");
+                show_tick("!");
             } else {
-                printw("*");
+                show_tick("*");
             }
         } else {
-            printw(".");
+            show_tick(".");
         }
         self->count++;
         if (self->count == 16) {
             self->active_rhythm = self->rhythm;
             self->active_emphasis = self->emphasis;
             self->count = 0;
-            int term_height, term_width;
-            getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-            self->cursor++;
-            if (self->cursor >= term_height) {
-                self->cursor = 0;
-            }
-            move(self->cursor, 0);
-        }
-        refresh();
-        pthread_mutex_unlock(&sensor_mutex);
+        } 
+
         schedule(tick, self->tick_duration);
     =}
 }
-
+ 
 /**
  * Produce a note when a `note` input is received.
  * 
