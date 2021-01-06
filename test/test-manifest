@@ -73,6 +73,7 @@ Import.lf
 ImportComposition.lf
 ImportThreaded.lf
 ImportRenamed.lf
+InheritanceAction.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf

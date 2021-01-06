@@ -39,6 +39,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include "wave_file_reader.h"
 
+#if _WIN32 || WIN32
+#define FILE_PATH_SEPARATOR '\\';
+#else
+#define FILE_PATH_SEPARATOR '/';
+#endif
+
 /**
  * The top-level 'chunk' of a .wav file is a 'RIFF'
  * chunk, identified by an ID that is an int formed
@@ -105,8 +111,17 @@ lf_waveform_t* read_wave_file(const char* path) {
     lf_wav_t wav;
     fp = fopen(path, "rb");
     if (!fp) {
-        fprintf(stderr, "WARNING: Failed to open waveform sample file: %s\n", path);
-        return NULL;
+        // Try prefixing the file name with "src-gen".
+        // On a remote host, the waveform files will be put in that directory.
+        char alt_path[strlen(path) + 9];
+        strcpy(alt_path, "src-gen");
+        alt_path[7] = FILE_PATH_SEPARATOR;
+        strcpy(&(alt_path[8]), path);
+        fp = fopen(alt_path, "rb");
+        if (!fp) {
+            fprintf(stderr, "WARNING: Failed to open waveform sample file: %s\n", path);
+            return NULL;
+        }
     }
  
     fread(&wav, 1, sizeof(lf_wav_t), fp);

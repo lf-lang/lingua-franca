@@ -17,7 +17,9 @@
  * @author Edward A. Lee
  */
 target C {
-    fast: true
+    fast: true,
+    threads: 4,
+    tracing: true
 };
 
 import Philosopher from "lib/Philosopher.lf";

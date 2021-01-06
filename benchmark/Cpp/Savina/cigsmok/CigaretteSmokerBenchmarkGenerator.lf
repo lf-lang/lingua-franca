@@ -1,0 +1,238 @@
+/**
+ * Concurrency benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * This implementation uses a thread to simulate a smoker
+ * smoking to catch the original Savina implementation closely.
+ * 
+ * @author Hannes Klein
+ */
+
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numSmokers=200
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'numSmokers' in globals():
+    numSmokers = int(numSmokers)
+  else:
+    globals()['numSmokers'] = 200
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numSmokers = {numSmokers}')
+]]] */
+// Generated file with the following parameters:
+// numSmokers = 200
+// [[[end]]]
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "CigaretteSmoker.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+reactor ArbiterReactor(numRounds:int(1000), numSmokers:int(200)) {
+    
+    public preamble {=
+        #include "PseudoRandom.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state roundsSoFar:int(0);
+    state random:{=PseudoRandom=};
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    /* [[[cog
+      cog.outl(f'output[{numSmokers}] outSmokers:int;')
+      cog.outl(f'input[{numSmokers}] inSmokers:void;')
+      cog.outl(f'output[{numSmokers}] outSmokersStart:void;')
+      cog.outl(f'output[{numSmokers}] outSmokersStop:void;')
+    ]]] */
+    output[200] outSmokers:int;
+    input[200] inSmokers:void;
+    output[200] outSmokersStart:void;
+    output[200] outSmokersStop:void;
+    // [[[end]]]
+    
+    logical action chooseSmoker:void;
+    logical action stop:void;
+    
+    reaction(inStart) -> chooseSmoker, outSmokersStart {=
+        
+        // reset local state
+        roundsSoFar = 0;
+        random = PseudoRandom(numRounds * numSmokers);
+        
+        // start excution
+        chooseSmoker.schedule();
+        for(int i = 0; i < outSmokersStart.size(); ++i) {
+            outSmokersStart[i].set();
+        }
+    =}
+    
+    reaction(chooseSmoker) -> outSmokers {=
+        
+        // assume resources grabbed instantaneously
+        int newSmokerIndex = abs(random.nextInt()) % numSmokers;
+        int busyWaitPeriod = random.nextInt(1000) + 10;
+        outSmokers[newSmokerIndex].set(busyWaitPeriod);
+    =}
+    
+    reaction(stop) -> outFinished, outSmokersStop {=
+        outFinished.set();
+        for(int i = 0; i < outSmokersStop.size(); ++i) {
+            outSmokersStop[i].set();
+        }
+    =}
+    
+    reaction(inSmokers) -> chooseSmoker {=
+        // resources are off the table, can place new ones on the table
+        roundsSoFar += 1;
+        reactor::log::Debug() << "roundsSoFar=" << roundsSoFar;
+        if (roundsSoFar >= numRounds) {
+            stop.schedule();
+        } else {
+            // choose a random smoker to start smoking
+            chooseSmoker.schedule();
+        }
+    =}
+}
+
+reactor SmokerReactor(instance:int(0)) {
+    
+    // state related to thread
+    state smokingThread:{=std::thread=};
+    state unlockThread:{=bool=};
+    state stopThread:{=bool=};
+    state limit:int;
+    state mtx:{=std::mutex=};
+    state cv:{=std::condition_variable=};
+    
+    input inArbiter:int;
+    output outArbiter:void;
+    
+    // start and stop execution
+    input inStop:void;
+    input inStart:void;
+    
+    reaction(inStart) {=
+        // reset state
+        unlockThread = false;
+        stopThread = false;
+        limit = -1;
+        smokingThread = std::thread(smoke, &unlockThread, &stopThread, &limit, &mtx, &cv);
+    =}
+    
+    reaction(inStop) {=
+        // stop the thread
+        std::unique_lock<std::mutex> lck(mtx); // make sure thread waits on cv
+        stopThread = true;
+        unlockThread = true;
+        cv.notify_all();
+        lck.unlock();
+        smokingThread.join();
+    =}
+    
+    reaction(inArbiter) -> outArbiter {=
+        
+        std::unique_lock<std::mutex> lck(mtx); // wait for smoking to finish if necessary
+        int limit = *(inArbiter.get());
+        unlockThread = true;
+        cv.notify_all();
+        lck.unlock();
+        
+        outArbiter.set();
+    =}
+    
+    private preamble {=
+        
+        static int busyWait(const int limit) {
+            int test = 0;
+            
+            for(int k = 0; k < limit; k++) {
+                // Math.random() as workload in the original savina benchmark suite
+                // what is equivalent in Cpp complexity-wise? maybe rand()
+                rand();
+                test++;
+            }
+            return test;
+        }
+        
+        // Function for the thread to smoke
+        static void smoke(bool * unlockThread, bool * stopThread, int * limit, std::mutex * mtx, std::condition_variable * cv) {
+            
+            std::unique_lock<std::mutex> lck(*mtx);
+            
+            while(true) {
+                // wait for cv, protected against unintentional wake-ups with bool
+                while(!(*unlockThread)) cv->wait(lck);
+                if(*stopThread) {
+                    return; // end thread cooperatively
+                }
+                
+                // busy waiting using shared variable limit
+                busyWait(*limit);
+                
+                *unlockThread = false;
+            }
+        }
+    =}
+}
+
+main reactor CigaretteSmokerBenchmark(numIterations:int(12), numRounds:int(1000)) {
+    
+    arbiter = new ArbiterReactor(numRounds=numRounds, numSmokers=200);
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> arbiter.inStart;
+    arbiter.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        // based on the Savina implementation:
+        srand(time(NULL));
+        
+        printBenchmarkInfo("CigaretteSmokerReactorLFCppBenchmark");
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", {numSmokers});')
+        ]]] */
+        printArgs("numIterations", numIterations, "numRounds", numRounds, "numSmokers", 200);
+        /// [[[end]]]
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      cog.outl(f'smokers = new[{numSmokers}] SmokerReactor();')
+    ]]] */
+    smokers = new[200] SmokerReactor();
+    // [[[end]]]
+    
+    smokers.outArbiter -> arbiter.inSmokers;
+    arbiter.outSmokers -> smokers.inArbiter;
+    arbiter.outSmokersStart -> smokers.inStart;
+    arbiter.outSmokersStop -> smokers.inStop;
+    
+}

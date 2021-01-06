@@ -53,6 +53,23 @@ trigger_t* any_key_trigger = NULL;
 pthread_mutex_t sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /**
+ * Default window from which to get input characters.
+ * If show_welcome_message() is called, this will be the welcome
+ * message window. Otherwise, it will be stdscr, the default
+ * curses window.
+ */
+WINDOW* default_window;
+
+/** Tick window. */
+WINDOW* tick_window;
+
+/**
+ * Keep track of the tick cursor position directly so it
+ * doesn't get as messed up by printf() calls.
+ */
+int tick_cursor_x, tick_cursor_y;
+
+/**
  * Thread to read input characters until an EOF is received.
  * For each character received, if there is a registered trigger
  * for that character, schedule that trigger with a payload
@@ -61,7 +78,7 @@ pthread_mutex_t sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
  */
 void* read_input(void* ignored) {
     int c;
-    while((c = getch()) != EOF) {
+    while((c = wgetch(default_window)) != EOF) {
         // It is imperative that we not hold the sensor_mutex when
         // calling schedule(), because schedule() acquires another mutex.
         // We would create a deadlock risk.  The following code is correct
@@ -89,12 +106,72 @@ void end_ncurses() {
 }
 
 /**
+ * Put a message in the center of the terminal window.
+ * The message will be left justified, with each string
+ * in the specified array on a new line.
+ * The cursor is then moved to the (0,0) position (upper right).
+ * This should not be called directly by the user.
+ * It assumes the mutex lock is held.
+ * @param message_lines The message lines.
+ * @param number_of_lines The number of lines.
+ */
+void _lf_show_message(char* message_lines[], int number_of_lines) {
+    int term_height, term_width;
+    int message_width = 0;
+    // Find the widest message in the list.
+    for (int i = 0; i < number_of_lines; i++) {
+        size_t width = strlen(message_lines[i]);
+        if (width > message_width) {
+            message_width = width;
+        }
+    }
+    getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
+    int x = (term_width - message_width)/2 - 1;
+    int y = (term_height - number_of_lines)/2 - 1;
+    WINDOW* center_win = newwin(number_of_lines + 2, message_width + 2, y, x);
+    box(center_win, 0, 0);
+    wrefresh(center_win);
+
+    // wattron(center_win, COLOR_PAIR(2));
+
+    for (int i = 0; i < number_of_lines; i++) {
+        mvwprintw(center_win, i + 1, 1, "%s", message_lines[i]);
+        // According to curses docs, the following should not be necessary
+        // after each print. But if I wait and do it later, the output
+        // gets garbled.
+        wrefresh(center_win);
+    }
+    move(0, 0);
+    default_window = center_win;
+}
+
+/**
+ * Start a tick window on the right of the terminal window.
+ * This should not be called directly by the user.
+ * It assumes the mutex lock is held.
+ * @param width The width of the window.
+ */
+void _lf_start_tick_window(int width) {
+    int term_height, term_width;
+    getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
+    tick_window = newwin(term_height, width + 2, 0, term_width - width - 2);
+    box(tick_window, 0, 0);
+    wrefresh(tick_window);
+    wmove(tick_window, 1, 1);  // Ensure to not overwrite the box.
+    tick_cursor_x = tick_cursor_y = 1;
+    move(0, 0);
+}
+
+/**
  * Start the sensor simulator if it has not been already
  * started. This must be called at least once before any
  * call to register_sensor_key.
  * @return 0 for success, error code for failure.
+ * @param message_lines The message lines.
+ * @param number_of_lines The number of lines.
+ * @param tick_window_width The width of the tick window or 0 for none.
  */
-int start_sensor_simulator() {
+int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width) {
     pthread_mutex_lock(&sensor_mutex);
     int result = 0;
     if (thread_created == 0) {
@@ -105,11 +182,22 @@ int start_sensor_simulator() {
         }
         // Initialize ncurses.
         initscr();
+        start_color();     // Allow colors.
         noecho();          // Don't echo input
         cbreak();          // Don't wait for Return or Enter
+        refresh();         // Not documented, but needed?
 
         if (atexit(end_ncurses) != 0) {
             fprintf(stderr, "WARNING: sensor_simulator: Failed to register end_ncurses function!");
+        }
+
+        default_window = stdscr;
+        if (message_lines != NULL && number_of_lines > 0) {
+            _lf_show_message(message_lines, number_of_lines);
+        }
+        tick_window = stdscr;
+        if (tick_window_width > 0) {
+            _lf_start_tick_window(tick_window_width);
         }
 
         // Create the thread that listens for input.
@@ -120,6 +208,34 @@ int start_sensor_simulator() {
     }
     pthread_mutex_unlock(&sensor_mutex);
     return result;
+}
+
+/**
+ * Place a tick (usually a single character) in the tick window.
+ * @param character The tick character.
+ */
+void show_tick(char* character) {
+    pthread_mutex_lock(&sensor_mutex);
+    wmove(tick_window, tick_cursor_y, tick_cursor_x);
+    wprintw(tick_window, character);
+    int tick_height, tick_width;
+    getmaxyx(tick_window, tick_height, tick_width);
+    tick_cursor_x += strlen(character);
+    if (tick_cursor_x >= tick_width - 1) {
+        tick_cursor_x = 1;
+        tick_cursor_y++;
+    }
+    if (tick_cursor_y >= tick_height - 1) {
+        tick_cursor_y = 1;
+    }
+    wmove(tick_window, tick_cursor_y, tick_cursor_x);
+    wrefresh(tick_window);
+
+    // Move the standard string cursor to 0, 0, so printf()
+    // calls don't mess up the screen as much.
+    wmove(stdscr, 0, 0);
+    refresh();
+    pthread_mutex_unlock(&sensor_mutex);
 }
 
 /**
@@ -170,38 +286,4 @@ int register_sensor_key(char key, void* action) {
     }
     pthread_mutex_unlock(&sensor_mutex);
     return result;
-}
-
-/**
- * Put a message in the center of the terminal window.
- * The message will be left justified, with each string
- * in the specified array on a new line.
- * The cursor is then moved to the (0,0) position (upper right).
- * @param message_lines The message lines.
- * @param number_of_lines The number of lines.
- */
-void show_message(char* message_lines[], int number_of_lines) {
-    pthread_mutex_lock(&sensor_mutex);
-    int term_height, term_width;
-    int message_width = 0;
-    // Find the widest message in the list.
-    for (int i = 0; i < number_of_lines; i++) {
-        size_t width = strlen(message_lines[i]);
-        if (width > message_width) {
-            message_width = width;
-        }
-    }
-    getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-    int x = (term_width - message_width)/2;
-    int y = (term_height - number_of_lines)/2;
-    for (int i = 0; i < number_of_lines; i++) {
-        mvprintw(y++, x, "%s", message_lines[i]);
-        // According to curses docs, the following should not be necessary
-        // after each print. But if I wait and do it later, the output
-        // gets garbled.
-        refresh();
-    }
-    move(0, 0);
-    refresh();
-    pthread_mutex_unlock(&sensor_mutex);
 }

@@ -1104,8 +1104,11 @@ class PythonGenerator extends CGenerator {
      *  On MacOS, open System Preferences from the Apple menu and 
      *  click on the "Sharing" preference panel. Select the checkbox
      *  next to "Remote Login" to enable it.
+     * 
+     *  @param coreFiles The files from the core directory that must be
+     *   copied to the remote machines.
      */
-    override createLauncher() {
+    override createLauncher(ArrayList<String> coreFiles) {
         // NOTE: It might be good to use screen when invoking the RTI
         // or federates remotely so you can detach and the process keeps running.
         // However, I was unable to get it working properly.

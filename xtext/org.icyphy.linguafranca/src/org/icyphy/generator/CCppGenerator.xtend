@@ -28,12 +28,13 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
+import java.util.ArrayList
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.icyphy.linguaFranca.ReactorDecl
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.ReactorDecl
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor
@@ -492,8 +493,10 @@ class CCppGenerator extends CGenerator {
      *  On MacOS, open System Preferences from the Apple menu and 
      *  click on the "Sharing" preference panel. Select the checkbox
      *  next to "Remote Login" to enable it.
+     *  @param coreFiles The files from the core directory that must be
+     *   copied to the remote machines.
      */
-    override createLauncher() {
+    override createLauncher(ArrayList<String> coreFiles) {
         // NOTE: It might be good to use screen when invoking the RTI
         // or federates remotely so you can detach and the process keeps running.
         // However, I was unable to get it working properly.
@@ -543,7 +546,7 @@ class CCppGenerator extends CGenerator {
                     ssh «federate.host» mkdir -p «path»/src-gen «path»/bin «path»/log «path»/src-gen/core
                     pushd src-gen/core > /dev/
                     echo "Copying LF core files to host «federate.host»"
-                    scp reactor_common.c reactor.h pqueue.c pqueue.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    scp «coreFiles.join(" ")» «federate.host»:«path»/src-gen/core
                     popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"

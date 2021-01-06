@@ -34,8 +34,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reactor_common.c"
 #include <pthread.h>
 
+/**
+ * The maximum amount of time a worker thread should stall
+ * before checking the reaction queue again.
+ */
+#define MAX_STALL_INTERVAL MSEC(1)
+
 // Number of idle worker threads.
 volatile int number_of_idle_threads = 0;
+
+/**
+ * Maximum amount of time that a worker thread waits for
+ * notifications about changes in the reaction_q before it
+ * wakes up to check the reaction_q.
+ */
+#define MAX_WORKER_WAIT_TIME MSEC(1)
 
 /*
  * A struct representing a barrier in threaded 
@@ -602,15 +615,21 @@ void request_stop() {
 }
 
 /**
- * Return `true` if there is currently another reaction on
- * the executing queue that is blocking the given
- * reaction. A reaction blocks the specified reaction if it has a
+ * If the reaction is blocked by a currently executing
+ * reaction, return true. Otherwise, return false.
+ * A reaction blocks the specified reaction if it has a
  * level less than that of the specified reaction and it also has
  * an overlapping chain ID, meaning that it is (possibly) upstream
  * of the specified reaction.
+ * This function assumes the mutex is held because it accesses
+ * the executing_q.
+ * @param reaction The reaction.
  * @return true if this reaction is blocked, false otherwise.
  */
-bool is_blocked(reaction_t* reaction) {
+bool _lf_is_blocked_by_executing_reaction(reaction_t* reaction) {
+    if (reaction == NULL) {
+        return false;
+    }
     for (int i = 1; i < executing_q->size; i++) {
         reaction_t* running = (reaction_t*) executing_q->d[i];
         if (LEVEL(running->index) < LEVEL(reaction->index)
@@ -657,6 +676,8 @@ bool is_blocked(reaction_t* reaction) {
  * of r. If the two chain IDs share no bits, then we are assured that e is not
  * upstream of r and hence cannot block r.
  *
+ * This function assumes the mutex is held.
+ *
  * @return the first-ranked reaction that is ready to execute, NULL if there is
  * none.
  */ 
@@ -666,7 +687,7 @@ reaction_t* first_ready_reaction() {
 
     // Find a reaction that is ready to execute.
     while ((r = (reaction_t*)pqueue_pop(reaction_q)) != NULL) {
-        if (is_blocked(r)) {
+        if (_lf_is_blocked_by_executing_reaction(r)) {
             // Move blocked reaction onto another queue.
             // NOTE: This could also just be be a FIFO.
             pqueue_insert(transfer_q, r);
@@ -707,6 +728,7 @@ volatile bool __advancing_time = false;
  * @param reaction The reaction.
  */
 void _lf_enqueue_reaction(reaction_t* reaction) {
+    bool reaction_inserted = false;
     // Acquire the mutex lock.
     DEBUG_PRINT("pthread_mutex_lock to queue downstream reaction %p.", reaction);
     pthread_mutex_lock(&mutex);
@@ -715,10 +737,40 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
         DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
         pqueue_insert(reaction_q, reaction);
-        pthread_cond_signal(&reaction_q_changed);
+        // NOTE: We could notify another thread so it can execute this reaction.
+        // However, this notification is expensive!
+        // It is now handled by schedule_output_reactions() in reactor_common,
+        // which calls the _lf_notify_workers() function defined below.
+        // pthread_cond_signal(&reaction_q_changed);
     }
     pthread_mutex_unlock(&mutex);
     DEBUG_PRINT("pthread_mutex_unlock after queueing downstream reaction.");
+}
+
+/**
+ * Notify workers that something has changed on the reaction_q.
+ * Notification is performed only if there is a reaction on the
+ * reaction queue that is ready to execute and there is an idle
+ * worker thread.
+ * This acquires the mutex lock.
+ */
+void _lf_notify_workers() {
+    if (number_of_idle_threads > 0) {
+        DEBUG_PRINT("pthread_mutex_lock to notify workers of reaction queue activity.");
+        pthread_mutex_lock(&mutex);
+        DEBUG_PRINT("pthread_mutex_locked.");
+
+        reaction_t* next_ready_reaction = (reaction_t*)pqueue_peek(reaction_q);
+        if (next_ready_reaction != NULL
+                && !_lf_is_blocked_by_executing_reaction(next_ready_reaction)
+        ) {
+            // FIXME: In applications without parallelism, this notification
+            // proves very expensive. Perhaps we should be checking execution times.
+            pthread_cond_signal(&reaction_q_changed);
+        }
+        pthread_mutex_unlock(&mutex);
+        DEBUG_PRINT("pthread_mutex_unlock after queueing downstream reaction.");
+    }
 }
 
 /** For logging and debugging, each worker thread is numbered. */
@@ -737,14 +789,13 @@ void* worker(void* arg) {
     int worker_number = ++worker_thread_count;
     DEBUG_PRINT("Worker thread %d started.", worker_number);
 
-    // Iterate until the stop_tag is reached or reaction queue is
-    // empty
+    // Iterate until the stop_tag is reached or reaction queue is empty
     while (true) {
         // Obtain a reaction from the reaction_q that is ready to execute
         // (i.e., it is not blocked by concurrently executing reactions
         // that it depends on).
-        reaction_t* reaction = first_ready_reaction();
-        if (reaction == NULL) {
+        reaction_t* current_reaction_to_execute = first_ready_reaction();
+        if (current_reaction_to_execute == NULL) {
             // There are no reactions ready to run.
             // If we were previously busy, count this thread as idle now.
             if (have_been_busy) {
@@ -781,17 +832,30 @@ void* worker(void* arg) {
                 __advancing_time = false;
                 DEBUG_PRINT("Worker %d: Done waiting for __next().", worker_number);
             } else {
+                // Logical time is not complete, and nothing on the reaction queue
+                // is ready to run.
                 // Wait for something to change (either a stop request or
                 // something went on the reaction queue.
                 DEBUG_PRINT("Worker %d: Waiting for items on the reaction queue.", worker_number);
                 tracepoint_worker_wait_starts(worker_number);
+                // NOTE: Could use a timedwait here to ensure that the worker thread
+                // wakes up periodically. But this appears to be unnecessary. When there
+                // is a ready reaction on the reaction queue, there will be a notification
+                // and notification occurs while holding the mutex lock so it should not be missed.
+                // Nevertheless, we keep the commented out code for a timedwait in case we later
+                // want to put this back in:
+                //
+                // struct timespec physical_time;
+                // clock_gettime(CLOCK_REALTIME, &physical_time);
+                // physical_time.tv_nsec += MAX_STALL_INTERVAL;
+                // pthread_cond_timedwait(&reaction_q_changed, &mutex, &physical_time);
                 pthread_cond_wait(&reaction_q_changed, &mutex);
                 tracepoint_worker_wait_ends(worker_number);
                 DEBUG_PRINT("Worker %d: Done waiting.", worker_number);
             }
         } else {
             // Got a reaction that is ready to run.
-            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: %lld\n and deadline %lld.", worker_number, reaction->index, reaction->deadline);
+            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: %lld\n and deadline %lld.", worker_number, current_reaction_to_execute->index, current_reaction_to_execute->deadline);
 
             // This thread will no longer be idle.
             if (!have_been_busy) {
@@ -801,14 +865,16 @@ void* worker(void* arg) {
 
             // Push the reaction on the executing queue in order to prevent any
             // reactions that may depend on it from executing before this reaction is finished.
-            pqueue_insert(executing_q, reaction);
+            pqueue_insert(executing_q, current_reaction_to_execute);
 
             // If there are additional reactions on the reaction_q, notify one other
             // idle thread, if there is one, so that it can attempt to execute
             // that reaction.
-            if (pqueue_size(reaction_q) > 0 && number_of_idle_threads > 0) {
-                pthread_cond_signal(&reaction_q_changed);
-            }        
+            _lf_notify_workers();
+
+            // Unlock the mutex to run the reaction.
+            pthread_mutex_unlock(&mutex);
+            DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run the reaction (or its fault vairants).\n", worker_number);
 
             bool violation = false;
             // If the reaction is tardy,
@@ -826,24 +892,21 @@ void* worker(void* arg) {
             //  in logical time (tardy) and also misses the constraint on physical time (deadline).
             // @note In absence of a tardy handler, the is_tardy will be passed down the reaction
             //  chain until it is dealt with in a downstream tardy handler.
-            if (reaction->is_tardy == true) {
-                reaction_function_t handler = reaction->tardy_handler;
+            if (current_reaction_to_execute->is_tardy == true) {
+                reaction_function_t handler = current_reaction_to_execute->tardy_handler;
                 DEBUG_PRINT("Worker %d: Invoking tardiness handler %p.", worker_number, handler);
                 // Invoke the tardy handler if there is one.
                 if (handler != NULL) {
                     // There is a violation
                     violation = true;
-                    // Unlock the mutex to run the reaction.
-                    DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run tardiness handler.\n", worker_number);
-                    pthread_mutex_unlock(&mutex);
-                    (*handler)(reaction->self);
-
+                    (*handler)(current_reaction_to_execute->self);
+                    
                     // If the reaction produced outputs, put the resulting
                     // triggered reactions into the queue or execute them directly if possible.
-                    schedule_output_reactions(reaction, worker_number);
+                    schedule_output_reactions(current_reaction_to_execute, worker_number);
                     
                     // Reset the is_tardy because it has been dealt with
-                    reaction->is_tardy = false;
+                    current_reaction_to_execute->is_tardy = false;
                 }
             }
             // If the reaction has a deadline, compare to current physical time
@@ -852,7 +915,7 @@ void* worker(void* arg) {
             // at most once per logical time value. If the violation reaction triggers the
             // same reaction at the current time value, even if at a future superdense time,
             // then the reaction will be invoked and the violation reaction will not be invoked again.
-            if (reaction->deadline > 0LL) {
+            if (current_reaction_to_execute->deadline > 0LL) {
                 // Get the current physical time.
                 struct timespec current_physical_time;
                 clock_gettime(CLOCK_REALTIME, &current_physical_time);
@@ -861,20 +924,17 @@ void* worker(void* arg) {
                         current_physical_time.tv_sec * BILLION
                         + current_physical_time.tv_nsec;
                 // Check for deadline violation.
-                if (physical_time > current_tag.time + reaction->deadline) {
+                if (physical_time > current_tag.time + current_reaction_to_execute->deadline) {
                     // Deadline violation has occurred.
                     violation = true;
                     // Invoke the local handler, if there is one.
-                    reaction_function_t handler = reaction->deadline_violation_handler;
+                    reaction_function_t handler = current_reaction_to_execute->deadline_violation_handler;
                     if (handler != NULL) {
-                        // Unlock the mutex to run the reaction.
-                        DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run deadline handler.", worker_number);
-                        pthread_mutex_unlock(&mutex);
-                        (*handler)(reaction->self);
+                        (*handler)(current_reaction_to_execute->self);
 
                         // If the reaction produced outputs, put the resulting
                         // triggered reactions into the queue or execute them directly if possible.
-                        schedule_output_reactions(reaction, worker_number);
+                        schedule_output_reactions(current_reaction_to_execute, worker_number);
                         // Remove the reaction from the executing queue.
                     }
                 }
@@ -890,20 +950,17 @@ void* worker(void* arg) {
                 // this thread holds the mutex lock, so if this is the last
                 // reaction of the current time step, this thread will also
                 // be the one to advance time.
-                pqueue_remove(executing_q, reaction);
+                pqueue_remove(executing_q, current_reaction_to_execute);
             } else {
-                // Unlock the mutex to run the reaction.
-                DEBUG_PRINT("Worker %d: pthread_mutex_unlock to invoke reaction function.", worker_number);
-                pthread_mutex_unlock(&mutex);
                 // Invoke the reaction function.
                 DEBUG_PRINT("Worker %d: Invoking reaction.", worker_number);
-                tracepoint_reaction_starts(reaction, worker_number);
-                reaction->function(reaction->self);
-                tracepoint_reaction_ends(reaction, worker_number);
+                tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
+                current_reaction_to_execute->function(current_reaction_to_execute->self);
+                tracepoint_reaction_ends(current_reaction_to_execute, worker_number);
                 DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
-                schedule_output_reactions(reaction, worker_number);
+                schedule_output_reactions(current_reaction_to_execute, worker_number);
 
                 // Reacquire the mutex lock.
                 DEBUG_PRINT("Worker %d: pthread_mutex_lock worker after invoking reaction function.", worker_number);
@@ -914,11 +971,11 @@ void* worker(void* arg) {
                 // This thread holds the mutex lock, so if this is the last
                 // reaction of the current time step, this thread will also
                 // be the one to advance time.
-                pqueue_remove(executing_q, reaction);
+                pqueue_remove(executing_q, current_reaction_to_execute);
             }
             // Reset the is_tardy because it has been passed
             // down the chain
-            reaction->is_tardy = false;
+            current_reaction_to_execute->is_tardy = false;
 
             DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
         }

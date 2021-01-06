@@ -1357,16 +1357,12 @@ lf_token_t* __set_new_array_impl(lf_token_t* token, int length, int num_destinat
 /**
  * For the specified reaction, if it has produced outputs, insert the
  * resulting triggered reactions into the reaction queue.
- * This procedure assumes the mutex lock is not held and grabs
+ * This procedure assumes the mutex lock is NOT held and grabs
  * the lock only when it actually inserts something onto the reaction queue.
  * @param reaction The reaction that has just executed.
  * @param worker The thread number of the worker thread or 0 for unthreaded execution (for tracing).
  */
 void schedule_output_reactions(reaction_t* reaction, int worker) {
-    // NOTE: This code is nearly identical to the function by the same name
-    // in reactor_threaded.c, but in order to perform scheduling optimizations,
-    // the code had to be duplicated to make minor changes in the threaded version.
-
     // If the reaction produced outputs, put the resulting triggered
     // reactions into the reaction queue. As an optimization, if exactly one
     // downstream reaction is enabled by this reaction, then it may be
@@ -1511,6 +1507,10 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         // down the chain
         downstream_to_execute_now->is_tardy = false;
         DEBUG_PRINT("Finally, reset reaction's is_tardy field to false.");
+    } else if (num_downstream_reactions > 0) {
+        // If we are running a multithreaded setting, the following function
+        // may wake up other worker threads to execute the newly queued reactions.
+        _lf_notify_workers();
     }
 }
 

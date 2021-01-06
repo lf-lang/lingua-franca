@@ -345,6 +345,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected List<String> targetFiles = newLinkedList
     
     /**
+     * List of file names from the files target property with no path info.
+     * Useful for copying them to remote machines. This is needed because
+     * target files can be resources with resource paths.
+     */
+    protected List<String> targetFilesNamesWithoutPath = newLinkedList
+    
+    /**
      * List of proto files to be processed by the code generator.
      */
     protected List<String> protoFiles = newLinkedList
@@ -659,6 +666,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     target.delete
                 }
                 Files.copy(file.toPath, target.toPath)
+                targetFilesNamesWithoutPath.add(file.name);
             } else {
                 // Try to copy the file as a resource.
                 // If this is missing, it should have been previously reported as an error.
@@ -669,6 +677,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         filenameWithoutPath = filename.substring(lastSeparator + 1)
                     }
                     copyFileFromClassPath(filename, targetDirectory + File.separator + filenameWithoutPath)
+                    targetFilesNamesWithoutPath.add(filenameWithoutPath);
                 } catch (IOException ex) {
                     // Ignore. Previously reported as a warning.
                     System.err.println('''WARNING: Failed to find file «filename».''')

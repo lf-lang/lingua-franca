@@ -1273,7 +1273,7 @@ void* listen_to_federates(void* fed_id_ptr) {
     // Buffer for incoming messages.
     // This does not constrain the message size
     // because the message will be put into malloc'd memory.
-    unsigned char buffer[BUFFER_SIZE];
+    unsigned char buffer[FED_COM_BUFFER_SIZE];
 
     // Listen for messages from the federate.
     while (1) {
@@ -1320,7 +1320,7 @@ void* listen_to_rti(void* args) {
     // Buffer for incoming messages.
     // This does not constrain the message size
     // because the message will be put into malloc'd memory.
-    unsigned char buffer[BUFFER_SIZE];
+    unsigned char buffer[FED_COM_BUFFER_SIZE];
 
     // Listen for messages from the federate.
     while (1) {

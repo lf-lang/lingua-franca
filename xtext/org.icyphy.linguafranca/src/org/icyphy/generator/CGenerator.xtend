@@ -369,28 +369,28 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        var files = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "util.h", "util.c")
+        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "util.h", "util.c")
         if (targetThreads === 0) {
-            files.add("reactor.c")
+            coreFiles.add("reactor.c")
         } else {
-            files.add("reactor_threaded.c")
+            coreFiles.add("reactor_threaded.c")
         }
         
         // Handle tracing, if used.
         if (targetTracing) {
             // Provide the implementation of the tracing functions.
-            files.add("trace.c")
+            coreFiles.add("trace.c")
         }
         // If there are federates, copy the required files for that.
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
         if (federates.length > 1) {
-            files.addAll("rti.c", "rti.h", "federate.c")
+            coreFiles.addAll("rti.c", "rti.h", "federate.c")
             createFederateRTI()
-            createLauncher()
+            createLauncher(coreFiles)
         }
         
-        copyFilesFromClassPath("/lib/core", srcGenPath + File.separator + "core", files)
+        copyFilesFromClassPath("/lib/core", srcGenPath + File.separator + "core", coreFiles)
         
         copyTargetHeaderFile()
 
@@ -1006,8 +1006,11 @@ class CGenerator extends GeneratorBase {
      *  version 1.1.1a.  You can check the version with
      * 
      *      openssl version
+     * 
+     *  @param coreFiles The files from the core directory that must be
+     *   copied to the remote machines.
      */
-    def createLauncher() {
+    def createLauncher(ArrayList<String> coreFiles) {
         // NOTE: It might be good to use screen when invoking the RTI
         // or federates remotely so you can detach and the process keeps running.
         // However, I was unable to get it working properly.
@@ -1093,7 +1096,7 @@ class CGenerator extends GeneratorBase {
                 '
                 pushd src-gen/core > /dev/null
                 echo "Copying LF core files for RTI to host «target»"
-                scp rti.c rti.h util.h util.c reactor.h pqueue.h trace.h «target»:«path»/src-gen/core
+                scp rti.c rti.h tag.c tag.h util.h util.c reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"
@@ -1155,11 +1158,11 @@ class CGenerator extends GeneratorBase {
                     '
                     pushd src-gen/core > /dev/null
                     echo "Copying LF core files to host «federate.host»"
-                    scp reactor_common.c reactor.h pqueue.c pqueue.h trace.h util.h util.c reactor_threaded.c federate.c rti.h «federate.host»:«path»/src-gen/core
+                    scp «coreFiles.join(" ")» «federate.host»:«path»/src-gen/core
                     popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c ctarget.h «federate.host»:«path»/src-gen
+                    scp «filename»_«federate.name».c «FOR file:targetFilesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «compileCommand»"
                     ssh «federate.host» '\
@@ -1186,21 +1189,24 @@ class CGenerator extends GeneratorBase {
                 ''')                
             }
         }
-        pr(shCode, '''
-            echo "#### Bringing the RTI back to foreground"
-            fg 1
-            RTI=$! # Store the new pid of the RTI
-        ''')
-        // Wait for launched processes to finish
-        pr(shCode, '''
-            
-            # Wait for launched processes to finish.
-            # The errors are handled separately via trap.
-            for pid in ${pids[*]}; do
-                wait $pid
-            done
-            wait $RTI
-        ''')
+        if (host == 'localhost' || host == '0.0.0.0') {
+            // Local PID managements
+            pr(shCode, '''
+                echo "#### Bringing the RTI back to foreground"
+                fg 1
+                RTI=$! # Store the new pid of the RTI
+            ''')
+            // Wait for launched processes to finish
+            pr(shCode, '''
+                
+                # Wait for launched processes to finish.
+                # The errors are handled separately via trap.
+                for pid in ${pids[*]}; do
+                    wait $pid
+                done
+                wait $RTI
+            ''')
+        }
 
         // Write the launcher file.
         // Delete file previously produced, if any.
