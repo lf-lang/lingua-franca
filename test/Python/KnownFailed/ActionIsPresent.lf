@@ -4,19 +4,33 @@ main reactor ActionIsPresent(offset(1 nsec), period(500 msec)) {
     logical action a;
     state success(false);
     reaction(startup, a) -> a {=
-        if a.is_present is not True:
-            if self.offset == 0:
+        print("Before check presence")
+        present = a.is_present
+        print("After check presence")
+        print("Before accessing offset")
+        offset = self.offset
+        print("After accessing offset")
+        if present is not True:
+            if offset == 0:
                 print("Hello World!")
+                print("Before assigning success")
                 self.success = True
+                print("After assigning success")
             else:
+                print("Before scheduling")
                 a.schedule(self.offset)
+                print("After scheduling")
         else:
             print("Hello World 2!")
+            print("Before assigning success")
             self.success = True
+            print("After assigning success")
     =}
     reaction(shutdown) {=
+        print("Before accessing success")
         if self.success is not True:
             sys.stderr.write("Failed to print 'Hello World'\n")
             exit(1)
+        print("After accessing success")
     =}
 }
