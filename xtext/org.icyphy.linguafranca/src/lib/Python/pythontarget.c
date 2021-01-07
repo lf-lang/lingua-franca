@@ -522,7 +522,7 @@ action_capsule_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     if (self != NULL) {
         self->action = NULL;
         self->value = NULL;
-        self->is_present = 0;
+        self->is_present = false;
     }
     
     return (PyObject *) self;
