@@ -661,7 +661,7 @@ static PyTypeObject port_instance_token_t = {
 static PyMemberDef action_capsule_members[] = {
     {"action", T_OBJECT, offsetof(generic_action_capsule_struct, action), 0, "The pointer to the C action struct"},
     {"value", T_OBJECT, offsetof(generic_action_capsule_struct, value), 0, "Value of the action"},
-    {"is_present", T_BOOL, offsetof(generic_action_capsule_struct, value), 0, "Check that shows if action is present"},
+    {"is_present", T_BOOL, offsetof(generic_action_capsule_struct, is_present), 0, "Check that shows if action is present"},
     {NULL}  /* Sentinel */
 };
 
@@ -856,7 +856,7 @@ PyObject* convert_C_port_to_py(void* port, int width) {
         if (cport->value == NULL) {
             // Value is absent
             Py_INCREF(Py_None);
-            ((generic_action_capsule_struct*)cap)->value = Py_None;
+            ((generic_port_capsule_struct*)cap)->value = Py_None;
             return cap;
         }
 
@@ -866,7 +866,7 @@ PyObject* convert_C_port_to_py(void* port, int width) {
     else {
         // Value is absent
         Py_INCREF(Py_None);
-        ((generic_action_capsule_struct*)cap)->value = Py_None;
+        ((generic_port_capsule_struct*)cap)->value = Py_None;
         ((generic_port_capsule_struct*)cap)->is_present = false;
     }
 

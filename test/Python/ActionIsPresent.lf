@@ -1,12 +1,11 @@
 // Tests the is_present variable for actions.
-target Python {
-    logging: DEBUG
-};
+target Python;
 main reactor ActionIsPresent(offset(1 nsec), period(500 msec)) {
     logical action a;
     state success(false);
     reaction(startup, a) -> a {=
         print("Before check presence")
+        print(a.is_present)
         present = a.is_present
         print("After check presence")
         print("Before accessing offset")
