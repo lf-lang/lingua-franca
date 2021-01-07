@@ -158,10 +158,10 @@ Boolean:
 ;
 
 terminal TRUE:
-    'true';
+    'true' | 'True';
     
 terminal FALSE:
-    'false';
+    'false' | 'False';
 
 // Action that has either a physical or logical origin.
 // 
