@@ -15,9 +15,13 @@ trace_to_csv: trace_to_csv.o trace_util.o
 trace_to_chrome: trace_to_chrome.o trace_util.o
 	$(CC) -o trace_to_chrome trace_to_chrome.o trace_util.o
 
-install: trace_to_csv trace_to_chrome
+trace_to_influxdb: trace_to_influxdb.o trace_util.o
+	$(CC) -o trace_to_influxdb trace_to_influxdb.o trace_util.o
+
+install: trace_to_csv trace_to_chrome trace_to_influxdb
 	mv trace_to_csv ../../bin
 	mv trace_to_chrome ../../bin
+	mv trace_to_influxdb ../../bin
 	
 clean:
 	rm -f *.o
