@@ -230,7 +230,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * interval. The offset to the clock will not be adjusted until 
  * this number of T4 clock synchronization messages have been received.
  */
-#define CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL 400
+#define CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL 10
 
 /** Runtime clock offset updates will be divided by this number. */
 #define CLOCK_SYNC_ATTENUATION 10
@@ -546,8 +546,8 @@ typedef struct socket_stat_t {
                                                   // receive and send on the socket for one byte.
     int received_T4_messages_in_current_sync_window; // Checked against CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL
                                                      // Must be reset to 0 every time it reaches the threshold. 
-    void* history;                                // A history of clock synchronization data. The exact
-                                                  // type of data depends on the clock sync algorithm used.
+    interval_t history;                              // A history of clock synchronization data. For AVG
+                                                     // strategy, this is a running partially compute average.
 } socket_stat_t;
 
 /** Information about a federate, including its runtime state,
