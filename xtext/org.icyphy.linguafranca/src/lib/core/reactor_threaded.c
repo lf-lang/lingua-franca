@@ -426,11 +426,22 @@ bool wait_until(instant_t logical_time_ns) {
             return return_value;
         }
 
-        // Convert the logical time to a timespec.
+        // We will use pthread_cond_wait, which takes as an argument the absolute
+        // time to wait until. However, that will not include the offset that we
+        // have calculated with clock synchronization. So we need to instead ensure
+        // that the time it waits is ns_to_wait.
+        // Get the current clock value (use CLOCK_REALTIME because that is what
+        // pthread_cond_timedwait will use).
+        struct timespec physicalTime;
+        clock_gettime(CLOCK_REALTIME, &physicalTime);
+        instant_t current_unadjusted_reported_clock_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec);
+        wait_until_time_ns = current_unadjusted_reported_clock_ns + ns_to_wait;
+
+        // Convert the absolute time to a timespec.
         // timespec is seconds and nanoseconds.
         struct timespec wait_until_time = {(time_t)wait_until_time_ns / BILLION, (long)wait_until_time_ns % BILLION};
 
-        DEBUG_PRINT("-------- Waiting for physical time to match logical time %llu.", logical_time_ns);
+        DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
         DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
 
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
@@ -582,6 +593,10 @@ int __next() {
     // Wait until the global barrier on tag (horizon) is larger than the next_tag.
     // This can effectively add to the STP offset in certain cases, for example,
     // when a message with timestamp (0,0) has arrived at (0,0).
+
+    // FIXME: I don't understand what this barrier is (EAL).
+    // If the event queue is empty, next_tag.time == FOREVER, resulting
+    // in a warning being printed.
     _lf_wait_on_global_tag_barrier(next_tag);
 #endif
 
