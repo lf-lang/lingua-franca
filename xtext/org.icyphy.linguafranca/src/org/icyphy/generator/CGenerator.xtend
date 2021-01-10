@@ -784,12 +784,7 @@ class CGenerator extends GeneratorBase {
                 ''')                    
             }
             
-            if (targetClockSync == clockSyncMethod.AVG) {
-                pr('''
-                    // Initialize history as a running averageL
-                    _lf_rti_socket_stat.history = (int*)malloc(sizeof(int));
-                ''')
-            } else if (targetClockSync == clockSyncMethod.REGRESSION) {
+            if (targetClockSync == clockSyncMethod.REGRESSION) {
                 pr('''
                     // FIXME: REGRESSION not implemented yet.
                 ''')
@@ -1707,6 +1702,11 @@ class CGenerator extends GeneratorBase {
                     pr(port, body, '''
                         trigger_t «port.name»_trigger;
                     ''')
+                    if (isFederatedAndDecentralized) {
+                        pr(port, constructorCode, '''
+                            self->__«containedReactor.name».«port.name»_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                        ''')
+                    }
                     val triggered = portsReferencedInContainedReactors.reactionsTriggered(containedReactor, port)
                     if (triggered.size > 0) {
                         pr(port, body, '''
@@ -1940,6 +1940,11 @@ class CGenerator extends GeneratorBase {
             pr(constructorCode, '''
                 self->___«timer.name».is_timer = true;
             ''')
+            if (isFederatedAndDecentralized) {
+                pr(constructorCode, '''
+                    self->___«timer.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                ''')
+            }
         }
         
         // Handle startup triggers.
@@ -1948,6 +1953,11 @@ class CGenerator extends GeneratorBase {
                 trigger_t ___startup;
                 reaction_t* ___startup_reactions[«startupReactions.size»];
             ''')
+            if (isFederatedAndDecentralized) {
+                pr(constructorCode, '''
+                    self->___startup.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                ''')
+            }
             var i = 0
             for (reactionIndex : startupReactions) {
                 pr(constructorCode, '''
@@ -1967,6 +1977,11 @@ class CGenerator extends GeneratorBase {
                 trigger_t ___shutdown;
                 reaction_t* ___shutdown_reactions[«shutdownReactions.size»];
             ''')
+            if (isFederatedAndDecentralized) {
+                pr(constructorCode, '''
+                    self->___shutdown.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                ''')
+            }
             var i = 0
             for (reactionIndex : shutdownReactions) {
                 pr(constructorCode, '''
@@ -2037,6 +2052,11 @@ class CGenerator extends GeneratorBase {
         pr(variable, constructorCode, '''
             self->___«variable.name».last = NULL;
         ''')
+        if (isFederatedAndDecentralized) {
+            pr(variable, constructorCode, '''
+                self->___«variable.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+            ''')
+        }
         // Generate the reactions triggered table.
         val reactionsTriggered = triggerMap.get(variable)
         if (reactionsTriggered !== null) {
