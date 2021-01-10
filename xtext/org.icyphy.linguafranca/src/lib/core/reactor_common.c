@@ -663,6 +663,9 @@ event_t* _lf_get_new_event() {
     event_t* e = (event_t*)pqueue_pop(recycle_q);
     if (e == NULL) {
         e = (event_t*)calloc(1, sizeof(struct event_t));
+#ifdef _LF_COORD_DECENTRALIZED
+        e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+#endif
     }
     return e;
 }
@@ -678,7 +681,7 @@ void _lf_recycle_event(event_t* e) {
     e->token = NULL;
     e->is_dummy = false;
 #ifdef _LF_COORD_DECENTRALIZED
-    e->intended_tag = (tag_t) { .time = 0LL, .microstep = 0u};
+    e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
 #endif
     e->next = NULL;
     pqueue_insert(recycle_q, e);
