@@ -150,7 +150,8 @@ socket_stat_t _lf_rti_socket_stat = {
     .remote_physical_clock_snapshot_T1 = NEVER,
     .local_physical_clock_snapshot_T2 = NEVER,
     .local_delay = 0LL,
-    .received_T4_messages_in_current_sync_window = 0
+    .received_T4_messages_in_current_sync_window = 0,
+    .history = 0LL
 };
 
 /** 
@@ -759,8 +760,8 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket) {
     // Extract the payload
     instant_t t4 = extract_ll(&(buffer[1]));
 
-    DEBUG_PRINT("Federate %d received T4 message with time payload %lld from RTI at local time %lld.",
-                _lf_my_fed_id, t4, r4);
+    DEBUG_PRINT("Federate %d received T4 message with time payload %lld from RTI at local time %lld. (difference %lld)",
+                _lf_my_fed_id, t4, r4, r4 - t4);
 
     // Calculate the round trip delay from T1 to T4:
     // (T4 - T1) - (T3 - T2)
@@ -777,6 +778,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket) {
             network_round_trip_delay/2
             - (_lf_rti_socket_stat.local_physical_clock_snapshot_T2
             - _lf_rti_socket_stat.remote_physical_clock_snapshot_T1);
+    DEBUG_PRINT("Federate %d estimated clock error: %lld.", _lf_my_fed_id, estimated_clock_error);
 
     // The adjustment to the clock offset (to be calculated)
     interval_t adjustment = 0;
@@ -832,6 +834,14 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket) {
         adjustment =  estimated_clock_error;
     }
     
+#if _LF_CLOCK_SYNC == AVG
+    DEBUG_PRINT("Federate %d adjusting clock offset running average by %lld.",
+            _lf_my_fed_id, adjustment/CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL);
+    // Calculate the running average
+    _lf_rti_socket_stat.history += adjustment/CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL;
+#elif _LF_CLOCK_SYNC == REGRESSION
+    // FIXME
+#endif
     
     if (_lf_rti_socket_stat.received_T4_messages_in_current_sync_window == 
                                                      CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL) {
@@ -840,7 +850,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket) {
 #if _LF_CLOCK_SYNC == AVG
         // For the AVG algorithm, history is a running average and can be directly
         // applied                                                 
-        _lf_global_physical_clock_offset += *(int*)_lf_rti_socket_stat.history;
+        _lf_global_physical_clock_offset += _lf_rti_socket_stat.history;
         DEBUG_PRINT("Federate %d: Clock sync:"
                     " Round trip delay to RTI: %lld."
                     " Local round trip delay: %lld."
@@ -851,21 +861,12 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket) {
                     _lf_global_physical_clock_offset);
         // Reset the stats
         _lf_rti_socket_stat.received_T4_messages_in_current_sync_window = 0;
-        *(int*)_lf_rti_socket_stat.history = 0;
+        _lf_rti_socket_stat.history = 0LL;
 #elif _LF_CLOCK_SYNC == REGRESSION
         // FIXME
 #endif
         // Set the last instant at which the clocks were synchronized
         _lf_last_clock_sync_instant = r4;
-    } else {
-#if _LF_CLOCK_SYNC == AVG
-        DEBUG_PRINT("Federate %d adjusting clock offset running average by %lld.",
-                    _lf_my_fed_id, adjustment/CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL);
-        // Calculate the running average
-        *(int*)_lf_rti_socket_stat.history += adjustment/CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL;
-#elif _LF_CLOCK_SYNC == REGRESSION
-        // FIXME
-#endif
     }
 }
 
@@ -1458,12 +1459,15 @@ void handle_stop_granted_message() {
         received_stop_tag.microstep = current_tag.microstep + 1;
     } else if (received_stop_tag.time > current_tag.time) {
         received_stop_tag.microstep = 0;
-    } else {
-        error_print("Federate %d received a stop_time %lld in the past from the RTI. "
+    } else if (current_tag.time != FOREVER) {
+        // FIXME: I see no way for current_tag.time to be FOREVER, but
+        // this seems to be nondeterministically happening in PingPongDistributed. How?
+        error_print("Federate %d received a stop_time %lld from the RTI that is in the past. "
                     "Stopping at the next microstep (%lld, %u).",
-                    _lf_my_fed_id, received_stop_tag.time - start_time,
+                    _lf_my_fed_id,
+                    received_stop_tag.time - start_time,
                     current_tag.time - start_time,
-                    current_tag.microstep);
+                    current_tag.microstep + 1);
         received_stop_tag = current_tag;
         received_stop_tag.microstep++;
     }
