@@ -604,7 +604,7 @@ class CGenerator extends GeneratorBase {
                 
                 setReactionPriorities(main, federate)
                 
-                // Calculate the epcoh offset so that subsequent calls
+                // Calculate the epoch offset so that subsequent calls
                 // to get_physical_time() return epoch time.
                 pr('''
                     calculate_epoch_offset();
