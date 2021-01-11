@@ -385,7 +385,7 @@ class CGenerator extends GeneratorBase {
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
         if (federates.length > 1) {
-            coreFiles.addAll("rti.c", "rti.h", "federate.c")
+            coreFiles.addAll("net_util.c", "net_util.h", "rti.c", "rti.h", "federate.c")
             createFederateRTI()
             createLauncher(coreFiles)
         }
@@ -1096,7 +1096,7 @@ class CGenerator extends GeneratorBase {
                 '
                 pushd src-gen/core > /dev/null
                 echo "Copying LF core files for RTI to host «target»"
-                scp rti.c rti.h tag.c tag.h util.h util.c reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
+                scp rti.c rti.h tag.c tag.h util.h util.c net_util.h net_util.h reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"
