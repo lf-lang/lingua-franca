@@ -47,6 +47,27 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SOCKET_READ_RETRY_INTERVAL 1000000
 
 /**
+ * Report an debug message on stderr with the prefix
+ * "DEBUG: " and a newline appended
+ * at the end.  The arguments are just like printf().
+ */
+void debug_print(char* format, ...) {
+    va_list args;
+    // Rather than calling printf() multiple times, we need to call it just
+    // once because this function is invoked by multiple threads.
+    // If we make multiple calls to printf(), then the results could be
+    // interleaved between threads.
+    // vprintf() is a version that takes an arg list rather than multiple args.
+    char message[strlen(format) + 10];
+    strcpy(message,  "DEBUG: ");
+    strcat(message, format);
+    strcat(message, "\n");
+    va_start (args, format);
+    vfprintf(stderr, message, args);
+    va_end (args);
+}
+
+/**
  * Report an error with the prefix "ERROR: " and a newline appended
  * at the end.  The arguments are just like printf().
  */
@@ -57,7 +78,7 @@ void error_print(char* format, ...) {
     // If we make multiple calls to printf(), then the results could be
     // interleaved between threads.
     // vprintf() is a version that takes an arg list rather than multiple args.
-    char error_message[strlen(format) + 8];
+    char error_message[strlen(format) + 10];
     strcpy(error_message,  "ERROR: ");
     strcat(error_message, format);
     strcat(error_message, "\n");
@@ -78,7 +99,7 @@ void error_print_and_exit(char* format, ...) {
     // If we make multiple calls to printf(), then the results could be
     // interleaved between threads.
     // vprintf() is a version that takes an arg list rather than multiple args.
-    char error_message[strlen(format) + 8];
+    char error_message[strlen(format) + 10];
     strcpy(error_message,  "ERROR: ");
     strcat(error_message, format);
     strcat(error_message, "\n");
