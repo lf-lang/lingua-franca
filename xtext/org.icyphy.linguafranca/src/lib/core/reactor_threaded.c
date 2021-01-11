@@ -430,12 +430,9 @@ bool wait_until(instant_t logical_time_ns) {
         // time to wait until. However, that will not include the offset that we
         // have calculated with clock synchronization. So we need to instead ensure
         // that the time it waits is ns_to_wait.
-        // Get the current clock value (use CLOCK_REALTIME because that is what
-        // pthread_cond_timedwait will use).
-        struct timespec physicalTime;
-        clock_gettime(CLOCK_REALTIME, &physicalTime);
-        instant_t current_unadjusted_reported_clock_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec);
-        wait_until_time_ns = current_unadjusted_reported_clock_ns + ns_to_wait;
+        // We need the current clock value as obtained using CLOCK_REALTIME because
+        // that is what pthread_cond_timedwait will use.
+        wait_until_time_ns = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
 
         // Convert the absolute time to a timespec.
         // timespec is seconds and nanoseconds.
