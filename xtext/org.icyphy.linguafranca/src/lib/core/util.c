@@ -47,21 +47,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SOCKET_READ_RETRY_INTERVAL 1000000
 
 /**
- * A function that can be used in lieu of fprintf(stderr, ...).
- * The input to this function is exactly like printf: (format, ...).
- * An "ERROR: " moniker is appended to the beginning of the error message
- * using strcpy and the format and a new line are appended at the
- * end of the printed message using strcat.
- * The size of the error message depends on the size of the input format, which
- * should be a null-terminated string.
- * 
- * FIXME: This function could be slow. The strcat is required because this 
- * function is used in a multi-threaded application. Using multiple calls 
- * to vfprintf will result in staggered output of the function and an incorrect
- * output format.
+ * Report an error with the prefix "ERROR: " and a newline appended
+ * at the end.  The arguments are just like printf().
  */
 void error_print(char* format, ...) {
     va_list args;
+    // Rather than calling printf() multiple times, we need to call it just
+    // once because this function is invoked by multiple threads.
+    // If we make multiple calls to printf(), then the results could be
+    // interleaved between threads.
+    // vprintf() is a version that takes an arg list rather than multiple args.
     char error_message[strlen(format) + 8];
     strcpy(error_message,  "ERROR: ");
     strcat(error_message, format);
@@ -72,21 +67,17 @@ void error_print(char* format, ...) {
 }
 
 /**
- * A function that can be used in lieu of fprintf(stderr, ...) that also exits
- * the program. The input to this function is exactly like printf: (format, ...).
- * An "ERROR: " moniker is appended to the beginning of the error message
- * using strcpy and the format and a new line are appended at the
- * end of the printed message using strcat.
- * The size of the error message depends on the size of the input format, which
- * should be a null-terminated string.
- * 
- * FIXME: This function could be slow. The strcat is required because this 
- * function is used in a multi-threaded application. Using multiple calls 
- * to vfprintf will result in staggered output of the function and an incorrect
- * output format.
+ * Report an error with the prefix "ERROR: " and a newline appended
+ * at the end, then exit with the failure code EXIT_FAILURE.
+ * The arguments are just like printf().
  */
 void error_print_and_exit(char* format, ...) {
     va_list args;
+    // Rather than calling printf() multiple times, we need to call it just
+    // once because this function is invoked by multiple threads.
+    // If we make multiple calls to printf(), then the results could be
+    // interleaved between threads.
+    // vprintf() is a version that takes an arg list rather than multiple args.
     char error_message[strlen(format) + 8];
     strcpy(error_message,  "ERROR: ");
     strcat(error_message, format);
