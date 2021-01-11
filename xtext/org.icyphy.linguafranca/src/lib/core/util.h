@@ -62,8 +62,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * by setting the target property 'logging' to 'DEBUG' or
  * by defining VERBOSE in the top-level preamble.
  * The input to this macro is exactly like printf: (format, ...).
- * A "DEBUG: " moniker is appended to the beginning of the message
- * as well a new line to the end of the message.
+ * "DEBUG: " is prepended to the beginning of the message
+ * and a newline is appended to the end of the message.
  * 
  * @note This macro is generated even if VERBOSE is not defined in
  * user-code. This is to ensure that the compiler will still parse
