@@ -150,8 +150,9 @@ int create_server(int specified_port, ushort port, socket_type_t socket_type) {
         error_print_and_exit("Failed to create RTI socket.");
     }
 
-    // Set the option for this socket to reuse the same address 
-    if (setsockopt(socket_descriptor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+    // Set the option for this socket to reuse the same address
+    int true_variable = 1; // setsockopt() requires a reference to the value assigned to an option
+    if (setsockopt(socket_descriptor, SOL_SOCKET, SO_REUSEADDR, &true_variable, sizeof(int)) < 0) {
         error_print("RTI failed to set SO_REUSEADDR option on the socket: %s.", strerror(errno));
     }
     // Set the timeout on the socket so that read and write operations don't block for too long
