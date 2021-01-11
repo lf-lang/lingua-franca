@@ -37,27 +37,26 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <string.h>     // Defines memcpy()
 #include <stdarg.h>     // Defines va_list
+#include <time.h>       // Defines nanosleep()
 
 #ifndef NUMBER_OF_FEDERATES
 #define NUMBER_OF_FEDERATES 1
 #endif
 
+/** Number of nanoseconds to sleep before retrying a socket read. */
+#define SOCKET_READ_RETRY_INTERVAL 1000000
+
 /**
- * A function that can be used in lieu of fprintf(stderr, ...).
- * The input to this function is exactly like printf: (format, ...).
- * An "ERROR: " moniker is appended to the beginning of the error message
- * using strcpy and the format and a new line are appended at the
- * end of the printed message using strcat.
- * The size of the error message depends on the size of the input format, which
- * should be a null-terminated string.
- * 
- * FIXME: This function could be slow. The strcat is required because this 
- * function is used in a multi-threaded application. Using multiple calls 
- * to vfprintf will result in staggered output of the function and an incorrect
- * output format.
+ * Report an error with the prefix "ERROR: " and a newline appended
+ * at the end.  The arguments are just like printf().
  */
 void error_print(char* format, ...) {
     va_list args;
+    // Rather than calling printf() multiple times, we need to call it just
+    // once because this function is invoked by multiple threads.
+    // If we make multiple calls to printf(), then the results could be
+    // interleaved between threads.
+    // vprintf() is a version that takes an arg list rather than multiple args.
     char error_message[strlen(format) + 8];
     strcpy(error_message,  "ERROR: ");
     strcat(error_message, format);
@@ -68,21 +67,17 @@ void error_print(char* format, ...) {
 }
 
 /**
- * A function that can be used in lieu of fprintf(stderr, ...) that also exits
- * the program. The input to this function is exactly like printf: (format, ...).
- * An "ERROR: " moniker is appended to the beginning of the error message
- * using strcpy and the format and a new line are appended at the
- * end of the printed message using strcat.
- * The size of the error message depends on the size of the input format, which
- * should be a null-terminated string.
- * 
- * FIXME: This function could be slow. The strcat is required because this 
- * function is used in a multi-threaded application. Using multiple calls 
- * to vfprintf will result in staggered output of the function and an incorrect
- * output format.
+ * Report an error with the prefix "ERROR: " and a newline appended
+ * at the end, then exit with the failure code EXIT_FAILURE.
+ * The arguments are just like printf().
  */
 void error_print_and_exit(char* format, ...) {
     va_list args;
+    // Rather than calling printf() multiple times, we need to call it just
+    // once because this function is invoked by multiple threads.
+    // If we make multiple calls to printf(), then the results could be
+    // interleaved between threads.
+    // vprintf() is a version that takes an arg list rather than multiple args.
     char error_message[strlen(format) + 8];
     strcpy(error_message,  "ERROR: ");
     strcat(error_message, format);
@@ -119,7 +114,6 @@ int host_is_big_endian() {
 }
 
 // Error messages.
-char* ERROR_DISCONNECTED = "ERROR socket is not connected.";
 char* ERROR_EOF = "ERROR peer sent EOF.";
 
 /** 
@@ -137,18 +131,24 @@ void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* fo
     va_list args;
     while (bytes_read < num_bytes) {
         int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
+        bytes_read += more;
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
+            DEBUG_PRINT("Reading from socket was blocked. Will try again after some time.");
+            struct timespec wait_time = {0L, SOCKET_READ_RETRY_INTERVAL};
+            struct timespec remaining_time;
+            nanosleep(&wait_time, &remaining_time);
             continue;
         } else if (more < 0) {
-            fprintf(stderr, "ERROR socket is not connected. ");
+            fprintf(stderr, "ERROR on read: socket %d is not connected: ", socket);
+            close(socket);
             error_print_and_exit(format, args);
         } else if (more == 0) {
             fprintf(stderr, "ERROR peer sent EOF. ");
+            close(socket);
             error_print_and_exit(format, args);
         }
-        bytes_read += more;
     }
 }
 
@@ -190,18 +190,18 @@ void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* for
     va_list args;
     while (bytes_written < num_bytes) {
         int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
+        bytes_written += more;
         if(errno == EAGAIN || errno == EWOULDBLOCK) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
             continue;
         } else if (more < 0) {
-            fprintf(stderr, "ERROR socket is not connected. ");
+            fprintf(stderr, "ERROR on write: socket %d is not connected: ", socket);
             error_print_and_exit(format, args);
         } else if (more == 0) {
             fprintf(stderr, "ERROR peer sent EOF.");
             error_print_and_exit(format, args);
         }
-        bytes_written += more;
     }
 }
 
