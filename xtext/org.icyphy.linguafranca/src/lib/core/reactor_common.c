@@ -1696,20 +1696,24 @@ int process_args(int argc, char* argv[]) {
  * with the epoch time.
  */
 void calculate_epoch_offset() {
-    // Initialize logical time to match physical time.
-    struct timespec physical_clock_snapshot;
-    clock_gettime(_LF_CLOCK, &physical_clock_snapshot);
-    instant_t physical_clock_snapshot_ns = physical_clock_snapshot.tv_sec * BILLION + physical_clock_snapshot.tv_nsec;
+    if (_LF_CLOCK == CLOCK_REALTIME) {
+        // Set the epoch offset to zero (see tag.h)
+        _lf_epoch_offset = 0LL;
+    } else {
+        // Initialize _lf_epoch_offset to the difference between what is
+        // reported by whatever clock LF is using (e.g. CLOCK_MONOTONIC)
+        // and what is reported by CLOCK_REALTIME.
+        struct timespec physical_clock_snapshot, real_time_start;
 
-    struct timespec real_time_start = physical_clock_snapshot;
-    // Set the epoch offset to zero (see tag.h)
-    _lf_epoch_offset = 0;
-    if (_LF_CLOCK != CLOCK_REALTIME) {
+        clock_gettime(_LF_CLOCK, &physical_clock_snapshot);
+        instant_t physical_clock_snapshot_ns = physical_clock_snapshot.tv_sec * BILLION + physical_clock_snapshot.tv_nsec;
+
         clock_gettime(CLOCK_REALTIME, &real_time_start);
         instant_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
-        // If the clock is not CLOCK_REALTIME, find the necessary epoch offset
+
         _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
     }
+    DEBUG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
 }
 
 /**
