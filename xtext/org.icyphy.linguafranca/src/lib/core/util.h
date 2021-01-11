@@ -58,6 +58,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /**
+ * Report an debug message on stderr with the prefix
+ * "DEBUG: " and a newline appended
+ * at the end.  The arguments are just like printf().
+ */
+void debug_print(char* format, ...);
+
+/**
  * A macro used to print useful debug information. It can be enabled
  * by setting the target property 'logging' to 'DEBUG' or
  * by defining VERBOSE in the top-level preamble.
@@ -74,7 +81,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */ 
 #define DEBUG_PRINT(format, ...) \
             do { if(DEBUG) { \
-                    fprintf(stderr, CONCATENATE_THREE_STRINGS("DEBUG: ",format,"\n"), ##__VA_ARGS__); \
+                    debug_print(format, ##__VA_ARGS__); \
                 } } while (0)
 
 /**
