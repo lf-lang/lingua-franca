@@ -54,7 +54,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <strings.h>    // Defines bzero().
 #include <assert.h>
 #include <sys/wait.h>   // Defines wait() for process to change state.
-#include "util.c"       // Defines error() and swap_bytes_if_big_endian().
+#include "util.c"   // Defines network functions.
+#include "net_util.c"   // Defines network functions.
 #include "rti.h"        // Defines TIMESTAMP. Includes <pthread.h> and "reactor.h".
 #include "tag.c"        // Time-related types and functions.
 
@@ -709,7 +710,7 @@ void handle_address_query(ushort fed_id) {
     unsigned char buffer[sizeof(int)];
     int bytes_read = read_from_socket2(federates[fed_id].socket, sizeof(ushort), (unsigned char*)buffer);
     if (bytes_read == 0) {
-        error("Failed to read address query.\n");
+        error_print_and_exit("Failed to read address query.");
     }
     ushort remote_fed_id = extract_ushort(buffer);
     
