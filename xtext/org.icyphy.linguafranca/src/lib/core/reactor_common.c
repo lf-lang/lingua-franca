@@ -516,10 +516,7 @@ lf_token_t* __initialize_token(lf_token_t* token, int length) {
  * @param tag The tag to check against stop tag
  */
 bool _lf_is_tag_after_stop_tag(tag_t tag) {
-    if (compare_tags(tag, stop_tag) > 0) {
-        return true;
-    }
-    return false;
+    return (compare_tags(tag, stop_tag) > 0);
 }
 
 /**
