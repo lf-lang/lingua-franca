@@ -388,6 +388,13 @@ void send_timed_message(interval_t additional_delay,
         // should be (get_logical_time(), get_microstep())
     }
 
+    if (compare_tags2(current_message_timestamp,
+            current_message_microstep, stop_tag.time, stop_tag.microstep) > 0) {
+        // Message tag is past the timeout time (the stop time) so it should
+        // not be sent.
+        return;
+    }
+
     // Next 8 bytes are the timestamp.
     encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     // Next 4 bytes are the microstep.
@@ -402,7 +409,7 @@ void send_timed_message(interval_t additional_delay,
     write_to_socket(socket, header_length, header_buffer,
             "Failed to send timed message header to the RTI.");
     write_to_socket(socket, length, message,
-            "Federate %d failed to send timed message body to the RTI.");
+            "Federate %d failed to send timed message body.");
     pthread_mutex_unlock(&socket_mutex);
 }
 
@@ -672,7 +679,7 @@ void connect_to_federate(ushort remote_federate_id) {
                 result = -1;
                 continue;
             } else {
-                info_print("Connected to federate %d, port %d.\n", remote_federate_id, port);
+                info_print("Connected to federate %d, port %d.", remote_federate_id, port);
             }
         }
     }
@@ -1086,7 +1093,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     }
 
     instant_t timestamp = extract_ll(&(buffer[1]));
-    info_print("Starting timestamp is: %lld.\n", timestamp);
+    info_print("Starting timestamp is: %lld.", timestamp);
     DEBUG_PRINT("Current physical time is: %lld.", get_physical_time());
 
     return timestamp;
