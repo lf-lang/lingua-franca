@@ -28,7 +28,7 @@ reactor Count {
     reaction(t) -> out {=
         // Adjust the test offset by a random coefficient
         /* Uncomment the following lines to test the adaptability of the clock
-         * synchronization algorithm./
+         * synchronization algorithm. */
         // _lf_global_test_physical_clock_offset *= (1.0 * rand())/RAND_MAX + 1;
         // printf("Federate %d: Adjusting the test clock offset to %lld.\n", _lf_my_fed_id, 
         //     _lf_global_test_physical_clock_offset);
@@ -55,7 +55,7 @@ reactor Print {
     reaction(in) {=
         // Adjust the test offset by a random coefficient
         /* Uncomment the following lines to test the adaptability of the clock
-         * synchronization algorithm./
+         * synchronization algorithm. */
         // _lf_global_test_physical_clock_offset *= (1.0 * rand())/RAND_MAX + 1;
         // printf("Federate %d: Adjusting the test clock offset to %lld.\n", _lf_my_fed_id, 
         //     _lf_global_test_physical_clock_offset);
