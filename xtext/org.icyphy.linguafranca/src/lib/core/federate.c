@@ -849,10 +849,12 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         DEBUG_PRINT("Clock sync:"
                     " New offset: %lld."
                     " Round trip delay to RTI: %lld."
-                    " Local round trip delay: %lld.",
+                    " Local round trip delay: %lld."
+                    " Test offset: %lld.",
                     _lf_global_physical_clock_offset,
                     network_round_trip_delay,
-                    _lf_rti_socket_stat.local_delay);
+                    _lf_rti_socket_stat.local_delay,
+                    _lf_global_test_physical_clock_offset);
         // Reset the stats
         _lf_rti_socket_stat.received_T4_messages_in_current_sync_window = 0;
         _lf_rti_socket_stat.history = 0LL;
