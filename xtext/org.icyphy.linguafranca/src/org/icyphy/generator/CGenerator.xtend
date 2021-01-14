@@ -369,18 +369,13 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "util.h", "util.c")
+        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
         if (targetThreads === 0) {
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
         }
         
-        // Handle tracing, if used.
-        if (targetTracing) {
-            // Provide the implementation of the tracing functions.
-            coreFiles.add("trace.c")
-        }
         // If there are federates, copy the required files for that.
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
@@ -711,7 +706,8 @@ class CGenerator extends GeneratorBase {
                                 // pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
-                            write_to_socket(_lf_rti_socket_TCP, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
+                            write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
+                                    "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
                         }
                     ''')
                 } else {
@@ -1129,7 +1125,7 @@ class CGenerator extends GeneratorBase {
                 '
                 pushd src-gen/core > /dev/null
                 echo "Copying LF core files for RTI to host «target»"
-                scp rti.c rti.h tag.c tag.h util.h util.c net_util.h net_util.h reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
+                scp rti.c rti.h tag.c tag.h util.h util.c net_util.h net_util.c reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"
