@@ -286,13 +286,10 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
  */
 handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
-    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_token.");
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_token.");
     pthread_mutex_unlock(&mutex);
     return return_value;
 }
@@ -312,9 +309,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
         fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
         return -1;
     }
-    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_copy.");
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
     // Initialize token with an array size of length and a reference count of 0.
     lf_token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
@@ -323,7 +318,6 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     handle_t result = __schedule(trigger, offset, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_copy.");
     pthread_mutex_unlock(&mutex);
     return result;
 }
@@ -335,16 +329,13 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
 handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
 
-    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_value.");
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
     lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_value.");
     pthread_mutex_unlock(&mutex);
     return return_value;
 }
@@ -501,7 +492,8 @@ int __next() {
         }
     }
 
-    // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
+    DEBUG_PRINT("Got event with time %lld and microstep %d off the event queue.",
+            next_tag.time, next_tag.microstep);
     // If a timeout tag was given, adjust the next_tag from the
     // event tag to that timeout tag.
     // FIXME: This is primarily done to let the RTI
@@ -902,7 +894,7 @@ void* worker(void* arg) {
             }
         } else {
             // Got a reaction that is ready to run.
-            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: %lld\n and deadline %lld.", worker_number, current_reaction_to_execute->index, current_reaction_to_execute->deadline);
+            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: %lld and deadline %lld.", worker_number, current_reaction_to_execute->index, current_reaction_to_execute->deadline);
 
             // This thread will no longer be idle.
             if (!have_been_busy) {
@@ -1082,9 +1074,7 @@ int main(int argc, char* argv[]) {
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
-        DEBUG_PRINT("pthread_mutex_lock main.");
         pthread_mutex_lock(&mutex);
-        DEBUG_PRINT("pthread_mutex_locked.");
         initialize();
         transfer_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
@@ -1118,7 +1108,6 @@ int main(int argc, char* argv[]) {
         DEBUG_PRINT("Started execution.");
 
         start_threads();
-        DEBUG_PRINT("pthread_mutex_unlock main.");
         pthread_mutex_unlock(&mutex);
         DEBUG_PRINT("Waiting for worker threads to exit.");
 

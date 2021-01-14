@@ -229,7 +229,7 @@ instant_t get_elapsed_physical_time() {
 tag_t convert_volatile_tag_to_nonvolatile(tag_t volatile const& vtag) {
     tag_t non_volatile_tag;
     non_volatile_tag.time = vtag.time;
-    non_volatile_tag.microstep - vtag.microstep;
+    non_volatile_tag.microstep = vtag.microstep;
     return non_volatile_tag;
 }
 #else
