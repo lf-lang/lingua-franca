@@ -74,6 +74,14 @@ interval_t _lf_global_physical_clock_offset = 0LL;
 interval_t _lf_global_physical_clock_drift = 0LL;
 
 /**
+ * A test offset that is applied to the clock.
+ * The clock synchronization algorithm must correct for this offset.
+ * This offset is especially useful to test clock synchronization on the
+ * same machine.
+ */
+interval_t _lf_global_test_physical_clock_offset = 0LL;
+
+/**
  * Compare two tags. Return -1 if the first is less than
  * the second, 0 if they are equal, and +1 if the first is
  * greater than the second. A tag is greater than another if
@@ -186,6 +194,9 @@ instant_t get_physical_time() {
     // Adjust the reported clock with the appropriate offsets
     instant_t adjusted_clock_ns = _lf_last_reported_unadjusted_physical_time_ns
             + _lf_global_physical_clock_offset;
+
+    // Apply the test offset
+    adjusted_clock_ns += _lf_global_test_physical_clock_offset;
 
     if (_lf_global_physical_clock_drift != 0
             && _lf_last_clock_sync_instant != 0) {

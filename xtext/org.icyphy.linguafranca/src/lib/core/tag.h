@@ -151,6 +151,14 @@ unsigned int get_microstep();
 extern interval_t _lf_global_physical_clock_offset;
 
 /**
+ * A test offset that is applied to the clock.
+ * The clock synchronization algorithm must correct for this offset.
+ * This offset is especially useful to test clock synchronization on the
+ * same machine.
+ */
+extern interval_t _lf_global_test_physical_clock_offset;
+
+/**
  * Offset to _LF_CLOCK that would convert it
  * to epoch time. This is applied to the physical clock
  * to get a more meaningful and universal time.
