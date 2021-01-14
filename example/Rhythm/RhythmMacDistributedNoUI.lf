@@ -12,11 +12,11 @@
  * @author Edward A. Lee
  */
 target C {
-    flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
+    flags: "-framework AudioToolbox -framework CoreFoundation -lm",
     coordination: decentralized,
     logging: DEBUG,
-    files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
-            "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
+    clock-sync: average,
+    files: ["/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
             "Claves.wav"] 
 };
@@ -84,7 +84,9 @@ reactor PlayWaveform {
     =}
     
     reaction(note) {=
-        lf_play_audio_waveform(waveform, note->value, get_logical_time());
+        // lf_play_audio_waveform(waveform, note->value, get_logical_time());
+        // Pass null to just play a tick.
+        lf_play_audio_waveform(NULL, note->value, get_logical_time());
     =} deadline (100 msec) {=  // NOTE: deadline has to match BUFFER_DURATION_NS.
         fprintf(stderr, "WARNING: Missed deadline!\n");
     =}
@@ -104,3 +106,4 @@ federated reactor RhythmMacDistributedNoUI at 10.0.0.62 {
     player1 = new RhythmMacPlayer() at 10.0.0.126;
     player2 = new RhythmMacPlayer() at 10.0.0.62;
 }
+
