@@ -556,11 +556,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetTracing = true
                         }
                     case "clock-sync": {
-                        if (param.value.literal.equalsIgnoreCase('off')) {
+                        if (param.value.id.equalsIgnoreCase('off')) {
                             targetClockSync = clockSyncMethod.OFF
-                        } else if (param.value.literal.equalsIgnoreCase('AVG')) {
+                        } else if (param.value.id.equalsIgnoreCase('average')) {
                             targetClockSync = clockSyncMethod.AVG
-                        } else if (param.value.literal.equalsIgnoreCase('REGRESSION')) {
+                        } else if (param.value.id.equalsIgnoreCase('regression')) {
                             targetClockSync = clockSyncMethod.REGRESSION
                         }
                     }
