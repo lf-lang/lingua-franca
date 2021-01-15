@@ -417,7 +417,7 @@ bool wait_until(instant_t logical_time_ns) {
             // We should not wait if the physical time is sufficiently ahead
             // of logical time.
             interval_t ns_to_wait = wait_until_time_ns - get_physical_time();
-            if (ns_to_wait <= 0) {
+            if (ns_to_wait <= 0LL) {
                 return return_value;
             }
 
@@ -432,12 +432,6 @@ bool wait_until(instant_t logical_time_ns) {
             DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
         } else {
             DEBUG_PRINT("-------- Waiting for a new event to occur on the event queue.");
-        }
-
-        // Check for overflow
-        if (wait_until_time_ns < logical_time_ns) {
-            warning_print("Overflow detected in wait_until().");
-            wait_until_time_ns = logical_time_ns;
         }
 
         // Convert the absolute time to a timespec.

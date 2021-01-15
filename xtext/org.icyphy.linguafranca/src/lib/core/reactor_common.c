@@ -149,7 +149,7 @@ interval_t get_stp_offset() {
  *  as the STP offset.
  */
 void set_stp_offset(interval_t offset) {
-    if (offset > 0) {
+    if (offset > 0LL) {
         _lf_global_time_STP_offset = offset;
     }
 }
