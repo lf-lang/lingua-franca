@@ -428,19 +428,21 @@ bool wait_until(instant_t logical_time_ns) {
             // We need the current clock value as obtained using CLOCK_REALTIME because
             // that is what pthread_cond_timedwait will use.
             wait_until_time_ns = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
+
+            DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
+        } else {
+            DEBUG_PRINT("-------- Waiting for a new event to occur on the event queue.");
         }
 
         // Check for overflow
         if (wait_until_time_ns < logical_time_ns) {
+            warning_print("Overflow detected in wait_until().");
             wait_until_time_ns = logical_time_ns;
         }
 
         // Convert the absolute time to a timespec.
         // timespec is seconds and nanoseconds.
         struct timespec wait_until_time = {(time_t)wait_until_time_ns / BILLION, (long)wait_until_time_ns % BILLION};
-
-        DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
-        DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
 
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
             DEBUG_PRINT("-------- Wait interrupted.");
