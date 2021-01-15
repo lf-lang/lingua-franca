@@ -50,8 +50,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * </pre>
  */
 
-#ifndef AUDIO_LOOP_MAC_H
-#define AUDIO_LOOP_MAC_H
+#ifndef AUDIO_LOOP_H
+#define AUDIO_LOOP_H
 
 #include "wave_file_reader.h" // Defines lf_waveform_t.
 #include "core/reactor.h"     // Defines instant_t.
@@ -60,6 +60,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SAMPLE_RATE 44100
 #define AUDIO_BUFFER_SIZE  4410  // 1/10 second, 100 msec
 #define BUFFER_DURATION_NS 100000000LL
+#define NUM_CHANNELS 1 // 2 for stereo
 
 #define MAX_AMPLITUDE 32765
 
@@ -98,4 +99,4 @@ void lf_stop_audio_loop();
  */
 int lf_play_audio_waveform(lf_waveform_t* waveform, float emphasis, instant_t start_time);
 
-#endif // AUDIO_LOOP_MAC_H
+#endif // AUDIO_LOOP_H
