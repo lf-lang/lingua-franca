@@ -198,8 +198,8 @@ instant_t get_physical_time() {
     // Apply the test offset
     adjusted_clock_ns += _lf_global_test_physical_clock_offset;
 
-    if (_lf_global_physical_clock_drift != 0
-            && _lf_last_clock_sync_instant != 0) {
+    if (_lf_global_physical_clock_drift != 0LL
+            && _lf_last_clock_sync_instant != 0LL) {
         // Apply the calculated drift, if appropriate
         adjusted_clock_ns += (adjusted_clock_ns - _lf_last_clock_sync_instant) *
                            _lf_global_physical_clock_drift;
