@@ -410,35 +410,34 @@ bool wait_until(instant_t logical_time_ns) {
     }
 #endif
     if (!fast) {
-        if (wait_until_time_ns != FOREVER) {
-            // If wait_time is not forever
-            // This check has to be done to prevent overflow
-
-            // We should not wait if the physical time is sufficiently ahead
-            // of logical time.
-            interval_t ns_to_wait = wait_until_time_ns - get_physical_time();
-            if (ns_to_wait <= 0LL) {
-                return return_value;
-            }
-
-            // We will use pthread_cond_wait, which takes as an argument the absolute
-            // time to wait until. However, that will not include the offset that we
-            // have calculated with clock synchronization. So we need to instead ensure
-            // that the time it waits is ns_to_wait.
-            // We need the current clock value as obtained using CLOCK_REALTIME because
-            // that is what pthread_cond_timedwait will use.
-            wait_until_time_ns = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
-
-            DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
-        } else {
-            DEBUG_PRINT("-------- Waiting for a new event to occur on the event queue.");
+        // We should not wait if the physical time is sufficiently ahead
+        // of logical time.
+        instant_t current_physical_time = get_physical_time();
+        interval_t ns_to_wait = wait_until_time_ns - current_physical_time;
+        if (ns_to_wait <= 0) {
+            return return_value;
         }
+
+        // We will use pthread_cond_wait, which takes as an argument the absolute
+        // time to wait until. However, that will not include the offset that we
+        // have calculated with clock synchronization. So we need to instead ensure
+        // that the time it waits is ns_to_wait.
+        // We need the current clock value as obtained using CLOCK_REALTIME because
+        // that is what pthread_cond_timedwait will use.
+        instant_t unadjusted_wait_until_time_ns
+                = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
+
+        DEBUG_PRINT("-------- Physical clock offset for clock is %lld ns.", current_physical_time - _lf_last_reported_unadjusted_physical_time_ns);
 
         // Convert the absolute time to a timespec.
         // timespec is seconds and nanoseconds.
-        struct timespec wait_until_time = {(time_t)wait_until_time_ns / BILLION, (long)wait_until_time_ns % BILLION};
+        struct timespec unadjusted_wait_until_time
+                = {(time_t)unadjusted_wait_until_time_ns / BILLION, (long)unadjusted_wait_until_time_ns % BILLION};
 
-        if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
+        DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
+        DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&unadjusted_wait_until_time.tv_sec), unadjusted_wait_until_time.tv_nsec);
+
+        if (pthread_cond_timedwait(&event_q_changed, &mutex, &unadjusted_wait_until_time) != ETIMEDOUT) {
             DEBUG_PRINT("-------- Wait interrupted.");
 
             // Wait did not time out, which means that there
