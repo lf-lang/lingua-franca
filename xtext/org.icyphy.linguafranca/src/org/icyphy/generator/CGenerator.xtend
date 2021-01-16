@@ -1061,12 +1061,22 @@ class CGenerator extends GeneratorBase {
             # Launcher for federated «filename».lf Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
-            # Set a trap to kill all background jobs on error or control-C
+            
             # Enable job control
             set -m
             shopt -s huponexit
-            trap 'echo "#### Received ERR. Killing federates and RTI."; kill ${pids[*]}; kill ${RTI}; exit 1' ERR
-            trap 'echo "#### Received SIGINT. Killing federates and RTI."; kill ${pids[*]}; kill ${RTI}; exit 1' SIGINT
+            
+            # Set a trap to kill all background jobs on error or control-C
+            cleanup() {
+                echo "#### Received signal."
+                printf "Killing federate %s.\n" ${pids[*]}
+                kill ${pids[@]}
+                printf "#### Killing RTI %s.\n" ${RTI}
+                exit 1
+            }
+            trap cleanup ERR
+            trap cleanup SIGINT
+
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
@@ -1156,7 +1166,9 @@ class CGenerator extends GeneratorBase {
             val executeCommand = '''bin/«filename»_RTI -i '$FEDERATION_ID' '''
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
-                ssh «target» 'cd «path»; \
+                # The double -t -t option below forces creation of a virtual terminal.
+                # This is needed so that Control-C on the launching script terminates the remote process.
+                ssh -t -t «target» 'cd «path»; \
                     echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                     date >> «logFileName»; \
                     echo "In «path», executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
@@ -1204,6 +1216,10 @@ class CGenerator extends GeneratorBase {
                 val executeCommand = '''bin/«filename»_«federate.name» -i '$FEDERATION_ID' '''
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    # FIXME: Killing this ssh does not kill the remote process.
+                    # A double -t -t option to ssh forces creation of a virtual terminal, which
+                    # fixes the problem, but then the ssh command does not execute. The remote
+                    # federate does not start!
                     ssh «federate.host» '\
                         cd «path»; \
                         echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
