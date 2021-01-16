@@ -1064,6 +1064,7 @@ class CGenerator extends GeneratorBase {
             # Set a trap to kill all background jobs on error or control-C
             # Enable job control
             set -m
+            shopt -s huponexit
             trap 'echo "#### Received ERR. Killing federates and RTI."; kill ${pids[*]}; kill ${RTI}; exit 1' ERR
             trap 'echo "#### Received SIGINT. Killing federates and RTI."; kill ${pids[*]}; kill ${RTI}; exit 1' SIGINT
             # Create a random 48-byte text ID for this federation.
