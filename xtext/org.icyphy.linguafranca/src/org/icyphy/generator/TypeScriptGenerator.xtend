@@ -53,7 +53,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.Delay
 
 /** Generator for TypeScript target.
  *
@@ -1024,7 +1024,7 @@ class TypeScriptGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Value delay
+        Delay delay
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
