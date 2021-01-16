@@ -230,13 +230,13 @@ Delay:
 /////////// For target parameters
 
 KeyValuePairs:
-    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
+    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','? '}';
 
 KeyValuePair:
     name=Kebab ':' value=Element;
 
 Array:
-    '[' elements+=Element (',' (elements+=Element))* ']';
+    '[' elements+=Element (',' (elements+=Element))* ','? ']';
     
 Element:
     keyvalue=KeyValuePairs 
