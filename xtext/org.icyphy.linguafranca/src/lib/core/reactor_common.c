@@ -1714,6 +1714,11 @@ void calculate_epoch_offset() {
         _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
     }
     DEBUG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
+
+    // To test clock synchronization:
+    // Introducing deliberate clock offset to test clock synchronization.
+    // _lf_global_test_physical_clock_offset = (_lf_my_fed_id + 1) * MSEC(100);
+    // DEBUG_PRINT("Clock sync: Set clock offset for testing to %lld.", _lf_global_test_physical_clock_offset);
 }
 
 /**
