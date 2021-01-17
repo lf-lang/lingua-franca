@@ -10,6 +10,7 @@
  * @see RhythmLinux
  * @see RhythmLinuxDistributedIndependent
  * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
     coordination: centralized,
