@@ -1828,13 +1828,16 @@ void synchronize_with_other_federates() {
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time. Microstep is ignored.
+    // Need to hold the mutex lock to call wait_until().
+    pthread_mutex_lock(&mutex);
     DEBUG_PRINT("Waiting for start time %lld.", current_tag.time);
     // Ignore interrupts to this wait. We don't want to start executing until
     // physical time matches or exceeds the logical start time.
     while (!wait_until(current_tag.time)) {}
     DEBUG_PRINT("Done waiting for start time %lld.", current_tag.time);
-    DEBUG_PRINT("Physical time is ahead of current time by %lld.",
+    DEBUG_PRINT("Physical time is ahead of current time by %lld. This should be small.",
             get_physical_time() - current_tag.time);
+    pthread_mutex_unlock(&mutex);
 
     // Reinitialize the physical start time to match the current physical time.
     // This will be different on each federate. If --fast was given, it could
