@@ -85,17 +85,17 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
     va_list args;
     while (bytes_read < num_bytes) {
         int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
-        if (more < 0) {
+        if(more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            // The error code set by the socket indicates
+            // that we should try again (@see man errno).
+            DEBUG_PRINT("Reading from socket was blocked. Will try again.");
+            continue;
+        } else if (more < 0) {
             error_print("Socket read failed: %s:", strerror(errno));
             if (format != NULL) {
                 error_print_and_exit(format, args);
             }
             return more;
-        } else if(bytes_read + more < num_bytes && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            // The error code set by the socket indicates
-            // that we should try again (@see man errno).
-            DEBUG_PRINT("Reading from socket was blocked. Will try again.");
-            continue;
         } else if (more == 0) {
             info_print("Peer sent EOF.");
             close(socket);
@@ -145,17 +145,17 @@ int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, ch
     va_list args;
     while (bytes_written < num_bytes) {
         int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
-        if (more < 0) {
+        if (more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+                    // The error code set by the socket indicates
+                    // that we should try again (@see man errno).
+            DEBUG_PRINT("Writing to socket was blocked. Will try again.");
+            continue;
+        } else if (more < 0) {
             error_print("Socket write failed: %s:", strerror(errno));
             if (format != NULL) {
                 error_print_and_exit(format, args);
             }
             return more;
-        } else if (bytes_written + more < num_bytes && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            // The error code set by the socket indicates
-            // that we should try again (@see man errno).
-            DEBUG_PRINT("Writing to socket was blocked. Will try again.");
-            continue;
         } else if (more == 0) {
             error_print("Peer sent EOF. ");
             close(socket);
