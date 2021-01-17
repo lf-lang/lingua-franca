@@ -196,6 +196,7 @@ instant_t get_physical_time() {
             + _lf_global_physical_clock_offset;
 
     // Apply the test offset
+    DEBUG_PRINT("get_physical_time(): Adding test clock offset of %lld to %lld.", _lf_global_test_physical_clock_offset, adjusted_clock_ns);
     adjusted_clock_ns += _lf_global_test_physical_clock_offset;
 
     if (_lf_global_physical_clock_drift != 0LL
@@ -203,6 +204,7 @@ instant_t get_physical_time() {
         // Apply the calculated drift, if appropriate
         adjusted_clock_ns += (adjusted_clock_ns - _lf_last_clock_sync_instant) *
                            _lf_global_physical_clock_drift;
+        DEBUG_PRINT("get_physical_time(): Adding clock drift.");
     }
     
     // Check if the clock has progressed since the last reported value
@@ -211,6 +213,7 @@ instant_t get_physical_time() {
         _lf_last_reported_physical_time_ns = adjusted_clock_ns;
     }
     
+    DEBUG_PRINT("get_physical_time(): Reporting %lld.", _lf_last_reported_physical_time_ns);
     return _lf_last_reported_physical_time_ns;
 }
 
