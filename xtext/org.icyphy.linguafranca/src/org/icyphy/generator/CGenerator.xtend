@@ -1190,7 +1190,7 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 val logFileName = '''log/«filename»_«federate.name».log'''
-                val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'''
+                val compileCommand = '''«this.targetCompiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «this.targetCompilerFlags»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
