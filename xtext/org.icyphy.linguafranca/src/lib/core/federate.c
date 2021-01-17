@@ -1886,12 +1886,15 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
         // This federate is not connected (except possibly by physical links)
         // so there is no need for the RTI to get involved.
 
-        // FIXME: If the event queue is empty, then the time argument is either
-        // the timeout_time or FOREVER. In this case, it matters whether there are
-        // upstream federates connected by physical connections, which do not
-        // affect __fed_has_upstream. We should not return immediately because
+        // NOTE: If the event queue is empty, then the time argument is either
+        // the timeout_time or FOREVER. If -fast is also set, then
+        // it matters whether there are upstream federates connected by physical
+        // connections, which do not affect __fed_has_upstream. Perhaps we
+        // should not return immediately because
         // then the execution will hit its timeout_time and fail to receive any
         // messages sent by upstream federates.
+        // However, -fast is really incompatible with federated execution with
+        // physical connections, so I don't think we need to worry about this.
         return (tag_t){.time = time, .microstep = microstep};
     }
 
@@ -1919,7 +1922,7 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
     // If there are no upstream federates, return immediately, without
     // waiting for a reply. This federate does not need to wait for
     // any other federate.
-    // FIXME: If fast execution is being used, it may be necessary to
+    // NOTE: If fast execution is being used, it may be necessary to
     // throttle upstream federates.
     // FIXME: As noted above, this is not correct if the time is the timeout_time.
     if (!__fed_has_upstream) {
