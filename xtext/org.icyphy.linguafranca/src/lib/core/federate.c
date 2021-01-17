@@ -876,10 +876,10 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
  */
 void connect_to_rti(char* hostname, int port) {
 
-    // To test clock synchronization:
-    // Introducing deliberate clock offset to test clock synchronization.
-    // _lf_global_test_physical_clock_offset = (_lf_my_fed_id + 1) * MSEC(100);
-    DEBUG_PRINT("Clock sync: Set clock offset for testing to %lld.", _lf_global_test_physical_clock_offset);
+    // To test clock synchronization, uncomment the following, which
+    // introduces deliberate clock offset to each federate.
+    // _lf_global_test_physical_clock_offset = (_lf_my_fed_id + 1) * MSEC(200);
+    // DEBUG_PRINT("Clock sync: Set clock offset for testing to %lld.", _lf_global_test_physical_clock_offset);
 
     DEBUG_PRINT("Attempting to connect to the RTI.");
 
