@@ -1476,10 +1476,7 @@ void handle_stop_granted_message() {
                 stop_tag.time - start_time,
                 stop_tag.microstep);
 
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
-                               // with decentralized coordination
     _lf_decrement_global_tag_barrier_already_locked();
-#endif
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
     // We signal instead of broadcast under the assumption that only
