@@ -101,26 +101,29 @@ pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
 pthread_cond_t global_tag_barrier_requestors_reached_zero = PTHREAD_COND_INITIALIZER;
 
 /**
- * Raise a barrier on tag at future_tag if possible (or freeze 
- * the current tag) and increment the total number of requestors 
- * waiting on the barrier. There should always be a subsequent
- * call to _lf_decrement_global_tag_barrier() or 
- * _lf_decrement_global_tag_barrier_already_locked() to release
- * the barrier.
+ * Raise a barrier to prevent the current tag from advancing to or
+ * beyond the value of the future_tag argument, if possible.
+ * If the current tag is already at or beyond future_tag, then
+ * prevent any further advances. This function will increment the
+ * total number of pending barrier requests. For each call to this
+ * function, there should always be a subsequent call to
+ * _lf_decrement_global_tag_barrier() or
+ * _lf_decrement_global_tag_barrier_already_locked()
+ * to release the barrier.
  * 
- * If there is already a barrier raised at a later tag, this 
- * function will move it to future_tag or the current tag, whichever
+ * If there is already a barrier raised at a tag later than future_tag, this
+ * function will change the barrier to future_tag or the current tag, whichever
  * is larger. If the existing barrier is earlier 
- * than future_tag, this function will not move the barrier. If there are 
+ * than future_tag, this function will not change the barrier. If there are
  * no existing barriers and future_tag is in the past relative to the 
- * current tag, this function will raise a barrier at the current tag.
+ * current tag, this function will raise a barrier to the current tag.
  * 
  * This function assumes the mutex lock is already held, thus, it will not
  * acquire it itself.
  * 
  * @note This function is only useful in threaded applications to facilitate
  *  certain non-blocking functionalities such as receiving timed messages
- *  over the network or handling stop in the federated execution.
+ *  over the network or handling stop in a federated execution.
  * 
  * @param future_tag A desired tag for the barrier. This function will guarantee
  * that current logical time will not go past future_tag if it is in the future.
@@ -165,26 +168,28 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
 }
 
 /**
- * Raise a barrier on tag at future_tag if possible (or freeze 
- * the current tag) and increment the total number of requestors 
- * waiting on the barrier. There should always be a subsequent
- * call to _lf_decrement_global_tag_barrier() or 
- * _lf_decrement_global_tag_barrier_already_locked() to release
- * the barrier.
+ * Raise a barrier to prevent the current tag from advancing to or
+ * beyond the value of the future_tag argument, if possible.
+ * If the current tag is already at or beyond future_tag, then
+ * prevent any further advances. This function will increment the
+ * total number of pending barrier requests. For each call to this
+ * function, there should always be a subsequent call to
+ * _lf_decrement_global_tag_barrier() or
+ * _lf_decrement_global_tag_barrier_already_locked()
+ * to release the barrier.
  * 
- * If there is already a barrier raised at a later tag, this 
- * function will move it to future_tag or the current tag, whichever
+ * If there is already a barrier raised at a tag later than future_tag, this
+ * function will change the barrier to future_tag or the current tag, whichever
  * is larger. If the existing barrier is earlier 
- * than future_tag, this function will not move the barrier. If there are 
+ * than future_tag, this function will not change the barrier. If there are
  * no existing barriers and future_tag is in the past relative to the 
- * current tag, this function will raise a barrier at the current tag.
+ * current tag, this function will raise a barrier to the current tag.
  * 
- * This function assumes the mutex lock is already held, thus, it will not
- * acquire it itself.
+ * This function acquires the mutex lock .
  * 
  * @note This function is only useful in threaded applications to facilitate
  *  certain non-blocking functionalities such as receiving timed messages
- *  over the network or handling stop in the federated execution.
+ *  over the network or handling stop in a federated execution.
  * 
  * @param future_tag A desired tag for the barrier. This function will guarantee
  * that current tag will not go past future_tag if it is in the future.
@@ -198,10 +203,10 @@ void _lf_increment_global_tag_barrier(tag_t future_tag) {
 }
 
 /**
- * Decrement the total number of requestors for the global tag barrier.
- * If the total number of requestors reaches zero, this function resets the
+ * Decrement the total number of pending barrier requests for the global tag barrier.
+ * If the total number of requests reaches zero, this function resets the
  * tag barrier to (FOREVER, 0) and notifies all threads that are waiting 
- * on the barrier that the number of requestors has reached zero.
+ * on the barrier that the number of requests has reached zero.
  * 
  * This function assumes that the caller already holds the mutex lock.
  * 
@@ -215,9 +220,8 @@ void _lf_decrement_global_tag_barrier_already_locked() {
     // Check to see if the semaphore is negative, which indicates that
     // a mismatched call was placed for this function.
     if (_lf_global_tag_advancement_barrier.requestors < 0) {
-        fprintf(stderr, "Mismatched use of _lf_increment_global_tag_barrier()"
-         " and  _lf_decrement_global_tag_barrier().\n");
-        exit(1);
+        error_print_and_exit("Mismatched use of _lf_increment_global_tag_barrier()"
+                " and  _lf_decrement_global_tag_barrier().");
     } else if (_lf_global_tag_advancement_barrier.requestors == 0) {
         // When the semaphore reaches zero, reset the horizon to forever.
         _lf_global_tag_advancement_barrier.horizon = (tag_t) { .time = FOREVER, .microstep = 0 };
@@ -248,8 +252,10 @@ void _lf_decrement_global_tag_barrier() {
 
 /**
  * A function that will wait if the proposed tag
- * is larger than a requested barrier on tag until
- * that barrier is lifted.
+ * is larger than a barrier set by a call to
+ * _lf_increment_global_tag_barrier or
+ * _lf_increment_global_tag_barrier_already_locked.
+ * It will return when that barrier is lifted.
  * 
  * This function assumes the mutex is already locked.
  * Thus, it unlocks the mutex while it's waiting to allow
@@ -270,8 +276,9 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
     }
     // Wait if the global barrier semaphore on logical time is zero
     // and the proposed_time is larger than the horizon.
-    while ((compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) > 0) &&
-          _lf_global_tag_advancement_barrier.requestors > 0) {
+    while (_lf_global_tag_advancement_barrier.requestors > 0
+            && compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) > 0
+    ) {
         DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time - start_time, proposed_tag.microstep);
         // Wait until no requestor remains for the barrier on logical time
         pthread_cond_wait(&global_tag_barrier_requestors_reached_zero, &mutex);
