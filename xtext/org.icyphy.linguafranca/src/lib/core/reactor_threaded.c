@@ -523,9 +523,10 @@ int __next() {
     }
 
 #ifdef _LF_IS_FEDERATED
-    // In case this is in a federation, check whether tag can advance
-    // to the next tag. If there are upstream federates, then this call
-    // will block waiting for a response from the RTI.
+    // In case this is in a federation, notify the RTI of the
+    // next earliest tag at which this federate might produce an event.
+    // This function may block until it is safe to advance the current tag
+    // to the next tag. Specifically, it blocks if there are upstream federates.
     // If an action triggers during that wait, it will unblock
     // and return with a time (typically) less than the next_time.
     tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
