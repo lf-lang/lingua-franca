@@ -402,6 +402,7 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
  *  the stop time, if one was specified.
  */
 bool wait_until(instant_t logical_time_ns) {
+    DEBUG_PRINT("-------- Waiting until physical time matches logical time %lld", logical_time_ns);
     bool return_value = true;
     if (logical_time_ns > stop_tag.time) {
         DEBUG_PRINT("-------- Waiting until the stop time %lld", stop_tag.time);
@@ -440,14 +441,12 @@ bool wait_until(instant_t logical_time_ns) {
         // The above call to setPhysicalTime() set the
         // _lf_last_reported_unadjusted_physical_time_ns to the CLOCK_REALTIME value
         // unadjusted by clock synchronization.
-        instant_t unadjusted_wait_until_time_ns
-                = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
-
-        if (unadjusted_wait_until_time_ns <= 0) {
-            // An overflow has occurred. Wait as long as possible instead.
-            unadjusted_wait_until_time_ns = FOREVER;
+        // Note that if ns_to_wait is large enough, then the following addition could
+        // overflow. This could happen, for example, if wait_until_time_ns == FOREVER.
+        instant_t unadjusted_wait_until_time_ns = FOREVER;
+        if (FOREVER - _lf_last_reported_unadjusted_physical_time_ns > ns_to_wait) {
+            unadjusted_wait_until_time_ns = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
         }
-
         DEBUG_PRINT("-------- Clock offset is %lld ns.", current_physical_time - _lf_last_reported_unadjusted_physical_time_ns);
 
         // Convert the absolute time to a timespec.
@@ -554,16 +553,16 @@ int __next() {
     // arrives from an upstream federate or a local physical action triggers).
     DEBUG_PRINT("next(): Waiting until time %lld.", (next_tag.time - start_time));
     if (!wait_until(next_tag.time)) {
-        // Since wait_until releases the mutex lock internally, we need to check
-        // again for any changes in stop_tag while the mutex was unlocked.
-        if (_lf_is_tag_after_stop_tag(next_tag)) {
-            next_tag = stop_tag;
-        }
         DEBUG_PRINT("__next(): Wait until time interrupted.");
         // Sleep was interrupted.
         // May have been an asynchronous call to schedule().
         // Set current time to match physical time, but not less than
         // current logical time nor more than next time in the event queue.
+        // Since wait_until releases the mutex lock internally, we need to check
+        // again for any changes in stop_tag while the mutex was unlocked.
+        if (_lf_is_tag_after_stop_tag(next_tag)) {
+            next_tag = stop_tag;
+        }
         // Get the current physical time.
         instant_t current_physical_time_ns = get_physical_time();
         if (current_physical_time_ns > current_tag.time) {
@@ -588,13 +587,16 @@ int __next() {
             // time, so do not advance tag.
             return 1;
         }
+    } else {
+        DEBUG_PRINT("Physical time is ahead of next tag time by %lld. This should be small.",
+                get_physical_time() - next_tag.time);
     }
     
     // If the event queue has changed, return to iterate.
     if ((event_t*)pqueue_peek(event_q) != event) {
         return 1;
     }
-    
+
     // Since wait_until releases the mutex lock internally, we need to check
     // again for any changes in stop_tag while the mutex was unlocked.
     if (_lf_is_tag_after_stop_tag(next_tag)) {
@@ -605,12 +607,13 @@ int __next() {
     // If next_tag is larger than the barrier, next() should wait until the barrier
     // is removed before advancing the tag
 #ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
+    // A barrier tag may have been set either by a stop request or by an incoming
+    // message with a logical tag.
     // Wait until the global barrier on tag (horizon) is larger than the next_tag.
     // This can effectively add to the STP offset in certain cases, for example,
     // when a message with timestamp (0,0) has arrived at (0,0).
 
-    // FIXME: I don't understand what this barrier is (EAL).
-    // If the event queue is empty, next_tag.time == FOREVER, resulting
+    // FIXME: If the event queue is empty, next_tag.time == FOREVER, resulting
     // in a warning being printed.
     _lf_wait_on_global_tag_barrier(next_tag);
 #endif
