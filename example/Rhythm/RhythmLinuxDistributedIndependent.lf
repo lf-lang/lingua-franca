@@ -2,7 +2,7 @@
  * Demonstration of timed distributed Lingua Franca programs.
  * This program is not portable. It runs on Linux.
  * 
- * This program elaborates RhythmMac to have two players that
+ * This program elaborates RhythmLinux to have two players that
  * run on different machines. Each players can select a musical
  * instrument, choose its rhythm, and control its tempo. The
  * two programs do not communicate.

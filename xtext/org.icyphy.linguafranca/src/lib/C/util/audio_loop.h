@@ -1,6 +1,7 @@
 /**
  * @file
  * @author Edward A. Lee
+ * @author Soroush Bateni
  *
  * @section LICENSE
 Copyright (c) 2020, The University of California at Berkeley and TU Dresden
@@ -27,7 +28,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
  *
- * Audio functions for MacOS. To start an audio loop, call
+ * Audio functions for Linux. To start an audio loop, call
  * `lf_start_audio_loop`, passing it the logical time at which
  * you would like the loop to start.  To play a waveform,
  * call `lf_play_audio_waveform()`.  A waveform may be
@@ -37,15 +38,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * To use this, include the following flags in your target properties:
  * <pre>
  * target C {
- *     flags: "-framework AudioToolbox -framework CoreFoundation -lm",
- *     files: ["/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h"]
+ *     flags: "-lasound -lm",
+ *     files: ["/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h"]
  * };
  * </pre>
  * 
  * In addition, you need this in your Lingua Franca file:
  * <pre>
  * preamble {=
- *     #include "audio_loop_mac.c"
+ *     #include "audio_loop_linux.c"
  * =}
  * </pre>
  */
@@ -58,7 +59,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Constants for playback. These are all coupled.
 #define SAMPLE_RATE 44100
-#define AUDIO_BUFFER_SIZE  4410
+#define AUDIO_BUFFER_SIZE  4410  // 1/10 second, 100 msec
 #define START_THRESHOLD AUDIO_BUFFER_SIZE
 #define BUFFER_DURATION_NS 100000000LL
 #define NUM_CHANNELS 1 // 2 for stereo
