@@ -15,6 +15,8 @@
 target C {
     flags: "-lasound -lm",
     coordination: decentralized,
+    timeout: 20 sec,
+    clock-sync: average,
     files: ["/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h",
             "Claves.wav"] 
@@ -42,9 +44,6 @@ reactor BeatSource(period:time(1600 msec)) {
     output note:float;     // To play a note with the given emphasis.
     
     timer tick(0, period);
-    
-    reaction(startup) {= 
-    =}
         
     reaction(tick) -> note {=
         SET(note, 1.0f);
@@ -86,13 +85,13 @@ reactor PlayWaveform {
     
     reaction(note) {=
         instant_t physical_time = get_physical_time();
-        info_print("Playing note at adjusted physical time: %lld, unadjusted physical time: %lld, "
-                   "perceived offset: %lld, epoch offset: %lld",
-                   physical_time,
-                   _lf_last_reported_unadjusted_physical_time_ns,
-                   physical_time - _lf_last_reported_unadjusted_physical_time_ns,
-                   _lf_epoch_offset);
-        fflush(stdout);
+//        info_print("Playing note at adjusted physical time: %lld, unadjusted physical time: %lld, "
+//                   "perceived offset: %lld, epoch offset: %lld",
+//                   physical_time,
+//                   _lf_last_reported_unadjusted_physical_time_ns,
+//                   physical_time - _lf_last_reported_unadjusted_physical_time_ns,
+//                   _lf_epoch_offset);
+//        fflush(stdout);
         lf_play_audio_waveform(waveform, note->value, get_logical_time());               
 //        // Set the initial test offset
 //        if (_lf_my_fed_id == 1) {
@@ -117,8 +116,8 @@ reactor RhythmLinuxPlayer {
     source.note -> play.note;
 }
 
-federated reactor RhythmLinuxDistributedNoUI {
-    player1 = new RhythmLinuxPlayer();
-    player2 = new RhythmLinuxPlayer();
+federated reactor RhythmLinuxDistributedNoUI at 192.168.1.111 {
+    player1 = new RhythmLinuxPlayer() at localhost;
+    player2 = new RhythmLinuxPlayer() at 192.168.1.126;
 }
 
