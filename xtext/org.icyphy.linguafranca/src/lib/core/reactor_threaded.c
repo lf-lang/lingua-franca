@@ -443,6 +443,11 @@ bool wait_until(instant_t logical_time_ns) {
         instant_t unadjusted_wait_until_time_ns
                 = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
 
+        if (unadjusted_wait_until_time_ns <= 0) {
+            // An overflow has occurred. Wait as long as possible instead.
+            unadjusted_wait_until_time_ns = FOREVER;
+        }
+
         DEBUG_PRINT("-------- Clock offset is %lld ns.", current_physical_time - _lf_last_reported_unadjusted_physical_time_ns);
 
         // Convert the absolute time to a timespec.
