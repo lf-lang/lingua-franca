@@ -37,18 +37,22 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * The maximum amount of time a worker thread should stall
  * before checking the reaction queue again.
+ * This is not currently used.
  */
 #define MAX_STALL_INTERVAL MSEC(1)
 
+/**
+ * Unless the "fast" option is given, an LF program will wait until
+ * physical time matches logical time before handling an event with
+ * a given logical time. The amount of time is less than this given
+ * threshold, then no wait will occur. The purpose of this is
+ * to prevent unnecessary delays caused by simply setting up and
+ * performing the wait.
+ */
+#define MIN_WAIT_TIME USEC(10)
+
 // Number of idle worker threads.
 volatile int number_of_idle_threads = 0;
-
-/**
- * Maximum amount of time that a worker thread waits for
- * notifications about changes in the reaction_q before it
- * wakes up to check the reaction_q.
- */
-#define MAX_WORKER_WAIT_TIME MSEC(1)
 
 /*
  * A struct representing a barrier in threaded 
@@ -393,7 +397,7 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
 bool wait_until(instant_t logical_time_ns) {
     bool return_value = true;
     if (logical_time_ns > stop_tag.time) {
-        DEBUG_PRINT("-------- Wait time after stop time.");
+        DEBUG_PRINT("-------- Waiting until the stop time %lld", stop_tag.time);
         // Modify the time to wait until to be the timeout time.
         logical_time_ns = stop_tag.time;
         // Indicate on return that the time of the event was not reached.
@@ -404,17 +408,19 @@ bool wait_until(instant_t logical_time_ns) {
 #ifdef _LF_COORD_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
     // Apply the STP offset to the logical time
     // Prevent an overflow
-    if (wait_until_time_ns != FOREVER) {
+    if (wait_until_time_ns < FOREVER - _lf_global_time_STP_offset) {
         // If wait_time is not forever
         wait_until_time_ns += _lf_global_time_STP_offset;
     }
 #endif
     if (!fast) {
-        // We should not wait if the physical time is sufficiently ahead
-        // of logical time.
+        // Get physical time as adjusted by clock synchronization offset.
         instant_t current_physical_time = get_physical_time();
+        // We want to wait until that adjusted time matches the logical time.
         interval_t ns_to_wait = wait_until_time_ns - current_physical_time;
-        if (ns_to_wait <= 0) {
+        // We should not wait if that adjusted time is already ahead
+        // of logical time.
+        if (ns_to_wait < MIN_WAIT_TIME) {
             return return_value;
         }
 
@@ -424,10 +430,13 @@ bool wait_until(instant_t logical_time_ns) {
         // that the time it waits is ns_to_wait.
         // We need the current clock value as obtained using CLOCK_REALTIME because
         // that is what pthread_cond_timedwait will use.
+        // The above call to setPhysicalTime() set the
+        // _lf_last_reported_unadjusted_physical_time_ns to the CLOCK_REALTIME value
+        // unadjusted by clock synchronization.
         instant_t unadjusted_wait_until_time_ns
                 = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
 
-        DEBUG_PRINT("-------- Physical clock offset for clock is %lld ns.", current_physical_time - _lf_last_reported_unadjusted_physical_time_ns);
+        DEBUG_PRINT("-------- Clock offset is %lld ns.", current_physical_time - _lf_last_reported_unadjusted_physical_time_ns);
 
         // Convert the absolute time to a timespec.
         // timespec is seconds and nanoseconds.
@@ -448,7 +457,6 @@ bool wait_until(instant_t logical_time_ns) {
             return_value = false;
         }
         DEBUG_PRINT("-------- Returned from wait.");
-
     }
     return return_value;
 }
