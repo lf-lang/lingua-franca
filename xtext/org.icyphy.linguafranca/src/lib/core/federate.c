@@ -1270,7 +1270,7 @@ void handle_message(int socket, unsigned char* buffer) {
  * This function assumes the caller does not hold the mutex lock.
  * Instead of holding the mutex lock, this function calls 
  * _lf_increment_global_tag_barrier with the tag carried in
- * the message header as an argument. This ensures that the tag
+ * the message header as an argument. This ensures that the current tag
  * will not advance to the tag of the message if it is in the future, or
  * the tag will not advance at all if the tag of the message is
  * now or in the past.
@@ -1310,7 +1310,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // For logical connections in decentralized coordination,
     // increment the barrier to prevent advancement of tag beyond
     // the received tag if possible. The following function call
-    // suggests that the tag barrier be raised at the tag provided
+    // suggests that the tag barrier be raised to the tag provided
     // by the message. If this tag is in the past, the function will cause
     // the tag to freeze at the current level.
     _lf_increment_global_tag_barrier(tag);
@@ -1324,8 +1324,10 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     if (bytes_read < length) {
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
                                // with decentralized coordination
+        pthread_mutex_lock(&mutex);
         // Decrement the barrier to allow advancement of tag.
         _lf_decrement_global_tag_barrier_already_locked();
+        pthread_mutex_unlock(&mutex);
 #endif
         // FIXME: Better error handling?
         error_print_and_exit("Failed to read timed message body.");
@@ -1474,7 +1476,10 @@ void handle_stop_granted_message() {
                 stop_tag.time - start_time,
                 stop_tag.microstep);
 
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
+                               // with decentralized coordination
     _lf_decrement_global_tag_barrier_already_locked();
+#endif
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
     // We signal instead of broadcast under the assumption that only
