@@ -25,6 +25,7 @@
  * 16-bit samples, linear PCM encoded.
  * 
  * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
     flags: "-lncurses -lasound -lm -lpthread",

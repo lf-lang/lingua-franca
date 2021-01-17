@@ -97,12 +97,14 @@ void add_to_sound(int index_offset, double value) {
  * has been filling into the destination buffer, clears the next
  * buffer, and updates the start time of the next buffer.
  */
-int callback (snd_pcm_sframes_t nframes) {
+int callback (snd_pcm_t *playback_handle,  int16_t buf_ref[]) {
     int error_number;
     pthread_mutex_lock(&lf_audio_mutex);
 
-    next_buffer = (int16_t*)calloc(AUDIO_BUFFER_SIZE, sizeof(int16_t));
-
+    // next_buffer = buf_ref;
+    next_buffer = buf_ref;
+    // Clear out the next buffer.
+    memset(next_buffer, 0, AUDIO_BUFFER_SIZE * sizeof(int16_t));
     // Clear out the next buffer.
     next_buffer_start_time += BUFFER_DURATION_NS;
     
@@ -110,7 +112,7 @@ int callback (snd_pcm_sframes_t nframes) {
     // didn't fit in the previous buffer.
     for (int note_to_use = 0; note_to_use < NUM_NOTES; note_to_use++) {
         struct note* note_instance = &(notes[note_to_use]);
-    
+
         // Add as much of the note instance into the buffer as will fit.
         for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
             if (note_instance->waveform == NULL || note_instance->volume == 0.0) {
@@ -123,7 +125,7 @@ int callback (snd_pcm_sframes_t nframes) {
             }
             value = value / note_instance->waveform->num_channels;
             add_to_sound(i, value * note_instance->volume);
-        
+
             note_instance->position += note_instance->waveform->num_channels;
             if (note_instance->position >= note_instance->waveform->length - note_instance->waveform->num_channels) {
                 // Reached the end of the note. Reset the note.
@@ -136,7 +138,7 @@ int callback (snd_pcm_sframes_t nframes) {
     }
     
     // Reinsert this same audio buffer at the end of the queue.
-    if ((error_number = snd_pcm_writei(playback_handle, next_buffer, nframes)) < 0) {
+    if ((error_number = snd_pcm_writei(playback_handle, buf_ref, AUDIO_BUFFER_SIZE)) < 0) {
         error_print("Writing to sound buffer failed: %s", snd_strerror(error_number));
     }
 
@@ -159,7 +161,7 @@ void* run_audio_loop(void* ignored) {
     int error_number;
     unsigned int sample_rate = SAMPLE_RATE;
     const char* device_name = AUDIO_DEVICE;
-    int buffer_size_bytes = AUDIO_BUFFER_SIZE * 2;
+    int buffer_size_bytes = AUDIO_BUFFER_SIZE * 2 * NUM_CHANNELS;
 
     if ((error_number = snd_pcm_open(&playback_handle, device_name, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
         error_print_and_exit("Cannot open audio device %s (%s)\n",
@@ -196,7 +198,16 @@ void* run_audio_loop(void* ignored) {
         error_print_and_exit("Cannot set channel count (%s)\n",
              snd_strerror(error_number));
     }
-
+    snd_pcm_uframes_t periods = buffer_size_bytes / AUDIO_BUFFER_SIZE;
+    if ((error_number = snd_pcm_hw_params_set_periods(playback_handle, hw_params, periods, 0)) < 0) {
+        error_print_and_exit("Cannot set channel count (%s)\n",
+             snd_strerror(error_number));
+    }
+    snd_pcm_uframes_t size = buffer_size_bytes;
+    if ((error_number = snd_pcm_hw_params_set_buffer_size_near(playback_handle, hw_params, &size)) < 0) {
+        error_print_and_exit("Cannot set channel count (%s)\n",
+             snd_strerror(error_number));
+    }
     if ((error_number = snd_pcm_hw_params(playback_handle, hw_params)) < 0) {
         error_print_and_exit("Cannot set parameters (%s)\n",
              snd_strerror(error_number));
@@ -209,7 +220,7 @@ void* run_audio_loop(void* ignored) {
        ALSA that we'll start the device ourselves.
     */
 
-    if ((error_number = snd_pcm_sw_params_malloc (&sw_params)) < 0) {
+    if ((error_number = snd_pcm_sw_params_malloc(&sw_params)) < 0) {
         error_print_and_exit("Cannot allocate software parameters structure (%s)\n",
              snd_strerror (error_number));
     }
@@ -230,6 +241,8 @@ void* run_audio_loop(void* ignored) {
              snd_strerror (error_number));
     }
 
+    snd_pcm_sw_params_free(sw_params);
+
     /*
      * The interface will interrupt the kernel every AUDIO_BUFFER_SIZE frames, and ALSA
      * will wake up this program very soon after that.
@@ -240,13 +253,20 @@ void* run_audio_loop(void* ignored) {
              snd_strerror (error_number));
     }
 
+
+    int16_t buffer[buffer_size_bytes];
+    memset(buffer, 0, buffer_size_bytes * sizeof(int16_t));
+    int head = 0;
     while (!stop_audio) {
+        if (head == AUDIO_BUFFER_SIZE) {
+            head = 0;
+        }
         /*
-         * Wait until the interface is ready for data, or 1 second
+         * Wait until the interface is ready for data, or BUFFER_DURATION_NS
          * has elapsed.
         */
 
-        if ((error_number = snd_pcm_wait(playback_handle, 1000)) < 0) {
+        if ((error_number = snd_pcm_wait(playback_handle, BUFFER_DURATION_NS/1000)) < 0) {
             error_print("Poll failed (%s)\n", strerror(errno));
             break;
         }
@@ -264,13 +284,16 @@ void* run_audio_loop(void* ignored) {
             }
         }
 
-        frames_to_deliver = frames_to_deliver > AUDIO_BUFFER_SIZE ? AUDIO_BUFFER_SIZE : frames_to_deliver;
+        if (frames_to_deliver < AUDIO_BUFFER_SIZE) {
+            continue;
+        }
 
         /* deliver the data */
+        callback(playback_handle, &(buffer[head]));
 
-        if (callback(frames_to_deliver) != frames_to_deliver) {
-            error_print("Playback callback failed\n");
-            break;
+
+        if (head == 0) {
+            head = AUDIO_BUFFER_SIZE;
         }
     }
 
