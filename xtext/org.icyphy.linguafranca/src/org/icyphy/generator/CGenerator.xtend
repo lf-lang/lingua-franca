@@ -1166,9 +1166,11 @@ class CGenerator extends GeneratorBase {
             val executeCommand = '''bin/«filename»_RTI -i '$FEDERATION_ID' '''
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
-                # The double -t -t option below forces creation of a virtual terminal.
-                # This is needed so that Control-C on the launching script terminates the remote process.
-                ssh -t -t «target» 'cd «path»; \
+                # FIXME: Killing this ssh does not kill the remote process.
+                # A double -t -t option to ssh forces creation of a virtual terminal, which
+                # fixes the problem, but then the ssh command does not execute. The remote
+                # federate does not start!
+                ssh «target» 'cd «path»; \
                     echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                     date >> «logFileName»; \
                     echo "In «path», executing RTI: «executeCommand»" 2>&1 | tee -a «logFileName»; \
