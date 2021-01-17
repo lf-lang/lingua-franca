@@ -1,6 +1,7 @@
 /**
  * @file
  * @author Edward A. Lee
+ * @author Soroush Bateni
  *
  * @section LICENSE
 Copyright (c) 2020, The University of California at Berkeley and TU Dresden
@@ -27,9 +28,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
  * 
- * Audio functions for MacOS.
+ * Audio functions for Linux.
  * 
- * See audio_loop_mac.h for instructions.
+ * See audio_loop.h for instructions.
  * 
  * Help from http://equalarea.com/paul/alsa-audio.html
  *
