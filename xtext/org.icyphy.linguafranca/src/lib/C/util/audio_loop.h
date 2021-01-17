@@ -58,9 +58,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Constants for playback. These are all coupled.
 #define SAMPLE_RATE 44100
-#define AUDIO_BUFFER_SIZE  4410  // 1/10 second, 100 msec
+#define AUDIO_BUFFER_SIZE  4410
+#define START_THRESHOLD AUDIO_BUFFER_SIZE
 #define BUFFER_DURATION_NS 100000000LL
-#define NUM_CHANNELS 1 // 2 for stereo
+#define NUM_CHANNELS 2 // 2 for stereo
 
 #define MAX_AMPLITUDE 32765
 
