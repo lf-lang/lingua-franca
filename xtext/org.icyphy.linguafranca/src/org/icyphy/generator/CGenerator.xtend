@@ -1072,6 +1072,7 @@ class CGenerator extends GeneratorBase {
                 printf "Killing federate %s.\n" ${pids[*]}
                 kill ${pids[@]}
                 printf "#### Killing RTI %s.\n" ${RTI}
+                kill ${RTI}
                 exit 1
             }
             trap cleanup ERR
