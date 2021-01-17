@@ -161,7 +161,7 @@ void* run_audio_loop(void* ignored) {
     int error_number;
     unsigned int sample_rate = SAMPLE_RATE;
     const char* device_name = AUDIO_DEVICE;
-    int buffer_size_bytes = AUDIO_BUFFER_SIZE * 2 * NUM_CHANNELS;
+    int buffer_size_bytes = AUDIO_BUFFER_SIZE * 4 * NUM_CHANNELS;
 
     if ((error_number = snd_pcm_open(&playback_handle, device_name, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
         error_print_and_exit("Cannot open audio device %s (%s)\n",
