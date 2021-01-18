@@ -112,30 +112,32 @@ void open_files(char* filename, char* output_file_extension) {
     }
 
     // Open the output file for writing.
-    char output_file_name[length + strlen(output_file_extension) + 1];
-    strncpy(output_file_name, filename, length);
-    output_file_name[length] = 0;
-    strcat(output_file_name, ".");
-    strcat(output_file_name, output_file_extension);
-    output_file = fopen(output_file_name, "w");
-    if (output_file == NULL) {
-        fprintf(stderr, "Could not create output file named %s.\n", output_file_name);
-        usage();
-        exit(2);
-    }
-
-    if (strcmp("csv", output_file_extension) == 0) {
-        // Also open a summary_file.
-        char* suffix = "_summary.csv";
-        char summary_file_name[length + strlen(suffix) + 1];
-        strncpy(summary_file_name, filename, length);
-        summary_file_name[length] = 0;
-        strcat(summary_file_name, suffix);
-        summary_file = fopen(summary_file_name, "w");
-        if (summary_file == NULL) {
-            fprintf(stderr, "Could not create summary file named %s.\n", summary_file_name);
+    if (output_file_extension) {
+        char output_file_name[length + strlen(output_file_extension) + 1];
+        strncpy(output_file_name, filename, length);
+        output_file_name[length] = 0;
+        strcat(output_file_name, ".");
+        strcat(output_file_name, output_file_extension);
+        output_file = fopen(output_file_name, "w");
+        if (output_file == NULL) {
+            fprintf(stderr, "Could not create output file named %s.\n", output_file_name);
             usage();
             exit(2);
+        }
+
+        if (strcmp("csv", output_file_extension) == 0) {
+            // Also open a summary_file.
+            char *suffix = "_summary.csv";
+            char summary_file_name[length + strlen(suffix) + 1];
+            strncpy(summary_file_name, filename, length);
+            summary_file_name[length] = 0;
+            strcat(summary_file_name, suffix);
+            summary_file = fopen(summary_file_name, "w");
+            if (summary_file == NULL) {
+                fprintf(stderr, "Could not create summary file named %s.\n", summary_file_name);
+                usage();
+                exit(2);
+            }
         }
     }
 
