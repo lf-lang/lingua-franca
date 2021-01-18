@@ -395,17 +395,22 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
  * was placed on the queue if that event time matches or exceeds
  * the specified time.
  *
- * @param logical_time_ns Logical time to wait on.
+ * @param logical_time_ns Logical time to wait until physical time matches it.
+ * @param return_if_interrupted If this is false, then wait_util will wait
+ *  until physical time matches the logical time regardless of whether new
+ *  events get put on the event queue. This is useful, for example, for
+ *  synchronizing the start of the program.
  * 
- * @return False if the wait is interrupted either because of an event
+ * @return Return false if the wait is interrupted either because of an event
  *  queue signal or if the wait time was interrupted early by reaching
- *  the stop time, if one was specified.
+ *  the stop time, if one was specified. Return true if the full wait time
+ *  was reached.
  */
 bool wait_until(instant_t logical_time_ns) {
     DEBUG_PRINT("-------- Waiting until physical time matches logical time %lld", logical_time_ns);
     bool return_value = true;
     if (logical_time_ns > stop_tag.time) {
-        DEBUG_PRINT("-------- Waiting until the stop time %lld", stop_tag.time);
+        DEBUG_PRINT("-------- Waiting until the stop time instead: %lld", stop_tag.time);
         // Modify the time to wait until to be the timeout time.
         logical_time_ns = stop_tag.time;
         // Indicate on return that the time of the event was not reached.
@@ -457,17 +462,36 @@ bool wait_until(instant_t logical_time_ns) {
         DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
         DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&unadjusted_wait_until_time.tv_sec), unadjusted_wait_until_time.tv_nsec);
 
+        // pthread_cond_timedwait returns 0 if it is awakened before the timeout.
+        // Hence, we want to run it repeatedly until either it returns non-zero or the
+        // current physical time matches or exceeds the logical time.
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &unadjusted_wait_until_time) != ETIMEDOUT) {
             DEBUG_PRINT("-------- Wait interrupted.");
 
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule().
+            // Continue waiting.
             // Do not adjust current_tag.time here. If there was an asynchronous
             // call to schedule(), it will have put an event on the event queue,
             // and current_tag.time will be set to that time when that event is pulled.
             return_value = false;
+        } else {
+            // Reached timeout.
+            // Unfortunately, at least on Macs, pthread_cond_timedwait appears
+            // to be implemented incorrectly and it returns well short of the target
+            // time.  Check for this condition and wait again if necessary.
+            interval_t ns_to_wait = wait_until_time_ns - get_physical_time();
+            // We should not wait if that adjusted time is already ahead
+            // of logical time.
+            if (ns_to_wait < MIN_WAIT_TIME) {
+                return true;
+            }
+            DEBUG_PRINT("-------- pthread_cond_timedwait claims to have timed out, "
+                    "but it did not reach the target time. Waiting again.");
+            return wait_until(wait_until_time_ns);
         }
-        DEBUG_PRINT("-------- Returned from wait.");
+
+        DEBUG_PRINT("-------- Returned from wait, having waited %lld ns.", get_physical_time() - current_physical_time);
     }
     return return_value;
 }

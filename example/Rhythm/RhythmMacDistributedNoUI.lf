@@ -105,6 +105,6 @@ reactor RhythmMacPlayer {
 
 federated reactor RhythmMacDistributedNoUI at 0.0.0.0 {
     player1 = new RhythmMacPlayer() at localhost;
-    player2 = new RhythmMacPlayer() at 192.168.1.5;
+    player2 = new RhythmMacPlayer() at 10.0.0.62;
 }
 
