@@ -406,7 +406,6 @@ void write_metadata_events() {
 int main(int argc, char* argv[]) {
     char* filename = NULL;
     for (int i = 1; i < argc; i++) {
-        printf("FIXME %s\n", argv[i]);
         if (strncmp(argv[i], "-p", 2) == 0 || strncmp(argv[i], "--physical", 10) == 0) {
             physical_time_only = true;
         } else if (argv[i][0] == '-') {

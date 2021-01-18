@@ -112,7 +112,7 @@ TypeExpr:
  * YAML format to pass on configuration details to the runtime environment. 
  */
 Target:
-    'target' name=ID (config=KeyValuePairs)? ';';
+    'target' name=ID (config=KeyValuePairs)? ';'?;
 
 
 /////////// Statements
@@ -137,31 +137,31 @@ Target:
         (parens+='(' (init+=Value 
                 (','  init+=Value)*)? parens+=')'
         )?
-    ) ';'    
+    ) ';'?
 ;
 
 Input:
-    mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';';
+    mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
 
 Output:
-    'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';';
+    'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';';
+    'timer' name=ID ('(' offset=Value (',' period=Value)? ')')? ';'?;
 
 Boolean:
     TRUE | FALSE
 ;
 
 terminal TRUE:
-    'true';
+    'true' | 'True';
     
 terminal FALSE:
-    'false';
+    'false' | 'False';
 
 // Action that has either a physical or logical origin.
 // 
@@ -176,7 +176,7 @@ terminal FALSE:
 Action:
     (origin=ActionOrigin)? 'action' name=ID 
     ('(' minDelay=Value (',' minSpacing=Value (',' policy=STRING)? )? ')')?
-    (':' type=Type)? ';';
+    (':' type=Type)? ';'?;
 
 Reaction:
     ('reaction')
@@ -210,25 +210,33 @@ Instantiation:
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ('at' host=Host)? ';';
+    ')' ('at' host=Host)? ';'?;
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' isIterated ?= '+'?))
     ('->' | physical?='~>') 
     rightPorts += VarRef (',' rightPorts += VarRef)*
-    ('after' delay=Value)? ';';
-    
+    (delay=Delay | ';'?);
+
+// After clause with a delay that can either be specified as a parameter or as
+// a literal value. If no units are given (which implies that the time interval
+// must be zero), the clause must be ended with a semicolon. If units are given,
+// the semicolon is optional.
+Delay:
+    'after' (parameter=[Parameter] ';'? | (interval=INT ((unit=TimeUnit ';'?) | ';')))
+;
+
 /////////// For target parameters
 
 KeyValuePairs:
-    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* '}';
+    '{' pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','? '}';
 
 KeyValuePair:
     name=Kebab ':' value=Element;
 
 Array:
-    '[' elements+=Element (',' (elements+=Element))* ']';
+    '[' elements+=Element (',' (elements+=Element))* ','? ']';
     
 Element:
     keyvalue=KeyValuePairs 

@@ -37,6 +37,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "reactor.h"
 #include "tag.c"
 #include "pqueue.c"
+#include "util.c"
 
 /**
  * Indicator for the absence of values for ports that remain disconnected.
@@ -75,8 +76,10 @@ bool _lf_execution_started = false;
  * It will be initially set to timeout if it is set. However,
  * starvation or calling request_stop() can also alter the stop_tag by moving it
  * earlier.
+ * 
+ * FIXME: This variable might need to be volatile
  */
-volatile tag_t stop_tag = (tag_t) {.time = FOREVER, .microstep = UINT_MAX};
+tag_t stop_tag = (tag_t) {.time = FOREVER, .microstep = UINT_MAX};
 
 /** Indicator of whether the keepalive command-line option was given. */
 bool keepalive_specified = false;

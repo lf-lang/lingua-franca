@@ -1,0 +1,24 @@
+# @package benchmark
+name: "Chameneos"
+params:
+  meetings: 200000
+  chameneos: 100
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.chameneos.ChameneosAkkaActorBenchmark"
+    run_args:
+      meetings: ["-m", "<value>"]
+      chameneos: ["-c", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/chameneos"
+    lf_file: "chameneos/ChameneosBenchmarkGenerator.lf"
+    binary: "ChameneosBenchmarkGenerator"
+    gen_args:
+      chameneos: ["-D", "numChameneos=<value>"]
+    run_args:
+      meetings: ["--numMeetings", "<value>"]

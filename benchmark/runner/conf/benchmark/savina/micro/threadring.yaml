@@ -1,0 +1,24 @@
+# @package benchmark
+name: "Thread Ring"
+params:
+  actors: 100
+  pings: 1000000
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.threadring.ThreadRingAkkaActorBenchmark"
+    run_args:
+      pings: ["-n", "<value>"]
+      actors: ["-r", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/threadring"
+    lf_file: "threadring/ThreadRingBenchmarkGenerator.lf"
+    binary: "ThreadRingBenchmarkGenerator"
+    gen_args:
+      actors: ["-D", "numReactors=<value>"]
+    run_args:
+      pings: ["--numPings", "<value>"]
