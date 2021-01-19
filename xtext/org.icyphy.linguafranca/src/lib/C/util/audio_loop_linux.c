@@ -194,6 +194,7 @@ void* run_audio_loop(void* ignored) {
         error_print_and_exit("Cannot set sample rate (%s)\n",
              snd_strerror(error_number));
     }
+    // FIXME: check sample rate
 
     if ((error_number = snd_pcm_hw_params_set_channels(playback_handle, hw_params, NUM_CHANNELS)) < 0) {
         error_print_and_exit("Cannot set channel count (%s)\n",
@@ -259,9 +260,6 @@ void* run_audio_loop(void* ignored) {
     memset(buffer, 0, buffer_size_bytes * sizeof(int16_t));
     int head = 0;
     while (!stop_audio) {
-        if (head == AUDIO_BUFFER_SIZE) {
-            head = 0;
-        }
         /*
          * Wait until the interface is ready for data, or BUFFER_DURATION_NS
          * has elapsed.
@@ -277,7 +275,7 @@ void* run_audio_loop(void* ignored) {
         if ((frames_to_deliver = snd_pcm_avail_update(playback_handle)) < 0) {
             if (frames_to_deliver == -EPIPE) {
                 error_print("An xrun occured\n");
-                break;
+                continue;
             } else {
                 error_print("Unknown ALSA avail update return value (%d)\n",
                      frames_to_deliver);
@@ -293,8 +291,10 @@ void* run_audio_loop(void* ignored) {
         callback(playback_handle, &(buffer[head]));
 
 
-        if (head == 0) {
-            head = AUDIO_BUFFER_SIZE;
+        if (head <= (buffer_size_bytes - (2 * AUDIO_BUFFER_SIZE))) {
+            head += AUDIO_BUFFER_SIZE;
+        } else {
+            head = 0;
         }
     }
 
@@ -392,7 +392,9 @@ int lf_play_audio_waveform(lf_waveform_t* waveform, float emphasis, instant_t st
     
     if (waveform == NULL) {
         // Waveform ID is out of range. Just emit a tick.
-        add_to_sound(index_offset, MAX_AMPLITUDE * emphasis);
+        for (int i = index_offset; i < AUDIO_BUFFER_SIZE; i++) {
+            add_to_sound(i, MAX_AMPLITUDE * emphasis);
+        }
     } else {
         int note_to_use = note_counter++; // Increment so that the next note uses a new slot.
         if (note_counter >= NUM_NOTES) {
