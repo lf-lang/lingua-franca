@@ -13,7 +13,6 @@ target C;
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-
 reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}(2048)) {
 
 
