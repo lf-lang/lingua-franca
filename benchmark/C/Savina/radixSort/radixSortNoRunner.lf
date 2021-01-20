@@ -11,7 +11,7 @@
 
 target C;
 
-import BenchmarkRunner from "../BenchmarkRunner.lf";
+
 
 reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}(2048)) {
 
@@ -24,6 +24,10 @@ reactor IntSourceReactor(numValues:int(100000), maxValue:{=long=}({=1l << 60=}),
         long nextLong(long seed)
         {
             return ((seed * 1309) + 13849) & 65535;
+        }
+
+        void printBenchmarkInfo(char* benchmarkId) {
+            printf("Benchmark: %s\n", benchmarkId);
         }
     =}
 
@@ -119,7 +123,7 @@ reactor ValidationReactor(numValues:int(100000)) {
     state errorValueInt:int(-1);
 
     input inValue:{=long=};
-    output outFinished:bool;
+    logical action outFinished:bool;
 
     reaction(inValue) -> outFinished {=
 
@@ -146,8 +150,11 @@ reactor ValidationReactor(numValues:int(100000)) {
             self->errorValueLong = -1;
             self->errorValueInt = -1;
 
-            SET(outFinished,true);
+            schedule(outFinished,0);
         }
+    =}
+    reaction(outFinished){=
+      request_stop();
     =}
 }
 
@@ -155,16 +162,14 @@ main reactor RadixSortBenchmark(numIterations:int(12), dataSize:int(100000), max
 
     source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
     validator = new ValidationReactor(numValues=dataSize);
-    runner = new BenchmarkRunner(numIterations=numIterations);
 
-    runner.outIterationStart -> source.inStart;
-    validator.outFinished -> runner.inIterationFinish;
+    //validator.outFinished -> source.inStart;
 
-    reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("RadixSortBenchmark");
+    reaction(startup) -> source.inStart {=
+        //printBenchmarkInfo("RadixSortBenchmark");
         //printArgs("numIterations", self->numIterations, "dataSize", self->dataSize, "maxValue", self->maxValue, "seed", self->seed);
-        printSystemInfo();
-        SET(runner.inStart,true);
+        //printSystemInfo();
+        SET(source.inStart,true);
     =}
 
     /* [[[cog
