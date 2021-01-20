@@ -994,35 +994,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     // ////////////////////////////////////////////////////
     // // Protected methods.
-//    /** Add to the specified set of reactions all the reactions
-//     *  that the specified port depends on.
-//     *  @param port The port.
-//     *  @param reactions The set of reactions to add to.
-//     */
-//    protected def void addReactionsPortDependsOn(
-//        PortInstance port,
-//        LinkedHashSet<ReactionInstance> reactions
-//    ) {
-//        reactions.addAll(port.dependsOnReactions)
-//        if (port.dependsOnPort !== null) {
-//            addReactionsPortDependsOn(port.dependsOnPort, reactions)
-//        }
-//    }
-
-//    /** Add to the specified set of reactions all the reactions
-//     *  that depend on the specified port.
-//     *  @param port The port.
-//     *  @param reactions The set of reactions to add to.
-//     */
-//    protected def void addReactionsDependingOnPort(
-//        PortInstance port,
-//        LinkedHashSet<ReactionInstance> reactions
-//    ) {
-//        reactions.addAll(port.dependentReactions)
-//        for (downstreamPort : port.dependentPorts) {
-//            addReactionsDependingOnPort(downstreamPort, reactions)
-//        }
-//    }
 
     /**
      * Extract a precedence graph from this reactor instance.
@@ -1148,11 +1119,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             origin.level = 0
         }
 
-        // Obvious cycle.
-        if (graph.independentNodes.isEmpty) {
-            generator.reportError(generator.mainDef, "Reactions form a cycle!");
-            throw new Exception("Reactions form a cycle!")
-        }
+//        if (graph.independentNodes.isEmpty) {
+//            generator.reportError(generator.mainDef, "Reactions form a cycle!");
+//            throw new Exception("Reactions form a cycle!")
+//        }
 
         while (!start.empty) {
             val origin = start.remove(0)

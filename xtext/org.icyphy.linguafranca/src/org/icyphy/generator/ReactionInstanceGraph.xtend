@@ -34,36 +34,83 @@ import org.icyphy.graph.DirectedGraph
  */
 class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
     
+    /**
+     * The main reactor instance that this graph is associated with.
+     */
     var ReactorInstance main
     
+    /**
+     * Create a new graph by traversing the maps in the named instances 
+     * embedded in the hierarchy of the program. 
+     */
     new(ReactorInstance main) {
         this.main = main
         addNodesAndEdges(main)
     }
     
+    /**
+     * Rebuild this graph by clearing is an repeating the traversal that 
+     * adds all the nodes and edges.
+     */
     def rebuild() {
         this.clear()
         addNodesAndEdges(main)
     }
     
+    /**
+     * Add to the graph edges between the given reaction and all the reactions
+     * that the specified port depends on.
+     * @param port The port that the given reaction as as a source.
+     * @param reaction The reaction to relate upstream reactions to.
+     */
+    protected def void addUpstreamReactions(PortInstance port,
+        ReactionInstance reaction) {
+            // Reactions in the containing reactor.
+        port.dependsOnReactions.forEach[this.addEdge(reaction, it)]
+        // Reactions in upstream reactors.
+        if (port.dependsOnPort !== null) {
+            addUpstreamReactions(port.dependsOnPort, reaction)
+        }
+    }
+
+    /**
+     * Add to the graph edges between the given reaction and all the reactions
+     * that depend on the specified port.
+     * @param port The port that the given reaction as as an effect.
+     * @param reaction The reaction to relate downstream reactions to.
+     */
+    protected def void addDownstreamReactions(PortInstance port,
+        ReactionInstance reaction) {
+            // Reactions in the containing reactor.
+        port.dependentReactions.forEach[this.addEdge(it, reaction)]
+        // Reactions in downstream reactors.
+        for (downstreamPort : port.dependentPorts) {
+            addDownstreamReactions(downstreamPort, reaction)
+        }
+    }
+
+    
+    /**
+     * Build the graph by adding nodes and edges based on the given reactor 
+     * instance.
+     * @param reactor The reactor on the basis of which to add nodes and edges.
+     */
     protected def void addNodesAndEdges(ReactorInstance reactor) {
         var ReactionInstance previousReaction = null
         for (reaction : reactor.reactions) {
+            // Add reactions of this reactor.
             this.addNode(reaction)
+            
             // Reactions that depend on a port that this reaction writes to
             // also, by transitivity, depend on this reaction instance.
             reaction.effects.forEach [ effect |
-                effect.dependentReactions.forEach [
-                    this.addEdge(it, reaction)
-                ]
+                addDownstreamReactions(effect, reaction)
             ]
-
+            
             // Reactions that write to such a port are also reactions that
             // that this reaction depends on, by transitivity.
             reaction.sources.forEach [ source |
-                source.dependsOnReactions.forEach [
-                    this.addEdge(reaction, it)
-                ]
+                addUpstreamReactions(source, reaction)
             ]
             // If this is not an unordered reaction, then create a dependency
             // on any previously defined reaction.
@@ -76,7 +123,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
                 previousReaction = reaction;
             }
         }
-        
+        // Recursively add nodes and edges from contained reactors.
         for (child : reactor.children) {
             addNodesAndEdges(child)
         }
