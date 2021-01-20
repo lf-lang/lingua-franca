@@ -411,19 +411,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      /**
       * The clock sync target parameter for federated programs.
       */
-     protected clockSyncMethod targetClockSync = clockSyncMethod.AVG
+     protected clockSyncMethod targetClockSync = clockSyncMethod.INITIAL
 
 
     /**
-     * The clock synchronization technique that is used when clock-sync is enabled.
-     * OFF: The clock synchronization is universally off
-     * AVG: The calculate clock offset is an average of multiple measurements
-     * REGRESSION: A regression is applied to find a linear slope and intercept for the clock
-     *  synchronization error
+     * The clock synchronization technique that is used.
+     * OFF: The clock synchronization is universally off.
+     * STARTUP: Clock synchronization occurs at startup only.
+     * ON: Clock synchronization occurs at startup and at runtime.
      */
     protected enum clockSyncMethod {
-        OFF, AVG, REGRESSION;
+        OFF, INITIAL, ON;
     }
+    
     ////////////////////////////////////////////
     //// Private fields.
 
@@ -558,10 +558,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case "clock-sync": {
                         if (param.value.id.equalsIgnoreCase('off')) {
                             targetClockSync = clockSyncMethod.OFF
-                        } else if (param.value.id.equalsIgnoreCase('average')) {
-                            targetClockSync = clockSyncMethod.AVG
-                        } else if (param.value.id.equalsIgnoreCase('regression')) {
-                            targetClockSync = clockSyncMethod.REGRESSION
+                        } else if (param.value.id.equalsIgnoreCase('initial')) {
+                            targetClockSync = clockSyncMethod.INITIAL
+                        } else if (param.value.id.equalsIgnoreCase('on')) {
+                            targetClockSync = clockSyncMethod.ON
                         }
                     }
                 }

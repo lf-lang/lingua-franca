@@ -501,14 +501,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /////////////////////////////////////////////
 //// Data structures
-/**
- * The clock synchronization algorithm to be used if
- * clock sync is enabled (default is AVG).
- */
-typedef enum clock_synchronization_t {
-    AVG,          // Average clock synchronization error calculated according to PTP.
-    REGRESSION    // Slope (clock drift) and intercept (clock offset) calculated using a simple linear regression.
-} clock_synchronization_t;
 
 typedef enum socket_type_t {
     TCP,
