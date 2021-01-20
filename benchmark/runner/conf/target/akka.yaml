@@ -1,0 +1,12 @@
+# @package _group_
+name: akka
+copy: null
+gen: null
+compile: null
+run: ["java", "-classpath", "${benchmark.targets.akka.jar}",
+      "${benchmark.targets.akka.class}",
+      "-workers", "${threads}",
+      "-iter", "${iterations}",
+      "${args:benchmark.targets.akka.run_args}"]
+parser:
+  _target_: "parser.parse_akka_output"

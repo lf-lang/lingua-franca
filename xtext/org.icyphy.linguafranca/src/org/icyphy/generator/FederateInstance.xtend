@@ -37,10 +37,10 @@ import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Delay
 
 /** Instance of a federate, or marker that no federation has been defined
  *  (if isSingleton() returns true). Every top-level reactor (contained
@@ -89,7 +89,7 @@ class FederateInstance {
      *  may be empty, meaning no delay (not even a microstep or 0 delay)
      *  was specified.
      */
-    public var dependsOn = new LinkedHashMap<FederateInstance,Set<Value>>()
+    public var dependsOn = new LinkedHashMap<FederateInstance,Set<Delay>>()
     
     /** The directory, if specified using the 'at' keyword. */
     public var String dir = null
@@ -102,7 +102,7 @@ class FederateInstance {
      *  may be empty, meaning no delay (not even a microstep or 0 delay)
      *  was specified.
      */
-    public var sendsTo = new LinkedHashMap<FederateInstance,Set<Value>>()
+    public var sendsTo = new LinkedHashMap<FederateInstance,Set<Delay>>()
     
     /** The user, if specified using the 'at' keyword. */
     public var String user = null

@@ -66,6 +66,7 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
+import org.icyphy.linguaFranca.Delay
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -222,7 +223,7 @@ class ASTUtils {
      * @param isWide True to create a variable-width width specification.
      */
     private static def Instantiation getDelayInstance(Reactor delayClass, 
-            Value time, String generic, boolean isWide) {
+            Delay delay, String generic, boolean isWide) {
         val delayInstance = factory.createInstantiation
         delayInstance.reactorClass = delayClass
         if (!generic.isNullOrEmpty) {
@@ -235,10 +236,18 @@ class ASTUtils {
             delayInstance.widthSpec = widthSpec
             widthSpec.ofVariableLength = true
         }
-        val delay = factory.createAssignment
-        delay.lhs = delayClass.parameters.get(0)
-        delay.rhs.add(time.copy)
-        delayInstance.parameters.add(delay)
+        val assignment = factory.createAssignment
+        assignment.lhs = delayClass.parameters.get(0)
+        val value = factory.createValue
+        if (delay.parameter !== null) {
+            value.parameter = delay.parameter
+        } else {
+            value.time = factory.createTime
+            value.time.interval = delay.interval
+            value.time.unit = delay.unit
+        }
+        assignment.rhs.add(value)
+        delayInstance.parameters.add(assignment)
         delayInstance.name = "delay" // This has to be overridden.
         
         return delayInstance
@@ -401,12 +410,8 @@ class ASTUtils {
             if (connection.delay !== null) {
                 action.minDelay = factory.createValue
                 action.minDelay.time = factory.createTime
-                if (connection.delay.time !== null) {
-                    action.minDelay.time.interval = connection.delay.time.interval
-                    action.minDelay.time.unit = connection.delay.time.unit
-                } else {
-                    action.minDelay.literal = connection.delay.literal
-                }
+                action.minDelay.time.interval = connection.delay.interval
+                action.minDelay.time.unit = connection.delay.unit
             }
         } else {
             // If the connection is logical but coordination
@@ -506,33 +511,6 @@ class ASTUtils {
             }
         }
         return name + suffix
-    }
-    
-    /**
-     * Given a "value" AST node, return a deep copy of that node.
-     * @param original The original to create a deep copy of.
-     * @return A deep copy of the given AST node.
-     */
-    private static def getCopy(Value original) {
-        if (original !== null) {
-            val clone = factory.createValue
-            if (original.parameter !== null) {
-                clone.parameter = original.parameter
-            }
-            if (original.time !== null) {
-                clone.time = factory.createTime
-                clone.time.interval = original.time.interval
-                clone.time.unit = original.time.unit
-            }
-            if (original.literal !== null) {
-                clone.literal = original.literal
-            }
-            if (original.code !== null) {
-                clone.code = factory.createCode
-                clone.code.body = original.code.body
-            }
-            return clone
-        }
     }
     
     /**
@@ -866,6 +844,13 @@ class ASTUtils {
             return v.code.toText
         }
         ""
+    }
+    
+    def static String toText(Delay d) {
+        if (d.parameter !== null) {
+            return d.parameter.name
+        }
+        '''«d.interval» «d.unit.toString»'''
     }
     
     /**

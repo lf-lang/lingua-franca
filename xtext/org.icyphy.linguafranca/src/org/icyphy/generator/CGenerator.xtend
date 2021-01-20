@@ -64,7 +64,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Value
+import org.icyphy.linguaFranca.Delay
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -952,10 +952,10 @@ class CGenerator extends GeneratorBase {
                     // When that is done, they will need to be in scope here.
                     val delays = federate.dependsOn.get(upstreamFederate)
                     if (delays !== null) {
-                        for (value : delays) {
+                        for (delay : delays) {
                             pr(rtiCode, '''
-                                if (federates[«federate.id»].upstream_delay[«count»] < «value.getTargetTime») {
-                                    federates[«federate.id»].upstream_delay[«count»] = «value.getTargetTime»;
+                                if (federates[«federate.id»].upstream_delay[«count»] < «delay.getTargetTime») {
+                                    federates[«federate.id»].upstream_delay[«count»] = «delay.getTargetTime»;
                                 }
                             ''')
                         }
@@ -3918,7 +3918,7 @@ class CGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Value delay
+        Delay delay
     ) { 
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
@@ -3953,11 +3953,8 @@ class CGenerator extends GeneratorBase {
         // the microstep delay are currently not implemented.
         var String additionalDelayString = '-1';
         if (delay !== null) {
-            if (delay.time !== null) {
-                additionalDelayString = (new TimeValue(delay.time.interval, delay.time.unit)).toNanoSeconds.toString;
-            } else {
-                additionalDelayString = delay.literal
-            }
+            additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
+            // FIXME: handle the case where the delay is a parameter.
         }
         if (isPhysical) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
