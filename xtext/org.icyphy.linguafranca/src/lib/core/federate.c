@@ -593,6 +593,7 @@ void connect_to_federate(ushort remote_federate_id) {
         }
     }
     assert(port < 65536);
+    assert(port > 0);
 
 #ifdef VERBOSE
     // Print the received IP address in a human readable format
@@ -871,7 +872,7 @@ void connect_to_rti(char* hostname, int port) {
 
     // To test clock synchronization, uncomment the following, which
     // introduces deliberate clock offset to each federate.
-    _lf_global_test_physical_clock_offset = (_lf_my_fed_id + 1) * MSEC(200);
+    // _lf_global_test_physical_clock_offset = (_lf_my_fed_id + 1) * MSEC(200);
     // DEBUG_PRINT("Clock sync: Set clock offset for testing to %lld.", _lf_global_test_physical_clock_offset);
 
     DEBUG_PRINT("Attempting to connect to the RTI.");
@@ -1047,10 +1048,14 @@ void connect_to_rti(char* hostname, int port) {
                 if (setsockopt(_lf_rti_socket_UDP, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
                     error_print("Failed to set SO_SNDTIMEO option on the socket: %s.", strerror(errno));
                 }
-#else // No runtime clock synchronization. Send port 0 instead.
+#else // No runtime clock synchronization. Send port -1 or 0 instead.
                 unsigned char UDP_port_number[1 + sizeof(ushort)];
                 UDP_port_number[0] = UDP_PORT;
+#ifdef _LF_CLOCK_SYNC_INITIAL
                 encode_ushort(0u, &(UDP_port_number[1]));
+#else
+                encode_ushort(USHRT_MAX, &(UDP_port_number[1]));
+#endif
                 write_to_socket_errexit(_lf_rti_socket_TCP, 1 + sizeof(ushort), UDP_port_number,
                                  "Failed to send the UDP port number 0 to the RTI.");
 #endif // _LF_CLOCK_SYNC_ON

@@ -1757,7 +1757,7 @@ void initialize() {
 
     struct timespec physical_time_timespec = {physical_start_time / BILLION, physical_start_time % BILLION};
 
-    printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
+    warning_print("---- Start execution at time %s---- plus %ld nanoseconds.",
             ctime(&physical_time_timespec.tv_sec), physical_time_timespec.tv_nsec);
     
     if (duration >= 0LL) {
@@ -1774,22 +1774,22 @@ void termination() {
 
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {
-        printf("---- There are %zu unprocessed future events on the event queue.\n", pqueue_size(event_q));
+        warning_print("---- There are %zu unprocessed future events on the event queue.", pqueue_size(event_q));
         event_t* event = (event_t*)pqueue_peek(event_q);
         interval_t event_time = event->time - start_time;
-        printf("---- The first future event has timestamp %lld after start time.\n", event_time);
+        warning_print("---- The first future event has timestamp %lld after start time.", event_time);
     }
     // Issue a warning if a memory leak has been detected.
     if (__count_payload_allocations > 0) {
-        printf("**** WARNING: Memory allocated for messages has not been freed.\n");
-        printf("**** Number of unfreed messages: %d.\n", __count_payload_allocations);
+        warning_print("Memory allocated for messages has not been freed.");
+        warning_print("Number of unfreed messages: %d.", __count_payload_allocations);
     }
     if (__count_token_allocations > 0) {
-        printf("**** WARNING: Memory allocated for tokens has not been freed!\n");
-        printf("**** Number of unfreed tokens: %d.\n", __count_token_allocations);
+        warning_print("Memory allocated for tokens has not been freed!");
+        warning_print("Number of unfreed tokens: %d.", __count_token_allocations);
     }
     // Print elapsed times.
-    printf("---- Elapsed logical time (in nsec): ");
+    info_print("---- Elapsed logical time (in nsec): ");
     print_time(get_elapsed_logical_time());
     printf("\n");
 
