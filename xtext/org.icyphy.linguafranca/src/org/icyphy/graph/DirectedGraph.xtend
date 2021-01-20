@@ -29,7 +29,6 @@ package org.icyphy.graph
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.List
-import java.util.Set
 
 /** 
  * Directed graph that maps nodes to its upstream and downstream neighbors. 

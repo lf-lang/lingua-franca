@@ -137,6 +137,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
 
     /** The ports that this reaction may write to. */
     public var effects = new LinkedHashSet<PortInstance>();
+// FIXME: should we add actions to sources and effect and filter them out?
 
 //    /** The reactions that depend on this reaction. */
 //    public var dependentReactions = new LinkedHashSet<ReactionInstance>();
@@ -206,27 +207,6 @@ class ReactionInstance extends NamedInstance<Reaction> {
         return "reaction_" + this.reactionIndex;
     }
     
-//    /**
-//     * From the given set of reactions, return the subset that is
-//     * maximal. A reaction in the set is maximal if there is no
-//     * other reaction in the set that depends on it, directly or
-//     * indirectly. If the argument is an empty set, return an
-//     * empty set.
-//     * @param reactions A set of reaction instances.
-//     */
-//    def Set<ReactionInstance> maximal(Set<ReactionInstance> reactions) {
-//        // Construct a set containing the maximal reactions among
-//        // the upstream reactions. This omits upstream reactions
-//        // on which some other upstream reaction depends.
-//        // Start with the full set, and remove elements.
-//        var result = new LinkedHashSet(reactions)
-//        for (upstream : reactions) {
-//            result.removeAll(upstream.dependsOnReactions)
-//            result.removeAll(maximal(upstream.dependsOnReactions))
-//        }
-//        return result
-//    }
-
     /**
      * Return the main reactor, which is the top-level parent.
      * @return The top-level parent.
