@@ -1757,7 +1757,7 @@ void initialize() {
 
     struct timespec physical_time_timespec = {physical_start_time / BILLION, physical_start_time % BILLION};
 
-    warning_print("---- Start execution at time %s---- plus %ld nanoseconds.",
+    info_print("---- Start execution at time %s---- plus %ld nanoseconds.",
             ctime(&physical_time_timespec.tv_sec), physical_time_timespec.tv_nsec);
     
     if (duration >= 0LL) {
