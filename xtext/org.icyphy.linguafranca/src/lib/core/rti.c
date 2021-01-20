@@ -1270,31 +1270,34 @@ void connect_to_federates(int socket_descriptor) {
                 federates[fed_id].clock_synchronization_enabled = false;
             } else {
 #ifdef _LF_CLOCK_SYNC_INITIAL // If no initial clock sync, no need to set up the UDP port.
-                // Perform the initialization clock synchronization with the federate.
-                // Send the required number of messages for clock synchronization
-                for (int i=0; i < CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL; i++) {
-                    // Send the RTI's current physical time T1 to the federate.
-                    _lf_rti_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, &federates[fed_id], TCP);
-
-                    // Listen for reply message, which should be T3.
-                    size_t message_size = 1 + sizeof(int);
-                    unsigned char buffer[message_size];
-                    read_from_socket_errexit(socket_id, message_size, buffer,
-                            "Socket to federate %d unexpectedly closed.", fed_id);
-                    if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T3) {
-                        int fed_id = extract_int(&(buffer[1]));
-                        assert(fed_id > -1);
-                        assert(fed_id < 65536);
-                        DEBUG_PRINT("RTI received T3 clock sync message from federate %d.", fed_id);
-                        handle_physical_clock_sync_message(&federates[fed_id], TCP);
-                    } else {
-                        error_print_and_exit("Unexpected message %u from federate %d.", buffer[0], fed_id);
-                    }
-                }
-                DEBUG_PRINT("RTI finished initial clock synchronization with federate %d.", fed_id);
-
-#ifdef _LF_CLOCK_SYNC_ON // If no runtime clock sync, no need to set up the UDP port.
                 ushort federate_UDP_port_number = extract_ushort(&(response[1]));
+
+                // A port number of USHRT_MAX means initial clock sync should not be performed.
+                if (federate_UDP_port_number != USHRT_MAX) {
+                    // Perform the initialization clock synchronization with the federate.
+                    // Send the required number of messages for clock synchronization
+                    for (int i=0; i < CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL; i++) {
+                        // Send the RTI's current physical time T1 to the federate.
+                        _lf_rti_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, &federates[fed_id], TCP);
+
+                        // Listen for reply message, which should be T3.
+                        size_t message_size = 1 + sizeof(int);
+                        unsigned char buffer[message_size];
+                        read_from_socket_errexit(socket_id, message_size, buffer,
+                                "Socket to federate %d unexpectedly closed.", fed_id);
+                        if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T3) {
+                            int fed_id = extract_int(&(buffer[1]));
+                            assert(fed_id > -1);
+                            assert(fed_id < 65536);
+                            DEBUG_PRINT("RTI received T3 clock sync message from federate %d.", fed_id);
+                            handle_physical_clock_sync_message(&federates[fed_id], TCP);
+                        } else {
+                            error_print_and_exit("Unexpected message %u from federate %d.", buffer[0], fed_id);
+                        }
+                    }
+                    DEBUG_PRINT("RTI finished initial clock synchronization with federate %d.", fed_id);
+                }
+#ifdef _LF_CLOCK_SYNC_ON // If no runtime clock sync, no need to set up the UDP port.
                 if (federate_UDP_port_number > 0) {
                     // Initialize the UDP_addr field of the federate struct
                     federates[fed_id].UDP_addr.sin_family = AF_INET;
@@ -1308,7 +1311,7 @@ void connect_to_federates(int socket_descriptor) {
 #else // No clock synchronization at all.
                 // Clock synchronization is universally disabled via the clock-sync target parameter
                 // (#define _LF_CLOCK_SYNC was not generated for the RTI).
-                // Note that the federates are still going to send a UDP_PORT message but with a payload (port) of 0.
+                // Note that the federates are still going to send a UDP_PORT message but with a payload (port) of -1.
                 federates[fed_id].clock_synchronization_enabled = false;
 #endif
             }

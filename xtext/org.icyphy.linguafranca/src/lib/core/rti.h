@@ -56,22 +56,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * will increment the port number and try again to find an RTI that matches.
  *
  * When the federation IDs match, the RTI will respond with an
- * ACK. If clock synchronization is enabled for the federate(the default), 
- * then the next step is for the federate to send to the RTI a UDP_PORT message, 
- * the payload of which is the port number on which the federate will listen
- * for UDP packets. This UDP port is currently only used
- * to send clock synchronization messages, and only after the initial clock 
- * synchronization has been completed using the TCP connection. If clock 
- * synchronization is disabled for the federate, then the port number that is 
- * sent as the payload of the UDP_PORT message will be 0. Note that clock 
- * synchronization can be universally disabled by setting the target property 
- * "clock-sync" to "false". Clock sync will also be selectively disabled for 
- * any federate that is mapped to the same IP address as the RTI in .lf code
- * using the 'at' directive. The appropriate functionality is thus determined 
- * at code generation time, and it assumes that the federate will be accessing
- * the same physical clock as the RTI.
+ * ACK.
  *
- * If clock sync is enabled, the next step is to perform the initial
+ * The next message to the RTI will a UDP_PORT message, which have
+ * payload USHRT_MAX if clock synchronization is disabled altogether, 0 if
+ * only initial clock synchronization is enabled, and a port number for
+ * UDP communication if runtime clock synchronization is enabled.
+ * By default, if the federate host is identical to that of the RTI
+ * (either no "at" clause is given for either or they both have exactly
+ * the same string), then clock synchronization is disabled.
+ * Otherwise, the default is that initial clock synchronization is enabled.
+ * Turn turn off clock synchronization altogether, set the clock-sync
+ * property of the target to off. To turn on runtime clock synchronization,
+ * set it to on. The default value is initial.
+ *
+ * If initial clock sync is enabled, the next step is to perform the initial
  * clock synchronization (using the TCP connection), which attempts
  * to find an initial offset to the physical clock of the federate to make it
  * better match the physical clock at the RTI.
@@ -266,7 +265,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Byte identifying an acknowledgment of the previously received message
  * with a payload indicating the UDP port to use for clock synchronization.
  * The next four bytes will be the port number for the UDP server, or
- * -1 if there is no UDP server.
+ * 0 or USHRT_MAX if there is no UDP server.  0 means that initial clock synchronization
+ * is enabled, whereas USHRT_MAX mean that no synchronization should be performed at all.
  */
 #define UDP_PORT 254
 
