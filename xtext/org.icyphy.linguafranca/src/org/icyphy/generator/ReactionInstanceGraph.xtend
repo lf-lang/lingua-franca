@@ -27,6 +27,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.generator
 
 import org.icyphy.graph.DirectedGraph
+import java.util.ArrayList
+import java.util.LinkedHashSet
 
 /**
  * This graph is part of the code generation package because it is not generic.
@@ -40,12 +42,17 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
     var ReactorInstance main
     
     /**
+     * Count of the number of chains while assigning chainIDs.
+     */
+    int branchCount = 1
+    
+    /**
      * Create a new graph by traversing the maps in the named instances 
      * embedded in the hierarchy of the program. 
      */
     new(ReactorInstance main) {
         this.main = main
-        addNodesAndEdges(main)
+        rebuild()
     }
     
     /**
@@ -55,7 +62,188 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
     def rebuild() {
         this.clear()
         addNodesAndEdges(main)
+            // Assign a level to each reaction. 
+            // If there are cycles present in the graph, it will be detected here.
+            assignLevels()
+            // Traverse the graph again, now starting from the leaves,
+            // to set the chain IDs.
+            assignChainIDs(true)
+
+            // Propagate any declared deadline upstream.
+            propagateDeadlines()
+        
     }
+    
+    /**
+     * Analyze the dependencies between reactions and assign each reaction
+     * instance a level.
+     * This procedure is based on Kahn's algorithm for topological sorting.
+     * Rather than establishing a total order, we establish a partial order.
+     * In this order, the level of each reaction is the least upper bound of
+     * the levels of the reactions it depends on.
+     * If any cycles are present in the dependency graph, an exception is
+     * thrown. This method should be called only on the top-level (main) reactor.
+     */
+    protected def assignLevels() {
+        val graph = this.copy
+        var start = new ArrayList(graph.rootNodes)
+        
+        // All root nodes start with level 0.
+        for (origin : start) {
+            origin.level = 0
+        }
+
+        // No need to do any of this if there are no root nodes; 
+        // the graph must be cyclic.
+        if (!graph.rootNodes.isEmpty) {
+            while (!start.empty) {
+                val origin = start.remove(0)
+                val toRemove = new LinkedHashSet<ReactionInstance>()
+                // Visit effect nodes.
+                for (effect : graph.getDownstreamAdjacentNodes(origin)) {
+                    // Stage edge between origin and effect for removal.
+                    toRemove.add(effect)
+                    
+                    // Update level of downstream node.
+                    effect.level = Math.max(effect.level, origin.level+1)    
+                }
+                // Remove visited edges.
+                for (effect : toRemove) {
+                    graph.removeEdge(effect, origin)
+                    // If the effect node has no more incoming edges,
+                    // then move it in the start set.
+                    if (graph.getUpstreamAdjacentNodes(effect).size == 0) {
+                        start.add(effect)
+                    }
+                }
+                
+                // Remove visited origin.
+                graph.removeNode(origin)
+                
+            }
+        }
+        // If, after all of this, there are still any nodes left, 
+        // then the graph must be cyclic.
+        if (graph.nodeCount != 0) { // FIXME: maybe move to ReactorInstance?
+            main.generator.reportError(main.generator.mainDef, "Reactions form a cycle!");
+            throw new Exception(
+                "Reactions form a cycle!")
+        }
+    }
+    
+        /**
+     * Analyze the dependencies between reactions and assign each reaction
+     * instance a chain identifier. The assigned IDs are such that the
+     * bitwise conjunction between two chain IDs is always nonzero if there
+     * exists a dependency between them. This facilitates runtime checks
+     * to determine whether a reaction is ready to execute or has to wait
+     * for an upstream reaction to complete.
+     * @param graph The dependency graph.
+     * @param optimize Whether or not make assignments that maximize the
+     * amount of parallelism. If false, just assign 1 to every node.
+     */
+    protected def assignChainIDs(boolean optimize) {
+        val leafs = this.leafNodes
+        this.branchCount = 0
+        for (node : this.nodes) {
+            node.visitsLeft = this.getDownstreamAdjacentNodes(node).size
+        }
+        if (optimize) {
+            // Start propagation from the leaf nodes,
+            // ordered by level from high to low.
+            for (node : leafs.sortBy[-level]) {
+                this.propagateUp(node, 1 << (this.branchCount++ % 64))
+            }    
+        } else {
+            for (node: this.nodes) {
+            node.chainID = 1
+            }    
+        }
+    }
+    
+        /**
+     * Propagate the given chain ID up one chain, propagate fresh IDs to
+     * other upstream neighbors, and return a mask that overlaps with all the
+     * chain IDs that were set upstream as a result of this method invocation.
+     * The result of propagation is that each node has an ID that overlaps with
+     * all upstream nodes that can reach it. This means that if a node has a
+     * lower level than another node, but the two nodes do not have overlapping
+     * chain IDs, the nodes are nonetheless independent from one another.
+     * @param current The current node that is being visited.
+     * @param graph The graph that encodes the dependencies between reactions.
+     * @param chainID The current chain ID.
+     */
+    private def long propagateUp(ReactionInstance current, long chainID) {
+        val origins = this.getUpstreamAdjacentNodes(current)
+        var mask = chainID
+        var first = true
+        var id = current.chainID.bitwiseOr(chainID)
+        current.visitsLeft--
+        if (current.visitsLeft > 0) {
+            current.chainID = id
+            return chainID;
+        }
+        // Iterate over the upstream neighbors by level from high to low.
+        for (upstream : origins.sortBy[-level]) {
+            if (first) {
+                // Stay on the same chain the first time.
+                first = false
+            } else {
+                // Create a new chain ID.
+                id = 1 << (this.branchCount++ % 64)
+            }
+            // Propagate the ID upstream and add all returned bits
+            // to the mask.
+            mask = mask.bitwiseOr(
+                    propagateUp(upstream, id))
+        }    
+        // Apply the mask to the current chain ID.
+        // If there were no upstream neighbors, the mask will
+        // just be the chainID that was passed as an argument.
+        current.chainID = current.chainID.bitwiseOr(mask)
+        
+        return mask
+    }
+    
+        /**
+     * Iterate over all reactions that have a declared deadline, update their
+     * inferred deadline, as well as the inferred deadlines of any reactions
+     * upstream.
+     */
+    def propagateDeadlines() {
+        val reactionsWithDeadline = this.nodes.filter[it.definition.deadline !== null]
+        // Assume the graph is acyclic.
+        for (r : reactionsWithDeadline) {
+            if (r.declaredDeadline !== null &&
+                r.declaredDeadline.maxDelay !== null) {
+                // Only lower the inferred deadline (which is set to the max by default),
+                // if the declared deadline is earlier than the inferred one (based on
+                // some other downstream deadline).
+                if (r.deadline.isEarlierThan(r.declaredDeadline.maxDelay)) {
+                    r.deadline = r.declaredDeadline.maxDelay
+                }
+            }
+            propagateDeadline(r)
+        }
+    }
+    
+    /**
+     * Given a reaction instance, propagate its inferred deadline upstream.
+     * @param downstream Reaction instance with an inferred deadline that
+     * is to be propagated upstream.
+     */
+    def void propagateDeadline(ReactionInstance downstream) {
+        for (upstream : this.getUpstreamAdjacentNodes(downstream)) {
+            // Only lower the inferred deadline (which is set to the max by default),
+            // if downstream deadline is earlier than the inferred one (based on
+            // some other downstream deadline).
+            if (downstream.deadline.isEarlierThan(upstream.deadline)) {
+                upstream.deadline = downstream.deadline
+            }
+            propagateDeadline(upstream)
+        }
+    }
+    
     
     /**
      * Add to the graph edges between the given reaction and all the reactions

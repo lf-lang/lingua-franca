@@ -236,10 +236,6 @@ class DirectedGraph<T> implements Graph<T> {
         mirror(another.downstreamAdjacentNodes, this.downstreamAdjacentNodes)
     }
     
-    def independentNodes() {
-        this.nodes.filter[this.downstreamAdjacentNodes.get(it).isNullOrEmpty && this.upstreamAdjacentNodes.get(it).isNullOrEmpty]
-    }
-    
     /**
      * Return the set of nodes that have no neighbors listed in the given
      * adjacency map.
