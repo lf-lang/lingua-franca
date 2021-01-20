@@ -135,7 +135,7 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
             throw new Error("Cannot order nodes due to cycle in the graph.")
         }
         annotation.hasTempMark = true
-        for (dep : this.getEffects(node)) {
+        for (dep : this.getDownstreamAdjacentNodes(node)) {
             visit(dep)
         }
         annotation.hasTempMark = false
@@ -193,7 +193,7 @@ class PrecedenceGraph<T> extends DirectedGraph<T> {
         annotation.onStack = true
         this.index++
         this.stack.push(node)
-        for (dep : this.getOrigins(node)) {
+        for (dep : this.getUpstreamAdjacentNodes(node)) {
             val depAnnotation = this.annotations.get(dep)
             if (depAnnotation.onStack) {
                 annotation.lowLink = Math.min(annotation.lowLink,

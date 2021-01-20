@@ -29,6 +29,7 @@ package org.icyphy.graph
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.List
+import java.util.Set
 
 /** 
  * Directed graph that maps nodes to its upstream and downstream neighbors. 
@@ -37,14 +38,14 @@ import java.util.List
 class DirectedGraph<T> implements Graph<T> {
     
     /**
-     * Adjacency map from vertices to their downstream neighbors.
+     * Adjacency map from vertices to their downstream immediate neighbors.
      */
-    var LinkedHashMap<T, LinkedHashSet<T>> originToEffects = new LinkedHashMap();
+    var LinkedHashMap<T, LinkedHashSet<T>> downstreamAdjacentNodes = new LinkedHashMap();
     
     /**
-     * Adjacency map from vertices to their upstream neighbors.
+     * Adjacency map from vertices to their upstream immediate neighbors.
      */
-    var LinkedHashMap<T, LinkedHashSet<T>> effectToOrigins = new LinkedHashMap();
+    var LinkedHashMap<T, LinkedHashSet<T>> upstreamAdjacentNodes = new LinkedHashMap();
     
     
     /**
@@ -54,6 +55,10 @@ class DirectedGraph<T> implements Graph<T> {
         
     }
     
+    /**
+     * Mark the graph to have changed so that any cached analysis is refreshed
+     * accordingly.
+     */
     protected def graphChanged() {
         // To be overridden by subclasses that perform analysis.
     }
@@ -63,7 +68,8 @@ class DirectedGraph<T> implements Graph<T> {
      * @param node The node to look for.
      */
     override hasNode(T node) {
-        if (this.effectToOrigins.get(node) !== null || originToEffects.get(node) !== null) {
+        if (this.upstreamAdjacentNodes.get(node) !== null ||
+            downstreamAdjacentNodes.get(node) !== null) {
             true
         } else {
            false 
@@ -71,28 +77,28 @@ class DirectedGraph<T> implements Graph<T> {
     }
     
     /**
-     * Return all upstream neighbors of a given node.
-     * @param node The node to report the upstream neighbors of.
+     * Return all immediate upstream neighbors of a given node.
+     * @param node The node to report the immediate upstream neighbors of.
      */
-    def getOrigins(T node) {
-        var origins = this.effectToOrigins.get(node)
-        if (origins === null) {
+    def getUpstreamAdjacentNodes(T node) {
+        var upstream = this.upstreamAdjacentNodes.get(node)
+        if (upstream === null) {
             return emptyList
         } else {
-            return origins.toList
+            return upstream.toList
         }
     }
 
     /**
-     * Return all upstream neighbors of a given node.
-     * @param node The node to report the downstream neighbors of.
+     * Return all immediate downstream neighbors of a given node.
+     * @param node The node to report the immediate downstream neighbors of.
      */
-    def getEffects(T node) {
-        var effects = this.originToEffects.get(node)
-        if (effects === null) {
+    def getDownstreamAdjacentNodes(T node) {
+        var downstream = this.downstreamAdjacentNodes.get(node)
+        if (downstream === null) {
             return emptyList
         } else {
-            return effects.toList
+            return downstream.toList
         }
     }
 
@@ -103,11 +109,11 @@ class DirectedGraph<T> implements Graph<T> {
      */
     override void addNode(T node) {
         this.graphChanged()
-        if (!effectToOrigins.containsKey(node)) {
-            this.effectToOrigins.put(node, new LinkedHashSet<T>())    
+        if (!upstreamAdjacentNodes.containsKey(node)) {
+            this.upstreamAdjacentNodes.put(node, new LinkedHashSet<T>())    
         }
-        if (!originToEffects.containsKey(node)) {
-            this.originToEffects.put(node, new LinkedHashSet<T>())
+        if (!downstreamAdjacentNodes.containsKey(node)) {
+            this.downstreamAdjacentNodes.put(node, new LinkedHashSet<T>())
         }
     }
     
@@ -118,62 +124,61 @@ class DirectedGraph<T> implements Graph<T> {
      */
     override removeNode(T node) {
         this.graphChanged()
-        this.effectToOrigins.remove(node)
-        this.effectToOrigins.forEach[v, e | e.remove(node)]
+        this.upstreamAdjacentNodes.remove(node)
+        this.upstreamAdjacentNodes.forEach[v, e | e.remove(node)]
         
-        this.originToEffects.remove(node)
-        this.originToEffects.forEach[v, e | e.remove(node)]
+        this.downstreamAdjacentNodes.remove(node)
+        this.downstreamAdjacentNodes.forEach[v, e | e.remove(node)]
     }
     
     /**
      * Add a new directed edge to the graph. The first argument is
      * the downstream node, the second argument the upstream node.
-     * @param effect The downstream neighbor.
-     * @param origin The upstream neighbor.
+     * @param sink The downstream immediate neighbor.
+     * @param source The upstream immediate neighbor.
      */
-    override addEdge(T effect, T origin) {
+    override addEdge(T sink, T source) {
         this.graphChanged()
-        var effects = this.originToEffects.get(origin)
-        var origins = this.effectToOrigins.get(effect)
-        if (effects === null) {
-            effects = newLinkedHashSet
-            this.originToEffects.put(origin, effects)
+        var downstream = this.downstreamAdjacentNodes.get(source)
+        var upstream = this.upstreamAdjacentNodes.get(sink)
+        if (downstream === null) {
+            downstream = newLinkedHashSet
+            this.downstreamAdjacentNodes.put(source, downstream)
         }
-        if (origins === null) {
-            origins =  newLinkedHashSet
-            this.effectToOrigins.put(effect, origins)
+        if (upstream === null) {
+            upstream =  newLinkedHashSet
+            this.upstreamAdjacentNodes.put(sink, upstream)
         }
-        effects.add(effect)
-        origins.add(origin)
+        downstream.add(sink)
+        upstream.add(source)
     }
     
     /**
      * Add new directed edges to the graph. The first argument is the
      * downstream node, the second argument a set of upstream nodes.
-     * @param effect The downstream neighbor.
-     * @param origins The upstream neighbors.
+     * @param sink The downstream immediate neighbor.
+     * @param sources The upstream immediate neighbors.
      */
-    override addEdges(T effect, List<T> origins) {
-        this.graphChanged()
-        for (origin : origins) {
-            this.addEdge(effect, origin)
+    override addEdges(T sink, List<T> sources) {
+        for (source : sources) {
+            this.addEdge(sink, source)
         }
     }
     
     /**
      * Remove a directed edge from the graph.
-     * @param effect The downstream neighbor.
-     * @param origin The upstream neighbor.
+     * @param sink The downstream immediate neighbor.
+     * @param source The upstream immediate neighbor.
      */
-    override removeEdge(T effect, T origin) {
+    override removeEdge(T sink, T source) {
         this.graphChanged()
-        var origins = this.effectToOrigins.get(effect)
-        var effects = this.originToEffects.get(origin)
-        if (origins !== null && origins.contains(origin)) {
-            origins.remove(origin)
+        var upstream = this.upstreamAdjacentNodes.get(sink)
+        var downstream = this.downstreamAdjacentNodes.get(source)
+        if (upstream !== null && upstream.contains(source)) {
+            upstream.remove(source)
         }
-        if (effects !== null && effects.contains(effect)) {
-            effects.remove(effect)
+        if (downstream !== null && downstream.contains(sink)) {
+            downstream.remove(sink)
         }
     }
     
@@ -183,11 +188,13 @@ class DirectedGraph<T> implements Graph<T> {
      */
     def copy() {
         val graph = new DirectedGraph<T>()
-        for (entry : this.effectToOrigins.entrySet) {
-            graph.effectToOrigins.put(entry.key, new LinkedHashSet(entry.value))    
+        for (entry : this.upstreamAdjacentNodes.entrySet) {
+            graph.upstreamAdjacentNodes.put(entry.key,
+                new LinkedHashSet(entry.value))
         }
-        for (entry : this.originToEffects.entrySet) {
-            graph.originToEffects.put(entry.key, new LinkedHashSet(entry.value))    
+        for (entry : this.downstreamAdjacentNodes.entrySet) {
+            graph.downstreamAdjacentNodes.put(entry.key,
+                new LinkedHashSet(entry.value))
         }
         return graph
     }
@@ -198,7 +205,8 @@ class DirectedGraph<T> implements Graph<T> {
      * @param srcMap The adjacency map to copy edges from.
      * @param dstMap The adjacency map to copy edges to.
      */
-    private def void mirror(LinkedHashMap<T, LinkedHashSet<T>> srcMap, LinkedHashMap<T, LinkedHashSet<T>> dstMap) {
+    private def void mirror(LinkedHashMap<T, LinkedHashSet<T>> srcMap,
+        LinkedHashMap<T, LinkedHashSet<T>> dstMap) {
         if (srcMap !== null && dstMap !== null) {
             for (node : srcMap.keySet) {
                 val srcEdges = srcMap.get(node)
@@ -213,8 +221,8 @@ class DirectedGraph<T> implements Graph<T> {
                             dstEdges.add(edge)
                         }
                     }
-                } 
-            }    
+                }
+            }
         }
     }
     
@@ -224,8 +232,12 @@ class DirectedGraph<T> implements Graph<T> {
      */
     def merge(DirectedGraph<T> another) {
         this.graphChanged()
-        mirror(another.effectToOrigins, this.effectToOrigins)
-        mirror(another.originToEffects, this.originToEffects)
+        mirror(another.upstreamAdjacentNodes, this.upstreamAdjacentNodes)
+        mirror(another.downstreamAdjacentNodes, this.downstreamAdjacentNodes)
+    }
+    
+    def independentNodes() {
+        this.nodes.filter[this.downstreamAdjacentNodes.get(it).isNullOrEmpty && this.upstreamAdjacentNodes.get(it).isNullOrEmpty]
     }
     
     /**
@@ -248,7 +260,7 @@ class DirectedGraph<T> implements Graph<T> {
      * Root nodes have no upstream neighbors.
      */
     def rootNodes() {
-        return independentNodes(this.effectToOrigins)
+        return independentNodes(this.upstreamAdjacentNodes)
     }
     
     /**
@@ -256,7 +268,7 @@ class DirectedGraph<T> implements Graph<T> {
      * Leaf nodes have no downstream neighbors.
      */
     def leafNodes() {
-        return independentNodes(this.originToEffects)
+        return independentNodes(this.downstreamAdjacentNodes)
     }
     
     /**
@@ -271,12 +283,12 @@ class DirectedGraph<T> implements Graph<T> {
      */    
     override edgeCount() {
        var edges = 0
-       for(effect : this.effectToOrigins.keySet) {
-           edges += this.effectToOrigins.get(effect).size
+       for(downstream : this.upstreamAdjacentNodes.keySet) {
+           edges += this.upstreamAdjacentNodes.get(downstream).size
        }
-       for(origin: this.originToEffects.keySet) {
-           for (effect : this.originToEffects.get(origin)) {
-               if (this.effectToOrigins.get(effect) === null) {
+       for(upstream : this.downstreamAdjacentNodes.keySet) {
+           for (downstream : this.downstreamAdjacentNodes.get(upstream)) {
+               if (this.upstreamAdjacentNodes.get(downstream) === null) {
                    edges++ // Account for possible asymmetry.
                }
            }
@@ -289,9 +301,15 @@ class DirectedGraph<T> implements Graph<T> {
      */
     override nodes() {
         val nodes = newLinkedHashSet
-        nodes.addAll(this.effectToOrigins.keySet)
-        nodes.addAll(this.originToEffects.keySet)
+        nodes.addAll(this.upstreamAdjacentNodes.keySet)
+        nodes.addAll(this.downstreamAdjacentNodes.keySet)
         return nodes.toList
+    }
+    
+    def clear() {
+        this.graphChanged()
+        this.downstreamAdjacentNodes.clear()
+        this.upstreamAdjacentNodes.clear()
     }
     
 }
