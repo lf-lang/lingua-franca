@@ -741,9 +741,9 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     }
                 case CLOCK_SYNC: {
                     if (!param.value.id.equalsIgnoreCase('off') 
-                            && !param.value.id.equalsIgnoreCase('average') 
-                            && !param.value.id.equalsIgnoreCase('regression')) {
-                        error("Target property clock-sync is required to be off, average or regression.",
+                            && !param.value.id.equalsIgnoreCase('initial') 
+                            && !param.value.id.equalsIgnoreCase('on')) {
+                        error("Target property clock-sync is required to be off, initial, or on. Default is initial.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
                 }

@@ -16,7 +16,7 @@ target C {
     coordination: decentralized,
     logging: DEBUG,
     timeout: 10 sec,
-    clock-sync: average,
+    clock-sync: initial,
     files: ["/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
             "Claves.wav"] 
@@ -105,6 +105,6 @@ reactor RhythmMacPlayer {
 
 federated reactor RhythmMacDistributedNoUI at 0.0.0.0 {
     player1 = new RhythmMacPlayer() at localhost;
-    player2 = new RhythmMacPlayer() at 10.0.0.62;
+    player2 = new RhythmMacPlayer() at 192.168.1.5;
 }
 

@@ -829,20 +829,16 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         adjustment =  estimated_clock_error;
     }
     
-#if _LF_CLOCK_SYNC == AVG
+    // FIXME: Enable alternative regression mechanism here.
     DEBUG_PRINT("Clock sync: Adjusting clock offset running average by %lld.",
             adjustment/CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL);
     // Calculate the running average
     _lf_rti_socket_stat.history += adjustment/CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL;
-#elif _LF_CLOCK_SYNC == REGRESSION
-    // FIXME
-#endif
     
     if (_lf_rti_socket_stat.received_T4_messages_in_current_sync_window >=
             CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL) {
         // The number of received T4 messages has reached CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL
         // which means we can now adjust the clock offset.
-#if _LF_CLOCK_SYNC == AVG
         // For the AVG algorithm, history is a running average and can be directly
         // applied                                                 
         _lf_global_physical_clock_offset += _lf_rti_socket_stat.history;
@@ -858,9 +854,6 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // Reset the stats
         _lf_rti_socket_stat.received_T4_messages_in_current_sync_window = 0;
         _lf_rti_socket_stat.history = 0LL;
-#elif _LF_CLOCK_SYNC == REGRESSION
-        // FIXME
-#endif
         // Set the last instant at which the clocks were synchronized
         _lf_last_clock_sync_instant = r4;
     }
@@ -878,7 +871,7 @@ void connect_to_rti(char* hostname, int port) {
 
     // To test clock synchronization, uncomment the following, which
     // introduces deliberate clock offset to each federate.
-    // _lf_global_test_physical_clock_offset = (_lf_my_fed_id + 1) * MSEC(200);
+    _lf_global_test_physical_clock_offset = (_lf_my_fed_id + 1) * MSEC(200);
     // DEBUG_PRINT("Clock sync: Set clock offset for testing to %lld.", _lf_global_test_physical_clock_offset);
 
     DEBUG_PRINT("Attempting to connect to the RTI.");
@@ -1008,7 +1001,7 @@ void connect_to_rti(char* hostname, int port) {
                         "%d. Error code: %d. Federate quits.\n", response, cause);
             } else if (response == ACK) {
                 DEBUG_PRINT("Federate %d received ACK from RTI.", _lf_my_fed_id);
-#ifdef _LF_CLOCK_SYNC
+#ifdef _LF_CLOCK_SYNC_ON
                 // Initialize the UDP socket
                 _lf_rti_socket_UDP = socket(AF_INET, SOCK_DGRAM, 0);
                 // Initialize the necessary information for the UDP address
@@ -1054,13 +1047,13 @@ void connect_to_rti(char* hostname, int port) {
                 if (setsockopt(_lf_rti_socket_UDP, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout_time, sizeof(timeout_time)) < 0) {
                     error_print("Failed to set SO_SNDTIMEO option on the socket: %s.", strerror(errno));
                 }
-#else // No clock synchronization. Send port 0 instead.
+#else // No runtime clock synchronization. Send port 0 instead.
                 unsigned char UDP_port_number[1 + sizeof(ushort)];
                 UDP_port_number[0] = UDP_PORT;
                 encode_ushort(0u, &(UDP_port_number[1]));
                 write_to_socket_errexit(_lf_rti_socket_TCP, 1 + sizeof(ushort), UDP_port_number,
                                  "Failed to send the UDP port number 0 to the RTI.");
-#endif
+#endif // _LF_CLOCK_SYNC_ON
             } else {
                 error_print_and_exit("Received unexpected response %u from the RTI (see rti.h).",
                         response);
@@ -1591,6 +1584,7 @@ void* listen_to_federates(void* fed_id_ptr) {
     return NULL;
 }
 
+#ifdef _LF_CLOCK_SYNC_ON
 /** 
  * Thread that listens for UDP inputs from the RTI.
  */
@@ -1681,6 +1675,7 @@ void* listen_to_rti_UDP_thread(void* args) {
     }
     return NULL;
 }
+#endif // _LF_CLOCK_SYNC
 
 /** 
  * Thread that listens for TCP inputs from the RTI.
@@ -1821,10 +1816,10 @@ void synchronize_with_other_federates() {
     pthread_t thread_id;
     pthread_create(&thread_id, NULL, listen_to_rti_TCP, NULL);
 
-#ifdef _LF_CLOCK_SYNC
+#ifdef _LF_CLOCK_SYNC_ON
     // One for UDP messages if clock synchronization is enabled for this federate
     pthread_create(&thread_id, NULL, listen_to_rti_UDP_thread, NULL);
-#endif
+#endif // _LF_CLOCK_SYNC_ON
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time. Microstep is ignored.
