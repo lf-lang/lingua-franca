@@ -1063,7 +1063,7 @@ void connect_to_rti(char* hostname, int port) {
                 error_print_and_exit("Received unexpected response %u from the RTI (see rti.h).",
                         response);
             }
-            info_print("Connected to RTI at %s:%d.\n", hostname, port);
+            info_print("Connected to RTI at %s:%d.", hostname, port);
         }
     }
 }
