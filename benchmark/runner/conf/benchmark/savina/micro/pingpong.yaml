@@ -1,0 +1,28 @@
+# @package benchmark
+name: "Ping Pong"
+params:
+  pings: 1000000
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.pingpong.PingPongAkkaActorBenchmark"
+    run_args:
+      pings: ["-n", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/pingpong"
+    lf_file: "pingpong/PingPongBenchmark.lf"
+    binary: "PingPongBenchmark"
+    gen_args: null
+    run_args:
+      pings: ["--count", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/PingPongGenerator.lf"
+    lf_file: "PingPongGenerator.lf"
+    binary: "PingPongGenerator"
+    gen_args:
+      pings: ["-D", "count=<value>"]

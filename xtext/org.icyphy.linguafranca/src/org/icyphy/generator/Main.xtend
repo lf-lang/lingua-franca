@@ -117,20 +117,17 @@ class Main {
     /**
      * Load resource, validate it, and, invoke the code generator.
      */
-    def protected runGenerator(String string, Properties properties) {
-        // Load the resource
-        val set = resourceSetProvider.get
-        val fileRoot = (new File("")).getAbsolutePath()
-        val fileName = fileRoot + File.separator + string;
-
-        val f = new File(fileName)
+    def protected runGenerator(String path, Properties properties) {
+        val f = new File(path)
         if (!f.exists) {
-            System::err.println('lfc: error: ' + fileName +
+            System::err.println('lfc: error: ' + path +
                 ': No such file or directory');
-            throw new FileNotFoundException(fileName);
+            throw new FileNotFoundException(path);
         }
 
-        val resource = set.getResource(URI.createFileURI(fileName), true)
+        // Load the resource
+        val set = resourceSetProvider.get
+        val resource = set.getResource(URI.createFileURI(f.absolutePath), true)
 
         // Validate the resource
         val issues = validator.validate(resource, CheckMode.ALL,
