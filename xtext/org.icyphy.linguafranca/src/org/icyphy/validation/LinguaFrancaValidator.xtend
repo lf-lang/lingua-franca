@@ -204,7 +204,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
      */
     private def boolean dependsOnCycle(Reactor reactor, Set<Reactor> cycleSet,
         Set<Reactor> visited) {
-        val origins = info.instantiationGraph.getOrigins(reactor)
+        val origins = info.instantiationGraph.getUpstreamAdjacentNodes(reactor)
         if (visited.contains(reactor)) {
             return false
         } else {

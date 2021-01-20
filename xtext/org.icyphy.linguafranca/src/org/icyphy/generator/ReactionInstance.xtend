@@ -57,9 +57,10 @@ class ReactionInstance extends NamedInstance<Reaction> {
      * @param index The index of the reaction within the reactor (0 for the
      * first reaction, 1 for the second, etc.).
      */
-    protected new(Reaction definition, ReactorInstance parent, int index) {
+    protected new(Reaction definition, ReactorInstance parent, boolean isUnordered, int index) {
         super(definition, parent);
         this.reactionIndex = index
+        this.isUnordered = isUnordered
         
         // Identify the dependencies for this reaction.
         // First handle the triggers.
@@ -67,15 +68,15 @@ class ReactionInstance extends NamedInstance<Reaction> {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
                     var portInstance = parent.lookupPortInstance(trigger)
-                    this.dependsOnPorts.add(portInstance)
+                    this.sources.add(portInstance)
                     portInstance.dependentReactions.add(this)
                     this.triggers.add(portInstance)
                 } else if (trigger.variable instanceof Action) {
                     var actionInstance = parent.getActionInstance(
                         trigger.variable as Action)
                     this.triggers.add(actionInstance)
-                    actionInstance.dependentReactions.add(this)
-                    this.dependsOnActions.add(actionInstance)
+//                    actionInstance.dependentReactions.add(this)
+//                    this.dependsOnActions.add(actionInstance)
                 } else if (trigger.variable instanceof Timer) {
                     var timerInstance = parent.lookupTimerInstance(
                         trigger.variable as Timer)
@@ -88,7 +89,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
         for (source : definition.sources) {
             if (source.variable instanceof Port) {
                 var portInstance = parent.lookupPortInstance(source)
-                this.dependsOnPorts.add(portInstance)
+                this.sources.add(portInstance)
                 this.reads.add(portInstance)
                 portInstance.dependentReactions.add(this)
             }
@@ -100,19 +101,20 @@ class ReactionInstance extends NamedInstance<Reaction> {
                 var portInstance = parent.lookupPortInstance(effect)
                 if (portInstance instanceof MultiportInstance) {
                     for (multiportInstance : portInstance.instances) {
-                        this.dependentPorts.add(multiportInstance)
+                        this.effects.add(multiportInstance)
                         multiportInstance.dependsOnReactions.add(this)
                     }
                 } else {
-                    this.dependentPorts.add(portInstance)
+                    this.effects.add(portInstance)
                     portInstance.dependsOnReactions.add(this)
                 }
             } else {
+                // FIXME: Unused.
                 // Effect must be an Action.
-                var actionInstance = parent.getActionInstance(
-                    effect.variable as Action)
-                this.dependentActions.add(actionInstance)
-                actionInstance.dependsOnReactions.add(this)
+//                var actionInstance = parent.getActionInstance(
+//                    effect.variable as Action)
+//                this.dependentActions.add(actionInstance)
+//                actionInstance.dependsOnReactions.add(this)
             }
         }
         // Create a deadline instance if one has been defined.
@@ -130,26 +132,23 @@ class ReactionInstance extends NamedInstance<Reaction> {
      */
     public long chainID = 0L;
 
-    /** The actions that this reaction triggers. */
-    public var dependentActions = new LinkedHashSet<ActionInstance>();
+//    /** The actions that this reaction triggers. */
+//    public var dependentActions = new LinkedHashSet<ActionInstance>();
 
     /** The ports that this reaction may write to. */
-    public var dependentPorts = new LinkedHashSet<PortInstance>();
+    public var effects = new LinkedHashSet<PortInstance>();
 
-    /** The reactions that depend on this reaction. */
-    public var dependentReactions = new LinkedHashSet<ReactionInstance>();
+//    /** The reactions that depend on this reaction. */
+//    public var dependentReactions = new LinkedHashSet<ReactionInstance>();
 
-    /** The actions that this reaction is triggered by. */
-    public var dependsOnActions = new LinkedHashSet<ActionInstance>();
+//    /** The actions that this reaction is triggered by. */
+//    public var dependsOnActions = new LinkedHashSet<ActionInstance>();
 
     /** The ports that this reaction is triggered by or uses. */
-    public var dependsOnPorts = new LinkedHashSet<PortInstance>();
+    public var sources = new LinkedHashSet<PortInstance>();
 
-    /** The timers that this reaction is triggered by. */
-    public var dependsOnTimers = new LinkedHashSet<TimerInstance>();
-
-    /** The reactions that this reaction depends on. */
-    public var dependsOnReactions = new LinkedHashSet<ReactionInstance>();
+//    /** The reactions that this reaction depends on. */
+//    public var dependsOnReactions = new LinkedHashSet<ReactionInstance>();
 
     /** Deadline for this reaction instance, if declared.*/
     public DeadlineInstance declaredDeadline
@@ -168,6 +167,12 @@ class ReactionInstance extends NamedInstance<Reaction> {
      * The first reaction has index 0, the second index 1, etc.
      */
     public int reactionIndex = -1;
+
+    /**
+     * Whether or not this reaction is ordered with respect to other
+     * reactions in the same reactor.
+     */
+    public boolean isUnordered
 
     /**
      * The ports that this reaction reads but that do not trigger it.
@@ -201,26 +206,26 @@ class ReactionInstance extends NamedInstance<Reaction> {
         return "reaction_" + this.reactionIndex;
     }
     
-    /**
-     * From the given set of reactions, return the subset that is
-     * maximal. A reaction in the set is maximal if there is no
-     * other reaction in the set that depends on it, directly or
-     * indirectly. If the argument is an empty set, return an
-     * empty set.
-     * @param reactions A set of reaction instances.
-     */
-    def Set<ReactionInstance> maximal(Set<ReactionInstance> reactions) {
-        // Construct a set containing the maximal reactions among
-        // the upstream reactions. This omits upstream reactions
-        // on which some other upstream reaction depends.
-        // Start with the full set, and remove elements.
-        var result = new LinkedHashSet(reactions)
-        for (upstream : reactions) {
-            result.removeAll(upstream.dependsOnReactions)
-            result.removeAll(maximal(upstream.dependsOnReactions))
-        }
-        return result
-    }
+//    /**
+//     * From the given set of reactions, return the subset that is
+//     * maximal. A reaction in the set is maximal if there is no
+//     * other reaction in the set that depends on it, directly or
+//     * indirectly. If the argument is an empty set, return an
+//     * empty set.
+//     * @param reactions A set of reaction instances.
+//     */
+//    def Set<ReactionInstance> maximal(Set<ReactionInstance> reactions) {
+//        // Construct a set containing the maximal reactions among
+//        // the upstream reactions. This omits upstream reactions
+//        // on which some other upstream reaction depends.
+//        // Start with the full set, and remove elements.
+//        var result = new LinkedHashSet(reactions)
+//        for (upstream : reactions) {
+//            result.removeAll(upstream.dependsOnReactions)
+//            result.removeAll(maximal(upstream.dependsOnReactions))
+//        }
+//        return result
+//    }
 
     /**
      * Return the main reactor, which is the top-level parent.
