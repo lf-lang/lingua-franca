@@ -29,10 +29,18 @@ package org.icyphy.generator
 import org.icyphy.graph.DirectedGraph
 import java.util.ArrayList
 import java.util.LinkedHashSet
+import java.util.Set
 
 /**
- * This graph is part of the code generation package because it is not generic.
+ * This graph represents the dependencies between reaction instances.
+ * Upon creation, reactions are assigned levels, chainIDs, and their
+ * deadlines are propagated.
+ * 
+ * This class is distinct from the ReactionGraph class in the graph
+ * package because it deals with instance objects rather than AST nodes.
+ * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
     
@@ -64,14 +72,59 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         addNodesAndEdges(main)
             // Assign a level to each reaction. 
             // If there are cycles present in the graph, it will be detected here.
-            assignLevels()
+            if (!assignLevels()) {
+                main.generator.reportError(main.generator.mainDef, "Reactions form a cycle!");
+                throw new Exception("Reactions form a cycle!")
+            }
             // Traverse the graph again, now starting from the leaves,
             // to set the chain IDs.
             assignChainIDs(true)
 
             // Propagate any declared deadline upstream.
-            propagateDeadlines()
-        
+        propagateDeadlines()
+
+    }
+
+    /**
+     * Return the single dominating reaction if the given reaction has one, or
+     * null otherwise.
+     */
+    def findSingleDominatingReaction(ReactionInstance reaction) {
+        this.nodes.forEach[node|node.visitsLeft = 1]
+        val reactions = reaction.upstreamAdjacentNodes
+        if (reactions.size > 0) {
+            val minLevel = reactions.fold(newLinkedList, [ list, r |
+                list.add(r.level)
+                return list
+            ]).min
+            val maximalReactions = maximal(reactions.toSet, minLevel)
+            if (maximalReactions.size == 1) {
+                return maximalReactions.get(0)
+            }
+        }
+        return null
+    }
+
+    /**
+     * From the given set of reactions, return the subset that is maximal. 
+     * A reaction in the set is maximal if there is no other reaction in 
+     * the set that depends on it, directly or indirectly. If the argument 
+     * is an empty set, return an empty set.
+     * @param reactions A set of reaction instances.
+     * @param minLevel The lowest level reaction to visit.
+     */
+    protected def Set<ReactionInstance> maximal(Set<ReactionInstance> reactions,
+        long minLevel) {
+        var result = new LinkedHashSet(reactions)
+        for (reaction : reactions) {
+            if (reaction.level >= minLevel && reaction.visitsLeft > 0) {
+                reaction.visitsLeft--
+                val upstream = getUpstreamAdjacentNodes(reaction)
+                result.removeAll(upstream)
+                result.removeAll(maximal(upstream.toSet, minLevel))
+            }
+        }
+        return result
     }
     
     /**
@@ -83,6 +136,8 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * the levels of the reactions it depends on.
      * If any cycles are present in the dependency graph, an exception is
      * thrown. This method should be called only on the top-level (main) reactor.
+     * @return true if the assignment was successful, false if it was not, 
+     * meaning the graph has at least one cycle in it.
      */
     protected def assignLevels() {
         val graph = this.copy
@@ -124,14 +179,14 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         }
         // If, after all of this, there are still any nodes left, 
         // then the graph must be cyclic.
-        if (graph.nodeCount != 0) { // FIXME: maybe move to ReactorInstance?
-            main.generator.reportError(main.generator.mainDef, "Reactions form a cycle!");
-            throw new Exception(
-                "Reactions form a cycle!")
+        if (graph.nodeCount != 0) {
+            return false
         }
+
+        return true
     }
     
-        /**
+    /**
      * Analyze the dependencies between reactions and assign each reaction
      * instance a chain identifier. The assigned IDs are such that the
      * bitwise conjunction between two chain IDs is always nonzero if there
@@ -161,7 +216,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         }
     }
     
-        /**
+    /**
      * Propagate the given chain ID up one chain, propagate fresh IDs to
      * other upstream neighbors, and return a mask that overlaps with all the
      * chain IDs that were set upstream as a result of this method invocation.
@@ -205,7 +260,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
         return mask
     }
     
-        /**
+    /**
      * Iterate over all reactions that have a declared deadline, update their
      * inferred deadline, as well as the inferred deadlines of any reactions
      * upstream.
@@ -243,7 +298,6 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             propagateDeadline(upstream)
         }
     }
-    
     
     /**
      * Add to the graph edges between the given reaction and all the reactions

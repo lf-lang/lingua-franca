@@ -2389,11 +2389,10 @@ class CGenerator extends GeneratorBase {
                 // Record the number of reactions that this reaction depends on.
                 // This is used for optimization. When that number is 1, the reaction can
                 // be executed immediately when its triggering reaction has completed.
-                val maximalUpstreamReactions = ReactorInstance.reactionGraph.getUpstreamAdjacentNodes(reaction)
-                if (maximalUpstreamReactions.size == 1) {
-                    val upstreamReactionInstance = maximalUpstreamReactions.get(0)
+                val dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(reaction)
+                if (dominatingReaction !== null) {
                     val upstreamReaction =
-                        '''«selfStructName(upstreamReactionInstance.parent)»->___reaction_«upstreamReactionInstance.reactionIndex»'''
+                        '''«selfStructName(dominatingReaction.parent)»->___reaction_«dominatingReaction.reactionIndex»'''
                     pr(initializeTriggerObjectsEnd, '''
                         // Reaction «reactionCount» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
                         «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = &(«upstreamReaction»);
