@@ -149,7 +149,7 @@ interval_t get_stp_offset() {
  *  as the STP offset.
  */
 void set_stp_offset(interval_t offset) {
-    if (offset > 0) {
+    if (offset > 0LL) {
         _lf_global_time_STP_offset = offset;
     }
 }
@@ -516,10 +516,7 @@ lf_token_t* __initialize_token(lf_token_t* token, int length) {
  * @param tag The tag to check against stop tag
  */
 bool _lf_is_tag_after_stop_tag(tag_t tag) {
-    if (compare_tags(tag, stop_tag) > 0) {
-        return true;
-    }
-    return false;
+    return (compare_tags(tag, stop_tag) > 0);
 }
 
 /**
@@ -666,6 +663,9 @@ event_t* _lf_get_new_event() {
     event_t* e = (event_t*)pqueue_pop(recycle_q);
     if (e == NULL) {
         e = (event_t*)calloc(1, sizeof(struct event_t));
+#ifdef _LF_COORD_DECENTRALIZED
+        e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+#endif
     }
     return e;
 }
@@ -681,7 +681,7 @@ void _lf_recycle_event(event_t* e) {
     e->token = NULL;
     e->is_dummy = false;
 #ifdef _LF_COORD_DECENTRALIZED
-    e->intended_tag = (tag_t) { .time = 0LL, .microstep = 0u};
+    e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
 #endif
     e->next = NULL;
     pqueue_insert(recycle_q, e);
@@ -1312,7 +1312,7 @@ void _lf_advance_logical_time(instant_t next_time) {
     } else {
         current_tag.microstep++;
     }
-    DEBUG_PRINT("Advanced logical tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
+    DEBUG_PRINT("Advanced tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
 }
 
 /**
@@ -1472,12 +1472,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
 #endif
         if (downstream_to_execute_now->deadline > 0LL) {
             // Get the current physical time.
-            struct timespec current_physical_time;
-            clock_gettime(CLOCK_REALTIME, &current_physical_time);
-            // Convert to instant_t.
-            instant_t physical_time =
-                    current_physical_time.tv_sec * BILLION
-                    + current_physical_time.tv_nsec;
+            instant_t physical_time = get_physical_time();
             // Check for deadline violation.
             if (physical_time > current_tag.time + downstream_to_execute_now->deadline) {
                 // Deadline violation has occurred.
@@ -1697,6 +1692,31 @@ int process_args(int argc, char* argv[]) {
 }
 
 /**
+ * Calculate the necessary offset to bring _LF_CLOCK in parity
+ * with the epoch time.
+ */
+void calculate_epoch_offset() {
+    if (_LF_CLOCK == CLOCK_REALTIME) {
+        // Set the epoch offset to zero (see tag.h)
+        _lf_epoch_offset = 0LL;
+    } else {
+        // Initialize _lf_epoch_offset to the difference between what is
+        // reported by whatever clock LF is using (e.g. CLOCK_MONOTONIC)
+        // and what is reported by CLOCK_REALTIME.
+        struct timespec physical_clock_snapshot, real_time_start;
+
+        clock_gettime(_LF_CLOCK, &physical_clock_snapshot);
+        instant_t physical_clock_snapshot_ns = physical_clock_snapshot.tv_sec * BILLION + physical_clock_snapshot.tv_nsec;
+
+        clock_gettime(CLOCK_REALTIME, &real_time_start);
+        instant_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
+
+        _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
+    }
+    DEBUG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
+}
+
+/**
  * Initialize the priority queues and set logical time to match
  * physical time. This also prints a message reporting the start time.
  */
@@ -1731,15 +1751,14 @@ void initialize() {
     // Initialize the trigger table.
     __initialize_trigger_objects();
 
-    // Initialize logical time to match physical time.
-    struct timespec actualStartTime;
-    clock_gettime(CLOCK_REALTIME, &actualStartTime);
-    physical_start_time = actualStartTime.tv_sec * BILLION + actualStartTime.tv_nsec;
-
-    printf("---- Start execution at time %s---- plus %ld nanoseconds.\n",
-            ctime(&actualStartTime.tv_sec), actualStartTime.tv_nsec);
+    physical_start_time = get_physical_time();
     current_tag.time = physical_start_time;
     start_time = current_tag.time;
+
+    struct timespec physical_time_timespec = {physical_start_time / BILLION, physical_start_time % BILLION};
+
+    info_print("---- Start execution at time %s---- plus %ld nanoseconds.",
+            ctime(&physical_time_timespec.tv_sec), physical_time_timespec.tv_nsec);
     
     if (duration >= 0LL) {
         // A duration has been specified. Calculate the stop time.
@@ -1755,22 +1774,22 @@ void termination() {
 
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {
-        printf("---- There are %zu unprocessed future events on the event queue.\n", pqueue_size(event_q));
+        warning_print("---- There are %zu unprocessed future events on the event queue.", pqueue_size(event_q));
         event_t* event = (event_t*)pqueue_peek(event_q);
         interval_t event_time = event->time - start_time;
-        printf("---- The first future event has timestamp %lld after start time.\n", event_time);
+        warning_print("---- The first future event has timestamp %lld after start time.", event_time);
     }
     // Issue a warning if a memory leak has been detected.
     if (__count_payload_allocations > 0) {
-        printf("**** WARNING: Memory allocated for messages has not been freed.\n");
-        printf("**** Number of unfreed messages: %d.\n", __count_payload_allocations);
+        warning_print("Memory allocated for messages has not been freed.");
+        warning_print("Number of unfreed messages: %d.", __count_payload_allocations);
     }
     if (__count_token_allocations > 0) {
-        printf("**** WARNING: Memory allocated for tokens has not been freed!\n");
-        printf("**** Number of unfreed tokens: %d.\n", __count_token_allocations);
+        warning_print("Memory allocated for tokens has not been freed!");
+        warning_print("Number of unfreed tokens: %d.", __count_token_allocations);
     }
     // Print elapsed times.
-    printf("---- Elapsed logical time (in nsec): ");
+    info_print("---- Elapsed logical time (in nsec): ");
     print_time(get_elapsed_logical_time());
     printf("\n");
 

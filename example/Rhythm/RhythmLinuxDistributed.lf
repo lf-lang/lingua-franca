@@ -1,22 +1,23 @@
 /**
  * Demonstration of timed distributed Lingua Franca programs.
- * This program is not portable. It runs on MacOS.
+ * This program is not portable. It runs on Linux.
  * 
  * This program elaborates RhythmMac to have two players that
  * run on different machines. Both players can select a musical
  * instrument, but only one of the players can control the rhythm
  * and the tempo.
  * 
- * @see RhythmMac
- * @see RhythmMacDistributedIndependent
+ * @see RhythmLinux
+ * @see RhythmLinuxDistributedIndependent
  * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
     coordination: centralized,
     flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
+            "/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h",
             "Bass-Drum-1.wav", "Hi-Bongo.wav", "Claves.wav", "High-Conga-1.wav",
             "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
             "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"] 
@@ -25,7 +26,7 @@ preamble {=
     #include <ncurses.h>
     #include "wave_file_reader.c"
     #include "sensor_simulator.c"
-    #include "audio_loop_mac.c"
+    #include "audio_loop_linux.c"
     
     /////////////////////////////
     // Configuration of the audio.
@@ -152,7 +153,8 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
     reaction(startup) -> key, note, tick {=
         // Start the sensor simulator, which starts ncurses.
         if (start_sensor_simulator(master_message, master_message_length, 16)) {
-            error_print_and_exit("ERROR: Failed to start sensor simulator.");
+            fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
+            exit(1);
         }
         
         // Register action to trigger on key press.
@@ -283,7 +285,8 @@ reactor Player(sixteenth:time(200 msec)) {
     reaction(startup) -> key, note, tick {=
         // Start the sensor simulator, which starts ncurses.
         if (start_sensor_simulator(player_message, player_message_length, 16)) {
-            error_print_and_exit("ERROR: Failed to start sensor simulator.");
+            fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
+            exit(1);
         }
         
         // Register action to trigger on key press.
@@ -350,22 +353,31 @@ reactor Player(sixteenth:time(200 msec)) {
             SET(note, emphasis);
             beeped++;
         }
+        pthread_mutex_lock(&sensor_mutex);
         if (beeped > 0) {
             if (position & self->active_emphasis) {
-                show_tick("!");
+                printw("!");
             } else {
-                show_tick("*");
+                printw("*");
             }
         } else {
-            show_tick(".");
+            printw(".");
         }
         self->count++;
         if (self->count == 16) {
             self->active_rhythm = self->rhythm;
             self->active_emphasis = self->emphasis;
             self->count = 0;
-        } 
-
+            int term_height, term_width;
+            getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
+            self->cursor++;
+            if (self->cursor >= term_height) {
+                self->cursor = 0;
+            }
+            move(self->cursor, 0);
+        }
+        refresh();
+        pthread_mutex_unlock(&sensor_mutex);
         schedule(tick, self->tick_duration);
     =}
 }
@@ -422,7 +434,7 @@ reactor PlayWaveform {
             lf_play_audio_waveform(waveforms[self->waveform_id], note->value, get_logical_time());
         }
     =} deadline (100 msec) {=  // NOTE: deadline has to match BUFFER_DURATION_NS.
-        warning_print("Missed deadline!");
+        fprintf(stderr, "WARNING: Missed deadline!\n");
     =}
     
     reaction(shutdown) {=
@@ -430,7 +442,7 @@ reactor PlayWaveform {
     =}
 }
 
-reactor RhythmMacMaster {
+reactor RhythmLinuxMaster {
     output rhythm_change:char;  // To change the rhythm.
     output tempo:interval_t;    // To change the tempo.
     source = new RhythmSource();
@@ -441,7 +453,7 @@ reactor RhythmMacMaster {
     source.tempo -> tempo;
 }
 
-reactor RhythmMacPlayer {
+reactor RhythmLinuxPlayer {
     input rhythm_change:char;  // To change the rhythm.
     input tempo:interval_t;    // To change the tempo.
     source = new Player();
@@ -452,9 +464,9 @@ reactor RhythmMacPlayer {
     tempo -> source.tempo;
 }
 
-federated reactor RhythmMac at localhost {
-    player1 = new RhythmMacMaster() at localhost;
-    player2 = new RhythmMacPlayer() at localhost;
+federated reactor RhythmMacDistributed at 10.0.0.219 {
+    player1 = new RhythmLinuxMaster() at 10.0.0.219;
+    player2 = new RhythmLinuxPlayer() at 10.0.0.206;
     player1.rhythm_change -> player2.rhythm_change after 20 msec;
     player1.tempo -> player2.tempo after 20 msec;
 }

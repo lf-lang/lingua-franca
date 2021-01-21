@@ -739,6 +739,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             "Target property tracing is required to be true or false.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
+                case CLOCK_SYNC: {
+                    if (!param.value.id.equalsIgnoreCase('off') 
+                            && !param.value.id.equalsIgnoreCase('initial') 
+                            && !param.value.id.equalsIgnoreCase('on')) {
+                        error("Target property clock-sync is required to be off, initial, or on. Default is initial.",
+                            Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                }
             }
         }
     }
@@ -1166,32 +1174,54 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
      * @param targetProperties The target properties defined
      *  in the current Lingua Franca program.
      */
-    @Check(FAST)
+    @Check(EXPENSIVE)
     def checkTargetProperties(KeyValuePairs targetProperties) {
+
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if fast is defined
                 TargetProperties.get(pair.name) == TargetProperties.FAST
         )) {
-            if (targetProperties.pairs.exists(
-                pair |
-                    // Check to see if timeout is defined
-                    TargetProperties.get(pair.name) == TargetProperties.TIMEOUT
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a federated reactor and if there is a physical connection
+                    // defined.
+                    reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
             )) {
-                if (info.model.reactors.exists(
-                    reactor |
-                        // Check to see if the program has a federated reactor and if there is a physical connection
-                        // defined.
-                        reactor.isFederated && reactor.connections.exists(connection|connection.isPhysical)
-                )) {
-                    warning(
-                        "The fast target property is incompatible with the timeout target property " +
-                        "when physical connections are present.",
-                        Literals.KEY_VALUE_PAIRS__PAIRS
-                    )
-                }
+                error(
+                    "The fast target property is incompatible with physical connections.",
+                    Literals.KEY_VALUE_PAIRS__PAIRS
+                )
             }
 
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has physical actions
+                    reactor.isFederated && reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
+            )) {
+                error(
+                    "The fast target property is incompatible with physical actions.",
+                    Literals.KEY_VALUE_PAIRS__PAIRS
+                )
+            }
+
+        }
+        if (targetProperties.pairs.exists(
+            pair |
+                // Check to see if clock-sync is defined
+                TargetProperties.get(pair.name) == TargetProperties.CLOCK_SYNC
+        )) {
+
+            if (info.model.reactors.exists( reactor |
+                // Check to see if the program has a federated reactor and if there is a physical connection
+                // defined.
+                reactor.isFederated
+            ) == false) {
+                warning(
+                    "The clock-sync target property is incompatible with non-federated programs.",
+                    Literals.KEY_VALUE_PAIRS__PAIRS
+                )
+            }
         }
     }
 

@@ -33,18 +33,30 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tag.h"
 
 /**
- * Current time in nanoseconds since January 1, 1970.
+ * Offset to _LF_CLOCK that would convert it
+ * to epoch time.
+ * For CLOCK_REALTIME, this offset is always zero.
+ * For CLOCK_MONOTONIC, it is the difference between those
+ * clocks at the start of the execution.
+ */
+interval_t _lf_epoch_offset = 0LL;
+
+/**
+ * Current time in nanoseconds since January 1, 1970
  * This is not in scope for reactors.
+ * FIXME: Should this be volatile?
  */
 tag_t current_tag = {.time = 0LL, .microstep = 0};
 
 /**
  * Physical time at the start of the execution.
+ * FIXME: Should this be volatile?
  */
 instant_t physical_start_time = NEVER;
 
 /**
  * Logical time at the start of execution.
+ * FIXME: Should this be volatile?
  */
 instant_t start_time = NEVER;
 
@@ -53,7 +65,21 @@ instant_t start_time = NEVER;
  * Initially set according to the RTI's clock in federated
  * programs.
  */
-interval_t _lf_global_physical_time_offset = 0LL;
+interval_t _lf_global_physical_clock_offset = 0LL;
+
+/**
+ * A measure of calculating the drift between the federate's
+ * clock and the RTI's clock
+ */
+interval_t _lf_global_physical_clock_drift = 0LL;
+
+/**
+ * A test offset that is applied to the clock.
+ * The clock synchronization algorithm must correct for this offset.
+ * This offset is especially useful to test clock synchronization on the
+ * same machine.
+ */
+interval_t _lf_global_test_physical_clock_offset = 0LL;
 
 /**
  * Compare two tags. Return -1 if the first is less than
@@ -73,30 +99,6 @@ int compare_tags(tag_t tag1, tag_t tag2) {
     } else if (tag1.microstep < tag2.microstep) {
         return -1;
     } else if (tag1.microstep > tag2.microstep) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-/**
- * Compare two tags. Return -1 if the first is less than
- * the second, 0 if they are equal, and +1 if the first is
- * greater than the second. A tag is greater than another if
- * its time is greater or if its time is equal and its microstep
- * is greater.
- * @param tag1
- * @param tag2
- * @return -1, 0, or 1 depending on the relation.
- */
-int compare_tags2(instant_t time1, microstep_t microstep1, instant_t time2, microstep_t microstep2) {
-    if (time1 < time2) {
-        return -1;
-    } else if (time1 > time2) {
-        return 1;
-    } else if (microstep1 < microstep2) {
-        return -1;
-    } else if (microstep1 > microstep2) {
         return 1;
     } else {
         return 0;
@@ -132,19 +134,69 @@ microstep_t get_microstep() {
 }
 
 /**
+ * Stores the last reported absolute snapshot of the 
+ * physical clock.
+ */
+instant_t _lf_last_reported_physical_time_ns = 0LL;
+
+/**
+ * Records the most recent time reported by the physical clock
+ * when accessed by get_physical_time(). This will be an epoch time
+ * (number of nanoseconds since Jan. 1, 1970), as reported when
+ * you call clock_gettime(CLOCK_REALTIME, ...). This differs from
+ * _lf_last_reported_physical_time_ns by _lf_global_physical_clock_offset
+ * plus any calculated drift adjustement, which are adjustments made
+ * by clock synchronization.
+ */
+instant_t _lf_last_reported_unadjusted_physical_time_ns = NEVER;
+
+/**
+ * Records the physical time at which the clock of this federate was
+ * synchronized with the RTI. Used to calculate the drift.
+ */
+instant_t _lf_last_clock_sync_instant = 0LL;
+
+/**
  * Return the current physical time in nanoseconds since January 1, 1970,
  * adjusted by the global physical time offset.
  */
 instant_t get_physical_time() {
+    // Get the current clock value
     struct timespec physicalTime;
-    clock_gettime(CLOCK_REALTIME, &physicalTime);
-    return (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec) + _lf_global_physical_time_offset;
+    clock_gettime(_LF_CLOCK, &physicalTime);
+    _lf_last_reported_unadjusted_physical_time_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec)
+            + _lf_epoch_offset;
+    
+    // Adjust the reported clock with the appropriate offsets
+    instant_t adjusted_clock_ns = _lf_last_reported_unadjusted_physical_time_ns
+            + _lf_global_physical_clock_offset;
+
+    // Apply the test offset
+    DEBUG_PRINT("get_physical_time(): Adding test clock offset of %lld to %lld.", _lf_global_test_physical_clock_offset, adjusted_clock_ns);
+    adjusted_clock_ns += _lf_global_test_physical_clock_offset;
+
+    if (_lf_global_physical_clock_drift != 0LL
+            && _lf_last_clock_sync_instant != 0LL) {
+        // Apply the calculated drift, if appropriate
+        adjusted_clock_ns += (adjusted_clock_ns - _lf_last_clock_sync_instant) *
+                           _lf_global_physical_clock_drift;
+        DEBUG_PRINT("get_physical_time(): Adding clock drift.");
+    }
+    
+    // Check if the clock has progressed since the last reported value
+    // This ensures that the clock is monotonic
+    if (adjusted_clock_ns > _lf_last_reported_physical_time_ns) {
+        _lf_last_reported_physical_time_ns = adjusted_clock_ns;
+    }
+    
+    DEBUG_PRINT("get_physical_time(): Reporting %lld.", _lf_last_reported_physical_time_ns);
+    return _lf_last_reported_physical_time_ns;
 }
 
 /**
- * Return the physical time of the start of execution in nanoseconds.
+ * Return the physical time of the start of execution in nanoseconds. * 
  * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
+ * since January 1, 1970, but it is actually platform dependent. * 
  * @return A time instant.
  */
 instant_t get_start_time() {
@@ -156,9 +208,7 @@ instant_t get_start_time() {
  * Return the elapsed physical time in nanoseconds.
  */
 instant_t get_elapsed_physical_time() {
-    struct timespec physicalTime;
-    clock_gettime(CLOCK_REALTIME, &physicalTime);
-    return physicalTime.tv_sec * BILLION + physicalTime.tv_nsec - physical_start_time;
+    return get_physical_time() - physical_start_time;
 }
 
 /**
@@ -169,7 +219,7 @@ instant_t get_elapsed_physical_time() {
 tag_t convert_volatile_tag_to_nonvolatile(tag_t volatile const& vtag) {
     tag_t non_volatile_tag;
     non_volatile_tag.time = vtag.time;
-    non_volatile_tag.microstep - vtag.microstep;
+    non_volatile_tag.microstep = vtag.microstep;
     return non_volatile_tag;
 }
 #else
