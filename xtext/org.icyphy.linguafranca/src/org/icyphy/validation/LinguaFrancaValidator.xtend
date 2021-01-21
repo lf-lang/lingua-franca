@@ -1196,8 +1196,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
             if (info.model.reactors.exists(
                 reactor |
-                    // Check to see if the program has a federated reactor and if there is a physical connection
-                    // defined.
+                    // Check to see if the program has physical actions
                     reactor.isFederated && reactor.actions.exists(action|(action.origin == ActionOrigin.PHYSICAL))
             )) {
                 error(
