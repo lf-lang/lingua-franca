@@ -106,30 +106,6 @@ int compare_tags(tag_t tag1, tag_t tag2) {
 }
 
 /**
- * Compare two tags. Return -1 if the first is less than
- * the second, 0 if they are equal, and +1 if the first is
- * greater than the second. A tag is greater than another if
- * its time is greater or if its time is equal and its microstep
- * is greater.
- * @param tag1
- * @param tag2
- * @return -1, 0, or 1 depending on the relation.
- */
-int compare_tags_expanded(instant_t time1, microstep_t microstep1, instant_t time2, microstep_t microstep2) {
-    if (time1 < time2) {
-        return -1;
-    } else if (time1 > time2) {
-        return 1;
-    } else if (microstep1 < microstep2) {
-        return -1;
-    } else if (microstep1 > microstep2) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-/**
  * Return the elapsed logical time in nanoseconds since the start of execution.
  */
 interval_t get_elapsed_logical_time() {
