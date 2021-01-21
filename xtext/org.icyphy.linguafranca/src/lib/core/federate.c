@@ -1913,7 +1913,7 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
 
     // If time advance has already been granted for this tag or a larger
     // tag, then return immediately.
-    if (compare_tags(__tag, (tag_t){.time=time, .microstep=microstep}) > 0) {
+    if (compare_tags(convert_volatile_tag_to_nonvolatile(__tag), (tag_t){.time=time, .microstep=microstep}) > 0) {
         return (tag_t){.time = time, .microstep = microstep};
     }
 
