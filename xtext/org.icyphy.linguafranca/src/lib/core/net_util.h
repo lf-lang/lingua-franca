@@ -44,28 +44,65 @@ int host_is_big_endian();
 /** 
  * Read the specified number of bytes from the specified socket into the
  * specified buffer. If a disconnect or an EOF occurs during this
- * reading, report an error and exit. This function
- * takes a formatted string and additional arguments similar to printf(format, ...)
+ * reading, then if format is non-null, report an error and exit.
+ * If format is null, then report the error, but do not exit.
+ * This function takes a formatted
+ * string and additional optional arguments similar to printf(format, ...)
  * that is appended to the error messages.
- *  
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to read.
  * @param buffer The buffer into which to put the bytes.
+ * @param format A printf-style format string, followed by arguments to
+ *  fill the string, or NULL to not exit with an error message.
+ * @return The number of bytes read, or 0 if an EOF is received, or
+ *  a negative number for an error.
  */
-void read_from_socket(int socket, int num_bytes, unsigned char* buffer, char* format, ...);
+int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, char* format, ...);
 
-/** 
+/**
+ * Read the specified number of bytes from the specified socket into the
+ * specified buffer. If a disconnect occurs during this
+ * reading, return a negative number. If an EOF occurs during this
+ * reading, return 0. Otherwise, return the number of bytes read.
+ * This is a version of read_from_socket_errexit() that does not error out.
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to read.
+ * @param buffer The buffer into which to put the bytes.
+ * @return The number of bytes read or 0 when EOF is received or negative for an error.
+ */
+int read_from_socket(int socket, int num_bytes, unsigned char* buffer);
+
+/**
  * Write the specified number of bytes to the specified socket from the
  * specified buffer. If a disconnect or an EOF occurs during this
- * reading, report an error and exit. This function
- * takes a formatted string and additional arguments similar to printf(format, ...)
+ * reading, report an error and exit, unless the format string is NULL,
+ * in which case, report an error and return. This function takes a formatted
+ * string and additional optional arguments similar to printf(format, ...)
  * that is appended to the error messages.
- * 
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to write.
  * @param buffer The buffer from which to get the bytes.
+ * @param format A format string for error messages, followed by any number of
+ *  fields that will be used to fill the format string as in printf, or NULL
+ *  to prevent exit on error.
+ * @return The number of bytes written, or 0 if an EOF was received, or a negative
+ *  number if an error occurred.
  */
-void write_to_socket(int socket, int num_bytes, unsigned char* buffer, char* format, ...);
+int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, char* format, ...);
+
+/**
+ * Write the specified number of bytes to the specified socket from the
+ * specified buffer. If a disconnect or an EOF occurs during this
+ * reading, return a negative number or 0 respectively. Otherwise,
+ * return the number of bytes written.
+ * This is a version of write_to_socket() that does not error out.
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to write.
+ * @param buffer The buffer from which to get the bytes.
+ * @return The number of bytes written, or 0 if an EOF was received, or a negative
+ *  number if an error occurred.
+ */
+int write_to_socket2(int socket, int num_bytes, unsigned char* buffer);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian

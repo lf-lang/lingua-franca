@@ -1,22 +1,23 @@
 /**
  * Demonstration of timed distributed Lingua Franca programs.
- * This program is not portable. It runs on MacOS.
+ * This program is not portable. It runs on Linux.
  * 
- * This program elaborates RhythmMac to have two players that
- * run on different machines. Both players can select a musical
- * instrument, but only one of the players can control the rhythm
- * and the tempo.
+ * This program elaborates RhythmLinux to have two players that
+ * run on different machines. Each players can select a musical
+ * instrument, choose its rhythm, and control its tempo. The
+ * two programs do not communicate.
  * 
- * @see RhythmMac
- * @see RhythmMacDistributedIndependent
+ * @see RhythmLinux
+ * @see RhythmLinuxDistributed
  * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
-    coordination: centralized,
-    flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
+    flags: "-lncurses -lasound -lm",
+    coordination: decentralized,
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
+            "/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h",
             "Bass-Drum-1.wav", "Hi-Bongo.wav", "Claves.wav", "High-Conga-1.wav",
             "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
             "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"] 
@@ -25,7 +26,7 @@ preamble {=
     #include <ncurses.h>
     #include "wave_file_reader.c"
     #include "sensor_simulator.c"
-    #include "audio_loop_mac.c"
+    #include "audio_loop_linux.c"
     
     /////////////////////////////
     // Configuration of the audio.
@@ -69,7 +70,7 @@ preamble {=
     //////////////////////////////////////
     // Configuration of the user interface.
 
-    char* master_message[] = {
+    char* message[] = {
         "Basic control:",
         "  x: quit",
         "  +: speed up",
@@ -91,24 +92,8 @@ preamble {=
         "  b: bossa nova",
         "  s: samba"
     };
-    int master_message_length = 20;
-
-    char* player_message[] = {
-        "Effects:",
-        "  m: mirror",
-        "Instrument:",
-        "  0: none",
-        "  1: bass drum",
-        "  2: bongo",
-        "  3: claves",
-        "  4: conga",
-        "  5: cowbell",
-        "  6: cuica",
-        "  7: guiro",
-        "  8: snare",
-        "  9: tom"
-    };
-    int player_message_length = 13;
+    int message_length = 20;
+        
 =}
 
 /**
@@ -118,10 +103,8 @@ preamble {=
  * variable. This can be adjusted up or down.
  */
 reactor RhythmSource(sixteenth:time(200 msec)) {    
-    output note:float;         // To play a note with the given emphasis.
-    output instrument:int;     // Instrument selection.
-    output rhythm_change:char; // To change the rhythm.
-    output tempo:interval_t;   // To change the tempo.
+    output note:float;     // To play a note with the given emphasis.
+    output instrument:int; // Instrument selection.
     
     state tick_duration:time(200 msec);
     logical action tick;
@@ -150,140 +133,12 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
     state cursor:int(0);
     
     reaction(startup) -> key, note, tick {=
+        // FIXME: See whether a note can be sent at the start time.
+        SET(note, 1.0);
         // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator(master_message, master_message_length, 16)) {
-            error_print_and_exit("ERROR: Failed to start sensor simulator.");
-        }
-        
-        // Register action to trigger on key press.
-        register_sensor_key('\0', key);
-        
-        schedule(tick, self->tick_duration);
-    =}
-    
-    reaction(key) -> instrument, rhythm_change, tempo {=
-        int numeric;
-        switch (key->value) {
-            case '0':
-                SET(instrument, 0);
-                break;
-            case 'd':
-                self->rhythm = DOWNBEAT;
-                self->emphasis = DOWNBEAT;
-                SET(rhythm_change, 'd');
-                break;
-            case 'm':
-                self->rhythm = MERENGUE;
-                self->emphasis = MERENGUE_EMPHASIS;
-                SET(rhythm_change, 'm');
-                break;
-            case 'b':
-                self->rhythm = BOSSA_NOVA;
-                self->emphasis = BOSSA_NOVA_EMPHASIS;
-                SET(rhythm_change, 'b');
-                break;
-            case 's':
-                self->rhythm = SAMBA;
-                self->emphasis = SAMBA_EMPHASIS;
-                SET(rhythm_change, 's');
-                break;
-            case 'x':
-                request_stop();
-                break;
-            case '+':
-                self->tick_duration -= MSEC(20);
-                if (self->tick_duration < MSEC(20)) {
-                    self->tick_duration = MSEC(20);
-                }
-                SET(tempo, self->tick_duration);
-                break;
-            case '-':
-                self->tick_duration += MSEC(20);
-                SET(tempo, self->tick_duration);
-                break;
-            default:
-                numeric = (int)key->value;
-                if (numeric >= 49 && numeric <= 57) {
-                    // A digit between 1 and 9.
-                    SET(instrument, numeric - 48);
-                }
-        }
-    =}
-
-    reaction(tick) -> note, tick {=
-        int beeped = 0;
-        int position = 0;
-        position = 1 << self->count;
-        if (position & self->active_rhythm) {
-            double emphasis = 0.25;
-            if (position & self->active_emphasis) {
-                emphasis = 1.0;
-            }
-            SET(note, emphasis);
-            beeped++;
-        }
-        if (beeped > 0) {
-            if (position & self->active_emphasis) {
-                show_tick("!");
-            } else {
-                show_tick("*");
-            }
-        } else {
-            show_tick(".");
-        }
-        self->count++;
-        if (self->count == 16) {
-            self->active_rhythm = self->rhythm;
-            self->active_emphasis = self->emphasis;
-            self->count = 0;
-        }
-        
-        schedule(tick, self->tick_duration);
-    =}
-}
-
-/**
- * Reactor that outputs notes (which carry an emphasis))
- * according to rhythm given by an input. The minimum time
- * between notes is given by the most recently received
- * 'tempo' input.
- */
-reactor Player(sixteenth:time(200 msec)) {    
-    output note:float;         // To play a note with the given emphasis.
-    output instrument:int;     // Instrument selection.
-    input rhythm_change:char;  // To change the rhythm.
-    input tempo:interval_t;    // To change the tempo.
-    
-    state tick_duration:time(200 msec);
-    logical action tick;
-    
-    // Count of sixteenth notes.
-    state count:int(0);
-    
-    // Action to be invoked when a key is pressed.
-    physical action key:char;
-    
-    // Indicator of when to make a sound.
-    state rhythm:int({=DOWNBEAT=});
-    
-    // Indicator of whether to emphasize the sound.
-    state emphasis:int({=DOWNBEAT=});
-
-   // Currently active rhythm. This becomes
-    // active from rhythm on the downbeat.
-    state active_rhythm:int({=DOWNBEAT=});
-    
-    // Currently active emphasis. This becomes
-    // active from rhythm on the downbeat.
-    state active_emphasis:int({=DOWNBEAT=});
-        
-    // Position of the cursor in the terminal window.
-    state cursor:int(0);
-    
-    reaction(startup) -> key, note, tick {=
-        // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator(player_message, player_message_length, 16)) {
-            error_print_and_exit("ERROR: Failed to start sensor simulator.");
+        if (start_sensor_simulator(message, message_length, 16)) {
+            fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
+            exit(1);
         }
         
         // Register action to trigger on key press.
@@ -298,6 +153,34 @@ reactor Player(sixteenth:time(200 msec)) {
             case '0':
                 SET(instrument, 0);
                 break;
+            case 'd':
+                self->rhythm = DOWNBEAT;
+                self->emphasis = DOWNBEAT;
+                break;
+            case 'm':
+                self->rhythm = MERENGUE;
+                self->emphasis = MERENGUE_EMPHASIS;
+                break;
+            case 'b':
+                self->rhythm = BOSSA_NOVA;
+                self->emphasis = BOSSA_NOVA_EMPHASIS;
+                break;
+            case 's':
+                self->rhythm = SAMBA;
+                self->emphasis = SAMBA_EMPHASIS;
+                break;
+            case 'x':
+                request_stop();
+                break;
+            case '+':
+                self->tick_duration -= MSEC(20);
+                if (self->tick_duration < MSEC(20)) {
+                    self->tick_duration = MSEC(20);
+                }
+                break;
+            case '-':
+                self->tick_duration += MSEC(20);
+                break;
             default:
                 numeric = (int)key->value;
                 if (numeric >= 49 && numeric <= 57) {
@@ -307,37 +190,6 @@ reactor Player(sixteenth:time(200 msec)) {
         }
     =}
 
-    reaction(rhythm_change) {=
-        switch (rhythm_change->value) {
-            case 'm':
-                self->rhythm = MERENGUE;
-                self->emphasis = MERENGUE_EMPHASIS;
-                SET(rhythm_change, 'm');
-                break;
-            case 'b':
-                self->rhythm = BOSSA_NOVA;
-                self->emphasis = BOSSA_NOVA_EMPHASIS;
-                SET(rhythm_change, 'b');
-                break;
-            case 's':
-                self->rhythm = SAMBA;
-                self->emphasis = SAMBA_EMPHASIS;
-                SET(rhythm_change, 's');
-                break;
-            default:
-                self->rhythm = DOWNBEAT;
-                self->emphasis = DOWNBEAT;
-                SET(rhythm_change, 'd');
-                break;
-        }
-    =}
-    
-    reaction(tempo) {=
-        self->tick_duration = tempo->value;
-    =}
-    
-    // FIXME: Use inheritance to share this.
-    // But we want its priority to be last!
     reaction(tick) -> note, tick {=
         int beeped = 0;
         int position = 0;
@@ -364,7 +216,7 @@ reactor Player(sixteenth:time(200 msec)) {
             self->active_rhythm = self->rhythm;
             self->active_emphasis = self->emphasis;
             self->count = 0;
-        } 
+        }
 
         schedule(tick, self->tick_duration);
     =}
@@ -422,7 +274,7 @@ reactor PlayWaveform {
             lf_play_audio_waveform(waveforms[self->waveform_id], note->value, get_logical_time());
         }
     =} deadline (100 msec) {=  // NOTE: deadline has to match BUFFER_DURATION_NS.
-        warning_print("Missed deadline!");
+        fprintf(stderr, "WARNING: Missed deadline!\n");
     =}
     
     reaction(shutdown) {=
@@ -430,31 +282,14 @@ reactor PlayWaveform {
     =}
 }
 
-reactor RhythmMacMaster {
-    output rhythm_change:char;  // To change the rhythm.
-    output tempo:interval_t;    // To change the tempo.
+reactor RhythmLinuxPlayer {
     source = new RhythmSource();
     play = new PlayWaveform();
     source.note -> play.note;
     source.instrument -> play.waveform;
-    source.rhythm_change -> rhythm_change;
-    source.tempo -> tempo;
 }
 
-reactor RhythmMacPlayer {
-    input rhythm_change:char;  // To change the rhythm.
-    input tempo:interval_t;    // To change the tempo.
-    source = new Player();
-    play = new PlayWaveform();
-    source.note -> play.note;
-    source.instrument -> play.waveform;
-    rhythm_change -> source.rhythm_change;
-    tempo -> source.tempo;
-}
-
-federated reactor RhythmMac at localhost {
-    player1 = new RhythmMacMaster() at localhost;
-    player2 = new RhythmMacPlayer() at localhost;
-    player1.rhythm_change -> player2.rhythm_change after 20 msec;
-    player1.tempo -> player2.tempo after 20 msec;
+federated reactor RhythmLinuxDistributed at 192.168.0.7 {
+    player1 = new RhythmLinuxPlayer() at 192.168.0.7;
+    player2 = new RhythmLinuxPlayer();
 }

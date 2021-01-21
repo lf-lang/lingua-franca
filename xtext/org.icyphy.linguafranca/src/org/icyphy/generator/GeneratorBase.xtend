@@ -408,7 +408,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
       * The type of the bank index, which must be an integer in the target language
       */
      protected String targetBankIndexType = "int"
+     
+     /**
+      * The clock sync target parameter for federated programs.
+      */
+     protected clockSyncMethod targetClockSync = clockSyncMethod.INITIAL
 
+
+    /**
+     * The clock synchronization technique that is used.
+     * OFF: The clock synchronization is universally off.
+     * STARTUP: Clock synchronization occurs at startup only.
+     * ON: Clock synchronization occurs at startup and at runtime.
+     */
+    protected enum clockSyncMethod {
+        OFF, INITIAL, ON;
+    }
+    
     ////////////////////////////////////////////
     //// Private fields.
 
@@ -540,6 +556,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetTracing = true
                         }
+                    case "clock-sync": {
+                        if (param.value.id.equalsIgnoreCase('off')) {
+                            targetClockSync = clockSyncMethod.OFF
+                        } else if (param.value.id.equalsIgnoreCase('initial')) {
+                            targetClockSync = clockSyncMethod.INITIAL
+                        } else if (param.value.id.equalsIgnoreCase('on')) {
+                            targetClockSync = clockSyncMethod.ON
+                        }
+                    }
                 }
             }
         }
