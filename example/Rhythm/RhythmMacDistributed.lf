@@ -152,8 +152,7 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
     reaction(startup) -> key, note, tick {=
         // Start the sensor simulator, which starts ncurses.
         if (start_sensor_simulator(master_message, master_message_length, 16)) {
-            fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
-            exit(1);
+            error_print_and_exit("ERROR: Failed to start sensor simulator.");
         }
         
         // Register action to trigger on key press.
@@ -284,8 +283,7 @@ reactor Player(sixteenth:time(200 msec)) {
     reaction(startup) -> key, note, tick {=
         // Start the sensor simulator, which starts ncurses.
         if (start_sensor_simulator(player_message, player_message_length, 16)) {
-            fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
-            exit(1);
+            error_print_and_exit("ERROR: Failed to start sensor simulator.");
         }
         
         // Register action to trigger on key press.
@@ -352,31 +350,22 @@ reactor Player(sixteenth:time(200 msec)) {
             SET(note, emphasis);
             beeped++;
         }
-        pthread_mutex_lock(&sensor_mutex);
         if (beeped > 0) {
             if (position & self->active_emphasis) {
-                printw("!");
+                show_tick("!");
             } else {
-                printw("*");
+                show_tick("*");
             }
         } else {
-            printw(".");
+            show_tick(".");
         }
         self->count++;
         if (self->count == 16) {
             self->active_rhythm = self->rhythm;
             self->active_emphasis = self->emphasis;
             self->count = 0;
-            int term_height, term_width;
-            getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-            self->cursor++;
-            if (self->cursor >= term_height) {
-                self->cursor = 0;
-            }
-            move(self->cursor, 0);
-        }
-        refresh();
-        pthread_mutex_unlock(&sensor_mutex);
+        } 
+
         schedule(tick, self->tick_duration);
     =}
 }
@@ -433,7 +422,7 @@ reactor PlayWaveform {
             lf_play_audio_waveform(waveforms[self->waveform_id], note->value, get_logical_time());
         }
     =} deadline (100 msec) {=  // NOTE: deadline has to match BUFFER_DURATION_NS.
-        fprintf(stderr, "WARNING: Missed deadline!\n");
+        warning_print("Missed deadline!");
     =}
     
     reaction(shutdown) {=
@@ -463,9 +452,9 @@ reactor RhythmMacPlayer {
     tempo -> source.tempo;
 }
 
-federated reactor RhythmMac at 10.0.0.202 {
-    player1 = new RhythmMacMaster() at 10.0.0.202;
-    player2 = new RhythmMacPlayer() at 10.0.0.199;
+federated reactor RhythmMac at localhost {
+    player1 = new RhythmMacMaster() at localhost;
+    player2 = new RhythmMacPlayer() at localhost;
     player1.rhythm_change -> player2.rhythm_change after 20 msec;
     player1.tempo -> player2.tempo after 20 msec;
 }

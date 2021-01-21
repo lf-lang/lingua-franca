@@ -151,8 +151,7 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
         SET(note, 1.0);
         // Start the sensor simulator, which starts ncurses.
         if (start_sensor_simulator(message, message_length, 16)) {
-            fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
-            exit(1);
+            error_print_and_exit("ERROR: Failed to start sensor simulator.");
         }
         
         // Register action to trigger on key press.
@@ -288,7 +287,7 @@ reactor PlayWaveform {
             lf_play_audio_waveform(waveforms[self->waveform_id], note->value, get_logical_time());
         }
     =} deadline (10 msec) {=  // NOTE: deadline has to match BUFFER_DURATION_NS.
-        fprintf(stderr, "WARNING: Missed deadline!\n");
+        warning_print("Missed deadline!");
     =}
     
     reaction(shutdown) {=

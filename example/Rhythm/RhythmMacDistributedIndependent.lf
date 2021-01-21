@@ -287,7 +287,7 @@ reactor RhythmMacPlayer {
     source.instrument -> play.waveform;
 }
 
-federated reactor RhythmMac at 10.0.0.202 {
-    player1 = new RhythmMacPlayer() at 10.0.0.202;
-    player2 = new RhythmMacPlayer() at 10.0.0.199;
+federated reactor RhythmMac at localhost {
+    player1 = new RhythmMacPlayer() at localhost;
+    player2 = new RhythmMacPlayer() at localhost;
 }
