@@ -85,18 +85,15 @@ main reactor Rhythm(sixteenth:time(600 msec)) {
     
     reaction(startup) -> key {=
         // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator()) {
+        if (start_sensor_simulator(message, 11, 16)) {
             fprintf(stderr, "ERROR: Failed to start sensor simulator.\n");
             exit(1);
         }
         // Print sound is off message.
         int term_height, term_width;
         getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-        mvprintw(0, (term_width - 12)/2, "SOUND IS OFF");
-        refresh();
-
-        show_message(message, 11);
-        
+        info_print("SOUND IS OFF");
+         
         // Register action to trigger on key press.
         register_sensor_key('\0', key);
     =}
@@ -109,22 +106,12 @@ main reactor Rhythm(sixteenth:time(600 msec)) {
                 if (self->rhythm == 0) {
                     self->rhythm = self->rhythm | DOWNBEAT;
                 }
-                // Update the status message at the top.
-                // First, record current cursor position.
-                int y, x;
-                getyx(stdscr, y, x);
-                // Next, get window dimensions.
-                int term_height, term_width;
-                getmaxyx(stdscr, term_height, term_width);
-                // Next, print.
+                // Update the status message.
                 if (self->sound) {
-                    mvprintw(0, (term_width - 12)/2, "SOUND IS ON ");
+                    info_print("SOUND IS ON");
                 } else {
-                    mvprintw(0, (term_width - 12)/2, "SOUND IS OFF");
+                    info_print("SOUND IS OFF");
                 }
-                refresh();
-                // Finally, restore cursor position.
-                move(y, x);
                 break;
             case 'd':
                 self->rhythm = self->rhythm ^ DOWNBEAT;
@@ -165,25 +152,15 @@ main reactor Rhythm(sixteenth:time(600 msec)) {
                 beeped++;
             }
         }
-        pthread_mutex_lock(&sensor_mutex);
-        if (beeped > 0) {
-            printw("*");
-        } else {
-            printw(".");
-        }
         self->count++;
         if (self->count == 16) {
             self->active_rhythm = self->rhythm;
             self->count = 0;
-            int term_height, term_width;
-            getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-            self->cursor++;
-            if (self->cursor >= term_height) {
-                self->cursor = 0;
-            }
-            move(self->cursor, 0);
         }
-        refresh();
-        pthread_mutex_unlock(&sensor_mutex);
+        if (beeped > 0) {
+            show_tick("*");
+        } else {
+            show_tick(".");
+        }
     =}
 } 
