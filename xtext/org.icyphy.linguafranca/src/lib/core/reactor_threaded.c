@@ -135,7 +135,7 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
     // This will only occur when a federate receives a timed message with 
     // a tag that is after the stop tag
     if (_lf_is_tag_after_stop_tag(future_tag)) {
-        printf("WARNING: attempting to raise a barrier after the stop tag.\n");
+        warning_print("Attempting to raise a barrier after the stop tag.");
         future_tag = stop_tag;
     }
     tag_t current_tag = get_current_tag();
@@ -271,7 +271,7 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
     }
     // Do not wait forever
     if (proposed_tag.time == FOREVER) {
-        printf("Warning: Global tag barrier should not handle FOREVER proposed tags.\n");
+        warning_print("Global tag barrier should not handle FOREVER proposed tags.");
         return;
     }
     // Wait if the global barrier semaphore on logical time is zero
@@ -317,7 +317,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     trigger_t* trigger = _lf_action_to_trigger(action);
 
     if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
-        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
+        error_print("schedule: Invalid trigger or element size.");
         return -1;
     }
     pthread_mutex_lock(&mutex);
@@ -1122,7 +1122,7 @@ int main(int argc, char* argv[]) {
     pthread_mutex_init(&mutex, &attr);
 
     if (atexit(termination) != 0) {
-        fprintf(stderr, "WARNING: Failed to register termination function!");
+        warning_print("Failed to register termination function!");
     }
 
     if (process_args(default_argc, default_argv)
@@ -1153,8 +1153,9 @@ int main(int argc, char* argv[]) {
         tag_t grant_time = next_event_tag(start_time, 0u);
         if (grant_time.time != start_time || grant_time.microstep != 0u) {
             // This is a critical condition
-            fprintf(stderr, "Federate received a grant time earlier than start time or with an incorrect starting microstep (%lld, %u).\n", grant_time.time - start_time, grant_time.microstep);
-            exit(1);
+            error_print_and_exit("Federate received a grant time earlier than start time "
+                    "or with an incorrect starting microstep (%lld, %u).",
+                    grant_time.time - start_time, grant_time.microstep);
         }
         
         _lf_execution_started = true;
@@ -1174,9 +1175,9 @@ int main(int argc, char* argv[]) {
         }
 
         if (ret == 0) {
-            printf("---- All worker threads exited successfully.\n");
+            info_print("---- All worker threads exited successfully.");
         } else {
-            printf("Unable to successfully join worker threads: %s", strerror(ret));
+            error_print("Unable to successfully join worker threads: %s", strerror(ret));
         }
         
         free(__thread_ids);

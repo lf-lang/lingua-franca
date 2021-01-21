@@ -68,7 +68,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
         return schedule_token(action, offset, NULL);
     }
     if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
-        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
+        error_print("schedule: Invalid trigger or element size.");
         return -1;
     }
     DEBUG_PRINT("schedule_copy: Allocating memory for payload (token value): %p.", trigger);
@@ -92,7 +92,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (!fast) {
-        // printf("DEBUG: Waiting for logical time %lld.\n", logical_time_ns);    
+        DEBUG_PRINT("Waiting for logical time %lld.", logical_time_ns);
         interval_t ns_to_wait = logical_time_ns - get_physical_time();
     
         if (ns_to_wait <= 0) {
@@ -269,7 +269,7 @@ int next() {
         next_tag = stop_tag;
     }
 
-    //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_tag.time - start_time);
+    DEBUG_PRINT("Next event (elapsed) time is %lld.", next_tag.time - start_time);
     // Wait until physical time >= event.time.
     // The wait_until function will advance current_tag.time.
     if (wait_until(next_tag.time) != 0) {
@@ -351,7 +351,7 @@ int main(int argc, char* argv[]) {
         termination();
         return 0;
     } else {
-        printf("DEBUG: invoking termination.\n");
+        DEBUG_PRINT("Invoking termination.");
         termination();
         return -1;
     }
