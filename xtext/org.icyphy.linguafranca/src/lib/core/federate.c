@@ -388,7 +388,7 @@ void send_timed_message(interval_t additional_delay,
         // should be (get_logical_time(), get_microstep())
     }
 
-    if (compare_tags2(current_message_timestamp,
+    if (compare_tags_expanded(current_message_timestamp,
             current_message_microstep, stop_tag.time, stop_tag.microstep) > 0) {
         // Message tag is past the timeout time (the stop time) so it should
         // not be sent.
@@ -1914,7 +1914,7 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
 
     // If time advance has already been granted for this tag or a larger
     // tag, then return immediately.
-    if (compare_tags2(__tag.time, __tag.microstep, time, microstep) > 0) {
+    if (compare_tags_expanded(__tag.time, __tag.microstep, time, microstep) > 0) {
         return (tag_t){.time = time, .microstep = microstep};
     }
 

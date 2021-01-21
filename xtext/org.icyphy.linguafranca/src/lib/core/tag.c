@@ -115,7 +115,7 @@ int compare_tags(tag_t tag1, tag_t tag2) {
  * @param tag2
  * @return -1, 0, or 1 depending on the relation.
  */
-int compare_tags2(instant_t time1, microstep_t microstep1, instant_t time2, microstep_t microstep2) {
+int compare_tags_expanded(instant_t time1, microstep_t microstep1, instant_t time2, microstep_t microstep2) {
     if (time1 < time2) {
         return -1;
     } else if (time1 > time2) {
