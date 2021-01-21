@@ -1,0 +1,24 @@
+# @package benchmark
+name: "Fork Join (throuput)"
+params:
+  messages: 10000
+  actors: 60
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.fjthrput.ThroughputAkkaActorBenchmark"
+    run_args:
+      messages: ["-n", "<value>"]
+      actors: ["-a", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/fjthrput"
+    lf_file: "fjthrput/ThroughputBenchmarkGenerator.lf"
+    binary: "ThroughputBenchmarkGenerator"
+    gen_args:
+      actors: ["-D", "numWorkers=<value>"]
+    run_args:
+      messages: ["--numMessagesPerReactor", "<value>"]

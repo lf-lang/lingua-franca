@@ -1,0 +1,102 @@
+/**
+ * Basic benchmark from the Savina benchmark suite that is
+ * intended to measure message-passing overhead.
+ * See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
+ * This is based on https://www.scala-lang.org/old/node/54
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * Ping introduces a microstep delay using a logical action
+ * to break the causality loop.
+ * 
+ * To get a sense, some (informal) results for 1,000,000 ping-pongs
+ * on my Mac:
+ * 
+ * Unthreaded: 97 msec
+ * Threaded: 265 msec
+ * 
+ * There is no parallelism in this application, so it does not benefit from being
+ * being threaded, just some additional overhead.
+ * 
+ * These measurements are total execution time, including startup and shutdown.
+ * These are about an order of magnitude faster than anything reported in the paper.
+ * 
+ * @author Edward A. Lee
+ */
+
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D threads=1
+# -D count=10000000
+# 
+]]] */
+// [[[end]]]
+
+target C {
+    fast: true,
+    /* [[[cog
+      cog.outl(f"threads: {threads}")
+    ]]] */
+    threads: 1
+    // [[[end]]]
+};
+reactor Ping(count:int(1000000)) {
+    input receive:int;
+    output send:int;
+    state pingsLeft:int(count);
+    logical action serve;
+    reaction (startup, serve) -> send {= 
+        SET(send, self->pingsLeft--);
+    =}
+    reaction (receive) -> serve {=
+        if (self->pingsLeft > 0) {
+            schedule(serve, 0);
+        } else {
+            request_stop();
+        }
+    =}
+}
+reactor Pong(expected:int(1000000)) {
+    input receive:int;
+    output send:int;
+    state count:int(0);
+    reaction(receive) -> send {=
+        self->count++;
+        SET(send, receive->value);   
+    =}
+    reaction(shutdown) {=
+        if (self->count != self->expected) {
+            fprintf(stderr, "Pong expected to receive %d inputs, but it received %d.\n",
+                self->expected, self->count
+            );
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor PingPong {
+/* [[[cog
+  cog.outl(f"ping = new Ping(count={count});")
+  cog.outl(f"pong = new Pong(expected={count});")
+]]] */
+    ping = new Ping(count=1000000);
+    pong = new Pong(count=1000000);
+// [[[end]]]
+    ping.send -> pong.receive;
+    pong.send -> ping.receive; 
+}

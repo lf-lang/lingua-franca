@@ -67,12 +67,16 @@ Hello.lf
 HelloDistributed.lf
 HelloThreaded.lf
 HelloWorld.lf
+HelloWorldCPP.lf
+HelloWorldThreadedCPP.lf
+HelloWorldFederatedCPP.lf
 Hierarchy.lf
 Hierarchy2.lf
 Import.lf
 ImportComposition.lf
 ImportThreaded.lf
 ImportRenamed.lf
+InheritanceAction.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf

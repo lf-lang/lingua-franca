@@ -56,14 +56,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "wave_file_reader.h" // Defines lf_waveform_t.
 #include "core/reactor.h"     // Defines instant_t.
 
-    // Constants for playback. These are all coupled.
-    #define SAMPLE_RATE 44100
-    #define AUDIO_BUFFER_SIZE  4410  // 1/10 second, 100 msec
-    #define BUFFER_DURATION_NS 100000000LL;
-    
-    #define MAX_AMPLITUDE 32765
-    
-    #define NUM_NOTES 8  // Maximum number of notes that can play simultaneously.
+// Constants for playback. These are all coupled.
+#define SAMPLE_RATE 44100
+#define AUDIO_BUFFER_SIZE  4410  // 1/10 second, 100 msec
+#define BUFFER_DURATION_NS 100000000LL
+
+#define MAX_AMPLITUDE 32765
+
+#define NUM_NOTES 8  // Maximum number of notes that can play simultaneously.
 
 /**
  * Start an audio loop thread that becomes ready to receive
