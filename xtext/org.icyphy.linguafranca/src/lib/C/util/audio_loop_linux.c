@@ -97,6 +97,8 @@ void add_to_sound(int index_offset, double value) {
  * this grabs the mutex lock, copies the buffer that the main program 
  * has been filling into the destination buffer, clears the next
  * buffer, and updates the start time of the next buffer.
+ * @param playback_handle Handle for the audio interface
+ * @param buffer_ref Reference to the buffer of size AUDIO_BUFFER_SIZE to be copied to the hardware
  */
 int callback (snd_pcm_t *playback_handle,  int16_t buf_ref[]) {
     int error_number;
@@ -104,8 +106,7 @@ int callback (snd_pcm_t *playback_handle,  int16_t buf_ref[]) {
 
     // next_buffer = buf_ref;
     next_buffer = buf_ref;
-    // Clear out the next buffer.
-    memset(next_buffer, 0, AUDIO_BUFFER_SIZE * sizeof(int16_t));
+
     // Clear out the next buffer.
     next_buffer_start_time += BUFFER_DURATION_NS;
     
@@ -296,9 +297,12 @@ void* run_audio_loop(void* ignored) {
         } else {
             head = 0;
         }
+        // Clear out the next buffer.
+        memset(&(buffer[head]), 0, AUDIO_BUFFER_SIZE * sizeof(int16_t));
+        next_buffer = &(buffer[head]);
     }
 
-    snd_pcm_close (playback_handle);
+    snd_pcm_close(playback_handle);
 
 
     return NULL;
@@ -392,9 +396,7 @@ int lf_play_audio_waveform(lf_waveform_t* waveform, float emphasis, instant_t st
     
     if (waveform == NULL) {
         // Waveform ID is out of range. Just emit a tick.
-        for (int i = index_offset; i < AUDIO_BUFFER_SIZE; i++) {
-            add_to_sound(i, MAX_AMPLITUDE * emphasis);
-        }
+        add_to_sound(index_offset, MAX_AMPLITUDE * emphasis);
     } else {
         int note_to_use = note_counter++; // Increment so that the next note uses a new slot.
         if (note_counter >= NUM_NOTES) {
