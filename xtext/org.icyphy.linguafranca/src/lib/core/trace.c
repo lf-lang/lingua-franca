@@ -324,20 +324,20 @@ void start_trace(char* filename) {
     // Allocate an array of arrays of trace records, one per worker thread plus one
     // for the 0 thread (the main thread, or in an unthreaded program, the only thread).
     _lf_number_of_trace_buffers = _lf_number_of_threads + 1;
-    _lf_trace_buffer = malloc(sizeof(trace_record_t*) * _lf_number_of_trace_buffers);
+    _lf_trace_buffer = (trace_record_t**)malloc(sizeof(trace_record_t*) * _lf_number_of_trace_buffers);
     for (int i = 0; i < _lf_number_of_trace_buffers; i++) {
-        _lf_trace_buffer[i] = malloc(sizeof(trace_record_t) * TRACE_BUFFER_CAPACITY);
+        _lf_trace_buffer[i] = (trace_record_t*)malloc(sizeof(trace_record_t) * TRACE_BUFFER_CAPACITY);
     }
     // Array of counters that track the size of each trace record (per thread).
-    _lf_trace_buffer_size = calloc(sizeof(int), _lf_number_of_trace_buffers);
+    _lf_trace_buffer_size = (int*)calloc(sizeof(int), _lf_number_of_trace_buffers);
 
     // Allocate memory for double buffering.
-    _lf_trace_buffer_to_flush = malloc(sizeof(trace_record_t*) * _lf_number_of_trace_buffers);
+    _lf_trace_buffer_to_flush = (trace_record_t**)malloc(sizeof(trace_record_t*) * _lf_number_of_trace_buffers);
     for (int i = 0; i < _lf_number_of_trace_buffers; i++) {
-        _lf_trace_buffer_to_flush[i] = malloc(sizeof(trace_record_t) * TRACE_BUFFER_CAPACITY);
+        _lf_trace_buffer_to_flush[i] = (trace_record_t*)malloc(sizeof(trace_record_t) * TRACE_BUFFER_CAPACITY);
     }
     // Array of counters that track the size of each trace record (per thread).
-    _lf_trace_buffer_size_to_flush = calloc(sizeof(int), _lf_number_of_trace_buffers);
+    _lf_trace_buffer_size_to_flush = (int*)calloc(sizeof(int), _lf_number_of_trace_buffers);
 
     pthread_create(&_lf_flush_trace_thread, NULL, flush_trace, NULL);
 

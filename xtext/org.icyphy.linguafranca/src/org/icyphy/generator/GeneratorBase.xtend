@@ -82,6 +82,7 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.Delay
 
 /**
  * Generator base class for shared code between code generators.
@@ -407,7 +408,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
       * The type of the bank index, which must be an integer in the target language
       */
      protected String targetBankIndexType = "int"
+     
+     /**
+      * The clock sync target parameter for federated programs.
+      */
+     protected clockSyncMethod targetClockSync = clockSyncMethod.INITIAL
 
+
+    /**
+     * The clock synchronization technique that is used.
+     * OFF: The clock synchronization is universally off.
+     * STARTUP: Clock synchronization occurs at startup only.
+     * ON: Clock synchronization occurs at startup and at runtime.
+     */
+    protected enum clockSyncMethod {
+        OFF, INITIAL, ON;
+    }
+    
     ////////////////////////////////////////////
     //// Private fields.
 
@@ -539,6 +556,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetTracing = true
                         }
+                    case "clock-sync": {
+                        if (param.value.id.equalsIgnoreCase('off')) {
+                            targetClockSync = clockSyncMethod.OFF
+                        } else if (param.value.id.equalsIgnoreCase('initial')) {
+                            targetClockSync = clockSyncMethod.INITIAL
+                        } else if (param.value.id.equalsIgnoreCase('on')) {
+                            targetClockSync = clockSyncMethod.ON
+                        }
+                    }
                 }
             }
         }
@@ -865,10 +891,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     // When that is done, they will need to be in scope here.
                     val delays = federate.dependsOn.get(upstreamFederate)
                     if (delays !== null) {
-                        for (value : delays) {
+                        for (delay : delays) {
                             pr(rtiCode, '''
-                                if (federates[«federate.id»].upstream_delay[«count»] < «value.getRTITime») {
-                                    federates[«federate.id»].upstream_delay[«count»] = «value.getRTITime»;
+                                if (federates[«federate.id»].upstream_delay[«count»] < «delay.getRTITime») {
+                                    federates[«federate.id»].upstream_delay[«count»] = «delay.getRTITime»;
                                 }
                             ''')
                         }
@@ -1252,7 +1278,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
-        Value delay
+        Delay delay
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -2045,15 +2071,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param v A time AST node
      * @return An RTI-compatible (ie. C target) time string
      */
-    protected def getRTITime(Value v) {  
+    protected def getRTITime(Delay d) {  
         var TimeValue time 
-        if (v.time !== null) {
-            time = new TimeValue(v.time.interval, v.time.unit)
-        } else if (v.isZero) {
-            time = new TimeValue(0, TimeUnit.NONE)
-        } else {
-            return v.toText
+        if (d.parameter !== null) {
+            return d.toText
         }
+        
+        time = new TimeValue(d.interval, d.unit)
+        
         if (time.unit != TimeUnit.NONE) {
             return time.unit.name() + '(' + time.time + ')'
         } else {
@@ -2189,7 +2214,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     if (leftFederate !== rightFederate && !connection.physical && (!targetCoordination.equals("decentralized"))) {
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
-                            dependsOn = new LinkedHashSet<Value>()
+                            dependsOn = new LinkedHashSet<Delay>()
                             rightFederate.dependsOn.put(leftFederate, dependsOn)
                         }
                         if (connection.delay !== null) {
@@ -2197,7 +2222,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         }
                         var sendsTo = leftFederate.sendsTo.get(rightFederate)
                         if (sendsTo === null) {
-                            sendsTo = new LinkedHashSet<Value>()
+                            sendsTo = new LinkedHashSet<Delay>()
                             leftFederate.sendsTo.put(rightFederate, sendsTo)
                         }
                         if (connection.delay !== null) {
@@ -2482,6 +2507,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
         return v.toText 
     }
+    
+    protected def getTargetTime(Delay d) {   
+        if (d.parameter !== null) {
+            return d.toText
+        } else {
+            return new TimeValue(0, d.unit).timeInTargetLanguage
+        }
+    }    
     
     /**
      * Write the source code to file.

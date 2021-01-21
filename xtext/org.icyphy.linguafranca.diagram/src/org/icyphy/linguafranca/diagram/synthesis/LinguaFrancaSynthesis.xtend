@@ -360,10 +360,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// Create ports
 			val inputPorts = <Input, KPort>newHashMap
 			val outputPorts = <Output, KPort>newHashMap
-			for (input : reactor.inputs.reverseView) {
+			for (input : reactor.allInputs.reverseView) {
 				inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), instance.isBank()))
 			}
-			for (output : reactor.outputs) {
+			for (output : reactor.allOutputs) {
 				outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), instance.isBank()))
 			}
 			// Mark ports
@@ -553,15 +553,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Create reactions
-		for (reaction : reactor.reactions.reverseView) {
-			val idx = reactor.reactions.indexOf(reaction)
+		for (reaction : reactor.allReactions.reverseView) {
+			val idx = reactor.allReactions.indexOf(reaction)
 			val node = createNode().associateWith(reaction)
 			nodes += node
 			nodes += reaction.createUserComments(node)
 			reactionNodes.put(reaction, node)
 						
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
-			node.setLayoutOption(CoreOptions.PRIORITY, (reactor.reactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
+			node.setLayoutOption(CoreOptions.PRIORITY, (reactor.allReactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
 			node.setLayoutOption(LayeredOptions.POSITION, new KVector(0, idx)) // try order reactions vertically if in one layer
 			
 			node.addReactionFigure(reaction)
@@ -774,9 +774,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		
 		// Add reaction order edges (add last to have them on top of other edges)
-		if (reactor.reactions.size > 1) {
-			var prevNode = reactionNodes.get(reactor.reactions.head)
-			for (node : reactor.reactions.drop(1).map[reactionNodes.get(it)]) {
+		if (reactor.allReactions.size > 1) {
+			var prevNode = reactionNodes.get(reactor.allReactions.head)
+			for (node : reactor.allReactions.drop(1).map[reactionNodes.get(it)]) {
 				val edge = createOrderEdge()
 				edge.source = prevNode
 				edge.target = node

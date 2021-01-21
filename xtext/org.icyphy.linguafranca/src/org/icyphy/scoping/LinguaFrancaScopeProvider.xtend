@@ -213,11 +213,11 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
                         if (type === RefType.TRIGGER ||
                             type === RefType.SOURCE || type === RefType.CLEFT) {
                             return Scopes.scopeFor(
-                                defn.outputs)
+                                defn.allOutputs)
                         } else if (type === RefType.EFFECT ||
                             type === RefType.DEADLINE ||
                             type === RefType.CRIGHT) {
-                            return Scopes.scopeFor(defn.inputs)
+                            return Scopes.scopeFor(defn.allInputs)
                         }
                     }
                 }
@@ -225,22 +225,22 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
             } else { // Resolve local reference
                 switch (type) {
                     case RefType.TRIGGER: {
-                        candidates.addAll(reactor.inputs)
-                        candidates.addAll(reactor.actions)
-                        candidates.addAll(reactor.timers)
+                        candidates.addAll(reactor.allInputs)
+                        candidates.addAll(reactor.allActions)
+                        candidates.addAll(reactor.allTimers)
                     }
                     case RefType.SOURCE:
                         return super.getScope(variable, reference)
                     case RefType.EFFECT: {
-                        candidates.addAll(reactor.outputs)
-                        candidates.addAll(reactor.actions)
+                        candidates.addAll(reactor.allOutputs)
+                        candidates.addAll(reactor.allActions)
                     }
                     case RefType.DEADLINE:
-                        return Scopes.scopeFor(reactor.inputs)
+                        return Scopes.scopeFor(reactor.allInputs)
                     case RefType.CLEFT:
-                        return Scopes.scopeFor(reactor.inputs)
+                        return Scopes.scopeFor(reactor.allInputs)
                     case RefType.CRIGHT:
-                        return Scopes.scopeFor(reactor.outputs)
+                        return Scopes.scopeFor(reactor.allOutputs)
                     default: {
                     }
                 }
