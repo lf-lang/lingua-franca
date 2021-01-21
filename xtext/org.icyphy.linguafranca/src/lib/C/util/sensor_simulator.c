@@ -112,6 +112,7 @@ void* read_input(void* ignored) {
  * End ncurses control of the terminal.
  */
 void end_ncurses() {
+    register_print_function(NULL);
     endwin();
 }
 
