@@ -27,7 +27,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.generator
 
 import java.util.LinkedHashSet
-import java.util.Set
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Port
@@ -75,8 +74,8 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     var actionInstance = parent.getActionInstance(
                         trigger.variable as Action)
                     this.triggers.add(actionInstance)
-//                    actionInstance.dependentReactions.add(this)
-//                    this.dependsOnActions.add(actionInstance)
+                    actionInstance.dependentReactions.add(this)
+                    this.sources.add(actionInstance)
                 } else if (trigger.variable instanceof Timer) {
                     var timerInstance = parent.lookupTimerInstance(
                         trigger.variable as Timer)
@@ -109,12 +108,11 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     portInstance.dependsOnReactions.add(this)
                 }
             } else {
-                // FIXME: Unused.
                 // Effect must be an Action.
-//                var actionInstance = parent.getActionInstance(
-//                    effect.variable as Action)
-//                this.dependentActions.add(actionInstance)
-//                actionInstance.dependsOnReactions.add(this)
+                var actionInstance = parent.getActionInstance(
+                    effect.variable as Action)
+                this.effects.add(actionInstance)
+                actionInstance.dependsOnReactions.add(this)
             }
         }
         // Create a deadline instance if one has been defined.
@@ -132,29 +130,24 @@ class ReactionInstance extends NamedInstance<Reaction> {
      */
     public long chainID = 0L;
 
-//    /** The actions that this reaction triggers. */
-//    public var dependentActions = new LinkedHashSet<ActionInstance>();
+    /**
+     * The ports or actions that this reaction may write to.
+     */
+    public var effects = new LinkedHashSet<TriggerInstance<Variable>>();
 
-    /** The ports that this reaction may write to. */
-    public var effects = new LinkedHashSet<PortInstance>();
-// FIXME: should we add actions to sources and effect and filter them out?
+    /**
+     * The ports, actions, or timers that this reaction is triggered by or uses.
+     */
+    public var sources = new LinkedHashSet<TriggerInstance<Variable>>();
 
-//    /** The reactions that depend on this reaction. */
-//    public var dependentReactions = new LinkedHashSet<ReactionInstance>();
-
-//    /** The actions that this reaction is triggered by. */
-//    public var dependsOnActions = new LinkedHashSet<ActionInstance>();
-
-    /** The ports that this reaction is triggered by or uses. */
-    public var sources = new LinkedHashSet<PortInstance>();
-
-//    /** The reactions that this reaction depends on. */
-//    public var dependsOnReactions = new LinkedHashSet<ReactionInstance>();
-
-    /** Deadline for this reaction instance, if declared.*/
+    /**
+     * Deadline for this reaction instance, if declared.
+     */
     public DeadlineInstance declaredDeadline
 
-    /** Inferred deadline. Defaults to the maximum long value. */
+    /**
+     * Inferred deadline. Defaults to the maximum long value.
+     */
     public var deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NSEC)
 
     /**
@@ -215,7 +208,9 @@ class ReactionInstance extends NamedInstance<Reaction> {
         parent.main
     }
 
-    /** Return a descriptive string. */
+    /**
+     * Return a descriptive string.
+     */
     override toString() {
         getName + " of " + parent.getFullName
     }

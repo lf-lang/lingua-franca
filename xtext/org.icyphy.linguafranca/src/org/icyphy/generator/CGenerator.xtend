@@ -2403,7 +2403,7 @@ class CGenerator extends GeneratorBase {
                         «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = NULL;
                     ''')
                 }
-                for (port : reaction.effects) {
+                for (port : reaction.effects.filter(PortInstance)) {
                     // The port to which the reaction writes may have dependent
                     // reactions in the container. If so, we list that port here.
                     var portsWithDependentReactions = new LinkedHashSet<PortInstance>()
@@ -2564,7 +2564,7 @@ class CGenerator extends GeneratorBase {
                 instance.definition.reactorClass.toDefinition,
                 reaction.definition
             )) {
-                for (port : reaction.effects) {
+                for (port : reaction.effects.filter(PortInstance)) {
                     if (port.definition instanceof Input) {
                         // This reaction is sending to an input. Must be
                         // the input of a contained reactor in the federate.
@@ -3254,7 +3254,7 @@ class CGenerator extends GeneratorBase {
                 // Handle reactions that produce outputs sent to inputs
                 // of contained reactors.  An input port can have only
                 // one source, so we can immediately generate the initialization.
-                for (port : reaction.effects) {
+                for (port : reaction.effects.filter(PortInstance)) {
                     if (port.isInput) {
                         var numDestinations = 0
                         if(!port.dependentReactions.isEmpty) numDestinations = 1
@@ -4295,7 +4295,7 @@ class CGenerator extends GeneratorBase {
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
         for (reaction : instance.reactions) {
-            for (port : reaction.effects) {
+            for (port : reaction.effects.filter(PortInstance)) {
                 if (port.definition instanceof Input) {
                     // This reaction is sending to an input. Must be
                     // the input of a contained reactor.
@@ -4316,7 +4316,7 @@ class CGenerator extends GeneratorBase {
                     }
                 }
             }
-            for (port : reaction.sources) {
+            for (port : reaction.sources.filter(PortInstance)) {
                 if (port.definition instanceof Output) {
                     // This reaction is receiving data from an output
                     // of a contained reactor. If the contained reactor is
