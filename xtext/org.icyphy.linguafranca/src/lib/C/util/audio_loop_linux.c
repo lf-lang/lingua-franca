@@ -106,6 +106,7 @@ int callback (snd_pcm_t *playback_handle,  int16_t buf_ref[]) {
 
     // next_buffer = buf_ref;
     next_buffer = buf_ref;
+    // memset(next_buffer, 0, AUDIO_BUFFER_SIZE * sizeof(int16_t));
 
     // Clear out the next buffer.
     next_buffer_start_time += BUFFER_DURATION_NS;
