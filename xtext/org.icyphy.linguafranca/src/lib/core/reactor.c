@@ -33,6 +33,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "reactor_common.c"
+#include <signal.h> // To trap ctrl-c and invoke termination().
 //#include <assert.h>
 
 /**
@@ -334,6 +335,15 @@ int main(int argc, char* argv[]) {
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
+
+        if (atexit(termination) != 0) {
+            warning_print("Failed to register termination function!");
+        }
+        // The above handles only "normal" termination (via a call to exit).
+        // As a consequence, we need to also trap ctrl-C, which issues a SIGINT,
+        // and cause it to call exit.
+        signal(SIGINT, exit);
+
         initialize();
         _lf_execution_started = true;
         __trigger_startup_reactions();
