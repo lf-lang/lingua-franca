@@ -240,7 +240,7 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         refresh();         // Not documented, but needed?
 
         if (atexit(end_ncurses) != 0) {
-            fprintf(stderr, "WARNING: sensor_simulator: Failed to register end_ncurses function!");
+            warning_print("sensor_simulator: Failed to register end_ncurses function!");
         }
 
         _lf_sensor_default_window = stdscr;
