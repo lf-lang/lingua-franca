@@ -345,13 +345,13 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             
             // Reactions that depend on a port that this reaction writes to
             // also, by transitivity, depend on this reaction instance.
-            reaction.effects.forEach [ effect |
+            reaction.effects.filter(PortInstance).forEach [ effect |
                 addDownstreamReactions(effect, reaction)
             ]
             
             // Reactions that write to such a port are also reactions that
             // that this reaction depends on, by transitivity.
-            reaction.sources.forEach [ source |
+            reaction.sources.filter(PortInstance).forEach [ source |
                 addUpstreamReactions(source, reaction)
             ]
             // If this is not an unordered reaction, then create a dependency
