@@ -162,7 +162,6 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     output[numConsumers] outConsumers:message_t;
     
     reaction(startup) {=
-        printf("startup reaction is invoked.\n");
         // init local state
         self->adjustedBufferSize = self->bufferSize-self->numProducers;
         self->availableProducers = create_fifo(self->numProducers);
@@ -171,8 +170,6 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(produce) -> outProducers {=
-        printf("produce reaction is invoked.\n");
-        
         while(size(self->pendingData) < self->adjustedBufferSize) { // FIXME: Why?            
             if(is_empty(self->availableProducers)) {
                 printf("Ran out of available producers.\n");
@@ -188,7 +185,6 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(consume) -> outConsumers, outProducers {=
-        printf("consume reaction is not invoked.\n");
         
         if(self->numTerminatedProducers == self->numProducers &&
             size(self->availableConsumers) == self->numConsumers) {
@@ -220,8 +216,6 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(inStart) -> produce {=
-        printf("inStart reaction is invoked.\n");
-        
         // reset local state
         clear(self->availableProducers);
         clear(self->availableConsumers);
@@ -243,7 +237,6 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(inConsumers) -> consume {=
-        printf("inConsumers reaction is not invoked.\n");
         for (int i = 0; i < inConsumers_width; i++) {
             if (inConsumers[i]->is_present) {
                 if(inConsumers[i]->value.type == ConsumerAvailableMsg) {
@@ -257,7 +250,6 @@ reactor ManagerReactor(bufferSize:size_t(50), numProducers:size_t(40), numConsum
     =}
     
     reaction(inProducers) -> produce, consume, outFinished {=
-        printf("inProducers reaction is not invoked.\n");
         for(int i = 0; i < inProducers_width; i++) {
             if(inProducers[i]->is_present) {
                 if (inProducers[i]->value.type == DataItemMsg) {
@@ -289,9 +281,7 @@ reactor ProducerReactor(numItemsToProduce:int(1000), prodCost:int(25)) {
     output outManager:message_t;
     
     reaction(inManager) -> outManager {=
-        printf("Producer inManager reaction is not invoked.\n");
-        
-        if(inManager->value.type == ProduceDataMsg) {
+        if (inManager->value.type == ProduceDataMsg) {
             if(self->itemsProduced == self->numItemsToProduce) {
                 message_t tmp = {ProducerExitMsg, 0.0};
                 SET(outManager, tmp);
@@ -321,10 +311,8 @@ reactor ConsumerReactor(consCost:int(25)) {
     input inManager:message_t;
     output outManager:message_t;
     
-    reaction(inManager) -> outManager {=
-        printf("Consumer inManager reaction is not invoked.\n");
-        
-        if(inManager->value.type == DataItemMsg) {
+    reaction(inManager) -> outManager {=        
+        if (inManager->value.type == DataItemMsg) {
             message_content_t dataToConsume =  inManager->value.data;
             self->consItem = processItem(self->consItem + dataToConsume, self->consCost);
             message_t tmp = {ConsumerAvailableMsg, 0.0};
