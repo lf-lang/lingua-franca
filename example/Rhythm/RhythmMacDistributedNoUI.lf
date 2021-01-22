@@ -23,7 +23,13 @@ target C {
 };
 preamble {= 
     #include "wave_file_reader.c"
+    #if __APPLE__
     #include "audio_loop_mac.c"
+    #elif __linux__
+    #include "audio_loop_linux.c"
+    #else
+    #error "Platform not supported."
+    #endif
     
     /////////////////////////////
     // Configuration of the audio.

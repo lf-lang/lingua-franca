@@ -34,7 +34,7 @@ See sensor_simulator.h.
 #include <ncurses.h>
 #include "sensor_simulator.h"
 #include "ctarget.h"
-#include "util.h"
+#include "core/util.h"
 
 pthread_t _lf_sensor_thread_id;
 int _lf_sensor_thread_created = 0;
