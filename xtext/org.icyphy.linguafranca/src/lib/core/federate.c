@@ -646,7 +646,7 @@ void connect_to_federate(ushort remote_federate_id) {
                 result = -1;
                 continue;
             } else {
-                info_print("Connected to federate %d, port %d.", remote_federate_id, port);
+                info_print("Connected to federate %d, port %d.\n", remote_federate_id, port);
             }
         }
     }
@@ -790,7 +790,7 @@ void connect_to_rti(char* hostname, int port) {
                 error_print_and_exit("RTI Rejected FED_ID message with response (see rti.h): %d."
                         " Error code: %d. Federate quits.", response, cause);
             }
-            info_print("Connected to RTI at %s:%d.", hostname, port);
+            info_print("Connected to RTI at %s:%d.\n", hostname, port);
 
             // Wait for a physical time.
             read_from_socket(_lf_rti_socket, 1, &response, "Failed to read physical time RTI.");
@@ -837,7 +837,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     }
 
     instant_t timestamp = extract_ll(&(buffer[1]));
-    info_print("Starting timestamp is: %lld.", timestamp);
+    info_print("Starting timestamp is: %lld.\n", timestamp);
 
     return timestamp;
 }
@@ -898,7 +898,7 @@ handle_t schedule_message_received_from_network_already_locked(
     // to the schedule function.
     interval_t extra_delay = tag.time - current_logical_time;
 
-    if (!_lf_execution_started && (extra_delay == 0)) {
+    if (!_lf_execution_started && !message_tag_is_in_the_future) {
         // If execution has not started yet,
         // there could be a special case where a message has
         // arrived on a logical connection with a tag
