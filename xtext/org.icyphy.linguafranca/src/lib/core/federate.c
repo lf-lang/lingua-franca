@@ -189,7 +189,7 @@ void create_server(int specified_port) {
         // Use the default starting port.
         port = STARTING_PORT;
     }
-    DEBUG_PRINT("Attempting to create a socket server on port %d.", port);
+    DEBUG_PRINT("Creating a socket server on port %d.", port);
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
     int socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_descriptor < 0) {
@@ -233,7 +233,7 @@ void create_server(int specified_port) {
                                  Consider leaving the port unspecified");
         }
     }
-    DEBUG_PRINT("Server started using port %d.", port);
+    LOG_PRINT("Server for communicating with other federates started using port %d.", port);
 
     // Enable listening for socket connections.
     // The second argument is the maximum number of queued socket requests,
@@ -297,7 +297,7 @@ void send_message(int socket,
     // The next four bytes are the message length.
     encode_int(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
 
-    DEBUG_PRINT("Sending message to federate %d.", federate);
+    LOG_PRINT("Sending untimed message to federate %d.", federate);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int);
@@ -398,7 +398,7 @@ void send_timed_message(interval_t additional_delay,
     encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     // Next 4 bytes are the microstep.
     encode_int(current_message_microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
-    DEBUG_PRINT("Sending message with tag (%lld, %u) to federate %d.",
+    LOG_PRINT("Sending message with tag (%lld, %u) to federate %d.",
             current_message_timestamp - start_time, current_message_microstep, federate);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
@@ -416,7 +416,7 @@ void send_timed_message(interval_t additional_delay,
  * Send a time to the RTI.
  * This is not synchronized.
  * It assumes the caller is.
- * @param type The message type (NEXT_EVENT_TIME or LOGICAL_TIME_COMPLETE).
+ * @param type The message type (NEXT_EVENT_TIME or LOGICAL_TAG_COMPLETE).
  * @param time The time of this federate's next event.
  */
 void send_tag(unsigned char type, instant_t time, microstep_t microstep) {
@@ -450,7 +450,7 @@ void* handle_p2p_connections_from_federates(void* ignored) {
                         "Federate %d will not accept connections anymore.");
             return NULL;
         }
-        DEBUG_PRINT("Accepted new connection from remote federate.");
+        LOG_PRINT("Accepted new connection from remote federate.");
 
         size_t header_length = 1 + sizeof(ushort) + 1;
         unsigned char buffer[header_length];
@@ -519,12 +519,12 @@ void* handle_p2p_connections_from_federates(void* ignored) {
         received_federates++;
     }
 
-    DEBUG_PRINT("All remote federates are connected.");
+    LOG_PRINT("All remote federates are connected.");
 
     void* thread_exit_status;
     for (int i = 0; i < _lf_number_of_inbound_p2p_connections; i++) {
         pthread_join(thread_ids[i], &thread_exit_status);
-        DEBUG_PRINT("Thread listening for incoming P2P messages exited.");
+        LOG_PRINT("Thread listening for incoming messages from other federates exited.");
     }
     return NULL;
 }
@@ -557,7 +557,7 @@ void connect_to_federate(ushort remote_federate_id) {
         // NOTE: Sending messages in little endian.
         encode_ushort(remote_federate_id, &(buffer[1]));
 
-        // debug_print("Sending address query for federate %d.\n", remote_federate_id);
+        DEBUG_PRINT("Sending address query for federate %d.", remote_federate_id);
 
         write_to_socket_errexit(_lf_rti_socket_TCP, sizeof(ushort) + 1, buffer,
                 "Failed to send address query for federate %d to RTI.",
@@ -601,7 +601,8 @@ void connect_to_federate(ushort remote_federate_id) {
     // subdue the overhead caused by inet_ntop().
     char hostname[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &host_ip_addr, hostname, INET_ADDRSTRLEN);
-    DEBUG_PRINT("Received address %s port %d for federate %d from RTI.", hostname, port, remote_federate_id);
+    LOG_PRINT("Received address %s port %d for federate %d from RTI.",
+            hostname, port, remote_federate_id);
 #endif
 
     while (result < 0) {
@@ -842,7 +843,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // For the AVG algorithm, history is a running average and can be directly
         // applied                                                 
         _lf_global_physical_clock_offset += _lf_rti_socket_stat.history;
-        DEBUG_PRINT("Clock sync:"
+        LOG_PRINT("Clock sync:"
                     " New offset: %lld."
                     " Round trip delay to RTI: %lld."
                     " Local round trip delay: %lld."
@@ -874,7 +875,7 @@ void connect_to_rti(char* hostname, int port) {
     // _lf_global_test_physical_clock_offset = (_lf_my_fed_id + 1) * MSEC(200);
     // DEBUG_PRINT("Clock sync: Set clock offset for testing to %lld.", _lf_global_test_physical_clock_offset);
 
-    DEBUG_PRINT("Attempting to connect to the RTI.");
+    LOG_PRINT("Connecting to the RTI.");
 
     // Repeatedly try to connect, one attempt every 2 seconds, until
     // either the program is killed, the sleep is interrupted,
@@ -957,7 +958,7 @@ void connect_to_rti(char* hostname, int port) {
             // Notify the RTI of the ID of this federate and its federation.
             unsigned char buffer[4];
 
-            DEBUG_PRINT("Connected to an RTI. Sending federation ID for authentication.");
+            LOG_PRINT("Connected to an RTI. Sending federation ID for authentication.");
 
             // Send the message type first.
             buffer[0] = FED_ID;
@@ -1000,7 +1001,7 @@ void connect_to_rti(char* hostname, int port) {
                 error_print_and_exit("RTI Rejected FED_ID message with response (see rti.h): "
                         "%d. Error code: %d. Federate quits.\n", response, cause);
             } else if (response == ACK) {
-                DEBUG_PRINT("Federate %d received ACK from RTI.", _lf_my_fed_id);
+                LOG_PRINT("Received acknowledgment from the RTI.");
 #ifdef _LF_CLOCK_SYNC_ON
                 // Initialize the UDP socket
                 _lf_rti_socket_UDP = socket(AF_INET, SOCK_DGRAM, 0);
@@ -1100,7 +1101,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
 
     instant_t timestamp = extract_ll(&(buffer[1]));
     info_print("Starting timestamp is: %lld.", timestamp);
-    DEBUG_PRINT("Current physical time is: %lld.", get_physical_time());
+    LOG_PRINT("Current physical time is: %lld.", get_physical_time());
 
     return timestamp;
 }
@@ -1253,7 +1254,7 @@ void handle_message(int socket, unsigned char* buffer) {
         // FIXME: Need better error handling?
         error_print_and_exit("Failed to read message body.");
     }
-    DEBUG_PRINT("Message received by federate: %s. Length: %d.", message_contents, length);
+    LOG_PRINT("Message received by federate: %s. Length: %d.", message_contents, length);
 
     DEBUG_PRINT("Calling schedule.");
     _lf_schedule_value(&action, 0, message_contents, length);
@@ -1312,7 +1313,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // the tag to freeze at the current level.
     _lf_increment_global_tag_barrier(tag);
 #endif
-    DEBUG_PRINT("Message tag: (%lld, %u), Current tag: (%lld, %u).", tag.time - start_time, tag.microstep, get_elapsed_logical_time(), get_microstep());
+    LOG_PRINT("Received message with tag: (%lld, %u), Current tag: (%lld, %u).", tag.time - start_time, tag.microstep, get_elapsed_logical_time(), get_microstep());
 
     // Read the payload.
     // Allocate memory for the message contents.
@@ -1385,7 +1386,7 @@ void handle_tag_advance_grant() {
     __tag.time = extract_ll(buffer);
     __tag.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     __tag_pending = false;
-    DEBUG_PRINT("Received TAG (%lld, %u).", __tag.time - start_time, __tag.microstep);
+    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", __tag.time - start_time, __tag.microstep);
     // Notify everything that is blocked.
     pthread_cond_broadcast(&event_q_changed);
     pthread_mutex_unlock(&mutex);
@@ -1412,7 +1413,7 @@ void _lf_fd_send_stop_request_to_rti() {
     if (federate_has_already_sent_a_stop_request_to_rti == true) {
         return;
     }
-    DEBUG_PRINT("Requesting a whole program stop.");
+    LOG_PRINT("Requesting the whole program to stop.");
     // Raise a logical time barrier at the current time
     _lf_increment_global_tag_barrier_already_locked(current_tag);
     // Send a stop request with the current tag to the RTI
@@ -1449,7 +1450,7 @@ void handle_stop_granted_message() {
 
     tag_t received_stop_tag;
     received_stop_tag.time = extract_ll(buffer);
-    DEBUG_PRINT("Received from RTI a STOP_GRANTED message with time %lld.\n",
+    LOG_PRINT("Received from RTI a STOP_GRANTED message with elapsed time %lld.\n",
             received_stop_tag.time - start_time);
     // Deduce the microstep
     if (received_stop_tag.time == current_tag.time) {
@@ -1504,8 +1505,8 @@ void handle_stop_request_message() {
     }
 
     instant_t stop_time = extract_ll(buffer); // Note: ignoring the payload of the incoming stop request from the RTI
-    DEBUG_PRINT("Federate %d received from RTI a STOP_REQUEST message with time %lld.",
-            _lf_my_fed_id, stop_time - start_time);
+    LOG_PRINT("Received from RTI a STOP_REQUEST message with time %lld.",
+             stop_time - start_time);
 
     unsigned char outgoing_buffer[1 + sizeof(instant_t)];
     outgoing_buffer[0] = STOP_REQUEST_REPLY;
@@ -1541,7 +1542,7 @@ void* listen_to_federates(void* fed_id_ptr) {
 
     ushort fed_id = *((ushort*)fed_id_ptr);
 
-    DEBUG_PRINT("Listening to federate %d.", fed_id);
+    LOG_PRINT("Listening to federate %d.", fed_id);
 
     int socket_id = _lf_federate_sockets_for_inbound_p2p_connections[fed_id];
 
@@ -1570,11 +1571,11 @@ void* listen_to_federates(void* fed_id_ptr) {
         }
         switch (buffer[0]) {
             case P2P_MESSAGE:
-                DEBUG_PRINT("Handling p2p message from federate %d.", fed_id);
+                LOG_PRINT("Received untimed message from federate %d.", fed_id);
                 handle_message(socket_id, buffer + 1);
                 break;
             case P2P_TIMED_MESSAGE:
-                DEBUG_PRINT("Handling timed p2p message from federate %d.", fed_id);
+                LOG_PRINT("Received timed message from federate %d.", fed_id);
                 handle_timed_message(socket_id, buffer + 1);
                 break;
             default:
@@ -1742,7 +1743,7 @@ void* listen_to_rti_TCP(void* args) {
  * error that causes the federate to exit.
  */
 void synchronize_initial_physical_time_with_rti(){
-    DEBUG_PRINT("Federate %d waiting for initial clock synchronization messages from the RTI.", _lf_my_fed_id);
+    DEBUG_PRINT("Waiting for initial clock synchronization messages from the RTI.");
 
     size_t message_size = 1 + sizeof(instant_t);
     unsigned char buffer[message_size];
@@ -1781,7 +1782,7 @@ void synchronize_initial_physical_time_with_rti(){
         handle_T4_clock_sync_message(buffer, _lf_rti_socket_TCP, receive_time);
     }
 
-    DEBUG_PRINT("Federate %d finished initial clock synchronization with the RTI.", _lf_my_fed_id);
+    LOG_PRINT("Finished initial clock synchronization with the RTI.");
 }
 
 /** 
@@ -1829,7 +1830,7 @@ void synchronize_with_other_federates() {
     // or exceeds the start time. Microstep is ignored.
     // Need to hold the mutex lock to call wait_until().
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("Waiting for start time %lld.", current_tag.time);
+    LOG_PRINT("Waiting for start time %lld.", current_tag.time);
     // Ignore interrupts to this wait. We don't want to start executing until
     // physical time matches or exceeds the logical start time.
     while (!wait_until(current_tag.time)) {}
@@ -1855,18 +1856,15 @@ bool __fed_has_upstream = false;
 bool __fed_has_downstream = false;
 
 /** 
- * Send a logical tag complete (LTC) message to the RTI
- * if there are downstream federates. Otherwise, do nothing.
+ * Send a logical tag complete (LTC) message to the RTI.
  * This function assumes the caller holds the mutex lock.
  * 
  * @param time The time of the tag
  * @param microstep The microstep of the tag
  */
-void __logical_time_complete(instant_t time, microstep_t microstep) {
-    if (__fed_has_downstream) {
-        DEBUG_PRINT("Handling the completion of logical tag (%lld, %u).", time - start_time, microstep);
-        send_tag(LOGICAL_TIME_COMPLETE, time, microstep);
-    }
+void _lf_logical_tag_complete(instant_t time, microstep_t microstep) {
+    LOG_PRINT("Handling the completion of logical tag (%lld, %u).", time - start_time, microstep);
+    send_tag(LOGICAL_TAG_COMPLETE, time, microstep);
 }
 
 /** If this federate depends on upstream federates or sends data to downstream
@@ -1918,7 +1916,7 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
     }
 
     send_tag(NEXT_EVENT_TIME, time, microstep);
-    DEBUG_PRINT("Sent next event tag (%lld, %u) to RTI.", time - start_time, microstep);
+    LOG_PRINT("Sent next event tag (%lld, %u) to RTI.", time - start_time, microstep);
 
     // If there are no upstream federates, return immediately, without
     // waiting for a reply. This federate does not need to wait for
@@ -1961,7 +1959,6 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
             // Keep waiting for the TAG.
         }
     }
-    DEBUG_PRINT("RTI granted tag (%lld, %u).", __tag.time - start_time, __tag.microstep);
 
     // Convert the volatile __tag to a non-volatile variable before returning.
     // This is relatively safe to do here because of the __tag_pending guard and the conditional wait

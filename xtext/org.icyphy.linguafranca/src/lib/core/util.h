@@ -50,6 +50,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef LOG_LEVEL
 #define LOG_LEVEL 0
+#else
+#define VERBOSE  // If LOG_LEVEL has been defined, then define VERBOSE.
 #endif
 
 /**
