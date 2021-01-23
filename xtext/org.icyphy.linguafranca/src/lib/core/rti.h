@@ -339,7 +339,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next eight bytes will be the timestep of the completed tag.
  * The next four bytes will be the microsteps of the completed tag.
  */
-#define LOGICAL_TIME_COMPLETE 8
+#define LOGICAL_TAG_COMPLETE 8
 
 /////////// Messages used in request_stop() ///////////////
 //// Overview of the algorithm:

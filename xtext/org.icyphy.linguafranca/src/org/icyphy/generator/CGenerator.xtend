@@ -656,9 +656,9 @@ class CGenerator extends GeneratorBase {
                 // downstream federates, will notify the RTI
                 // that the specified logical time is complete.
                 pr('''
-                    void logical_time_complete(instant_t timestep, microstep_t microstep) {
+                    void logical_tag_complete(instant_t timestep, microstep_t microstep) {
                         «IF federates.length > 1»
-                            __logical_time_complete(timestep, microstep);
+                            _lf_logical_tag_complete(timestep, microstep);
                         «ENDIF»
                     }
                 ''')

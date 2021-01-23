@@ -361,7 +361,7 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
  * @param time The logical time that has been completed.
  * @param microstep The logical microstep that has been completed.
  */
-void logical_time_complete(instant_t time, microstep_t microstep);
+void logical_tag_complete(instant_t time, microstep_t microstep);
 
 /** 
  * Placeholder for code-generated function that will, in a federated
@@ -891,7 +891,7 @@ void* worker(void* arg) {
             if (pqueue_size(reaction_q) == 0
                     && pqueue_size(executing_q) == 0
                     && !__advancing_time) {
-                logical_time_complete(current_tag.time, current_tag.microstep);
+                logical_tag_complete(current_tag.time, current_tag.microstep);
                 
                 // If we are at the stop tag, do not call __next()
                 // to prevent advancing the logical time.
