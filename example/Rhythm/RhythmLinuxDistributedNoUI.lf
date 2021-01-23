@@ -1,0 +1,36 @@
+/**
+ * Demonstration of timed distributed Lingua Franca programs.
+ * This program is not portable. It runs on Linux.
+ * 
+ * This program tests clock synchronization by producing
+ * sounds on each of two computers that, if the clocks are
+ * synchronized well enough, sound like they are occurring
+ * at identical times.
+ * 
+ * @see RhythmLinux
+ * @see RhythmLinuxDistributed
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ */
+target C {
+    flags: "-lasound -lm",
+    coordination: decentralized,
+    timeout: 20 sec,
+    clock-sync: on,
+    files: ["/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
+            "/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h",
+            "Claves.wav"] 
+};
+ import BeatSource, PlayWaveform from "RhythmMacDistributedNoUI.lf"
+
+reactor RhythmLinuxPlayer {
+    source = new BeatSource();
+    play = new PlayWaveform();
+    source.note -> play.note;
+}
+
+federated reactor RhythmLinuxDistributedNoUI {
+    player1 = new RhythmLinuxPlayer();
+    player2 = new RhythmLinuxPlayer();
+}
+

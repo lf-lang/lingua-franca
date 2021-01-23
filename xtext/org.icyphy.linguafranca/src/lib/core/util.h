@@ -121,6 +121,20 @@ void warning_print(char* format, ...);
  */
 void error_print_and_exit(char* format, ...);
 
+/**
+ * Message print function type. The arguments passed to one of
+ * these print functions are a printf-style format string followed
+ * by a printf-style argument list collected into a va_list
+ * (variable argument list).
+ */
+typedef void(print_message_function_t)(char*, va_list);
+
+/**
+ * Register a function to display messages. After calling this,
+ * all messages passed to the above print functions will be
+ * printed using the specified function rather than printf.
+ */
+void register_print_function(print_message_function_t* function);
 
 /** Print the error defined by the errno variable with the
  *  specified message as a prefix, then exit with error code 1.

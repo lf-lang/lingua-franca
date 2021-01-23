@@ -170,7 +170,8 @@
   <setupTask
       xsi:type="git:GitCloneTask"
       id="git.clone.lingua.franca"
-      remoteURI="icyphy/lingua-franca">
+      remoteURI="icyphy/lingua-franca"
+      recursive="true">
     <annotation
         source="http://www.eclipse.org/oomph/setup/InducedChoices">
       <detail
@@ -260,121 +261,6 @@
           pattern="org\.icyphy\.linguafranca.*"/>
     </workingSet>
     <description>The dynamic working sets for ${scope.project.label}</description>
-  </setupTask>
-  <setupTask
-      xsi:type="setup.targlets:TargletTask"
-      disabled="true">
-    <targlet
-        name="${scope.project.label}"
-        activeRepositoryList="${eclipse.target.platform}">
-      <requirement
-          name="org.eclipse.sdk.feature.group"/>
-      <requirement
-          name="*"/>
-      <sourceLocator
-          rootFolder="${git.clone.lingua.franca.location}"
-          locateNestedProjects="true"/>
-      <repositoryList
-          name="2020-12">
-        <repository
-            url="http://download.eclipse.org/releases/2020-12"/>
-      </repositoryList>
-      <repositoryList
-          name="2020-09">
-        <repository
-            url="http://download.eclipse.org/releases/2020-09"/>
-      </repositoryList>
-      <repositoryList
-          name="2020-06">
-        <repository
-            url="http://download.eclipse.org/releases/2020-06"/>
-      </repositoryList>
-      <repositoryList
-          name="2020-03">
-        <repository
-            url="http://download.eclipse.org/releases/2020-03"/>
-      </repositoryList>
-      <repositoryList
-          name="2019-12">
-        <repository
-            url="http://download.eclipse.org/releases/2019-12"/>
-      </repositoryList>
-      <repositoryList
-          name="2019-09">
-        <repository
-            url="http://download.eclipse.org/releases/2019-09"/>
-      </repositoryList>
-      <repositoryList
-          name="2019-06">
-        <repository
-            url="http://download.eclipse.org/releases/2019-06"/>
-      </repositoryList>
-      <repositoryList
-          name="2019-03">
-        <repository
-            url="http://download.eclipse.org/releases/2019-03"/>
-      </repositoryList>
-      <repositoryList
-          name="2018-12">
-        <repository
-            url="http://download.eclipse.org/releases/2018-12"/>
-      </repositoryList>
-      <repositoryList
-          name="2018-09">
-        <repository
-            url="http://download.eclipse.org/releases/2018-09"/>
-      </repositoryList>
-      <repositoryList
-          name="Photon">
-        <repository
-            url="http://download.eclipse.org/releases/photon"/>
-      </repositoryList>
-      <repositoryList
-          name="Oxygen">
-        <repository
-            url="http://download.eclipse.org/releases/oxygen"/>
-      </repositoryList>
-      <repositoryList
-          name="Neon">
-        <repository
-            url="http://download.eclipse.org/releases/neon"/>
-      </repositoryList>
-      <repositoryList
-          name="Mars">
-        <repository
-            url="http://download.eclipse.org/releases/mars"/>
-      </repositoryList>
-      <repositoryList
-          name="Luna">
-        <repository
-            url="http://download.eclipse.org/releases/luna"/>
-      </repositoryList>
-      <repositoryList
-          name="Kepler">
-        <repository
-            url="http://download.eclipse.org/releases/kepler"/>
-      </repositoryList>
-      <repositoryList
-          name="Juno">
-        <repository
-            url="http://download.eclipse.org/releases/juno"/>
-      </repositoryList>
-      <repositoryList
-          name="Indigo">
-        <repository
-            url="http://download.eclipse.org/releases/indigo"/>
-      </repositoryList>
-      <repositoryList
-          name="Helios">
-        <repository
-            url="http://download.eclipse.org/releases/helios"/>
-      </repositoryList>
-      <repositoryList
-          name="Galileo">
-        <repository
-            url="http://download.eclipse.org/releases/galileo"/>
-      </repositoryList>
-    </targlet>
   </setupTask>
   <setupTask
       xsi:type="setup.targlets:TargletTask"
@@ -478,9 +364,8 @@
       label="Master">
     <setupTask
         xsi:type="setup:EclipseIniTask"
-        disabled="true"
         option="-Doomph.redirection.lingua.franca"
-        value="=https://raw.githubusercontent.com/https://github.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
+        value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
         vm="true">
       <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
     </setupTask>

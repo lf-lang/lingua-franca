@@ -29,9 +29,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
+ *  @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 
 #include "reactor_common.c"
+#include <signal.h> // To trap ctrl-c and invoke termination().
 //#include <assert.h>
 
 /**
@@ -67,7 +69,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
         return schedule_token(action, offset, NULL);
     }
     if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
-        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
+        error_print("schedule: Invalid trigger or element size.");
         return -1;
     }
     DEBUG_PRINT("schedule_copy: Allocating memory for payload (token value): %p.", trigger);
@@ -92,14 +94,7 @@ int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (!fast) {
         DEBUG_PRINT("Waiting for logical time %lld.", logical_time_ns);
-    
-        // Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
-    
-        long long ns_to_wait = logical_time_ns
-                - (current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec);
+        interval_t ns_to_wait = logical_time_ns - get_physical_time();
     
         if (ns_to_wait <= 0) {
             return return_value;
@@ -188,12 +183,7 @@ int _lf_do_step() {
         // then the reaction will be invoked and the violation reaction will not be invoked again.
         if (reaction->deadline > 0LL) {
             // Get the current physical time.
-            struct timespec current_physical_time;
-            clock_gettime(CLOCK_REALTIME, &current_physical_time);
-            // Convert to instant_t.
-            instant_t physical_time = 
-                    current_physical_time.tv_sec * BILLION
-                    + current_physical_time.tv_nsec;
+            instant_t physical_time = get_physical_time();
             // Check for deadline violation.
             // There are currently two distinct deadline mechanisms:
             // local deadlines are defined with the reaction;
@@ -280,7 +270,7 @@ int next() {
         next_tag = stop_tag;
     }
 
-    //printf("DEBUG: Next event (elapsed) time is %lld.\n", next_tag.time - start_time);
+    DEBUG_PRINT("Next event (elapsed) time is %lld.", next_tag.time - start_time);
     // Wait until physical time >= event.time.
     // The wait_until function will advance current_tag.time.
     if (wait_until(next_tag.time) != 0) {
@@ -345,6 +335,15 @@ int main(int argc, char* argv[]) {
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
+
+        if (atexit(termination) != 0) {
+            warning_print("Failed to register termination function!");
+        }
+        // The above handles only "normal" termination (via a call to exit).
+        // As a consequence, we need to also trap ctrl-C, which issues a SIGINT,
+        // and cause it to call exit.
+        signal(SIGINT, exit);
+
         initialize();
         _lf_execution_started = true;
         __trigger_startup_reactions();
@@ -362,7 +361,7 @@ int main(int argc, char* argv[]) {
         termination();
         return 0;
     } else {
-        printf("DEBUG: invoking termination.\n");
+        DEBUG_PRINT("Invoking termination.");
         termination();
         return -1;
     }

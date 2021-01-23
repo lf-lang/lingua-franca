@@ -1,4 +1,5 @@
 [![Build Status](https://github.com/icyphy/lingua-franca/workflows/CI/badge.svg)](https://github.com/icyphy/lingua-franca/actions/)
+[![Discourse status](https://img.shields.io/badge/Community-online-blue)](https://community.lf-lang.org/)
 
 # Lingua Franca
 

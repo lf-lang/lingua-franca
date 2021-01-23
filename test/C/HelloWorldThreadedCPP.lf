@@ -6,6 +6,7 @@ target C {
     tracing: true,
     threads: 1,
     compiler: "g++",
+    flags: "-Wno-write-strings", // Suppress a ridiculous number of warnings.
     logging: DEBUG
 };
 reactor HelloWorld {

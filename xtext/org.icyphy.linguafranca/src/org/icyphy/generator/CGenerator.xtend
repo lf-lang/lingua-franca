@@ -369,18 +369,13 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "util.h", "util.c")
+        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
         if (targetThreads === 0) {
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
         }
         
-        // Handle tracing, if used.
-        if (targetTracing) {
-            // Provide the implementation of the tracing functions.
-            coreFiles.add("trace.c")
-        }
         // If there are federates, copy the required files for that.
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
@@ -404,13 +399,31 @@ class CGenerator extends GeneratorBase {
             startTimeStepTokens = 0
             
             // Only generate one output if there is no federation.
-            if (!federate.isSingleton) {
+            if (!federate.isSingleton) {                
                 filename = baseFilename + '_' + federate.name
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
-                initializeTriggerObjectsEnd = new StringBuilder()
-                
+                initializeTriggerObjectsEnd = new StringBuilder()                
+                        
+                // Enable clock synchronization if the federate is not local and clock-sync is enabled
+                if (!federationRTIProperties.get('host').toString.equals(federate.host) 
+                        && targetClockSync != clockSyncMethod.OFF
+                ) {
+                    // Insert the #define at the beginning
+                    if (targetClockSync === clockSyncMethod.INITIAL) {
+                        code.insert(0, '''
+                            #define _LF_CLOCK_SYNC_INITIAL
+                        ''')
+                        System.out.println("Initial clock synchronization is enabled for federate " + federate.id);
+                    } else {
+                        code.insert(0, '''
+                            #define _LF_CLOCK_SYNC_INITIAL
+                            #define _LF_CLOCK_SYNC_ON
+                        ''')
+                        System.out.println("Initial clock synchronization is enabled for federate " + federate.id);
+                    }
+                }
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
@@ -593,6 +606,13 @@ class CGenerator extends GeneratorBase {
                 pr(startTimeStep.toString)
                 
                 setReactionPriorities(main, federate)
+                
+                // Calculate the epoch offset so that subsequent calls
+                // to get_physical_time() return epoch time.
+                pr('''
+                    calculate_epoch_offset();
+                ''')
+                
                 initializeFederate(federate)
                 unindent()
                 pr('}\n')
@@ -689,11 +709,13 @@ class CGenerator extends GeneratorBase {
                                 }
                             }
                             «IF federate.inboundP2PConnections.length > 0»
-                                void* thread_return;
-                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                                «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
+                                // void* thread_return;
+                                // pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
-                            write_to_socket(_lf_rti_socket, 1, &message_marker, "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
+                            write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
+                                    "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
                         }
                     ''')
                 } else {
@@ -767,9 +789,18 @@ class CGenerator extends GeneratorBase {
             }
             
             pr('''
-                // Connect to the RTI. This sets _lf_rti_socket.
+                // Connect to the RTI. This sets _lf_rti_socket_TCP and _lf_rti_socket_UDP.
                 connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
-            ''');
+            ''');            
+            
+            // Disable clock synchronization for the federate if it resides on the same host as the RTI
+            if (!federationRTIProperties.get('host').toString.equals(federate.host) 
+                    && targetClockSync != clockSyncMethod.OFF
+            ) {
+                pr('''
+                    synchronize_initial_physical_time_with_rti();
+                ''')
+            }
         
             if (numberOfInboundConnections > 0) {
                 pr('''
@@ -863,6 +894,12 @@ class CGenerator extends GeneratorBase {
         pr(rtiCode, '''
             «IF targetLoggingLevel?.equals("DEBUG")»
                 #define VERBOSE
+            «ENDIF»
+            «IF targetClockSync == clockSyncMethod.INITIAL»
+                #define _LF_CLOCK_SYNC_INITIAL
+            «ELSEIF targetClockSync == clockSyncMethod.ON»
+                #define _LF_CLOCK_SYNC_INITIAL
+                #define _LF_CLOCK_SYNC_ON
             «ENDIF»
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES
@@ -1031,11 +1068,23 @@ class CGenerator extends GeneratorBase {
             # Launcher for federated «filename».lf Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
-            # Set a trap to kill all background jobs on error or control-C
+            
             # Enable job control
             set -m
-            trap 'echo "#### Received ERR. Killing federates."; kill ${pids[*]}; exit 1' ERR
-            trap 'echo "#### Received SIGINT. Killing federates."; kill ${pids[*]}; exit 1' SIGINT
+            shopt -s huponexit
+            
+            # Set a trap to kill all background jobs on error or control-C
+            cleanup() {
+                echo "#### Received signal."
+                printf "Killing federate %s.\n" ${pids[*]}
+                kill ${pids[@]}
+                printf "#### Killing RTI %s.\n" ${RTI}
+                kill ${RTI}
+                exit 1
+            }
+            trap cleanup ERR
+            trap cleanup SIGINT
+
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
@@ -1095,7 +1144,7 @@ class CGenerator extends GeneratorBase {
                 '
                 pushd src-gen/core > /dev/null
                 echo "Copying LF core files for RTI to host «target»"
-                scp rti.c rti.h tag.c tag.h util.h util.c net_util.h net_util.h reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
+                scp rti.c rti.h tag.c tag.h util.h util.c net_util.h net_util.c reactor.h pqueue.h trace.c trace.h «target»:«path»/src-gen/core
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"
@@ -1125,6 +1174,10 @@ class CGenerator extends GeneratorBase {
             val executeCommand = '''bin/«filename»_RTI -i '$FEDERATION_ID' '''
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
+                # FIXME: Killing this ssh does not kill the remote process.
+                # A double -t -t option to ssh forces creation of a virtual terminal, which
+                # fixes the problem, but then the ssh command does not execute. The remote
+                # federate does not start!
                 ssh «target» 'cd «path»; \
                     echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                     date >> «logFileName»; \
@@ -1145,7 +1198,7 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 val logFileName = '''log/«filename»_«federate.name».log'''
-                val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread'''
+                val compileCommand = '''«this.targetCompiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «this.targetCompilerFlags»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
@@ -1173,12 +1226,17 @@ class CGenerator extends GeneratorBase {
                 val executeCommand = '''bin/«filename»_«federate.name» -i '$FEDERATION_ID' '''
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
+                    # FIXME: Killing this ssh does not kill the remote process.
+                    # A double -t -t option to ssh forces creation of a virtual terminal, which
+                    # fixes the problem, but then the ssh command does not execute. The remote
+                    # federate does not start!
                     ssh «federate.host» '\
                         cd «path»; \
                         echo "-------------- Federation ID: "'$FEDERATION_ID' >> «logFileName»; \
                         date >> «logFileName»; \
                         echo "In «path», executing: «executeCommand»" 2>&1 | tee -a «logFileName»; \
                         «executeCommand» 2>&1 | tee -a «logFileName»' &
+                    pids[«federateIndex++»]=$!
                 ''')                
             } else {
                 pr(shCode, '''
@@ -1195,17 +1253,17 @@ class CGenerator extends GeneratorBase {
                 fg 1
                 RTI=$! # Store the new pid of the RTI
             ''')
-            // Wait for launched processes to finish
-            pr(shCode, '''
-                
-                # Wait for launched processes to finish.
-                # The errors are handled separately via trap.
-                for pid in ${pids[*]}; do
-                    wait $pid
-                done
-                wait $RTI
-            ''')
         }
+        // Wait for launched processes to finish
+        pr(shCode, '''
+                
+            # Wait for launched processes to finish.
+            # The errors are handled separately via trap.
+            for pid in ${pids[*]}; do
+                wait $pid
+            done
+            wait $RTI
+        ''')
 
         // Write the launcher file.
         // Delete file previously produced, if any.
@@ -1667,6 +1725,11 @@ class CGenerator extends GeneratorBase {
                     pr(port, body, '''
                         trigger_t «port.name»_trigger;
                     ''')
+                    if (isFederatedAndDecentralized) {
+                        pr(port, constructorCode, '''
+                            self->__«containedReactor.name».«port.name»_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                        ''')
+                    }
                     val triggered = portsReferencedInContainedReactors.reactionsTriggered(containedReactor, port)
                     if (triggered.size > 0) {
                         pr(port, body, '''
@@ -1900,6 +1963,11 @@ class CGenerator extends GeneratorBase {
             pr(constructorCode, '''
                 self->___«timer.name».is_timer = true;
             ''')
+            if (isFederatedAndDecentralized) {
+                pr(constructorCode, '''
+                    self->___«timer.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                ''')
+            }
         }
         
         // Handle startup triggers.
@@ -1908,6 +1976,11 @@ class CGenerator extends GeneratorBase {
                 trigger_t ___startup;
                 reaction_t* ___startup_reactions[«startupReactions.size»];
             ''')
+            if (isFederatedAndDecentralized) {
+                pr(constructorCode, '''
+                    self->___startup.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                ''')
+            }
             var i = 0
             for (reactionIndex : startupReactions) {
                 pr(constructorCode, '''
@@ -1927,6 +2000,11 @@ class CGenerator extends GeneratorBase {
                 trigger_t ___shutdown;
                 reaction_t* ___shutdown_reactions[«shutdownReactions.size»];
             ''')
+            if (isFederatedAndDecentralized) {
+                pr(constructorCode, '''
+                    self->___shutdown.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                ''')
+            }
             var i = 0
             for (reactionIndex : shutdownReactions) {
                 pr(constructorCode, '''
@@ -1997,6 +2075,11 @@ class CGenerator extends GeneratorBase {
         pr(variable, constructorCode, '''
             self->___«variable.name».last = NULL;
         ''')
+        if (isFederatedAndDecentralized) {
+            pr(variable, constructorCode, '''
+                self->___«variable.name».intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+            ''')
+        }
         // Generate the reactions triggered table.
         val reactionsTriggered = triggerMap.get(variable)
         if (reactionsTriggered !== null) {
@@ -3879,7 +3962,7 @@ class CGenerator extends GeneratorBase {
         } else {
             // Logical connection
             // Send the message via rti
-            socket = '''_lf_rti_socket'''
+            socket = '''_lf_rti_socket_TCP'''
             messageType = "TIMED_MESSAGE"
         }
         
