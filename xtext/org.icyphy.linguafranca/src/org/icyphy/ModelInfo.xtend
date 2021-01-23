@@ -79,6 +79,12 @@ class ModelInfo {
     public Set<Parameter> overflowingParameters
 
     /**
+     * The number of reactor definitions that are marked with the `main` or 
+     * `federated` keyword.
+     */
+    public int numberOfMainReactors
+
+    /**
      * Data structure for tracking dependencies between reactions.
      */
     public ReactionGraph reactionGraph
@@ -106,6 +112,9 @@ class ModelInfo {
         if (target == Targets.C) {
             this.collectOverflowingNodes()
         }
+        
+        // Count the number of main/federated reactors.
+         countMainReactors()
     }
 
     /**
@@ -133,6 +142,13 @@ class ModelInfo {
                 this.overflowingDeadlines.add(deadline)
             }
         }
+    }
+
+    private def countMainReactors() {
+        this.numberOfMainReactors = 0
+        model.eAllContents.toIterable.filter(Reactor).filter [
+            it.isMain || it.isFederated
+        ].forEach[this.numberOfMainReactors++]
     }
 
     /**
