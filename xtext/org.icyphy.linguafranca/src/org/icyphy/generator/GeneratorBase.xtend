@@ -993,14 +993,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     /**
-     * Run the custom build command specified in "build" parameter
+     * Run the custom build command specified with the "build" parameter.
      */
     protected def runBuildCommand() {
-	var _buildCommand = newArrayList('-c', targetBuildCommand)
-        val buildCommand = createCommand("bash", _buildCommand)
-	
+        val cmd = this.targetBuildCommand.split("\\s+")
+        val buildCommand = createCommand(cmd.head, cmd.tail.toList)
+
         if (buildCommand === null) {
-            return
+            return // FIXME: report error
         }
 
         val stderr = new ByteArrayOutputStream()
@@ -1159,7 +1159,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     /**
-     * Creates a ProcessBuilder for a given command.
+     * Create a ProcessBuilder for a given command.
      * 
      * This method makes sure that the given command is executable,
      * It first tries to find the command with 'which cmake'. If that
