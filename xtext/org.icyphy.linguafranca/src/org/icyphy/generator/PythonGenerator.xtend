@@ -28,13 +28,11 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.util.ArrayList
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
-import java.util.stream.Stream
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
@@ -1805,6 +1803,8 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple
+     * 
+     * FIXME: This is unused but will be useful to enable intercompatibility between C and Python reactors
      * @param type C type
      */
     private def pyBuildValueArgumentType(String type)
