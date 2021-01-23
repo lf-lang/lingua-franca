@@ -1032,12 +1032,20 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 Literals.REACTOR__SUPER_CLASSES
                 )    
             }
-            
-            
-            // FIXME: other things to check:
-            // - 
         }
-        
+        // Do not allow multiple main/federated reactors.
+        if (this.info.numberOfMainReactors > 1) {
+            var attribute = Literals.REACTOR__MAIN
+            if (reactor.isFederated) {
+               attribute = Literals.REACTOR__FEDERATED
+            }
+            if (reactor.isMain || reactor.isFederated) {
+                error(
+                    "Multiple definitions of main or federated reactor.",
+                    attribute
+                )
+            }
+        }
     }
     /** 
      * For each input, report a conflict if:
