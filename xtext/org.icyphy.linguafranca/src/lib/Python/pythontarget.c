@@ -30,7 +30,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "pythontarget.h"
-#include "util.h"
+#include "core/util.h"
 
 //////////// set Function(s) /////////////
 /**
