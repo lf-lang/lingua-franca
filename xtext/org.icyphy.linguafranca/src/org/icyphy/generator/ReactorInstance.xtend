@@ -31,9 +31,7 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
-import java.util.Set
 import org.eclipse.emf.ecore.EObject
-import org.icyphy.graph.DirectedGraph
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
@@ -61,14 +59,18 @@ import static extension org.icyphy.ASTUtils.*
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
 
-    /** Count of the number of chains seen so far. */
-    int branchCount = 1
-    
-   /** Create a runtime instance from the specified definition
-     *  and with the specified parent that instantiated it.
-     *  @param instance The Instance statement in the AST.
-     *  @param parent The parent, or null for the main rector.
-     *  @param generator The generator (for error reporting).
+    /**
+     * A representation of the dependencies between reactions as they are
+     * inferred from the main reactor instance.
+     */
+    public static var ReactionInstanceGraph reactionGraph
+
+    /**
+     * Create a runtime instance from the specified definition
+     * and with the specified parent that instantiated it.
+     * @param instance The Instance statement in the AST.
+     * @param parent The parent, or null for the main rector.
+     * @param generator The generator (for error reporting).
      */
     new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
         // If the reactor is being instantiated with new[width], then pass -2
@@ -76,16 +78,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
     }
 
-    /** Create a runtime instance from the specified definition
-     *  and with the specified parent that instantiated it.
-     *  @param instance The Instance statement in the AST.
-     *  @param parent The parent, or null for the main rector.
-     *  @param generator The generator (for error reporting).
-     *  @param reactorIndex -1 for an ordinary reactor, -2 for a
-     *   placeholder for a bank of reactors, or the index of the
-     *   reactor in a bank of reactors otherwise.
+    /**
+     * Create a runtime instance from the specified definition
+     * and with the specified parent that instantiated it.
+     * @param instance The Instance statement in the AST.
+     * @param parent The parent, or null for the main rector.
+     * @param generator The generator (for error reporting).
+     * @param reactorIndex -1 for an ordinary reactor, -2 for a
+     * placeholder for a bank of reactors, or the index of the
+     * reactor in a bank of reactors otherwise.
      */
-    protected new(Instantiation definition, ReactorInstance parent, GeneratorBase generator, int reactorIndex) {
+    protected new(Instantiation definition, ReactorInstance parent,
+        GeneratorBase generator, int reactorIndex) {
         super(definition, parent)
         this.generator = generator
         this.bankIndex = reactorIndex
@@ -132,7 +136,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate inputs for this reactor instance
-
         for (inputDecl : definition.reactorClass.toDefinition.allInputs) {
             if (inputDecl.widthSpec === null) {
                 this.inputs.add(new PortInstance(inputDecl, this))
@@ -224,35 +227,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // If this is the main reactor, then perform static analysis.
         if (parent === null) {
-            // Set of reactions that do not depend on other reactions at
-            // a logical time instant.
-            independentReactions = new LinkedHashSet<ReactionInstance>()
-            reactionsWithDeadline = new LinkedHashSet<ReactionInstance>()
-
-            // Add to the dependsOnReactions and dependentReactions
-            // of each reaction instance all the
-            // reaction instances that it depends on indirectly through ports or
-            // that depend on this reaction. Collect all the reactions that
-            // depend on no other reactions into the _independentReactions set.
-            if (!collapseDependencies(this)) {
-                throw new Exception(
-                    "Model has no reactions at all. Nothing to do."
-                )
-            }
-            val graph = this.getDependencyGraph()
-            
-            // Assign a level to each reaction. 
-            // If there are cycles present in the graph, it will be detected here.
-            assignLevels(graph)
-            // Traverse the graph again, now starting from the leaves,
-            // to set the chain IDs.
-            assignChainIDs(graph, true)
-
-            // Propagate any declared deadline upstream.
-            propagateDeadlines()
-
-            // FIXME: also record number of reactions.
-            // We can use this to set the sizes of the queues.
+            ReactorInstance.reactionGraph = new ReactionInstanceGraph(this)
         }
     }
     
@@ -989,287 +964,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The generator that created this reactor instance. */
     protected GeneratorBase generator
-    
-    /** Set of independent reactions. */
-    protected Set<ReactionInstance> independentReactions // FIXME: use static var instead?
-
-    protected Set<ReactionInstance> reactionsWithDeadline // FIXME: use static var instead?
 
     // ////////////////////////////////////////////////////
-    // // Protected methods.
-    /** Add to the specified set of reactions all the reactions
-     *  that the specified port depends on.
-     *  @param port The port.
-     *  @param reactions The set of reactions to add to.
-     */
-    protected def void addReactionsPortDependsOn(
-        PortInstance port,
-        LinkedHashSet<ReactionInstance> reactions
-    ) {
-        reactions.addAll(port.dependsOnReactions)
-        if (port.dependsOnPort !== null) {
-            addReactionsPortDependsOn(port.dependsOnPort, reactions)
-        }
-    }
+    // // Protected methods
 
-    /** Add to the specified set of reactions all the reactions
-     *  that depend on the specified port.
-     *  @param port The port.
-     *  @param reactions The set of reactions to add to.
-     */
-    protected def void addReactionsDependingOnPort(
-        PortInstance port,
-        LinkedHashSet<ReactionInstance> reactions
-    ) {
-        reactions.addAll(port.dependentReactions)
-        for (downstreamPort : port.dependentPorts) {
-            addReactionsDependingOnPort(downstreamPort, reactions)
-        }
-    }
-
-    /**
-     * Extract a precedence graph from this reactor instance.
-     * FIXME: this is somewhat redundant; it's probably better build the graph immediately.
-     * At the very least we could just replace dependsOnReactions and dependentReactions
-     * with a DirectedGraph<ReactionInstance>. 
-     */
-    protected def DirectedGraph<ReactionInstance> getDependencyGraph() {
-        var graph = new DirectedGraph<ReactionInstance>()
-        for (child : this.children) {
-            graph.merge(child.dependencyGraph)
-        }
-        for (r : this.reactions) {
-            for (dependency : r.dependsOnReactions) {
-                graph.addEdge(r, dependency)
-            }
-            for (dependent: r.dependentReactions) {
-                graph.addEdge(dependent, r)
-            }
-        }
-        // Also add the independent nodes to the graph.
-        if (this === main) {
-            for (node : independentReactions) {
-                graph.addNode(node)
-            }
-        }
-        
-        graph
-    }
-
-    /**
-     * Propagate the given chain ID up one chain, propagate fresh IDs to
-     * other upstream neighbors, and return a mask that overlaps with all the
-     * chain IDs that were set upstream as a result of this method invocation.
-     * The result of propagation is that each node has an ID that overlaps with
-     * all upstream nodes that can reach it. This means that if a node has a
-     * lower level than another node, but the two nodes do not have overlapping
-     * chain IDs, the nodes are nonetheless independent from one another.
-     * @param current The current node that is being visited.
-     * @param graph The graph that encodes the dependencies between reactions.
-     * @param chainID The current chain ID.
-     */
-    private def long propagateUp(ReactionInstance current,
-        DirectedGraph<ReactionInstance> graph, long chainID) {
-        val origins = graph.getOrigins(current)
-        var mask = chainID
-        var first = true
-        var id = chainID
-        // Iterate over the upstream neighbors by level from high to low.
-        for (upstream : origins.sortBy[-level]) {
-            if (first) {
-                // Stay on the same chain the first time.
-                first = false
-            } else {
-                // Create a new chain ID.
-                id = 1 << (this.branchCount++ % 64)
-            }
-            // Propagate the ID upstream and add all returned bits
-            // to the mask.
-            mask = mask.bitwiseOr(
-                    propagateUp(upstream, graph, id))
-        }    
-        
-        // Apply the mask to the current chain ID.
-        // If there were no upstream neighbors, the mask will
-        // just be the chainID that was passed as an argument.
-        current.chainID = current.chainID.bitwiseOr(mask)
-        
-        return mask
-    }
-
-    /**
-     * Analyze the dependencies between reactions and assign each reaction
-     * instance a chain identifier. The assigned IDs are such that the
-     * bitwise conjunction between two chain IDs is always nonzero if there
-     * exists a dependency between them. This facilitates runtime checks
-     * to determine whether a reaction is ready to execute or has to wait
-     * for an upstream reaction to complete.
-     * @param graph The dependency graph.
-     * @param optimize Whether or not make assignments that maximize the
-     * amount of parallelism. If false, just assign 1 to every node.
-     */
-    protected def assignChainIDs(DirectedGraph<ReactionInstance> graph,
-            boolean optimize) {
-        val leafs = graph.leafNodes
-        this.branchCount = 0
-        if (optimize) {
-            // Start propagation from the leaf nodes,
-            // ordered by level from high to low.
-            for (node : leafs.sortBy[-level]) {
-                this.propagateUp(node, graph, 1 << (this.branchCount++ % 64))
-            }    
-        } else {
-            for (node: graph.nodes) {
-            node.chainID = 1
-            }    
-        }
-    }
-
-    /**
-     * Analyze the dependencies between reactions and assign each reaction
-     * instance a level.
-     * This procedure is based on Kahn's algorithm for topological sorting.
-     * Rather than establishing a total order, we establish a partial order.
-     * In this order, the level of each reaction is the least upper bound of
-     * the levels of the reactions it depends on.
-     * If any cycles are present in the dependency graph, an exception is
-     * thrown. This method should be called only on the top-level (main) reactor.
-     */
-    protected def assignLevels(DirectedGraph<ReactionInstance> dependencies) {       
-        val graph = dependencies.copy
-        var start = new ArrayList(graph.rootNodes)
-        
-        // All root nodes start with level 0.
-        for (origin : start) {
-            origin.level = 0
-        }
-        
-        if (main.independentReactions.isEmpty) {
-            throw new Exception(
-                "Reactions form a cycle, where every reaction depends on another reaction!")
-        } 
-
-        while (!start.empty) {
-            val origin = start.remove(0)
-            val toRemove = new LinkedHashSet<ReactionInstance>()
-            // Visit effect nodes.
-            for (effect : graph.getEffects(origin)) {
-                // Stage edge between origin and effect for removal.
-                toRemove.add(effect)
-                
-                // Update level of downstream node.
-                effect.level = Math.max(effect.level, origin.level+1)    
-            }
-            // Remove visited edges.
-            for (effect : toRemove) {
-                graph.removeEdge(effect, origin)
-                // If the effect node has no more incoming edges,
-                // then move it in the start set.
-                if (graph.getOrigins(effect).size == 0) {
-                    start.add(effect)
-                }
-            }
-            
-            // Remove visited origin.
-            graph.removeNode(origin)
-            
-        }
-        
-        if (graph.nodeCount != 0) {
-            generator.reportError(generator.mainDef, "Reactions form a cycle!");
-            throw new Exception(
-                "Reactions form a cycle!")
-        }
-    }
     
-    /**
-     * Iterate over all reactions that have a declared deadline, update their
-     * inferred deadline, as well as the inferred deadlines of any reactions
-     * upstream.
-     */
-    def propagateDeadlines() {
-        // Assume the graph is acyclic.
-        for (r : reactionsWithDeadline) {
-            if (r.declaredDeadline !== null &&
-                r.declaredDeadline.maxDelay !== null) {
-                // Only lower the inferred deadline (which is set to the max by default),
-                // if the declared deadline is earlier than the inferred one (based on
-                // some other downstream deadline).
-                if (r.deadline.isEarlierThan(r.declaredDeadline.maxDelay)) {
-                    r.deadline = r.declaredDeadline.maxDelay
-                }
-            }
-            propagateDeadline(r)
-        }
-    }
     
-    /**
-     * Given a reaction instance, propagate its inferred deadline upstream.
-     * @param downstream Reaction instance with an inferred deadline that
-     * is to be propagated upstream.
-     */
-    def void propagateDeadline(ReactionInstance downstream) {
-        for (upstream : downstream.dependsOnReactions) {
-            // Only lower the inferred deadline (which is set to the max by default),
-            // if downstream deadline is earlier than the inferred one (based on
-            // some other downstream deadline).
-            if (downstream.deadline.isEarlierThan(upstream.deadline)) {
-                upstream.deadline = downstream.deadline
-            }
-            propagateDeadline(upstream)
-        }
-    }
-
-    /** Add to the dependsOnReactions and dependentReactions of each
-     *  reaction all the other reactions defined by the specified
-     *  reactor that the reaction depends on indirectly through ports or
-     *  that depend on that reaction.
-     *  This results in each reactionInstance knowing the complete
-     *  set of reactions it depends on and that depend on it, thereby
-     *  forming the dependence graph.
-     *  If there are ultimately no reactions that that
-     *  reaction depends on, then add that reaction to the list of
-     *  independent reactions at the top level (the main reactor).
-     *  If there are no reactions at all, then return false.
-     *  Otherwise, return true.
-     *  @param reactionInstance The reaction instance (must not be null).
-     *  @return True if at least one reaction exists inside the reactor.
-     */
-    protected def boolean collapseDependencies(ReactorInstance reactor) {
-        var result = false
-        for (ReactionInstance reactionInstance : reactor.reactions) {
-            result = true
-            // Handle the ports that this reaction writes to.
-            for (PortInstance port : reactionInstance.dependentPorts) {
-                // Reactions that depend on a port that this reaction writes to
-                // also, by transitivity, depend on this reaction instance.
-                addReactionsDependingOnPort(port,
-                    reactionInstance.dependentReactions)
-            }
-            // Handle the ports that this reaction reads from.
-            for (PortInstance port : reactionInstance.dependsOnPorts) {
-                // Reactions that write to such a port are also reactions that
-                // that this reaction depends on, by transitivity.
-                addReactionsPortDependsOn(port,
-                    reactionInstance.dependsOnReactions)
-            }
-            // If, after all this, the reaction does not depend on any other
-            // reactions, then it is an independent reaction.
-            if (reactionInstance.dependsOnReactions.isEmpty()) {
-                main.independentReactions.add(reactionInstance);
-            }
-            
-            if (reactionInstance.definition.deadline !== null) {
-                main.reactionsWithDeadline.add(reactionInstance)
-            }
-        }
-        // Repeat for all children.
-        for (child : reactor.children) {
-            result = collapseDependencies(child) || result
-        }
-        return result
-    }
-
     /** Create all the reaction instances of this reactor instance
      *  and record the dependencies and antidependencies
      *  between ports, actions, and timers and reactions.
@@ -1279,27 +979,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     protected def createReactionInstances() {
         var reactions = this.definition.reactorClass.toDefinition.allReactions
         if (this.definition.reactorClass.toDefinition.reactions !== null) {
-            var ReactionInstance previousReaction = null
+            
             var count = 0
 
             for (Reaction reaction : reactions) {
-
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this,
-                    count++)
-                    
-                // If this is not an unordered reaction, then create a dependency
-                // on any previously defined reaction.
-                if (!generator.isUnordered(reaction)) {
-
-                    // If there is an earlier reaction in this same reactor, then
-                    // create a link in the dependence graph.
-                    if (previousReaction !== null) {
-                        previousReaction.dependentReactions.add(reactionInstance)
-                        reactionInstance.dependsOnReactions.add(previousReaction)
-                    }
-                    previousReaction = reactionInstance;
-                }
+                    generator.isUnordered(reaction), count++)
+                
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
                 this.reactions.add(reactionInstance);

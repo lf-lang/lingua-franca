@@ -28,13 +28,11 @@ package org.icyphy.generator
 
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.util.ArrayList
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.regex.Pattern
-import java.util.stream.Stream
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
@@ -767,6 +765,11 @@ class PythonGenerator extends CGenerator {
      * Invoke pip on the generated code.
      */
     override compileCode() {
+        // Note that this function is deliberately left empty to prevent the CGenerator from
+        // compiling this code. The Python generator will create a setup.py and compile generated
+        // C code appropriately.
+        
+        // The following is unfinished code to enable federated execution in Python
         // If there is more than one federate, compile each one.
         //var fileToCompile = "" // base file name.
         /*for (federate : federates) {
@@ -975,23 +978,6 @@ class PythonGenerator extends CGenerator {
         pr('''#define __GARBAGE_COLLECTED''')    	
         pr('#include "pythontarget.c"')
     }
-    
-//    /** Add necessary source files specific to the target language.  */
-//    override includeTargetLanguageSourceFiles()
-//    {
-//        if (targetThreads > 0) {
-//            // Set this as the default in the generated code,
-//            // but only if it has not been overridden on the command line.
-//            pr(startTimers, '''
-//                if (number_of_threads == 0) {
-//                   number_of_threads = «targetThreads»;
-//                }
-//            ''')
-//        }
-//        if (federates.length > 1) {
-//            pr("#include \"core/federate.c\"")
-//        }
-//    }
 
     /** Generate C code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
@@ -1805,6 +1791,8 @@ class PythonGenerator extends CGenerator {
     
     /**
      * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple
+     * 
+     * FIXME: This is unused but will be useful to enable intercompatibility between C and Python reactors
      * @param type C type
      */
     private def pyBuildValueArgumentType(String type)
