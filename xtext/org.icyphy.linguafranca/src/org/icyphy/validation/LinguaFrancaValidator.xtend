@@ -681,7 +681,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     }
                 case LOGGING:
                     if (!Arrays.asList(LoggingLevels.values()).exists [
-                        it.toString.equals(param.value.id)
+                        it.toString.equalsIgnoreCase(param.value.id)
                     ]) {
                         error(
                             "Target property logging is required to be one of " +

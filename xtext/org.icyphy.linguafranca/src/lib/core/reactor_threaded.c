@@ -152,7 +152,7 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
                                                                                              // 0 microsteps. In this case,
                                                                                              // the logical time will not advance
                                                                                              // to future_tag.time at all
-            DEBUG_PRINT("Raised barrier at tag (%lld, %u).",
+            DEBUG_PRINT("Raised barrier at elapsed tag (%lld, %u).",
                         _lf_global_tag_advancement_barrier.horizon.time - start_time,
                         _lf_global_tag_advancement_barrier.horizon.microstep);
         } 
@@ -160,7 +160,7 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
             // future_tag is not in the future.
             // Therefore, hold the current logical time.
             _lf_global_tag_advancement_barrier.horizon = current_tag;
-            DEBUG_PRINT("Raised barrier at current tag (%lld, %u).",
+            DEBUG_PRINT("Raised barrier at elapsed tag (%lld, %u).",
                         _lf_global_tag_advancement_barrier.horizon.time - start_time,
                         _lf_global_tag_advancement_barrier.horizon.microstep);
     }
@@ -539,10 +539,10 @@ int __next() {
         } else {
             next_tag.microstep = 0;
         }
+        LOG_PRINT("Got event with time %lld and microstep %d off the event queue.",
+                next_tag.time, next_tag.microstep);
     }
 
-    DEBUG_PRINT("Got event with time %lld and microstep %d off the event queue.",
-            next_tag.time, next_tag.microstep);
     // If a timeout tag was given, adjust the next_tag from the
     // event tag to that timeout tag.
     // FIXME: This is primarily done to let the RTI
@@ -576,7 +576,7 @@ int __next() {
     // Wait for physical time to advance to the next event time (or stop time).
     // This can be interrupted if a physical action triggers (e.g., a message
     // arrives from an upstream federate or a local physical action triggers).
-    DEBUG_PRINT("next(): Waiting until time %lld.", (next_tag.time - start_time));
+    LOG_PRINT("Waiting until elapsed time %lld.", (next_tag.time - start_time));
     if (!wait_until(next_tag.time)) {
         DEBUG_PRINT("__next(): Wait until time interrupted.");
         // Sleep was interrupted.
@@ -655,11 +655,9 @@ int __next() {
 
     if (compare_tags(current_tag, stop_tag) >= 0) {
         // Pop shutdown events
-        // DEBUG_PRINT("Scheduling shutdown reactions.");
+        DEBUG_PRINT("Scheduling shutdown reactions.");
         __trigger_shutdown_reactions();
     }
-
-    // DEBUG_PRINT("__next(): ********* Advanced logical time to %lld.", current_tag.time - start_time);
 
     // Invoke code that must execute before starting a new logical time round,
     // such as initializing outputs to be absent.
@@ -681,9 +679,7 @@ int __next() {
  * all federates stop at the same logical time.
  */
 void request_stop() {
-    DEBUG_PRINT("pthread_mutex_lock in request_stop.");
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
 #ifdef _LF_IS_FEDERATED
     _lf_fd_send_stop_request_to_rti();
     // Notify the RTI that nothing more will happen.
@@ -704,7 +700,6 @@ void request_stop() {
     // the call to wait_until is protected by a mutex lock
     pthread_cond_signal(&event_q_changed);
 #endif
-    DEBUG_PRINT("pthread_mutex_unlock in request_stop.");
     pthread_mutex_unlock(&mutex);
 }
 
@@ -824,9 +819,7 @@ volatile bool __advancing_time = false;
 void _lf_enqueue_reaction(reaction_t* reaction) {
     bool reaction_inserted = false;
     // Acquire the mutex lock.
-    DEBUG_PRINT("pthread_mutex_lock to queue downstream reaction %p.", reaction);
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
     // Do not enqueue this reaction twice.
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
         DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
@@ -838,7 +831,6 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
         // pthread_cond_signal(&reaction_q_changed);
     }
     pthread_mutex_unlock(&mutex);
-    DEBUG_PRINT("pthread_mutex_unlock after queueing downstream reaction.");
 }
 
 /**
@@ -850,9 +842,7 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
  */
 void _lf_notify_workers() {
     if (number_of_idle_threads > 0) {
-        DEBUG_PRINT("pthread_mutex_lock to notify workers of reaction queue activity.");
         pthread_mutex_lock(&mutex);
-        DEBUG_PRINT("pthread_mutex_locked.");
 
         reaction_t* next_ready_reaction = (reaction_t*)pqueue_peek(reaction_q);
         if (next_ready_reaction != NULL
@@ -861,9 +851,9 @@ void _lf_notify_workers() {
             // FIXME: In applications without parallelism, this notification
             // proves very expensive. Perhaps we should be checking execution times.
             pthread_cond_signal(&reaction_q_changed);
+            DEBUG_PRINT("Notify another worker of a reaction on the reaction queue.");
         }
         pthread_mutex_unlock(&mutex);
-        DEBUG_PRINT("pthread_mutex_unlock after queueing downstream reaction.");
     }
 }
 
@@ -876,12 +866,10 @@ int worker_thread_count = 0;
 void* worker(void* arg) {
     // Keep track of whether we have decremented the idle thread count.
     bool have_been_busy = false;
-    DEBUG_PRINT("pthread_mutex_lock in worker.");
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
 
     int worker_number = ++worker_thread_count;
-    DEBUG_PRINT("Worker thread %d started.", worker_number);
+    LOG_PRINT("Worker thread %d started.", worker_number);
 
     // Iterate until the stop_tag is reached or reaction queue is empty
     while (true) {
@@ -948,7 +936,10 @@ void* worker(void* arg) {
             }
         } else {
             // Got a reaction that is ready to run.
-            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: %lld and deadline %lld.", worker_number, current_reaction_to_execute->index, current_reaction_to_execute->deadline);
+            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: "
+                    "%lld and deadline %lld.", worker_number,
+                    current_reaction_to_execute->index,
+                    current_reaction_to_execute->deadline);
 
             // This thread will no longer be idle.
             if (!have_been_busy) {
@@ -967,7 +958,7 @@ void* worker(void* arg) {
 
             // Unlock the mutex to run the reaction.
             pthread_mutex_unlock(&mutex);
-            DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run the reaction (or its fault variants).", worker_number);
+            DEBUG_PRINT("Worker %d: Running a reaction (or its fault variants).", worker_number);
 
             bool violation = false;
             // If the reaction is tardy,
@@ -987,7 +978,7 @@ void* worker(void* arg) {
             //  chain until it is dealt with in a downstream tardy handler.
             if (current_reaction_to_execute->is_tardy == true) {
                 reaction_function_t handler = current_reaction_to_execute->tardy_handler;
-                DEBUG_PRINT("Worker %d: Invoking tardiness handler %p.", worker_number, handler);
+                LOG_PRINT("Worker %d: Invoking tardiness handler.", worker_number);
                 // Invoke the tardy handler if there is one.
                 if (handler != NULL) {
                     // There is a violation
@@ -1018,6 +1009,8 @@ void* worker(void* arg) {
                     // Invoke the local handler, if there is one.
                     reaction_function_t handler = current_reaction_to_execute->deadline_violation_handler;
                     if (handler != NULL) {
+                        LOG_PRINT("Worker %d: Deadline violation. Invoking deadline handler.",
+                                worker_number);
                         (*handler)(current_reaction_to_execute->self);
 
                         // If the reaction produced outputs, put the resulting
@@ -1030,9 +1023,7 @@ void* worker(void* arg) {
             if (violation) {
                 // Need to acquire the mutex lock to remove this from the executing queue
                 // and to obtain the next reaction to execute.
-                DEBUG_PRINT("Worker %d: pthread_mutex_lock worker after running deadline handler.", worker_number);
                 pthread_mutex_lock(&mutex);
-                DEBUG_PRINT("Worker %d: pthread_mutex_locked.", worker_number);
 
                 // The reaction is not going to be executed. However,
                 // this thread holds the mutex lock, so if this is the last
@@ -1041,19 +1032,19 @@ void* worker(void* arg) {
                 pqueue_remove(executing_q, current_reaction_to_execute);
             } else {
                 // Invoke the reaction function.
-                DEBUG_PRINT("Worker %d: Invoking reaction.", worker_number);
+                LOG_PRINT("Worker %d: Invoking reaction at elapsed tag (%lld, %d).",
+                        worker_number,
+                        current_tag.time - start_time,
+                        current_tag.microstep);
                 tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
                 current_reaction_to_execute->function(current_reaction_to_execute->self);
                 tracepoint_reaction_ends(current_reaction_to_execute, worker_number);
-                DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(current_reaction_to_execute, worker_number);
 
                 // Reacquire the mutex lock.
-                DEBUG_PRINT("Worker %d: pthread_mutex_lock worker after invoking reaction function.", worker_number);
                 pthread_mutex_lock(&mutex);
-                DEBUG_PRINT("Worker %d: pthread_mutex_locked.", worker_number);
 
                 // Remove the reaction from the executing queue.
                 // This thread holds the mutex lock, so if this is the last
@@ -1072,7 +1063,6 @@ void* worker(void* arg) {
     _lf_number_of_threads--;
 
     DEBUG_PRINT("Worker %d: Stop requested. Exiting.", worker_number);
-    DEBUG_PRINT("Worker %d: pthread_mutex_unlock.", worker_number);
     // Signal the main thread.
     pthread_cond_signal(&executing_q_emptied);
     pthread_mutex_unlock(&mutex);
@@ -1094,7 +1084,7 @@ pthread_t* __thread_ids;
 
 // Start threads in the thread pool.
 void start_threads() {
-    DEBUG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
+    LOG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
     __thread_ids = (pthread_t*)malloc(_lf_number_of_threads * sizeof(pthread_t));
     number_of_idle_threads = _lf_number_of_threads;
     for (int i = 0; i < _lf_number_of_threads; i++) {
@@ -1164,7 +1154,6 @@ int main(int argc, char* argv[]) {
         }
         
         _lf_execution_started = true;
-        DEBUG_PRINT("Started execution.");
 
         start_threads();
         pthread_mutex_unlock(&mutex);
@@ -1180,7 +1169,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (ret == 0) {
-            info_print("---- All worker threads exited successfully.");
+            LOG_PRINT("---- All worker threads exited successfully.");
         } else {
             error_print("Unable to successfully join worker threads: %s", strerror(ret));
         }

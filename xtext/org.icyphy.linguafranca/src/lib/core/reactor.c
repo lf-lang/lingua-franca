@@ -93,7 +93,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
 int wait_until(instant_t logical_time_ns) {
     int return_value = 0;
     if (!fast) {
-        DEBUG_PRINT("Waiting for logical time %lld.", logical_time_ns);
+        LOG_PRINT("Waiting for elapsed logical time %lld.", logical_time_ns - start_time);
         interval_t ns_to_wait = logical_time_ns - get_physical_time();
     
         if (ns_to_wait <= 0) {
@@ -136,44 +136,15 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
  *  should stop.
  */
 int _lf_do_step() {
-        // Invoke reactions.
+    // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
         //print_snapshot();
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         
-        DEBUG_PRINT("Popped from reaction_q reaction with deadline: %lld.", reaction->deadline);
-        DEBUG_PRINT("Address of reaction: %p.", reaction);
+        LOG_PRINT("Invoking reaction at elapsed logical tag (%lld, %d).",
+                current_tag.time - start_time, current_tag.microstep);
 
         bool violation = false;
-        // If the reaction is tardy,
-        // an input trigger to this reaction has been triggered at a later
-        // logical time than originally anticipated. In this case, a special
-        // tardy reaction will be invoked.             
-        // FIXME: Note that the tardy reaction will be invoked
-        // at most once per logical time value. If the tardy reaction triggers the
-        // same reaction at the current time value, even if at a future superdense time,
-        // then the reaction will be invoked and the tardy reaction will not be invoked again.
-        // However, inputs ports to a federate reactor are network port types so this possibly should
-        // be disallowed.
-        // @note The tardy handler and the deadline handler are not mutually exclusive.
-        //  In other words, both can be invoked for a reaction if it is triggered late
-        //  in logical time (tardy) and also misses the constraint on physical time (deadline).
-        // @note The tardy handler currently can only be invoked in a special circumstance in
-        //  the federated execution. Since federated execution uses the threaded runtime, this
-        //  condition currently will not occur here (in the unthreaded runtime). However, tardiness
-        //  handling is replicated here for future compatibility.
-        // if (reaction->is_tardy > 0LL) {
-        //     // There is a violation
-        //     violation = true;
-        //     reaction_function_t handler = reaction->tardy_handler;
-        //     if (handler != NULL) {
-        //         (*handler)(reaction->self);
-
-        //         // If the reaction produced outputs, put the resulting
-        //         // triggered reactions into the queue or execute them directly if possible.
-        //         schedule_output_reactions(reaction, 0);
-        //     }
-        // }
 
         // If the reaction has a deadline, compare to current physical time
         // and invoke the deadline violation reaction instead of the reaction function
@@ -191,7 +162,7 @@ int _lf_do_step() {
             // They can have different deadlines, so we have to check both.
             // Handle the local deadline first.
             if (reaction->deadline > 0LL && physical_time > current_tag.time + reaction->deadline) {
-                DEBUG_PRINT("Deadline violation.");
+                LOG_PRINT("Deadline violation. Invoking deadline handler.");
                 // Deadline violation has occurred.
                 violation = true;
                 // Invoke the local handler, if there is one.
@@ -270,7 +241,7 @@ int next() {
         next_tag = stop_tag;
     }
 
-    DEBUG_PRINT("Next event (elapsed) time is %lld.", next_tag.time - start_time);
+    LOG_PRINT("Next event (elapsed) time is %lld.", next_tag.time - start_time);
     // Wait until physical time >= event.time.
     // The wait_until function will advance current_tag.time.
     if (wait_until(next_tag.time) != 0) {
@@ -358,11 +329,8 @@ int main(int argc, char* argv[]) {
         if (_lf_do_step()) {
             while (next() != 0);
         }
-        termination();
         return 0;
     } else {
-        DEBUG_PRINT("Invoking termination.");
-        termination();
         return -1;
     }
 }

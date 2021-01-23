@@ -507,7 +507,6 @@ void stop_trace() {
         // Trace was already stopped. Nothing to do.
         return;
     }
-    DEBUG_PRINT("Stopping tracing.");
     pthread_mutex_lock(&_lf_trace_mutex);
     // In multithreaded execution, thread 0 invokes wrapup reactions, so we
     // put that trace last. However, it could also include some startup events.

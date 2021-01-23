@@ -26,7 +26,9 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
- * Utility functions for a federate in a federated execution.
+ * Utility functions for managing output the user, error and warning
+ * messages, logging, and debug messages. Outputs are filtered based on
+ * whether a
  */
 
 #include "util.h"
@@ -100,6 +102,21 @@ void info_print(char* format, ...) {
     va_list args;
     va_start (args, format);
     _lf_message_print(0, "", format, args);
+    va_end (args);
+}
+
+/**
+ * Report an log message on stdout with the prefix
+ * "LOG: " and a newline appended
+ * at the end. If this execution is federated, then
+ * the message will be prefaced by "Federate n: ",
+ * where n is the federate ID.
+ * The arguments are just like printf().
+ */
+void log_print(char* format, ...) {
+    va_list args;
+    va_start (args, format);
+    _lf_message_print(0, "LOG: ", format, args);
     va_end (args);
 }
 

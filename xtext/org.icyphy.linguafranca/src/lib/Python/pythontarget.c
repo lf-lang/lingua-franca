@@ -30,6 +30,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "pythontarget.h"
+#include "util.h"
 
 //////////// set Function(s) /////////////
 /**
@@ -71,7 +72,7 @@ static PyObject* py_SET(PyObject *self, PyObject *args) {
 
     generic_port_instance_struct* port = PyCapsule_GetPointer(p->port, "port");
     if (port == NULL) {
-        fprintf(stderr, "Null pointer received.\n");
+        error_print("Null pointer received.");
         exit(1);
     }
     
@@ -124,7 +125,7 @@ static PyObject* py_schedule(PyObject *self, PyObject *args) {
     
     void* action = PyCapsule_GetPointer(act->action,"action");
     if (action == NULL) {
-        fprintf(stderr, "Null pointer received.\n");
+        error_print("Null pointer received.");
         exit(1);
     }
 
@@ -170,7 +171,7 @@ static PyObject* py_schedule_copy(PyObject *self, PyObject *args) {
 
     void* action = PyCapsule_GetPointer(act->action,"action");
     if (action == NULL) {
-        fprintf(stderr, "Null pointer received.\n");
+        error_print("Null pointer received.");
         exit(1);
     }
     
@@ -320,7 +321,7 @@ port_iter(PyObject *self) {
 
     generic_port_instance_struct **cport = (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
     if (cport == NULL) {
-        fprintf(stderr, "Null pointer received.\n");
+        error_print("Null pointer received.");
         exit(1);
     }
 
@@ -386,8 +387,7 @@ port_capsule_get_item(PyObject *self, PyObject *item) {
         generic_port_instance_struct **cport = (generic_port_instance_struct **)PyCapsule_GetPointer(port->port,"port");
         if (cport == NULL)
         {
-            fprintf(stderr, "Null pointer received.\n");
-            exit(1);
+            error_print_and_exit("Null pointer received.");
         }
 
         //Py_INCREF(cport[index]->value);
@@ -433,9 +433,7 @@ port_capsule_assign_get_item(PyObject *self, PyObject *item, PyObject* value) {
 static Py_ssize_t
 port_length(PyObject *self) {
     generic_port_capsule_struct* port = (generic_port_capsule_struct*)self;
-#ifdef VERBOSE
-    printf("Getting the length, which is %d.\n", port->width);
-#endif
+    DEBUG_PRINT("Getting the length, which is %d.", port->width);
     return (Py_ssize_t)port->width;
 }
 
@@ -834,15 +832,13 @@ PyObject* convert_C_port_to_py(void* port, int width) {
     // Create the action struct in Python
     PyObject* cap = PyObject_GC_New(generic_port_capsule_struct, &port_capsule_t);
     if (cap == NULL) {
-        fprintf(stderr, "Failed to convert port.\n");
-        exit(1);
+        error_print_and_exit("Failed to convert port.");
     }
 
     // Create the capsule to hold the void* port
     PyObject* capsule = PyCapsule_New(port, "port", NULL);
     if (capsule == NULL) {
-        fprintf(stderr, "Failed to convert port.\n");
-        exit(1);
+        error_print_and_exit("Failed to convert port.");
     }
 
     // Fill in the Python port struct
@@ -902,15 +898,13 @@ PyObject* convert_C_action_to_py(void* action) {
     // Create the action struct in Python
     PyObject* cap = PyObject_GC_New(generic_action_capsule_struct, &action_capsule_t);
     if (cap == NULL) {
-        fprintf(stderr, "Failed to convert action.\n");
-        exit(1);
+        error_print_and_exit("Failed to convert action.");
     }
 
     // Create the capsule to hold the void* action
     PyObject* capsule = PyCapsule_New(action, "action", NULL);
     if (capsule == NULL) {
-        fprintf(stderr, "Failed to convert action.\n");
-        exit(1);
+        error_print_and_exit("Failed to convert action.");
     }
 
     // Fill in the Python action struct
@@ -964,9 +958,7 @@ get_python_function(string module, string class, int instance_id, string func) {
         is_initialized = 1;
     }
 
-#ifdef VERBOSE
-    printf("Starting the function start()\n");
-#endif
+    DEBUG_PRINT("Starting the function start().");
 
     // Necessary PyObject variables to load the react() function from test.py
     PyObject *pFileName, *pModule, *pDict, *pClasses, *pClass, *pFunc;
@@ -976,9 +968,7 @@ get_python_function(string module, string class, int instance_id, string func) {
     // Initialize the Python interpreter
     Py_Initialize();
 
-#ifdef VERBOSE
-    printf("Initialized the Python interpreter.\n");
-#endif
+    DEBUG_PRINT("Initialized the Python interpreter.");
 
     // If the Python module is already loaded, skip this.
     if (globalPythonModule == NULL) {    
@@ -989,8 +979,7 @@ get_python_function(string module, string class, int instance_id, string func) {
         char cwd[PATH_MAX];
         if ( getcwd(cwd, sizeof(cwd)) == NULL)
         {
-            fprintf(stderr, "Failed to get the current working directory.\n");
-            exit(0);
+            error_print_and_exit("Failed to get the current working directory.");
         }
 
         wchar_t wcwd[PATH_MAX];
@@ -999,15 +988,11 @@ get_python_function(string module, string class, int instance_id, string func) {
 
         Py_SetPath(wcwd);
 
-#ifdef VERBOSE
-    printf("Loading module %s in %s.\n", module, cwd);
-#endif
+    DEBUG_PRINT("Loading module %s in %s.", module, cwd);
 
         pModule = PyImport_Import(pFileName);
 
-#ifdef VERBOSE
-    printf("Loaded module %p.\n", pModule);
-#endif
+        DEBUG_PRINT("Loaded module %p.", pModule);
 
         // Free the memory occupied by pFileName
         Py_DECREF(pFileName);
@@ -1018,7 +1003,7 @@ get_python_function(string module, string class, int instance_id, string func) {
             pDict = PyModule_GetDict(pModule);
             if (pDict == NULL) {
                 PyErr_Print();
-                fprintf(stderr, "Failed to load contents of module %s.\n", module);
+                error_print("Failed to load contents of module %s.", module);
                 return 1;
             }
 
@@ -1040,7 +1025,7 @@ get_python_function(string module, string class, int instance_id, string func) {
         pClasses = PyDict_GetItem(globalPythonModuleDict, list_name);
         if (pClasses == NULL){
             PyErr_Print();
-            fprintf(stderr, "Failed to load class list \"%s\" in module %s.\n", class, module);
+            error_print("Failed to load class list \"%s\" in module %s.", class, module);
             return 1;
         }
 
@@ -1049,27 +1034,21 @@ get_python_function(string module, string class, int instance_id, string func) {
         pClass = PyList_GetItem(pClasses, instance_id);
         if (pClass == NULL) {
             PyErr_Print();
-            fprintf(stderr, "Failed to load class \"%s[%d]\" in module %s.\n", class, instance_id, module);
+            error_print("Failed to load class \"%s[%d]\" in module %s.", class, instance_id, module);
             return 1;
         }
 
-#ifdef VERBOSE
-        printf("Loading function %s.\n", func);
-#endif
+        DEBUG_PRINT("Loading function %s.", func);
+
         // Get the function react from test.py
         pFunc = PyObject_GetAttrString(pClass, func);
 
-#ifdef VERBOSE
-        printf("Loaded function %p.\n", pFunc);
-#endif
-
+        DEBUG_PRINT("Loaded function %p.", pFunc);
 
         // Check if the funciton is loaded properly
         // and if it is callable
         if (pFunc && PyCallable_Check(pFunc)) {
-#ifdef VERBOSE
-            printf("Attempting to call function %s from class %s[%d].\n", func , class, instance_id);
-#endif
+            DEBUG_PRINT("Calling function %s from class %s[%d].", func , class, instance_id);
             Py_INCREF(pFunc);
             return pFunc;
         }
@@ -1079,19 +1058,17 @@ get_python_function(string module, string class, int instance_id, string func) {
             {
                 PyErr_Print();
             }
-            fprintf(stderr, "Function %s was not found or is not callable.\n", func);
+            error_print("Function %s was not found or is not callable.", func);
         }
         Py_XDECREF(pFunc);
         Py_DECREF(globalPythonModule); 
     }
     else {
         PyErr_Print();
-        fprintf(stderr, "Failed to load \"%s\"\n", module);
+        error_print("Failed to load \"%s\".", module);
     }
     
-#ifdef VERBOSE
-    printf("Done with start()\n");
-#endif
+    DEBUG_PRINT("Done with start().");
 
     if (is_initialized == 0) {
         /* We are the first to initilize the Pyton interpreter. Destroy it when done. */
