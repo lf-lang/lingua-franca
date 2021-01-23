@@ -4048,10 +4048,6 @@ class CGenerator extends GeneratorBase {
         }
         
         includeTargetLanguageHeaders()
-        
-        // Do this after the above includes so that the preamble can
-        // call built-in functions.
-        super.generatePreamble()        
 
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
@@ -4063,6 +4059,10 @@ class CGenerator extends GeneratorBase {
 
         includeTargetLanguageSourceFiles()
         
+        // Do this after the above includes so that the preamble can
+        // call built-in functions.
+        super.generatePreamble()
+
         parseTargetParameters()
         
         // Make sure src-gen directory exists.
