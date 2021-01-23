@@ -1204,14 +1204,13 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     // Check to see if the execution
     // has not started yet.
     if (_lf_execution_started) {
-        warning_print("_lf_schedule_init_reactions() called but execution has already started.");
+        DEBUG_PRINT("Execution has already started.");
         return 0;
     }
     
     // Check to see if we are actually at startup
     // FIXME: add microsteps
     if (current_tag.time != start_time) {
-        warning_print("_lf_schedule_init_reactions() called at time %lld which is not start time.", current_tag.time);
         return 0;
     }
 
@@ -1219,21 +1218,18 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     // Doing this after incrementing the reference count ensures that the
     // payload will be freed, if there is one.
 	if (trigger == NULL) {
-	    warning_print("_lf_schedule_init_reactions() called with a NULL trigger.");
 	    __done_using(token);
 	    return 0;
 	}
 
     // Check to see if the intended event will actually be scheduled at (0,0)
     if ((trigger->offset + extra_delay) != 0LL) {
-        warning_print("_lf_schedule_init_reactions() called with intended relative time %lld. Was expecting 0.", trigger->offset + extra_delay);
         return 0;
     }
     
     // Check to see if the trigger is not a timer
     // and not a physical action
     if (trigger->is_timer || trigger->is_physical) {
-        warning_print("_lf_schedule_init_reactions() called for a timer or a physical action.");
         return 0;
     }
 
