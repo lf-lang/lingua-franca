@@ -339,6 +339,12 @@ void start_trace(char* filename) {
     // Array of counters that track the size of each trace record (per thread).
     _lf_trace_buffer_size_to_flush = (int*)calloc(sizeof(int), _lf_number_of_trace_buffers);
 
+    // In case the user forgets to stop to the trace in wrapup.
+    if (atexit(stop_trace) != 0) {
+        warning_print("Failed to register stop_trace function for execution upon termination.");
+    }
+    _lf_trace_stop = 0;
+
     pthread_create(&_lf_flush_trace_thread, NULL, flush_trace, NULL);
 
     DEBUG_PRINT("Started tracing.");
@@ -497,6 +503,11 @@ void tracepoint_worker_advancing_time_ends(int worker) {
  * close the file.
  */
 void stop_trace() {
+    if (_lf_trace_stop) {
+        // Trace was already stopped. Nothing to do.
+        return;
+    }
+    DEBUG_PRINT("Stopping tracing.");
     pthread_mutex_lock(&_lf_trace_mutex);
     // In multithreaded execution, thread 0 invokes wrapup reactions, so we
     // put that trace last. However, it could also include some startup events.

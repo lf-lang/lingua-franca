@@ -29,8 +29,8 @@ reactor ImportantActuator {
             in->value,
             in->intended_tag.time - get_start_time(),
             in->intended_tag.microstep);
-        if (compare_tags2(current_tag.time - get_start_time(), current_tag.microstep, 
-                         SEC(1) *  self->c, 0) == 0) {
+        if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
+                         (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0) {
             self->success++; // Message was on-time
         }
         self->c++;

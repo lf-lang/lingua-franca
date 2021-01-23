@@ -46,6 +46,9 @@ preamble {=
     #include "sensor_simulator.c"
 =}
 </pre>
+To print messages to the screen, rather than using printf(), you should use
+the messaging functions in util.h, such as info_print(). Otherwise, your messages
+will be printed over other information.
 */
 
 #ifndef SENSOR_SIMULATOR_H

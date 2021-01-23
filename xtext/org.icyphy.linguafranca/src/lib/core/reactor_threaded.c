@@ -33,22 +33,27 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "reactor_common.c"
 #include <pthread.h>
+#include <signal.h>
 
 /**
  * The maximum amount of time a worker thread should stall
  * before checking the reaction queue again.
+ * This is not currently used.
  */
 #define MAX_STALL_INTERVAL MSEC(1)
 
+/**
+ * Unless the "fast" option is given, an LF program will wait until
+ * physical time matches logical time before handling an event with
+ * a given logical time. The amount of time is less than this given
+ * threshold, then no wait will occur. The purpose of this is
+ * to prevent unnecessary delays caused by simply setting up and
+ * performing the wait.
+ */
+#define MIN_WAIT_TIME USEC(10)
+
 // Number of idle worker threads.
 volatile int number_of_idle_threads = 0;
-
-/**
- * Maximum amount of time that a worker thread waits for
- * notifications about changes in the reaction_q before it
- * wakes up to check the reaction_q.
- */
-#define MAX_WORKER_WAIT_TIME MSEC(1)
 
 /*
  * A struct representing a barrier in threaded 
@@ -81,7 +86,7 @@ _lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0,
                                                                  };
 
 // Queue of currently executing reactions.
-pqueue_t* executing_q;  // Sorted by index (precedence sort)
+pqueue_t* executing_q; // Sorted by index (precedence sort)
 
 pqueue_t* transfer_q;  // To store reactions that are still blocked by other reactions.
 
@@ -97,26 +102,29 @@ pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
 pthread_cond_t global_tag_barrier_requestors_reached_zero = PTHREAD_COND_INITIALIZER;
 
 /**
- * Raise a barrier on tag at future_tag if possible (or freeze 
- * the current tag) and increment the total number of requestors 
- * waiting on the barrier. There should always be a subsequent
- * call to _lf_decrement_global_tag_barrier() or 
- * _lf_decrement_global_tag_barrier_already_locked() to release
- * the barrier.
+ * Raise a barrier to prevent the current tag from advancing to or
+ * beyond the value of the future_tag argument, if possible.
+ * If the current tag is already at or beyond future_tag, then
+ * prevent any further advances. This function will increment the
+ * total number of pending barrier requests. For each call to this
+ * function, there should always be a subsequent call to
+ * _lf_decrement_global_tag_barrier() or
+ * _lf_decrement_global_tag_barrier_already_locked()
+ * to release the barrier.
  * 
- * If there is already a barrier raised at a later tag, this 
- * function will move it to future_tag or the current tag, whichever
+ * If there is already a barrier raised at a tag later than future_tag, this
+ * function will change the barrier to future_tag or the current tag, whichever
  * is larger. If the existing barrier is earlier 
- * than future_tag, this function will not move the barrier. If there are 
+ * than future_tag, this function will not change the barrier. If there are
  * no existing barriers and future_tag is in the past relative to the 
- * current tag, this function will raise a barrier at the current tag.
+ * current tag, this function will raise a barrier to the current tag.
  * 
  * This function assumes the mutex lock is already held, thus, it will not
  * acquire it itself.
  * 
  * @note This function is only useful in threaded applications to facilitate
  *  certain non-blocking functionalities such as receiving timed messages
- *  over the network or handling stop in the federated execution.
+ *  over the network or handling stop in a federated execution.
  * 
  * @param future_tag A desired tag for the barrier. This function will guarantee
  * that current logical time will not go past future_tag if it is in the future.
@@ -128,7 +136,7 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
     // This will only occur when a federate receives a timed message with 
     // a tag that is after the stop tag
     if (_lf_is_tag_after_stop_tag(future_tag)) {
-        printf("WARNING: attempting to raise a barrier after the stop tag.\n");
+        warning_print("Attempting to raise a barrier after the stop tag.");
         future_tag = stop_tag;
     }
     tag_t current_tag = get_current_tag();
@@ -161,26 +169,28 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
 }
 
 /**
- * Raise a barrier on tag at future_tag if possible (or freeze 
- * the current tag) and increment the total number of requestors 
- * waiting on the barrier. There should always be a subsequent
- * call to _lf_decrement_global_tag_barrier() or 
- * _lf_decrement_global_tag_barrier_already_locked() to release
- * the barrier.
+ * Raise a barrier to prevent the current tag from advancing to or
+ * beyond the value of the future_tag argument, if possible.
+ * If the current tag is already at or beyond future_tag, then
+ * prevent any further advances. This function will increment the
+ * total number of pending barrier requests. For each call to this
+ * function, there should always be a subsequent call to
+ * _lf_decrement_global_tag_barrier() or
+ * _lf_decrement_global_tag_barrier_already_locked()
+ * to release the barrier.
  * 
- * If there is already a barrier raised at a later tag, this 
- * function will move it to future_tag or the current tag, whichever
+ * If there is already a barrier raised at a tag later than future_tag, this
+ * function will change the barrier to future_tag or the current tag, whichever
  * is larger. If the existing barrier is earlier 
- * than future_tag, this function will not move the barrier. If there are 
+ * than future_tag, this function will not change the barrier. If there are
  * no existing barriers and future_tag is in the past relative to the 
- * current tag, this function will raise a barrier at the current tag.
+ * current tag, this function will raise a barrier to the current tag.
  * 
- * This function assumes the mutex lock is already held, thus, it will not
- * acquire it itself.
+ * This function acquires the mutex lock .
  * 
  * @note This function is only useful in threaded applications to facilitate
  *  certain non-blocking functionalities such as receiving timed messages
- *  over the network or handling stop in the federated execution.
+ *  over the network or handling stop in a federated execution.
  * 
  * @param future_tag A desired tag for the barrier. This function will guarantee
  * that current tag will not go past future_tag if it is in the future.
@@ -194,10 +204,10 @@ void _lf_increment_global_tag_barrier(tag_t future_tag) {
 }
 
 /**
- * Decrement the total number of requestors for the global tag barrier.
- * If the total number of requestors reaches zero, this function resets the
+ * Decrement the total number of pending barrier requests for the global tag barrier.
+ * If the total number of requests reaches zero, this function resets the
  * tag barrier to (FOREVER, 0) and notifies all threads that are waiting 
- * on the barrier that the number of requestors has reached zero.
+ * on the barrier that the number of requests has reached zero.
  * 
  * This function assumes that the caller already holds the mutex lock.
  * 
@@ -211,9 +221,8 @@ void _lf_decrement_global_tag_barrier_already_locked() {
     // Check to see if the semaphore is negative, which indicates that
     // a mismatched call was placed for this function.
     if (_lf_global_tag_advancement_barrier.requestors < 0) {
-        fprintf(stderr, "Mismatched use of _lf_increment_global_tag_barrier()"
-         " and  _lf_decrement_global_tag_barrier().\n");
-        exit(1);
+        error_print_and_exit("Mismatched use of _lf_increment_global_tag_barrier()"
+                " and  _lf_decrement_global_tag_barrier().");
     } else if (_lf_global_tag_advancement_barrier.requestors == 0) {
         // When the semaphore reaches zero, reset the horizon to forever.
         _lf_global_tag_advancement_barrier.horizon = (tag_t) { .time = FOREVER, .microstep = 0 };
@@ -244,8 +253,10 @@ void _lf_decrement_global_tag_barrier() {
 
 /**
  * A function that will wait if the proposed tag
- * is larger than a requested barrier on tag until
- * that barrier is lifted.
+ * is larger than a barrier set by a call to
+ * _lf_increment_global_tag_barrier or
+ * _lf_increment_global_tag_barrier_already_locked.
+ * It will return when that barrier is lifted.
  * 
  * This function assumes the mutex is already locked.
  * Thus, it unlocks the mutex while it's waiting to allow
@@ -255,17 +266,28 @@ void _lf_decrement_global_tag_barrier() {
  *  to advance to.
  */
 void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
-    // Do not wait for FOREVER
+    // Do not wait for tags after the stop tag
+    if (_lf_is_tag_after_stop_tag(proposed_tag)) {
+        proposed_tag = stop_tag;
+    }
+    // Do not wait forever
     if (proposed_tag.time == FOREVER) {
+        warning_print("Global tag barrier should not handle FOREVER proposed tags.");
         return;
     }
     // Wait if the global barrier semaphore on logical time is zero
     // and the proposed_time is larger than the horizon.
-    while ((compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) > 0) &&
-          _lf_global_tag_advancement_barrier.requestors > 0) {
-        DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time, proposed_tag.microstep);
+    while (_lf_global_tag_advancement_barrier.requestors > 0
+            && compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) > 0
+    ) {
+        DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time - start_time, proposed_tag.microstep);
         // Wait until no requestor remains for the barrier on logical time
         pthread_cond_wait(&global_tag_barrier_requestors_reached_zero, &mutex);
+        
+        // Do not wait for tags after the stop tag
+        if (_lf_is_tag_after_stop_tag(proposed_tag)) {
+            proposed_tag = stop_tag;
+        }
     }
 }
 
@@ -276,13 +298,10 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
  */
 handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
-    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_token.");
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_token.");
     pthread_mutex_unlock(&mutex);
     return return_value;
 }
@@ -299,12 +318,10 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     trigger_t* trigger = _lf_action_to_trigger(action);
 
     if (trigger == NULL || trigger->token == NULL || trigger->token->element_size <= 0) {
-        fprintf(stderr, "ERROR: schedule: Invalid trigger or element size.\n");
+        error_print("schedule: Invalid trigger or element size.");
         return -1;
     }
-    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_copy.");
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
     // Initialize token with an array size of length and a reference count of 0.
     lf_token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
@@ -313,7 +330,6 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     handle_t result = __schedule(trigger, offset, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_copy.");
     pthread_mutex_unlock(&mutex);
     return result;
 }
@@ -325,16 +341,13 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
 handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
 
-    DEBUG_PRINT("pthread_mutex_lock in _lf_schedule_value.");
     pthread_mutex_lock(&mutex);
-    DEBUG_PRINT("pthread_mutex_locked.");
     lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
     pthread_cond_signal(&event_q_changed);
-    DEBUG_PRINT("pthread_mutex_unlock in _lf_schedule_value.");
     pthread_mutex_unlock(&mutex);
     return return_value;
 }
@@ -369,8 +382,7 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
 
 /**
  * Wait until physical time matches or exceeds the specified logical time,
- * unless -fast is given. If a barrier on logical time is raised at an earlier
- * logical time, wait until the barrier is removed.
+ * unless -fast is given.
  *
  * If an event is put on the event queue during the wait, then the wait is
  * interrupted and this function returns false. It also returns false if the
@@ -384,18 +396,22 @@ tag_t next_event_tag(instant_t time, microstep_t microstep);
  * was placed on the queue if that event time matches or exceeds
  * the specified time.
  *
- * @param logical_time_ns Logical time to wait on.
- * @param mirostep The microstep to wait on used exclusively for federated 
- *  applications with decentralized coordination. Ignored otherwise. 
+ * @param logical_time_ns Logical time to wait until physical time matches it.
+ * @param return_if_interrupted If this is false, then wait_util will wait
+ *  until physical time matches the logical time regardless of whether new
+ *  events get put on the event queue. This is useful, for example, for
+ *  synchronizing the start of the program.
  * 
- * @return False if the wait is interrupted either because of an event
+ * @return Return false if the wait is interrupted either because of an event
  *  queue signal or if the wait time was interrupted early by reaching
- *  the stop time, if one was specified.
+ *  the stop time, if one was specified. Return true if the full wait time
+ *  was reached.
  */
-bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
+bool wait_until(instant_t logical_time_ns) {
+    DEBUG_PRINT("-------- Waiting until physical time matches logical time %lld", logical_time_ns);
     bool return_value = true;
     if (logical_time_ns > stop_tag.time) {
-        DEBUG_PRINT("-------- Wait time after stop time.");
+        DEBUG_PRINT("-------- Waiting until the stop time instead: %lld", stop_tag.time);
         // Modify the time to wait until to be the timeout time.
         logical_time_ns = stop_tag.time;
         // Indicate on return that the time of the event was not reached.
@@ -405,36 +421,79 @@ bool wait_until(instant_t logical_time_ns, microstep_t microstep) {
     interval_t wait_until_time_ns = logical_time_ns;
 #ifdef _LF_COORD_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
     // Apply the STP offset to the logical time
-    wait_until_time_ns += _lf_global_time_STP_offset;
+    // Prevent an overflow
+    if (wait_until_time_ns < FOREVER - _lf_global_time_STP_offset) {
+        // If wait_time is not forever
+        wait_until_time_ns += _lf_global_time_STP_offset;
+    }
 #endif
     if (!fast) {
-        // Convert the logical time to a timespec.
+        // Get physical time as adjusted by clock synchronization offset.
+        instant_t current_physical_time = get_physical_time();
+        // We want to wait until that adjusted time matches the logical time.
+        interval_t ns_to_wait = wait_until_time_ns - current_physical_time;
+        // We should not wait if that adjusted time is already ahead
+        // of logical time.
+        if (ns_to_wait < MIN_WAIT_TIME) {
+            return return_value;
+        }
+
+        // We will use pthread_cond_wait, which takes as an argument the absolute
+        // time to wait until. However, that will not include the offset that we
+        // have calculated with clock synchronization. So we need to instead ensure
+        // that the time it waits is ns_to_wait.
+        // We need the current clock value as obtained using CLOCK_REALTIME because
+        // that is what pthread_cond_timedwait will use.
+        // The above call to setPhysicalTime() set the
+        // _lf_last_reported_unadjusted_physical_time_ns to the CLOCK_REALTIME value
+        // unadjusted by clock synchronization.
+        // Note that if ns_to_wait is large enough, then the following addition could
+        // overflow. This could happen, for example, if wait_until_time_ns == FOREVER.
+        instant_t unadjusted_wait_until_time_ns = FOREVER;
+        if (FOREVER - _lf_last_reported_unadjusted_physical_time_ns > ns_to_wait) {
+            unadjusted_wait_until_time_ns = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
+        }
+        DEBUG_PRINT("-------- Clock offset is %lld ns.", current_physical_time - _lf_last_reported_unadjusted_physical_time_ns);
+
+        // Convert the absolute time to a timespec.
         // timespec is seconds and nanoseconds.
-        struct timespec wait_until_time = {(time_t)wait_until_time_ns / BILLION, (long)wait_until_time_ns % BILLION};
+        struct timespec unadjusted_wait_until_time
+                = {(time_t)unadjusted_wait_until_time_ns / BILLION, (long)unadjusted_wait_until_time_ns % BILLION};
 
-        DEBUG_PRINT("-------- Waiting for physical time to match logical time %llu.", logical_time_ns);
-        DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&wait_until_time.tv_sec), wait_until_time.tv_nsec);
+        DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
+        DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&unadjusted_wait_until_time.tv_sec), unadjusted_wait_until_time.tv_nsec);
 
-        if (pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time) != ETIMEDOUT) {
+        // pthread_cond_timedwait returns 0 if it is awakened before the timeout.
+        // Hence, we want to run it repeatedly until either it returns non-zero or the
+        // current physical time matches or exceeds the logical time.
+        if (pthread_cond_timedwait(&event_q_changed, &mutex, &unadjusted_wait_until_time) != ETIMEDOUT) {
             DEBUG_PRINT("-------- Wait interrupted.");
 
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule().
+            // Continue waiting.
             // Do not adjust current_tag.time here. If there was an asynchronous
             // call to schedule(), it will have put an event on the event queue,
             // and current_tag.time will be set to that time when that event is pulled.
             return_value = false;
+        } else {
+            // Reached timeout.
+            // Unfortunately, at least on Macs, pthread_cond_timedwait appears
+            // to be implemented incorrectly and it returns well short of the target
+            // time.  Check for this condition and wait again if necessary.
+            interval_t ns_to_wait = wait_until_time_ns - get_physical_time();
+            // We should not wait if that adjusted time is already ahead
+            // of logical time.
+            if (ns_to_wait < MIN_WAIT_TIME) {
+                return true;
+            }
+            DEBUG_PRINT("-------- pthread_cond_timedwait claims to have timed out, "
+                    "but it did not reach the target time. Waiting again.");
+            return wait_until(wait_until_time_ns);
         }
-        DEBUG_PRINT("-------- Returned from wait.");
 
+        DEBUG_PRINT("-------- Returned from wait, having waited %lld ns.", get_physical_time() - current_physical_time);
     }
-#ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
-    // Wait until the global barrier on tag (horizon) is larger
-    // than the tag.
-    // This can effectively add to the STP offset in certain cases, for example,
-    // when a message with timestamp (0,0) has arrived at (0,0).
-    _lf_wait_on_global_tag_barrier((tag_t) { .time = logical_time_ns, .microstep = microstep } );
-#endif
     return return_value;
 }
 
@@ -482,7 +541,8 @@ int __next() {
         }
     }
 
-    // DEBUG_PRINT("Got event with time %lld off the event queue.", next_time);
+    DEBUG_PRINT("Got event with time %lld and microstep %d off the event queue.",
+            next_tag.time, next_tag.microstep);
     // If a timeout tag was given, adjust the next_tag from the
     // event tag to that timeout tag.
     // FIXME: This is primarily done to let the RTI
@@ -492,9 +552,10 @@ int __next() {
     }
 
 #ifdef _LF_IS_FEDERATED
-    // In case this is in a federation, check whether tag can advance
-    // to the next tag. If there are upstream federates, then this call
-    // will block waiting for a response from the RTI.
+    // In case this is in a federation, notify the RTI of the
+    // next earliest tag at which this federate might produce an event.
+    // This function may block until it is safe to advance the current tag
+    // to the next tag. Specifically, it blocks if there are upstream federates.
     // If an action triggers during that wait, it will unblock
     // and return with a time (typically) less than the next_time.
     tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
@@ -510,54 +571,84 @@ int __next() {
     if (_lf_is_tag_after_stop_tag(next_tag)) {
         next_tag = stop_tag;
     }
-#endif
+#endif // _LF_IS_FEDERATED
 
     // Wait for physical time to advance to the next event time (or stop time).
     // This can be interrupted if a physical action triggers (e.g., a message
     // arrives from an upstream federate or a local physical action triggers).
     DEBUG_PRINT("next(): Waiting until time %lld.", (next_tag.time - start_time));
-    if (!wait_until(next_tag.time, next_tag.microstep)) {
+    if (!wait_until(next_tag.time)) {
         DEBUG_PRINT("__next(): Wait until time interrupted.");
         // Sleep was interrupted.
         // May have been an asynchronous call to schedule().
         // Set current time to match physical time, but not less than
         // current logical time nor more than next time in the event queue.
+        // Since wait_until releases the mutex lock internally, we need to check
+        // again for any changes in stop_tag while the mutex was unlocked.
+        if (_lf_is_tag_after_stop_tag(next_tag)) {
+            next_tag = stop_tag;
+        }
         // Get the current physical time.
-        struct timespec current_physical_time;
-        clock_gettime(CLOCK_REALTIME, &current_physical_time);
-        long long current_physical_time_ns 
-                = current_physical_time.tv_sec * BILLION
-                + current_physical_time.tv_nsec;
+        instant_t current_physical_time_ns = get_physical_time();
         if (current_physical_time_ns > current_tag.time) {
             if (current_physical_time_ns < next_tag.time) {
-                // Advance current time.
+                // In federated programs, barriers could be raised on a specific tag.
+                // If next_tag is larger than the barrier, next() should wait until the barrier
+                // is removed before advancing the tag
+#ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
+                // Wait until the global barrier on tag (horizon) is larger than the next_tag.
+                // This can effectively add to the STP offset in certain cases, for example,
+                // when a message with timestamp (0,0) has arrived at (0,0).
+                _lf_wait_on_global_tag_barrier((tag_t){
+                                                .time = current_physical_time_ns,
+                                                .microstep = 0});
+#endif
+                // Advance tag.
                 _lf_advance_logical_time(current_physical_time_ns);
-                // I am assuming control-C causes this condition. Therefore, the 
-                // program has to stop.
-                // _lf_set_stop_tag((tag_t) {.time = current_physical_time_ns, .microstep = 0});
                 return 1;
             }
         } else {
             // Current physical time does not exceed current logical
-            // time, so do not advance current time.
-            // I am assuming control-C causes this condition. Therefore, the 
-            // program has to stop.
-            // _lf_set_stop_tag(current_tag);
+            // time, so do not advance tag.
             return 1;
         }
+    } else {
+        DEBUG_PRINT("Physical time is ahead of next tag time by %lld. This should be small.",
+                get_physical_time() - next_tag.time);
     }
     
     // If the event queue has changed, return to iterate.
     if ((event_t*)pqueue_peek(event_q) != event) {
         return 1;
     }
-    
+
     // Since wait_until releases the mutex lock internally, we need to check
     // again for any changes in stop_tag while the mutex was unlocked.
     if (_lf_is_tag_after_stop_tag(next_tag)) {
         next_tag = stop_tag;
     }
     
+    // In federated programs, barriers could be raised on a specific tag.
+    // If next_tag is larger than the barrier, next() should wait until the barrier
+    // is removed before advancing the tag
+#ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
+    // A barrier tag may have been set either by a stop request or by an incoming
+    // message with a logical tag.
+    // Wait until the global barrier on tag (horizon) is larger than the next_tag.
+    // This can effectively add to the STP offset in certain cases, for example,
+    // when a message with timestamp (0,0) has arrived at (0,0).
+
+    // FIXME: If the event queue is empty, next_tag.time == FOREVER, resulting
+    // in a warning being printed.
+    _lf_wait_on_global_tag_barrier(next_tag);
+#endif
+
+    // Since _lf_wait_on_global_tag_barrier releases the mutex lock internally, we need to check
+    // again for any changes in stop_tag while the mutex was unlocked.
+    if (_lf_is_tag_after_stop_tag(next_tag)) {
+        next_tag = stop_tag;
+    }
+
     // At this point, finally, we have an event to process.
     // Advance current time to match that of the first event on the queue.
     _lf_advance_logical_time(next_tag.time);
@@ -608,6 +699,9 @@ void request_stop() {
     _lf_set_stop_tag((tag_t) {.time = current_tag.time, .microstep = current_tag.microstep+1});
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
+    // We signal instead of broadcast under the assumption that only
+    // one worker thread can call wait_until at a given time because
+    // the call to wait_until is protected by a mutex lock
     pthread_cond_signal(&event_q_changed);
 #endif
     DEBUG_PRINT("pthread_mutex_unlock in request_stop.");
@@ -808,7 +902,6 @@ void* worker(void* arg) {
             // unless some other worker thread is already advancing time.
             if (pqueue_size(reaction_q) == 0
                     && pqueue_size(executing_q) == 0
-                    && pqueue_size(transfer_q) == 0
                     && !__advancing_time) {
                 logical_time_complete(current_tag.time, current_tag.microstep);
                 
@@ -855,7 +948,7 @@ void* worker(void* arg) {
             }
         } else {
             // Got a reaction that is ready to run.
-            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: %lld\n and deadline %lld.", worker_number, current_reaction_to_execute->index, current_reaction_to_execute->deadline);
+            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: %lld and deadline %lld.", worker_number, current_reaction_to_execute->index, current_reaction_to_execute->deadline);
 
             // This thread will no longer be idle.
             if (!have_been_busy) {
@@ -874,7 +967,7 @@ void* worker(void* arg) {
 
             // Unlock the mutex to run the reaction.
             pthread_mutex_unlock(&mutex);
-            DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run the reaction (or its fault vairants).\n", worker_number);
+            DEBUG_PRINT("Worker %d: pthread_mutex_unlock to run the reaction (or its fault variants).", worker_number);
 
             bool violation = false;
             // If the reaction is tardy,
@@ -917,12 +1010,7 @@ void* worker(void* arg) {
             // then the reaction will be invoked and the violation reaction will not be invoked again.
             if (current_reaction_to_execute->deadline > 0LL) {
                 // Get the current physical time.
-                struct timespec current_physical_time;
-                clock_gettime(CLOCK_REALTIME, &current_physical_time);
-                // Convert to instant_t.
-                instant_t physical_time =
-                        current_physical_time.tv_sec * BILLION
-                        + current_physical_time.tv_nsec;
+                instant_t physical_time = get_physical_time();
                 // Check for deadline violation.
                 if (physical_time > current_tag.time + current_reaction_to_execute->deadline) {
                     // Deadline violation has occurred.
@@ -1035,14 +1123,16 @@ int main(int argc, char* argv[]) {
     pthread_mutex_init(&mutex, &attr);
 
     if (atexit(termination) != 0) {
-        fprintf(stderr, "WARNING: Failed to register termination function!");
+        warning_print("Failed to register termination function!");
     }
+    // The above handles only "normal" termination (via a call to exit).
+    // As a consequence, we need to also trap ctrl-C, which issues a SIGINT,
+    // and cause it to call exit.
+    signal(SIGINT, exit);
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
-        DEBUG_PRINT("pthread_mutex_lock main.");
         pthread_mutex_lock(&mutex);
-        DEBUG_PRINT("pthread_mutex_locked.");
         initialize();
         transfer_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
@@ -1068,15 +1158,15 @@ int main(int argc, char* argv[]) {
         tag_t grant_time = next_event_tag(start_time, 0u);
         if (grant_time.time != start_time || grant_time.microstep != 0u) {
             // This is a critical condition
-            fprintf(stderr, "Federate received a grant time earlier than start time or with an incorrect starting microstep (%lld, %u).\n", grant_time.time - start_time, grant_time.microstep);
-            exit(1);
+            error_print_and_exit("Federate received a grant time earlier than start time "
+                    "or with an incorrect starting microstep (%lld, %u).",
+                    grant_time.time - start_time, grant_time.microstep);
         }
         
         _lf_execution_started = true;
         DEBUG_PRINT("Started execution.");
 
         start_threads();
-        DEBUG_PRINT("pthread_mutex_unlock main.");
         pthread_mutex_unlock(&mutex);
         DEBUG_PRINT("Waiting for worker threads to exit.");
 
@@ -1090,9 +1180,9 @@ int main(int argc, char* argv[]) {
         }
 
         if (ret == 0) {
-            printf("---- All worker threads exited successfully.\n");
+            info_print("---- All worker threads exited successfully.");
         } else {
-            printf("Unable to successfully join worker threads: %s", strerror(ret));
+            error_print("Unable to successfully join worker threads: %s", strerror(ret));
         }
         
         free(__thread_ids);

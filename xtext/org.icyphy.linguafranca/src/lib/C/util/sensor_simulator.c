@@ -34,23 +34,24 @@ See sensor_simulator.h.
 #include <ncurses.h>
 #include "sensor_simulator.h"
 #include "ctarget.h"
+#include "core/util.h"
 
-pthread_t thread_id;
-int thread_created = 0;
+pthread_t _lf_sensor_thread_id;
+int _lf_sensor_thread_created = 0;
 
 // Support ASCII characters SPACE (32) through DEL (127).
-#define TRIGGER_TABLE_SIZE 96
+#define LF_SENSOR_TRIGGER_TABLE_SIZE 96
 
-trigger_t* trigger_table[TRIGGER_TABLE_SIZE];
+trigger_t* trigger_table[LF_SENSOR_TRIGGER_TABLE_SIZE];
 
 // The newline character '\n', which is platform dependent, is
 // handled specially.
-trigger_t* newline_trigger = NULL;
+trigger_t* _lf_sensor_newline_trigger = NULL;
 
 // Trigger for any key.
-trigger_t* any_key_trigger = NULL;
+trigger_t* _lf_sensor_any_key_trigger = NULL;
 
-pthread_mutex_t sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t _lf_sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /**
  * Default window from which to get input characters.
@@ -58,16 +59,25 @@ pthread_mutex_t sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
  * message window. Otherwise, it will be stdscr, the default
  * curses window.
  */
-WINDOW* default_window;
+WINDOW* _lf_sensor_default_window;
 
 /** Tick window. */
-WINDOW* tick_window;
+WINDOW* _lf_sensor_tick_window;
 
 /**
  * Keep track of the tick cursor position directly so it
  * doesn't get as messed up by printf() calls.
  */
-int tick_cursor_x, tick_cursor_y;
+int _lf_sensor_tick_cursor_x, _lf_sensor_tick_cursor_y;
+
+/** Print window. */
+WINDOW* _lf_sensor_print_window;
+
+/** The print cursor y position to wrap it around to the top. */
+int _lf_sensor_print_cursor_y;
+
+/** The print window height. */
+int _lf_sensor_print_window_height;
 
 /**
  * Thread to read input characters until an EOF is received.
@@ -78,23 +88,23 @@ int tick_cursor_x, tick_cursor_y;
  */
 void* read_input(void* ignored) {
     int c;
-    while((c = wgetch(default_window)) != EOF) {
-        // It is imperative that we not hold the sensor_mutex when
+    while((c = wgetch(_lf_sensor_default_window)) != EOF) {
+        // It is imperative that we not hold the _lf_sensor_mutex when
         // calling schedule(), because schedule() acquires another mutex.
         // We would create a deadlock risk.  The following code is correct
         // because a trigger_table entry, once assigned a value, becomes
         // immutable.
-        if (c == '\n' && newline_trigger != NULL) {
-            schedule_copy(newline_trigger, 0, &c, 1);
-        } else if (c - 32 >= 0 && c - 32 < TRIGGER_TABLE_SIZE && trigger_table[c-32] != NULL) {
+        if (c == '\n' && _lf_sensor_newline_trigger != NULL) {
+            schedule_copy(_lf_sensor_newline_trigger, 0, &c, 1);
+        } else if (c - 32 >= 0 && c - 32 < LF_SENSOR_TRIGGER_TABLE_SIZE && trigger_table[c-32] != NULL) {
             schedule_copy(trigger_table[c-32], 0, &c, 1);
         }
         // Any key trigger triggers after specific keys.
-        if (any_key_trigger != NULL) {
-            schedule_copy(any_key_trigger, 0, &c, 1);
+        if (_lf_sensor_any_key_trigger != NULL) {
+            schedule_copy(_lf_sensor_any_key_trigger, 0, &c, 1);
         }
     }
-    thread_created = 0;
+    _lf_sensor_thread_created = 0;
     return NULL;
 }
 
@@ -102,14 +112,14 @@ void* read_input(void* ignored) {
  * End ncurses control of the terminal.
  */
 void end_ncurses() {
+    register_print_function(NULL);
     endwin();
 }
 
 /**
- * Put a message in the center of the terminal window.
+ * Put a persistent message in the upper left of the terminal window.
  * The message will be left justified, with each string
  * in the specified array on a new line.
- * The cursor is then moved to the (0,0) position (upper right).
  * This should not be called directly by the user.
  * It assumes the mutex lock is held.
  * @param message_lines The message lines.
@@ -126,9 +136,7 @@ void _lf_show_message(char* message_lines[], int number_of_lines) {
         }
     }
     getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-    int x = (term_width - message_width)/2 - 1;
-    int y = (term_height - number_of_lines)/2 - 1;
-    WINDOW* center_win = newwin(number_of_lines + 2, message_width + 2, y, x);
+    WINDOW* center_win = newwin(number_of_lines + 2, message_width + 2, 0, 0);
     box(center_win, 0, 0);
     wrefresh(center_win);
 
@@ -141,8 +149,7 @@ void _lf_show_message(char* message_lines[], int number_of_lines) {
         // gets garbled.
         wrefresh(center_win);
     }
-    move(0, 0);
-    default_window = center_win;
+    _lf_sensor_default_window = center_win;
 }
 
 /**
@@ -154,12 +161,57 @@ void _lf_show_message(char* message_lines[], int number_of_lines) {
 void _lf_start_tick_window(int width) {
     int term_height, term_width;
     getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-    tick_window = newwin(term_height, width + 2, 0, term_width - width - 2);
-    box(tick_window, 0, 0);
-    wrefresh(tick_window);
-    wmove(tick_window, 1, 1);  // Ensure to not overwrite the box.
-    tick_cursor_x = tick_cursor_y = 1;
+    _lf_sensor_tick_window = newwin(term_height, width + 2, 0, term_width - width - 2);
+    box(_lf_sensor_tick_window, 0, 0);
+    wrefresh(_lf_sensor_tick_window);
+    wmove(_lf_sensor_tick_window, 1, 1);  // Ensure to not overwrite the box.
+    _lf_sensor_tick_cursor_x = _lf_sensor_tick_cursor_y = 1;
     move(0, 0);
+}
+
+/**
+ * Start a window on the bottom left of the terminal window
+ * for printed messages from the application.
+ * This should not be called directly by the user.
+ * It assumes the mutex lock is held.
+ * @param above Space to leave above the window.
+ * @param right Space to leave to the right of the window.
+ */
+void _lf_start_print_window(int above, int right) {
+    int term_height, term_width;
+    getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
+    _lf_sensor_print_window_height = term_height - above;
+    _lf_sensor_print_window = newwin(_lf_sensor_print_window_height, term_width - right, above, 0);
+    wrefresh(_lf_sensor_print_window);
+    wmove(_lf_sensor_print_window, 0, 0);
+    _lf_sensor_print_cursor_y = 0;
+}
+
+/**
+ * Function to register to handle printing of messages in util.h/c.
+ */
+void _lf_print_message_function(char* format, va_list args) {
+    // Replace the last \n with a \0 in the format and handle trailing returns manually.
+    char* newline = strrchr(format, '\n');
+    if (newline != NULL) {
+        (*newline) = '\0';
+    }
+    vwprintw(_lf_sensor_print_window, format, args);
+    int y, x;
+    getyx(_lf_sensor_print_window, y, x);
+    if (newline != NULL) {
+        x = 0;
+        y++;
+    }
+    if (y >= _lf_sensor_print_window_height - 1) {
+        y = 0;
+    }
+    wmove(_lf_sensor_print_window, y, x);
+    if (newline != NULL) {
+        wclrtoeol(_lf_sensor_print_window);
+    }
+
+    wrefresh(_lf_sensor_print_window);
 }
 
 /**
@@ -172,12 +224,12 @@ void _lf_start_tick_window(int width) {
  * @param tick_window_width The width of the tick window or 0 for none.
  */
 int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width) {
-    pthread_mutex_lock(&sensor_mutex);
+    pthread_mutex_lock(&_lf_sensor_mutex);
     int result = 0;
-    if (thread_created == 0) {
+    if (_lf_sensor_thread_created == 0) {
         // Thread has not been created.
         // Zero out the trigger table.
-        for (int i = 0; i < TRIGGER_TABLE_SIZE; i++) {
+        for (int i = 0; i < LF_SENSOR_TRIGGER_TABLE_SIZE; i++) {
             trigger_table[i] = NULL;
         }
         // Initialize ncurses.
@@ -188,25 +240,28 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         refresh();         // Not documented, but needed?
 
         if (atexit(end_ncurses) != 0) {
-            fprintf(stderr, "WARNING: sensor_simulator: Failed to register end_ncurses function!");
+            warning_print("sensor_simulator: Failed to register end_ncurses function!");
         }
 
-        default_window = stdscr;
+        _lf_sensor_default_window = stdscr;
         if (message_lines != NULL && number_of_lines > 0) {
             _lf_show_message(message_lines, number_of_lines);
         }
-        tick_window = stdscr;
+        _lf_sensor_tick_window = stdscr;
         if (tick_window_width > 0) {
             _lf_start_tick_window(tick_window_width);
         }
+        _lf_start_print_window(number_of_lines + 2, tick_window_width + 2);
+
+        register_print_function(&_lf_print_message_function);
 
         // Create the thread that listens for input.
-        int result = pthread_create(&thread_id, NULL, &read_input, NULL);
+        int result = pthread_create(&_lf_sensor_thread_id, NULL, &read_input, NULL);
         if (result == 0) {
-            thread_created = 1;
+            _lf_sensor_thread_created = 1;
         }
     }
-    pthread_mutex_unlock(&sensor_mutex);
+    pthread_mutex_unlock(&_lf_sensor_mutex);
     return result;
 }
 
@@ -215,27 +270,27 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
  * @param character The tick character.
  */
 void show_tick(char* character) {
-    pthread_mutex_lock(&sensor_mutex);
-    wmove(tick_window, tick_cursor_y, tick_cursor_x);
-    wprintw(tick_window, character);
+    pthread_mutex_lock(&_lf_sensor_mutex);
+    wmove(_lf_sensor_tick_window, _lf_sensor_tick_cursor_y, _lf_sensor_tick_cursor_x);
+    wprintw(_lf_sensor_tick_window, character);
     int tick_height, tick_width;
-    getmaxyx(tick_window, tick_height, tick_width);
-    tick_cursor_x += strlen(character);
-    if (tick_cursor_x >= tick_width - 1) {
-        tick_cursor_x = 1;
-        tick_cursor_y++;
+    getmaxyx(_lf_sensor_tick_window, tick_height, tick_width);
+    _lf_sensor_tick_cursor_x += strlen(character);
+    if (_lf_sensor_tick_cursor_x >= tick_width - 1) {
+        _lf_sensor_tick_cursor_x = 1;
+        _lf_sensor_tick_cursor_y++;
     }
-    if (tick_cursor_y >= tick_height - 1) {
-        tick_cursor_y = 1;
+    if (_lf_sensor_tick_cursor_y >= tick_height - 1) {
+        _lf_sensor_tick_cursor_y = 1;
     }
-    wmove(tick_window, tick_cursor_y, tick_cursor_x);
-    wrefresh(tick_window);
+    wmove(_lf_sensor_tick_window, _lf_sensor_tick_cursor_y, _lf_sensor_tick_cursor_x);
+    wrefresh(_lf_sensor_tick_window);
 
     // Move the standard string cursor to 0, 0, so printf()
     // calls don't mess up the screen as much.
     wmove(stdscr, 0, 0);
     refresh();
-    pthread_mutex_unlock(&sensor_mutex);
+    pthread_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -261,29 +316,29 @@ int register_sensor_key(char key, void* action) {
         return 3;
     }
     int index = key - 32;
-    if (key != '\n' && key != '\0' && (index < 0 || index >= TRIGGER_TABLE_SIZE)) {
+    if (key != '\n' && key != '\0' && (index < 0 || index >= LF_SENSOR_TRIGGER_TABLE_SIZE)) {
         return 2;
     }
     int result = 0;
-    pthread_mutex_lock(&sensor_mutex);
+    pthread_mutex_lock(&_lf_sensor_mutex);
     if (key == '\n') {
-        if (newline_trigger != NULL) {
+        if (_lf_sensor_newline_trigger != NULL) {
             result = 1;
         } else {
-            newline_trigger = action;
+            _lf_sensor_newline_trigger = action;
         }
     } else if (key == '\0') {
         // Any key trigger.
-        if (any_key_trigger != NULL) {
+        if (_lf_sensor_any_key_trigger != NULL) {
             result = 1;
         } else {
-            any_key_trigger = action;
+            _lf_sensor_any_key_trigger = action;
         }
     } else if (trigger_table[index] != NULL) {
         result = 1;
     } else {
         trigger_table[index] = action;
     }
-    pthread_mutex_unlock(&sensor_mutex);
+    pthread_mutex_unlock(&_lf_sensor_mutex);
     return result;
 }

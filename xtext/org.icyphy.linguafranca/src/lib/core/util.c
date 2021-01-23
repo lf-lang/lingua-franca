@@ -54,6 +54,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int _lf_my_fed_id = -1;
 
 /**
+ * If non-null, this function will be used instead of the printf to
+ * print messages.
+ */
+print_message_function_t* print_message_function = NULL;
+
+/**
  * Internal implementation of the next few reporting functions.
  */
 void _lf_message_print(int is_error, char* prefix, char* format, va_list args) {
@@ -71,10 +77,14 @@ void _lf_message_print(int is_error, char* prefix, char* format, va_list args) {
         snprintf(message, length, "Federate %d: %s%s\n",
                 _lf_my_fed_id, prefix, format);
     }
-    if (is_error) {
-        vfprintf(stderr, message, args);
+    if (print_message_function == NULL) {
+        if (is_error) {
+            vfprintf(stderr, message, args);
+        } else {
+            vfprintf(stdout, message, args);
+        }
     } else {
-        vfprintf(stdout, message, args);
+        (*print_message_function)(message, args);
     }
 }
 
@@ -141,4 +151,15 @@ void error_print_and_exit(char* format, ...) {
     _lf_message_print(1, "ERROR: ", format, args);
     va_end (args);
     exit(EXIT_FAILURE);
+}
+
+/**
+ * Register a function to display messages. After calling this,
+ * all messages passed to the above print functions will be
+ * printed using the specified function rather than printf.
+ * @param function The print message function or NULL to revert
+ *  to using printf.
+ */
+void register_print_function(print_message_function_t function) {
+    print_message_function = function;
 }
