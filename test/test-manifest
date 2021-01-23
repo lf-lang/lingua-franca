@@ -96,6 +96,7 @@ MultiportToBank.lf
 MultiportToBankAfter.lf
 MultiportToBankDouble.lf
 MultiportToBankHierarchy.lf
+MultiportToBankStruct.lf
 MultiportToHierarchy.lf
 MultiportToMultiport.lf
 MultiportToMultiport2.lf
