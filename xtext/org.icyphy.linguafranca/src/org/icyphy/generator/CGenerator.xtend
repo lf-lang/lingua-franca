@@ -893,7 +893,9 @@ class CGenerator extends GeneratorBase {
         val rtiCode = new StringBuilder()
         pr(rtiCode, '''
             «IF targetLoggingLevel?.equals("DEBUG")»
-                #define VERBOSE
+                #define LOG_LEVEL 2
+            «ELSEIF targetLoggingLevel?.equals("LOG")»
+                #define LOG_LEVEL 1
             «ENDIF»
             «IF targetClockSync == clockSyncMethod.INITIAL»
                 #define _LF_CLOCK_SYNC_INITIAL
@@ -4016,7 +4018,11 @@ class CGenerator extends GeneratorBase {
         
         if (targetLoggingLevel?.equals("DEBUG")) {
             pr('''
-                #define VERBOSE
+                #define LOG_LEVEL 2
+            ''')
+        } else if (targetLoggingLevel?.equals("LOG")) {
+            pr('''
+                #define LOG_LEVEL 1
             ''')
         }
         

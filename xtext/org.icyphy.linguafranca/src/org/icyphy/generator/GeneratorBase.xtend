@@ -545,7 +545,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetKeepalive = true
                         }
                     case "logging":
-                        targetLoggingLevel = param.value.id
+                        targetLoggingLevel = param.value.id.toUpperCase
                     case "threads":
                         targetThreads = Integer.decode(param.value.literal)
                     case "timeout": {

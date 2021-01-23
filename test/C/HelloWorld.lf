@@ -1,6 +1,6 @@
 target C {
     tracing: true,
-    logging: DEBUG
+    logging: log
 };
 reactor HelloWorld {
     state success:bool(false);

@@ -43,15 +43,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONCATENATE_THREE_STRINGS(__string1, __string2, __string3) __string1 __string2 __string3
 
 /**
- * VERBOSE can be defined in user-code in a 
- * top-level preamble
- * (FIXME: or as a target property in the future).
- * If defined, set DEBUG to level 1.
+ * LOG_LEVEL is set in generated code to 1 or 2 if the target
+ * logging property is LOG or DEBUG respectively. If LOG_LEVEL
+ * has not been set, the LOG_PRINT and DEBUG_PRINT messages will
+ * not be produced.
  */
-#ifdef VERBOSE
-#define DEBUG 1
-#else
-#define DEBUG 0
+#ifndef LOG_LEVEL
+#define LOG_LEVEL 0
 #endif
 
 /**
@@ -73,6 +71,37 @@ extern int _lf_my_fed_id;
 void info_print(char* format, ...);
 
 /**
+ * Report an log message on stdout with the prefix
+ * "LOG: " and a newline appended
+ * at the end. If this execution is federated, then
+ * the message will be prefaced by "Federate n: ",
+ * where n is the federate ID.
+ * The arguments are just like printf().
+ */
+void log_print(char* format, ...);
+
+/**
+ * A macro used to print useful logging information. It can be enabled
+ * by setting the target property 'logging' to 'LOG' or
+ * by defining LOG_LEVEL to 1 in the top-level preamble.
+ * The input to this macro is exactly like printf: (format, ...).
+ * "LOG: " is prepended to the beginning of the message
+ * and a newline is appended to the end of the message.
+ *
+ * @note This macro is non-empty even if LOG_LEVEL is not defined in
+ * user-code. This is to ensure that the compiler will still parse
+ * the predicate inside (...) to prevent LOG_PRINT statements
+ * to fall out of sync with the rest of the code. This should have
+ * a negligible impact on performance if compiler optimization
+ * (e.g., -O2 for gcc) is used as long as the arguments passed to
+ * it do not themselves incur significant overhead to evaluate.
+ */
+#define LOG_PRINT(format, ...) \
+            do { if(LOG_LEVEL) { \
+                    log_print(format, ##__VA_ARGS__); \
+                } } while (0)
+
+/**
  * Report an debug message on stdout with the prefix
  * "DEBUG: " and a newline appended
  * at the end. If this execution is federated, then
@@ -85,20 +114,21 @@ void debug_print(char* format, ...);
 /**
  * A macro used to print useful debug information. It can be enabled
  * by setting the target property 'logging' to 'DEBUG' or
- * by defining VERBOSE in the top-level preamble.
+ * by defining LOG_LEVEL to 2 in the top-level preamble.
  * The input to this macro is exactly like printf: (format, ...).
  * "DEBUG: " is prepended to the beginning of the message
  * and a newline is appended to the end of the message.
  *
- * @note This macro is generated even if VERBOSE is not defined in
+ * @note This macro is non-empty even if LOG_LEVEL is not defined in
  * user-code. This is to ensure that the compiler will still parse
  * the predicate inside (...) to prevent DEBUG_PRINT statements
  * to fall out of sync with the rest of the code. This should have
  * a negligible impact on performance if compiler optimization
- * (e.g., -O2 for gcc) is used.
+ * (e.g., -O2 for gcc) is used as long as the arguments passed to
+ * it do not themselves incur significant overhead to evaluate.
  */
 #define DEBUG_PRINT(format, ...) \
-            do { if(DEBUG) { \
+            do { if(LOG_LEVEL > 1) { \
                     debug_print(format, ##__VA_ARGS__); \
                 } } while (0)
 
