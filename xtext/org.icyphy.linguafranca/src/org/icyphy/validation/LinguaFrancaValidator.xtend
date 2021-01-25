@@ -1325,7 +1325,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     }
     
     def boolean isString(KeyValuePair param) {
-        if (param.value.literal !== null) {
+        if (param.value.literal !== null || param.value.id !== null) {
             return true
         }
         return false
