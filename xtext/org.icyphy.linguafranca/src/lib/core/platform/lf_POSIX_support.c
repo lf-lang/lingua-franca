@@ -66,8 +66,6 @@ int lf_thread_join(__lf_thread_t thread, void** thread_return) {
  * Initialize a mutex.
  */
 int lf_mutex_init(__lf_mutex_t* mutex) {
-    // Set up a timed mutex (default behavior)
-    *mutex = PTHREAD_MUTEX_INITIALIZER;
     // Set up a recursive mutex
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
@@ -87,8 +85,11 @@ int lf_mutex_unlock(__lf_mutex_t* mutex) {
 
 /* Initialize a conditional variable. */
 int lf_cond_init(__lf_cond_t* cond) {
-    *cond = PTHREAD_COND_INITIALIZER;
-    return 0;
+    pthread_condattr_t cond_attr;
+    pthread_condattr_init(&cond_attr);
+    // Limit the scope of the condition variable to this process (default)
+    pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_PRIVATE);
+    return pthread_cond_init(cond, &cond_attr);
 }
 
 /* Wake up all threads waiting for condition variable cond.  */

@@ -473,7 +473,18 @@ bool wait_until(instant_t logical_time_ns) {
             return_value = false;
         } else {
             // Reached timeout.
-            return_value = true;
+            // Unfortunately, at least on Macs, pthread_cond_timedwait appears
+            // to be implemented incorrectly and it returns well short of the target
+            // time.  Check for this condition and wait again if necessary.
+            interval_t ns_to_wait = wait_until_time_ns - get_physical_time();
+            // We should not wait if that adjusted time is already ahead
+            // of logical time.
+            if (ns_to_wait < MIN_WAIT_TIME) {
+                return true;
+            }
+            DEBUG_PRINT("-------- pthread_cond_timedwait claims to have timed out, "
+                    "but it did not reach the target time. Waiting again.");
+            return wait_until(wait_until_time_ns);
         }
 
         DEBUG_PRINT("-------- Returned from wait, having waited %lld ns.", get_physical_time() - current_physical_time);
