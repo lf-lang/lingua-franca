@@ -72,15 +72,13 @@ class PythonGenerator extends CGenerator {
 	// Set of acceptable import targets includes only C.
     val acceptableTargetSet = newLinkedHashSet('Python')
 	
-	val buildPyWheel = false;
-	
 	// Used to add statements that come before reactor classes and user code
-	var pythonPreamble = new StringBuilder()
-	
-	// Used to add module requirements to setup.py (delimited with ,)
-	var pythonRequiredModules = new StringBuilder()
-	
-	new () {
+    var pythonPreamble = new StringBuilder()
+
+    // Used to add module requirements to setup.py (delimited with ,)
+    var pythonRequiredModules = new StringBuilder()
+
+    new() {
         super()
         // set defaults
         this.targetCompiler = "gcc"
@@ -706,23 +704,10 @@ class PythonGenerator extends CGenerator {
         installEnv.put("LDFLAGS", targetLinkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
-        if (buildPyWheel === true) {
-            if (executeCommand(compileCmd) == 0) {
-                println("Successfully compiled python extension.")
-                if (executeCommand(installCmd) == 0) {
-                    println("Successfully installed python extension.")
-                } else {
-                    reportError("Failed to install python extension.")
-                }
-            } else {
-                reportError("Failed to compile python extension.")
-            }
+        if (executeCommand(installCmd) == 0) {
+            println("Successfully installed python extension.")
         } else {
-            if (executeCommand(installCmd) == 0) {
-                println("Successfully installed python extension.")
-            } else {
-                reportError("Failed to install python extension.")
-            }
+            reportError("Failed to install python extension.")
         }
     }
     
@@ -814,7 +799,7 @@ class PythonGenerator extends CGenerator {
             }
         }
         
-        if (targetLoggingLevel?.equals("DEBUG")) {
+        if (targetLoggingLevel !== null && targetLoggingLevel.equals("DEBUG")) {
             pr('''
                 #define VERBOSE
             ''')
@@ -1786,38 +1771,5 @@ class PythonGenerator extends CGenerator {
             pyObjectDescriptor.append("O")            
             pyObjects.append(''', convert_C_port_to_py(«input.name»,«input.name»_width) ''')
         }
-    }
-    
-    
-    /**
-     * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple
-     * 
-     * FIXME: This is unused but will be useful to enable intercompatibility between C and Python reactors
-     * @param type C type
-     */
-    private def pyBuildValueArgumentType(String type)
-    {
-        switch(type)
-        {
-            case "int": "i"
-            case "string": "s"
-            case "char": "b"
-            case "short int": "h"
-            case "long": "l"
-            case "unsigned char": "B"
-            case "unsigned short int": "H"
-            case "unsigned int": "I"
-            case "unsigned long": "k"
-            case "long long": "L"
-            case "interval_t": "L"
-            case "unsigned long long": "K"
-            case "double": "d"
-            case "float": "f"
-            case "Py_complex": "D"
-            case "Py_complex*": "D"
-            case "Py_Object": "O"
-            case "Py_Object*": "O"
-            default: "O"
-        }
-    }
+    }    
 }

@@ -1068,7 +1068,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             compileArgs.add("-pthread")
         }
         // Finally add the compiler flags in target parameters (if any)
-        if (targetCompilerFlags !== null && !targetCompilerFlags.isEmpty()) {
+        if (!targetCompilerFlags.isEmpty()) {
             val flags = targetCompilerFlags.split(' ')
             compileArgs.addAll(flags)
         }
