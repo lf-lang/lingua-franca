@@ -33,6 +33,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
    // Windows platforms
+   #error "Windows not supported"
    #ifdef _WIN64
       //define something for Windows (64-bit only)
    #else
@@ -40,7 +41,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #endif
 #elif __APPLE__
     // Apple platforms
+    #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
     #include "platform/lf_POSIX_support.c"
+    #else
+    #include "platform/lf_C11_threads_support.c"
+    #endif
     #if TARGET_IPHONE_SIMULATOR
          // iOS Simulator
     #elif TARGET_OS_IPHONE
@@ -52,13 +57,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #endif
 #elif __linux__
     // Linux
+    #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
     #include "platform/lf_POSIX_support.c"
+    #else
+    #include "platform/lf_C11_threads_support.c"
+    #endif
 #elif __unix__ // all unices not caught above
     // Unix
     #include "platform/lf_POSIX_support.c"
 #elif defined(_POSIX_VERSION)
     // POSIX
     #include "platform/lf_POSIX_support.c"
+#elif defined(__riscv) || defined(__riscv__) 
+    // RISC-V (see https://github.com/riscv/riscv-toolchain-conventions)
+    #error "RISC-V not supported"
 #else
 #error "Unknown compiler"
 #endif

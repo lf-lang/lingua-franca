@@ -35,8 +35,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define LF_POSIX_support
 
 
-#if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
-
 #include <pthread.h>
 
 typedef pthread_mutex_t __lf_mutex_t;
@@ -70,7 +68,7 @@ int lf_mutex_init(__lf_mutex_t* mutex) {
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    return pthread_mutex_init((pthread_mutex_t*)&mutex, &attr);
+    return pthread_mutex_init((pthread_mutex_t*)mutex, &attr);
 }
 
 /* Lock a mutex.  */
@@ -126,9 +124,4 @@ extern int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t a
                         &timespec_absolute_time);
 }
 
-#else // C++11 with threads support
-
-#include "lf_C11_threads_support.c"
-
-#endif // __STDC_VERSION__...
 #endif // LF_POSIX_support
