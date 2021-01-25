@@ -729,8 +729,8 @@ class CGenerator extends GeneratorBase {
         filename = baseFilename
         
         if (!targetNoCompile) {
-            if (!targetBuildCommands.isEmpty) {
-                runBuildCommand()    
+            if (!targetBuildCommands.nullOrEmpty) {
+                runBuildCommand()
             } else {
                 compileCode()
             }
@@ -896,7 +896,7 @@ class CGenerator extends GeneratorBase {
         
         val rtiCode = new StringBuilder()
         pr(rtiCode, '''
-            «IF targetLoggingLevel?.equals("DEBUG")»
+            «IF targetLoggingLevel !== null && targetLoggingLevel.equals("DEBUG")»
                 #define VERBOSE
             «ENDIF»
             «IF targetClockSync == clockSyncMethod.INITIAL»
@@ -4018,7 +4018,7 @@ class CGenerator extends GeneratorBase {
      */
     override generatePreamble() {
         
-        if (targetLoggingLevel?.equals("DEBUG")) {
+        if (targetLoggingLevel !== null && targetLoggingLevel.equals("DEBUG")) {
             pr('''
                 #define VERBOSE
             ''')
