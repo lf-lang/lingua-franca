@@ -407,21 +407,43 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjectsEnd = new StringBuilder()                
                         
                 // Enable clock synchronization if the federate is not local and clock-sync is enabled
-                if (!federationRTIProperties.get('host').toString.equals(federate.host) 
-                        && targetClockSync != clockSyncMethod.OFF
+                if (targetClockSync != clockSyncMethod.OFF
+                    && (!federationRTIProperties.get('host').toString.equals(federate.host) 
+                    || targetClockSyncOptions?.get('local-federates-on')?.literal?.equalsIgnoreCase('true'))
                 ) {
-                    // Insert the #define at the beginning
-                    if (targetClockSync === clockSyncMethod.INITIAL) {
+                    // Determine the period with clock clock sync will be done.
+                    var period = 'MSEC(5)'  // The default.
+                    if (targetClockSyncOptions?.get('period') !== null) {
+                        val timeValue = targetClockSyncOptions.get('period')
+                        period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
+                    }
+                    // Determine how many trials there will be each time clock sync is done.
+                    var trials = '10' // The default.
+                    if (targetClockSyncOptions?.get('trials') !== null) {
+                        trials = targetClockSyncOptions.get('trials').literal
+                    }
+                    // Determine the attenuation to apply each time clock sync is done.
+                    var attenuation = '10' // The default.
+                    if (targetClockSyncOptions?.get('attenuation') !== null) {
+                        attenuation = targetClockSyncOptions.get('attenuation').literal
+                    }
+                    // Insert the #defines at the beginning
+                    code.insert(0, '''
+                        #define _LF_CLOCK_SYNC_INITIAL
+                        #define _LF_CLOCK_SYNC_PERIOD_NS «period»
+                        #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
+                        #define _LF_CLOCK_SYNC_ATTENUATION «attenuation»
+                    ''')
+                    System.out.println("Initial clock synchronization is enabled for federate "
+                        + federate.id
+                    );
+                    if (targetClockSync == clockSyncMethod.ON) {
                         code.insert(0, '''
-                            #define _LF_CLOCK_SYNC_INITIAL
-                        ''')
-                        System.out.println("Initial clock synchronization is enabled for federate " + federate.id);
-                    } else {
-                        code.insert(0, '''
-                            #define _LF_CLOCK_SYNC_INITIAL
                             #define _LF_CLOCK_SYNC_ON
                         ''')
-                        System.out.println("Initial clock synchronization is enabled for federate " + federate.id);
+                        System.out.println("Runtime clock synchronization is enabled for federate "
+                            + federate.id
+                        );
                     }
                 }
                 startTimeStep = new StringBuilder()
@@ -787,15 +809,27 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')                    
             }
+
+            // If a test clock offset has been specified, insert code to set it here.
+            val testOffset = targetClockSyncOptions?.get('test-offset')
+            if (testOffset !== null) {
+                // Validator assures this is a time value.
+                val offset = (new TimeValue(testOffset.time, testOffset.unit)).toNanoSeconds.toString
+                pr('''
+                    set_physical_clock_offset((1 + «federate.id») * «offset»LL);
+                ''')
+            }
             
             pr('''
                 // Connect to the RTI. This sets _lf_rti_socket_TCP and _lf_rti_socket_UDP.
                 connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
             ''');            
             
-            // Disable clock synchronization for the federate if it resides on the same host as the RTI
-            if (!federationRTIProperties.get('host').toString.equals(federate.host) 
-                    && targetClockSync != clockSyncMethod.OFF
+            // Disable clock synchronization for the federate if it resides on the same host as the RTI,
+            // unless that is overridden with the clock-sync-options target property.
+            if (targetClockSync != clockSyncMethod.OFF
+                && (!federationRTIProperties.get('host').toString.equals(federate.host) 
+                    || targetClockSyncOptions?.get('local-federates-on')?.literal?.equalsIgnoreCase('true'))
             ) {
                 pr('''
                     synchronize_initial_physical_time_with_rti();
@@ -891,18 +925,40 @@ class CGenerator extends GeneratorBase {
         }
         
         val rtiCode = new StringBuilder()
-        pr(rtiCode, '''
-            «IF targetLoggingLevel?.equals("DEBUG")»
-                #define LOG_LEVEL 2
-            «ELSEIF targetLoggingLevel?.equals("LOG")»
-                #define LOG_LEVEL 1
-            «ENDIF»
-            «IF targetClockSync == clockSyncMethod.INITIAL»
+        if (targetLoggingLevel !== null) {
+            if (targetLoggingLevel.equals("DEBUG")) {
+                pr(rtiCode, '#define LOG_LEVEL 2')
+            } else if (targetLoggingLevel.equals("LOG")) {
+                pr(rtiCode, '#define LOG_LEVEL 1')
+            }
+        }
+        // Determine the period with clock clock sync will be done.
+        var period = 'MSEC(5)'  // The default.
+        if (targetClockSyncOptions?.get('period') !== null) {
+            val timeValue = targetClockSyncOptions.get('period')
+            period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
+        }
+        // Determine how many trials there will be each time clock sync is done.
+        var trials = '10' // The default.
+        if (targetClockSyncOptions?.get('trials') !== null) {
+            trials = targetClockSyncOptions.get('trials').literal
+        }
+        
+        if (targetClockSync == clockSyncMethod.INITIAL) {
+            pr(rtiCode, '''
                 #define _LF_CLOCK_SYNC_INITIAL
-            «ELSEIF targetClockSync == clockSyncMethod.ON»
+                #define _LF_CLOCK_SYNC_PERIOD_NS «period»
+                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
+            ''')
+        } else if (targetClockSync == clockSyncMethod.ON) {
+            pr(rtiCode, '''
                 #define _LF_CLOCK_SYNC_INITIAL
                 #define _LF_CLOCK_SYNC_ON
-            «ENDIF»
+                #define _LF_CLOCK_SYNC_PERIOD_NS «period»
+                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
+            ''')
+        }
+        pr(rtiCode, '''
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES
             #endif

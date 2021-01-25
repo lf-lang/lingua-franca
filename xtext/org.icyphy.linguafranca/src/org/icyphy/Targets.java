@@ -413,25 +413,39 @@ public enum Targets {
         BUILD_TYPE("build-type", Arrays.asList(Targets.CPP)),
         
         /**
+         * Directive to let the federate execution handle clock synchronization in software.
+         */
+        CLOCK_SYNC("clock-sync", Arrays.asList(Targets.C)),
+
+        /**
+         * Key-value pairs giving options for clock synchronization.
+         */
+        CLOCK_SYNC_OPTIONS("clock-sync-options", Arrays.asList(Targets.C)),
+
+        /**
          * Directive to specify a cmake to be included by the generated build systems.
          *
          * This gives full control over the C++ build as any cmake parameters can be adjusted in the included file.
          */
         CMAKE_INCLUDE("cmake-include", Arrays.asList(Targets.CPP)),
+        
         /**
          * Directive to specify the target compiler.
          */
         COMPILER("compiler", Arrays.asList(Targets.ALL)),
+        
         /**
          * Directive to let the execution engine allow logical time to elapse
          * faster than physical time.
          */
         FAST("fast", Arrays.asList(Targets.ALL)),
+        
         /**
          * Directive to stage particular files on the class path to be
          * processed by the code generator.
          */
         FILES("files", Arrays.asList(Targets.ALL)),
+        
         /**
          * Flags to be passed on to the target compiler.
          */
@@ -480,13 +494,8 @@ public enum Targets {
         /**
          * Directive to let the runtime produce execution traces.
          */
-        TRACING("tracing", Arrays.asList(Targets.C, Targets.CPP)),
+        TRACING("tracing", Arrays.asList(Targets.C, Targets.CPP));
         
-        /**
-         * Directive to let the federate execution handle clock synchronization in software.
-         */
-        CLOCK_SYNC("clock-sync", Arrays.asList(Targets.C));
-
         /**
          * List of targets that support this property. If a property is used for
          * a target that does not support it, a warning reported during

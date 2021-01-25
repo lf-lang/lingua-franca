@@ -63,6 +63,7 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -82,7 +83,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Delay
 
 /**
  * Generator base class for shared code between code generators.
@@ -414,7 +414,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
       */
      protected clockSyncMethod targetClockSync = clockSyncMethod.INITIAL
 
-
+    /**
+     * Clock sync options.
+     */
+    protected LinkedHashMap<String,Element> targetClockSyncOptions
+    
     /**
      * The clock synchronization technique that is used.
      * OFF: The clock synchronization is universally off.
@@ -513,6 +517,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 switch param.name {
                     case "build-type":
                         targetBuildType = param.value.id
+                    case "clock-sync": {
+                        if (param.value.id.equalsIgnoreCase('off')) {
+                            targetClockSync = clockSyncMethod.OFF
+                        } else if (param.value.id.equalsIgnoreCase('initial')) {
+                            targetClockSync = clockSyncMethod.INITIAL
+                        } else if (param.value.id.equalsIgnoreCase('on')) {
+                            targetClockSync = clockSyncMethod.ON
+                        }
+                    }
+                    case "clock-sync-options": {
+                        if (targetClockSyncOptions === null) {
+                            targetClockSyncOptions = new LinkedHashMap<String,Element>()
+                        }
+                        for (entry: param.value.keyvalue.pairs) {
+                            targetClockSyncOptions.put(entry.name, entry.value)
+                        }
+                    }
                     case "cmake-include":
                         targetCmakeInclude = param.value.literal.withoutQuotes
                     case "compiler":
@@ -556,15 +577,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetTracing = true
                         }
-                    case "clock-sync": {
-                        if (param.value.id.equalsIgnoreCase('off')) {
-                            targetClockSync = clockSyncMethod.OFF
-                        } else if (param.value.id.equalsIgnoreCase('initial')) {
-                            targetClockSync = clockSyncMethod.INITIAL
-                        } else if (param.value.id.equalsIgnoreCase('on')) {
-                            targetClockSync = clockSyncMethod.ON
-                        }
-                    }
                 }
             }
         }

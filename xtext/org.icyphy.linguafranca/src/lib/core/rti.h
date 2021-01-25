@@ -95,19 +95,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * is an estimate L of the one-way latency.  The estimated clock error
  * E is therefore L - (T2 - T1). To account for any variations in network
  * delay, this clock synchronization cycle is performed many times (based on
- * CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL). The average value of E after
+ * _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL). The average value of E after
  * the pre-specified number of synchronization cycles becomes the initial offset for the
  * clock at the federate. Henceforth, when get_physical_time() is
  * called, the offset will be added to whatever the physical clock says.
  *
  * If clock synchronization is enabled, then the federate will also
  * start a thread to listen for incoming UDP messages from the RTI.
- * With period given by CLOCK_SYNCHRONIZATION_INTERVAL_NS, the RTI
+ * With period given by _LF_CLOCK_SYNC_PERIOD_NS, the RTI
  * will initiate a clock synchronization round by sending to the
  * federate a PHYSICAL_CLOCK_SYNC_MESSAGE_T1 message. A similar
  * protocol to that above is followed to estimate the average clock
  * synchronization error E, with two exceptions. First, a fraction
- * of E (given by CLOCK_SYNC_ATTENUATION) is used to adjust the
+ * of E (given by _LF_CLOCK_SYNC_ATTENUATION) is used to adjust the
  * offset up or down rather than just setting the offset equal to E.
  * Second, after PHYSICAL_CLOCK_SYNC_MESSAGE_T4, the RTI immediately
  * sends a following message of type PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE.
@@ -218,21 +218,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Delay the start of all federates by this amount. */
 #define DELAY_START SEC(1)
 
-/** 
- * The period at which physical clock synchronization 
- * message T1 is sent.
- */
-#define CLOCK_SYNCHRONIZATION_T1_PERIOD_NS MSEC(5)
-
 /**
  * Number of required clock sync T4 messages per synchronization
  * interval. The offset to the clock will not be adjusted until 
  * this number of T4 clock synchronization messages have been received.
  */
-#define CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL 10
+#ifndef _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL
+#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL 10
+#endif
 
 /** Runtime clock offset updates will be divided by this number. */
-#define CLOCK_SYNC_ATTENUATION 10
+#ifndef _LF_CLOCK_SYNC_ATTENUATION
+#define _LF_CLOCK_SYNC_ATTENUATION 10
+#endif
 
 /**
  * Define a guard band to filter clock synchronization
@@ -536,7 +534,7 @@ typedef struct socket_stat_t {
                                                   // clock of the local device (the federate).
     interval_t local_delay;                       // T3 - T2. Estimated delay between a consecutive
                                                   // receive and send on the socket for one byte.
-    int received_T4_messages_in_current_sync_window; // Checked against CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL
+    int received_T4_messages_in_current_sync_window; // Checked against _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL
                                                      // Must be reset to 0 every time it reaches the threshold. 
     interval_t history;                              // A history of clock synchronization data. For AVG
                                                      // strategy, this is a running partially compute average.

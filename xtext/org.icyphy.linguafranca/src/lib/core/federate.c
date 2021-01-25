@@ -816,7 +816,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         }
         // Apply a jitter attenuator to the estimated clock error to prevent
         // large jumps in the underlying clock.
-        adjustment = estimated_clock_error / CLOCK_SYNC_ATTENUATION;
+        adjustment = estimated_clock_error / _LF_CLOCK_SYNC_ATTENUATION;
 
         // FIXME: Adjust drift.
         // _lf_global_physical_clock_drift = ((r1 - t1) -
@@ -832,13 +832,13 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     
     // FIXME: Enable alternative regression mechanism here.
     DEBUG_PRINT("Clock sync: Adjusting clock offset running average by %lld.",
-            adjustment/CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL);
+            adjustment/_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL);
     // Calculate the running average
-    _lf_rti_socket_stat.history += adjustment/CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL;
+    _lf_rti_socket_stat.history += adjustment/_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL;
     
     if (_lf_rti_socket_stat.received_T4_messages_in_current_sync_window >=
-            CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL) {
-        // The number of received T4 messages has reached CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL
+            _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL) {
+        // The number of received T4 messages has reached _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL
         // which means we can now adjust the clock offset.
         // For the AVG algorithm, history is a running average and can be directly
         // applied                                                 
@@ -1748,7 +1748,7 @@ void synchronize_initial_physical_time_with_rti(){
     size_t message_size = 1 + sizeof(instant_t);
     unsigned char buffer[message_size];
 
-    for (int i=0; i < CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL; i++) {
+    for (int i=0; i < _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL; i++) {
         // The first message expected from the RTI is PHYSICAL_CLOCK_SYNC_MESSAGE_T1
         read_from_socket_errexit(_lf_rti_socket_TCP, message_size, buffer,
                 "Federate %d did not get the initial clock synchronization message T1 from the RTI.",

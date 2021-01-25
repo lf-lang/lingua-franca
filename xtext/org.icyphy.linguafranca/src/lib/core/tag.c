@@ -210,9 +210,22 @@ instant_t get_start_time() {
 
 /**
  * Return the elapsed physical time in nanoseconds.
+ * This is the time returned by get_physical_time() minus the
+ * physical start time as measured by get_physical_time() when
+ * the program was started.
  */
 instant_t get_elapsed_physical_time() {
     return get_physical_time() - physical_start_time;
+}
+
+/**
+ * Set a fixed offset to the physical clock.
+ * After calling this, the value returned by get_physical_time()
+ * and get_elpased_physical_time() will have this specified offset
+ * added to what it would have returned before the call.
+ */
+void set_physical_clock_offset(interval_t offset) {
+    _lf_global_test_physical_clock_offset += offset;
 }
 
 /**
