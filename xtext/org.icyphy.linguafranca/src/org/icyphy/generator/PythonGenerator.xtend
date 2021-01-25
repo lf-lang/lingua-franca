@@ -808,7 +808,7 @@ class PythonGenerator extends CGenerator {
                 #define LOG_LEVEL 1
             ''')
         }
-
+        // FIXME: what should be the default? Also: duplicate code. Also: why not use a define for the log levels? I.e.: #define LOG_LEVEL DEBUG
         includeTargetLanguageHeaders()
 
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
