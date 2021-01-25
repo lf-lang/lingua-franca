@@ -419,7 +419,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * invoking GCC. A common usage of this target property is to set the command
      * to "make", provide a Makefile, and include it using the "files" parameter. 
      */
-    protected String targetBuildCommand
+    protected List<String> targetBuildCommands = newLinkedList
 
     /**
      * The clock synchronization technique that is used.
@@ -571,8 +571,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetClockSync = clockSyncMethod.ON
                         }
                     }
-                    case "build":
-                        targetBuildCommand = param.value.literal.withoutQuotes
+                    case "build": {
+                        if (param.value.literal !== null) {
+                            targetBuildCommands.add(param.value.literal.withoutQuotes)
+                        }
+                        else if (param.value.array !== null) {
+                            for (cmd : param.value.array.elements) {
+                                targetBuildCommands.add(cmd.literal.withoutQuotes)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -996,23 +1004,33 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Run the custom build command specified with the "build" parameter.
      */
     protected def runBuildCommand() {
-        val cmd = this.targetBuildCommand.split("\\s+")
-        val buildCommand = createCommand(cmd.head, cmd.tail.toList)
+        var commands = newLinkedList
+        for (cmd : this.targetBuildCommands) {
+            val _cmd = cmd.split("\\s+")
+            val buildCommand = createCommand(_cmd.head, _cmd.tail.toList)
 
-        if (buildCommand === null) {
-            return // FIXME: report error
+            if (buildCommand === null) {
+                reportError('''The build command "«cmd»" is invalid. Please provide a valid build command.''')
+                return
+            }
+            
+            commands.add(buildCommand)
         }
-
-        val stderr = new ByteArrayOutputStream()
-        val returnCode = buildCommand.executeCommand(stderr)
-
-        if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-            reportError('''Build command "«targetBuildCommand»" returns error code «returnCode»''')
-        }
-        // For warnings (vs. errors), the return code is 0.
-        // But we still want to mark the IDE.
-        if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
-            reportCommandErrors(stderr.toString())
+        
+        for (cmd : commands) {
+            val stderr = new ByteArrayOutputStream()
+            val returnCode = cmd.executeCommand(stderr)
+    
+            if (returnCode != 0 && mode !== Mode.INTEGRATED) {
+                reportError('''Build command "«targetBuildCommands»" returns error code «returnCode»''')
+                return
+            }
+            // For warnings (vs. errors), the return code is 0.
+            // But we still want to mark the IDE.
+            if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
+                reportCommandErrors(stderr.toString())
+                return
+            }   
         }
     }
     
