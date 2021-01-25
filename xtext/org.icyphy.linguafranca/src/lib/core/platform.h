@@ -50,10 +50,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          // iOS Simulator
     #elif TARGET_OS_IPHONE
         // iOS device
-    #elif TARGET_OS_MAC
+    #elif TARGET_OS_MAC || PLATFORM_NAME == "Mac OS"
         // Other kinds of Mac OS
     #else
-    #error "Unknown Apple platform"
+    #warning "Unknown Apple platform"
     #endif
 #elif __linux__
     // Linux
@@ -72,7 +72,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     // RISC-V (see https://github.com/riscv/riscv-toolchain-conventions)
     #error "RISC-V not supported"
 #else
-#error "Unknown compiler"
+#error "Platform not supported"
 #endif
 
 #define LF_TIMEOUT __LF_TIMEOUT
