@@ -1006,15 +1006,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def runBuildCommand() {
         var commands = newLinkedList
         for (cmd : this.targetBuildCommands) {
-            val _cmd = cmd.split("\\s+")
-            val buildCommand = createCommand(_cmd.head, _cmd.tail.toList)
+            val tokens = newArrayList(cmd.split("\\s+"))
+            if (tokens.size > 1) {
+                val buildCommand = createCommand(tokens.head,
+                    tokens.tail.toList)
 
-            if (buildCommand === null) {
-                reportError('''The build command "«cmd»" is invalid. Please provide a valid build command.''')
-                return
+                if (buildCommand === null) {
+                    reportError('''The build command "«cmd»" is invalid. Please provide a valid build command.''')
+                    return
+                }
+                commands.add(buildCommand)
             }
-            
-            commands.add(buildCommand)
         }
         
         for (cmd : commands) {
