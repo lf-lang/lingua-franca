@@ -933,9 +933,10 @@ void handle_physical_clock_sync_message(federate_t* my_fed, socket_type_t socket
     pthread_mutex_unlock(&rti_mutex);
 }
 
+#ifdef _LF_CLOCK_SYNC_ON
 /**
  * A (quasi-)periodic thread that performs clock synchronization with each
- * federate. It starts by waiting a time given by CLOCK_SYNCHRONIZATION_T1_PERIOD_NS
+ * federate. It starts by waiting a time given by _LF_CLOCK_SYNC_PERIOD_NS
  * and then iterates over the federates, performing a complete clock synchronization
  * interaction with each federate before proceeding to the next federate.
  * The interaction starts with this RTI sending a snapshot of its physical clock
@@ -946,9 +947,9 @@ void handle_physical_clock_sync_message(federate_t* my_fed, socket_type_t socket
  */
 void* clock_synchronization_thread(void* noargs) {
 
-    // Initiate a clock synchronization every CLOCK_SYNCHRONIZATION_T1_PERIOD_NS
-    struct timespec sleep_time = {(time_t) CLOCK_SYNCHRONIZATION_T1_PERIOD_NS / BILLION,
-                                  CLOCK_SYNCHRONIZATION_T1_PERIOD_NS % BILLION};
+    // Initiate a clock synchronization every _LF_CLOCK_SYNC_PERIOD_NS
+    struct timespec sleep_time = {(time_t) _LF_CLOCK_SYNC_PERIOD_NS / BILLION,
+                                  _LF_CLOCK_SYNC_PERIOD_NS % BILLION};
     struct timespec remaining_time;
 
     bool any_federates_connected = true;
@@ -1018,6 +1019,7 @@ void* clock_synchronization_thread(void* noargs) {
     }
     return NULL;
 }
+#endif // _LF_CLOCK_SYNC_ON
 
 /**
  * A function to handle messages labeled
@@ -1301,7 +1303,7 @@ void connect_to_federates(int socket_descriptor) {
                 if (federate_UDP_port_number != USHRT_MAX) {
                     // Perform the initialization clock synchronization with the federate.
                     // Send the required number of messages for clock synchronization
-                    for (int i=0; i < CLOCK_SYNCHRONIZATION_T4_MESSAGES_PER_INTERVAL; i++) {
+                    for (int i=0; i < _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL; i++) {
                         // Send the RTI's current physical time T1 to the federate.
                         _lf_rti_send_physical_clock(PHYSICAL_CLOCK_SYNC_MESSAGE_T1, &federates[fed_id], TCP);
 

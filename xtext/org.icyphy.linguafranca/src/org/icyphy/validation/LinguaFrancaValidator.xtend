@@ -32,6 +32,8 @@ import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+import java.util.Map.Entry;
+
 import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
@@ -639,6 +641,87 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                                 BuildTypes.values(),
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
+                case CLOCK_SYNC:
+                    if (!param.value.id.equalsIgnoreCase('off') 
+                            && !param.value.id.equalsIgnoreCase('initial') 
+                            && !param.value.id.equalsIgnoreCase('on')) {
+                        error("Target property clock-sync is required to be off, initial, or on. "
+                                + "Default is initial.",
+                            Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                case CLOCK_SYNC_OPTIONS: {
+                    if (param.value.keyvalue === null) {
+                        error("Target property clock-sync-options needs to be a list of "
+                               + "key-value pairs like "
+                               + "{local-federates-on: true, test-offset: 200 msec}",
+                               Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                    for (entry: param.value.keyvalue.pairs) {
+                        if (entry.name.equalsIgnoreCase('local-federates-on')) {
+                            if (entry.value.literal === null
+                                    || (!entry.value.literal.equalsIgnoreCase('true')
+                                    && !entry.value.literal.equalsIgnoreCase('false'))) {
+                                error("Target property clock-sync-options local-federates-on"
+                                        + " entry needs to be true or false.",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            }
+                        } else if (entry.name.equalsIgnoreCase('test-offset')) {
+                            if (entry.value.unit === null) {
+                                error("Target property clock-sync-options test-offset"
+                                        + " entry needs to be a time value (with units).",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            }
+                        } else if (entry.name.equalsIgnoreCase('period')) {
+                            if (entry.value.unit === null) {
+                                error("Target property clock-sync-options period"
+                                        + " entry needs to be a time value (with units).",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            }
+                        } else if (entry.name.equalsIgnoreCase('attenuation')) {
+                            if (entry.value.literal === null) {
+                                error("Target property clock-sync-options attenuation"
+                                        + " entry needs to be a positive integer.",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            } else {
+                                try {
+                                    val value = Integer.decode(entry.value.literal)
+                                    if (value <= 0) {
+                                        error("Target property clock-sync-options attenuation"
+                                                + " entry needs to be a positive integer.",
+                                                Literals.KEY_VALUE_PAIR__VALUE)
+                                    }
+                                } catch (NumberFormatException ex) {
+                                    error("Target property clock-sync-options attenuation"
+                                            + " entry needs to be a positive integer.",
+                                            Literals.KEY_VALUE_PAIR__VALUE)
+                                }
+                            }
+                        } else if (entry.name.equalsIgnoreCase('trials')) {
+                            if (entry.value.literal === null) {
+                                error("Target property clock-sync-options trials"
+                                        + " entry needs to be an integer.",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            } else {
+                                try {
+                                    val value = Integer.decode(entry.value.literal)
+                                    if (value <= 0) {
+                                        error("Target property clock-sync-options trials"
+                                                + " entry needs to be a positive integer.",
+                                                Literals.KEY_VALUE_PAIR__VALUE)
+                                    }
+                                } catch (NumberFormatException ex) {
+                                    error("Target property clock-sync-options trials"
+                                            + " entry needs to be a positive integer.",
+                                            Literals.KEY_VALUE_PAIR__VALUE)
+                                }
+                            }
+                        } else {
+                            error("Unrecognized clock-sync-options entry. Options are: "
+                                    + "local-federates-on, test-offset.",
+                                    Literals.KEY_VALUE_PAIR__VALUE)
+                        }
+                    }
+                }
                 case CMAKE_INCLUDE:
                     if (param.value.literal === null) {
                         error(
@@ -739,14 +822,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             "Target property tracing is required to be true or false.",
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
-                case CLOCK_SYNC: {
-                    if (!param.value.id.equalsIgnoreCase('off') 
-                            && !param.value.id.equalsIgnoreCase('initial') 
-                            && !param.value.id.equalsIgnoreCase('on')) {
-                        error("Target property clock-sync is required to be off, initial, or on. Default is initial.",
-                            Literals.KEY_VALUE_PAIR__VALUE)
-                    }
-                }
             }
         }
     }
