@@ -58,6 +58,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Struct identifying the influx client. */
 influx_client_t influx_client;
+influx_v2_client_t influx_v2_client;
 /**
  * Print a usage message.
  */
@@ -104,7 +105,7 @@ size_t read_and_write_trace() {
         // FIXME: What is the difference between a TAG and F_STR (presumably, Field String)?
         // Presumably, the HTTP post is formatted as a "line protocol" command. See:
         // https://docs.influxdata.com/influxdb/v2.0/reference/syntax/line-protocol/
-        int response_code = post_http(&influx_client,
+        int response_code = post_curl(&influx_v2_client,
             INFLUX_MEAS(trace_event_names[trace[i].event_type]),
             INFLUX_TAG("Reactor", reactor_name),
             INFLUX_TAG("Reaction", reaction_name),
@@ -130,12 +131,16 @@ int main(int argc, char* argv[]) {
         exit(0);
     }
     // FIXME: Get from command line.
-    influx_client.host = "localhost";
-    influx_client.port = 8087;
-    influx_client.db = "test";
-    influx_client.usr = "eal";
-    influx_client.pwd = "changeme";
-    influx_client.token = "8prh7Jy-bo5a4lNpnnIGW-iDl62hyqoBjwjTWQ_NTfMQX_eN0Y7DwITR9RthlKho8SEY5f1xwrWOEEKU503soQ==";
+    // Change these paramerets as per your environment
+    influx_v2_client.host = "localhost";
+    influx_v2_client.port = 8088;
+    influx_v2_client.org = "icyphy"; 
+    influx_v2_client.bucket = "tracing";
+    influx_v2_client.token = "ra0gassNhZoC0V1ABxVHT6-34thskx5HFgMEivd2WFfHuNXyspaYj9SB992YFKTCtne0_pb80OSKundUa7KLGQ==";
+    
+    //influx_client.db = "test";
+    //influx_client.usr = "eal";
+    //influx_client.pwd = "changeme";
 
     open_files(argv[1], NULL);
 
