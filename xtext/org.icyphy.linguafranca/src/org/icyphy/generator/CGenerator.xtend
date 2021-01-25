@@ -729,7 +729,7 @@ class CGenerator extends GeneratorBase {
         filename = baseFilename
         
         if (!targetNoCompile) {
-            if (targetBuildCommands !== null) {
+            if (!targetBuildCommands.isEmpty) {
                 runBuildCommand()    
             } else {
                 compileCode()
