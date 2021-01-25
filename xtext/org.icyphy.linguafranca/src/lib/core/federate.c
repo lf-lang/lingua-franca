@@ -39,18 +39,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>     // Defines read(), write(), and close()
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
-#include <pthread.h>
 #include <assert.h>
 #include "net_util.c"   // Defines network functions.
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
+#include "platform.h"
 
 // Error messages.
 char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via RTI";
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
 
 // Mutex lock held while performing socket operations.
-pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
+lf_mutex_t socket_mutex;
 
 /**
  * The TCP socket descriptor for this federate to communicate with the RTI.
@@ -114,7 +114,7 @@ int _lf_federate_sockets_for_outbound_p2p_connections[NUMBER_OF_FEDERATES];
  * Thread ID for a thread that accepts sockets and then supervises
  * listening to those sockets for incoming P2P (physical) connections.
  */
-pthread_t _lf_inbound_p2p_handling_thread_id;
+lf_thread_t _lf_inbound_p2p_handling_thread_id;
 
 /**
  * A socket descriptor for the socket server of the federate.
@@ -302,10 +302,10 @@ void send_message(int socket,
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
-    pthread_mutex_lock(&socket_mutex);
+    lf_mutex_lock(&socket_mutex);
     write_to_socket_errexit(socket, header_length, header_buffer, "Failed to send message header to the RTI.");
     write_to_socket_errexit(socket, length, message, "Failed to send message body to the RTI.");
-    pthread_mutex_unlock(&socket_mutex);
+    lf_mutex_unlock(&socket_mutex);
 }
 
 /** 
@@ -404,12 +404,12 @@ void send_timed_message(interval_t additional_delay,
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
-    pthread_mutex_lock(&socket_mutex);
+    lf_mutex_lock(&socket_mutex);
     write_to_socket_errexit(socket, header_length, header_buffer,
             "Failed to send timed message header to the RTI.");
     write_to_socket_errexit(socket, length, message,
             "Federate %d failed to send timed message body.");
-    pthread_mutex_unlock(&socket_mutex);
+    lf_mutex_unlock(&socket_mutex);
 }
 
 /** 
@@ -438,7 +438,7 @@ void send_tag(unsigned char type, instant_t time, microstep_t microstep) {
  */
 void* handle_p2p_connections_from_federates(void* ignored) {
     int received_federates = 0;
-    pthread_t thread_ids[_lf_number_of_inbound_p2p_connections];
+    lf_thread_t thread_ids[_lf_number_of_inbound_p2p_connections];
     while (received_federates < _lf_number_of_inbound_p2p_connections) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
@@ -506,7 +506,7 @@ void* handle_p2p_connections_from_federates(void* ignored) {
             error_print_and_exit("malloc failed.");
         }
         *remote_fed_id_copy = remote_fed_id;
-        int result = pthread_create(&thread_ids[received_federates], NULL, listen_to_federates, remote_fed_id_copy);
+        int result = lf_thread_create(&thread_ids[received_federates], listen_to_federates, remote_fed_id_copy);
         if (result != 0) {
             // Failed to create a listening thread.
             close(socket_id);
@@ -523,7 +523,7 @@ void* handle_p2p_connections_from_federates(void* ignored) {
 
     void* thread_exit_status;
     for (int i = 0; i < _lf_number_of_inbound_p2p_connections; i++) {
-        pthread_join(thread_ids[i], &thread_exit_status);
+        lf_thread_join(thread_ids[i], &thread_exit_status);
         LOG_PRINT("Thread listening for incoming messages from other federates exited.");
     }
     return NULL;
@@ -1218,7 +1218,7 @@ handle_t schedule_message_received_from_network_already_locked(
         }
         // Notify the main thread in case it is waiting for physical time to elapse.
         DEBUG_PRINT("Broadcasting notification that event queue changed.");
-        pthread_cond_broadcast(&event_q_changed);
+        lf_cond_broadcast(&event_q_changed);
     }
     return return_value;
 }
@@ -1322,10 +1322,10 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     if (bytes_read < length) {
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
                                // with decentralized coordination
-        pthread_mutex_lock(&mutex);
+        lf_mutex_lock(&mutex);
         // Decrement the barrier to allow advancement of tag.
         _lf_decrement_global_tag_barrier_already_locked();
-        pthread_mutex_unlock(&mutex);
+        lf_mutex_unlock(&mutex);
 #endif
         // FIXME: Better error handling?
         error_print_and_exit("Failed to read timed message body.");
@@ -1337,7 +1337,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // NOTE: Cannot call schedule_value(), which is what we really want to call,
     // because pthreads is too incredibly stupid and deadlocks trying to acquire
     // a lock that the calling thread already holds.
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     // Acquire the one mutex lock to prevent logical time from advancing
     // during the call to schedule().
 
@@ -1356,7 +1356,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // logical time has been removed to avoid
     // the need for unecessary lock and unlock
     // operations.
-    pthread_mutex_unlock(&mutex);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -1382,14 +1382,14 @@ void handle_tag_advance_grant() {
     read_from_socket_errexit(_lf_rti_socket_TCP, sizeof(instant_t) + sizeof(microstep_t), buffer,
                      "Failed to read the time advance grant from the RTI.");
 
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     __tag.time = extract_ll(buffer);
     __tag.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     __tag_pending = false;
     LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", __tag.time - start_time, __tag.microstep);
     // Notify everything that is blocked.
-    pthread_cond_broadcast(&event_q_changed);
-    pthread_mutex_unlock(&mutex);
+    lf_cond_broadcast(&event_q_changed);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -1446,7 +1446,7 @@ void handle_stop_granted_message() {
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
 
     tag_t received_stop_tag;
     received_stop_tag.time = extract_ll(buffer);
@@ -1476,12 +1476,12 @@ void handle_stop_granted_message() {
 
     _lf_decrement_global_tag_barrier_already_locked();
     // In case any thread is waiting on a condition, notify all.
-    pthread_cond_broadcast(&reaction_q_changed);
+    lf_cond_broadcast(&reaction_q_changed);
     // We signal instead of broadcast under the assumption that only
     // one worker thread can call wait_until at a given time because
     // the call to wait_until is protected by a mutex lock
-    pthread_cond_signal(&event_q_changed);
-    pthread_mutex_unlock(&mutex);
+    lf_cond_signal(&event_q_changed);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -1497,10 +1497,10 @@ void handle_stop_request_message() {
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     // Don't send a stop tag twice
     if (federate_has_already_sent_a_stop_request_to_rti == true) {
-        pthread_mutex_unlock(&mutex);
+        lf_mutex_unlock(&mutex);
         return;
     }
 
@@ -1524,7 +1524,7 @@ void handle_stop_request_message() {
     // A subsequent call to request_stop will be a no-op.
     federate_has_already_sent_a_stop_request_to_rti = true;
 
-    pthread_mutex_unlock(&mutex);
+    lf_mutex_unlock(&mutex);
 }
 
 /** 
@@ -1818,18 +1818,18 @@ void synchronize_with_other_federates() {
     
     // Start two threads to listen for incoming messages from the RTI.
     // One for TCP messages:
-    pthread_t thread_id;
-    pthread_create(&thread_id, NULL, listen_to_rti_TCP, NULL);
+    lf_thread_t thread_id;
+    lf_thread_create(&thread_id, listen_to_rti_TCP, NULL);
 
 #ifdef _LF_CLOCK_SYNC_ON
     // One for UDP messages if clock synchronization is enabled for this federate
-    pthread_create(&thread_id, NULL, listen_to_rti_UDP_thread, NULL);
+    lf_thread_create(&thread_id, listen_to_rti_UDP_thread, NULL);
 #endif // _LF_CLOCK_SYNC_ON
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time. Microstep is ignored.
     // Need to hold the mutex lock to call wait_until().
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     LOG_PRINT("Waiting for start time %lld.", current_tag.time);
     // Ignore interrupts to this wait. We don't want to start executing until
     // physical time matches or exceeds the logical start time.
@@ -1837,7 +1837,7 @@ void synchronize_with_other_federates() {
     DEBUG_PRINT("Done waiting for start time %lld.", current_tag.time);
     DEBUG_PRINT("Physical time is ahead of current time by %lld. This should be small.",
             get_physical_time() - current_tag.time);
-    pthread_mutex_unlock(&mutex);
+    lf_mutex_unlock(&mutex);
 
     // Reinitialize the physical start time to match the current physical time.
     // This will be different on each federate. If --fast was given, it could
@@ -1933,7 +1933,7 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
         // Wait until either something changes on the event queue or
         // the RTI has responded with a TAG.
         DEBUG_PRINT("Waiting for changes on the event queue.");
-        if (pthread_cond_wait(&event_q_changed, &mutex) != 0) {
+        if (lf_cond_wait(&event_q_changed, &mutex) != 0) {
             error_print("Wait errored.");
         }
 

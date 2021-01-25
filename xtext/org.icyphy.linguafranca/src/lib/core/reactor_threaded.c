@@ -32,7 +32,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "reactor_common.c"
-#include <pthread.h>
+#include "platform.h"
 #include <signal.h>
 
 /**
@@ -91,15 +91,15 @@ pqueue_t* executing_q; // Sorted by index (precedence sort)
 pqueue_t* transfer_q;  // To store reactions that are still blocked by other reactions.
 
 // The one and only mutex lock.
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+lf_mutex_t mutex;
 
 // Condition variables used for notification between threads.
-pthread_cond_t event_q_changed = PTHREAD_COND_INITIALIZER;
-pthread_cond_t reaction_q_changed = PTHREAD_COND_INITIALIZER;
-pthread_cond_t executing_q_emptied = PTHREAD_COND_INITIALIZER;
+lf_cond_t event_q_changed;
+lf_cond_t reaction_q_changed;
+lf_cond_t executing_q_emptied;
 // A condition variable that notifies threads whenever the number
 // of requestors on the tag barrier reaches zero.
-pthread_cond_t global_tag_barrier_requestors_reached_zero = PTHREAD_COND_INITIALIZER;
+lf_cond_t global_tag_barrier_requestors_reached_zero;
 
 /**
  * Raise a barrier to prevent the current tag from advancing to or
@@ -198,9 +198,9 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
  * will freeze advancement of tag.
  */
 void _lf_increment_global_tag_barrier(tag_t future_tag) {
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     _lf_increment_global_tag_barrier_already_locked(future_tag);
-    pthread_mutex_unlock(&mutex);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -227,7 +227,7 @@ void _lf_decrement_global_tag_barrier_already_locked() {
         // When the semaphore reaches zero, reset the horizon to forever.
         _lf_global_tag_advancement_barrier.horizon = (tag_t) { .time = FOREVER, .microstep = 0 };
         // Notify waiting threads that the semaphore has reached zero.
-        pthread_cond_broadcast(&global_tag_barrier_requestors_reached_zero);
+        lf_cond_broadcast(&global_tag_barrier_requestors_reached_zero);
     }
     DEBUG_PRINT("Barrier is at tag (%lld, %u).",
                  _lf_global_tag_advancement_barrier.horizon.time,
@@ -245,10 +245,10 @@ void _lf_decrement_global_tag_barrier_already_locked() {
  *  over the network or handling stop in the federated execution.
  */
 void _lf_decrement_global_tag_barrier() {
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     // Call the original function
     _lf_decrement_global_tag_barrier_already_locked();
-    pthread_mutex_unlock(&mutex);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -282,7 +282,7 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
     ) {
         DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time - start_time, proposed_tag.microstep);
         // Wait until no requestor remains for the barrier on logical time
-        pthread_cond_wait(&global_tag_barrier_requestors_reached_zero, &mutex);
+        lf_cond_wait(&global_tag_barrier_requestors_reached_zero, &mutex);
         
         // Do not wait for tags after the stop tag
         if (_lf_is_tag_after_stop_tag(proposed_tag)) {
@@ -298,11 +298,11 @@ void _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
  */
 handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* token) {
     trigger_t* trigger = _lf_action_to_trigger(action);
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
-    pthread_cond_signal(&event_q_changed);
-    pthread_mutex_unlock(&mutex);
+    lf_cond_broadcast(&event_q_changed);
+    lf_mutex_unlock(&mutex);
     return return_value;
 }
 
@@ -321,7 +321,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
         error_print("schedule: Invalid trigger or element size.");
         return -1;
     }
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     // Initialize token with an array size of length and a reference count of 0.
     lf_token_t* token = __initialize_token(trigger->token, length);
     // Copy the value into the newly allocated memory.
@@ -329,8 +329,8 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
     // The schedule function will increment the reference count.
     handle_t result = __schedule(trigger, offset, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
-    pthread_cond_signal(&event_q_changed);
-    pthread_mutex_unlock(&mutex);
+    lf_cond_signal(&event_q_changed);
+    lf_mutex_unlock(&mutex);
     return result;
 }
 
@@ -341,14 +341,14 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
 handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
 
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     lf_token_t* token = create_token(trigger->element_size);
     token->value = value;
     token->length = length;
     int return_value = __schedule(trigger, extra_delay, token);
     // Notify the main thread in case it is waiting for physical time to elapse.
-    pthread_cond_signal(&event_q_changed);
-    pthread_mutex_unlock(&mutex);
+    lf_cond_signal(&event_q_changed);
+    lf_mutex_unlock(&mutex);
     return return_value;
 }
 
@@ -438,12 +438,12 @@ bool wait_until(instant_t logical_time_ns) {
             return return_value;
         }
 
-        // We will use pthread_cond_wait, which takes as an argument the absolute
+        // We will use lf_cond_timedwait, which takes as an argument the absolute
         // time to wait until. However, that will not include the offset that we
         // have calculated with clock synchronization. So we need to instead ensure
         // that the time it waits is ns_to_wait.
         // We need the current clock value as obtained using CLOCK_REALTIME because
-        // that is what pthread_cond_timedwait will use.
+        // that is what lf_cond_timedwait will use.
         // The above call to setPhysicalTime() set the
         // _lf_last_reported_unadjusted_physical_time_ns to the CLOCK_REALTIME value
         // unadjusted by clock synchronization.
@@ -455,18 +455,13 @@ bool wait_until(instant_t logical_time_ns) {
         }
         DEBUG_PRINT("-------- Clock offset is %lld ns.", current_physical_time - _lf_last_reported_unadjusted_physical_time_ns);
 
-        // Convert the absolute time to a timespec.
-        // timespec is seconds and nanoseconds.
-        struct timespec unadjusted_wait_until_time
-                = {(time_t)unadjusted_wait_until_time_ns / BILLION, (long)unadjusted_wait_until_time_ns % BILLION};
-
         DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
-        DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&unadjusted_wait_until_time.tv_sec), unadjusted_wait_until_time.tv_nsec);
+        // FIXME: DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&unadjusted_wait_until_time.tv_sec), unadjusted_wait_until_time.tv_nsec);
 
-        // pthread_cond_timedwait returns 0 if it is awakened before the timeout.
+        // lf_cond_timedwait returns 0 if it is awakened before the timeout.
         // Hence, we want to run it repeatedly until either it returns non-zero or the
         // current physical time matches or exceeds the logical time.
-        if (pthread_cond_timedwait(&event_q_changed, &mutex, &unadjusted_wait_until_time) != ETIMEDOUT) {
+        if (lf_cond_timedwait(&event_q_changed, &mutex, unadjusted_wait_until_time_ns) != LF_TIMEOUT) {
             DEBUG_PRINT("-------- Wait interrupted.");
 
             // Wait did not time out, which means that there
@@ -478,18 +473,7 @@ bool wait_until(instant_t logical_time_ns) {
             return_value = false;
         } else {
             // Reached timeout.
-            // Unfortunately, at least on Macs, pthread_cond_timedwait appears
-            // to be implemented incorrectly and it returns well short of the target
-            // time.  Check for this condition and wait again if necessary.
-            interval_t ns_to_wait = wait_until_time_ns - get_physical_time();
-            // We should not wait if that adjusted time is already ahead
-            // of logical time.
-            if (ns_to_wait < MIN_WAIT_TIME) {
-                return true;
-            }
-            DEBUG_PRINT("-------- pthread_cond_timedwait claims to have timed out, "
-                    "but it did not reach the target time. Waiting again.");
-            return wait_until(wait_until_time_ns);
+            return_value = true;
         }
 
         DEBUG_PRINT("-------- Returned from wait, having waited %lld ns.", get_physical_time() - current_physical_time);
@@ -679,7 +663,7 @@ int __next() {
  * all federates stop at the same logical time.
  */
 void request_stop() {
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
 #ifdef _LF_IS_FEDERATED
     _lf_fd_send_stop_request_to_rti();
     // Notify the RTI that nothing more will happen.
@@ -694,13 +678,13 @@ void request_stop() {
     // In a non-federated program, the stop_tag will be the next microstep
     _lf_set_stop_tag((tag_t) {.time = current_tag.time, .microstep = current_tag.microstep+1});
     // In case any thread is waiting on a condition, notify all.
-    pthread_cond_broadcast(&reaction_q_changed);
+    lf_cond_broadcast(&reaction_q_changed);
     // We signal instead of broadcast under the assumption that only
     // one worker thread can call wait_until at a given time because
     // the call to wait_until is protected by a mutex lock
-    pthread_cond_signal(&event_q_changed);
+    lf_cond_signal(&event_q_changed);
 #endif
-    pthread_mutex_unlock(&mutex);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -819,7 +803,7 @@ volatile bool __advancing_time = false;
 void _lf_enqueue_reaction(reaction_t* reaction) {
     bool reaction_inserted = false;
     // Acquire the mutex lock.
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     // Do not enqueue this reaction twice.
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
         DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
@@ -828,9 +812,9 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
         // However, this notification is expensive!
         // It is now handled by schedule_output_reactions() in reactor_common,
         // which calls the _lf_notify_workers() function defined below.
-        // pthread_cond_signal(&reaction_q_changed);
+        // lf_cond_signal(&reaction_q_changed);
     }
-    pthread_mutex_unlock(&mutex);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -842,7 +826,7 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
  */
 void _lf_notify_workers() {
     if (number_of_idle_threads > 0) {
-        pthread_mutex_lock(&mutex);
+        lf_mutex_lock(&mutex);
 
         reaction_t* next_ready_reaction = (reaction_t*)pqueue_peek(reaction_q);
         if (next_ready_reaction != NULL
@@ -850,10 +834,10 @@ void _lf_notify_workers() {
         ) {
             // FIXME: In applications without parallelism, this notification
             // proves very expensive. Perhaps we should be checking execution times.
-            pthread_cond_signal(&reaction_q_changed);
+            lf_cond_signal(&reaction_q_changed);
             DEBUG_PRINT("Notify another worker of a reaction on the reaction queue.");
         }
-        pthread_mutex_unlock(&mutex);
+        lf_mutex_unlock(&mutex);
     }
 }
 
@@ -866,7 +850,7 @@ int worker_thread_count = 0;
 void* worker(void* arg) {
     // Keep track of whether we have decremented the idle thread count.
     bool have_been_busy = false;
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
 
     int worker_number = ++worker_thread_count;
     LOG_PRINT("Worker thread %d started.", worker_number);
@@ -898,8 +882,8 @@ void* worker(void* arg) {
                 if (compare_tags(current_tag, stop_tag) >= 0) {
                     // Break out of the while loop and notify other
                     // worker threads potentially waiting to continue.
-                    pthread_cond_broadcast(&reaction_q_changed);
-                    pthread_cond_signal(&event_q_changed);
+                    lf_cond_broadcast(&reaction_q_changed);
+                    lf_cond_signal(&event_q_changed);
                     break;
                 }
                 
@@ -929,8 +913,8 @@ void* worker(void* arg) {
                 // struct timespec physical_time;
                 // clock_gettime(CLOCK_REALTIME, &physical_time);
                 // physical_time.tv_nsec += MAX_STALL_INTERVAL;
-                // pthread_cond_timedwait(&reaction_q_changed, &mutex, &physical_time);
-                pthread_cond_wait(&reaction_q_changed, &mutex);
+                // lf_cond_wait(&reaction_q_changed, &mutex, &physical_time);
+                lf_cond_wait(&reaction_q_changed, &mutex);
                 tracepoint_worker_wait_ends(worker_number);
                 DEBUG_PRINT("Worker %d: Done waiting.", worker_number);
             }
@@ -957,7 +941,7 @@ void* worker(void* arg) {
             _lf_notify_workers();
 
             // Unlock the mutex to run the reaction.
-            pthread_mutex_unlock(&mutex);
+            lf_mutex_unlock(&mutex);
             DEBUG_PRINT("Worker %d: Running a reaction (or its fault variants).", worker_number);
 
             bool violation = false;
@@ -1023,7 +1007,7 @@ void* worker(void* arg) {
             if (violation) {
                 // Need to acquire the mutex lock to remove this from the executing queue
                 // and to obtain the next reaction to execute.
-                pthread_mutex_lock(&mutex);
+                lf_mutex_lock(&mutex);
 
                 // The reaction is not going to be executed. However,
                 // this thread holds the mutex lock, so if this is the last
@@ -1044,7 +1028,7 @@ void* worker(void* arg) {
                 schedule_output_reactions(current_reaction_to_execute, worker_number);
 
                 // Reacquire the mutex lock.
-                pthread_mutex_lock(&mutex);
+                lf_mutex_lock(&mutex);
 
                 // Remove the reaction from the executing queue.
                 // This thread holds the mutex lock, so if this is the last
@@ -1064,8 +1048,8 @@ void* worker(void* arg) {
 
     DEBUG_PRINT("Worker %d: Stop requested. Exiting.", worker_number);
     // Signal the main thread.
-    pthread_cond_signal(&executing_q_emptied);
-    pthread_mutex_unlock(&mutex);
+    lf_cond_signal(&executing_q_emptied);
+    lf_mutex_unlock(&mutex);
     // timeout has been requested.
     return NULL;
 }
@@ -1080,15 +1064,15 @@ void print_snapshot() {
 }
 
 // Array of thread IDs (to be dynamically allocated).
-pthread_t* __thread_ids;
+lf_thread_t* __thread_ids;
 
 // Start threads in the thread pool.
 void start_threads() {
     LOG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
-    __thread_ids = (pthread_t*)malloc(_lf_number_of_threads * sizeof(pthread_t));
+    __thread_ids = (lf_thread_t*)malloc(_lf_number_of_threads * sizeof(lf_thread_t));
     number_of_idle_threads = _lf_number_of_threads;
     for (int i = 0; i < _lf_number_of_threads; i++) {
-        pthread_create(&__thread_ids[i], NULL, worker, NULL);
+        lf_thread_create(&__thread_ids[i], worker, NULL);
     }
 }
 
@@ -1107,10 +1091,14 @@ int main(int argc, char* argv[]) {
     // If this happens, no other thread can satisfy the condition
     // of the predicate.”  This seems like a bug in the implementation of
     // pthreads. Maybe it has been fixed?
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&mutex, &attr);
+    // The one and only mutex lock.
+    lf_mutex_init(&mutex);
+
+    // Initialize condition variables used for notification between threads.
+    lf_cond_init(&event_q_changed);
+    lf_cond_init(&reaction_q_changed);
+    lf_cond_init(&executing_q_emptied);
+    lf_cond_init(&global_tag_barrier_requestors_reached_zero);
 
     if (atexit(termination) != 0) {
         warning_print("Failed to register termination function!");
@@ -1122,7 +1110,7 @@ int main(int argc, char* argv[]) {
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
-        pthread_mutex_lock(&mutex);
+        lf_mutex_lock(&mutex);
         initialize();
         transfer_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
@@ -1156,7 +1144,7 @@ int main(int argc, char* argv[]) {
         _lf_execution_started = true;
 
         start_threads();
-        pthread_mutex_unlock(&mutex);
+        lf_mutex_unlock(&mutex);
         DEBUG_PRINT("Waiting for worker threads to exit.");
 
         // Wait for the worker threads to exit.
@@ -1165,7 +1153,7 @@ int main(int argc, char* argv[]) {
         
         int ret = 0;
         for (int i = 0; i < _lf_number_of_threads; i++) {
-            ret = MAX(pthread_join(__thread_ids[i], &worker_thread_exit_status), ret);
+            ret = MAX(lf_thread_join(__thread_ids[i], &worker_thread_exit_status), ret);
         }
 
         if (ret == 0) {
