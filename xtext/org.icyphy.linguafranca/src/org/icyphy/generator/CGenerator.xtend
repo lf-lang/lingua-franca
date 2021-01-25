@@ -368,12 +368,35 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
+<<<<<<< HEAD
         var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
         if (config.threads === 0) {
+=======
+        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c", "platform.h")
+        if (targetThreads === 0) {
+>>>>>>> Initial abstractions for thread functions.
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
         }
+        // Check the operating system
+        val OS = System.getProperty("os.name").toLowerCase();
+        // FIXME: allow for cross-compiling
+        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+            // Mac support
+            coreFiles.add("platform/lf_POSIX_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.c")
+        } else if (OS.indexOf("win") >= 0) {
+            // Windows support
+            reportError("Windows is not supported")
+        } else if (OS.indexOf("nux") >= 0) {
+            // Linux support
+            coreFiles.add("platform/lf_POSIX_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.c")
+        } else {
+            reportError("Platform " + OS + " is not supported")
+        }
+        
         
         // If there are federates, copy the required files for that.
         // Also, create two RTI C files, one that launches the federates
@@ -775,6 +798,10 @@ class CGenerator extends GeneratorBase {
         if (federates.length > 1) {
             pr('''
                 // ***** Start initializing the federated execution. */
+            ''')            
+            pr('''
+                // Initialize the socket mutex
+                lf_mutex_init(&socket_mutex);
             ''')
             // Set indicator variables that specify whether the federate has
             // upstream logical connections.
