@@ -14,9 +14,16 @@
 target C {
     flags: "-framework AudioToolbox -framework CoreFoundation -lm",
     coordination: decentralized,
-    logging: DEBUG,
+    logging: log,
     timeout: 10 sec,
-    clock-sync: initial,
+    clock-sync: on,
+    clock-sync-options: {
+        local-federates-on: true,
+        test-offset: 200 msec,
+        period: 5 msec,
+        trials: 10,
+        attenuation: 10
+    },
     files: ["/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
             "Claves.wav"] 
@@ -109,8 +116,8 @@ reactor RhythmMacPlayer {
     source.note -> play.note;
 }
 
-federated reactor RhythmMacDistributedNoUI at 0.0.0.0 {
+federated reactor RhythmMacDistributedNoUI at localhost {
     player1 = new RhythmMacPlayer() at localhost;
-    player2 = new RhythmMacPlayer() at 192.168.1.5;
+    player2 = new RhythmMacPlayer() at localhost;
 }
 

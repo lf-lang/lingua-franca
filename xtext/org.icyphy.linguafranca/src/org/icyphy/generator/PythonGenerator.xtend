@@ -801,7 +801,11 @@ class PythonGenerator extends CGenerator {
         
         if (targetLoggingLevel !== null && targetLoggingLevel.equals("DEBUG")) {
             pr('''
-                #define VERBOSE
+                #define LOG_LEVEL 2
+            ''')
+        } else if (targetLoggingLevel?.equals("LOG")) {
+            pr('''
+                #define LOG_LEVEL 1
             ''')
         }
 

@@ -63,6 +63,7 @@ import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
@@ -82,7 +83,7 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Delay
+import org.icyphy.Targets.ClockSyncModes
 
 /**
  * Generator base class for shared code between code generators.
@@ -408,12 +409,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * The type of the bank index, which must be an integer in the target language
      */
     protected String targetBankIndexType = "int"
+
+     /**
+      * The clock sync target parameter for federated programs.
+      */
+     protected ClockSyncModes targetClockSync = ClockSyncModes.INITIAL
      
-    /**
-     * The clock sync target parameter for federated programs.
-     */
-    protected clockSyncMethod targetClockSync = clockSyncMethod.INITIAL
-    
     /**
      * The custom build command, which replaces the default build process of
      * invoking GCC. A common usage of this target property is to set the command
@@ -422,15 +423,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected List<String> targetBuildCommands = newLinkedList
 
     /**
-     * The clock synchronization technique that is used.
-     * OFF: The clock synchronization is universally off.
-     * STARTUP: Clock synchronization occurs at startup only.
-     * ON: Clock synchronization occurs at startup and at runtime.
+     * Clock sync options.
      */
-    protected enum clockSyncMethod {
-        OFF, INITIAL, ON;
-    }
-    
+    protected LinkedHashMap<String,Element> targetClockSyncOptions = newLinkedHashMap
+        
     ////////////////////////////////////////////
     //// Private fields.
 
@@ -516,9 +512,24 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         targetName = target.name
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
+                // FIXME: Use enums, like in Validator.
                 switch param.name {
                     case "build-type":
                         targetBuildType = param.value.id
+                    case "clock-sync": {
+                        if (param.value.id.equalsIgnoreCase('off')) {
+                            targetClockSync = ClockSyncModes.OFF
+                        } else if (param.value.id.equalsIgnoreCase('initial')) {
+                            targetClockSync = ClockSyncModes.INITIAL
+                        } else if (param.value.id.equalsIgnoreCase('on')) {
+                            targetClockSync = ClockSyncModes.ON
+                        }
+                    }
+                    case "clock-sync-options": {
+                        for (entry: param.value.keyvalue.pairs) {
+                            targetClockSyncOptions.put(entry.name, entry.value)
+                        }
+                    }
                     case "cmake-include":
                         targetCmakeInclude = param.value.literal.withoutQuotes
                     case "compiler":
@@ -551,7 +562,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetKeepalive = true
                         }
                     case "logging":
-                        targetLoggingLevel = param.value.id
+                        targetLoggingLevel = param.value.id.toUpperCase
                     case "threads":
                         targetThreads = Integer.decode(param.value.literal)
                     case "timeout": {
@@ -562,15 +573,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         if (param.value.literal == 'true') {
                             targetTracing = true
                         }
-                    case "clock-sync": {
-                        if (param.value.id.equalsIgnoreCase('off')) {
-                            targetClockSync = clockSyncMethod.OFF
-                        } else if (param.value.id.equalsIgnoreCase('initial')) {
-                            targetClockSync = clockSyncMethod.INITIAL
-                        } else if (param.value.id.equalsIgnoreCase('on')) {
-                            targetClockSync = clockSyncMethod.ON
-                        }
-                    }
                     case "build": {
                         if (param.value.literal !== null) {
                             targetBuildCommands.add(param.value.literal.withoutQuotes)

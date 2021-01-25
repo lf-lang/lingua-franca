@@ -42,6 +42,7 @@ import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
 import org.icyphy.Targets
 import org.icyphy.Targets.BuildTypes
+import org.icyphy.Targets.CoordinationTypes
 import org.icyphy.Targets.LoggingLevels
 import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
@@ -58,6 +59,7 @@ import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.KeyValuePair
+import org.icyphy.linguaFranca.KeyValuePairs
 import org.icyphy.linguaFranca.LinguaFrancaPackage.Literals
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.NamedHost
@@ -80,9 +82,6 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.KeyValuePairs
-import org.icyphy.Targets.CoordinationTypes
-import org.icyphy.Targets.ClockSyncModes
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -635,6 +634,87 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             switch prop {
                 case BUILD_TYPE:
                     param.checkIfOneOf(Arrays.asList(BuildTypes.values()))
+                case CLOCK_SYNC:
+                    if (!param.value.id.equalsIgnoreCase('off') 
+                            && !param.value.id.equalsIgnoreCase('initial') 
+                            && !param.value.id.equalsIgnoreCase('on')) {
+                        error("Target property clock-sync is required to be off, initial, or on. "
+                                + "Default is initial.",
+                            Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                case CLOCK_SYNC_OPTIONS: {
+                    if (param.value.keyvalue === null) {
+                        error("Target property clock-sync-options needs to be a list of "
+                               + "key-value pairs like "
+                               + "{local-federates-on: true, test-offset: 200 msec}",
+                               Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                    for (entry: param.value.keyvalue.pairs) {
+                        if (entry.name.equalsIgnoreCase('local-federates-on')) {
+                            if (entry.value.literal === null
+                                    || (!entry.value.literal.equalsIgnoreCase('true')
+                                    && !entry.value.literal.equalsIgnoreCase('false'))) {
+                                error("Target property clock-sync-options local-federates-on"
+                                        + " entry needs to be true or false.",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            }
+                        } else if (entry.name.equalsIgnoreCase('test-offset')) {
+                            if (entry.value.unit === null) {
+                                error("Target property clock-sync-options test-offset"
+                                        + " entry needs to be a time value (with units).",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            }
+                        } else if (entry.name.equalsIgnoreCase('period')) {
+                            if (entry.value.unit === null) {
+                                error("Target property clock-sync-options period"
+                                        + " entry needs to be a time value (with units).",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            }
+                        } else if (entry.name.equalsIgnoreCase('attenuation')) {
+                            if (entry.value.literal === null) {
+                                error("Target property clock-sync-options attenuation"
+                                        + " entry needs to be a positive integer.",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            } else {
+                                try {
+                                    val value = Integer.decode(entry.value.literal)
+                                    if (value <= 0) {
+                                        error("Target property clock-sync-options attenuation"
+                                                + " entry needs to be a positive integer.",
+                                                Literals.KEY_VALUE_PAIR__VALUE)
+                                    }
+                                } catch (NumberFormatException ex) {
+                                    error("Target property clock-sync-options attenuation"
+                                            + " entry needs to be a positive integer.",
+                                            Literals.KEY_VALUE_PAIR__VALUE)
+                                }
+                            }
+                        } else if (entry.name.equalsIgnoreCase('trials')) {
+                            if (entry.value.literal === null) {
+                                error("Target property clock-sync-options trials"
+                                        + " entry needs to be an integer.",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            } else {
+                                try {
+                                    val value = Integer.decode(entry.value.literal)
+                                    if (value <= 0) {
+                                        error("Target property clock-sync-options trials"
+                                                + " entry needs to be a positive integer.",
+                                                Literals.KEY_VALUE_PAIR__VALUE)
+                                    }
+                                } catch (NumberFormatException ex) {
+                                    error("Target property clock-sync-options trials"
+                                            + " entry needs to be a positive integer.",
+                                            Literals.KEY_VALUE_PAIR__VALUE)
+                                }
+                            }
+                        } else {
+                            error("Unrecognized clock-sync-options entry. Options are: "
+                                    + "local-federates-on, test-offset.",
+                                    Literals.KEY_VALUE_PAIR__VALUE)
+                        }
+                    }
+                }
                 case CMAKE_INCLUDE:
                     param.checkIfString
                 case COMPILER:
@@ -657,10 +737,8 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     param.checkIfInteger(true)
                 case TIMEOUT:
                     param.checkValidTime
-               case TRACING:
+                case TRACING:
                     checkIfBoolean(param)
-                case CLOCK_SYNC:
-                    param.checkIfOneOf(Arrays.asList(ClockSyncModes.values()))
                 case BUILD:
                     param.checkIfStringOrListOfStrings
                 case FILES:
