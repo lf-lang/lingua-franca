@@ -747,6 +747,21 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                             Literals.KEY_VALUE_PAIR__VALUE)
                     }
                 }
+                case BUILD: {
+                    if (param.value.literal === null &&
+                        param.value.array === null) {
+                        error("Target property build is required to be a string command or a list of string commands.",
+                            Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                    if (param.value.array !== null) {
+                        for (cmd : param.value.array.elements) {
+                            if (cmd.literal === null) {
+                                error("Target property build is required to be a string command or a list of string commands.",
+                                    Literals.KEY_VALUE_PAIR__VALUE)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
