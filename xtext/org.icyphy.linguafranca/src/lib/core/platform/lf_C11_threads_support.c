@@ -38,8 +38,6 @@ typedef mtx_t __lf_mutex_t;
 typedef cnd_t __lf_cond_t;
 typedef thrd_t __lf_thread_t;
 
-#define __LF_THREAD_MUTEX_INITIALIZER mtx_init(__lf_mutex_t*)
-#define __LF_THREAD_COND_INITIALIZER PTHREAD_COND_INITIALIZER
 #define __LF_TIMEOUT thrd_timedout
 
 /**

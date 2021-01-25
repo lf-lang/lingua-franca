@@ -43,8 +43,6 @@ typedef pthread_mutex_t __lf_mutex_t;
 typedef pthread_cond_t __lf_cond_t;
 typedef pthread_t __lf_thread_t;
 
-#define __LF_THREAD_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
-#define __LF_THREAD_COND_INITIALIZER PTHREAD_COND_INITIALIZER
 #define __LF_TIMEOUT ETIMEDOUT
 
 /**
@@ -69,12 +67,12 @@ int lf_thread_join(__lf_thread_t thread, void** thread_return) {
  */
 int lf_mutex_init(__lf_mutex_t* mutex) {
     // Set up a timed mutex (default behavior)
-    *mutex = __LF_THREAD_MUTEX_INITIALIZER;
+    *mutex = PTHREAD_MUTEX_INITIALIZER;
     // Set up a recursive mutex
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    return pthread_mutex_init(&mutex, &attr);
+    return pthread_mutex_init((pthread_mutex_t*)&mutex, &attr);
 }
 
 /* Lock a mutex.  */
@@ -89,7 +87,7 @@ int lf_mutex_unlock(__lf_mutex_t* mutex) {
 
 /* Initialize a conditional variable. */
 int lf_cond_init(__lf_cond_t* cond) {
-    *cond = __LF_THREAD_COND_INITIALIZER;
+    *cond = PTHREAD_COND_INITIALIZER;
     return 0;
 }
 
@@ -121,26 +119,10 @@ extern int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t a
     // timespec is seconds and nanoseconds.
     struct timespec timespec_absolute_time
             = {(time_t)absolute_time / BILLION, (long)absolute_time % BILLION};
-    int return_value = pthread_cond_timedwait(
-                            (pthread_cond_t*)cond,
-                            (pthread_mutex_t*)mutex,
-                            &timespec_absolute_time);
-    if (return_value == LF_TIMEOUT) {
-        // Unfortunately, at least on Macs, pthread_cond_timedwait appears
-        // to be implemented incorrectly and it returns well short of the target
-        // time.  Check for this condition and wait again if necessary.
-        interval_t ns_to_wait = wait_until_time_ns - get_physical_time();
-        // We should not wait if that adjusted time is already ahead
-        // of logical time.
-        if (ns_to_wait < MIN_WAIT_TIME) {
-            return LF_TIMEOUT;
-        }
-        DEBUG_PRINT("-------- pthread_cond_timedwait claims to have timed out, "
-                "but it did not reach the target time. Waiting again.");
-        
-        return lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t absolute_time);
-    }
-    return return_value;
+    return pthread_cond_timedwait(
+                        (pthread_cond_t*)cond,
+                        (pthread_mutex_t*)mutex,
+                        &timespec_absolute_time);
 }
 
 #else // C++11 with threads support
