@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <curl/curl.h>
 
 /*
   Usage:
@@ -45,9 +46,21 @@ typedef struct _influx_client_t
     char* token; // http only
 } influx_client_t;
 
+typedef struct _influx_v2_client_t
+{
+    char* host;
+    int   port;
+    char* org;  
+    char* bucket;
+    char* usr; // http only [optional for auth]
+    char* pwd; // http only [optional for auth]
+    char* token; // http only
+} influx_v2_client_t;
+
 int format_line(char **buf, int *len, size_t used, ...);
 int post_http(influx_client_t* c, ...);
 int send_udp(influx_client_t* c, ...);
+int post_curl(influx_v2_client_t* c, ...);
 
 #define IF_TYPE_ARG_END       0
 #define IF_TYPE_MEAS          1
@@ -79,6 +92,7 @@ int post_http_send_line(influx_client_t *c, char *buf, int len)
         free(iv[1].iov_base);
         return -2;
     }
+
     for(;;) {
         iv[0].iov_len = snprintf((char*)iv[0].iov_base, len, 
             "POST /write?db=%s&u=%s&p=%s HTTP/1.1\r\n"
@@ -234,6 +248,50 @@ int send_udp(influx_client_t* c, ...)
 
     free(line);
     return ret;
+}
+
+int post_curl(influx_v2_client_t* c, ...)
+{
+    va_list ap;
+    char *data = NULL;
+    int ret_code = 0, len = 0;
+    va_start(ap, c);
+    len = _format_line((char**)&data, ap);
+    va_end(ap);
+
+    printf("%s", data);
+    //if(len < 0)
+    //    return -1;
+
+    CURL *curl;
+    CURLcode res;
+ 
+    /* In windows, this will init the winsock stuff */ 
+    curl_global_init(CURL_GLOBAL_ALL);
+ 
+    /* get a curl handle */ 
+    curl = curl_easy_init();
+    if(curl) {
+    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8088/api/v2/write?org=icyphy&bucket=tracing&precision=ns");
+    
+    struct curl_slist *list = NULL;
+    list = curl_slist_append(list, "Authorization: Token ra0gassNhZoC0V1ABxVHT6-34thskx5HFgMEivd2WFfHuNXyspaYj9SB992YFKTCtne0_pb80OSKundUa7KLGQ==");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+    
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
+    /* Perform the request, res will get the return code */ 
+    res = curl_easy_perform(curl);
+    /* Check for errors */ 
+    if(res != CURLE_OK)
+      fprintf(stderr, "curl_easy_perform() failed: %s\n",
+              curl_easy_strerror(res));
+
+    //ALternative way to get ret code
+    //long response_code;    
+    //curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    }
+    curl_global_cleanup();
+    return res;
 }
 
 int format_line(char **buf, int *len, size_t used, ...)

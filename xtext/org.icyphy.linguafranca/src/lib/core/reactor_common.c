@@ -406,7 +406,7 @@ void _lf_enqueue_reaction(reaction_t* reaction);
  * counts between time steps and at the end of execution.
  */
 void __start_time_step() {
-    DEBUG_PRINT("--------- Start time step.");
+    LOG_PRINT("--------- Start time step.");
     for(int i = 0; i < __tokens_with_ref_count_size; i++) {
         if (*(__tokens_with_ref_count[i].is_present)) {
             if (__tokens_with_ref_count[i].reset_is_present) {
@@ -579,7 +579,7 @@ void __pop_events() {
                                     current_tag) < 0) {
                         // Mark the triggered reaction as tardy
                         reaction->is_tardy = true;
-                        DEBUG_PRINT("Trigger %p is tardy. Intended tag: (%lld, %u). Current tag: (%lld, %u)",
+                        LOG_PRINT("Trigger %p is tardy. Intended tag: (%lld, %u). Current tag: (%lld, %u)",
                                     event->trigger,
                                     event->intended_tag.time - start_time, event->intended_tag.microstep,
                                     current_tag.time - start_time, current_tag.microstep);
@@ -1011,8 +1011,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
 	// physical action, modify it if physical time exceeds the result.
     interval_t delay = trigger->offset + extra_delay;
     interval_t intended_time = current_tag.time + delay;
-    DEBUG_PRINT("__schedule: current_tag.time = %lld.", current_tag.time);
-    DEBUG_PRINT("__schedule: total logical delay = %lld.", delay);
+    DEBUG_PRINT("__schedule: current_tag.time = %lld. Total logical delay = %lld",
+            current_tag.time, delay);
     interval_t min_spacing = trigger->period;
 
     event_t* e = _lf_get_new_event();
@@ -1088,7 +1088,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
         // earliest time at which the new event can be scheduled.
         // Check to see whether the event is too early. 
         instant_t earliest_time = existing->time + min_spacing;
-        DEBUG_PRINT("There is a previously scheduled event; earliest possible time with min spacing: %lld",
+        DEBUG_PRINT("There is a previously scheduled event; earliest possible time "
+                "with min spacing: %lld",
                 earliest_time);
         // If the event is early, see which policy applies.
         if (earliest_time >= intended_time) {
@@ -1176,7 +1177,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
     // and any new events added at this tag will go into the reaction_q
     // rather than the event_q, so anything put in the event_q with this
     // same time will automatically be executed at the next microstep.
-    DEBUG_PRINT("Inserting event in the event queue with elapsed time %lld.", e->time - start_time);
+    LOG_PRINT("Inserting event in the event queue with elapsed time %lld.",
+            e->time - start_time);
     pqueue_insert(event_q, e);
 
     tracepoint_schedule(trigger, e->time - current_tag.time);
@@ -1219,7 +1221,6 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     // Check to see if the execution
     // has not started yet.
     if (_lf_execution_started) {
-        DEBUG_PRINT("Execution has already started.");
         return 0;
     }
     
@@ -1327,7 +1328,7 @@ void _lf_advance_logical_time(instant_t next_time) {
     } else {
         current_tag.microstep++;
     }
-    DEBUG_PRINT("Advanced tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
+    LOG_PRINT("Advanced (elapsed) tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
 }
 
 /**
@@ -1443,7 +1444,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         }
     }
     if (downstream_to_execute_now != NULL) {
-        DEBUG_PRINT("Optimizing and executing downstream reaction now.");
+        LOG_PRINT("Worker %d: Optimizing and executing downstream reaction now.", worker);
         bool violation = false;
 #ifdef _LF_COORD_DECENTRALIZED // Only use the Tardy handler for federated programs that use decentralized coordination
         // If the is_tardy for the reaction is true,
@@ -1463,7 +1464,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         //  chain until it is dealt with in a downstream tardy handler.
         if (downstream_to_execute_now->is_tardy == true) {
             // Tardiness has occurred
-            DEBUG_PRINT("Invoking tardiness handler.");
+            LOG_PRINT("Event is tardy.");
             reaction_function_t handler = downstream_to_execute_now->tardy_handler;
             // Invoke the tardy handler if there is one.
             if (handler != NULL) {
@@ -1471,7 +1472,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                 // If there is no tardy handler, pass the is_tardy
                 // to downstream reactions.
                 violation = true;
-                DEBUG_PRINT("Invoke tardiness handler %p.", handler);
+                LOG_PRINT("Invoke tardiness handler.");
                 (*handler)(downstream_to_execute_now->self);
 
                 // If the reaction produced outputs, put the resulting
@@ -1506,7 +1507,6 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         }
         if (!violation) {
             // Invoke the downstream_reaction function.
-            DEBUG_PRINT("worker %d: Invoking downstream reaction immediately, bypassing reaction queue.", worker);
             tracepoint_reaction_starts(downstream_to_execute_now, worker);
             downstream_to_execute_now->function(downstream_to_execute_now->self);
             tracepoint_reaction_ends(downstream_to_execute_now, worker);
@@ -1728,7 +1728,7 @@ void calculate_epoch_offset() {
 
         _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
     }
-    DEBUG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
+    LOG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
 }
 
 /**
@@ -1781,8 +1781,11 @@ void initialize() {
     }
 }
 
-// Check that memory allocated by set_new, set_new_array, or writable_copy
-// has been freed and print a warning message if not.
+/**
+ * Report elapsed logical and physical times and report if any
+ * memory allocated by set_new, set_new_array, or writable_copy
+ * has not been freed.
+ */
 void termination() {
     // Invoke the code generated termination function.
     __termination();
