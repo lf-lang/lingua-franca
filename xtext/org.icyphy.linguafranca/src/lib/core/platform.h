@@ -50,7 +50,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          // iOS Simulator
     #elif TARGET_OS_IPHONE
         // iOS device
-    #elif TARGET_OS_MAC || PLATFORM_NAME == "Mac OS"
+    #elif TARGET_OS_MAC
         // Other kinds of Mac OS
     #else
     #warning "Unknown Apple platform"
