@@ -104,7 +104,7 @@ int lf_cond_signal(__lf_cond_t* cond) {
 /* Wait for condition variable COND to be signaled or broadcast.
    MUTEX is assumed to be locked before. */
 int lf_cond_wait(__lf_cond_t* cond, __lf_mutex_t* mutex) {
-    return pthread_cond_wait((pthread_cond_t*)cond, (pthread_mutex_t*)mutex));
+    return pthread_cond_wait((pthread_cond_t*)cond, (pthread_mutex_t*)mutex);
 }
 
 /** 
