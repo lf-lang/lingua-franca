@@ -4157,7 +4157,7 @@ class CGenerator extends GeneratorBase {
         if (targetFast) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
-                runCommand.add("X")
+                runCommand.add(filename)
             }
             runCommand.add("-f")
             runCommand.add("true")
@@ -4165,7 +4165,7 @@ class CGenerator extends GeneratorBase {
         if (targetKeepalive) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
-                runCommand.add("X")
+                runCommand.add(filename)
             }
             runCommand.add("-k")
             runCommand.add("true")
@@ -4173,10 +4173,11 @@ class CGenerator extends GeneratorBase {
         if (targetTimeout !== null) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
-                runCommand.add("X")
+                runCommand.add(filename)
             }
             runCommand.add("-o")
-            runCommand.add(targetTimeout.toString)
+            runCommand.add(targetTimeout.time.toString)
+            runCommand.add(targetTimeout.unit.toString)
         }
         
     }

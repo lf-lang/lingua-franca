@@ -863,16 +863,6 @@ class ASTUtils {
     }
     
     /**
-     * Return the first enum from the given options that matches the given element.
-     * 
-     * The element is matched against the given options without considering case.
-     * @param e The element to be rendered as a boolean.
-     */
-    def static <T extends Enum<?>> toEnum(Element e, Iterable<T> options) {
-        return options.filter[it.name.equalsIgnoreCase(e.toText)].head
-    }
-    
-    /**
      * Convert a time to its textual representation as it would
      * appear in LF code.
      * 

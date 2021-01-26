@@ -523,7 +523,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case BUILD_TYPE:
                         targetBuildType = param.value.toText
                     case CLOCK_SYNC:
-                        targetClockSync = param.value.toEnum(ClockSyncModes.values)
+                        targetClockSync = ClockSyncModes.values.filter [
+                            it.name.equalsIgnoreCase(param.value.toText)
+                        ].head
                     case CLOCK_SYNC_OPTIONS:
                         for (entry: param.value.keyvalue.pairs) {
                             targetClockSyncOptions.put(entry.name, entry.value)
@@ -535,7 +537,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case FAST:
                             targetFast = param.value.toBoolean
                     case COORDINATION:
-                        targetCoordination = param.value.toEnum(CoordinationTypes.values)
+                        targetCoordination = CoordinationTypes.values.filter [
+                            it.name.equalsIgnoreCase(param.value.toText)
+                        ].head
                     case FILES:
                         this.targetFiles.addAll(this.collectFiles(param.value))
                     case PROTOBUFS: 
@@ -549,7 +553,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case KEEPALIVE:
                         targetKeepalive = param.value.toBoolean
                     case LOGGING:
-                        targetLoggingLevel = param.value.toEnum(LoggingLevels.values)
+                        targetLoggingLevel = LoggingLevels.values.filter [
+                            it.name.equalsIgnoreCase(param.value.toText)
+                        ].head
                     case THREADS:
                         targetThreads = param.value.toInteger
                     case TIMEOUT:
