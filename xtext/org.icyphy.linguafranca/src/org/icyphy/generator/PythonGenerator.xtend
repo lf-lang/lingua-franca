@@ -121,8 +121,7 @@ class PythonGenerator extends CGenerator {
 	override getTargetUndefinedType() '''PyObject*'''
 	
 	/** Returns the Target enum for this generator */
-    override getTarget()
-    {
+    override getTarget() {
         return Targets.get("Python")
     }
 
@@ -798,17 +797,19 @@ class PythonGenerator extends CGenerator {
                 ''')
             }
         }
-        
-        if (targetLoggingLevel !== null && targetLoggingLevel.equals("DEBUG")) {
-            pr('''
-                #define LOG_LEVEL 2
-            ''')
-        } else if (targetLoggingLevel?.equals("LOG")) {
-            pr('''
-                #define LOG_LEVEL 1
-            ''')
+
+        switch(targetLoggingLevel) {
+            case DEBUG: 
+                pr('''
+                    #define LOG_LEVEL 2
+                ''')
+            case LOG:
+                pr('''
+                    #define LOG_LEVEL 1
+                ''')
+            // FIXME: what about the other cases?
         }
-        // FIXME: what should be the default? Also: duplicate code. Also: why not use a define for the log levels? I.e.: #define LOG_LEVEL DEBUG
+
         includeTargetLanguageHeaders()
 
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
@@ -1775,5 +1776,35 @@ class PythonGenerator extends CGenerator {
             pyObjectDescriptor.append("O")            
             pyObjects.append(''', convert_C_port_to_py(«input.name»,«input.name»_width) ''')
         }
-    }    
+    }
+    
+    /**
+     * Convert C types to formats used in Py_BuildValue and PyArg_PurseTuple.
+     * This is unused but will be useful to enable inter-compatibility between 
+     * C and Python reactors.
+     * @param type C type
+     */
+    def pyBuildValueArgumentType(String type) {
+        switch (type) {
+            case "int": "i"
+            case "string": "s"
+            case "char": "b"
+            case "short int": "h"
+            case "long": "l"
+            case "unsigned char": "B"
+            case "unsigned short int": "H"
+            case "unsigned int": "I"
+            case "unsigned long": "k"
+            case "long long": "L"
+            case "interval_t": "L"
+            case "unsigned long long": "K"
+            case "double": "d"
+            case "float": "f"
+            case "Py_complex": "D"
+            case "Py_complex*": "D"
+            case "Py_Object": "O"
+            case "Py_Object*": "O"
+            default: "O"
+        }
+    }
 }

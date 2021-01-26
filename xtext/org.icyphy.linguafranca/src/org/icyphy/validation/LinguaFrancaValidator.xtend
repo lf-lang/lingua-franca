@@ -742,9 +742,9 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 case BUILD:
                     param.checkIfStringOrListOfStrings
                 case FILES:
-                    param.checkIfStringOrListOfStrings // FIXME: attempt to resolve files?
+                    param.checkIfStringOrListOfStrings
                 case PROTOBUFS:
-                    param.checkIfStringOrListOfStrings // FIXME: attempt to resolve files?
+                    param.checkIfStringOrListOfStrings
             }
         }
     }
