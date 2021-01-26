@@ -376,9 +376,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected String targetName
     
     /**
-     * The level of logging or null if not given. The default is ERROR.
+     * The level of logging or null if not given. The default is INFO.
      */
-    protected LoggingLevels targetLoggingLevel = LoggingLevels.ERROR
+    protected LoggingLevels targetLoggingLevel = LoggingLevels.INFO
 
     /**
      * The threads target parameter, or the default 0 if there is none.

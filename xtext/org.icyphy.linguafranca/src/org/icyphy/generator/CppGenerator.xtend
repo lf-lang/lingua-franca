@@ -57,6 +57,7 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.ASTUtils
 import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 import com.google.inject.Inject
+import org.icyphy.Targets.LoggingLevels
 
 /** Generator for C++ target.
  * 
@@ -90,14 +91,6 @@ class CppGenerator extends GeneratorBase {
         TimeUnit.DAYS -> 'd',
         TimeUnit.WEEK -> 'd*7',
         TimeUnit.WEEKS -> 'd*7'
-    }
-
-    static public var logLevelsToInts = #{
-        "ERROR" -> 1,
-        "WARN" -> 2,
-        "INFO" -> 3,
-        "LOG" -> 3,
-        "DEBUG" -> 4
     }
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
@@ -947,7 +940,7 @@ class CppGenerator extends GeneratorBase {
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
             -DREACTOR_CPP_VALIDATE=«IF targetNoRuntimeValidation»OFF«ELSE»ON«ENDIF»
             -DREACTOR_CPP_TRACE=«IF targetTracing»ON«ELSE»OFF«ENDIF»
-            «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
+            «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«targetLoggingLevel.ordinal»«ELSE»«LoggingLevels.INFO.ordinal»«ENDIF»
         )
         
         set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
