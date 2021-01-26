@@ -798,17 +798,7 @@ class PythonGenerator extends CGenerator {
             }
         }
 
-        switch(targetLoggingLevel) {
-            case DEBUG: 
-                pr('''
-                    #define LOG_LEVEL 2
-                ''')
-            case LOG:
-                pr('''
-                    #define LOG_LEVEL 1
-                ''')
-            // FIXME: what about the other cases?
-        }
+        pr(CGenerator.defineLogLevel(this))
 
         includeTargetLanguageHeaders()
 
