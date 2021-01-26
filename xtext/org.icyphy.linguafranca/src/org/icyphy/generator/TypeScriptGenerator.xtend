@@ -1465,8 +1465,8 @@ class TypeScriptGenerator extends GeneratorBase {
     }
     
     private def getTimeoutTimeValue() {
-        if (targetTimeout >= 0) {
-            return timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit))
+        if (targetTimeout !== null) {
+            return timeInTargetLanguage(targetTimeout)
         } else {
             return "undefined"
         }
