@@ -42,7 +42,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Fetch the value of clk_id and store it in tp.
  */
 int lf_clock_gettime(__lf_clock_t clk_id, __lf_time_spec_t* tp) {
-    return lf_clock_gettime((clockid_t)clk_id, (struct timespec*) tp);
+    return clock_gettime((clockid_t)clk_id, (struct timespec*) tp);
 }
 
 /**
