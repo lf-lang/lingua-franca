@@ -384,15 +384,17 @@ class CGenerator extends GeneratorBase {
         // FIXME: allow for cross-compiling
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
-            coreFiles.add("platform/lf_POSIX_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_macos_support.c")
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
-            reportError("Windows is not supported")
+            coreFiles.add("platform/lf_windows_support.c")
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
-            coreFiles.add("platform/lf_POSIX_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_linux_support.c")
         } else {
             reportError("Platform " + OS + " is not supported")
         }

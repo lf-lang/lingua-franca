@@ -28,12 +28,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  
  *  @author{Soroush Bateni <soroush@utdallas.edu>}
  */
+
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
    // Windows platforms
-   #error "Windows not supported"
+   #include "platform/lf_Windows_support.c"
    #ifdef _WIN64
       //define something for Windows (64-bit only)
    #else
@@ -41,11 +42,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #endif
 #elif __APPLE__
     // Apple platforms
-    #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
-    #include "platform/lf_POSIX_support.c"
-    #else
-    #include "platform/lf_C11_threads_support.c"
-    #endif
+    #include "platform/lf_macos_support.c"
     #if TARGET_IPHONE_SIMULATOR
          // iOS Simulator
     #elif TARGET_OS_IPHONE
@@ -57,11 +54,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #endif
 #elif __linux__
     // Linux
-    #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
-    #include "platform/lf_POSIX_support.c"
-    #else
-    #include "platform/lf_C11_threads_support.c"
-    #endif
+    #include "platform/lf_linux_support.c"
 #elif __unix__ // all unices not caught above
     // Unix
     #include "platform/lf_POSIX_support.c"
@@ -80,6 +73,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef __lf_mutex_t lf_mutex_t;
 typedef __lf_cond_t lf_cond_t;
 typedef __lf_thread_t lf_thread_t;
+typedef __lf_time_spec_t lf_time_spec_t;
+typedef __lf_clock_t lf_clock_t;
 
 /**
  * Create a new thread, starting with execution of lf_thread
@@ -138,6 +133,16 @@ extern int lf_cond_wait(lf_cond_t* cond, lf_mutex_t* mutex);
  * 
  * @return 0 on success and LF_TIMEOUT on timeout.
  */
-extern int lf_cond_timedwait(lf_cond_t* cond, lf_mutex_t* mutex, instant_t absolute_time);
+extern int lf_cond_timedwait(lf_cond_t* cond, lf_mutex_t* mutex, instant_t absolute_time_ns);
+
+/**
+ * Fetch the value of clk_id and store it in tp.
+ */
+extern int lf_clock_gettime(lf_clock_t clk_id, lf_time_spec_t* tp);
+
+/**
+ * Pause execution for a number of nanoseconds.
+ */
+extern int lf_nanosleep(lf_clock_t clk_id, const lf_time_spec_t* requested_time, lf_time_spec_t* remaining);
 
 #endif // PLATFORM_H
