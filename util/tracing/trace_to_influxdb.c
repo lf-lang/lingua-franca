@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
         exit(0);
     }
     // FIXME: Get from command line.
-    // Change these paramerets as per your environment
+    // Change these parameters as per your environment
     influx_v2_client.host = "localhost";
     influx_v2_client.port = 8088;
     influx_v2_client.org = "icyphy"; 
