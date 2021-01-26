@@ -922,7 +922,7 @@ void* worker(void* arg) {
                 // want to put this back in:
                 //
                 // struct timespec physical_time;
-                // clock_gettime(CLOCK_REALTIME, &physical_time);
+                // lf_clock_gettime(CLOCK_REALTIME, &physical_time);
                 // physical_time.tv_nsec += MAX_STALL_INTERVAL;
                 // lf_cond_wait(&reaction_q_changed, &mutex, &physical_time);
                 lf_cond_wait(&reaction_q_changed, &mutex);
