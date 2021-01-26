@@ -596,7 +596,7 @@ public enum Targets {
     }
     
     public enum CoordinationTypes {
-        Centralized, Decentralized
+        Centralized, Decentralized;
     }
     
     /**

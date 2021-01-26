@@ -47,6 +47,8 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Delay
+import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -66,7 +68,6 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
-import org.icyphy.linguaFranca.Delay
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -812,6 +813,34 @@ class ASTUtils {
         	buffer.deleteCharAt(buffer.length - 1) // remove the last newline
         } 
         buffer.toString
+    }
+    
+    def static String toText(Element e) {
+        var str = ""
+        if (e.literal !== null) {
+            str = e.literal
+        }
+        if (e.id !== null) {
+            str = e.id
+        }
+        return '''«str»'''
+    }
+    
+    def static toInteger(Element e) {
+        return Integer.decode(e.literal)
+    }
+    
+    def static toTimeValue(Element e) {
+        return new TimeValue(e.time, e.unit)
+    }
+    
+    def static toBoolean(Element e) {
+        return e.toText.equalsIgnoreCase('true')
+    }
+    
+    def static <T extends Enum<?>> toEnum(Element e, Iterable<T> options) {
+        return options.filter[it.name.equalsIgnoreCase(e.toText)].head
+        //return Arrays.stream(options).filter(it -> e.name().equalsIgnoreCase(dayName)).findAny().orElse(null)
     }
     
     /**
