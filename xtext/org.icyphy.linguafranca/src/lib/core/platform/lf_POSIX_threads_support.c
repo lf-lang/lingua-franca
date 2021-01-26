@@ -31,8 +31,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * All functions return 0 on success.
  */
 
-#ifndef LF_POSIX_support
-#define LF_POSIX_support
+#ifndef LF_POSIX_SUPPORT
+#define LF_POSIX_SUPPORT
 
 
 #include <pthread.h>
@@ -40,6 +40,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef pthread_mutex_t __lf_mutex_t;
 typedef pthread_cond_t __lf_cond_t;
 typedef pthread_t __lf_thread_t;
+typedef struct timespec __lf_time_spec_t;
+typedef clockid_t __lf_clock_t;
 
 #define __LF_TIMEOUT ETIMEDOUT
 
@@ -113,7 +115,7 @@ int lf_cond_wait(__lf_cond_t* cond, __lf_mutex_t* mutex) {
  * 
  * @return 0 on success and LF_TIMEOUT on timeout.
  */
-extern int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t absolute_time) {
+int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t absolute_time_ns) {
     // Convert the absolute time to a timespec.
     // timespec is seconds and nanoseconds.
     struct timespec timespec_absolute_time
@@ -124,4 +126,4 @@ extern int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t a
                         &timespec_absolute_time);
 }
 
-#endif // LF_POSIX_support
+#endif // LF_POSIX_SUPPORT
