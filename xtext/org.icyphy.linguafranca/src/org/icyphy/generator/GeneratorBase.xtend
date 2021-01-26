@@ -85,6 +85,7 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.Targets.ClockSyncModes
 import org.icyphy.Targets.CoordinationTypes
+import org.icyphy.Targets.LoggingLevels
 
 /**
  * Generator base class for shared code between code generators.
@@ -375,9 +376,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected String targetName
     
     /**
-     * The level of logging or null if not given.
+     * The level of logging or null if not given. The default is ERROR.
      */
-    protected String targetLoggingLevel
+    protected LoggingLevels targetLoggingLevel = LoggingLevels.ERROR
 
     /**
      * The threads target parameter, or the default 0 if there is none.
@@ -548,7 +549,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case KEEPALIVE:
                         targetKeepalive = param.value.toBoolean
                     case LOGGING:
-                        targetLoggingLevel = param.value.toText.toUpperCase
+                        targetLoggingLevel = param.value.toEnum(LoggingLevels.values)
                     case THREADS:
                         targetThreads = param.value.toInteger
                     case TIMEOUT:

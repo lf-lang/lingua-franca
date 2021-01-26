@@ -930,13 +930,18 @@ class CGenerator extends GeneratorBase {
         }
         
         val rtiCode = new StringBuilder()
-        if (targetLoggingLevel !== null) {
-            if (targetLoggingLevel.equals("DEBUG")) {
-                pr(rtiCode, '#define LOG_LEVEL 2')
-            } else if (targetLoggingLevel.equals("LOG")) {
-                pr(rtiCode, '#define LOG_LEVEL 1')
-            }
+        switch(targetLoggingLevel) {
+            case DEBUG: 
+                pr('''
+                    pr(rtiCode, '#define LOG_LEVEL 2')
+                ''')
+            case LOG:
+                pr('''
+                    pr(rtiCode, '#define LOG_LEVEL 1')
+                ''')
+            // FIXME: what about the other cases?
         }
+        
         // Determine the period with clock clock sync will be done.
         var period = 'MSEC(5)'  // The default.
         if (targetClockSyncOptions?.get('period') !== null) {
@@ -4077,15 +4082,18 @@ class CGenerator extends GeneratorBase {
      */
     override generatePreamble() {
         
-        if (targetLoggingLevel !== null && targetLoggingLevel.equals("DEBUG")) {
-            pr('''
-                #define LOG_LEVEL 2
-            ''')
-        } else if (targetLoggingLevel !== null && targetLoggingLevel.equals("LOG")) {
-            pr('''
-                #define LOG_LEVEL 1
-            ''')
+        switch(targetLoggingLevel) {
+            case DEBUG: 
+                pr('''
+                    #define LOG_LEVEL 2
+                ''')
+            case LOG:
+                pr('''
+                    #define LOG_LEVEL 1
+                ''')
+            // FIXME: what about the other cases?
         }
+        
         if (isFederated) {
             // FIXME: Instead of checking
             // #ifdef _LF_IS_FEDERATED, we could

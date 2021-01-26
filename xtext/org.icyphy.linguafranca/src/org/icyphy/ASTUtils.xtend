@@ -845,7 +845,7 @@ class ASTUtils {
     }
     
     /**
-     * Return an time value based on the given element.
+     * Return a time value based on the given element.
      * 
      * @param e The element to be rendered as a time value.
      */
