@@ -933,14 +933,18 @@ class CGenerator extends GeneratorBase {
         val rtiCode = new StringBuilder()
         switch(targetLoggingLevel) {
             case DEBUG: 
-                pr('''
-                    pr(rtiCode, '#define LOG_LEVEL 2')
+                pr(rtiCode,
+                '''
+                    #define LOG_LEVEL 2
                 ''')
             case LOG:
-                pr('''
-                    pr(rtiCode, '#define LOG_LEVEL 1')
+                pr(rtiCode,
+                '''
+                    #define LOG_LEVEL 1
                 ''')
             // FIXME: what about the other cases?
+            // FIXME: can we match LOG_LEVEL numbers to the LoggingLevels enum (see Targets.java) 
+            //  and eliminate the switch entirely?
         }
         
         // Determine the period with clock clock sync will be done.
