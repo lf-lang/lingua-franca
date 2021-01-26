@@ -119,7 +119,7 @@ int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t absolute
     // Convert the absolute time to a timespec.
     // timespec is seconds and nanoseconds.
     struct timespec timespec_absolute_time
-            = {(time_t)absolute_time / BILLION, (long)absolute_time % BILLION};
+            = {(time_t)absolute_time_ns / BILLION, (long)absolute_time_ns % BILLION};
     return pthread_cond_timedwait(
                         (pthread_cond_t*)cond,
                         (pthread_mutex_t*)mutex,

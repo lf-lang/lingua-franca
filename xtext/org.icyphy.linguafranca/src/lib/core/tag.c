@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "tag.h"
+#include "platform.h"
 
 /**
  * Offset to _LF_CLOCK that would convert it
