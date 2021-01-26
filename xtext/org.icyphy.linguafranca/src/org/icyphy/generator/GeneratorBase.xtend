@@ -84,6 +84,7 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.Targets.ClockSyncModes
+import org.icyphy.Targets.CoordinationTypes
 
 /**
  * Generator base class for shared code between code generators.
@@ -339,7 +340,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * The coordination target parameter. Default is
      * centralized.
      */
-    protected String targetCoordination = "centralized"
+    protected CoordinationTypes targetCoordination = CoordinationTypes.Centralized
     
     /**
      * List of files to be copied to src-gen.
@@ -384,14 +385,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected int targetThreads = 0
 
     /**
-     * The timeout parameter, or the default -1 if there is none.
+     * The timeout parameter, or null if there is none.
      */
-    protected int targetTimeout = -1
-
-    /**
-     * The threads timeout unit parameter, or the default null if there is none.
-     */
-    protected TimeUnit targetTimeoutUnit
+    protected TimeValue targetTimeout
     
     /**
      * The tracing target parameter, or false if there is none.
@@ -453,7 +449,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
           directory + File.separator + "bin"
     }
     
-    def String getTargetCoordination() {
+    def CoordinationTypes getTargetCoordination() {
         return targetCoordination
     }
     
@@ -512,77 +508,53 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         targetName = target.name
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
-                // FIXME: Use enums, like in Validator.
-                switch param.name {
-                    case "build-type":
-                        targetBuildType = param.value.id
-                    case "clock-sync": {
-                        if (param.value.id.equalsIgnoreCase('off')) {
-                            targetClockSync = ClockSyncModes.OFF
-                        } else if (param.value.id.equalsIgnoreCase('initial')) {
-                            targetClockSync = ClockSyncModes.INITIAL
-                        } else if (param.value.id.equalsIgnoreCase('on')) {
-                            targetClockSync = ClockSyncModes.ON
-                        }
-                    }
-                    case "clock-sync-options": {
-                        for (entry: param.value.keyvalue.pairs) {
-                            targetClockSyncOptions.put(entry.name, entry.value)
-                        }
-                    }
-                    case "cmake-include":
-                        targetCmakeInclude = param.value.literal.withoutQuotes
-                    case "compiler":
-                        targetCompiler = param.value.literal.withoutQuotes
-                    case "fast":
-                        if (param.value.literal == 'true') {
-                            targetFast = true
-                        }
-                    case TargetProperties.COORDINATION.name:
-                        // Set the target coordination if assigned
-                        // by the user. Values can only be
-                        // 'centralized' or 'decentralized'.
-                        this.targetCoordination = param.value.id
-                    case TargetProperties.FILES.name:
-                        this.targetFiles.addAll(this.collectFiles(param.value))
-                    case TargetProperties.PROTOBUFS.name: 
-                        this.protoFiles.addAll(this.collectFiles(param.value))
-                    case "flags":
-                        targetCompilerFlags = param.value.literal.withoutQuotes
-                    case "no-compile":
-                        if (param.value.literal == 'true') {
-                            targetNoCompile = true
-                        }
-                    case "no-runtime-validation":
-                        if (param.value.literal == 'true') {
-                            targetNoRuntimeValidation = true
-                        }
-                    case "keepalive":
-                        if (param.value.literal == 'true') {
-                            targetKeepalive = true
-                        }
-                    case "logging":
-                        targetLoggingLevel = param.value.id.toUpperCase
-                    case "threads":
-                        targetThreads = Integer.decode(param.value.literal)
-                    case "timeout": {
-                        targetTimeout = param.value.time
-                        targetTimeoutUnit = param.value.unit
-                    }
-                    case "tracing":
-                        if (param.value.literal == 'true') {
-                            targetTracing = true
-                        }
-                    case "build": {
+
+                switch TargetProperties.get(param.name) {
+                    case BUILD: {
                         if (param.value.literal !== null) {
-                            targetBuildCommands.add(param.value.literal.withoutQuotes)
-                        }
-                        else if (param.value.array !== null) {
+                            targetBuildCommands.add(param.value.toText)
+                        } else if (param.value.array !== null) {
                             for (cmd : param.value.array.elements) {
-                                targetBuildCommands.add(cmd.literal.withoutQuotes)
+                                targetBuildCommands.add(cmd.toText)
                             }
                         }
                     }
+                    case BUILD_TYPE:
+                        targetBuildType = param.value.toText
+                    case CLOCK_SYNC:
+                        targetClockSync = param.value.toEnum(ClockSyncModes.values)
+                    case CLOCK_SYNC_OPTIONS:
+                        for (entry: param.value.keyvalue.pairs) {
+                            targetClockSyncOptions.put(entry.name, entry.value)
+                        }
+                    case CMAKE_INCLUDE:
+                        targetCmakeInclude = param.value.toText
+                    case COMPILER:
+                        targetCompiler = param.value.toText
+                    case FAST:
+                            targetFast = param.value.toBoolean
+                    case COORDINATION:
+                        targetCoordination = param.value.toEnum(CoordinationTypes.values)
+                    case FILES:
+                        this.targetFiles.addAll(this.collectFiles(param.value))
+                    case PROTOBUFS: 
+                        this.protoFiles.addAll(this.collectFiles(param.value))
+                    case FLAGS:
+                        targetCompilerFlags = param.value.toText
+                    case NO_COMPILE:
+                        targetNoCompile = param.value.toBoolean
+                    case NO_RUNTIME_VALIDATION:
+                        targetNoRuntimeValidation = param.value.toBoolean
+                    case KEEPALIVE:
+                        targetKeepalive = param.value.toBoolean
+                    case LOGGING:
+                        targetLoggingLevel = param.value.toText.toUpperCase
+                    case THREADS:
+                        targetThreads = param.value.toInteger
+                    case TIMEOUT:
+                        targetTimeout = param.value.toTimeValue
+                    case TRACING:
+                        targetTracing = param.value.toBoolean
                 }
             }
         }

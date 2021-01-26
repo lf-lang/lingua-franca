@@ -4086,7 +4086,6 @@ class CGenerator extends GeneratorBase {
                 #define LOG_LEVEL 1
             ''')
         }
-        // FIXME: what should be the default?
         if (isFederated) {
             // FIXME: Instead of checking
             // #ifdef _LF_IS_FEDERATED, we could
@@ -4163,14 +4162,13 @@ class CGenerator extends GeneratorBase {
             runCommand.add("-k")
             runCommand.add("true")
         }
-        if (targetTimeout >= 0) {
+        if (targetTimeout !== null) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
                 runCommand.add("X")
             }
             runCommand.add("-o")
-            runCommand.add(Integer.toString(targetTimeout))
-            runCommand.add(targetTimeoutUnit.toString)
+            runCommand.add(targetTimeout.toString)
         }
         
     }

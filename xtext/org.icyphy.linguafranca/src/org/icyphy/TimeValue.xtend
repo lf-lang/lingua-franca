@@ -168,4 +168,11 @@ class TimeValue {
         return this.nanoSecs
     }
     
+    /**
+     * Return a string representation of this time value.
+     */
+    override String toString() {
+        '''«this.time» «this.unit»'''
+    }
+    
 }
