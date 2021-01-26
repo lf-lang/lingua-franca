@@ -159,7 +159,7 @@ int lf_cond_wait(__lf_cond_t* cond, __lf_critical_section_t* critical_section) {
  */
 int lf_cond_timedwait(__lf_cond_t* cond, __lf_critical_section_t* critical_section, instant_t absolute_time_ns) {
     // Convert the absolute time to a relative time
-    DWORD relative_time_ms = (absolute_time_ns - get_start_time())/1000000LL;
+    DWORD relative_time_ms = (absolute_time_ns - get_physical_time())/1000000LL;
 
     return (int)SleepConditionVariableCS((CONDITION_VARIABLE*)cond, (CRITICAL_SECTION*)critical_section, relative_time_ms);
 }
