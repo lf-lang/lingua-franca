@@ -33,6 +33,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "reactor_common.c"
+#include "platform.h"
 #include <signal.h> // To trap ctrl-c and invoke termination().
 //#include <assert.h>
 
