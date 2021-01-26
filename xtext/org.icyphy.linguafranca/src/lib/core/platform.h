@@ -32,49 +32,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-   // Windows platforms
-   #include "platform/lf_Windows_support.c"
-   #ifdef _WIN64
-      //define something for Windows (64-bit only)
-   #else
-      //define something for Windows (32-bit only)
-   #endif
-#elif __APPLE__
-    // Apple platforms
-    #include "platform/lf_macos_support.c"
-    #if TARGET_IPHONE_SIMULATOR
-         // iOS Simulator
-    #elif TARGET_OS_IPHONE
-        // iOS device
-    #elif TARGET_OS_MAC
-        // Other kinds of Mac OS
-    #else
-    #warning "Unknown Apple platform"
-    #endif
-#elif __linux__
-    // Linux
-    #include "platform/lf_linux_support.c"
-#elif __unix__ // all unices not caught above
-    // Unix
-    #include "platform/lf_POSIX_support.c"
-#elif defined(_POSIX_VERSION)
-    // POSIX
-    #include "platform/lf_POSIX_support.c"
-#elif defined(__riscv) || defined(__riscv__) 
-    // RISC-V (see https://github.com/riscv/riscv-toolchain-conventions)
-    #error "RISC-V not supported"
-#else
-#error "Platform not supported"
-#endif
+// #define __LF_TIMEOUT // To be defined later
+// #define LF_TIMEOUT __LF_TIMEOUT
 
-#define LF_TIMEOUT __LF_TIMEOUT
+// typedef __lf_mutex_t;     // Type to hold handle to a mutex
+// typedef __lf_cond_t;      // Type to hold handle to a condition variable
+// typedef __lf_thread_t;    // Type to hold handle to a thread
+// typedef __lf_time_spec_t; // Type to hold time in a traditional {second, nanosecond} POSIX format
+// typedef __lf_clock_t;     // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
 
-typedef __lf_mutex_t lf_mutex_t;
-typedef __lf_cond_t lf_cond_t;
-typedef __lf_thread_t lf_thread_t;
-typedef __lf_time_spec_t lf_time_spec_t;
-typedef __lf_clock_t lf_clock_t;
+
+typedef __lf_mutex_t lf_mutex_t;          // Type to hold handle to a mutex
+typedef __lf_cond_t lf_cond_t;            // Type to hold handle to a condition variable
+typedef __lf_thread_t lf_thread_t;        // Type to hold handle to a thread
+typedef __lf_time_spec_t lf_time_spec_t;  // Type to hold time in a traditional {second, nanosecond} POSIX format
+typedef __lf_clock_t lf_clock_t;          // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
 
 /**
  * Create a new thread, starting with execution of lf_thread
