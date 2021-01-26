@@ -56,6 +56,9 @@ import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.InferredType
 import org.icyphy.Targets
+import org.icyphy.Targets.ClockSyncModes
+import org.icyphy.Targets.CoordinationTypes
+import org.icyphy.Targets.LoggingLevels
 import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
 import org.icyphy.graph.InstantiationGraph
@@ -83,9 +86,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Targets.ClockSyncModes
-import org.icyphy.Targets.CoordinationTypes
-import org.icyphy.Targets.LoggingLevels
 
 /**
  * Generator base class for shared code between code generators.
@@ -341,7 +341,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * The coordination target parameter. Default is
      * centralized.
      */
-    protected CoordinationTypes targetCoordination = CoordinationTypes.Centralized
+    protected CoordinationTypes targetCoordination = CoordinationTypes.CENTRALIZED
     
     /**
      * List of files to be copied to src-gen.
@@ -523,9 +523,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case BUILD_TYPE:
                         targetBuildType = param.value.toText
                     case CLOCK_SYNC:
-                        targetClockSync = ClockSyncModes.values.filter [
-                            it.name.equalsIgnoreCase(param.value.toText)
-                        ].head
+                        targetClockSync = ClockSyncModes.create(param.value.toText)
                     case CLOCK_SYNC_OPTIONS:
                         for (entry: param.value.keyvalue.pairs) {
                             targetClockSyncOptions.put(entry.name, entry.value)
@@ -537,9 +535,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case FAST:
                             targetFast = param.value.toBoolean
                     case COORDINATION:
-                        targetCoordination = CoordinationTypes.values.filter [
-                            it.name.equalsIgnoreCase(param.value.toText)
-                        ].head
+                        targetCoordination = CoordinationTypes.create(param.value.toText)
                     case FILES:
                         this.targetFiles.addAll(this.collectFiles(param.value))
                     case PROTOBUFS: 
@@ -553,9 +549,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case KEEPALIVE:
                         targetKeepalive = param.value.toBoolean
                     case LOGGING:
-                        targetLoggingLevel = LoggingLevels.values.filter [
-                            it.name.equalsIgnoreCase(param.value.toText)
-                        ].head
+                        targetLoggingLevel = LoggingLevels.create(param.value.toText)
                     case THREADS:
                         targetThreads = param.value.toInteger
                     case TIMEOUT:

@@ -564,10 +564,24 @@ public enum Targets {
         Release, Debug, RelWithDebInfo, MinSizeRel;
     }
     
-    public enum CoordinationTypes {
-        Centralized, Decentralized;
+    public enum CoordinationTypes{
+        CENTRALIZED, DECENTRALIZED;
+        
+        public static CoordinationTypes create(String string) {
+            return (CoordinationTypes)Targets.create(string, CoordinationTypes.values());
+        }
+        
+        @Override
+        public String toString() {
+            return this.name().toLowerCase();
+        }
     }
     
+    private static <T extends Enum<?>> Enum<?> create(final String string, final T[] candidates) {
+        return Arrays.stream(candidates)
+                .filter(e -> e.name().equalsIgnoreCase(string)).findAny()
+                .orElse(null);
+    }
     /**
      * The clock synchronization technique that is used.
      * OFF: The clock synchronization is universally off.
@@ -575,7 +589,17 @@ public enum Targets {
      * ON: Clock synchronization occurs at startup and at runtime.
      */
     public enum ClockSyncModes {
-        OFF, INITIAL, ON
+        OFF, INITIAL, ON;
+        
+        public static ClockSyncModes create(String string) {
+            return (ClockSyncModes)Targets.create(string, ClockSyncModes.values());
+        }
+        
+        @Override
+        public String toString() {
+            return this.name().toLowerCase();
+        }
+
     }
     
     /**
@@ -584,6 +608,16 @@ public enum Targets {
      */
     public enum LoggingLevels {
         ERROR, WARN, INFO, LOG, DEBUG;
+        
+        public static LoggingLevels create(String string) {
+            return (LoggingLevels)Targets.create(string, LoggingLevels.values());
+        }
+        
+        @Override
+        public String toString() {
+            return this.name().toLowerCase();
+        }
+
     }
 
     /**
