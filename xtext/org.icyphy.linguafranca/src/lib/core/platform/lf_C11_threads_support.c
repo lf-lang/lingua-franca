@@ -103,11 +103,11 @@ int lf_cond_wait(__lf_cond_t* cond, __lf_mutex_t* mutex) {
  * 
  * @return 0 on success and LF_TIMEOUT on timeout.
  */
-int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t absolute_time) {
+int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, instant_t absolute_time_ns) {
     // Convert the absolute time to a timespec.
     // timespec is seconds and nanoseconds.
     struct timespec timespec_absolute_time
-            = {(time_t)absolute_time / BILLION, (long)absolute_time % BILLION};
+            = {(time_t)absolute_time_ns / BILLION, (long)absolute_time_ns % BILLION};
     return cnd_timedwait((cnd_t*)cond, (mtx_t*)mutex, &timespec_absolute_time);
 }
 
