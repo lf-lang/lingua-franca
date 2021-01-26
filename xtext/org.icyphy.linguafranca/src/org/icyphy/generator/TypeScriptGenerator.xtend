@@ -1346,9 +1346,9 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     private def getLoggingLevel() {
         if (targetLoggingLevel === null) {
-            LoggingLevels.ERROR.toString
+            LoggingLevels.ERROR.name
         } else {
-            targetLoggingLevel
+            targetLoggingLevel.name
         }
     }
     

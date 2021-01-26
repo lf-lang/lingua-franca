@@ -66,6 +66,7 @@ import org.icyphy.linguaFranca.Variable
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Delay
 import org.icyphy.Targets.ClockSyncModes
+import org.icyphy.Targets.CoordinationTypes
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -2896,6 +2897,23 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
+     * Return a string that defines the log level.
+     */
+    static def String defineLogLevel(GeneratorBase generator) {
+        switch(generator.targetLoggingLevel) {
+            case ERROR: '''
+                #define LOG_LEVEL 0
+            '''
+            case WARN: '''
+                #define LOG_LEVEL 1
+            '''
+            case INFO: '''''' // #define LOG_LEVEL 2
+            case LOG: '''''' // #define LOG_LEVEL 3
+            case DEBUG: '''''' // #define LOG_LEVEL 4
+        }
+    }
+    
+    /**
      * Return a string for referencing the struct with the value and is_present
      * fields of the specified port. This is used for establishing the destination of
      * data for a connection between ports.
@@ -4024,7 +4042,7 @@ class CGenerator extends GeneratorBase {
         if (isPhysical) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_MESSAGE"            
-        }else if (targetCoordination.equals("decentralized")) {
+        }else if (targetCoordination === CoordinationTypes.DECENTRALIZED) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
@@ -4081,18 +4099,7 @@ class CGenerator extends GeneratorBase {
      *  private variables if such commands are specified in the target directive.
      */
     override generatePreamble() {
-        
-        switch(targetLoggingLevel) {
-            case DEBUG: 
-                pr('''
-                    #define LOG_LEVEL 2
-                ''')
-            case LOG:
-                pr('''
-                    #define LOG_LEVEL 1
-                ''')
-            // FIXME: what about the other cases?
-        }
+        pr(this.defineLogLevel)
         
         if (isFederated) {
             // FIXME: Instead of checking
@@ -4102,12 +4109,12 @@ class CGenerator extends GeneratorBase {
             pr('''
                 #define _LF_IS_FEDERATED
             ''')
-            if (targetCoordination.equals("centralized")) {
+            if (targetCoordination === CoordinationTypes.CENTRALIZED) {
                 // The coordination is centralized.
                 pr('''
                     #define _LF_COORD_CENTRALIZED
                 ''')                
-            } else if (targetCoordination.equals("decentralized")) {                        
+            } else if (targetCoordination  === CoordinationTypes.DECENTRALIZED) {
                 // The coordination is decentralized
                 pr('''
                     #define _LF_COORD_DECENTRALIZED
@@ -4977,7 +4984,8 @@ class CGenerator extends GeneratorBase {
     public static var UNDEFINED_MIN_SPACING = -1
     
     protected def isFederatedAndDecentralized() {
-        if (isFederated && targetCoordination.equals("decentralized")) {
+        if (isFederated &&
+            targetCoordination === CoordinationTypes.DECENTRALIZED) {
             return true
         }
         return false
