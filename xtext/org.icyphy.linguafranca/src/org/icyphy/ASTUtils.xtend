@@ -815,10 +815,16 @@ class ASTUtils {
         buffer.toString
     }
     
+    /**
+     * Return a textual representation of the given element, 
+     * without quotes if there are any.
+     * 
+     * @param e The element to be rendered as a string.
+     */
     def static String toText(Element e) {
         var str = ""
         if (e.literal !== null) {
-            str = e.literal
+            str = e.literal.withoutQuotes
         }
         if (e.id !== null) {
             str = e.id
@@ -826,21 +832,44 @@ class ASTUtils {
         return '''«str»'''
     }
     
+    /**
+     * Return an integer representation of the given element.
+     * 
+     * Internally, this method uses Integer.decode, so it will
+     * also understand hexadecimal, binary, etc.
+     * 
+     * @param e The element to be rendered as an integer.
+     */
     def static toInteger(Element e) {
         return Integer.decode(e.literal)
     }
     
+    /**
+     * Return an time value based on the given element.
+     * 
+     * @param e The element to be rendered as a time value.
+     */
     def static toTimeValue(Element e) {
         return new TimeValue(e.time, e.unit)
     }
     
+    /**
+     * Return a boolean based on the given element.
+     * 
+     * @param e The element to be rendered as a boolean.
+     */
     def static toBoolean(Element e) {
         return e.toText.equalsIgnoreCase('true')
     }
     
+    /**
+     * Return the first enum from the given options that matches the given element.
+     * 
+     * The element is matched against the given options without considering case.
+     * @param e The element to be rendered as a boolean.
+     */
     def static <T extends Enum<?>> toEnum(Element e, Iterable<T> options) {
         return options.filter[it.name.equalsIgnoreCase(e.toText)].head
-        //return Arrays.stream(options).filter(it -> e.name().equalsIgnoreCase(dayName)).findAny().orElse(null)
     }
     
     /**
