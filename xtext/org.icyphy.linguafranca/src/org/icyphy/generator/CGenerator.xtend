@@ -4176,7 +4176,7 @@ class CGenerator extends GeneratorBase {
                 runCommand.add("X")
             }
             runCommand.add("-o")
-            runCommand.add(timeInTargetLanguage(targetTimeout))
+            runCommand.add(targetTimeout.toString)
         }
         
     }
