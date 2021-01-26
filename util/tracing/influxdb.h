@@ -52,6 +52,7 @@ typedef struct _influx_v2_client_t
     int   port;
     char* org;  
     char* bucket;
+    char* precision;
     char* usr; // http only [optional for auth]
     char* pwd; // http only [optional for auth]
     char* token; // http only
@@ -254,42 +255,52 @@ int post_curl(influx_v2_client_t* c, ...)
 {
     va_list ap;
     char *data = NULL;
-    int ret_code = 0, len = 0;
+    int len = 0;
     va_start(ap, c);
     len = _format_line((char**)&data, ap);
     va_end(ap);
 
-    printf("%s", data);
-    //if(len < 0)
-    //    return -1;
-
     CURL *curl;
-    CURLcode res;
- 
+
     /* In windows, this will init the winsock stuff */ 
     curl_global_init(CURL_GLOBAL_ALL);
- 
+    CURLcode res;
+
     /* get a curl handle */ 
     curl = curl_easy_init();
-    if(curl) {
-    curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:8088/api/v2/write?org=icyphy&bucket=tracing&precision=ns");
-    
+    if(!curl) {
+        return CURLE_FAILED_INIT;
+    }
+
+    char* url_string = (char*)malloc(len);
+    snprintf(url_string, len, 
+            "http://%s:%d/api/v2/write?org=%s&bucket=%s&precision=%s",
+            c->host ? c->host: "localhost", c->port ? c->port : 8086, c->org, c->bucket, c->precision ? c->precision : "ns");
+
+    curl_easy_setopt(curl, CURLOPT_URL, url_string);   
+    free(url_string);
+            
+    char* token_string = (char*)malloc(120*sizeof(char));
+    sprintf(token_string, "Authorization: Token %s", c->token);
+
     struct curl_slist *list = NULL;
-    list = curl_slist_append(list, "Authorization: Token ra0gassNhZoC0V1ABxVHT6-34thskx5HFgMEivd2WFfHuNXyspaYj9SB992YFKTCtne0_pb80OSKundUa7KLGQ==");
+    list = curl_slist_append(list, token_string);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+    free(token_string);
     
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+
     /* Perform the request, res will get the return code */ 
     res = curl_easy_perform(curl);
     /* Check for errors */ 
-    if(res != CURLE_OK)
-      fprintf(stderr, "curl_easy_perform() failed: %s\n",
-              curl_easy_strerror(res));
-
-    //ALternative way to get ret code
-    //long response_code;    
-    //curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    if(res != CURLE_OK){
+        fprintf(stderr, "curl_easy_perform() failed: %s\n",
+                curl_easy_strerror(res));   
     }
+        
+    free(data);
+    curl_easy_cleanup(curl);
     curl_global_cleanup();
     return res;
 }
