@@ -21,96 +21,119 @@
 package org.icyphy
 
 import java.util.List
-import org.icyphy.TargetSupport.CoordinationTypes
+import org.icyphy.TargetSupport.BuildType
+import org.icyphy.TargetSupport.ClockSyncMode
+import org.icyphy.TargetSupport.CoordinationType
 import org.icyphy.TargetSupport.LogLevel
-import org.icyphy.TargetSupport.BuildTypes
 
 /** 
+ * A class for keeping the current target configuration.
+ * 
+ * Class members of type String are initialized as empty strings, 
+ * unless otherwise stated.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class TargetConfig {
 
     /**
-     * The build-type target parameter. The default is 'Release'.
+     * The custom build command, which replaces the default build process of
+     * directly invoking a designated compiler. A common usage of this target
+     * property is to set the command to build on the basis of a Makefile.
      */
-    public BuildTypes buildType = BuildTypes.Release
+    public List<String> buildCommands = newLinkedList
 
     /**
-     * The cmake-include target parameter. The default is null.
+     * The mode of clock synchronization to be used in federated programs.
+     * The default is 'initial'.
      */
-    public String cmakeInclude
+    public ClockSyncMode clockSync = ClockSyncMode.INITIAL
 
     /**
-     * The compiler target parameter. The default is null.
+     * Parameter passed to cmake. The default is 'Release'.
      */
-    public String compiler
+    public BuildType cmakeBuildType = BuildType.Release
 
     /**
-     * The compiler flags target parameter, or null if there is none.
+     * An optional additional .cmake file to include.
      */
-    public String compilerFlags
+    public String cmakeInclude = ""
 
     /**
-     * The linker flags target parameter, or null if there is none.
+     * The compiler to invoke, unless a build command has been specified.
      */
-    public String linkerFlags
+    public String compiler = ""
 
     /**
-     * The compiler target no-compile parameter, or false if there is none.
+     * Flags to pass to the compiler, unless a build command has been specified.
      */
-    public boolean targetNoCompile = false
+    public String compilerFlags = ""
 
     /**
-     * The compiler target no-runtime-validation parameter, or false if there is none.
+     * The type of coordination used during the execution of a federated program.
+     * The default is 'centralized'.
      */
-    public boolean targetNoRuntimeValidation = false
+    public CoordinationType coordination = CoordinationType.CENTRALIZED
 
     /**
-     * The fast target parameter, or false if there is none.
+     * If true, configure the execution environment such that it does not
+     * wait for physical time to match logical time. The default is false.
      */
-    public boolean targetFast = false
-
-    /**
-     * The coordination target parameter. Default is
-     * centralized.
-     */
-    public CoordinationTypes targetCoordination = CoordinationTypes.CENTRALIZED
+    public boolean fastMode = false
 
     /**
      * List of files to be copied to src-gen.
      */
-    public List<String> targetFiles = newLinkedList;
+    public List<String> fileNames = newLinkedList;
 
     /**
      * List of file names from the files target property with no path info.
      * Useful for copying them to remote machines. This is needed because
      * target files can be resources with resource paths.
      */
-    public List<String> targetFilesNamesWithoutPath = newLinkedList;
+    public List<String> filesNamesWithoutPath = newLinkedList;
 
     /**
-     * The value of the keepalive target parameter, or false if there is none.
+     * If true, configure the execution environment to keep executing if there
+     * are no more events on the event queue. The default is false.
      */
-    public boolean targetKeepalive
+    public boolean keepalive = false
 
     /**
-     * The level of logging or null if not given. The default is INFO.
+     * The level of logging during execution. The default is INFO.
      */
-    public LogLevel targetLoggingLevel = LogLevel.INFO
+    public LogLevel logLevel = LogLevel.INFO
 
     /**
-     * The threads target parameter, or the default 0 if there is none.
+     * Flags to pass to the linker, unless a build command has been specified.
      */
-    public int targetThreads = 0
+    public String linkerFlags = ""
 
     /**
-     * The timeout parameter, or null if there is none.
+     * If true, do not invoke the target compiler or build command.
+     * The default is false.
      */
-    public TimeValue targetTimeout
+    public boolean noCompile = false
 
     /**
-     * The tracing target parameter, or false if there is none.
+     * If true, do not perform runtime validation. The default is false.
      */
-    public boolean targetTracing = false
+    public boolean noRuntimeValidation = false
+
+    /**
+     * The number of worker threads to deploy. The default is zero (i.e.,
+     * all work is done in the main thread).
+     */
+    public int threads = 0
+
+    /**
+     * The timeout to be observed during execution of the program.
+     */
+    public TimeValue timeout
+
+    /**
+     * If true, configure the runtime environment to perform tracing.
+     * The default is false.
+     */
+    public boolean tracing = false
 
 }

@@ -78,10 +78,10 @@ import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.TargetSupport.TargetProperties
-import org.icyphy.TargetSupport.CoordinationTypes
+import org.icyphy.TargetSupport.CoordinationType
 import org.icyphy.TargetSupport
 import org.icyphy.TargetSupport.LogLevel
-import org.icyphy.TargetSupport.BuildTypes
+import org.icyphy.TargetSupport.BuildType
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -633,7 +633,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             // Perform property-specific checks.
             switch prop {
                 case BUILD_TYPE:
-                    param.checkIfOneOf(Arrays.asList(BuildTypes.values()))
+                    param.checkIfOneOf(Arrays.asList(BuildType.values()))
                 case CLOCK_SYNC:
                     if (!param.value.id.equalsIgnoreCase('off') 
                             && !param.value.id.equalsIgnoreCase('initial') 
@@ -720,7 +720,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 case COMPILER:
                     checkIfString(param)
                 case COORDINATION:
-                    param.checkIfOneOf(Arrays.asList(CoordinationTypes.values())) 
+                    param.checkIfOneOf(Arrays.asList(CoordinationType.values())) 
                 case FLAGS:
                     param.checkIfString
                 case FAST:

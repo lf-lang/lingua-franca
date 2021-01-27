@@ -55,6 +55,13 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.InferredType
+import org.icyphy.TargetConfig
+import org.icyphy.TargetSupport
+import org.icyphy.TargetSupport.BuildType
+import org.icyphy.TargetSupport.ClockSyncMode
+import org.icyphy.TargetSupport.CoordinationType
+import org.icyphy.TargetSupport.LogLevel
+import org.icyphy.TargetSupport.TargetProperties
 import org.icyphy.TimeValue
 import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
@@ -81,13 +88,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TargetSupport.TargetProperties
-import org.icyphy.TargetSupport.ClockSyncModes
-import org.icyphy.TargetSupport.CoordinationTypes
-import org.icyphy.TargetSupport
-import org.icyphy.TargetSupport.LogLevel
-import org.icyphy.TargetConfig
-import org.icyphy.TargetSupport.BuildTypes
 
 /**
  * Generator base class for shared code between code generators.
@@ -326,11 +326,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected String targetBankIndexType = "int"
 
-     /**
-      * The clock sync target parameter for federated programs.
-      */
-     protected ClockSyncModes targetClockSync = ClockSyncModes.INITIAL
-     
     /**
      * The custom build command, which replaces the default build process of
      * invoking GCC. A common usage of this target property is to set the command
@@ -369,8 +364,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
           directory + File.separator + "bin"
     }
     
-    def CoordinationTypes getTargetCoordination() {
-        return config.targetCoordination
+    def CoordinationType getTargetCoordination() {
+        return config.coordination
     }
     
     /**
@@ -420,7 +415,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // If there are any physical actions, ensure the threaded engine is used.
         for (action : resource.allContents.toIterable.filter(Action)) {
             if (action.origin == ActionOrigin.PHYSICAL) {
-                config.targetThreads = 1
+                config.threads = 1
             }
         }
         
@@ -439,9 +434,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         }
                     }
                     case BUILD_TYPE:
-                        config.buildType = BuildTypes.create(param.value.toText)
+                        config.cmakeBuildType = BuildType.create(param.value.toText)
                     case CLOCK_SYNC:
-                        targetClockSync = ClockSyncModes.create(param.value.toText)
+                        config.clockSync = ClockSyncMode.create(param.value.toText)
                     case CLOCK_SYNC_OPTIONS:
                         for (entry: param.value.keyvalue.pairs) {
                             targetClockSyncOptions.put(entry.name, entry.value)
@@ -451,29 +446,29 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case COMPILER:
                         config.compiler = param.value.toText
                     case FAST:
-                        config.targetFast = param.value.toBoolean
+                        config.fastMode = param.value.toBoolean
                     case COORDINATION:
-                        config.targetCoordination = CoordinationTypes.create(param.value.toText)
+                        config.coordination = CoordinationType.create(param.value.toText)
                     case FILES:
-                        config.targetFiles.addAll(this.collectFiles(param.value))
+                        config.fileNames.addAll(this.collectFiles(param.value))
                     case PROTOBUFS: 
                         this.protoFiles.addAll(this.collectFiles(param.value))
                     case FLAGS:
                         config.compilerFlags = param.value.toText
                     case NO_COMPILE:
-                        config.targetNoCompile = param.value.toBoolean
+                        config.noCompile = param.value.toBoolean
                     case NO_RUNTIME_VALIDATION:
-                        config.targetNoRuntimeValidation = param.value.toBoolean
+                        config.noRuntimeValidation = param.value.toBoolean
                     case KEEPALIVE:
-                        config.targetKeepalive = param.value.toBoolean
+                        config.keepalive = param.value.toBoolean
                     case LOGGING:
-                        config.targetLoggingLevel = LogLevel.create(param.value.toText)
+                        config.logLevel = LogLevel.create(param.value.toText)
                     case THREADS:
-                        config.targetThreads = param.value.toInteger
+                        config.threads = param.value.toInteger
                     case TIMEOUT:
-                        config.targetTimeout = param.value.toTimeValue
+                        config.timeout = param.value.toTimeValue
                     case TRACING:
-                        config.targetTracing = param.value.toBoolean
+                        config.tracing = param.value.toBoolean
                 }
             }
         }
@@ -481,7 +476,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Override target properties if specified as command line arguments.
         if (context instanceof StandaloneContext) {
             if (context.args.containsKey("no-compile")) {
-                config.targetNoCompile = true
+                config.noCompile = true
             }
             if (context.args.containsKey("target-compiler")) {
                 config.compiler = context.args.getProperty("target-compiler")
@@ -593,7 +588,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val srcGenDir = new File(targetDirectory + File.separator)
         srcGenDir.mkdirs
         
-        for (filename : config.targetFiles) {
+        for (filename : config.fileNames) {
             val file = filename.findFile
             if (file !== null) {
                 val target = new File(targetDirectory + File.separator + file.name)
@@ -601,7 +596,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     target.delete
                 }
                 Files.copy(file.toPath, target.toPath)
-                config.targetFilesNamesWithoutPath.add(file.name);
+                config.filesNamesWithoutPath.add(file.name);
             } else {
                 // Try to copy the file as a resource.
                 // If this is missing, it should have been previously reported as an error.
@@ -612,7 +607,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         filenameWithoutPath = filename.substring(lastSeparator + 1)
                     }
                     copyFileFromClassPath(filename, targetDirectory + File.separator + filenameWithoutPath)
-                    config.targetFilesNamesWithoutPath.add(filenameWithoutPath);
+                    config.filesNamesWithoutPath.add(filenameWithoutPath);
                 } catch (IOException ex) {
                     // Ignore. Previously reported as a warning.
                     System.err.println('''WARNING: Failed to find file «filename».''')
@@ -767,7 +762,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         pr(rtiCode, '''
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
-                «IF config.targetFast»
+                «IF config.fastMode»
                     federates[i].mode = FAST;
                 «ENDIF»
             }
@@ -957,7 +952,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         // If threaded computation is requested, add a -pthread option.
-        if (config.targetThreads !== 0 || config.targetTracing) {
+        if (config.threads !== 0 || config.tracing) {
             compileArgs.add("-pthread")
         }
         // Finally add the compiler flags in target parameters (if any)
@@ -2116,7 +2111,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // otherwise a federate could exit simply because it hasn't received
             // any messages.
             if (federates.size > 1) {
-                config.targetKeepalive = true
+                config.keepalive = true
             }
             
             // Analyze the connection topology of federates.
