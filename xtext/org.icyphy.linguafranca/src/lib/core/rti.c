@@ -1173,7 +1173,7 @@ void connect_to_federates(int socket_descriptor) {
         uint32_t client_length = sizeof(client_fd);
         int socket_id = accept(socket_descriptor_TCP, &client_fd, &client_length);
         if (socket_id < 0) {
-            error_print_and_exit("RTI failed to accept the socket.");
+            error_print_and_exit("RTI failed to accept the socket. %s.", strerror(errno));
         }
 
         // The first message from the federate should contain its ID and the federation ID.

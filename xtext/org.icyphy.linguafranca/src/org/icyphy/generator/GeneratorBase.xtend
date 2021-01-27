@@ -2043,7 +2043,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             federateByID.put(0, federateInstance)
         } else {
             // The Lingua Franca program is federated
-            isFederated = true            
+            isFederated = true
             if (mainDefn.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
