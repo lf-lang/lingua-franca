@@ -31,6 +31,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * All functions return 0 on success.
  */
 
+#include "lf_POSIX_threads_support.h"
+
 /**
  * Create a new thread, starting with execution of lf_thread
  * getting passed arguments. The new handle is stored in thread.

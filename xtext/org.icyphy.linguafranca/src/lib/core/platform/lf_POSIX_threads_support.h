@@ -1,4 +1,4 @@
-/* MacOS API support for the C target of Lingua Franca. */
+/* POSIX API support for the C target of Lingua Franca. */
 
 /*************
 Copyright (c) 2021, The University of California at Berkeley.
@@ -24,21 +24,21 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-/** Linux API support for the C target of Lingua Franca.
+/** POSIX API support for the C target of Lingua Franca.
  *  
  *  @author{Soroush Bateni <soroush@utdallas.edu>}
+ * 
+ * All functions return 0 on success.
  */
+#ifndef LF_POSIX_threads_SUPPORT_H
+#define LF_POSIX_threads_SUPPORT_H
 
-#ifndef LF_LINUX_SUPPORT_H
-#define LF_LINUX_SUPPORT_H
+#include <pthread.h>
 
-#if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
-#include "lf_POSIX_threads_support.h"
-#else
-#include "lf_C11_threads_support.h"
-#endif
+typedef pthread_mutex_t __lf_mutex_t;
+typedef pthread_cond_t __lf_cond_t;
+typedef pthread_t __lf_thread_t;
 
-typedef struct timespec __lf_time_spec_t;
-typedef int __lf_clock_t;
+#define __LF_TIMEOUT ETIMEDOUT
 
-#endif // LF_LINUX_SUPPORT_H
+#endif // LF_POSIX_threads_SUPPORT_H
