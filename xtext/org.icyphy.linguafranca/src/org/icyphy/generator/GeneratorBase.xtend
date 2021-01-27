@@ -353,10 +353,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
           directory + File.separator + "bin"
     }
     
-    def CoordinationType getTargetCoordination() {
-        return config.coordination
-    }
-    
     /**
      * Store the given reactor in the collection of generated delay classes
      * and insert it in the AST under the top-level reactors node.
@@ -2131,7 +2127,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     // Connection spans federates.
                     // First, update the dependencies in the FederateInstances.
                     // Exclude physical connections because these do not create real dependencies.
-                    if (leftFederate !== rightFederate && !connection.physical && (targetCoordination !== CoordinationType.DECENTRALIZED)) {
+                    if (leftFederate !== rightFederate &&
+                        !connection.physical &&
+                        (config.coordination !=
+                            CoordinationType.DECENTRALIZED)) {
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
                             dependsOn = new LinkedHashSet<Delay>()
