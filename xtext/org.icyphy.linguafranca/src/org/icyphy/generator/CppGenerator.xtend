@@ -91,6 +91,14 @@ class CppGenerator extends GeneratorBase {
         TimeUnit.WEEKS -> 'd*7'
     }
 
+    static public var logLevelsToInts = #{
+        LogLevel.ERROR -> 1,
+        LogLevel.WARN -> 2,
+        LogLevel.INFO -> 3,
+        LogLevel.LOG -> 3,
+        LogLevel.DEBUG -> 4
+    }
+
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
 
@@ -938,7 +946,7 @@ class CppGenerator extends GeneratorBase {
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
             -DREACTOR_CPP_VALIDATE=«IF config.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
             -DREACTOR_CPP_TRACE=«IF config.tracing»ON«ELSE»OFF«ENDIF»
-            «IF config.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«config.logLevel.ordinal»«ELSE»«LogLevel.INFO.ordinal»«ENDIF»
+            «IF config.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(config.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
         )
         
         set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
