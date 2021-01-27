@@ -129,15 +129,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var code = new StringBuilder
     
-    
+    /**
+     * The current target configuration.
+     */
     protected var config = new TargetConfig()
     
-    /** Additional sources to add to the compile command if appropriate. */
-    protected var List<String> compileAdditionalSources = newArrayList
-    
-    /** Additional libraries to add to the compile command using the "-l" command-line option. */
-    protected var List<String> compileLibraries = newArrayList
-
     /**
      * Collection of generated delay classes.
      */
@@ -942,8 +938,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         var compileArgs = newArrayList
         compileArgs.add(relativeSrcFilename)
-        compileArgs.addAll(compileAdditionalSources)
-        compileArgs.addAll(compileLibraries)
+        compileArgs.addAll(config.compileAdditionalSources)
+        compileArgs.addAll(config.compileLibraries)
         
         // Only set the output file name if it hasn't already been set
         // using a target property or Args line flag.

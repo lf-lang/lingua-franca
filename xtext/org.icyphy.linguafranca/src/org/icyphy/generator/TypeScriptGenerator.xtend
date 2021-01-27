@@ -273,11 +273,11 @@ class TypeScriptGenerator extends GeneratorBase {
             val returnCode = protoc.executeCommand()
             if (returnCode == 0) {
                 val nameSansProto = filename.substring(0, filename.length - 6)
-                compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
+                config.compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
                     ".pb-c.c")
 
-                compileLibraries.add('-l')
-                compileLibraries.add('protobuf-c')
+                config.compileLibraries.add('-l')
+                config.compileLibraries.add('protobuf-c')
             } else {
                 reportError("protoc returns error code " + returnCode)    
             }

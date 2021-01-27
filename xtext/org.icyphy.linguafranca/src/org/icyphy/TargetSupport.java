@@ -361,7 +361,6 @@ public enum TargetSupport {
          * Directive to specify the target build type such as 'Release' or 'Debug'.
          */
         BUILD_TYPE("build-type", Arrays.asList(TargetSupport.CPP)),
-
         
         /**
          * Directive to let the federate execution handle clock synchronization in software.

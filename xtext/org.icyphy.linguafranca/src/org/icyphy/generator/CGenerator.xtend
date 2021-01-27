@@ -2873,11 +2873,11 @@ class CGenerator extends GeneratorBase {
         val returnCode = protoc.executeCommand()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
-            compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
+            config.compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
                 ".pb-c.c")
 
-            compileLibraries.add('-l')
-            compileLibraries.add('protobuf-c')    
+            config.compileLibraries.add('-l')
+            config.compileLibraries.add('protobuf-c')    
         } else {
             reportError("protoc-c returns error code " + returnCode)
         }
@@ -2890,15 +2890,15 @@ class CGenerator extends GeneratorBase {
         // FIXME: if we align the levels with the ordinals of the
         // enum (see CppGenerator), then we don't need this function.
         switch(generator.config.logLevel) {
-            case ERROR: '''
-                #define LOG_LEVEL 0
-            '''
-            case WARN: '''
-                #define LOG_LEVEL 1
-            '''
+            case ERROR: '''''' // #define LOG_LEVEL 0
+            case WARN: '''''' // #define LOG_LEVEL 1
             case INFO: '''''' // #define LOG_LEVEL 2
-            case LOG: '''''' // #define LOG_LEVEL 3
-            case DEBUG: '''''' // #define LOG_LEVEL 4
+            case LOG: '''
+                #define LOG_LEVEL 1
+            ''' // #define LOG_LEVEL 3
+            case DEBUG: '''
+                #define LOG_LEVEL 2
+            ''' // #define LOG_LEVEL 4
         }
     }
     

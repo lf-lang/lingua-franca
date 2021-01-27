@@ -786,4 +786,15 @@ class LinguaFrancaValidationTest {
                 "Invalid host name or fully qualified domain name.")
         ]
     }
+    
+    @Test
+    def void checkTargetProperties() {
+        parseWithoutError('''
+                target C {coordination: centralized};
+                reactor Y {}
+                main reactor X {
+                    y = new Y() 
+                }
+            ''').assertNoIssues()
+    }
  }
