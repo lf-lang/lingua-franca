@@ -377,7 +377,8 @@ class ASTUtils {
         Connection connection, 
         FederateInstance leftFederate,
         FederateInstance rightFederate,
-        GeneratorBase generator
+        GeneratorBase generator,
+        CoordinationType coordination
     ) {
         val factory = LinguaFrancaFactory.eINSTANCE
         // Assume all the types are the same, so just use the first on the right.
@@ -419,7 +420,7 @@ class ASTUtils {
             // If the connection is logical but coordination
             // is decentralized, we would need
             // to make P2P connections
-            if (generator.targetCoordination === CoordinationType.DECENTRALIZED) {
+            if (coordination === CoordinationType.DECENTRALIZED) {
                 leftFederate.outboundP2PConnections.add(rightFederate)
                 rightFederate.inboundP2PConnections.add(leftFederate)                
             }            

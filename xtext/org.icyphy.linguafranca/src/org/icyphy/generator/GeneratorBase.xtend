@@ -2129,7 +2129,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     // Exclude physical connections because these do not create real dependencies.
                     if (leftFederate !== rightFederate &&
                         !connection.physical &&
-                        (config.coordination !=
+                        (config.coordination !==
                             CoordinationType.DECENTRALIZED)) {
                         var dependsOn = rightFederate.dependsOn.get(leftFederate)
                         if (dependsOn === null) {
@@ -2167,7 +2167,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     // (which inherits the delay) and two reactions.
                     // The action will be physical if the connection physical and
                     // otherwise will be logical.
-                    connection.makeCommunication(leftFederate, rightFederate, this)
+                    connection.makeCommunication(leftFederate, rightFederate, this, config.coordination)
 
                     // To avoid concurrent modification exception, collect a list
                     // of connections to remove.
