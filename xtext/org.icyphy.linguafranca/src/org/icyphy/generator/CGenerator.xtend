@@ -382,19 +382,25 @@ class CGenerator extends GeneratorBase {
         // Check the operating system
         val OS = System.getProperty("os.name").toLowerCase();
         // FIXME: allow for cross-compiling
+        // Based on the detected operating system, copy the required files
+        // to enable platform-specific functionality. See lib/core/platform.h
+        // for more detail.
         if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
             // Mac support
             coreFiles.add("platform/lf_POSIX_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.c")
             coreFiles.add("platform/lf_macos_support.c")
+            compileAdditionalSources.add("src-gen" + File.separator + "core/platform/lf_macos_support.c")
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
             coreFiles.add("platform/lf_windows_support.c")
+            compileAdditionalSources.add("src-gen" + File.separator + "core/platform/lf_windows_support.c")
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
             coreFiles.add("platform/lf_POSIX_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.c")
             coreFiles.add("platform/lf_linux_support.c")
+            compileAdditionalSources.add("src-gen" + File.separator + "core/platform/lf_linux_support.c")
         } else {
             reportError("Platform " + OS + " is not supported")
         }
@@ -4207,6 +4213,7 @@ class CGenerator extends GeneratorBase {
         if (config.tracing) {
             pr('#define LINGUA_FRANCA_TRACE')
         }
+        
         pr('#include "ctarget.h"')
         if (config.tracing) {
             pr('#include "core/trace.c"')            

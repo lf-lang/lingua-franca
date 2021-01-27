@@ -29,14 +29,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 
-#ifndef LF_LINUX_SUPPORT
-#define LF_LINUX_SUPPORT
-
+#include "../platform.h"
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
 #include "lf_POSIX_threads_support.c"
 #else
 #include "lf_C11_threads_support.c"
 #endif
+
+typedef struct timespec __lf_time_spec_t;
+typedef clockid_t __lf_clock_t;
 
 /**
  * Fetch the value of clk_id and store it in tp.
@@ -51,5 +52,3 @@ int lf_clock_gettime(__lf_clock_t clk_id, __lf_time_spec_t* tp) {
 int lf_nanosleep(__lf_clock_t clk_id, const __lf_time_spec_t* requested_time, __lf_time_spec_t* remaining) {
     return clock_nanosleep(clk_id, 0, (const struct timespec*)requested_time, (struct timespec*)remaining);
 }
-
-#endif // LF_LINUX_SUPPORT

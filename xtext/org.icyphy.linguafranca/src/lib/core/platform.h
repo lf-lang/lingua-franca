@@ -33,7 +33,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PLATFORM_H
 
 // #define __LF_TIMEOUT // To be defined later
-// #define LF_TIMEOUT __LF_TIMEOUT
+#define LF_TIMEOUT __LF_TIMEOUT
 
 // typedef __lf_mutex_t;     // Type to hold handle to a mutex
 // typedef __lf_cond_t;      // Type to hold handle to a condition variable
@@ -41,12 +41,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // typedef __lf_time_spec_t; // Type to hold time in a traditional {second, nanosecond} POSIX format
 // typedef __lf_clock_t;     // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
 
-
-typedef __lf_mutex_t lf_mutex_t;          // Type to hold handle to a mutex
-typedef __lf_cond_t lf_cond_t;            // Type to hold handle to a condition variable
-typedef __lf_thread_t lf_thread_t;        // Type to hold handle to a thread
-typedef __lf_time_spec_t lf_time_spec_t;  // Type to hold time in a traditional {second, nanosecond} POSIX format
-typedef __lf_clock_t lf_clock_t;          // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
+typedef void* lf_mutex_t;          // Type to hold handle to a mutex
+typedef void* lf_cond_t;            // Type to hold handle to a condition variable
+typedef void* lf_thread_t;        // Type to hold handle to a thread
+typedef void* lf_time_spec_t;  // Type to hold time in a traditional {second, nanosecond} POSIX format
+typedef void* lf_clock_t;          // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
 
 /**
  * Create a new thread, starting with execution of lf_thread
@@ -105,7 +104,7 @@ extern int lf_cond_wait(lf_cond_t* cond, lf_mutex_t* mutex);
  * 
  * @return 0 on success and LF_TIMEOUT on timeout.
  */
-extern int lf_cond_timedwait(lf_cond_t* cond, lf_mutex_t* mutex, instant_t absolute_time_ns);
+extern int lf_cond_timedwait(lf_cond_t* cond, lf_mutex_t* mutex, long long absolute_time_ns);
 
 /**
  * Fetch the value of clk_id and store it in tp.
