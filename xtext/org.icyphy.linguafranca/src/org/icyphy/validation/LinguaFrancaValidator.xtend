@@ -40,11 +40,6 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
-import org.icyphy.Targets
-import org.icyphy.Targets.BuildTypes
-import org.icyphy.Targets.CoordinationTypes
-import org.icyphy.Targets.LoggingLevels
-import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -82,6 +77,11 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.TargetSupport.TargetProperties
+import org.icyphy.TargetSupport.CoordinationTypes
+import org.icyphy.TargetSupport
+import org.icyphy.TargetSupport.LogLevel
+import org.icyphy.TargetSupport.BuildTypes
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -96,7 +96,7 @@ import static extension org.icyphy.ASTUtils.*
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
-    var Targets target;
+    var TargetSupport target;
 
     var info = new ModelInfo()
 
@@ -183,7 +183,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             error(RESERVED_MESSAGE + name, feature)
         }
 
-        if (this.target == Targets.TS) {
+        if (this.target == TargetSupport.TS) {
             // "actions" is a reserved word within a TS reaction
             if (name.equals("actions")) {
                 error(ACTIONS_MESSAGE + name, feature)
@@ -295,7 +295,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
-            if (this.target == Targets.C &&
+            if (this.target == TargetSupport.C &&
                 this.info.overflowingAssignments.contains(assignment)) {
                 error(
                     "Time value used to specify a deadline exceeds the maximum of " +
@@ -311,7 +311,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
-        if (this.target != Targets.C && this.target != Targets.CPP && this.target != Targets.Python) {
+        if (this.target != TargetSupport.C && this.target != TargetSupport.CPP && this.target != TargetSupport.Python) {
             error("Multiports and banks are currently only supported by the C and Cpp targets.",
                     Literals.WIDTH_SPEC__TERMS)
         } else {
@@ -321,7 +321,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                     }
                 } else {
-                    if (this.target != Targets.C && this.target != Targets.Python) {
+                    if (this.target != TargetSupport.C && this.target != TargetSupport.Python) {
                         error("Parameterized widths are currently only supported by the C target.", 
                                 Literals.WIDTH_SPEC__TERMS)
                     }
@@ -368,7 +368,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // For the C target, since C has such a weak type system, check that
         // the types on both sides of every connection match. For other languages,
         // we leave type compatibility that language's compiler or interpreter.
-        if (this.target == Targets.C) {
+        if (this.target == TargetSupport.C) {
             var type = null as Type
             for (port : connection.leftPorts) {
                 if (type === null) {
@@ -505,7 +505,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkDeadline(Deadline deadline) {
-        if (this.target == Targets.C &&
+        if (this.target == TargetSupport.C &&
             this.info.overflowingDeadlines.contains(deadline)) {
             error(
                 "Deadline exceeds the maximum of " +
@@ -547,7 +547,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         
         // mutable has no meaning in C++
-        if (input.mutable && this.target == Targets.CPP) {
+        if (input.mutable && this.target == TargetSupport.CPP) {
             warning(
                 "The mutable qualifier has no meaning for the C++ target and should be removed. " +
                 "In C++, any value can be made mutable by calling get_mutable_copy().",
@@ -595,7 +595,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (instantiation.widthSpec !== null 
                 && instantiation.widthSpec.ofVariableLength
         ) {
-            if (this.target == Targets.C) {
+            if (this.target == TargetSupport.C) {
                 warning("Variable-width banks are for internal use only.",
                     Literals.INSTANTIATION__WIDTH_SPEC
                 )
@@ -728,7 +728,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 case KEEPALIVE:
                     param.checkIfBoolean
                 case LOGGING:
-                    param.checkIfOneOf(Arrays.asList(LoggingLevels.values()))
+                    param.checkIfOneOf(Arrays.asList(LogLevel.values()))
                 case NO_COMPILE:
                     param.checkIfBoolean
                 case NO_RUNTIME_VALIDATION:
@@ -815,7 +815,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
 
-        if (this.target == Targets.C &&
+        if (this.target == TargetSupport.C &&
             this.info.overflowingParameters.contains(param)) {
             error(
                 "Time value used to specify a deadline exceeds the maximum of " +
@@ -826,7 +826,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkPreamble(Preamble preamble) {
-        if (this.target == Targets.CPP) {
+        if (this.target == TargetSupport.CPP) {
             if (preamble.visibility == Visibility.NONE) {
                 error(
                     "Preambles for the C++ target need a visibility qualifier (private or public)!",
@@ -982,7 +982,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         checkName(reactor.name, Literals.REACTOR_DECL__NAME)
         
         // C++ reactors may not be called 'preamble'
-        if (this.target == Targets.CPP && reactor.name.equalsIgnoreCase("preamble")) {
+        if (this.target == TargetSupport.CPP && reactor.name.equalsIgnoreCase("preamble")) {
             error(
                 "Reactor cannot be named '" + reactor.name + "'",
                 Literals.REACTOR_DECL__NAME
@@ -1157,7 +1157,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
 
-        if (this.target == Targets.C && stateVar.init.size > 1) {
+        if (this.target == TargetSupport.C && stateVar.init.size > 1) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
             if (stateVar.init.exists[it.parameter !== null]) {
@@ -1170,11 +1170,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkTarget(Target target) {
-        if (!Targets.isValidName(target.name)) {
+        if (!TargetSupport.isValidName(target.name)) {
             warning("Unrecognized target: " + target.name,
                 Literals.TARGET__NAME)
         } else {
-            this.target = Targets.get(target.name);
+            this.target = TargetSupport.get(target.name);
         }
     }
 
@@ -1283,7 +1283,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkType(Type type) {
         // FIXME: disallow the use of generics in C
-        if (this.target == Targets.CPP) {
+        if (this.target == TargetSupport.CPP) {
             if (type.stars.size > 0) {
                 warning(
                     "Raw pointers should be avoided in conjunction with LF. Ports " +
@@ -1295,7 +1295,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
         }
-        else if (this.target == Targets.Python) {
+        else if (this.target == TargetSupport.Python) {
             if (type !== null) {               
                 error(
                     "Types are not allowed in the Python target",
