@@ -1,7 +1,7 @@
 /* POSIX API support for the C target of Lingua Franca. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2021, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -30,14 +30,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * All functions return 0 on success.
  */
-
-#include <pthread.h>
-
-typedef pthread_mutex_t __lf_mutex_t;
-typedef pthread_cond_t __lf_cond_t;
-typedef pthread_t __lf_thread_t;
-
-#define __LF_TIMEOUT ETIMEDOUT
 
 /**
  * Create a new thread, starting with execution of lf_thread

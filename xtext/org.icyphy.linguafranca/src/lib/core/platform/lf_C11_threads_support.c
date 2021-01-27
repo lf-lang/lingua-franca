@@ -29,14 +29,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 
-#include <threads.h>
-
-typedef mtx_t __lf_mutex_t;
-typedef cnd_t __lf_cond_t;
-typedef thrd_t __lf_thread_t;
-
-#define __LF_TIMEOUT thrd_timedout
-
 /**
  * Create a new thread, starting with execution of lf_thread
  * getting passed arguments. The new handle is stored in thread.
