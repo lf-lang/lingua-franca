@@ -57,6 +57,8 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.ASTUtils
 import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 import com.google.inject.Inject
+import org.icyphy.Target
+import org.icyphy.Target.LogLevel
 
 /** Generator for C++ target.
  * 
@@ -69,9 +71,6 @@ class CppGenerator extends GeneratorBase {
     @Inject
     LinguaFrancaGlobalScopeProvider scopeProvider;
     
-
-    // Set of acceptable import targets includes only Cpp.
-    val acceptableTargetSet = newHashSet('Cpp')
 
     static public var timeUnitsToCppUnits = #{
         TimeUnit.NSEC -> 'ns',
@@ -93,11 +92,11 @@ class CppGenerator extends GeneratorBase {
     }
 
     static public var logLevelsToInts = #{
-        "ERROR" -> 1,
-        "WARN" -> 2,
-        "INFO" -> 3,
-        "LOG" -> 3,
-        "DEBUG" -> 4
+        LogLevel.ERROR -> 1,
+        LogLevel.WARN -> 2,
+        LogLevel.INFO -> 3,
+        LogLevel.LOG -> 3,
+        LogLevel.DEBUG -> 4
     }
 
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
@@ -159,7 +158,7 @@ class CppGenerator extends GeneratorBase {
                 r.generatePreambleHeader)
         }
 
-        if (!targetNoCompile && !errorsOccurred()) {
+        if (!config.noCompile && !errorsOccurred()) {
             doCompile(fsa)
         } else {
             println("Exiting before invoking target compiler.")
@@ -865,20 +864,20 @@ class CppGenerator extends GeneratorBase {
         int main(int argc, char **argv) {
           CLI::App app("«filename» Reactor Program");
           
-          unsigned threads = «IF targetThreads != 0»«Integer.toString(targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
+          unsigned threads = «IF config.threads != 0»«Integer.toString(config.threads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
         
-          reactor::Duration timeout = «IF targetTimeout > 0»«targetTimeout»«timeUnitsToCppUnits.get(targetTimeoutUnit)»«ELSE»reactor::Duration::zero()«ENDIF»;
+          reactor::Duration timeout = «IF config.timeout !== null»«config.timeout.time»«timeUnitsToCppUnits.get(config.timeout.unit)»«ELSE»reactor::Duration::zero()«ENDIF»;
           auto opt_timeout = app.add_option("-o,--timeout", timeout, "Time after which the execution is aborted.");
         
           opt_timeout->check([](const std::string& val){ return validate_time_string(val); });
           opt_timeout->type_name("'FLOAT UNIT'");
           opt_timeout->default_str(time_to_quoted_string(timeout));
         
-          bool fast{«targetFast»};
+          bool fast{«config.fastMode»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
         
-          bool keepalive{«targetKeepalive»};
+          bool keepalive{«config.keepalive»};
           app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
           «FOR p : mainReactor.parameters»
 
@@ -927,7 +926,7 @@ class CppGenerator extends GeneratorBase {
         include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
         include(GNUInstallDirs)
         
-        set(DEFAULT_BUILD_TYPE «IF targetBuildType === null»"Release"«ELSE»"«targetBuildType»"«ENDIF»)
+        set(DEFAULT_BUILD_TYPE «IF config.cmakeBuildType === null»"Release"«ELSE»"«config.cmakeBuildType»"«ENDIF»)
         if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
           set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
         endif()
@@ -945,9 +944,9 @@ class CppGenerator extends GeneratorBase {
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-            -DREACTOR_CPP_VALIDATE=«IF targetNoRuntimeValidation»OFF«ELSE»ON«ENDIF»
-            -DREACTOR_CPP_TRACE=«IF targetTracing»ON«ELSE»OFF«ENDIF»
-            «IF targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetLoggingLevel)»«ENDIF»
+            -DREACTOR_CPP_VALIDATE=«IF config.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
+            -DREACTOR_CPP_TRACE=«IF config.tracing»ON«ELSE»OFF«ENDIF»
+            «IF config.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(config.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
         )
         
         set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
@@ -993,8 +992,8 @@ class CppGenerator extends GeneratorBase {
         
         install(TARGETS «filename» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
         
-        «IF targetCmakeInclude !== null»
-            include("«directory»/«targetCmakeInclude»")
+        «IF !config.cmakeInclude.isNullOrEmpty»
+            include("«directory»/«config.cmakeInclude»")
         «ENDIF»
     '''
 
@@ -1020,7 +1019,7 @@ class CppGenerator extends GeneratorBase {
             "--target",
             "install",
             "--config",
-            '''«IF targetBuildType === null»"Release"«ELSE»"«targetBuildType»"«ENDIF»'''])
+            '''«IF config.cmakeBuildType === null»"Release"«ELSE»"«config.cmakeBuildType»"«ENDIF»'''])
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
             '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
@@ -1031,9 +1030,9 @@ class CppGenerator extends GeneratorBase {
 
         // prepare cmake
         cmakeBuilder.directory(buildDir)
-        if (targetCompiler !== null) {
+        if (config.compiler !== null) {
             val cmakeEnv = cmakeBuilder.environment();
-            cmakeEnv.put("CXX", targetCompiler);
+            cmakeEnv.put("CXX", config.compiler);
         }
         
         // run cmake
@@ -1058,15 +1057,6 @@ class CppGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////////
     // // Protected methods
-    /** Return a set of targets that are acceptable to this generator.
-     *  Imported files that are Lingua Franca files must specify targets
-     *  in this set or an error message will be reported and the import
-     *  will be ignored. The returned set is a set of case-insensitive
-     *  strings specifying target names.
-     */
-    override acceptableTargets() {
-        acceptableTargetSet
-    }
 
     /**
      * Generate code for the body of a reaction that takes an input and
@@ -1149,5 +1139,9 @@ class CppGenerator extends GeneratorBase {
     
     override String generateDelayGeneric()
         '''T'''
+        
+    override getTarget() {
+        return Target.CPP
+    }
     
 }

@@ -31,7 +31,6 @@ import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.eclipse.xtext.testing.validation.ValidationTestHelper
-import org.icyphy.Targets
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
@@ -40,6 +39,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
+import org.icyphy.Target
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -538,7 +538,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void testPreambleVisibility() {
-        for (target : Targets.values) {
+        for (target : Target.values) {
             for (visibility : Visibility.values) {
                 val model_reactor_scope = parseWithoutError('''
                     target «target.name»;
@@ -562,7 +562,7 @@ class LinguaFrancaValidationTest {
                 
                 model_no_preamble.assertNoIssues
                 
-                if (target == Targets.CPP) {
+                if (target == Target.CPP) {
                     if (visibility == Visibility.NONE) {
                         model_file_scope.assertError(LinguaFrancaPackage::eINSTANCE.preamble, null,
                             "Preambles for the C++ target need a visibility qualifier (private or public)!")
@@ -785,5 +785,16 @@ class LinguaFrancaValidationTest {
             ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
                 "Invalid host name or fully qualified domain name.")
         ]
+    }
+    
+    @Test
+    def void checkTargetProperties() {
+        parseWithoutError('''
+                target C {coordination: centralized};
+                reactor Y {}
+                main reactor X {
+                    y = new Y() 
+                }
+            ''').assertNoIssues()
     }
  }
