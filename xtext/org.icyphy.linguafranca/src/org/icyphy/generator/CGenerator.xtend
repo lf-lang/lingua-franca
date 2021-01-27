@@ -368,13 +368,8 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-<<<<<<< HEAD
-        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
-        if (config.threads === 0) {
-=======
         var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c", "platform.h")
-        if (targetThreads === 0) {
->>>>>>> Initial abstractions for thread functions.
+        if (config.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
@@ -393,14 +388,14 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_macos_support.c")            
             coreFiles.add("platform/lf_macos_support.h")
-            compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_macos_support.c")
+            config.compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_macos_support.c")
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
             coreFiles.add("platform/lf_C11_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_windows_support.c")
             coreFiles.add("platform/lf_windows_support.h")
-            compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_windows_support.c")
+            config.compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_windows_support.c")
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
             coreFiles.add("platform/lf_POSIX_threads_support.c")
@@ -409,7 +404,7 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_linux_support.c")
             coreFiles.add("platform/lf_linux_support.h")
-            compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_linux_support.c")
+            config.compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_linux_support.c")
         } else {
             reportError("Platform " + OS + " is not supported")
         }
@@ -4146,16 +4141,22 @@ class CGenerator extends GeneratorBase {
                 ''')
             }
         }
-        
-        includeTargetLanguageHeaders()
-
-        pr('#define NUMBER_OF_FEDERATES ' + federates.length);
                         
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
         if (config.threads === 0 && federates.length > 1) {
             config.threads = 1
         }
+        
+        if (config.threads > 0) {
+            // Add NUMBER_OF_WORKERS as a compile-time definition to enable proper functionality
+            // for platform.h
+            config.compilerFlags += '''-DNUMBER_OF_WORKERS=«config.threads»'''
+        }
+        
+        includeTargetLanguageHeaders()
+
+        pr('#define NUMBER_OF_FEDERATES ' + federates.length);
 
         includeTargetLanguageSourceFiles()
         

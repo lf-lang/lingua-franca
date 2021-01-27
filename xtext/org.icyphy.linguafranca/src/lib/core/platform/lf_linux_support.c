@@ -31,11 +31,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lf_linux_support.h"
 #include "../platform.h"
+#include <time.h>
 
+#ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
 #include "lf_POSIX_threads_support.c"
 #else
 #include "lf_C11_threads_support.c"
+#endif
 #endif
 
 /**

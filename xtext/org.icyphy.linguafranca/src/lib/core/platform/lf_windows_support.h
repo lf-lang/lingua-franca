@@ -39,6 +39,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #include <process.h>
 
+#ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
 
 /**
@@ -58,15 +59,8 @@ typedef CONDITION_VARIABLE __lf_cond_t;
 typedef HANDLE __lf_thread_t;
 
 #else
-
-#include <threads.h>
-
-typedef mtx_t __lf_mutex_t;
-typedef cnd_t __lf_cond_t;
-typedef thrd_t __lf_thread_t;
-
-#define __LF_TIMEOUT thrd_timedout
-
+#include "lf_C11_threads_support.h"
+#endif
 #endif
 
 typedef struct timespec __lf_time_spec_t;

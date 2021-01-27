@@ -30,6 +30,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "lf_C11_threads_support.h"
+#include <stdlib.h>
 
 /**
  * Create a new thread, starting with execution of lf_thread
@@ -45,6 +46,8 @@ int lf_thread_create(__lf_thread_t* thread, void *(*lf_thread) (void *), void* a
  * is not NULL.
  */
 int lf_thread_join(__lf_thread_t thread, void** thread_return) {
+    thread_return = (void**)malloc(sizeof(void*));
+    *thread_return= (int*)malloc(sizeof(int));
     return thrd_join((thrd_t)thread, (int*)*thread_return);
 }
 
