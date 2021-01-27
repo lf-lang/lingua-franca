@@ -4022,7 +4022,7 @@ class CGenerator extends GeneratorBase {
         if (isPhysical) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_MESSAGE"            
-        } else if (targetCoordination === CoordinationType.DECENTRALIZED) {
+        } else if (targetCoordination == CoordinationType.DECENTRALIZED) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
@@ -4089,12 +4089,12 @@ class CGenerator extends GeneratorBase {
             pr('''
                 #define _LF_IS_FEDERATED
             ''')
-            if (targetCoordination === CoordinationType.CENTRALIZED) {
+            if (targetCoordination == CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
                 pr('''
                     #define _LF_COORD_CENTRALIZED
                 ''')                
-            } else if (targetCoordination  === CoordinationType.DECENTRALIZED) {
+            } else if (targetCoordination  == CoordinationType.DECENTRALIZED) {
                 // The coordination is decentralized
                 pr('''
                     #define _LF_COORD_DECENTRALIZED
@@ -4965,7 +4965,7 @@ class CGenerator extends GeneratorBase {
     
     protected def isFederatedAndDecentralized() {
         if (isFederated &&
-            targetCoordination === CoordinationType.DECENTRALIZED) {
+            targetCoordination == CoordinationType.DECENTRALIZED) {
             return true
         }
         return false
