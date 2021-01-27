@@ -55,11 +55,6 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.InferredType
-import org.icyphy.Targets
-import org.icyphy.Targets.ClockSyncModes
-import org.icyphy.Targets.CoordinationTypes
-import org.icyphy.Targets.LoggingLevels
-import org.icyphy.Targets.TargetProperties
 import org.icyphy.TimeValue
 import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
@@ -86,6 +81,13 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.TargetSupport.TargetProperties
+import org.icyphy.TargetSupport.ClockSyncModes
+import org.icyphy.TargetSupport.CoordinationTypes
+import org.icyphy.TargetSupport
+import org.icyphy.TargetSupport.LogLevel
+import org.icyphy.TargetConfig
+import org.icyphy.TargetSupport.BuildTypes
 
 /**
  * Generator base class for shared code between code generators.
@@ -126,6 +128,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * All code goes into this string buffer.
      */
     protected var code = new StringBuilder
+    
+    
+    protected var config = new TargetConfig()
     
     /** Additional sources to add to the compile command if appropriate. */
     protected var List<String> compileAdditionalSources = newArrayList
@@ -297,63 +302,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         'port' -> 0 // Indicator to use the default port, typically 15045.
     )
     
-    /**
-     * The build-type target parameter, or null if there is none.
-     */
-    protected String targetBuildType
-
-    /**
-     * The cmake-include target parameter, or null if there is none.
-     */
-    protected String targetCmakeInclude
-    
-    /**
-     * The compiler target parameter, or null if there is none.
-     */
-    protected String targetCompiler
-
-    /**
-     * The compiler flags target parameter, or null if there is none.
-     */
-    protected String targetCompilerFlags
-    
-    /**
-     * The linker flags target parameter, or null if there is none.
-     */
-    protected String targetLinkerFlags
-
-    /**
-     * The compiler target no-compile parameter, or false if there is none.
-     */
-    protected boolean targetNoCompile = false
-    
-    /**
-     * The compiler target no-runtime-validation parameter, or false if there is none.
-     */
-    protected boolean targetNoRuntimeValidation = false
-        
-    /**
-     * The fast target parameter, or false if there is none.
-     */
-    protected boolean targetFast = false
-    
-    /**
-     * The coordination target parameter. Default is
-     * centralized.
-     */
-    protected CoordinationTypes targetCoordination = CoordinationTypes.CENTRALIZED
-    
-    /**
-     * List of files to be copied to src-gen.
-     */
-    protected List<String> targetFiles = newLinkedList
-    
-    /**
-     * List of file names from the files target property with no path info.
-     * Useful for copying them to remote machines. This is needed because
-     * target files can be resources with resource paths.
-     */
-    protected List<String> targetFilesNamesWithoutPath = newLinkedList
     
     /**
      * List of proto files to be processed by the code generator.
@@ -365,35 +313,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected String classpathLF
     
-    /**
-     * The value of the keepalive target parameter, or false if there is none.
-     */
-    protected boolean targetKeepalive
-    
-    /**
-     * The target name.
-     */
-    protected String targetName
-    
-    /**
-     * The level of logging or null if not given. The default is INFO.
-     */
-    protected LoggingLevels targetLoggingLevel = LoggingLevels.INFO
-
-    /**
-     * The threads target parameter, or the default 0 if there is none.
-     */
-    protected int targetThreads = 0
-
-    /**
-     * The timeout parameter, or null if there is none.
-     */
-    protected TimeValue targetTimeout
-    
-    /**
-     * The tracing target parameter, or false if there is none.
-     */
-    protected boolean targetTracing = false
     
     /**
      * The index available to user-generated reaction that delineates the index
@@ -451,7 +370,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     def CoordinationTypes getTargetCoordination() {
-        return targetCoordination
+        return config.targetCoordination
     }
     
     /**
@@ -501,12 +420,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // If there are any physical actions, ensure the threaded engine is used.
         for (action : resource.allContents.toIterable.filter(Action)) {
             if (action.origin == ActionOrigin.PHYSICAL) {
-                targetThreads = 1
+                config.targetThreads = 1
             }
         }
         
         var target = resource.findTarget
-        targetName = target.name
         if (target.config !== null) {
             for (param: target.config.pairs ?: emptyList) {
 
@@ -521,7 +439,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         }
                     }
                     case BUILD_TYPE:
-                        targetBuildType = param.value.toText
+                        config.buildType = BuildTypes.create(param.value.toText)
                     case CLOCK_SYNC:
                         targetClockSync = ClockSyncModes.create(param.value.toText)
                     case CLOCK_SYNC_OPTIONS:
@@ -529,33 +447,33 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             targetClockSyncOptions.put(entry.name, entry.value)
                         }
                     case CMAKE_INCLUDE:
-                        targetCmakeInclude = param.value.toText
+                        config.cmakeInclude = param.value.toText
                     case COMPILER:
-                        targetCompiler = param.value.toText
+                        config.compiler = param.value.toText
                     case FAST:
-                            targetFast = param.value.toBoolean
+                        config.targetFast = param.value.toBoolean
                     case COORDINATION:
-                        targetCoordination = CoordinationTypes.create(param.value.toText)
+                        config.targetCoordination = CoordinationTypes.create(param.value.toText)
                     case FILES:
-                        this.targetFiles.addAll(this.collectFiles(param.value))
+                        config.targetFiles.addAll(this.collectFiles(param.value))
                     case PROTOBUFS: 
                         this.protoFiles.addAll(this.collectFiles(param.value))
                     case FLAGS:
-                        targetCompilerFlags = param.value.toText
+                        config.compilerFlags = param.value.toText
                     case NO_COMPILE:
-                        targetNoCompile = param.value.toBoolean
+                        config.targetNoCompile = param.value.toBoolean
                     case NO_RUNTIME_VALIDATION:
-                        targetNoRuntimeValidation = param.value.toBoolean
+                        config.targetNoRuntimeValidation = param.value.toBoolean
                     case KEEPALIVE:
-                        targetKeepalive = param.value.toBoolean
+                        config.targetKeepalive = param.value.toBoolean
                     case LOGGING:
-                        targetLoggingLevel = LoggingLevels.create(param.value.toText)
+                        config.targetLoggingLevel = LogLevel.create(param.value.toText)
                     case THREADS:
-                        targetThreads = param.value.toInteger
+                        config.targetThreads = param.value.toInteger
                     case TIMEOUT:
-                        targetTimeout = param.value.toTimeValue
+                        config.targetTimeout = param.value.toTimeValue
                     case TRACING:
-                        targetTracing = param.value.toBoolean
+                        config.targetTracing = param.value.toBoolean
                 }
             }
         }
@@ -563,13 +481,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Override target properties if specified as command line arguments.
         if (context instanceof StandaloneContext) {
             if (context.args.containsKey("no-compile")) {
-                targetNoCompile = true
+                config.targetNoCompile = true
             }
             if (context.args.containsKey("target-compiler")) {
-                targetCompiler = context.args.getProperty("target-compiler")
+                config.compiler = context.args.getProperty("target-compiler")
             }
             if (context.args.containsKey("target-flags")) {
-                targetCompilerFlags = context.args.getProperty("target-flags")
+                config.compilerFlags = context.args.getProperty("target-flags")
             }
         }
 
@@ -675,7 +593,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val srcGenDir = new File(targetDirectory + File.separator)
         srcGenDir.mkdirs
         
-        for (filename : this.targetFiles) {
+        for (filename : config.targetFiles) {
             val file = filename.findFile
             if (file !== null) {
                 val target = new File(targetDirectory + File.separator + file.name)
@@ -683,7 +601,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     target.delete
                 }
                 Files.copy(file.toPath, target.toPath)
-                targetFilesNamesWithoutPath.add(file.name);
+                config.targetFilesNamesWithoutPath.add(file.name);
             } else {
                 // Try to copy the file as a resource.
                 // If this is missing, it should have been previously reported as an error.
@@ -694,7 +612,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         filenameWithoutPath = filename.substring(lastSeparator + 1)
                     }
                     copyFileFromClassPath(filename, targetDirectory + File.separator + filenameWithoutPath)
-                    targetFilesNamesWithoutPath.add(filenameWithoutPath);
+                    config.targetFilesNamesWithoutPath.add(filenameWithoutPath);
                 } catch (IOException ex) {
                     // Ignore. Previously reported as a warning.
                     System.err.println('''WARNING: Failed to find file «filename».''')
@@ -849,7 +767,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         pr(rtiCode, '''
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
-                «IF targetFast»
+                «IF config.targetFast»
                     federates[i].mode = FAST;
                 «ENDIF»
             }
@@ -966,7 +884,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val returnCode = compile.executeCommand(stderr)
 
         if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-            reportError('''«targetCompiler»r returns error code «returnCode»''')
+            reportError('''«config.compiler»r returns error code «returnCode»''')
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
@@ -1039,12 +957,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         // If threaded computation is requested, add a -pthread option.
-        if (targetThreads !== 0 || targetTracing) {
+        if (config.targetThreads !== 0 || config.targetTracing) {
             compileArgs.add("-pthread")
         }
         // Finally add the compiler flags in target parameters (if any)
-        if (!targetCompilerFlags.isEmpty()) {
-            val flags = targetCompilerFlags.split(' ')
+        if (!config.compilerFlags.isEmpty()) {
+            val flags = config.compilerFlags.split(' ')
             compileArgs.addAll(flags)
         }
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
@@ -1057,7 +975,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 reportError("ERROR: Did not output executable; no main reactor found.")
             }
         }
-        return createCommand(targetCompiler, compileArgs)
+        return createCommand(config.compiler, compileArgs)
     }
 
     ////////////////////////////////////////////
@@ -1069,15 +987,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     	return fileName + ".c";
     }
 
-    /**
-     * Return a set of targets that are acceptable to this generator.
-     * Imported files that are Lingua Franca files must specify targets in this
-     * set or an error message will be reported and the import will be ignored.
-     * The returned set is a set of case-insensitive strings specifying target
-     * names. If any target is acceptable, return null.
-     */
-    protected abstract def Set<String> acceptableTargets()
-    
     /**
      * Clear the buffer of generated code.
      */
@@ -2207,7 +2116,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // otherwise a federate could exit simply because it hasn't received
             // any messages.
             if (federates.size > 1) {
-                targetKeepalive = true
+                config.targetKeepalive = true
             }
             
             // Analyze the connection topology of federates.
@@ -2446,7 +2355,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * Return the Targets enum for the current target
      */
-    def Targets getTarget() {}
+    abstract def TargetSupport getTarget()
     
     /**
      * Return a string representing the specified type in the target language.

@@ -35,6 +35,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.ReactorDecl
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.TargetSupport
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor
@@ -258,15 +259,12 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 class CCppGenerator extends CGenerator {
-	
-	// Set of acceptable import targets includes only C.
-    val acceptableTargetSet = newHashSet('C','CCpp')
-	
-	new () {
+
+    new () {
         super()
         // set defaults
-        this.targetCompiler = "g++"
-        this.targetCompilerFlags = "-O2"// -Wall -Wconversion"
+        config.compiler = "g++"
+        config.compilerFlags = "-O2"// -Wall -Wconversion"
     }
 	
     /** 
@@ -364,15 +362,6 @@ class CCppGenerator extends CGenerator {
         }
     }
     
-    /** Return a set of targets that are acceptable to this generator.
-     *  Imported files that are Lingua Franca files must specify targets
-     *  in this set or an error message will be reported and the import
-     *  will be ignored. The returned set contains only "C".
-     */
-    override acceptableTargets() {
-        acceptableTargetSet
-    }
-    
     /** Add necessary include files specific to the target language.
      *  Note. The core files always need to be (and will be) copied 
      *  uniformly across all target languages.
@@ -385,12 +374,12 @@ class CCppGenerator extends CGenerator {
     /** Add necessary source files specific to the target language.  */
     override includeTargetLanguageSourceFiles()
     {
-        if (targetThreads > 0) {
+        if (config.targetThreads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             pr(startTimers, '''
                 if (number_of_threads == 0) {
-                   number_of_threads = «targetThreads»;
+                   number_of_threads = «config.targetThreads»;
                 }
             ''')
         }
@@ -418,7 +407,7 @@ class CCppGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
                 // Always use the threaded version
-                targetThreads = 1;
+                config.targetThreads = 1;
 
             	super.doGenerate(resource, fsa, context);
             }
@@ -552,8 +541,8 @@ class CCppGenerator extends CGenerator {
                     echo "Copying source files to host «federate.host»"
                     scp «filename»_«federate.name».cc ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».cc -o bin/«filename»_«federate.name» -pthread"
-                    ssh «federate.host» 'cd «path»; «this.targetCompiler» -O2 src-gen/«filename»_«federate.name».cc -o bin/«filename»_«federate.name» -pthread'
+                    echo "Compiling on host «federate.host» using: «config.compiler» -O2 src-gen/«filename»_«federate.name».cc -o bin/«filename»_«federate.name» -pthread"
+                    ssh «federate.host» 'cd «path»; «config.compiler» -O2 src-gen/«filename»_«federate.name».cc -o bin/«filename»_«federate.name» -pthread'
                 ''')
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
@@ -592,8 +581,8 @@ class CCppGenerator extends CGenerator {
                 echo "Copying source files to host «target»"
                 scp «filename»_RTI.cc ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
-                echo "Compiling on host «target» using: «this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.cc -o «path»/bin/«filename»_RTI -pthread"
-                ssh «target» '«this.targetCompiler» -O2 «path»/src-gen/«filename»_RTI.cc -o «path»/bin/«filename»_RTI -pthread'
+                echo "Compiling on host «target» using: «config.compiler» -O2 «path»/src-gen/«filename»_RTI.cc -o «path»/bin/«filename»_RTI -pthread"
+                ssh «target» '«config.compiler» -O2 «path»/src-gen/«filename»_RTI.cc -o «path»/bin/«filename»_RTI -pthread'
             ''')
 
             // Launch the RTI on the remote machine using ssh and screen.
@@ -647,5 +636,9 @@ class CCppGenerator extends CGenerator {
                 reportWarning(null, "Unable to make distributor script executable.")
             }
         }
-    }   
+    }
+    
+    override getTarget() {
+        return TargetSupport.CCpp
+    }
 }

@@ -1,7 +1,7 @@
 /* Generator for C target. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2019-2021, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -44,7 +44,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.InferredType
-import org.icyphy.Targets
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -65,8 +64,9 @@ import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Delay
-import org.icyphy.Targets.ClockSyncModes
-import org.icyphy.Targets.CoordinationTypes
+import org.icyphy.TargetSupport.ClockSyncModes
+import org.icyphy.TargetSupport
+import org.icyphy.TargetSupport.CoordinationTypes
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -288,10 +288,7 @@ class CGenerator extends GeneratorBase {
     
     ////////////////////////////////////////////
     //// Private variables
-    
-    // Set of acceptable import targets includes only C.
-    val acceptableTargetSet = newLinkedHashSet('C')
-    
+        
     // Place to collect code to initialize the trigger objects for all reactor instances.
     var initializeTriggerObjects = new StringBuilder()
 
@@ -328,8 +325,8 @@ class CGenerator extends GeneratorBase {
     new () {
         super()
         // set defaults
-        this.targetCompiler = "gcc"
-        this.targetCompilerFlags = "-O2"// -Wall -Wconversion"
+        config.compiler = "gcc"
+        config.compilerFlags = "-O2"// -Wall -Wconversion"
     }
 
     ////////////////////////////////////////////
@@ -372,7 +369,7 @@ class CGenerator extends GeneratorBase {
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
         var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
-        if (targetThreads === 0) {
+        if (config.targetThreads === 0) {
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
@@ -660,7 +657,7 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule timers for all reactors.
                 pr("void __initialize_timers() {")
                 indent()
-                if (targetTracing) {
+                if (config.targetTracing) {
                     pr('''start_trace("«filename».lft");''') // .lft is for Lingua Franca trace
                 }
                 if (timerCount > 0) {
@@ -752,7 +749,7 @@ class CGenerator extends GeneratorBase {
         // Restore the base filename.
         filename = baseFilename
         
-        if (!targetNoCompile) {
+        if (!config.targetNoCompile) {
             if (!targetBuildCommands.nullOrEmpty) {
                 runBuildCommand()
             } else {
@@ -931,21 +928,7 @@ class CGenerator extends GeneratorBase {
         }
         
         val rtiCode = new StringBuilder()
-        switch(targetLoggingLevel) {
-            case DEBUG: 
-                pr(rtiCode,
-                '''
-                    #define LOG_LEVEL 2
-                ''')
-            case LOG:
-                pr(rtiCode,
-                '''
-                    #define LOG_LEVEL 1
-                ''')
-            // FIXME: what about the other cases?
-            // FIXME: can we match LOG_LEVEL numbers to the LoggingLevels enum (see Targets.java) 
-            //  and eliminate the switch entirely?
-        }
+        pr(rtiCode, this.defineLogLevel)
         
         // Determine the period with clock clock sync will be done.
         var period = 'MSEC(5)'  // The default.
@@ -991,7 +974,7 @@ class CGenerator extends GeneratorBase {
             printf("Starting RTI for %d federates in federation ID %s\n", NUMBER_OF_FEDERATES, federation_id);
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
-                «IF targetFast»
+                «IF config.targetFast»
                     federates[i].mode = FAST;
                 «ENDIF»
             }
@@ -1204,7 +1187,7 @@ class CGenerator extends GeneratorBase {
             if (distCode.length === 0) pr(distCode, distHeader)
             
             val logFileName = '''log/«filename»_RTI.log'''
-            val compileCommand = '''«this.targetCompiler» «this.targetCompilerFlags» src-gen/«filename»_RTI.c -o bin/«filename»_RTI -pthread'''
+            val compileCommand = '''«this.config.compiler» «config.compilerFlags» src-gen/«filename»_RTI.c -o bin/«filename»_RTI -pthread'''
             
             // The mkdir -p flag below creates intermediate directories if needed.
             pr(distCode, '''
@@ -1223,7 +1206,7 @@ class CGenerator extends GeneratorBase {
                 echo "Copying source files for RTI to host «target»"
                 scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
-                echo "Compiling on host «target» using: «this.targetCompiler» «this.targetCompilerFlags» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                echo "Compiling on host «target» using: «config.compiler» «config.compilerFlags» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
                 ssh «target» ' \
                     cd «path»; \
                     echo "In «path» compiling RTI with: «compileCommand»" >> «logFileName» 2>&1; \
@@ -1271,7 +1254,7 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 val logFileName = '''log/«filename»_«federate.name».log'''
-                val compileCommand = '''«this.targetCompiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «this.targetCompilerFlags»'''
+                val compileCommand = '''«config.compiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «config.compilerFlags»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
@@ -1287,7 +1270,7 @@ class CGenerator extends GeneratorBase {
                     popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c «FOR file:targetFilesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen
+                    scp «filename»_«federate.name».c «FOR file:config.targetFilesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «compileCommand»"
                     ssh «federate.host» '\
@@ -2904,7 +2887,9 @@ class CGenerator extends GeneratorBase {
      * Return a string that defines the log level.
      */
     static def String defineLogLevel(GeneratorBase generator) {
-        switch(generator.targetLoggingLevel) {
+        // FIXME: if we align the levels with the ordinals of the
+        // enum (see CppGenerator), then we don't need this function.
+        switch(generator.config.targetLoggingLevel) {
             case ERROR: '''
                 #define LOG_LEVEL 0
             '''
@@ -3153,7 +3138,7 @@ class CGenerator extends GeneratorBase {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
-        if (targetTracing) {
+        if (config.targetTracing) {
             var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
@@ -3326,7 +3311,7 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects, '''
                             __shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->___reaction_«reactionCount»;
                         ''')
-                        if (targetTracing) {
+                        if (config.targetTracing) {
                             val description = getShortenedName(instance)
                             pr(initializeTriggerObjects, '''
                                 _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___shutdown),
@@ -3860,15 +3845,6 @@ class CGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Protected methods.
 
-    /** Return a set of targets that are acceptable to this generator.
-     *  Imported files that are Lingua Franca files must specify targets
-     *  in this set or an error message will be reported and the import
-     *  will be ignored. The returned set contains only "C".
-     */
-    override acceptableTargets() {
-        acceptableTargetSet
-    }
-
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
@@ -4132,8 +4108,8 @@ class CGenerator extends GeneratorBase {
                         
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (targetThreads === 0 && federates.length > 1) {
-            targetThreads = 1
+        if (config.targetThreads === 0 && federates.length > 1) {
+            config.targetThreads = 1
         }
 
         includeTargetLanguageSourceFiles()
@@ -4165,7 +4141,7 @@ class CGenerator extends GeneratorBase {
      * accordingly.
      */
     def parseTargetParameters() {
-        if (targetFast) {
+        if (config.targetFast) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
                 runCommand.add(filename)
@@ -4173,7 +4149,7 @@ class CGenerator extends GeneratorBase {
             runCommand.add("-f")
             runCommand.add("true")
         }
-        if (targetKeepalive) {
+        if (config.targetKeepalive) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
                 runCommand.add(filename)
@@ -4181,14 +4157,14 @@ class CGenerator extends GeneratorBase {
             runCommand.add("-k")
             runCommand.add("true")
         }
-        if (targetTimeout !== null) {
+        if (config.targetTimeout !== null) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
                 runCommand.add(filename)
             }
             runCommand.add("-o")
-            runCommand.add(targetTimeout.time.toString)
-            runCommand.add(targetTimeout.unit.toString)
+            runCommand.add(config.targetTimeout.time.toString)
+            runCommand.add(config.targetTimeout.unit.toString)
         }
         
     }
@@ -4198,23 +4174,23 @@ class CGenerator extends GeneratorBase {
      *  uniformly across all target languages.
      */
     protected def includeTargetLanguageHeaders() {
-        if (targetTracing) {
+        if (config.targetTracing) {
             pr('#define LINGUA_FRANCA_TRACE')
         }
         pr('#include "ctarget.h"')
-        if (targetTracing) {
+        if (config.targetTracing) {
             pr('#include "core/trace.c"')            
         }
     }
     
     /** Add necessary source files specific to the target language.  */
     protected def includeTargetLanguageSourceFiles() {
-        if (targetThreads > 0) {
+        if (config.targetThreads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             pr(startTimers, '''
                 if (_lf_number_of_threads == 0) {
-                   _lf_number_of_threads = «targetThreads»;
+                   _lf_number_of_threads = «config.targetThreads»;
                 }
             ''')
             pr("#include \"core/reactor_threaded.c\"")
@@ -4997,9 +4973,8 @@ class CGenerator extends GeneratorBase {
     
        
     /** Returns the Target enum for this generator */
-    override getTarget()
-    {
-        return Targets.get("C")
+    override getTarget() {
+        return TargetSupport.C
     }
         
     override getTargetTimeType() '''interval_t'''

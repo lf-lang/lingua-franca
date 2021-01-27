@@ -103,13 +103,13 @@ class ModelInfo {
         }
         
         // Find the target. A target must exist because the grammar requires it.
-        var Targets target
+        var TargetSupport target
         for (t : model.eAllContents.toIterable.filter(Target)) {
-            target = Targets.get(t.name)
+            target = TargetSupport.get(t.name)
         }
         
         // Perform C-specific traversals.
-        if (target == Targets.C) {
+        if (target == TargetSupport.C) {
             this.collectOverflowingNodes()
         }
         

@@ -30,7 +30,7 @@ import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.Target
-import org.icyphy.Targets
+import org.icyphy.TargetSupport
 
 /**
  * Generates code from your model files on save.
@@ -49,7 +49,7 @@ class LinguaFrancaGenerator extends AbstractGenerator {
 
         for (target : resource.allContents.toIterable.filter(Target)) {
 
-            val t = Targets.get(target.name)
+            val t = TargetSupport.get(target.name)
             if (t === null) {
                 System.err.println("Warning: Unrecognized target.")
                 throw new Exception("Unrecognized target.")

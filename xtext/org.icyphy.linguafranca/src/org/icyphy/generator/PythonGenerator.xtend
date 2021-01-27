@@ -37,7 +37,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.InferredType
-import org.icyphy.Targets
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -54,6 +53,7 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.TargetSupport
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -69,9 +69,6 @@ import static extension org.icyphy.ASTUtils.*
  */
 class PythonGenerator extends CGenerator {
 	
-	// Set of acceptable import targets includes only C.
-    val acceptableTargetSet = newLinkedHashSet('Python')
-	
 	// Used to add statements that come before reactor classes and user code
     var pythonPreamble = new StringBuilder()
 
@@ -81,9 +78,9 @@ class PythonGenerator extends CGenerator {
     new() {
         super()
         // set defaults
-        this.targetCompiler = "gcc"
-        this.targetCompilerFlags = ""// -Wall -Wconversion"
-        this.targetLinkerFlags = ""
+        config.compiler = "gcc"
+        config.compilerFlags = ""// -Wall -Wconversion"
+        config.linkerFlags = ""
     }
     	
     /** 
@@ -122,7 +119,7 @@ class PythonGenerator extends CGenerator {
 	
 	/** Returns the Target enum for this generator */
     override getTarget() {
-        return Targets.get("Python")
+        return TargetSupport.Python
     }
 
 	// Regular expression pattern for pointer types. The star at the end has to be visible.
@@ -694,13 +691,13 @@ class PythonGenerator extends CGenerator {
 
         // Set compile time environment variables
         val compileEnv = compileCmd.environment
-        compileEnv.put("CC", targetCompiler) // Use gcc as the compiler
-        compileEnv.put("LDFLAGS", targetLinkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+        compileEnv.put("CC", config.compiler) // Use gcc as the compiler
+        compileEnv.put("LDFLAGS", config.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
         val installEnv = compileCmd.environment
-        installEnv.put("CC", targetCompiler) // Use gcc as the compiler
-        installEnv.put("LDFLAGS", targetLinkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+        installEnv.put("CC", config.compiler) // Use gcc as the compiler
+        installEnv.put("LDFLAGS", config.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
         if (executeCommand(installCmd) == 0) {
@@ -715,7 +712,7 @@ class PythonGenerator extends CGenerator {
      * @param state 0=beginning, 1=end
      */
     def pyThreadMutexLockCode(int state, Reactor reactor) {
-        if(targetThreads > 0)
+        if(config.targetThreads > 0)
         {
             switch(state){
                 case 0: return '''pthread_mutex_lock(&py_«reactor.name»_reaction_mutex);'''
@@ -806,8 +803,8 @@ class PythonGenerator extends CGenerator {
 
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (targetThreads === 0 && federates.length > 1) {
-            targetThreads = 1
+        if (config.targetThreads === 0 && federates.length > 1) {
+            config.targetThreads = 1
         }
 
         super.includeTargetLanguageSourceFiles()
@@ -819,7 +816,7 @@ class PythonGenerator extends CGenerator {
         // This is necessary because Python is not thread-safe
         // and running multiple instances of the same function can cause
         // a segmentation fault.
-        if (targetThreads > 0) {
+        if (config.targetThreads > 0) {
             for (r : this.reactors ?: emptyList) {
                 pr('''
                     pthread_mutex_t py_«r.toDefinition.name»_reaction_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -939,21 +936,11 @@ class PythonGenerator extends CGenerator {
         return "PyObject* value;"
     }
     
-    /** Return a set of targets that are acceptable to this generator.
-     *  Imported files that are Lingua Franca files must specify targets
-     *  in this set or an error message will be reported and the import
-     *  will be ignored. The returned set contains only "C".
-     */
-    override acceptableTargets() {
-        acceptableTargetSet
-    }
-    
     /** Add necessary include files specific to the target language.
      *  Note. The core files always need to be (and will be) copied 
      *  uniformly across all target languages.
      */
-    override includeTargetLanguageHeaders()
-    {
+    override includeTargetLanguageHeaders() {
         pr('''#define MODULE_NAME LinguaFranca«filename»''')
         pr('''#define __GARBAGE_COLLECTED''')    	
         pr('#include "pythontarget.c"')
@@ -969,7 +956,7 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         // If there are federates, assign the number of threads in the CGenerator to 1        
         if(federates.length > 1) {
-            super.targetThreads = 1;
+            config.targetThreads = 1;
         }
 
         super.doGenerate(resource, fsa, context)
@@ -1167,8 +1154,8 @@ class PythonGenerator extends CGenerator {
                 echo "Copying source files to host «target»"
                 scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen/«filename»
                 popd > /dev/null
-                echo "Compiling on host «target» using: «this.targetCompiler» -O2 «path»/src-gen/«filename»/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
-                ssh «target» '«this.targetCompiler» -O2 «path»/src-gen/«filename»/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+                echo "Compiling on host «target» using: «config.compiler» -O2 «path»/src-gen/«filename»/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                ssh «target» '«config.compiler» -O2 «path»/src-gen/«filename»/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
             ''')
 
             // Launch the RTI on the remote machine using ssh and screen.
@@ -1403,7 +1390,7 @@ class PythonGenerator extends CGenerator {
         // Unfortunately, threads cannot run concurrently in Python.
         // Therefore, we need to make sure reactions cannot execute concurrently by
         // holding the mutex lock.
-        if(targetThreads > 0) {
+        if(config.targetThreads > 0) {
             pr(pyThreadMutexLockCode(0, reactor))
         }
         
@@ -1415,7 +1402,7 @@ class PythonGenerator extends CGenerator {
             }
         ''')
         
-        if(targetThreads > 0) {
+        if(config.targetThreads > 0) {
             pr(pyThreadMutexLockCode(1, reactor))
         }
         
@@ -1435,7 +1422,7 @@ class PythonGenerator extends CGenerator {
             // Unfortunately, threads cannot run concurrently in Python.
             // Therefore, we need to make sure reactions cannot execute concurrently by
             // holding the mutex lock.
-            if(targetThreads > 0) {
+            if (config.targetThreads > 0) {
                 pr(pyThreadMutexLockCode(0, reactor))
             }
             
@@ -1447,7 +1434,7 @@ class PythonGenerator extends CGenerator {
                 }
             ''')
 
-            if(targetThreads > 0) {
+            if (config.targetThreads > 0) {
                 pr(pyThreadMutexLockCode(1, reactor))
             }
             //pr(reactionInitialization.toString)
