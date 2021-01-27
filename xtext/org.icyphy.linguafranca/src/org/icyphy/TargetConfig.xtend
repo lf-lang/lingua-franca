@@ -64,6 +64,16 @@ class TargetConfig {
     public String compiler = ""
 
     /**
+     * Additional sources to add to the compile command if appropriate.
+     */
+    public List<String> compileAdditionalSources = newArrayList
+
+    /**
+     * Additional libraries to add to the compile command using the "-l" command-line option.
+     */
+    public List<String> compileLibraries = newArrayList
+
+    /**
      * Flags to pass to the compiler, unless a build command has been specified.
      */
     public String compilerFlags = ""
