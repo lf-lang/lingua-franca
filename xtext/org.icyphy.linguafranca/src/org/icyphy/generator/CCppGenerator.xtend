@@ -374,12 +374,12 @@ class CCppGenerator extends CGenerator {
     /** Add necessary source files specific to the target language.  */
     override includeTargetLanguageSourceFiles()
     {
-        if (config.targetThreads > 0) {
+        if (config.threads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             pr(startTimers, '''
                 if (number_of_threads == 0) {
-                   number_of_threads = «config.targetThreads»;
+                   number_of_threads = «config.threads»;
                 }
             ''')
         }
@@ -407,7 +407,7 @@ class CCppGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
                 // Always use the threaded version
-                config.targetThreads = 1;
+                config.threads = 1;
 
             	super.doGenerate(resource, fsa, context);
             }

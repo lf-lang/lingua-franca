@@ -712,7 +712,7 @@ class PythonGenerator extends CGenerator {
      * @param state 0=beginning, 1=end
      */
     def pyThreadMutexLockCode(int state, Reactor reactor) {
-        if(config.targetThreads > 0)
+        if(config.threads > 0)
         {
             switch(state){
                 case 0: return '''pthread_mutex_lock(&py_«reactor.name»_reaction_mutex);'''
@@ -803,8 +803,8 @@ class PythonGenerator extends CGenerator {
 
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (config.targetThreads === 0 && federates.length > 1) {
-            config.targetThreads = 1
+        if (config.threads === 0 && federates.length > 1) {
+            config.threads = 1
         }
 
         super.includeTargetLanguageSourceFiles()
@@ -816,7 +816,7 @@ class PythonGenerator extends CGenerator {
         // This is necessary because Python is not thread-safe
         // and running multiple instances of the same function can cause
         // a segmentation fault.
-        if (config.targetThreads > 0) {
+        if (config.threads > 0) {
             for (r : this.reactors ?: emptyList) {
                 pr('''
                     pthread_mutex_t py_«r.toDefinition.name»_reaction_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -956,7 +956,7 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         // If there are federates, assign the number of threads in the CGenerator to 1        
         if(federates.length > 1) {
-            config.targetThreads = 1;
+            config.threads = 1;
         }
 
         super.doGenerate(resource, fsa, context)
@@ -1390,7 +1390,7 @@ class PythonGenerator extends CGenerator {
         // Unfortunately, threads cannot run concurrently in Python.
         // Therefore, we need to make sure reactions cannot execute concurrently by
         // holding the mutex lock.
-        if(config.targetThreads > 0) {
+        if(config.threads > 0) {
             pr(pyThreadMutexLockCode(0, reactor))
         }
         
@@ -1402,7 +1402,7 @@ class PythonGenerator extends CGenerator {
             }
         ''')
         
-        if(config.targetThreads > 0) {
+        if(config.threads > 0) {
             pr(pyThreadMutexLockCode(1, reactor))
         }
         
@@ -1422,7 +1422,7 @@ class PythonGenerator extends CGenerator {
             // Unfortunately, threads cannot run concurrently in Python.
             // Therefore, we need to make sure reactions cannot execute concurrently by
             // holding the mutex lock.
-            if (config.targetThreads > 0) {
+            if (config.threads > 0) {
                 pr(pyThreadMutexLockCode(0, reactor))
             }
             
@@ -1434,7 +1434,7 @@ class PythonGenerator extends CGenerator {
                 }
             ''')
 
-            if (config.targetThreads > 0) {
+            if (config.threads > 0) {
                 pr(pyThreadMutexLockCode(1, reactor))
             }
             //pr(reactionInitialization.toString)

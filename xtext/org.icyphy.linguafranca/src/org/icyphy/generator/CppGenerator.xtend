@@ -150,7 +150,7 @@ class CppGenerator extends GeneratorBase {
                 r.generatePreambleHeader)
         }
 
-        if (!config.targetNoCompile && !errorsOccurred()) {
+        if (!config.noCompile && !errorsOccurred()) {
             doCompile(fsa)
         } else {
             println("Exiting before invoking target compiler.")
@@ -856,20 +856,20 @@ class CppGenerator extends GeneratorBase {
         int main(int argc, char **argv) {
           CLI::App app("«filename» Reactor Program");
           
-          unsigned threads = «IF config.targetThreads != 0»«Integer.toString(config.targetThreads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
+          unsigned threads = «IF config.threads != 0»«Integer.toString(config.threads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
         
-          reactor::Duration timeout = «IF config.targetTimeout !== null»«config.targetTimeout.time»«timeUnitsToCppUnits.get(config.targetTimeout.unit)»«ELSE»reactor::Duration::zero()«ENDIF»;
+          reactor::Duration timeout = «IF config.timeout !== null»«config.timeout.time»«timeUnitsToCppUnits.get(config.timeout.unit)»«ELSE»reactor::Duration::zero()«ENDIF»;
           auto opt_timeout = app.add_option("-o,--timeout", timeout, "Time after which the execution is aborted.");
         
           opt_timeout->check([](const std::string& val){ return validate_time_string(val); });
           opt_timeout->type_name("'FLOAT UNIT'");
           opt_timeout->default_str(time_to_quoted_string(timeout));
         
-          bool fast{«config.targetFast»};
+          bool fast{«config.fastMode»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
         
-          bool keepalive{«config.targetKeepalive»};
+          bool keepalive{«config.keepalive»};
           app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
           «FOR p : mainReactor.parameters»
 
@@ -918,7 +918,7 @@ class CppGenerator extends GeneratorBase {
         include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
         include(GNUInstallDirs)
         
-        set(DEFAULT_BUILD_TYPE «IF config.buildType === null»"Release"«ELSE»"«config.buildType»"«ENDIF»)
+        set(DEFAULT_BUILD_TYPE «IF config.cmakeBuildType === null»"Release"«ELSE»"«config.cmakeBuildType»"«ENDIF»)
         if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
           set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
         endif()
@@ -936,9 +936,9 @@ class CppGenerator extends GeneratorBase {
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-            -DREACTOR_CPP_VALIDATE=«IF config.targetNoRuntimeValidation»OFF«ELSE»ON«ENDIF»
-            -DREACTOR_CPP_TRACE=«IF config.targetTracing»ON«ELSE»OFF«ENDIF»
-            «IF config.targetLoggingLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«config.targetLoggingLevel.ordinal»«ELSE»«LogLevel.INFO.ordinal»«ENDIF»
+            -DREACTOR_CPP_VALIDATE=«IF config.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
+            -DREACTOR_CPP_TRACE=«IF config.tracing»ON«ELSE»OFF«ENDIF»
+            «IF config.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«config.logLevel.ordinal»«ELSE»«LogLevel.INFO.ordinal»«ENDIF»
         )
         
         set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
@@ -984,7 +984,7 @@ class CppGenerator extends GeneratorBase {
         
         install(TARGETS «filename» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
         
-        «IF config.cmakeInclude !== null»
+        «IF !config.cmakeInclude.isNullOrEmpty»
             include("«directory»/«config.cmakeInclude»")
         «ENDIF»
     '''
@@ -1011,7 +1011,7 @@ class CppGenerator extends GeneratorBase {
             "--target",
             "install",
             "--config",
-            '''«IF config.buildType === null»"Release"«ELSE»"«config.buildType»"«ENDIF»'''])
+            '''«IF config.cmakeBuildType === null»"Release"«ELSE»"«config.cmakeBuildType»"«ENDIF»'''])
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
             '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',

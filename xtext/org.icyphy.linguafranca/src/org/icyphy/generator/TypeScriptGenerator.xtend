@@ -1104,8 +1104,8 @@ class TypeScriptGenerator extends GeneratorBase {
         val setParameters = '''
             // ************* App Parameters
             let __timeout: TimeValue | undefined = «getTimeoutTimeValue»;
-            let __keepAlive: boolean = «config.targetKeepalive»;
-            let __fast: boolean = «config.targetFast»;
+            let __keepAlive: boolean = «config.keepalive»;
+            let __fast: boolean = «config.fastMode»;
             
             let __noStart = false; // If set to true, don't start the app.
             
@@ -1331,10 +1331,10 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The logging target property's value in all caps.
      */
     private def getLoggingLevel() {
-        if (config.targetLoggingLevel === null) {
+        if (config.logLevel === null) {
             LogLevel.ERROR.name
         } else {
-            config.targetLoggingLevel.name
+            config.logLevel.name
         }
     }
     
@@ -1451,8 +1451,8 @@ class TypeScriptGenerator extends GeneratorBase {
     }
     
     private def getTimeoutTimeValue() {
-        if (config.targetTimeout !== null) {
-            return timeInTargetLanguage(config.targetTimeout)
+        if (config.timeout !== null) {
+            return timeInTargetLanguage(config.timeout)
         } else {
             return "undefined"
         }

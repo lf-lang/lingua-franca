@@ -505,19 +505,19 @@ public enum TargetSupport {
     /**
      * Build types
      */
-    public enum BuildTypes {
+    public enum BuildType {
         Release, Debug, RelWithDebInfo, MinSizeRel;
         
-        public static BuildTypes create(String string) {
-            return (BuildTypes)TargetSupport.create(string, BuildTypes.values());
+        public static BuildType create(String string) {
+            return (BuildType)TargetSupport.create(string, BuildType.values());
         }
     }
     
-    public enum CoordinationTypes {
+    public enum CoordinationType {
         CENTRALIZED, DECENTRALIZED;
         
-        public static CoordinationTypes create(String string) {
-            return (CoordinationTypes)TargetSupport.create(string, CoordinationTypes.values());
+        public static CoordinationType create(String string) {
+            return (CoordinationType)TargetSupport.create(string, CoordinationType.values());
         }
         
         @Override
@@ -537,11 +537,11 @@ public enum TargetSupport {
      * STARTUP: Clock synchronization occurs at startup only.
      * ON: Clock synchronization occurs at startup and at runtime.
      */
-    public enum ClockSyncModes {
+    public enum ClockSyncMode {
         OFF, INITIAL, ON;
         
-        public static ClockSyncModes create(String string) {
-            return (ClockSyncModes)TargetSupport.create(string, ClockSyncModes.values());
+        public static ClockSyncMode create(String string) {
+            return (ClockSyncMode)TargetSupport.create(string, ClockSyncMode.values());
         }
         
         @Override
