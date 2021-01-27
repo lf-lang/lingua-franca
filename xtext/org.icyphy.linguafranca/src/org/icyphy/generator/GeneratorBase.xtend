@@ -883,9 +883,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             if (tokens.size > 1) {
                 val buildCommand = createCommand(tokens.head,
                     tokens.tail.toList)
-
-                if (buildCommand === null) {
-                    reportError('''The build command "«cmd»" is invalid. Please provide a valid build command.''')
+                // If the build command could not be found, abort.
+                // An error has already been reported in createCommand.
+                if (buildCommand === null) { 
                     return
                 }
                 commands.add(buildCommand)
