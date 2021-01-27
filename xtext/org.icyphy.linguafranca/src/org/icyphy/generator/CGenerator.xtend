@@ -4151,7 +4151,7 @@ class CGenerator extends GeneratorBase {
         if (config.threads > 0) {
             // Add NUMBER_OF_WORKERS as a compile-time definition to enable proper functionality
             // for platform.h
-            config.compilerFlags += '''-DNUMBER_OF_WORKERS=«config.threads»'''
+            config.compilerFlags = '''-DNUMBER_OF_WORKERS=«config.threads» ''' + config.compilerFlags
         }
         
         includeTargetLanguageHeaders()
