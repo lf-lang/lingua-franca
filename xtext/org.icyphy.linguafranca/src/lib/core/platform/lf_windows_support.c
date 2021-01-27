@@ -1,7 +1,7 @@
 /* Windows API support for the C target of Lingua Franca. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2021, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -35,27 +35,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <windows.h>
 #include <process.h>
+#include "lf_windows_support.h"
 #include "../platform.h"
 
-/**
- * On Windows, one could use botha  mutex or
- * a critical section for the same purpose. However,
- * critical sections are lighter and limited to one process
- * and thus fit the requirements of Lingua Franca.
- */
-typedef CRITICAL_SECTION __lf_mutex_t;
-/**
- * For compatibility with other platform APIs, we assume
- * that mutex is analogous to critical section.
- */
-typedef __lf_mutex_t __lf_critical_section_t
-
-typedef CONDITION_VARIABLE __lf_cond_t;
-typedef HANDLE __lf_thread_t;
-typedef struct timespec __lf_time_spec_t;
-typedef clockid_t __lf_clock_t;
-
-#define __LF_TIMEOUT ETIMEDOUT
+#if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
 
 NtDelayExecution_t *NtDelayExecution = NULL;
 NtQueryPerformanceCounter_t *NtQueryPerformanceCounter = NULL;
@@ -212,3 +195,7 @@ int lf_nanosleep(__lf_clock_t clk_id, const __lf_time_spec_t* requested_time, __
     }
     return result;
 }
+
+#else
+#include "lf_C11_threads_support.c"
+#endif

@@ -1,7 +1,7 @@
 /* MacOS API support for the C target of Lingua Franca. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
+Copyright (c) 2021, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -24,20 +24,19 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-/** MacOS API support for the C target of Lingua Franca.
+/** Linux API support for the C target of Lingua Franca.
  *  
  *  @author{Soroush Bateni <soroush@utdallas.edu>}
  */
 
+#include "lf_linux_support.h"
 #include "../platform.h"
+
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
 #include "lf_POSIX_threads_support.c"
 #else
 #include "lf_C11_threads_support.c"
 #endif
-
-typedef struct timespec __lf_time_spec_t;
-typedef clockid_t __lf_clock_t;
 
 /**
  * Fetch the value of clk_id and store it in tp.

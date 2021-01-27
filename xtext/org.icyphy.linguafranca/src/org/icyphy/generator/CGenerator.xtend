@@ -389,17 +389,21 @@ class CGenerator extends GeneratorBase {
             // Mac support
             coreFiles.add("platform/lf_POSIX_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.c")
-            coreFiles.add("platform/lf_macos_support.c")
+            coreFiles.add("platform/lf_macos_support.c")            
+            coreFiles.add("platform/lf_macos_support.h")
             compileAdditionalSources.add("src-gen" + File.separator + "core/platform/lf_macos_support.c")
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
+            coreFiles.add("platform/lf_C11_threads_support.c")
             coreFiles.add("platform/lf_windows_support.c")
+            coreFiles.add("platform/lf_windows_support.h")
             compileAdditionalSources.add("src-gen" + File.separator + "core/platform/lf_windows_support.c")
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
             coreFiles.add("platform/lf_POSIX_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.c")
             coreFiles.add("platform/lf_linux_support.c")
+            coreFiles.add("platform/lf_linux_support.h")
             compileAdditionalSources.add("src-gen" + File.separator + "core/platform/lf_linux_support.c")
         } else {
             reportError("Platform " + OS + " is not supported")
