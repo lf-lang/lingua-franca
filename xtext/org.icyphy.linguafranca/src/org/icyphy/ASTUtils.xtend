@@ -68,6 +68,7 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
+import org.icyphy.TargetSupport.CoordinationType
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -418,7 +419,7 @@ class ASTUtils {
             // If the connection is logical but coordination
             // is decentralized, we would need
             // to make P2P connections
-            if (generator.targetCoordination.equals("decentralized")) {
+            if (generator.targetCoordination == CoordinationType.DECENTRALIZED) {
                 leftFederate.outboundP2PConnections.add(rightFederate)
                 rightFederate.inboundP2PConnections.add(leftFederate)                
             }            
