@@ -35,7 +35,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.linguaFranca.ReactorDecl
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TargetSupport
+import org.icyphy.Target
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor
@@ -639,6 +639,6 @@ class CCppGenerator extends CGenerator {
     }
     
     override getTarget() {
-        return TargetSupport.CCpp
+        return Target.CCpp
     }
 }

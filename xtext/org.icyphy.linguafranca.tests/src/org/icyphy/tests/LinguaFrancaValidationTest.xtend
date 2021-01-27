@@ -39,7 +39,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
-import org.icyphy.TargetSupport
+import org.icyphy.Target
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -538,7 +538,7 @@ class LinguaFrancaValidationTest {
      */
     @Test
     def void testPreambleVisibility() {
-        for (target : TargetSupport.values) {
+        for (target : Target.values) {
             for (visibility : Visibility.values) {
                 val model_reactor_scope = parseWithoutError('''
                     target «target.name»;
@@ -562,7 +562,7 @@ class LinguaFrancaValidationTest {
                 
                 model_no_preamble.assertNoIssues
                 
-                if (target == TargetSupport.CPP) {
+                if (target == Target.CPP) {
                     if (visibility == Visibility.NONE) {
                         model_file_scope.assertError(LinguaFrancaPackage::eINSTANCE.preamble, null,
                             "Preambles for the C++ target need a visibility qualifier (private or public)!")

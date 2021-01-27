@@ -44,8 +44,6 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.InferredType
-import org.icyphy.TargetSupport
-import org.icyphy.TargetSupport.ClockSyncMode
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -66,7 +64,9 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TargetSupport.CoordinationType
+import org.icyphy.Target.ClockSyncMode
+import org.icyphy.Target.CoordinationType
+import org.icyphy.Target
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -4975,7 +4975,7 @@ class CGenerator extends GeneratorBase {
        
     /** Returns the Target enum for this generator */
     override getTarget() {
-        return TargetSupport.C
+        return Target.C
     }
         
     override getTargetTimeType() '''interval_t'''

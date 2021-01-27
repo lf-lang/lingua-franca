@@ -47,7 +47,7 @@ generate linguaFranca "http://www.icyphy.org/LinguaFranca"
  * Top-level AST node.
  */
 Model:
-    target=Target
+    target=TargetDecl
     (imports+=Import)*
     (preambles+=Preamble)*
     (reactors+=Reactor)+
@@ -111,7 +111,7 @@ TypeExpr:
  * Specification of the target language. Target properties can be specified in
  * YAML format to pass on configuration details to the runtime environment. 
  */
-Target:
+TargetDecl:
     'target' name=ID (config=KeyValuePairs)? ';'?;
 
 

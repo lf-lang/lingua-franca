@@ -57,8 +57,8 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.ASTUtils
 import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 import com.google.inject.Inject
-import org.icyphy.TargetSupport.LogLevel
-import org.icyphy.TargetSupport
+import org.icyphy.Target
+import org.icyphy.Target.LogLevel
 
 /** Generator for C++ target.
  * 
@@ -1133,7 +1133,7 @@ class CppGenerator extends GeneratorBase {
         '''T'''
         
     override getTarget() {
-        return TargetSupport.CPP
+        return Target.CPP
     }
     
 }
