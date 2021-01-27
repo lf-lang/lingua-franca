@@ -21,10 +21,10 @@
 package org.icyphy
 
 import java.util.List
-import org.icyphy.TargetSupport.BuildType
-import org.icyphy.TargetSupport.ClockSyncMode
-import org.icyphy.TargetSupport.CoordinationType
-import org.icyphy.TargetSupport.LogLevel
+import org.icyphy.Target.ClockSyncMode
+import org.icyphy.Target.LogLevel
+import org.icyphy.Target.BuildType
+import org.icyphy.Target.CoordinationType
 
 /** 
  * A class for keeping the current target configuration.
@@ -33,7 +33,7 @@ import org.icyphy.TargetSupport.LogLevel
  * unless otherwise stated.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class TargetConfig {
+class Configuration {
 
     /**
      * The custom build command, which replaces the default build process of

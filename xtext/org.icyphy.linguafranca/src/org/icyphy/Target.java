@@ -32,7 +32,7 @@ import java.util.List;
  * reported by Xtend with a warning message.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-public enum TargetSupport {
+public enum Target {
     C("C", true, Arrays.asList(
                 // List via: https://en.cppreference.com/w/c/keyword
                 "auto",
@@ -80,7 +80,7 @@ public enum TargetSupport {
                 "_Static_assert", // (since C11)
                 "_Thread_local" // (since C11)
                 )
-    ), CCpp("CCpp", true, TargetSupport.C.keywords), 
+    ), CCpp("CCpp", true, Target.C.keywords), 
     CPP("Cpp", true, Arrays.asList(
                 // List via: https://en.cppreference.com/w/cpp/keyword
                 "alignas", // (since C++11)
@@ -344,7 +344,7 @@ public enum TargetSupport {
     /**
      * Return an array of all known targets.
      */
-    public final static TargetSupport[] ALL = TargetSupport.values();
+    public final static Target[] ALL = Target.values();
     
     /**
      * All target properties along with a list of targets that supports them.
@@ -355,103 +355,103 @@ public enum TargetSupport {
         /**
          * Directive to let the generator use the custom build command.
          */
-        BUILD("build", Arrays.asList(TargetSupport.C)),
+        BUILD("build", Arrays.asList(Target.C)),
         
         /**
          * Directive to specify the target build type such as 'Release' or 'Debug'.
          */
-        BUILD_TYPE("build-type", Arrays.asList(TargetSupport.CPP)),
+        BUILD_TYPE("build-type", Arrays.asList(Target.CPP)),
         
         /**
          * Directive to let the federate execution handle clock synchronization in software.
          */
-        CLOCK_SYNC("clock-sync", Arrays.asList(TargetSupport.C)),
+        CLOCK_SYNC("clock-sync", Arrays.asList(Target.C)),
 
         /**
          * Key-value pairs giving options for clock synchronization.
          */
-        CLOCK_SYNC_OPTIONS("clock-sync-options", Arrays.asList(TargetSupport.C)),
+        CLOCK_SYNC_OPTIONS("clock-sync-options", Arrays.asList(Target.C)),
 
         /**
          * Directive to specify a cmake to be included by the generated build systems.
          *
          * This gives full control over the C++ build as any cmake parameters can be adjusted in the included file.
          */
-        CMAKE_INCLUDE("cmake-include", Arrays.asList(TargetSupport.CPP)),
+        CMAKE_INCLUDE("cmake-include", Arrays.asList(Target.CPP)),
         
         /**
          * Directive to specify the target compiler.
          */
-        COMPILER("compiler", Arrays.asList(TargetSupport.ALL)),
+        COMPILER("compiler", Arrays.asList(Target.ALL)),
         
         /**
          * Directive to let the execution engine allow logical time to elapse
          * faster than physical time.
          */
-        FAST("fast", Arrays.asList(TargetSupport.ALL)),
+        FAST("fast", Arrays.asList(Target.ALL)),
         
         /**
          * Directive to stage particular files on the class path to be
          * processed by the code generator.
          */
-        FILES("files", Arrays.asList(TargetSupport.ALL)),
+        FILES("files", Arrays.asList(Target.ALL)),
         
         /**
          * Flags to be passed on to the target compiler.
          */
-        FLAGS("flags", Arrays.asList(TargetSupport.C, TargetSupport.CCpp)),
+        FLAGS("flags", Arrays.asList(Target.C, Target.CCpp)),
         
         /**
          * Directive to specify the coordination mode
          */
-        COORDINATION("coordination", Arrays.asList(TargetSupport.C, TargetSupport.CCpp, TargetSupport.Python)),
+        COORDINATION("coordination", Arrays.asList(Target.C, Target.CCpp, Target.Python)),
         
         /**
          * Directive to let the execution engine remain active also if there
          * are no more events in the event queue.
          */
-        KEEPALIVE("keepalive", Arrays.asList(TargetSupport.ALL)),
+        KEEPALIVE("keepalive", Arrays.asList(Target.ALL)),
         
         /**
          * Directive to specify the grain at which to report log messages during execution.
          */
-        LOGGING("logging", Arrays.asList(TargetSupport.ALL)),
+        LOGGING("logging", Arrays.asList(Target.ALL)),
         
         /**
          * Directive to not invoke the target compiler.
          */
-        NO_COMPILE("no-compile", Arrays.asList(TargetSupport.C, TargetSupport.CPP, TargetSupport.CCpp)),
+        NO_COMPILE("no-compile", Arrays.asList(Target.C, Target.CPP, Target.CCpp)),
         
         /**
          * Directive to disable validation of reactor rules at runtime.
          */
-        NO_RUNTIME_VALIDATION("no-runtime-validation", Arrays.asList(TargetSupport.CPP)),
+        NO_RUNTIME_VALIDATION("no-runtime-validation", Arrays.asList(Target.CPP)),
         /**
          * Directive for specifying .proto files that need to be compiled and their
          * code included in the sources.
          */
-        PROTOBUFS("protobufs", Arrays.asList(TargetSupport.C, TargetSupport.TS, TargetSupport.Python)),
+        PROTOBUFS("protobufs", Arrays.asList(Target.C, Target.TS, Target.Python)),
         /**
          * Directive to specify the number of threads.
          */
-        THREADS("threads", Arrays.asList(TargetSupport.C, TargetSupport.CPP, TargetSupport.CCpp)),
+        THREADS("threads", Arrays.asList(Target.C, Target.CPP, Target.CCpp)),
         
         /**
          * Directive to specify the execution timeout.
          */
-        TIMEOUT("timeout", Arrays.asList(TargetSupport.ALL)),
+        TIMEOUT("timeout", Arrays.asList(Target.ALL)),
 
         /**
          * Directive to let the runtime produce execution traces.
          */
-        TRACING("tracing", Arrays.asList(TargetSupport.C, TargetSupport.CPP));
+        TRACING("tracing", Arrays.asList(Target.C, Target.CPP));
         
         /**
          * List of targets that support this property. If a property is used for
          * a target that does not support it, a warning reported during
          * validation.
          */
-        public final List<TargetSupport> supportedBy;
+        public final List<Target> supportedBy;
         
         /**
          * String representation of this target property.
@@ -463,7 +463,7 @@ public enum TargetSupport {
          * @param name String representation of this property.
          * @param supportedBy List of targets that support this property.
          */
-        private TargetProperties(String name, List<TargetSupport> supportedBy) {
+        private TargetProperties(String name, List<Target> supportedBy) {
             this.name = name;
             this.supportedBy = supportedBy;
         }
@@ -508,7 +508,7 @@ public enum TargetSupport {
         Release, Debug, RelWithDebInfo, MinSizeRel;
         
         public static BuildType create(String string) {
-            return (BuildType)TargetSupport.create(string, BuildType.values());
+            return (BuildType)Target.create(string, BuildType.values());
         }
     }
     
@@ -516,7 +516,7 @@ public enum TargetSupport {
         CENTRALIZED, DECENTRALIZED;
         
         public static CoordinationType create(String string) {
-            return (CoordinationType)TargetSupport.create(string, CoordinationType.values());
+            return (CoordinationType)Target.create(string, CoordinationType.values());
         }
         
         @Override
@@ -540,7 +540,7 @@ public enum TargetSupport {
         OFF, INITIAL, ON;
         
         public static ClockSyncMode create(String string) {
-            return (ClockSyncMode)TargetSupport.create(string, ClockSyncMode.values());
+            return (ClockSyncMode)Target.create(string, ClockSyncMode.values());
         }
         
         @Override
@@ -558,7 +558,7 @@ public enum TargetSupport {
         ERROR, WARN, INFO, LOG, DEBUG;
         
         public static LogLevel create(String string) {
-            return (LogLevel)TargetSupport.create(string, LogLevel.values());
+            return (LogLevel)Target.create(string, LogLevel.values());
         }
         
         @Override
@@ -574,7 +574,7 @@ public enum TargetSupport {
      * @param requires Types Whether this target requires type annotations or not.
      * @param keywords List of reserved strings in the target language.
      */
-    private TargetSupport(String name, boolean requiresTypes, List<String> keywords) {
+    private Target(String name, boolean requiresTypes, List<String> keywords) {
         this.name = name;
         this.requiresTypes = requiresTypes;
         this.keywords = keywords;
@@ -586,7 +586,7 @@ public enum TargetSupport {
      * @return true if a matching target was found, false otherwise.
      */
     public final static boolean isValidName(String name) {
-        if (TargetSupport.get(name) != null) {
+        if (Target.get(name) != null) {
             return true;
         }
         return false;
@@ -597,8 +597,8 @@ public enum TargetSupport {
      * @param name The name to find a matching target for.
      * @return a matching target, null otherwise.
      */
-    public final static TargetSupport get(String name) {
-        for (TargetSupport t : TargetSupport.values()) {
+    public final static Target get(String name) {
+        for (Target t : Target.values()) {
             if (t.toString().equalsIgnoreCase(name))
                 return t;
         }

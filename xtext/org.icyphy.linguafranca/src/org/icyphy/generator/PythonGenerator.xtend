@@ -53,7 +53,7 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TargetSupport
+import org.icyphy.Target
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -119,7 +119,7 @@ class PythonGenerator extends CGenerator {
 	
 	/** Returns the Target enum for this generator */
     override getTarget() {
-        return TargetSupport.Python
+        return Target.Python
     }
 
 	// Regular expression pattern for pointer types. The star at the end has to be visible.

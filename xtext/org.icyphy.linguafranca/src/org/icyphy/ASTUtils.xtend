@@ -68,7 +68,7 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
-import org.icyphy.TargetSupport.CoordinationType
+import org.icyphy.Target.CoordinationType
 
 /**
  * A helper class for modifying and analyzing the AST.

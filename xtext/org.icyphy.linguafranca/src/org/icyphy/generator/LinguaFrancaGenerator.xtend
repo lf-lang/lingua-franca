@@ -29,8 +29,8 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.icyphy.linguaFranca.Target
-import org.icyphy.TargetSupport
+import org.icyphy.linguaFranca.TargetDecl
+import org.icyphy.Target
 
 /**
  * Generates code from your model files on save.
@@ -47,37 +47,34 @@ class LinguaFrancaGenerator extends AbstractGenerator {
         // Determine which target is desired.
         var GeneratorBase generator
 
-        for (target : resource.allContents.toIterable.filter(Target)) {
-
-            val t = TargetSupport.get(target.name)
-            if (t === null) {
-                System.err.println("Warning: Unrecognized target.")
-                throw new Exception("Unrecognized target.")
+        val t = Target.get(
+            resource.allContents.toIterable.filter(TargetDecl).head.name)
+            
+        switch (t) {
+            case C: {
+                generator = new CGenerator()
             }
-            switch (t) {
-                case C: {
-                    generator = new CGenerator()
-                }
-                case CCpp: {
-                    generator = new CCppGenerator()
-                }
-                case CPP: {
-                    generator = new CppGenerator()
-                }
-                case TS: {
-                    generator = new TypeScriptGenerator()
-                }
-                case Python: {
-                    generator = new PythonGenerator()
-                }
-			}
-		}
-		generator.doGenerate(resource, fsa, context)
+            case CCpp: {
+                generator = new CCppGenerator()
+            }
+            case CPP: {
+                generator = new CppGenerator()
+            }
+            case TS: {
+                generator = new TypeScriptGenerator()
+            }
+            case Python: {
+                generator = new PythonGenerator()
+            }
+        }
+        
+        generator.doGenerate(resource, fsa, context)
         generatorErrorsOccurred = generator.errorsOccurred()
     }
 
-    /** Return true if errors occurred in the last call to doGenerate().
-     *  @return True if errors occurred.
+    /**
+     * Return true if errors occurred in the last call to doGenerate().
+     * @return True if errors occurred.
      */
     def errorsOccurred() {
         return generatorErrorsOccurred;

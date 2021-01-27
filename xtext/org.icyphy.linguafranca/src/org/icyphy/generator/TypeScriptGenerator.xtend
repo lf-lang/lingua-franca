@@ -53,8 +53,8 @@ import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Delay
-import org.icyphy.TargetSupport.LogLevel
-import org.icyphy.TargetSupport
+import org.icyphy.Target
+import org.icyphy.Target.LogLevel
 
 /** Generator for TypeScript target.
  *
@@ -1506,7 +1506,7 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
         '''T extends Present'''
         
     override getTarget() {
-        return TargetSupport.TS
+        return Target.TS
     }
 
 }

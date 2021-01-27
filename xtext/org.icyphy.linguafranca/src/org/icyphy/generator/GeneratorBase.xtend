@@ -55,13 +55,6 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.InferredType
-import org.icyphy.TargetConfig
-import org.icyphy.TargetSupport
-import org.icyphy.TargetSupport.BuildType
-import org.icyphy.TargetSupport.ClockSyncMode
-import org.icyphy.TargetSupport.CoordinationType
-import org.icyphy.TargetSupport.LogLevel
-import org.icyphy.TargetSupport.TargetProperties
 import org.icyphy.TimeValue
 import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
@@ -78,7 +71,7 @@ import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.TargetDecl
 import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Type
@@ -88,6 +81,13 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.Target.BuildType
+import org.icyphy.Target.TargetProperties
+import org.icyphy.Target.ClockSyncMode
+import org.icyphy.Target.CoordinationType
+import org.icyphy.Target.LogLevel
+import org.icyphy.Target
+import org.icyphy.Configuration
 
 /**
  * Generator base class for shared code between code generators.
@@ -132,7 +132,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * The current target configuration.
      */
-    protected var config = new TargetConfig()
+    protected var config = new Configuration()
     
     /**
      * Collection of generated delay classes.
@@ -1136,17 +1136,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Return the target.
      */
     def findTarget(Resource resource) {
-        var target = null as Target
-        for (t : resource.allContents.toIterable.filter(Target)) {
-            if (target !== null) {
-                throw new RuntimeException("There is more than one target!")
+        var TargetDecl targetDecl
+        for (t : resource.allContents.toIterable.filter(TargetDecl)) {
+            if (targetDecl !== null) {
+                throw new RuntimeException("There is more than one target!") // FIXME: check this in validator
             }
-            target = t
+            targetDecl = t
         }
-        if (target === null) {
+        if (targetDecl === null) {
             throw new RuntimeException("No target found!")
         }
-        target
+        targetDecl
     }
 
     /**
@@ -2338,7 +2338,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * Return the Targets enum for the current target
      */
-    abstract def TargetSupport getTarget()
+    abstract def Target getTarget()
     
     /**
      * Return a string representing the specified type in the target language.
