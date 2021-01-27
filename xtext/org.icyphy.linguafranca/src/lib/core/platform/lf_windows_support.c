@@ -33,11 +33,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @see https://gist.github.com/Soroosh129/127d1893fa4c1da6d3e1db33381bb273
  */
 
-#ifndef LF_WINDOWS_SUPPORT
-#define LF_WINDOWS_SUPPORT
-
 #include <windows.h>
 #include <process.h>
+#include "../platform.h"
 
 /**
  * On Windows, one could use botha  mutex or
@@ -214,5 +212,3 @@ int lf_nanosleep(__lf_clock_t clk_id, const __lf_time_spec_t* requested_time, __
     }
     return result;
 }
-
-#endif // LF_WINDOWS_SUPPORT
