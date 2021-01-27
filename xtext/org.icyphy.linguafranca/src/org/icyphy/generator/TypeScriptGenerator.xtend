@@ -37,7 +37,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.InferredType
-import org.icyphy.Targets.LoggingLevels
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
@@ -54,6 +53,8 @@ import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Delay
+import org.icyphy.Target
+import org.icyphy.Target.LogLevel
 
 /** Generator for TypeScript target.
  *
@@ -64,19 +65,15 @@ import org.icyphy.linguaFranca.Delay
  */
 class TypeScriptGenerator extends GeneratorBase {
 
-
     ////////////////////////////////////////////
     //// Private variables
 
     new () {
         super()
         // set defaults for federate compilation
-        this.targetCompiler = "gcc"
-        this.targetCompilerFlags = "-O2"
+        config.compiler = "gcc"
+        config.compilerFlags = "-O2"
     }
-
-    // Set of acceptable import targets includes only TypeScript.
-    val acceptableTargetSet = newHashSet('TypeScript')
     
     // Path to the generated project directory
     var String projectPath
@@ -276,11 +273,11 @@ class TypeScriptGenerator extends GeneratorBase {
             val returnCode = protoc.executeCommand()
             if (returnCode == 0) {
                 val nameSansProto = filename.substring(0, filename.length - 6)
-                compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
+                config.compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
                     ".pb-c.c")
 
-                compileLibraries.add('-l')
-                compileLibraries.add('protobuf-c')
+                config.compileLibraries.add('-l')
+                config.compileLibraries.add('protobuf-c')
             } else {
                 reportError("protoc returns error code " + returnCode)    
             }
@@ -959,17 +956,6 @@ class TypeScriptGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////
     // // Protected methods.
-
-    /** Return a set of targets that are acceptable to this generator.
-     *  Imported files that are Lingua Franca files must specify targets
-     *  in this set or an error message will be reported and the import
-     *  will be ignored. The returned set is a set of case-insensitive
-     *  strings specifying target names.
-     */
-    override acceptableTargets() {
-        acceptableTargetSet
-    }
-    
     
     /**
      * Generate code for the body of a reaction that handles input from the network
@@ -1118,8 +1104,8 @@ class TypeScriptGenerator extends GeneratorBase {
         val setParameters = '''
             // ************* App Parameters
             let __timeout: TimeValue | undefined = «getTimeoutTimeValue»;
-            let __keepAlive: boolean = «targetKeepalive»;
-            let __fast: boolean = «targetFast»;
+            let __keepAlive: boolean = «config.keepalive»;
+            let __fast: boolean = «config.fastMode»;
             
             let __noStart = false; // If set to true, don't start the app.
             
@@ -1345,10 +1331,10 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The logging target property's value in all caps.
      */
     private def getLoggingLevel() {
-        if (targetLoggingLevel === null) {
-            LoggingLevels.ERROR.toString
+        if (config.logLevel === null) {
+            LogLevel.ERROR.name
         } else {
-            targetLoggingLevel
+            config.logLevel.name
         }
     }
     
@@ -1465,8 +1451,8 @@ class TypeScriptGenerator extends GeneratorBase {
     }
     
     private def getTimeoutTimeValue() {
-        if (targetTimeout >= 0) {
-            return timeInTargetLanguage(new TimeValue(targetTimeout, targetTimeoutUnit))
+        if (config.timeout !== null) {
+            return timeInTargetLanguage(config.timeout)
         } else {
             return "undefined"
         }
@@ -1518,5 +1504,9 @@ import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, C
     
     override String generateDelayGeneric()
         '''T extends Present'''
+        
+    override getTarget() {
+        return Target.TS
+    }
 
 }

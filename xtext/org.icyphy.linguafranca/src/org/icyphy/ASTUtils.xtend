@@ -47,6 +47,8 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.ArraySpec
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
+import org.icyphy.linguaFranca.Delay
+import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -66,7 +68,7 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
-import org.icyphy.linguaFranca.Delay
+import org.icyphy.Target.CoordinationType
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -375,7 +377,8 @@ class ASTUtils {
         Connection connection, 
         FederateInstance leftFederate,
         FederateInstance rightFederate,
-        GeneratorBase generator
+        GeneratorBase generator,
+        CoordinationType coordination
     ) {
         val factory = LinguaFrancaFactory.eINSTANCE
         // Assume all the types are the same, so just use the first on the right.
@@ -417,7 +420,7 @@ class ASTUtils {
             // If the connection is logical but coordination
             // is decentralized, we would need
             // to make P2P connections
-            if (generator.targetCoordination.equals("decentralized")) {
+            if (coordination === CoordinationType.DECENTRALIZED) {
                 leftFederate.outboundP2PConnections.add(rightFederate)
                 rightFederate.inboundP2PConnections.add(leftFederate)                
             }            
@@ -812,6 +815,53 @@ class ASTUtils {
         	buffer.deleteCharAt(buffer.length - 1) // remove the last newline
         } 
         buffer.toString
+    }
+    
+    /**
+     * Return a textual representation of the given element, 
+     * without quotes if there are any.
+     * 
+     * @param e The element to be rendered as a string.
+     */
+    def static String toText(Element e) {
+        var str = ""
+        if (e.literal !== null) {
+            str = e.literal.withoutQuotes
+        }
+        if (e.id !== null) {
+            str = e.id
+        }
+        return '''«str»'''
+    }
+    
+    /**
+     * Return an integer representation of the given element.
+     * 
+     * Internally, this method uses Integer.decode, so it will
+     * also understand hexadecimal, binary, etc.
+     * 
+     * @param e The element to be rendered as an integer.
+     */
+    def static toInteger(Element e) {
+        return Integer.decode(e.literal)
+    }
+    
+    /**
+     * Return a time value based on the given element.
+     * 
+     * @param e The element to be rendered as a time value.
+     */
+    def static toTimeValue(Element e) {
+        return new TimeValue(e.time, e.unit)
+    }
+    
+    /**
+     * Return a boolean based on the given element.
+     * 
+     * @param e The element to be rendered as a boolean.
+     */
+    def static toBoolean(Element e) {
+        return e.toText.equalsIgnoreCase('true')
     }
     
     /**
