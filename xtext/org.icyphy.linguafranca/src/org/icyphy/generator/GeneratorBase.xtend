@@ -323,13 +323,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected String targetBankIndexType = "int"
 
     /**
-     * The custom build command, which replaces the default build process of
-     * invoking GCC. A common usage of this target property is to set the command
-     * to "make", provide a Makefile, and include it using the "files" parameter. 
-     */
-    protected List<String> targetBuildCommands = newLinkedList
-
-    /**
      * Clock sync options.
      */
     protected LinkedHashMap<String,Element> targetClockSyncOptions = newLinkedHashMap
@@ -422,10 +415,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 switch TargetProperties.get(param.name) {
                     case BUILD: {
                         if (param.value.literal !== null) {
-                            targetBuildCommands.add(param.value.toText)
+                            config.buildCommands.add(param.value.toText)
                         } else if (param.value.array !== null) {
                             for (cmd : param.value.array.elements) {
-                                targetBuildCommands.add(cmd.toText)
+                                config.buildCommands.add(cmd.toText)
                             }
                         }
                     }
@@ -889,7 +882,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def runBuildCommand() {
         var commands = newLinkedList
-        for (cmd : this.targetBuildCommands) {
+        for (cmd : config.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 1) {
                 val buildCommand = createCommand(tokens.head,
@@ -908,7 +901,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             val returnCode = cmd.executeCommand(stderr)
     
             if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-                reportError('''Build command "«targetBuildCommands»" returns error code «returnCode»''')
+                reportError('''Build command "«config.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
