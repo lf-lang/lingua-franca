@@ -419,7 +419,7 @@ class ASTUtils {
             // If the connection is logical but coordination
             // is decentralized, we would need
             // to make P2P connections
-            if (generator.targetCoordination == CoordinationType.DECENTRALIZED) {
+            if (generator.targetCoordination === CoordinationType.DECENTRALIZED) {
                 leftFederate.outboundP2PConnections.add(rightFederate)
                 rightFederate.inboundP2PConnections.add(leftFederate)                
             }            

@@ -2263,7 +2263,8 @@ class CGenerator extends GeneratorBase {
         // Construct the intended_tag inheritance code to go into
         // the body of the function.
         var StringBuilder intendedTagInheritenceCode = new StringBuilder()
-        if (isFederatedAndDecentralized) {
+        // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the tardiness
+        if (isFederatedAndDecentralized && !reaction.effects.nullOrEmpty) {
             pr(intendedTagInheritenceCode, '''
                 if (self->___reaction_«reactionIndex».is_tardy == true) {
             ''')
@@ -4021,8 +4022,8 @@ class CGenerator extends GeneratorBase {
         }
         if (isPhysical) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
-            messageType = "P2P_MESSAGE"            
-        } else if (targetCoordination == CoordinationType.DECENTRALIZED) {
+            messageType = "P2P_MESSAGE"
+        } else if (targetCoordination === CoordinationType.DECENTRALIZED) {
             socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
