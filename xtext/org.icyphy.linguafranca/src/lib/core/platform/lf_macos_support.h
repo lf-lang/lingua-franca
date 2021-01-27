@@ -32,22 +32,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef LF_MACOS_SUPPORT_H
 #define LF_MACOS_SUPPORT_H
 
+#ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
-
-typedef pthread_mutex_t __lf_mutex_t;
-typedef pthread_cond_t __lf_cond_t;
-typedef pthread_t __lf_thread_t;
-
-#define __LF_TIMEOUT ETIMEDOUT
-
+#include "lf_POSIX_threads_support.h"
 #else
-
-typedef mtx_t __lf_mutex_t;
-typedef cnd_t __lf_cond_t;
-typedef thrd_t __lf_thread_t;
-
-#define __LF_TIMEOUT thrd_timedout
-
+#include "lf_C11_threads_support.h"
+#endif
 #endif
 
 typedef struct timespec __lf_time_spec_t;

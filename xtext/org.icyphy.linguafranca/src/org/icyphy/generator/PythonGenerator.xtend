@@ -637,7 +637,7 @@ class PythonGenerator extends CGenerator {
     from setuptools import setup, Extension
     
     linguafranca«filename»module = Extension("LinguaFranca«filename»",
-                                               sources = ["«filename».c", «FOR src : compileAdditionalSources SEPARATOR ", "» "«src»"«ENDFOR»],
+                                               sources = ["«filename».c", «FOR src : config.compileAdditionalSources SEPARATOR ", "» "«src»"«ENDFOR»],
                                                define_macros=[('MODULE_NAME', 'LinguaFranca«filename»')])
     
     setup(name="LinguaFranca«filename»", version="1.0",
