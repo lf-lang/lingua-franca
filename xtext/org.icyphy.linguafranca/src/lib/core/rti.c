@@ -947,6 +947,24 @@ void handle_physical_clock_sync_message(federate_t* my_fed, socket_type_t socket
  */
 void* clock_synchronization_thread(void* noargs) {
 
+    // Wait until all federates have been notified of the start time.
+    // FIXME: Use lf_ version of this when merged with master.
+    pthread_mutex_lock(&rti_mutex);
+    while (num_feds_proposed_start < NUMBER_OF_FEDERATES) {
+        pthread_cond_wait(&received_start_times, &rti_mutex);
+    }
+    pthread_mutex_unlock(&rti_mutex);
+
+    // Wait until the start time before starting clock synchronization.
+    // The above wait ensures that start_time has been set.
+    interval_t ns_to_wait = start_time - get_physical_time();
+
+    if (ns_to_wait > 0LL) {
+        struct timespec wait_time = {ns_to_wait / BILLION, ns_to_wait % BILLION};
+        struct timespec rem_time;
+        nanosleep(&wait_time, &rem_time);
+    }
+
     // Initiate a clock synchronization every _LF_CLOCK_SYNC_PERIOD_NS
     struct timespec sleep_time = {(time_t) _LF_CLOCK_SYNC_PERIOD_NS / BILLION,
                                   _LF_CLOCK_SYNC_PERIOD_NS % BILLION};
@@ -964,8 +982,6 @@ void* clock_synchronization_thread(void* noargs) {
             } else if (!federates[fed].clock_synchronization_enabled) {
                 continue;
             }
-            // FIXME: This shouldn't be set to true until after comm has occurred successfully.
-            any_federates_connected = true;
             // Send the RTI's current physical time to the federate
             // Send on UDP.
             DEBUG_PRINT("RTI sending T1 message to initiate clock sync round.");
@@ -976,7 +992,7 @@ void* clock_synchronization_thread(void* noargs) {
             unsigned char buffer[message_size];
             // Maximum number of messages that we discard before giving up on this cycle.
             // If the T3 message from this federate does not arrive and we keep receiving
-            // other message, then give up on this federate and move to the next federate.
+            // other messages, then give up on this federate and move to the next federate.
             int remaining_attempts = 5;
             while (remaining_attempts > 0) {
                 remaining_attempts--;
@@ -995,7 +1011,7 @@ void* clock_synchronization_thread(void* noargs) {
                         }
                         DEBUG_PRINT("Clock sync: RTI received T3 message from federate %d.", fed_id);
                         handle_physical_clock_sync_message(&federates[fed_id], UDP);
-                        remaining_attempts = 0;
+                        break;
                     } else {
                         // The message is not a T3 message. Discard the message and
                         // continue waiting for the T3 message. This is possibly a message
@@ -1014,6 +1030,9 @@ void* clock_synchronization_thread(void* noargs) {
                             federates[fed].id);
                     remaining_attempts = -1;
                 }
+            }
+            if (remaining_attempts > 0) {
+                any_federates_connected = true;
             }
         }
     }
@@ -1281,7 +1300,7 @@ void connect_to_federates(int socket_descriptor) {
             federates[fed_id].state = PENDING;
 
             DEBUG_PRINT("RTI responding with ACK to federate %d.", fed_id);
-            // Send an ACK message and the server's UDP port number
+            // Send an ACK message and the server's TCP port number
             unsigned char ack_message = ACK;
             write_to_socket_errexit(socket_id, 1, &ack_message,
                     "RTI failed to write ACK message to federate %d.", fed_id);
@@ -1296,7 +1315,7 @@ void connect_to_federates(int socket_descriptor) {
                         "Clock sync disabled.", fed_id, response[0]);
                 federates[fed_id].clock_synchronization_enabled = false;
             } else {
-#ifdef _LF_CLOCK_SYNC_INITIAL // If no initial clock sync, no need to set up the UDP port.
+#ifdef _LF_CLOCK_SYNC_INITIAL // If no initial clock sync, no need perform initial clock sync.
                 ushort federate_UDP_port_number = extract_ushort(&(response[1]));
 
                 // A port number of USHRT_MAX means initial clock sync should not be performed.
@@ -1346,7 +1365,7 @@ void connect_to_federates(int socket_descriptor) {
 
         // Create a thread to communicate with the federate.
         // This has to be done after clock synchronization is finished
-        // or that thread may end up attetmpting to handle incoming clock
+        // or that thread may end up attempting to handle incoming clock
         // synchronization messages.
         pthread_create(&(federates[fed_id].thread_id), NULL, federate_thread_TCP, &(federates[fed_id]));
     }

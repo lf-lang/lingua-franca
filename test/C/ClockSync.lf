@@ -10,6 +10,7 @@
 target C {
     coordination: decentralized,
     timeout: 10 sec,
+    logging: log,
     clock-sync: on,                // Turn on runtime clock synchronization.
     clock-sync-options: {
         local-federates-on: true,  // Forces all federates to perform clock sync.
@@ -41,7 +42,7 @@ reactor Printer {
 
     reaction(startup) {=
         interval_t offset = _lf_global_physical_clock_offset + _lf_global_test_physical_clock_offset;
-        info_print("Clock synchronization error at startup is %lld ns.", offset);
+        info_print("Clock sync error at startup is %lld ns.", offset);
     =}
         
     reaction(in) {=
@@ -50,7 +51,7 @@ reactor Printer {
     
     reaction(shutdown) {=
         interval_t offset = _lf_global_physical_clock_offset + _lf_global_test_physical_clock_offset;
-        info_print("Clock synchronization error at shutdown is %lld ns.", offset);
+        info_print("Clock sync error at shutdown is %lld ns.", offset);
         // Error out if the offset is bigger than 1 msec.
         if (offset > MSEC(1)) {
             error_print("Offset exceeds test threshold of 1 msec.");
