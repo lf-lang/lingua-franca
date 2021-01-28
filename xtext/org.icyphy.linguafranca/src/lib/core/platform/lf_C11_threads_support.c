@@ -36,7 +36,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Create a new thread, starting with execution of lf_thread
  * getting passed arguments. The new handle is stored in thread.
  */
-int lf_thread_create(__lf_thread_t* thread, void *(*lf_thread) (void *), void* arguments) {
+int lf_thread_create(_lf_thread_t* thread, void *(*lf_thread) (void *), void* arguments) {
     return thrd_create((thrd_t*)thread, (thrd_start_t)lf_thread, arguments);
 }
 
@@ -45,57 +45,57 @@ int lf_thread_create(__lf_thread_t* thread, void *(*lf_thread) (void *), void* a
  * exit status of the thread is stored in thread_return, if thread_return
  * is not NULL.
  */
-int lf_thread_join(__lf_thread_t thread, void** thread_return) {
+int lf_thread_join(_lf_thread_t thread, void** thread_return) {
     thread_return = (void**)malloc(sizeof(void*));
     *thread_return= (int*)malloc(sizeof(int));
     return thrd_join((thrd_t)thread, (int*)*thread_return);
 }
 
 /* Initialize a mutex. */
-int lf_mutex_init(__lf_mutex_t* mutex) {
+int lf_mutex_init(_lf_mutex_t* mutex) {
     // Set up a timed and recursive mutex (default behavior)
     return mtx_init((mtx_t*)mutex, mtx_timed | mtx_recursive);
 }
 
 /* Lock a mutex.  */
-int lf_mutex_lock(__lf_mutex_t* mutex) {
+int lf_mutex_lock(_lf_mutex_t* mutex) {
     return mtx_lock((mtx_t*) mutex);
 }
 
 /* Unlock a mutex.  */
-int lf_mutex_unlock(__lf_mutex_t* mutex) {
+int lf_mutex_unlock(_lf_mutex_t* mutex) {
     return mtx_unlock((mtx_t*) mutex);
 }
 
 /* Initialize a conditional variable. */
-int lf_cond_init(__lf_cond_t* cond) {
+int lf_cond_init(_lf_cond_t* cond) {
     return cnd_init((cnd_t*)cond);
 }
 
 /* Wake up all threads waiting for condition variable cond.  */
-int lf_cond_broadcast(__lf_cond_t* cond) {
+int lf_cond_broadcast(_lf_cond_t* cond) {
     return cnd_broadcast((cnd_t*)cond);
 }
 
 /* Wake up one thread waiting for condition variable cond.  */
-int lf_cond_signal(__lf_cond_t* cond) {
+int lf_cond_signal(_lf_cond_t* cond) {
     return cnd_signal((cnd_t*)cond);
 }
 
 /* Wait for condition variable COND to be signaled or broadcast.
    MUTEX is assumed to be locked before. */
-int lf_cond_wait(__lf_cond_t* cond, __lf_mutex_t* mutex) {
+int lf_cond_wait(_lf_cond_t* cond, _lf_mutex_t* mutex) {
     return cnd_wait((cnd_t*)cond, (mtx_t*)mutex);
 }
 
 /** 
  * Block current thread on the condition variable until condition variable
- * pointed by __COND is signaled or time pointed by __TIME_POINT is
+ * pointed by COND is signaled or time pointed by TIME_POINT is
  * reached.
  * 
  * @return 0 on success and LF_TIMEOUT on timeout.
  */
-int lf_cond_timedwait(__lf_cond_t* cond, __lf_mutex_t* mutex, long long absolute_time_ns) {
+int lf_cond_timedwait(_lf_cond_t* cond, _lf_mutex_t* mutex, long long absolute_time_ns) {
     // Convert the absolute time to a timespec.
     // timespec is seconds and nanoseconds.
     struct timespec timespec_absolute_time

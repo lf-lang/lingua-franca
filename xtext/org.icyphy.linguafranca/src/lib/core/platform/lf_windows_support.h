@@ -48,25 +48,25 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * critical sections are lighter and limited to one process
  * and thus fit the requirements of Lingua Franca.
  */
-typedef CRITICAL_SECTION __lf_mutex_t;
+typedef CRITICAL_SECTION _lf_mutex_t;
 /**
  * For compatibility with other platform APIs, we assume
  * that mutex is analogous to critical section.
  */
-typedef __lf_mutex_t __lf_critical_section_t
+typedef _lf_mutex_t _lf_critical_section_t
 
-typedef CONDITION_VARIABLE __lf_cond_t;
-typedef HANDLE __lf_thread_t;
+typedef CONDITION_VARIABLE _lf_cond_t;
+typedef HANDLE _lf_thread_t;
 
 #else
 #include "lf_C11_threads_support.h"
 #endif
 #endif
 
-typedef struct timespec __lf_time_spec_t;
-typedef int __lf_clock_t;
+typedef struct timespec _lf_time_spec_t;
+typedef int _lf_clock_t;
 
-#define __LF_TIMEOUT ETIMEDOUT
+#define _LF_TIMEOUT ETIMEDOUT
 
 #endif // LF_WINDOWS_SUPPORT_H
 

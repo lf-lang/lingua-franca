@@ -34,10 +34,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <threads.h>
 
-typedef mtx_t __lf_mutex_t;
-typedef cnd_t __lf_cond_t;
-typedef thrd_t __lf_thread_t;
+typedef mtx_t _lf_mutex_t;
+typedef cnd_t _lf_cond_t;
+typedef thrd_t _lf_thread_t;
 
-#define __LF_TIMEOUT thrd_timedout
+#define _LF_TIMEOUT thrd_timedout
 
 #endif // LF_C11_THREADS_SUPPORT_H

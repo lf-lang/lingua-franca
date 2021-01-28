@@ -44,13 +44,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Fetch the value of clk_id and store it in tp.
  */
-int lf_clock_gettime(__lf_clock_t clk_id, __lf_time_spec_t* tp) {
+int lf_clock_gettime(_lf_clock_t clk_id, _lf_time_spec_t* tp) {
     return clock_gettime((clockid_t)clk_id, (struct timespec*) tp);
 }
 
 /**
  * Pause execution for a number of nanoseconds.
  */
-int lf_nanosleep(__lf_clock_t clk_id, const __lf_time_spec_t* requested_time, __lf_time_spec_t* remaining) {
+int lf_nanosleep(_lf_clock_t clk_id, const _lf_time_spec_t* requested_time, _lf_time_spec_t* remaining) {
     return clock_nanosleep(clk_id, 0, (const struct timespec*)requested_time, (struct timespec*)remaining);
 }

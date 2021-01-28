@@ -35,10 +35,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <pthread.h>
 
-typedef pthread_mutex_t __lf_mutex_t;
-typedef pthread_cond_t __lf_cond_t;
-typedef pthread_t __lf_thread_t;
+typedef pthread_mutex_t _lf_mutex_t;
+typedef pthread_cond_t _lf_cond_t;
+typedef pthread_t _lf_thread_t;
 
-#define __LF_TIMEOUT ETIMEDOUT
+#define _LF_TIMEOUT ETIMEDOUT
 
 #endif // LF_POSIX_threads_SUPPORT_H

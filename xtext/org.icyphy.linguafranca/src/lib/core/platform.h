@@ -55,15 +55,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef NUMBER_OF_WORKERS
-#define LF_TIMEOUT __LF_TIMEOUT
+#define LF_TIMEOUT _LF_TIMEOUT
 
-typedef __lf_mutex_t lf_mutex_t;          // Type to hold handle to a mutex
-typedef __lf_cond_t lf_cond_t;            // Type to hold handle to a condition variable
-typedef __lf_thread_t lf_thread_t;        // Type to hold handle to a thread
+typedef _lf_mutex_t lf_mutex_t;          // Type to hold handle to a mutex
+typedef _lf_cond_t lf_cond_t;            // Type to hold handle to a condition variable
+typedef _lf_thread_t lf_thread_t;        // Type to hold handle to a thread
 #endif
 
-typedef __lf_time_spec_t lf_time_spec_t;  // Type to hold time in a traditional {second, nanosecond} POSIX format
-typedef __lf_clock_t lf_clock_t;          // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
+typedef _lf_time_spec_t lf_time_spec_t;  // Type to hold time in a traditional {second, nanosecond} POSIX format
+typedef _lf_clock_t lf_clock_t;          // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
 
 #ifdef NUMBER_OF_WORKERS
 
