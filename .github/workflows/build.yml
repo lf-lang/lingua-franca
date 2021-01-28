@@ -80,7 +80,7 @@ jobs:
         shell: wsl-bash {0}
         run: |
           sudo apt-get update
-          sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
+          sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler
         if: runner.os == 'Windows'
       - name: Run C tests;
         run: |
@@ -102,6 +102,15 @@ jobs:
       - name: Install Dependencies OS X
         run: brew install coreutils
         if: runner.os == 'macOS'
+      - name: Setup WSL
+        uses: Vampire/setup-wsl@v1
+        if: runner.os == 'Windows'
+      - name: Install Dependencies Windows
+        shell: wsl-bash {0}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libprotobuf-dev protobuf-compiler
+        if: runner.os == 'Windows'
       - uses: actions/checkout@v2
       - name: Run C++ tests;
         run: |
@@ -129,11 +138,14 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
+      - name: Setup WSL
+        uses: Vampire/setup-wsl@v1
+        if: runner.os == 'Windows'
       - name: Install Dependencies Windows
-        uses: lukka/run-vcpkg@v4
-        with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+        shell: wsl-bash {0}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libprotobuf-dev protobuf-compiler
         if: runner.os == 'Windows'
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
@@ -178,7 +190,7 @@ jobs:
         shell: wsl-bash {0}
         run: |
           sudo apt-get update
-          sudo apt-get install libprotobuf-dev protobuf-compiler
+          sudo apt-get install -y libprotobuf-dev protobuf-compiler
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
