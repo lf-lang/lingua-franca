@@ -74,9 +74,10 @@ jobs:
           brew install coreutils
         if: runner.os == 'macOS'
       - name: Install Dependencies Windows
+        uses: Vampire/setup-wsl@v1
+        shell: wsl-bash
         run: |
           sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
-        shell: bash
         if: runner.os == 'Windows'
       - name: Run C tests;
         run: |
@@ -168,9 +169,10 @@ jobs:
           brew install coreutils
         if: runner.os == 'macOS'
       - name: Install Dependencies Windows
+        uses: Vampire/setup-wsl@v1
+        shell: wsl-bash
         run: |
           sudo apt-get install libprotobuf-dev protobuf-compiler
-        shell: bash
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
