@@ -77,6 +77,9 @@ jobs:
         run: |
           curl -s https://codecov.io/bash | bash
           sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_NAME: ${{ runner.os }} Python ${{ matrix.python-version }}
         shell: bash
         if: runner.os == 'Windows'
       - name: Run C tests;
@@ -172,6 +175,9 @@ jobs:
         run: |
           curl -s https://codecov.io/bash | bash
           sudo apt-get install libprotobuf-dev protobuf-compiler
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_NAME: ${{ runner.os }} Python ${{ matrix.python-version }}
         shell: bash
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
