@@ -631,7 +631,7 @@ class PythonGenerator extends CGenerator {
     /**
      * Generate the setup.py required to compile and install the module.
      * Currently, the package name is based on filename which does not support sharing the setup.py for multiple .lf files.
-     * TODO: use an alternative package name (possibly based on folder name)     * 
+     * TODO: use an alternative package name (possibly based on folder name)
      * 
      * If the LF program itself is threaded or if tracing is enabled, NUMBER_OF_WORKERS is added as a macro
      * so that platform-specific C files will contain the appropriate functions.

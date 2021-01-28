@@ -173,10 +173,10 @@ jobs:
       - name: Install Dependencies Windows
         run: |
           curl -s https://codecov.io/bash | bash
-        shell: bash
         with:
           vcpkgArguments: 'protobuf'
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+        shell: bash
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
