@@ -939,6 +939,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // If threaded computation is requested, add a -pthread option.
         if (config.threads !== 0 || config.tracing) {
             compileArgs.add("-pthread")
+            // If the LF program itself is threaded or if tracing is enabled, we need to define
+            // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
+            compileArgs.add('''-DNUMBER_OF_WORKERS=«config.threads»''')
         }
         // Finally add the compiler flags in target parameters (if any)
         if (!config.compilerFlags.isEmpty()) {

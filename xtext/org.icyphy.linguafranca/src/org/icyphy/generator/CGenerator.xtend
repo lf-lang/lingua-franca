@@ -290,7 +290,7 @@ class CGenerator extends GeneratorBase {
     //// Private variables
         
     // Place to collect code to initialize the trigger objects for all reactor instances.
-    var initializeTriggerObjects = new StringBuilder()
+    protected var initializeTriggerObjects = new StringBuilder()
 
     // Place to collect code to go at the end of the __initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
@@ -345,14 +345,6 @@ class CGenerator extends GeneratorBase {
         
         // The following generates code needed by all the reactors.
         super.doGenerate(resource, fsa, context)        
-        
-        
-        if (config.threads > 0) {
-            // Add NUMBER_OF_WORKERS as a compile-time definition to enable proper functionality
-            // for platform.h
-            config.compilerFlags = '''-DNUMBER_OF_WORKERS=«config.threads» ''' + config.compilerFlags
-        }
-        
 
         // Generate code for each reactor.
         val names = newLinkedHashSet
@@ -773,9 +765,9 @@ class CGenerator extends GeneratorBase {
                                 }
                             }
                             «IF federate.inboundP2PConnections.length > 0»
-                                «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
+                                «/* FIXME: This lf_thread_join causes the program to freeze indefinitely on MacOS. */»
                                 // void* thread_return;
-                                // pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                                // lf_thread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
                             write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
@@ -899,7 +891,7 @@ class CGenerator extends GeneratorBase {
                     // connect_to_federate for each outbound physical connection at the same
                     // time that the new thread is listening for such connections for inbound
                     // physical connections. The thread will live until termination.
-                    pthread_create(&_lf_inbound_p2p_handling_thread_id, NULL, handle_p2p_connections_from_federates, NULL);
+                    lf_thread_create(&_lf_inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
                             
