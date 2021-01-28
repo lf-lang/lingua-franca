@@ -19,6 +19,7 @@ BankToBank.lf
 BankToBankMultiport.lf
 BankToBankMultiportAfter.lf
 BankToMultiport.lf
+ClockSync.lf
 Composition.lf
 CompositionAfter.lf
 CompositionGain.lf
