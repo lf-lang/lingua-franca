@@ -77,7 +77,7 @@ jobs:
         uses: Vampire/setup-wsl@v1
         if: runner.os == 'Windows'
       - name: Install Dependencies Windows
-        shell: wsl-bash
+        shell: wsl-bash {0}
         run: |
           sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
         if: runner.os == 'Windows'
@@ -174,7 +174,7 @@ jobs:
         uses: Vampire/setup-wsl@v1
         if: runner.os == 'Windows'
       - name: Install Dependencies Windows
-        shell: wsl-bash
+        shell: wsl-bash {0}
         run: |
           sudo apt-get install libprotobuf-dev protobuf-compiler
         if: runner.os == 'Windows'
