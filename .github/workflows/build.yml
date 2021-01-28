@@ -86,6 +86,7 @@ jobs:
         run: |
           bin/build-lfc;
           bin/run-lf-tests C;
+        shell: bash
   
   cpp-tests:
     strategy:
@@ -116,6 +117,7 @@ jobs:
         run: |
           bin/build-lfc;
           bin/run-lf-tests Cpp;
+        shell: bash
         
   ts-tests:
     strategy:
@@ -161,6 +163,7 @@ jobs:
         run: |
           bin/build-lfc;
           bin/run-lf-tests TS;
+        shell: bash
         
   python-tests:
     strategy:
@@ -200,6 +203,7 @@ jobs:
         run: |
           bin/build-lfc;
           bin/run-lf-tests Python;
+        shell: bash
         
 
     
