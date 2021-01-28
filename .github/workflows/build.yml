@@ -73,8 +73,10 @@ jobs:
           brew install protobuf-c
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Dependencies Windows
+      - name: Setup WSL
         uses: Vampire/setup-wsl@v1
+        if: runner.os == 'Windows'
+      - name: Install Dependencies Windows
         shell: wsl-bash
         run: |
           sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
@@ -168,8 +170,10 @@ jobs:
           brew install protobuf
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Dependencies Windows
+      - name: Setup WSL
         uses: Vampire/setup-wsl@v1
+        if: runner.os == 'Windows'
+      - name: Install Dependencies Windows
         shell: wsl-bash
         run: |
           sudo apt-get install libprotobuf-dev protobuf-compiler
