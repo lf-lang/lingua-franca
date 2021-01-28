@@ -40,7 +40,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-typedef struct timespec __lf_time_spec_t;
-typedef int __lf_clock_t;
+typedef struct timespec _lf_time_spec_t;
+typedef int _lf_clock_t;
 
-#endif LF_MACOS_SUPPORT_H
+#endif // LF_MACOS_SUPPORT_H

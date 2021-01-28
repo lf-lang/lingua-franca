@@ -344,7 +344,15 @@ class CGenerator extends GeneratorBase {
             IGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
-        super.doGenerate(resource, fsa, context)
+        super.doGenerate(resource, fsa, context)        
+        
+        
+        if (config.threads > 0) {
+            // Add NUMBER_OF_WORKERS as a compile-time definition to enable proper functionality
+            // for platform.h
+            config.compilerFlags = '''-DNUMBER_OF_WORKERS=«config.threads» ''' + config.compilerFlags
+        }
+        
 
         // Generate code for each reactor.
         val names = newLinkedHashSet
@@ -4146,12 +4154,6 @@ class CGenerator extends GeneratorBase {
         // First, if there are federates, then ensure that threading is enabled.
         if (config.threads === 0 && federates.length > 1) {
             config.threads = 1
-        }
-        
-        if (config.threads > 0) {
-            // Add NUMBER_OF_WORKERS as a compile-time definition to enable proper functionality
-            // for platform.h
-            config.compilerFlags = '''-DNUMBER_OF_WORKERS=«config.threads» ''' + config.compilerFlags
         }
         
         includeTargetLanguageHeaders()
