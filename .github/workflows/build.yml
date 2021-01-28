@@ -173,9 +173,7 @@ jobs:
       - name: Install Dependencies Windows
         run: |
           curl -s https://codecov.io/bash | bash
-        with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          sudo apt-get install libprotobuf-dev protobuf-compiler
         shell: bash
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
