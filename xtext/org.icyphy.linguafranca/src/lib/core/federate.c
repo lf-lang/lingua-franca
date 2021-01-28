@@ -812,6 +812,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
                     coded_probe_distance,
                     r5 - r4,
                     t5 - t4);
+            _lf_rti_socket_stat.received_T4_messages_in_current_sync_window--;
             return;
         }
         // Apply a jitter attenuator to the estimated clock error to prevent
@@ -1597,7 +1598,7 @@ void* listen_to_rti_UDP_thread(void* args) {
     // Listen for UDP messages from the RTI.
     // The only expected messages are T1 and T4, which have
     // a payload of a time value.
-    size_t message_size = 1 + sizeof(instant_t);
+    int message_size = 1 + sizeof(instant_t);
     unsigned char buffer[message_size];
     // This thread will be either waiting for T1 or waiting
     // for T4. Track the mode with this variable:
@@ -1612,14 +1613,17 @@ void* listen_to_rti_UDP_thread(void* args) {
         int bytes_read = 0;
         // Read from the UDP socket
         do {
-            bytes_read += recvfrom(_lf_rti_socket_UDP,                  // The UDP socket
-                                    buffer,                             // The buffer to read into
+            int bytes = recvfrom(_lf_rti_socket_UDP,                    // The UDP socket
+                                    &buffer[bytes_read],                // The buffer to read into
                                     message_size - bytes_read,          // Number of bytes to read
-                                    0,                                  // Read the entire datagram
+                                    MSG_WAITALL,                        // Read the entire datagram
                                     (struct sockaddr*)&RTI_UDP_addr,    // Record the RTI's address
                                     &RTI_UDP_addr_length);              // The RTI's address length
             // Try reading again if errno indicates the need to try again and there are more
             // bytes to read.
+            if (bytes > 0) {
+                bytes_read += bytes;
+            }
         } while ((errno == EAGAIN || errno == EWOULDBLOCK) && bytes_read < message_size);
 
         // Get local physical time before doing anything else.
@@ -1634,6 +1638,7 @@ void* listen_to_rti_UDP_thread(void* args) {
         }
         DEBUG_PRINT("Clock sync: Received UDP message %u from RTI on port %u.",
                 buffer[0], ntohs(RTI_UDP_addr.sin_port));
+
         // Handle the message
         if (waiting_for_T1) {
             if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T1) {
