@@ -79,6 +79,7 @@ jobs:
       - name: Install Dependencies Windows
         shell: wsl-bash {0}
         run: |
+          sudo apt-get update
           sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
         if: runner.os == 'Windows'
       - name: Run C tests;
@@ -176,6 +177,7 @@ jobs:
       - name: Install Dependencies Windows
         shell: wsl-bash {0}
         run: |
+          sudo apt-get update
           sudo apt-get install libprotobuf-dev protobuf-compiler
         if: runner.os == 'Windows'
       - name: Install Google API Python Client
