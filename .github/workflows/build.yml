@@ -76,10 +76,8 @@ jobs:
       - name: Install Dependencies Windows
         run: |
           curl -s https://codecov.io/bash | bash
+          sudo apt-get install libprotobuf-c-dev protobuf-c-compiler
         shell: bash
-        with:
-          vcpkgArguments: 'protobuf'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
         if: runner.os == 'Windows'
       - name: Run C tests;
         run: |
