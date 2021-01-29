@@ -1283,7 +1283,7 @@ void connect_to_federates(int socket_descriptor) {
             // Then extract the internet address (which is in IPv4 format) and assign it as the federate's socket server
             federates[fed_id].server_ip_addr = pV4_addr->sin_addr;
 
-#ifdef VERBOSE
+#if LOG_LEVEL > 3
             // Then create the human readable format and copy that into
             // the .server_hostname field of the federate.
             char str[INET_ADDRSTRLEN];

@@ -594,10 +594,10 @@ void connect_to_federate(ushort remote_federate_id) {
     assert(port < 65536);
     assert(port > 0);
 
-#ifdef VERBOSE
+#if LOG_LEVEL > 3
     // Print the received IP address in a human readable format
     // Create the human readable format of the received address.
-    // This is avoided unless VERBOSE is defined by the user to
+    // This is avoided unless LOG_LEVEL is high enough to
     // subdue the overhead caused by inet_ntop().
     char hostname[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &host_ip_addr, hostname, INET_ADDRSTRLEN);

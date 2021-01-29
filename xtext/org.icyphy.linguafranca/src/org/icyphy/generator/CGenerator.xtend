@@ -2891,15 +2891,21 @@ class CGenerator extends GeneratorBase {
         // FIXME: if we align the levels with the ordinals of the
         // enum (see CppGenerator), then we don't need this function.
         switch(generator.config.logLevel) {
-            case ERROR: '''''' // #define LOG_LEVEL 0
-            case WARN: '''''' // #define LOG_LEVEL 1
-            case INFO: '''''' // #define LOG_LEVEL 2
-            case LOG: '''
+            case ERROR: '''
+                #define LOG_LEVEL 0
+            '''
+            case WARN: '''
                 #define LOG_LEVEL 1
-            ''' // #define LOG_LEVEL 3
-            case DEBUG: '''
+            '''
+            case INFO: '''
                 #define LOG_LEVEL 2
-            ''' // #define LOG_LEVEL 4
+            ''' 
+            case LOG: '''
+                #define LOG_LEVEL 3
+            '''
+            case DEBUG: '''
+                #define LOG_LEVEL 4
+            '''
         }
     }
     
