@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "util.h"
 #include "net_util.h"
+#include "rti.h"        // Defines socket_stat_t
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -381,4 +382,45 @@ void extract_header(
     *length = extract_int(&(buffer[sizeof(unsigned short) + sizeof(unsigned short)]));
 
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
+}
+
+/**
+ * Update statistic on the socket based on the newly calculated network delay 
+ * and clock synchronization error
+ * 
+ * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
+ * @param network_round_trip_delay The newly calculated round trip delay to the remote federate/RTI
+ * @param clock_synchronization_error The newly calculated clock synchronization error relative to
+ *  the remote federate/RTI
+ */
+void update_socket_stat(socket_stat_t* socket_stat, 
+                        long long network_round_trip_delay,
+                        long long clock_synchronization_error) {
+    // Calculate the running sum
+    socket_stat->network_stat_sample_size++;
+    socket_stat->network_stat_round_trip_delay_sum += network_round_trip_delay;
+    socket_stat->network_stat_round_trip_delay_sum_of_squares += network_round_trip_delay * 
+                                                                    network_round_trip_delay;
+    
+    // Calculate the running average
+    socket_stat->network_stat_round_trip_delay_avg = (socket_stat->network_stat_round_trip_delay_sum) / 
+                                                       socket_stat->network_stat_sample_size;
+
+    // Calculate the running variance
+    socket_stat->network_stat_round_trip_delay_var = (socket_stat->network_stat_round_trip_delay_sum_of_squares /
+                                        socket_stat->network_stat_sample_size) - 
+                                       (socket_stat->network_stat_round_trip_delay_avg *
+                                        socket_stat->network_stat_round_trip_delay_avg);
+    
+    // Calculate the running standard deviation
+    // socket_stat->network_stat_round_trip_delay_sd = sqrt(network_stat_variance);
+
+    // Calculate maximums
+    if (socket_stat->network_stat_round_trip_delay_max < network_round_trip_delay) {
+        socket_stat->network_stat_round_trip_delay_max = network_round_trip_delay;
+    }
+
+    if (socket_stat->clock_synchronization_error_bound < clock_synchronization_error) {
+        socket_stat->clock_synchronization_error_bound = clock_synchronization_error;
+    }
 }

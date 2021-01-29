@@ -182,6 +182,22 @@ long long extract_ll(unsigned char* bytes);
  */
 unsigned short extract_ushort(unsigned char* bytes);
 
+/**
+ * Statistics for a given socket.
+ */
+struct socket_stat_t;
+
+/**
+ * Update statistic on the socket based on the newly calculated network delay 
+ * and clock synchronization error
+ * 
+ * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
+ * @param network_round_trip_delay The newly calculated round trip delay to the remote federate/RTI
+ * @param clock_synchronization_error The newly calculated clock synchronization error relative to
+ *  the remote federate/RTI
+ */
+void update_socket_stat(struct socket_stat_t* socket_stat, long long network_delay, long long clock_synchronization_error);
+
 /** Extract the core header information that all messages between
  *  federates share. The core header information is two bytes with
  *  the ID of the destination port, two bytes with the ID of the destination

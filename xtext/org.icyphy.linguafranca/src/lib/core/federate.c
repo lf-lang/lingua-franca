@@ -144,7 +144,14 @@ socket_stat_t _lf_rti_socket_stat = {
     .local_physical_clock_snapshot_T2 = NEVER,
     .local_delay = 0LL,
     .received_T4_messages_in_current_sync_window = 0,
-    .history = 0LL
+    .history = 0LL,
+    .network_stat_round_trip_delay_avg = 0LL,
+    .network_stat_round_trip_delay_sd = 0LL,
+    .network_stat_round_trip_delay_var = 0LL,
+    .network_stat_round_trip_delay_sum_of_squares = 0LL,
+    .network_stat_round_trip_delay_sum = 0LL,
+    .clock_synchronization_error_bound = 0LL,
+    .network_stat_sample_size = 0
 };
 
 /** 
@@ -761,6 +768,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     interval_t network_round_trip_delay = (t4
             - _lf_rti_socket_stat.remote_physical_clock_snapshot_T1)
             - _lf_rti_socket_stat.local_delay;
+    
 
     // Estimate the clock synchronization error based on the assumption
     // that the channel delay is symmetric:
@@ -817,6 +825,8 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         }
         // Apply a jitter attenuator to the estimated clock error to prevent
         // large jumps in the underlying clock.
+        // Note that estimated_clock_error is calculated using get_physical_time() which includes
+        // the _lf_global_physical_clock_offset adjustment.
         adjustment = estimated_clock_error / _LF_CLOCK_SYNC_ATTENUATION;
 
         // FIXME: Adjust drift.
@@ -830,6 +840,9 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // estimated error.
         adjustment =  estimated_clock_error;
     }
+
+    // Update RTI's socket stats
+    update_socket_stat(&_lf_rti_socket_stat, network_round_trip_delay, estimated_clock_error);
     
     // FIXME: Enable alternative regression mechanism here.
     DEBUG_PRINT("Clock sync: Adjusting clock offset running average by %lld.",
@@ -846,11 +859,15 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         _lf_global_physical_clock_offset += _lf_rti_socket_stat.history;
         LOG_PRINT("Clock sync:"
                     " New offset: %lld."
-                    " Round trip delay to RTI: %lld."
+                    " Round trip delay to RTI (now): %lld."
+                    " Round trip delay to RTI (AVG): %lld."
+                    " Round trip delay to RTI (Var): %lld."
                     " Local round trip delay: %lld."
                     " Test offset: %lld.",
                     _lf_global_physical_clock_offset,
                     network_round_trip_delay,
+                    _lf_rti_socket_stat.network_stat_round_trip_delay_avg,
+                    _lf_rti_socket_stat.network_stat_round_trip_delay_var,
                     _lf_rti_socket_stat.local_delay,
                     _lf_global_test_physical_clock_offset);
         // Reset the stats
