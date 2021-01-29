@@ -537,7 +537,27 @@ typedef struct socket_stat_t {
     int received_T4_messages_in_current_sync_window; // Checked against _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL
                                                      // Must be reset to 0 every time it reaches the threshold. 
     interval_t history;                              // A history of clock synchronization data. For AVG
-                                                     // strategy, this is a running partially compute average.
+                                                     // strategy, this is a running partially computed average.
+    
+    /***** The following stats can be used to calculate an automated STP offset **************/
+    /** FIXME: TODO: A federate should create a socket_stat_t for every federate it is connected to and keep record
+                     of the following stats **/
+    /*** Network stats ****/
+    interval_t network_stat_round_trip_delay_avg; // Average estimated delay between the local socket and the
+                                                  // remote socket.
+    interval_t network_stat_round_trip_delay_max; // Maximum estimated delay between the local socket and the
+                                                  // remote socket.
+    interval_t network_stat_round_trip_delay_sd;  // Standard deviation of estimated delays between the local 
+                                                  // socket and the remote socket.
+    interval_t network_stat_round_trip_delay_var; // Variance of estimated delays between the local 
+                                                  // socket and the remote socket.
+    interval_t network_stat_round_trip_delay_sum;            // Used to calculate a running average
+    interval_t network_stat_round_trip_delay_sum_of_squares; // Used to calculate variance and standard deviation
+    int network_stat_sample_size;                 // Number of packets used to calculate the network statistics 
+                                                  // so far
+    /*** Clock sync stats ***/
+    interval_t clock_synchronization_error_bound; // A bound on the differences between this federate's clock and
+                                                  // the remote clock.
 } socket_stat_t;
 
 /** Information about a federate, including its runtime state,
