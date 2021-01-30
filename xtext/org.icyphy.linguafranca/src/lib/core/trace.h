@@ -64,6 +64,8 @@ typedef enum {
     worker_advancing_time_ends
 } trace_event_t;
 
+#ifdef LINGUA_FRANCA_TRACE
+
 /**
  * String description of event types.
  */
@@ -78,8 +80,6 @@ static const char* trace_event_names[] = {
         "Worker advancing time starts",
         "Worker advancing time ends"
 };
-
-#ifdef LINGUA_FRANCA_TRACE
 
 // FIXME: Target property should specify the capacity of the trace buffer.
 #define TRACE_BUFFER_CAPACITY 2048

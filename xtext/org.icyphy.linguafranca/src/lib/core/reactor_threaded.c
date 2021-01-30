@@ -817,7 +817,6 @@ volatile bool __advancing_time = false;
  * @param reaction The reaction.
  */
 void _lf_enqueue_reaction(reaction_t* reaction) {
-    bool reaction_inserted = false;
     // Acquire the mutex lock.
     pthread_mutex_lock(&mutex);
     // Do not enqueue this reaction twice.
