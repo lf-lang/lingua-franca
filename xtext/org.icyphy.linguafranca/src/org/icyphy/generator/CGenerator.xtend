@@ -44,6 +44,9 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.InferredType
+import org.icyphy.Target
+import org.icyphy.Target.ClockSyncMode
+import org.icyphy.Target.CoordinationType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -64,9 +67,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Target.ClockSyncMode
-import org.icyphy.Target.CoordinationType
-import org.icyphy.Target
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -406,45 +406,8 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjectsEnd = new StringBuilder()                
                         
                 // Enable clock synchronization if the federate is not local and clock-sync is enabled
-                if (config.clockSync != ClockSyncMode.OFF
-                    && (!federationRTIProperties.get('host').toString.equals(federate.host) 
-                    || targetClockSyncOptions.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
-                ) {
-                    // Determine the period with clock clock sync will be done.
-                    var period = 'MSEC(5)'  // The default.
-                    if (targetClockSyncOptions?.get('period') !== null) {
-                        val timeValue = targetClockSyncOptions.get('period')
-                        period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
-                    }
-                    // Determine how many trials there will be each time clock sync is done.
-                    var trials = '10' // The default.
-                    if (targetClockSyncOptions?.get('trials') !== null) {
-                        trials = targetClockSyncOptions.get('trials').literal
-                    }
-                    // Determine the attenuation to apply each time clock sync is done.
-                    var attenuation = '10' // The default.
-                    if (targetClockSyncOptions?.get('attenuation') !== null) {
-                        attenuation = targetClockSyncOptions.get('attenuation').literal
-                    }
-                    // Insert the #defines at the beginning
-                    code.insert(0, '''
-                        #define _LF_CLOCK_SYNC_INITIAL
-                        #define _LF_CLOCK_SYNC_PERIOD_NS «period»
-                        #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
-                        #define _LF_CLOCK_SYNC_ATTENUATION «attenuation»
-                    ''')
-                    System.out.println("Initial clock synchronization is enabled for federate "
-                        + federate.id
-                    );
-                    if (config.clockSync == ClockSyncMode.ON) {
-                        code.insert(0, '''
-                            #define _LF_CLOCK_SYNC_ON
-                        ''')
-                        System.out.println("Runtime clock synchronization is enabled for federate "
-                            + federate.id
-                        );
-                    }
-                }
+                initializeClockSynchronization(federate)
+                
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
@@ -764,6 +727,66 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * Initialize clock synchronization (if enabled) and its related options for a given federate.
+     * 
+     * Clock synchronization can be enabled using the clock-sync target property.
+     * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
+     * 
+     * @param federate The federate to initialize clock synchronizatino for
+     */
+    protected def initializeClockSynchronization(FederateInstance federate) {
+        // Check if clock synchronization should be enabled for this federate in the first place
+        if (config.clockSync != ClockSyncMode.OFF
+            && (!federationRTIProperties.get('host').toString.equals(federate.host) 
+            || targetClockSyncOptions.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
+        ) {
+            // Determine the period with clock clock sync will be done.
+            var period = 'MSEC(5)'  // The default.
+            if (targetClockSyncOptions?.get('period') !== null) {
+                val timeValue = targetClockSyncOptions.get('period')
+                period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
+            }
+            // Determine how many trials there will be each time clock sync is done.
+            var trials = '10' // The default.
+            if (targetClockSyncOptions?.get('trials') !== null) {
+                trials = targetClockSyncOptions.get('trials').literal
+            }
+            // Determine the attenuation to apply each time clock sync is done.
+            var attenuation = '10' // The default.
+            if (targetClockSyncOptions?.get('attenuation') !== null) {
+                attenuation = targetClockSyncOptions.get('attenuation').literal
+            }            
+            // Determine if statistics should be collected
+            var collectStats = true // The default
+            if (targetClockSyncOptions?.get('collect-stats') !== null) {
+                collectStats = targetClockSyncOptions.get('collect-stats').literal?.equalsIgnoreCase('true')
+            }
+            // Insert the #defines at the beginning
+            code.insert(0, '''
+                #define _LF_CLOCK_SYNC_INITIAL
+                #define _LF_CLOCK_SYNC_PERIOD_NS «period»
+                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
+                #define _LF_CLOCK_SYNC_ATTENUATION «attenuation»
+            ''')
+            System.out.println("Initial clock synchronization is enabled for federate "
+                + federate.id
+            );
+            if (config.clockSync == ClockSyncMode.ON) {
+                code.insert(0, '''
+                    #define _LF_CLOCK_SYNC_ON
+                    «IF collectStats»
+                        #define _LF_CLOCK_SYNC_COLLECT_STATS
+                        «System.out.println("Will collect clock sync statistics for federate " + federate.id)»
+                    «ENDIF»
+                ''')
+                System.out.println("Runtime clock synchronization is enabled for federate "
+                    + federate.id
+                );
+            }
+        }
     }
     
     /**

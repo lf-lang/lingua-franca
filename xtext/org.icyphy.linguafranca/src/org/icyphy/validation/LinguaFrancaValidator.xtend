@@ -708,6 +708,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                                             Literals.KEY_VALUE_PAIR__VALUE)
                                 }
                             }
+                        } else if (entry.name.equalsIgnoreCase('collect-stats')) {
+                            if (entry.value.literal === null
+                                    || (!entry.value.literal.equalsIgnoreCase('true')
+                                    && !entry.value.literal.equalsIgnoreCase('false'))) {
+                                error("Target property clock-sync-options collect-stats"
+                                        + " entry needs to be true or false.",
+                                        Literals.KEY_VALUE_PAIR__VALUE)
+                            }
                         } else {
                             error("Unrecognized clock-sync-options entry. Options are: "
                                     + "local-federates-on, test-offset.",
