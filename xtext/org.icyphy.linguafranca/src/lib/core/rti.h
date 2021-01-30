@@ -543,16 +543,10 @@ typedef struct socket_stat_t {
     /** FIXME: TODO: A federate should create a socket_stat_t for every federate it is connected to and keep record
                      of the following stats **/
     /*** Network stats ****/
-    interval_t network_stat_round_trip_delay_avg; // Average estimated delay between the local socket and the
-                                                  // remote socket.
     interval_t network_stat_round_trip_delay_max; // Maximum estimated delay between the local socket and the
                                                   // remote socket.
-    interval_t network_stat_round_trip_delay_sd;  // Standard deviation of estimated delays between the local 
-                                                  // socket and the remote socket.
-    interval_t network_stat_round_trip_delay_sum;            // Used to calculate a running average
-    interval_t network_stat_round_trip_delay_sum_of_squares; // Used to calculate variance and standard deviation
-    int network_stat_sample_size;                 // Number of packets used to calculate the network statistics 
-                                                  // so far
+    interval_t network_stat_samples[_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL];   // Samples gathered during a clock sync period
+    int network_stat_sample_index;                // Current index of network_stat_samples
     /*** Clock sync stats ***/
     interval_t clock_synchronization_error_bound; // A bound on the differences between this federate's clock and
                                                   // the remote clock.

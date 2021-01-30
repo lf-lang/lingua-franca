@@ -326,7 +326,7 @@ class CGenerator extends GeneratorBase {
         super()
         // set defaults
         config.compiler = "gcc"
-        config.compilerFlags = "-O2"// -Wall -Wconversion"
+        config.compilerFlags.add("-O2") // -Wall -Wconversion"
     }
 
     ////////////////////////////////////////////
@@ -775,12 +775,19 @@ class CGenerator extends GeneratorBase {
                 + federate.id
             );
             if (config.clockSync == ClockSyncMode.ON) {
+                var collectStatsEnable = ''
+                if (collectStats) {
+                    collectStatsEnable = "#define _LF_CLOCK_SYNC_COLLECT_STATS"
+                    System.out.println("Will collect clock sync statistics for federate " + federate.id)
+                    // Add libm to the compiler flags
+                    // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
+                    // FIXME: This is probably going to fail on MacOS (especially using clang)
+                    // because libm functions are builtin
+                    config.compilerFlags.add("-lm")
+                }
                 code.insert(0, '''
                     #define _LF_CLOCK_SYNC_ON
-                    «IF collectStats»
-                        #define _LF_CLOCK_SYNC_COLLECT_STATS
-                        «System.out.println("Will collect clock sync statistics for federate " + federate.id)»
-                    «ENDIF»
+                    «collectStatsEnable»
                 ''')
                 System.out.println("Runtime clock synchronization is enabled for federate "
                     + federate.id
@@ -1210,7 +1217,7 @@ class CGenerator extends GeneratorBase {
             if (distCode.length === 0) pr(distCode, distHeader)
             
             val logFileName = '''log/«filename»_RTI.log'''
-            val compileCommand = '''«this.config.compiler» «config.compilerFlags» src-gen/«filename»_RTI.c -o bin/«filename»_RTI -pthread'''
+            val compileCommand = '''«this.config.compiler» «config.compilerFlags.join(" ")» src-gen/«filename»_RTI.c -o bin/«filename»_RTI -pthread'''
             
             // The mkdir -p flag below creates intermediate directories if needed.
             pr(distCode, '''
@@ -1229,7 +1236,7 @@ class CGenerator extends GeneratorBase {
                 echo "Copying source files for RTI to host «target»"
                 scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
-                echo "Compiling on host «target» using: «config.compiler» «config.compilerFlags» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                echo "Compiling on host «target» using: «config.compiler» «config.compilerFlags.join(" ")» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
                 ssh «target» ' \
                     cd «path»; \
                     echo "In «path» compiling RTI with: «compileCommand»" >> «logFileName» 2>&1; \
@@ -1277,7 +1284,7 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 val logFileName = '''log/«filename»_«federate.name».log'''
-                val compileCommand = '''«config.compiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «config.compilerFlags»'''
+                val compileCommand = '''«config.compiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «config.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"

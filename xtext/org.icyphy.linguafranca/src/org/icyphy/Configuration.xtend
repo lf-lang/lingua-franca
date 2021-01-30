@@ -76,7 +76,7 @@ class Configuration {
     /**
      * Flags to pass to the compiler, unless a build command has been specified.
      */
-    public String compilerFlags = ""
+    public List<String> compilerFlags = newArrayList
 
     /**
      * The type of coordination used during the execution of a federated program.

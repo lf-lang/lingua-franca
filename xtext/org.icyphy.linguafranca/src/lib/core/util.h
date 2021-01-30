@@ -27,11 +27,21 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
- * Header file for utility functions for Lingua Franca programs.
+ * Header file for utility types and functions for Lingua Franca programs.
  */
 
 #ifndef UTIL_H
 #define UTIL_H
+
+/**
+ * Holds generic statistical data
+ */
+typedef struct lf_stat_ll {
+    long long average;
+    long long standard_deviation;
+    long long variance;
+    long long max;
+} lf_stat_ll;
 
 /**
  * A handy macro that can concatenate three strings.
@@ -176,10 +186,5 @@ void register_print_function(print_message_function_t* function);
  *  @param msg The prefix to the message.
  */
 void error(char *msg);
-
-/**
- * Find floor square root of num
- */
-long long floor_sqrt_ll(long long num);
 
 #endif /* UTIL_H */

@@ -188,6 +188,11 @@ unsigned short extract_ushort(unsigned char* bytes);
 struct socket_stat_t;
 
 /**
+ * To hold statistics
+ */
+struct lf_stat_ll;
+
+/**
  * Update statistics on the socket based on the newly calculated network delay 
  * and clock synchronization error
  * 
@@ -197,6 +202,14 @@ struct socket_stat_t;
  *  the remote federate/RTI
  */
 void update_socket_stat(struct socket_stat_t* socket_stat, long long network_delay, long long clock_synchronization_error);
+
+/**
+ * Calculate statistics of the socket.
+ * The releavent information is returned as a lf_stat struct.
+ * 
+ * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
+ */
+struct lf_stat_ll calculate_socket_stat(struct socket_stat_t* socket_stat);
 
 /**
  * Reset statistics on the socket.
