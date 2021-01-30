@@ -15,7 +15,7 @@ target C {
         local-federates-on: true,  // Forces all federates to perform clock sync.
         collect-stats: true,       // Collect useful statistics like average network delay
                                    // and the standard deviation for the network delay over
-                                   // one clock synchronization cycle. Generates a delay
+                                   // one clock synchronization cycle. Generates a warning
                                    // if the standard deviation is higher than the clock sync
                                    // guard.
         test-offset: 200 msec,     // Artificially offsets clocks by multiples of 200 msec.
