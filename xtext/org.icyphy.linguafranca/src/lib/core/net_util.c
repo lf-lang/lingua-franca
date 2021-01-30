@@ -424,3 +424,19 @@ void update_socket_stat(socket_stat_t* socket_stat,
         socket_stat->clock_synchronization_error_bound = clock_synchronization_error;
     }
 }
+
+/**
+ * Reset statistics on the socket.
+ *  @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
+ */
+void reset_socket_stat(struct socket_stat_t* socket_stat) {
+    socket_stat->received_T4_messages_in_current_sync_window = 0;
+    socket_stat->history = 0LL;
+    socket_stat->network_stat_round_trip_delay_avg = 0LL;
+    socket_stat->network_stat_round_trip_delay_sd = 0LL;
+    socket_stat->network_stat_round_trip_delay_var = 0LL;
+    socket_stat->network_stat_round_trip_delay_sum_of_squares = 0LL;
+    socket_stat->network_stat_round_trip_delay_sum = 0LL;
+    socket_stat->clock_synchronization_error_bound = 0LL;
+    socket_stat->network_stat_sample_size = 0;
+}

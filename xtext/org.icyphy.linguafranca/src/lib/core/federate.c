@@ -860,8 +860,8 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         LOG_PRINT("Clock sync:"
                     " New offset: %lld."
                     " Round trip delay to RTI (now): %lld."
-                    " Round trip delay to RTI (AVG): %lld."
-                    " Round trip delay to RTI (Var): %lld."
+                    " (AVG): %lld."
+                    " (Variance): %lld."
                     " Local round trip delay: %lld."
                     " Test offset: %lld.",
                     _lf_global_physical_clock_offset,
@@ -871,8 +871,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
                     _lf_rti_socket_stat.local_delay,
                     _lf_global_test_physical_clock_offset);
         // Reset the stats
-        _lf_rti_socket_stat.received_T4_messages_in_current_sync_window = 0;
-        _lf_rti_socket_stat.history = 0LL;
+        reset_socket_stat(&_lf_rti_socket_stat);
         // Set the last instant at which the clocks were synchronized
         _lf_last_clock_sync_instant = r4;
     }
