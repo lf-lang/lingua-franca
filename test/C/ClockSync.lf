@@ -13,6 +13,11 @@ target C {
     clock-sync: on,                // Turn on runtime clock synchronization.
     clock-sync-options: {
         local-federates-on: true,  // Forces all federates to perform clock sync.
+        collect-stats: true,       // Collect useful statistics like average network delay
+                                   // and the standard deviation for the network delay over
+                                   // one clock synchronization cycle. Generates a delay
+                                   // if the standard deviation is higher than the clock sync
+                                   // guard.
         test-offset: 200 msec,     // Artificially offsets clocks by multiples of 200 msec.
         period: 5 msec,            // Period with which runtime clock sync is performed.
         trials: 10,                // Number of messages exchanged to perform clock sync.
