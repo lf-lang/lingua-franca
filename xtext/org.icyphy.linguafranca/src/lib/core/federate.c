@@ -146,11 +146,12 @@ socket_stat_t _lf_rti_socket_stat = {
     .received_T4_messages_in_current_sync_window = 0,
     .history = 0LL,
     .network_stat_round_trip_delay_avg = 0LL,
+    .network_stat_round_trip_delay_max = 0LL,
     .network_stat_round_trip_delay_sd = 0LL,
-    .network_stat_round_trip_delay_sum_of_squares = 0LL,
     .network_stat_round_trip_delay_sum = 0LL,
-    .clock_synchronization_error_bound = 0LL,
-    .network_stat_sample_size = 0
+    .network_stat_round_trip_delay_sum_of_squares = 0LL,
+    .network_stat_sample_size = 0,
+    .clock_synchronization_error_bound = 0LL
 };
 
 /** 
