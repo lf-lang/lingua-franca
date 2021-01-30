@@ -180,3 +180,34 @@ void error_print_and_exit(char* format, ...) {
 void register_print_function(print_message_function_t function) {
     print_message_function = function;
 }
+
+/**
+ * Find floor square root of num
+ */
+long long floor_sqrt_ll(long long num) {
+    // Base cases 
+    if (num == 0 || num == 1)  
+       return num; 
+  
+    // Do Binary Search for floor(sqrt(x)) 
+    long long start = 1, end = num, answer;    
+    while (start <= end)  
+    {         
+        long long mid = (start + end) / 2; 
+  
+        // If x is a perfect square 
+        if (mid*mid == num) 
+            return mid; 
+  
+        // Since we need floor, we update answer when mid*mid is  
+        // smaller than num, and move closer to sqrt(num) 
+        if (mid*mid < num)  
+        { 
+            start = mid + 1; 
+            answer = mid; 
+        }  
+        else // If mid*mid is greater than num 
+            end = mid-1;         
+    } 
+    return answer; 
+}

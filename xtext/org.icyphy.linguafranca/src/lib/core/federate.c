@@ -147,7 +147,6 @@ socket_stat_t _lf_rti_socket_stat = {
     .history = 0LL,
     .network_stat_round_trip_delay_avg = 0LL,
     .network_stat_round_trip_delay_sd = 0LL,
-    .network_stat_round_trip_delay_var = 0LL,
     .network_stat_round_trip_delay_sum_of_squares = 0LL,
     .network_stat_round_trip_delay_sum = 0LL,
     .clock_synchronization_error_bound = 0LL,
@@ -843,6 +842,10 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
 
     // Update RTI's socket stats
     update_socket_stat(&_lf_rti_socket_stat, network_round_trip_delay, estimated_clock_error);
+
+    if (_lf_rti_socket_stat.network_stat_round_trip_delay_sd >= CLOCK_SYNC_GUARD_BAND) {
+        warning_print("Clock sync: High variance in network delay detected. Clock synchronization might not be accurate.");
+    }
     
     // FIXME: Enable alternative regression mechanism here.
     DEBUG_PRINT("Clock sync: Adjusting clock offset running average by %lld.",
@@ -861,13 +864,13 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
                     " New offset: %lld."
                     " Round trip delay to RTI (now): %lld."
                     " (AVG): %lld."
-                    " (Variance): %lld."
+                    " (SD): %lld."
                     " Local round trip delay: %lld."
                     " Test offset: %lld.",
                     _lf_global_physical_clock_offset,
                     network_round_trip_delay,
                     _lf_rti_socket_stat.network_stat_round_trip_delay_avg,
-                    _lf_rti_socket_stat.network_stat_round_trip_delay_var,
+                    _lf_rti_socket_stat.network_stat_round_trip_delay_sd,
                     _lf_rti_socket_stat.local_delay,
                     _lf_global_test_physical_clock_offset);
         // Reset the stats
