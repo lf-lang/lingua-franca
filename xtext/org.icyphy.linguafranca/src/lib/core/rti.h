@@ -549,7 +549,11 @@ typedef struct socket_stat_t {
     /*** Clock sync stats ***/
     interval_t clock_synchronization_error_bound; // A bound on the differences between this federate's clock and
                                                   // the remote clock.
-    interval_t network_stat_samples[_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL];   // Samples gathered during a clock sync period
+    // Note: The following array should come last because g++ will not allow 
+    // designated initialization (e.g., .network_stat_sample_index = 0) out of 
+    // order and we do not want to (and cannot) initialize this array statically
+    interval_t network_stat_samples[_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL];   // Samples gathered during a clock sync 
+                                                                              // period
 } socket_stat_t;
 
 /** Information about a federate, including its runtime state,
