@@ -177,4 +177,9 @@ void register_print_function(print_message_function_t* function);
  */
 void error(char *msg);
 
+/**
+ * Find floor square root of num
+ */
+long long floor_sqrt_ll(long long num);
+
 #endif /* UTIL_H */

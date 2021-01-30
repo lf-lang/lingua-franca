@@ -407,13 +407,13 @@ void update_socket_stat(socket_stat_t* socket_stat,
                                                        socket_stat->network_stat_sample_size;
 
     // Calculate the running variance
-    socket_stat->network_stat_round_trip_delay_var = (socket_stat->network_stat_round_trip_delay_sum_of_squares /
+    interval_t network_stat_round_trip_delay_var = (socket_stat->network_stat_round_trip_delay_sum_of_squares /
                                         socket_stat->network_stat_sample_size) - 
                                        (socket_stat->network_stat_round_trip_delay_avg *
                                         socket_stat->network_stat_round_trip_delay_avg);
     
     // Calculate the running standard deviation
-    // socket_stat->network_stat_round_trip_delay_sd = sqrt(network_stat_variance);
+    socket_stat->network_stat_round_trip_delay_sd = floor_sqrt_ll(network_stat_round_trip_delay_var);
 
     // Calculate maximums
     if (socket_stat->network_stat_round_trip_delay_max < network_round_trip_delay) {
@@ -434,7 +434,6 @@ void reset_socket_stat(struct socket_stat_t* socket_stat) {
     socket_stat->history = 0LL;
     socket_stat->network_stat_round_trip_delay_avg = 0LL;
     socket_stat->network_stat_round_trip_delay_sd = 0LL;
-    socket_stat->network_stat_round_trip_delay_var = 0LL;
     socket_stat->network_stat_round_trip_delay_sum_of_squares = 0LL;
     socket_stat->network_stat_round_trip_delay_sum = 0LL;
     socket_stat->clock_synchronization_error_bound = 0LL;

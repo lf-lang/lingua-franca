@@ -549,8 +549,6 @@ typedef struct socket_stat_t {
                                                   // remote socket.
     interval_t network_stat_round_trip_delay_sd;  // Standard deviation of estimated delays between the local 
                                                   // socket and the remote socket.
-    interval_t network_stat_round_trip_delay_var; // Variance of estimated delays between the local 
-                                                  // socket and the remote socket.
     interval_t network_stat_round_trip_delay_sum;            // Used to calculate a running average
     interval_t network_stat_round_trip_delay_sum_of_squares; // Used to calculate variance and standard deviation
     int network_stat_sample_size;                 // Number of packets used to calculate the network statistics 
