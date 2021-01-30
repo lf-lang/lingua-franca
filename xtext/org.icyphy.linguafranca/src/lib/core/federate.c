@@ -843,12 +843,6 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
 #ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default 
     // Update RTI's socket stats
     update_socket_stat(&_lf_rti_socket_stat, network_round_trip_delay, estimated_clock_error);
-
-    if (_lf_rti_socket_stat.network_stat_round_trip_delay_sd >= CLOCK_SYNC_GUARD_BAND) {
-        warning_print("Clock sync: Large standard deviation detected in network delays (%.2f ms)."
-                      " Clock synchronization might not be accurate.",
-                      _lf_rti_socket_stat.network_stat_round_trip_delay_sd/BILLION*1.0);
-    }
 #endif
     
     // FIXME: Enable alternative regression mechanism here.
@@ -859,6 +853,15 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     
     if (_lf_rti_socket_stat.received_T4_messages_in_current_sync_window >=
             _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL) {
+
+#ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default      
+        // Issue a warning if standard deviation is high in data
+        if (_lf_rti_socket_stat.network_stat_round_trip_delay_sd >= CLOCK_SYNC_GUARD_BAND) {
+            warning_print("Clock sync: Large standard deviation detected in network delays (%.2f ms) for the current period."
+                        " Clock synchronization offset might not be accurate.",
+                        _lf_rti_socket_stat.network_stat_round_trip_delay_sd/BILLION*1.0);
+        }
+#endif
         // The number of received T4 messages has reached _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL
         // which means we can now adjust the clock offset.
         // For the AVG algorithm, history is a running average and can be directly
