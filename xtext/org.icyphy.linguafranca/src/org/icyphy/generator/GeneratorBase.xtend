@@ -438,8 +438,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         config.fileNames.addAll(this.collectFiles(param.value))
                     case PROTOBUFS: 
                         this.protoFiles.addAll(this.collectFiles(param.value))
-                    case FLAGS:
-                        config.compilerFlags = param.value.toText
+                    case FLAGS: {
+                        config.compilerFlags.clear()
+                        config.compilerFlags.add(param.value.toText)                       
+                    }
                     case NO_COMPILE:
                         config.noCompile = param.value.toBoolean
                     case NO_RUNTIME_VALIDATION:
@@ -467,7 +469,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 config.compiler = context.args.getProperty("target-compiler")
             }
             if (context.args.containsKey("target-flags")) {
-                config.compilerFlags = context.args.getProperty("target-flags")
+                config.compilerFlags.clear()
+                config.compilerFlags.add(context.args.getProperty("target-flags"))
             }
         }
 
@@ -942,8 +945,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
         // Finally add the compiler flags in target parameters (if any)
         if (!config.compilerFlags.isEmpty()) {
-            val flags = config.compilerFlags.split(' ')
-            compileArgs.addAll(flags)
+            compileArgs.addAll(config.compilerFlags)
         }
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.

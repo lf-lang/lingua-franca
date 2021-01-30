@@ -40,6 +40,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>     // Defines memcpy()
 #include <stdarg.h>     // Defines va_list
 #include <time.h>       // Defines nanosleep()
+#include <math.h>       // For sqrtl() and powl
 
 #ifndef NUMBER_OF_FEDERATES
 #define NUMBER_OF_FEDERATES 1
@@ -396,25 +397,10 @@ void extract_header(
 void update_socket_stat(socket_stat_t* socket_stat, 
                         long long network_round_trip_delay,
                         long long clock_synchronization_error) {
-    // Calculate the running sum
-    socket_stat->network_stat_sample_size++;
-    socket_stat->network_stat_round_trip_delay_sum += network_round_trip_delay;
-    socket_stat->network_stat_round_trip_delay_sum_of_squares += network_round_trip_delay * 
-                                                                    network_round_trip_delay;
+    // Add the data point
+    socket_stat->network_stat_samples[socket_stat->network_stat_sample_index] = network_round_trip_delay;
+    socket_stat->network_stat_sample_index++;
     
-    // Calculate the running average
-    socket_stat->network_stat_round_trip_delay_avg = (socket_stat->network_stat_round_trip_delay_sum) / 
-                                                       socket_stat->network_stat_sample_size;
-
-    // Calculate the running variance
-    interval_t network_stat_round_trip_delay_var = (socket_stat->network_stat_round_trip_delay_sum_of_squares /
-                                        socket_stat->network_stat_sample_size) - 
-                                       (socket_stat->network_stat_round_trip_delay_avg *
-                                        socket_stat->network_stat_round_trip_delay_avg);
-    
-    // Calculate the running standard deviation
-    socket_stat->network_stat_round_trip_delay_sd = floor_sqrt_ll(network_stat_round_trip_delay_var);
-
     // Calculate maximums
     if (socket_stat->network_stat_round_trip_delay_max < network_round_trip_delay) {
         socket_stat->network_stat_round_trip_delay_max = network_round_trip_delay;
@@ -426,16 +412,38 @@ void update_socket_stat(socket_stat_t* socket_stat,
 }
 
 /**
+ * Calculate statistics of the socket.
+ * The releavent information is returned as a lf_stat struct.
+ * 
+ * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
+ */
+lf_stat_ll calculate_socket_stat(struct socket_stat_t* socket_stat) {
+    // Initialize the stat struct
+    lf_stat_ll stats = {0, 0, 0, 0};
+    long long sum = 0;
+    // Calculate the average and max
+    for (int i = 0; i < socket_stat->network_stat_sample_index; i++) {
+        if (socket_stat->network_stat_samples[i] > stats.max) {
+            stats.max = socket_stat->network_stat_samples[i];
+        }
+        stats.average += socket_stat->network_stat_samples[i] / socket_stat->network_stat_sample_index;
+    }
+    for (int i = 0; i < socket_stat->network_stat_sample_index; i++) {
+        long long delta = socket_stat->network_stat_samples[i] - stats.average;
+        stats.variance += powl(delta, 2);
+    }
+    stats.variance /= socket_stat->network_stat_sample_index;
+    stats.standard_deviation = sqrtl(stats.variance);
+
+    return stats;
+}
+
+/**
  * Reset statistics on the socket.
  *  @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
  */
 void reset_socket_stat(struct socket_stat_t* socket_stat) {
     socket_stat->received_T4_messages_in_current_sync_window = 0;
     socket_stat->history = 0LL;
-    socket_stat->network_stat_round_trip_delay_avg = 0LL;
-    socket_stat->network_stat_round_trip_delay_sd = 0LL;
-    socket_stat->network_stat_round_trip_delay_sum_of_squares = 0LL;
-    socket_stat->network_stat_round_trip_delay_sum = 0LL;
-    socket_stat->clock_synchronization_error_bound = 0LL;
-    socket_stat->network_stat_sample_size = 0;
+    socket_stat->network_stat_sample_index = 0;
 }

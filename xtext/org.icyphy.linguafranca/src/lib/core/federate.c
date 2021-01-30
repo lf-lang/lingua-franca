@@ -145,12 +145,8 @@ socket_stat_t _lf_rti_socket_stat = {
     .local_delay = 0LL,
     .received_T4_messages_in_current_sync_window = 0,
     .history = 0LL,
-    .network_stat_round_trip_delay_avg = 0LL,
     .network_stat_round_trip_delay_max = 0LL,
-    .network_stat_round_trip_delay_sd = 0LL,
-    .network_stat_round_trip_delay_sum = 0LL,
-    .network_stat_round_trip_delay_sum_of_squares = 0LL,
-    .network_stat_sample_size = 0,
+    .network_stat_sample_index = 0,
     .clock_synchronization_error_bound = 0LL
 };
 
@@ -855,12 +851,13 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     if (_lf_rti_socket_stat.received_T4_messages_in_current_sync_window >=
             _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL) {
 
-#ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default      
+#ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default 
+        lf_stat_ll stats = calculate_socket_stat(&_lf_rti_socket_stat);
         // Issue a warning if standard deviation is high in data
-        if (_lf_rti_socket_stat.network_stat_round_trip_delay_sd >= CLOCK_SYNC_GUARD_BAND) {
-            warning_print("Clock sync: Large standard deviation detected in network delays (%.2f ms) for the current period."
+        if (stats.standard_deviation >= CLOCK_SYNC_GUARD_BAND) {
+            warning_print("Clock sync: Large standard deviation detected in network delays (%lld) for the current period."
                         " Clock synchronization offset might not be accurate.",
-                        _lf_rti_socket_stat.network_stat_round_trip_delay_sd/BILLION*1.0);
+                        stats.standard_deviation);
         }
 #endif
         // The number of received T4 messages has reached _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL
@@ -880,8 +877,8 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
                     _lf_global_physical_clock_offset,
                     network_round_trip_delay,
 #ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default
-                    _lf_rti_socket_stat.network_stat_round_trip_delay_avg,
-                    _lf_rti_socket_stat.network_stat_round_trip_delay_sd,
+                    stats.average,
+                    stats.standard_deviation,
 #endif                    
                     _lf_rti_socket_stat.local_delay,
                     _lf_global_test_physical_clock_offset);
