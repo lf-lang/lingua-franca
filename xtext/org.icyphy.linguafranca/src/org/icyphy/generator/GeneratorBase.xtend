@@ -440,7 +440,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         this.protoFiles.addAll(this.collectFiles(param.value))
                     case FLAGS: {
                         config.compilerFlags.clear()
-                        config.compilerFlags.add(param.value.toText)                       
+                        if (!param.value.toText.isEmpty) {
+                            config.compilerFlags.add(param.value.toText)
+                        }
                     }
                     case NO_COMPILE:
                         config.noCompile = param.value.toBoolean
@@ -470,7 +472,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             if (context.args.containsKey("target-flags")) {
                 config.compilerFlags.clear()
-                config.compilerFlags.add(context.args.getProperty("target-flags"))
+                if (!context.args.getProperty("target-flags").isEmpty) {
+                    config.compilerFlags.add(context.args.getProperty("target-flags"))
+                }
             }
         }
 
@@ -867,7 +871,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val returnCode = compile.executeCommand(stderr)
 
         if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-            reportError('''«config.compiler»r returns error code «returnCode»''')
+            reportError('''«config.compiler» returns error code «returnCode»''')
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.

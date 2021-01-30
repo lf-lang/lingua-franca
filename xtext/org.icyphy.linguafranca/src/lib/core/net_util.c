@@ -385,6 +385,7 @@ void extract_header(
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 }
 
+#ifdef _LF_CLOCK_SYNC_COLLECT_STATS
 /**
  * Update statistic on the socket based on the newly calculated network delay 
  * and clock synchronization error
@@ -437,10 +438,12 @@ lf_stat_ll calculate_socket_stat(struct socket_stat_t* socket_stat) {
 
     return stats;
 }
+#endif
 
 /**
  * Reset statistics on the socket.
- *  @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
+ * 
+ * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
  */
 void reset_socket_stat(struct socket_stat_t* socket_stat) {
     socket_stat->received_T4_messages_in_current_sync_window = 0;

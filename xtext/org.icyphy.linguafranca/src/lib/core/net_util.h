@@ -182,11 +182,13 @@ long long extract_ll(unsigned char* bytes);
  */
 unsigned short extract_ushort(unsigned char* bytes);
 
+
 /**
  * Statistics for a given socket.
  */
 struct socket_stat_t;
 
+#ifdef _LF_CLOCK_SYNC_COLLECT_STATS
 /**
  * To hold statistics
  */
@@ -205,11 +207,13 @@ void update_socket_stat(struct socket_stat_t* socket_stat, long long network_del
 
 /**
  * Calculate statistics of the socket.
- * The releavent information is returned as a lf_stat struct.
+ * The releavent information is returned as a lf_stat_ll struct.
  * 
  * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
+ * @return An lf_stat_ll struct with relevant information.
  */
 struct lf_stat_ll calculate_socket_stat(struct socket_stat_t* socket_stat);
+#endif
 
 /**
  * Reset statistics on the socket.
