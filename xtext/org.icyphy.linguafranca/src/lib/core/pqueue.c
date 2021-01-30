@@ -72,12 +72,19 @@ void* find_equal(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
  * has to _also_ have the same priority.
  */ 
 void* find_equal_same_priority(pqueue_t *q, void *e, int pos) {
+    // Stop the recursion when we've reached the end of the 
+    // queue. This has to be done before accessing the queue
+    // to avoid segmentation fault.
+    if (!q || pos >= q->size) {
+        return NULL;
+    }
+    
     void* rval;
     void* curr = q->d[pos];
-    // Stop the recursion when we've reached the end of the 
-    // queue or once we've surpassed the priority of the element
+
+    // Stop the recursion once we've surpassed the priority of the element
     // we're looking for.
-    if (!q || pos >= q->size || !curr || q->cmppri(q->getpri(curr), q->getpri(e))) {
+    if (!curr || q->cmppri(q->getpri(curr), q->getpri(e))) {
         return NULL;
     }
     
