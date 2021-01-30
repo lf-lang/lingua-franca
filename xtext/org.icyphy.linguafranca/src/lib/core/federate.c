@@ -1332,8 +1332,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
 
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
-                               // with decentralized coordination
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // For logical connections in decentralized coordination,
     // increment the barrier to prevent advancement of tag beyond
     // the received tag if possible. The following function call
@@ -1349,8 +1348,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     unsigned char* message_contents = (unsigned char*)malloc(length);
     int bytes_read = read_from_socket(socket, length, message_contents);
     if (bytes_read < length) {
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
-                               // with decentralized coordination
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
         pthread_mutex_lock(&mutex);
         // Decrement the barrier to allow advancement of tag.
         _lf_decrement_global_tag_barrier_already_locked();
@@ -1374,8 +1372,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     schedule_message_received_from_network_already_locked(action, tag, message_contents,
                                                           length);
 
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
-                               // with decentralized coordination
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // Finally, decrement the barrier to allow the execution to continue
     // past the raised barrier
     _lf_decrement_global_tag_barrier_already_locked();
