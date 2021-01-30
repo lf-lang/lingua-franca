@@ -545,11 +545,11 @@ typedef struct socket_stat_t {
     /*** Network stats ****/
     interval_t network_stat_round_trip_delay_max; // Maximum estimated delay between the local socket and the
                                                   // remote socket.
-    interval_t network_stat_samples[_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL];   // Samples gathered during a clock sync period
     int network_stat_sample_index;                // Current index of network_stat_samples
     /*** Clock sync stats ***/
     interval_t clock_synchronization_error_bound; // A bound on the differences between this federate's clock and
                                                   // the remote clock.
+    interval_t network_stat_samples[_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL];   // Samples gathered during a clock sync period
 } socket_stat_t;
 
 /** Information about a federate, including its runtime state,

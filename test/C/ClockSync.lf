@@ -11,7 +11,6 @@ target C {
     coordination: decentralized,
     timeout: 10 sec,
     clock-sync: on,                // Turn on runtime clock synchronization.
-    logging: LOG,
     clock-sync-options: {
         local-federates-on: true,  // Forces all federates to perform clock sync.
         collect-stats: true,       // Collect useful statistics like average network delay
