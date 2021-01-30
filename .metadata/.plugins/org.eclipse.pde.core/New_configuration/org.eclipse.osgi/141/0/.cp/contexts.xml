@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (C) 2010, Philipp Thun <philipp.thun@sap.com>
+
+   All rights reserved. This program and the accompanying materials
+   are made available under the terms of the Eclipse Public License 2.0
+   which accompanies this distribution, and is available at
+   https://www.eclipse.org/legal/epl-2.0/
+
+   SPDX-License-Identifier: EPL-2.0
+-->
+<?eclipse version="3.4"?>
+<contexts>
+	<context id="GitCloneWizard" title="Clone Git Repository">
+		<description>To be guided through this wizard start the cheat sheet 'Cloning a Git Repository' below.</description>
+		<command
+			serialization="org.eclipse.ui.cheatsheets.openCheatSheet(cheatSheetId=org.eclipse.egit.cheatsheets.clone)"
+			label="Cloning a Git Repository" />
+	</context>
+	<context id="PushWizard" title="Push To Another Repository">
+		<description>To be guided through this wizard start the cheat sheet 'Pushing to another Git Repository' below.</description>
+		<command
+			serialization="org.eclipse.ui.cheatsheets.openCheatSheet(cheatSheetId=org.eclipse.egit.cheatsheets.push)"
+			label="Pushing to another Git Repository" />
+	</context>
+</contexts>

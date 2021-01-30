@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.epp.mpc.ui.debug.options">
+   <property name="listener.symbolic.name" value="org.eclipse.epp.mpc.ui"/>
+   <service>
+      <provide interface="org.eclipse.osgi.service.debug.DebugOptionsListener"/>
+   </service>
+   <implementation class="org.eclipse.epp.internal.mpc.ui.MarketplaceClientDebug$DebugOptionsInitializer"/>
+</scr:component>

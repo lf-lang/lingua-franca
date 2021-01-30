@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?><!--
+    Copyright (c) 2010, 2015 Chris Aniszczyk and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+
+    SPDX-License-Identifier: EPL-2.0
+
+    Contributors:
+         Chris Aniszczyk <caniszczyk@gmail.com> - initial API and implementation
+ -->
+
+<introContent>
+	<extensionContent id="org.eclipse.egit" name="EGit"
+		style="css/overview.css" alt-style="css/overview.properties" path="overview/@">
+		<group id="content-group" style-id="content-group">
+			<link label="Team Support with Git"
+				url="http://org.eclipse.ui.intro/showHelpTopic?id=/org.eclipse.egit.doc/help/EGit/User_Guide/User-Guide.html"
+				id="egit-overview" style-id="content-link">
+				<text>Learn about Git in Eclipse by reading the EGit User Guide</text>
+			</link>
+		</group>
+	</extensionContent>
+</introContent>

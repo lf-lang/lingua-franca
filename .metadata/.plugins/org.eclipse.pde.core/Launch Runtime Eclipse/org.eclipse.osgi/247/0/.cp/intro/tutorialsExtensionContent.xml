@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<introContent>
+  <!-- Extension to the SDK Tutorials Page. -->
+  <extensionContent id="org.eclipse.jdt" name="Java Development" alt-style="css/tutorials.properties" style="css/tutorials.css" path="tutorials/@">
+    <group label="Java Development" id="java" style-id="content-group">
+      <link url="http://org.eclipse.ui.intro/showStandby?partId=org.eclipse.platform.cheatsheet&amp;input=org.eclipse.jdt.helloworld" label="Create a Hello World application" id="hello-world" style-id="content-link">
+        <text>Learn how to create a simple Java application that prints &quot;Hello world!&quot;</text>
+      </link>
+      <link url="http://org.eclipse.ui.intro/showStandby?partId=org.eclipse.platform.cheatsheet&amp;input=org.eclipse.jdt.helloworld.swt" label="Create a Hello World SWT application" id="swt" style-id="content-link">
+        <text>Learn how to create a standalone SWT Java application that displays a window to the user.</text>
+      </link>
+    </group>
+  </extensionContent>
+</introContent>

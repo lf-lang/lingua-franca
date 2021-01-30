@@ -1,0 +1,15 @@
+# Debugging options for the org.eclipse.epp.mpc.ui plugin.
+
+org.eclipse.epp.mpc.ui/debug=false
+
+# Turn on drag&drop debugging
+org.eclipse.epp.mpc.ui/debug/dnd=false
+
+# Turn on news debugging
+org.eclipse.epp.mpc.ui/news/debug=false
+
+# Override news URL
+org.eclipse.epp.mpc.ui/news/url=
+
+# Override news title
+org.eclipse.epp.mpc.ui/news/title=

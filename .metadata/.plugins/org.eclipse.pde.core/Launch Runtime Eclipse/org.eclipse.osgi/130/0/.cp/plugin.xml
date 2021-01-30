@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.help.toc">
+      <toc
+            file="help/toc.xml"
+            primary="true">
+      </toc>
+   </extension>
+   <extension
+         point="org.eclipse.ui.intro.configExtension">
+      <configExtension
+            configId="org.eclipse.ui.intro.universalConfig"
+            content="$nl$/intro/overviewExtensionContent.xml">
+      </configExtension>
+      <configExtension
+            configId="org.eclipse.ui.intro.universalConfig"
+            content="$nl$/intro/whatsnewExtensionContent.xml">
+      </configExtension>
+      <configExtension
+            configId="org.eclipse.ui.intro.universalConfig"
+            content="$nl$/intro/tutorialsExtensionContent.xml">
+      </configExtension>
+   </extension>
+   <extension
+         point="org.eclipse.ui.cheatsheets.cheatSheetContent">
+      <category
+            name="%cheatsheet.category"
+            id="org.eclipse.egit.cheatsheets">
+      </category>
+      <cheatsheet
+            name="%cheatsheet.clone.name"
+            id="org.eclipse.egit.cheatsheets.clone"
+            category="org.eclipse.egit.cheatsheets"
+            contentFile="$nl$/cheatsheets/clone.xml">
+         <description>%cheatsheet.clone.desc</description>
+      </cheatsheet>
+      <cheatsheet
+            name="%cheatsheet.push.name"
+            id="org.eclipse.egit.cheatsheets.push"
+            category="org.eclipse.egit.cheatsheets"
+            contentFile="$nl$/cheatsheets/push.xml">
+         <description>%cheatsheet.push.desc</description>
+      </cheatsheet>
+   </extension>
+   <extension
+         point="org.eclipse.help.contexts">
+      <contexts
+            file="contexts.xml"
+            plugin="org.eclipse.egit.ui">
+      </contexts>
+   </extension>
+
+</plugin>

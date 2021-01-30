@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+     Copyright (c) 2005, 2010 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Simple Cheat Sheet -->
+
+<cheatsheet title="Customize a product">
+
+   <!-- Introduction -->
+
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet will demonstrate how to add window images,
+         add a splash screen and customize a launcher for an RCP
+         application using PDE.  
+         <br/>
+         <br/>
+         To learn more about using cheat sheets, click the help button
+         in the top right corner (?). 
+      </description>
+   </intro>
+
+   <!-- Item -->
+
+   <item title="Open the plug-in development perspective"
+         href="/org.eclipse.pde.doc.user/guide/tools/views/views.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the plug-in development perspective,
+         select <b>Window-&gt;Open Perspective-&gt;Other...</b> 
+         and choose <b>Plug-in Development</b>.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.
+      </description>
+      <command serialization="org.eclipse.ui.perspectives.showPerspective(org.eclipse.ui.perspectives.showPerspective.perspectiveId=org.eclipse.pde.ui.PDEPerspective)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Open the product editor"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/editor.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the product editor (if it is not already open),
+         expand the <b>com.example.rcpapp</b> tree dialog
+         in the <b>Package Explorer</b> view and double-click
+         on the <b>rcpapp.product</b> file (the <b>Overview</b> page
+         should be open initially).
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.         
+      </description>
+      <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/rcpapp.product)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Add window images"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/branding.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To add window images, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Branding&quot; tab within the product editor to display the &quot;Branding&quot; page" 
+               skip="false"/>
+      <subitem label="Click the &quot;Browse&quot; button adjacent to the &quot;16x16&quot; text box under the &quot;Window Images&quot; heading" 
+               skip="false"/>
+      <subitem label="Fully expand the &quot;com.example.rcpapp&quot; tree in the &quot;Image Selection&quot; dialog box and select &quot;alt_window_16.gif&quot; and click &quot;OK&quot;" 
+               skip="false"/>
+      <subitem label="Click the &quot;Browse&quot; button adjacent to the &quot;32x32&quot; text box under the &quot;Window Images&quot; heading" 
+               skip="false"/>  
+      <subitem label="Fully expand the &quot;com.example.rcpapp&quot; tree in the &quot;Image Selection&quot; dialog box and select &quot;alt_window_32.gif&quot; and click &quot;OK&quot;" 
+               skip="false"/>
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/> 
+   </item>   
+
+   <!-- Item -->
+
+   <item title="Test the RCP product"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/overview.htm"
+         skip="false">
+      <description>
+         To test the RCP product,
+         perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Overview&quot; tab within the product editor to display the &quot;Overview&quot; page" 
+               skip="false"/>      
+      <subitem label="Click the &quot;Launch an Eclipse Application&quot; hyperlink under the &quot;Testing&quot; heading" 
+               skip="false"/>
+      <subitem label="Note the image in the window title bar (if applicable on your platform)" 
+               skip="true"/>
+      <subitem label="Exit the RCP application" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Add a splash screen"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/splash.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To add a splash screen, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Splash&quot; tab within the product editor to display the &quot;Splash&quot; page" 
+               skip="false"/>      
+      <subitem label="Click the &quot;Browse...&quot; button adjacent to the &quot;Plug-in&quot; text box under the &quot;Location&quot; heading" 
+               skip="false"/>
+      <subitem label="Select the &quot;com.example.rcpapp&quot; entry in the &quot;Plug-in Selection&quot; dialog box and click &quot;OK&quot;" 
+               skip="true"/>
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>
+      <subitem label="Note:  Eclipse expects a file called &quot;splash.bmp&quot; to be located in the root of the specified plug-in. Verify that the root folder of &quot;com.example.rcpapp&quot; plug-in has the &quot;splash.bmp&quot;." 
+               skip="false"/>
+   </item>   
+
+   <!-- Item -->
+
+   <item title="Test the RCP product"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/overview.htm"
+         skip="false">
+      <description>
+         To test the RCP product,
+         perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Overview&quot; tab within the product editor to display the &quot;Overview&quot; page" 
+               skip="false"/>      
+      <subitem label="Click the &quot;Launch an Eclipse Application&quot; hyperlink under the &quot;Testing&quot; heading" 
+               skip="false"/>
+      <subitem label="Note the splash screen displayed before the RCP application window is visible" 
+               skip="true"/>
+      <subitem label="Exit the RCP application" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Customize the launcher"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/launcher.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         We will walk through this task assuming we are working on a Windows
+         platform (Similar steps may be followed for other platforms).
+         <br/>
+         <br/>
+         To customize the launcher, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Launching&quot; tab within the product editor to display the &quot;Launching&quot; page" 
+               skip="false"/>
+      <subitem label="Input &quot;rcpapp&quot; into the &quot;Launcher Name&quot; text box under the &quot;Program Launcher&quot; heading" 
+               skip="false"/>
+      <subitem label="Select the &quot;win32&quot; tab under the &quot;Program Launcher&quot; heading" 
+               skip="true"/>
+      <subitem label="Select the &quot;Use a single ICO file containing 6 images as specified above&quot; radio button" 
+               skip="true"/>
+      <subitem label="Click the &quot;Browse...&quot; button adjacent to the &quot;File&quot; text box" 
+               skip="true"/>
+      <subitem label="Fully expand the &quot;com.example.rcpapp&quot; tree in the &quot;Image Selection&quot; dialog box and select &quot;alt_launcher.ico&quot; and click &quot;OK&quot;" 
+               skip="true"/>
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/> 
+   </item>   
+   
+</cheatsheet>
+   
+   

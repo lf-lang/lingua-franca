@@ -1,4 +1,4 @@
-/**
+/** 
  * Basic benchmark from the Savina benchmark suite that is
  * intended to measure message-passing overhead.
  * See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
@@ -95,7 +95,7 @@ main reactor PingPong {
   cog.outl(f"pong = new Pong(expected={count});")
 ]]] */
     ping = new Ping(count=1000000);
-    pong = new Pong(count=1000000);
+    pong = new Pong(expected=1000000);
 // [[[end]]]
     ping.send -> pong.receive;
     pong.send -> ping.receive; 

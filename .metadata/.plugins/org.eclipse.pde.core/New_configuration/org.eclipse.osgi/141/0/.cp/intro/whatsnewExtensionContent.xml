@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?><!--
+    Copyright (c) 2010, 2015 Chris Aniszczyk and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+
+    SPDX-License-Identifier: EPL-2.0
+
+    Contributors:
+         Chris Aniszczyk <caniszczyk@gmail.com> - initial API and implementation
+ -->
+
+<introContent>
+	<extensionContent id="org.eclipse.egit" name="EGit"
+		style="css/whatsnew.css" alt-style="css/whatsnew.properties" path="whatsnew/@">
+		<group id="content-group" style-id="content-group">
+			<link label="Team Support with Git"
+				url="http://wiki.eclipse.org/EGit/New_and_Noteworthy"
+				id="egit-noteworthy" style-id="content-link">
+				<text>
+					Find out the significant changes made to EGit
+				</text>
+			</link>
+		</group>
+	</extensionContent>
+</introContent>

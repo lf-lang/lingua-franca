@@ -1,0 +1,130 @@
+Manifest-Version: 1.0
+Bundle-SymbolicName: org.eclipse.pde;singleton:=true
+Bundle-Name: %pluginName
+Bundle-Version: 3.13.1300.v20201202-1800
+Bundle-Localization: plugin
+Bundle-ManifestVersion: 2
+Eclipse-SourceReferences: scm:git:git://git.eclipse.org/gitroot/pde/ec
+ lipse.pde.ui.git;path="ui/org.eclipse.pde";tag="I20201116-1800";commi
+ tId=45686ed5662c60a0b1bafb7ee8d1309a05a54d3c
+Bundle-Vendor: %providerName
+Build-Jdk-Spec: 11
+Created-By: Maven Archiver 3.5.0
+
+Name: images/topiclabel/tu_rcpapp48.svg
+SHA-256-Digest: t3p3R9kiQk80BeA6God7vVO6PmLW78Xdn8os2SN6pOM=
+
+Name: about.properties
+SHA-256-Digest: usaWispFJ7VZAotiwioT03aLU9UEzPXVvt6jwFAMa8Y=
+
+Name: plugin.xml
+SHA-256-Digest: 2+GiOcWhWXQj4bi2MeHEjM4hfgow37rJYyAsKmIXDGw=
+
+Name: cheatsheets/rcpapp/rcpapp-export.xml
+SHA-256-Digest: Ox59uTcWkmkFJqqBEKiKcm4v63YTfoGcjCIGleI9+BY=
+
+Name: intro/css/overview.properties
+SHA-256-Digest: r52kdCMxAnprcx6v+YbtuuGbb/RryKrIV1zXWsazfQM=
+
+Name: cheatsheets/helloworld/helloworld-feature.xml
+SHA-256-Digest: HdY/IHBlixjDMghmSECmzz5qhZlxjkp9BddY3AfxDWY=
+
+Name: cheatsheets/rcpapp/rcpapp-plugin-product.xml
+SHA-256-Digest: rsWEEQwRgGtaGRTdn37T4kAckEB2uP4pPDfIuf0Bxxs=
+
+Name: images/topiclabel/tu_createplugin48.svg
+SHA-256-Digest: xLb0JOFXpA1RDOHIGl5QLo1NegRg0F6qVJ/NfQxayok=
+
+Name: intro/samplesExtensionContent.xml
+SHA-256-Digest: Mk7tdbTpVSvXJx4FlCpgmdMh/2vjp0wMgFLmhbniPoU=
+
+Name: images/topiclabel/sa_sampleorb48.svg
+SHA-256-Digest: GFJ31tswh/9U11zVuG2dmwmqfPfoDm8MOtuesGx8yYk=
+
+Name: cheatsheets/helloworld/helloworld-create.xml
+SHA-256-Digest: YyCNVKpfdWNfkAZb/CZFNVwrEpQyO7Wc4DGWLkyyvAg=
+
+Name: intro/whatsnewExtensionContent.xml
+SHA-256-Digest: OGAx41CtRK8QTl3v/sKOAlQ76AyvnddThTjxh6OAUf0=
+
+Name: images/topiclabel/ov_eclplugindev48.svg
+SHA-256-Digest: OWJzuqEez8IUoZUGYFApCXFBZ46kh67Ly3vvxQlm6oA=
+
+Name: about.mappings
+SHA-256-Digest: IItmjCZG4hGup7b71RvKZvPYol5y4wOJ1u+F4PMyWCw=
+
+Name: images/topiclabel/wn_pluginenviro48.svg
+SHA-256-Digest: MoacbKmMnJ1JLtJzIqqageE80JE61Ts9X1S6GpWh2DQ=
+
+Name: intro/css/tutorials.css
+SHA-256-Digest: XaUrfmp3+Wkt5jqNXAW0TI9kUI3Yr5KIAzsPG95vUho=
+
+Name: about.ini
+SHA-256-Digest: cHDy2H540VXYiceg8Yt18QZkaPZnlYerijSiF725olc=
+
+Name: cheatsheets/helloworld/helloworld-update.xml
+SHA-256-Digest: i11/Owuwo5Rhg/RgzBskD6kosWa7RZCj5dtXye5V3LA=
+
+Name: cheatsheets/setup-apitools-existing-projects.xml
+SHA-256-Digest: pgVDIOQagBZVvN1QsR2iIgUQ9lqpQYbDXQWfjtNM8eI=
+
+Name: plugin.properties
+SHA-256-Digest: 2lzWFP06vgOae2X5RwSgVKy+vgre5cn5FD9ble4AB7w=
+
+Name: cheatsheets/rcpapp-composite.xml
+SHA-256-Digest: SwVsttNgpUcx65xrdonXUPkrpVeUX0n84HwqMwJNZ9s=
+
+Name: intro/css/samples.css
+SHA-256-Digest: fmdT2lQcehOfb+Ui1Z/88o2/2GYoosi9O61FAlds92Q=
+
+Name: cheatsheets/rcpapp/rcpapp-create.xml
+SHA-256-Digest: AtvaiFQIK5EMQUkBWwcfhUsG9ColXzzSALVVVl8MCKc=
+
+Name: about.html
+SHA-256-Digest: 7mbS+ztMDS7S5/aYvJ7U49bPd/pcr0CtAylhJdsaxfA=
+
+Name: cheatsheets/rcpapp/rcpapp-customize.xml
+SHA-256-Digest: awRhchMqToUlMk87UDF8INV5fEW9k1ZyQHldJyOuNDE=
+
+Name: images/topiclabel/sa_samplecube48.svg
+SHA-256-Digest: FAiBHczg+fLzj6OWbyvAzgPdgF8MTmknKqB64I9ZtIY=
+
+Name: intro/css/overview.css
+SHA-256-Digest: kegPHDvhy7nNifJpMt5gKGoeiGkhH2vlQFwv1wGQ4jA=
+
+Name: eclipse32.png
+SHA-256-Digest: ktA85ZDd0SYDxbcnnzVpnpATbdHzzTvB7x6Y8FkhCS4=
+
+Name: cheatsheets/helloworld-composite.xml
+SHA-256-Digest: UwCmetLKwHoeh8azW8a42zp82sz6KBuqJ6Y54yBGUwQ=
+
+Name: intro/overviewExtensionContent.xml
+SHA-256-Digest: /QwlULXngIw0kyZdDVVU6R7AqkEm4EV2+/hTXwfjpNY=
+
+Name: intro/samplesExtensionContent2.xml
+SHA-256-Digest: +v+aTHyHDhVGO1+YLehYv4sIEh2Vd5KpBEzg3QJMj0A=
+
+Name: intro/css/whatsnew.css
+SHA-256-Digest: M2h3JsR2Tm54Ql4qIKMhzAu7FnTtGBmJLVaN/yQgHzY=
+
+Name: intro/css/samples.properties
+SHA-256-Digest: +cGIggJv029f4yvuhs31R0KkX1RXW4Q9D/p7bs1s0tM=
+
+Name: cheatsheets/helloworld/helloworld-extension.xml
+SHA-256-Digest: 7R182YasHrwaOPFn0QxFPjqTLwmyFs/XDfZGhG2hnK4=
+
+Name: cheatsheets/helloworld/helloworld-install.xml
+SHA-256-Digest: s0HmYEE66UAw8udOL/H5O4w8BhtJnbAlkEHgUCD985I=
+
+Name: cheatsheets/rcpapp/rcpapp-feature-product.xml
+SHA-256-Digest: OnFNMEiklT6BM7SdK4UnCNMELb8hc5x3RdNyrV37VcI=
+
+Name: intro/css/whatsnew.properties
+SHA-256-Digest: AQafLBYUGdW/V9UQp5hySU6TScAPtyNUtv1qtyYtldo=
+
+Name: intro/tutorialsExtensionContent.xml
+SHA-256-Digest: czpnqr/EdQ0zTOW3b5+nCuf3hYCp4gJbWDWScoMFyVQ=
+
+Name: intro/css/tutorials.properties
+SHA-256-Digest: uAAid0B5/gEHOnly6MGhNm/P7bn6MLkplzP4pNKDEtU=
+

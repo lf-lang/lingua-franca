@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<introContent>
+    <!-- This page is disabled in plugin.xml since no N&N is available yet -->
+	<extensionContent id="org.eclipse.m2e" name="Maven Integration for Eclipse"
+		style="css/whatsnew.css" path="whatsnew/@">
+		<group id="content-group" style-id="content-group">
+			<link id="m2eclipse-noteworthy" style-id="content-link" 
+			      label="Maven Integration for Eclipse"
+            url="http://eclipse.org/m2e/documentation/">
+				<text>
+					See some of the more interesting or significant changes in the 
+					Maven Integration for Eclipse.
+				</text>
+			</link>
+		</group>
+	</extensionContent>
+</introContent>

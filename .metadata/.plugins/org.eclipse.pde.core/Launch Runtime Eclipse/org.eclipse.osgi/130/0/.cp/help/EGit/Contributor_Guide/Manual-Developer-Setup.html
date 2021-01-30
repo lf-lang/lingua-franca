@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit Contributor Guide - Manual Developer Setup</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Manual Developer Setup</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Automated-Developer-Setup.html" title="Automated Developer Setup">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Running-EGit-from-Eclipse.html" title="Running EGit from Eclipse">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Automated Developer Setup</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Running EGit from Eclipse</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Manual_Developer_Setup">Manual Developer Setup</h1>
+		<h2 id="Obtaining_Sources">Obtaining Sources</h2>
+		<p>EGit and JGit are self hosted in Git. You can browse the repositories on the web: 
+
+			<a href="https://git.eclipse.org/c/egit/" target="egit_external">EGit</a>, 
+			<a href="https://git.eclipse.org/c/jgit/" target="egit_external">JGit</a>
+		</p>
+		<p>The first section below describes how to clone a repository and can be skipped if you have done this before.
+			The next section lists the repositories and their URLs.</p>
+		<h3 id="Cloning">Cloning</h3>
+		<h4 id="On_the_command_line">On the command line</h4>
+		<pre style="width: 40em;">
+git clone &lt;enter URL&gt;
+</pre>
+		<p>After that, import the projects into Eclipse using Import &gt; Existing Projects into Workspace.</p>
+		<h4 id="Using_EGit_.28see_.5Bhttps:.2F.2Fwww.eclipse.org.2Fegit.2Fdownload.2F_download_page.5D.29">Using EGit (see 
+			<a href="https://www.eclipse.org/egit/download/" target="egit_external">download page</a>)
+		</h4>
+		<p>First, verify that the default repository folder as set on the main Git preference page is to your liking.</p>
+		<p>Then, clone the repository and import the projects:</p>
+		<ul>
+			<li>Open 
+				<i>File</i> &gt; 
+				<i>Import...</i> and select 
+				<i>Git</i> &gt; 
+				<i>Projects from Git</i>
+			</li>
+			<li>Selet 
+				<i>URI</i>
+			</li>
+			<li>Enter the URL (see next section) </li>
+			<li>Import existing projects into the workspace from the newly created working directory</li>
+		</ul>
+		<h3 id="Repositories">Repositories</h3>
+		<p>To develop EGit, the EGit and JGit repositories are needed, the others are optional. To develop JGit, only JGit is needed. </p>
+		<h4 id="EGit">EGit</h4>
+		<p>URL: 
+			<a href="https://git.eclipse.org/r/egit/egit.git" target="egit_external">https://git.eclipse.org/r/egit/egit.git</a>
+		</p>
+		<p>This is the main repository, where the standard EGit feature is developed. It contains the code for the UI and Eclipse integration.</p>
+		<h4 id="JGit">JGit</h4>
+		<p>URL: 
+			<a href="https://git.eclipse.org/r/jgit/jgit.git" target="egit_external">https://git.eclipse.org/r/jgit/jgit.git</a>
+		</p>
+		<p>This is the Java implementation of Git used by EGit, for working with Git repositories.</p>
+		<h4 id="EGit_GitHub_Integration">EGit GitHub Integration</h4>
+		<p>URL: 
+			<a href="https://git.eclipse.org/r/egit/egit-github.git" target="egit_external">https://git.eclipse.org/r/egit/egit-github.git</a>
+		</p>
+		<p>EGit also provides tools for integrating with GitHub and Mylyn tasks.</p>
+		<p>For getting the dependencies, open the file <code>org.eclipse.mylyn.github-feature/github.target</code> (
+			<a href="https://git.eclipse.org/c/egit/egit-github.git/plain/org.eclipse.mylyn.github-feature/github.target" target="egit_external">view on web</a>) and select 
+			<i>Set as Target Platfrom</i>.
+		</p>
+		<h4 id="EGit_PDE_Tools">EGit PDE Tools</h4>
+		<p>URL: 
+			<a href="https://git.eclipse.org/r/egit/egit-pde.git" target="egit_external">https://git.eclipse.org/r/egit/egit-pde.git</a>
+		</p>
+		<p>EGit also provides tools for integrating with 
+			<a href="https://wiki.eclipse.org/PDE/Build" title="PDE/Build" target="egit_external">PDE Build</a> and Eclipse RelEng Tools. If you are an Eclipse developer using PDE Build and/or the Eclipse RelEng tools you might be interesting in the following as well. Otherwise you might just skip this section. 
+		</p>
+		<p>In addition to the 
+			<a href="#Dependencies">dependencies</a> required for JGit and EGit you also need Eclipse PDE (&gt;= 3.6.1) as well as <code>org.eclipse.releng.tools</code> in your target platform or checked out from Git in your workspaces.
+		</p>
+		<h2 id="Development_IDE_Configuration">Development IDE Configuration</h2>
+		<p>Download and install the Eclipse package "Eclipse IDE for Eclipse Committers" or "Eclipse for RCP and RAP Developers" from here, if you don't already have it:</p>
+		<p>
+			<a href="https://www.eclipse.org/downloads/packages/" target="egit_external">https://www.eclipse.org/downloads/packages/</a>
+		</p>
+		<h3 id="Tools">Tools</h3>
+		<p>To install all the necessary tools to work on EGit/JGit, there is a 
+			<a href="https://git.eclipse.org/c/egit/egit.git/plain/tools/egit-developer-tools.p2f" target="egit_external">egit-developer-tools.p2f</a> file which you can use as follows:
+		</p>
+		<ul>
+			<li>File &gt; Import &gt; Install &gt; Install Software Items from File</li>
+			<li>Browse...
+				<ul>
+					<li>Go to the location of your egit repository, open the 
+						<i>tools</i> directory and select 
+						<i>egit-developer-tools.p2f</i>
+					</li>
+					<li>Alternatively, if you only want to contribute to JGit, download the file from the above link and select it</li>
+				</ul>
+			</li>
+			<li>All the items you don't already have should be selected automatically</li>
+			<li>Finish the wizard</li>
+			<li>Restart</li>
+		</ul>
+		<h3 id="Java_Requirements">Java Requirements</h3>
+		<p>EGit and JGit have Java 8.0 and 
+			<a href="https://wiki.eclipse.org/EGit/FAQ#What_versions_of_Eclipse_does_EGit_target.3F" target="egit_external">Eclipse Platform 4.6 (Neon)</a> as minimum requirements, so dependencies to newer Java and platform versions must be avoided.
+		</p>
+		<p>We are using 
+			<i>API Tools Environment Descriptions</i> (see changes for 
+			<a href="https://git.eclipse.org/r/#/c/4785/" target="egit_external">JGit</a> and 
+			<a href="https://git.eclipse.org/r/#/c/4365/" target="egit_external">EGit</a>) to facilitate detecting code which isn't working on Java 8. If you followed the instructions in the 
+			<i>Tools</i> section above, the necessary descriptions should already be installed. Otherwise install 
+			<i>API Tools Environment Descriptions</i> from the release train repository, see 
+			<a href="https://wiki.eclipse.org/Execution_Environments#Installing_Execution_Environment_Descriptions" title="Execution_Environments#Installing_Execution_Environment_Descriptions" target="egit_external">Installing Execution Environment Descriptions</a>.
+		</p>
+		<h3 id="Dependencies">Dependencies</h3>
+		<p>After importing the EGit and JGit projects in Eclipse, they will not compile due to missing dependencies.
+			Set a Target Platform to fix this</p>
+		<p>
+			<img align="right" title="EGit target platforms in org.eclipse.egit.target" alt="EGit target platforms in org.eclipse.egit.target" border="0" src="images/EGit-Target-Platforms.png‎"/>
+		</p>
+		<ul>
+			<li>Open the 
+				<i>org.eclipse.egit.target</i> project
+			</li>
+			<li>Choose the 
+				<i>egit-&lt;version&gt;.target</i> file matching the version of your Eclipse platform (e.g. 4.5 for Mars) and open it (this may take a while as it downloads the indexes of the p2 repositories the target platform refers to)
+			</li>
+			<li>In the resulting editor, click on the 
+				<i>Set as Target Platform</i> link at the top right (this may also take a while since it downloads the dependencies)
+			</li>
+		</ul>
+		<p>After that, the workspace should build cleanly. If not, try Project &gt; Clean... &gt; All. If this also doesn't help open Preferences &gt; Plug-In Development &gt; Target Platform,
+			select the checked target platform and click "Reload..." this will flush PDE's bundle cache and re-download the artifacts listed in the target platform.</p>
+		<p>There are different target definitions, one for each version of Eclipse that EGit supports. The one you select will be the one that is started if you want to try out a feature or bug fix.</p>
+		<p>You can always switch between them to test on different Eclipse versions. E.g. when you are developing some major UI functionality, you should try it with the oldest supported Eclipse release to make sure it doesn't depend on API that is only available in later versions.</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Automated-Developer-Setup.html" title="Automated Developer Setup">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="EGit Contributor Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Running-EGit-from-Eclipse.html" title="Running EGit from Eclipse">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Automated Developer Setup</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Running EGit from Eclipse</td>
+			</tr>
+		</table>
+	</body>
+</html>

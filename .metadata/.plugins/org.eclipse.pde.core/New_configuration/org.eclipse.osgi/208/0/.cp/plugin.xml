@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.6"?>
+<!--
+    Copyright (c) 2010, 2018 The Eclipse Foundation and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License v2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+    	The Eclipse Foundation - initial API and implementation
+ -->
+
+<plugin>
+   <extension-point id="catalog" name="%extension-point.name" schema="schema/catalog.exsd"/>
+   <extension
+         point="org.eclipse.ui.handlers">
+      <handler
+            class="org.eclipse.epp.internal.mpc.ui.commands.MarketplaceWizardCommand"
+            commandId="org.eclipse.epp.mpc.ui.command.showMarketplaceWizard">
+      </handler>
+      <handler
+            class="org.eclipse.epp.internal.mpc.ui.commands.ImportFavoritesWizardCommand"
+            commandId="org.eclipse.epp.mpc.ui.command.importFavoritesWizard">
+      </handler>
+      <handler
+            class="org.eclipse.epp.internal.mpc.ui.commands.ShowFavoritesCommand"
+            commandId="org.eclipse.epp.mpc.ui.command.showFavorites">
+      </handler>
+      <handler
+            class="org.eclipse.epp.internal.mpc.ui.commands.ShowInstalledSolutionsCommand"
+            commandId="org.eclipse.epp.mpc.ui.command.showInstalled">
+      </handler>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            description="%command.open.description"
+            id="org.eclipse.epp.mpc.ui.command.showMarketplaceWizard"
+            name="%command.open.name">
+         <commandParameter
+               id="trigger"
+               name="trigger"
+               optional="true">
+         </commandParameter>
+      </command>
+      <command
+            description="%command.importFavorites.description"
+            id="org.eclipse.epp.mpc.ui.command.importFavoritesWizard"
+            name="%command.importFavorites.name">
+         <commandParameter
+               id="favoritesUrl"
+               name="favoritesUrl"
+               optional="true">
+         </commandParameter>
+      </command>
+      <command
+            description="%command.favorites.description"
+            id="org.eclipse.epp.mpc.ui.command.showFavorites"
+            name="%command.favorites.name">
+      </command>
+      <command
+            description="%command.installed.description"
+            id="org.eclipse.epp.mpc.ui.command.showInstalled"
+            name="%command.installed.name">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            allPopups="false"
+            locationURI="menu:help?after=additions">
+         <command
+               commandId="org.eclipse.epp.mpc.ui.command.showMarketplaceWizard"
+               icon="icons/marketplace16.png"
+               label="%command.open.label"
+               style="push"
+               tooltip="%command.open.tooltip">
+         </command>
+      </menuContribution>
+      <menuContribution
+            allPopups="false"
+            locationURI="menu:org.eclipse.userstorage.accounts?after=actions">
+         <command
+               commandId="org.eclipse.epp.mpc.ui.command.showFavorites"
+               icon="icons/marketplace16.png"
+               label="%command.account.favorites.label"
+               style="push"
+               tooltip="%command.account.favorites.tooltip">
+         </command>
+      </menuContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.intro.configExtension">
+      <configExtension
+            configId="org.eclipse.ui.intro.universalConfig"
+            content="intro/default.xml">
+      </configExtension>
+   </extension>
+   <extension
+         point="org.eclipse.mylyn.tasks.bugs.support">
+      <product
+            description="%support.description"
+            icon="icons/marketplace32.png"
+            id="org.eclipse.epp.mpc"
+            name="%support.name"
+            providerId="org.eclipse"/>
+         <mapping namespace="org.eclipse.epp.mpc" productId="org.eclipse.epp.mpc">
+            <property name="product" value="MPC"/>
+            <property name="component" value="wizard"/>
+         </mapping>
+   </extension>
+   <extension
+         point="org.eclipse.ui.startup">
+      <startup class="org.eclipse.epp.internal.mpc.ui.wizards.MarketplaceDropAdapter"/>
+      <startup
+            class="org.eclipse.epp.internal.mpc.ui.discovery.MissingNatureDetector">
+      </startup>
+   </extension>
+      <extension
+         point="org.eclipse.ui.ide.unassociatedEditorStrategy">
+      <strategy
+            class="org.eclipse.epp.internal.mpc.ui.discovery.AskMarketplaceForFileSupportStrategy"
+            id="org.eclipse.epp.internal.mpc.ui.askMarketPlace"
+            label="%unassociatedStrategy.label"
+            interactive="true">
+      </strategy>
+   </extension>
+      <extension
+            point="org.eclipse.core.runtime.preferences">
+         <initializer
+               class="org.eclipse.epp.internal.mpc.ui.preferences.MPCPreferenceInitializer">
+         </initializer>
+      </extension>
+      <extension
+            point="org.eclipse.ui.preferencePages">
+         <page
+               category="org.eclipse.ui.preferencePages.Workbench"
+               class="org.eclipse.epp.internal.mpc.ui.preferences.ProjectNaturesPreferencePage"
+               id="org.eclipse.epp.mpc.projectnatures"
+               name="%projectNatures.preferencePage.label">
+            <keywordReference
+                  id="org.eclipse.ui.ide.project">
+            </keywordReference>
+            <keywordReference
+                  id="org.eclipse.epp.mpc.marketplace">
+            </keywordReference>
+            <keywordReference
+                  id="org.eclipse.epp.mpc.projectnature">
+            </keywordReference>
+            <keywordReference
+                  id="org.eclipse.epp.mpc.discovery">
+            </keywordReference>
+         </page>
+      </extension>
+      <extension
+            point="org.eclipse.ui.keywords">
+         <keyword
+               id="org.eclipse.epp.mpc.marketplace"
+               label="%keyword.marketplace">
+         </keyword>
+         <keyword
+               id="org.eclipse.epp.mpc.projectnature"
+               label="%keyword.projectnature">
+         </keyword>
+         <keyword
+               id="org.eclipse.epp.mpc.discovery"
+               label="%keyword.discovery">
+         </keyword>
+      </extension>
+      <extension
+            point="org.eclipse.userstorage.oauth.clients">
+         <client
+               id="mvwvUx5jVycgXxUY90aMg3RByMD"
+               authURI="https://accounts.eclipse.org/"
+               icon="icons/marketplace16.png"
+               name="Eclipse Marketplace">
+         </client>
+      </extension>
+      <extension
+            point="org.eclipse.e4.ui.css.core.elementProvider">
+         <provider
+               class="org.eclipse.epp.internal.mpc.ui.wizards.css.CatalogSwitcherItemElementProvider">
+            <widget
+                  class="org.eclipse.epp.internal.mpc.ui.wizards.CatalogSwitcherItem">
+            </widget>
+         </provider>
+      </extension>
+      <extension
+            point="org.eclipse.urischeme.uriSchemeHandlers">
+         <uriSchemeHandler
+               class="org.eclipse.epp.internal.mpc.ui.urlhandling.MarketplaceUriSchemeHandler"
+               uriScheme="eclipse+mpc"
+               uriSchemeDescription="Eclipse Marketplace">
+         </uriSchemeHandler>
+      </extension>
+</plugin>

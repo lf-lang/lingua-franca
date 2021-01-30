@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+     Copyright (c) 2005, 2010 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Simple Cheat Sheet -->
+
+<cheatsheet title="Define a plug-in based product">
+
+   <!-- Introduction -->
+
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet will demonstrate how to define a plug-in based
+         product configuration for an RCP application and run an RCP application 
+         product using PDE.  
+         <br/>
+         <br/>
+         To learn more about using cheat sheets, click the help button
+         in the top right corner (?). 
+      </description>
+   </intro>
+
+   <!-- Item -->
+
+   <item title="Open the plug-in development perspective"
+         href="/org.eclipse.pde.doc.user/guide/tools/views/views.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the plug-in development perspective,
+         select <b>Window-&gt;Open Perspective-&gt;Other...</b> 
+         and choose <b>Plug-in Development</b>.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.
+      </description>
+      <command serialization="org.eclipse.ui.perspectives.showPerspective(org.eclipse.ui.perspectives.showPerspective.perspectiveId=org.eclipse.pde.ui.PDEPerspective)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Create the product configuration"
+         href="/org.eclipse.pde.doc.user/guide/tools/file_wizards/new_product_config.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To create the product configuration, perform the following steps:
+      </description>
+      <subitem label="Select &quot;File-&gt;New-&gt;Product Configuration&quot; from the main menu" 
+               skip="false">
+         <command serialization="org.eclipse.ui.newWizard(newWizardId=org.eclipse.pde.ui.NewProductConfigurationWizard)" required="false" translate="" />
+      </subitem>
+      <subitem label="Select &quot;com.example.rcpapp&quot; in the resulting &quot;New Product Configuration&quot; wizard page" 
+               skip="false"/>
+      <subitem label="Input &quot;rcpapp.product&quot; into the &quot;File name&quot; text box" 
+               skip="false"/>
+      <subitem label="Select the &quot;Use a launch configuration&quot; radio button inside the &quot;Initialize the file content&quot; group and verify that &quot;com.example.rcpapp.application&quot; is selected in the  combo box. Click &quot;Finish&quot;" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Open the product editor"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/editor.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the product editor (if it is not already open),
+         expand the <b>com.example.rcpapp</b> tree dialog
+         in the <b>Package Explorer</b> view and double-click
+         on the <b>rcpapp.product</b> file (the <b>Overview</b> page
+         should be open initially).
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.         
+      </description>
+      <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/rcpapp.product)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Define the product"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/overview.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To define the product, perform the following steps:
+      </description>
+      <subitem label="Click the &quot;New...&quot; button next to the &quot;Product ID&quot; drop down menu to open the &quot;New Product Definition&quot; dialog box" 
+               skip="false"/>
+      <subitem label="Input &quot;RCP Application&quot; into the &quot;Product Name&quot; text box" 
+               skip="false"/>
+      <subitem label="Verify &quot;com.example.rcpapp&quot; is the value entered for the &quot;Defining Plug-in&quot; text box" 
+               skip="true"/>        
+      <subitem label="Verify &quot;product&quot; is the value entered for the &quot;Product ID&quot; text box" 
+               skip="true"/>        
+      <subitem label="Accept the defaults and click &quot;Finish&quot;" 
+               skip="false"/>        
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/> 
+   </item>
+
+   <!-- Item -->
+
+   <item title="Synchronize the product configuration with the defining plug-in"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/overview.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         Product configurations and their constituent files may become
+         unsynchronized.  This situation is apparent when changes 
+         made using the product editor are not reflected in the application.  
+         <br/>
+         <br/>
+         To synchronize the product configuration with the defining plug-in, 
+         click the <b>Synchronize</b> hyperlink under the <b>Testing</b>
+         heading on the product editor <b>Overview</b> page.
+         <br/>
+         <br/>
+         Note:  PDE automatically synchronizes the product configuration
+         when the <b>Launch an Eclipse Application</b> hyperlinks under the 
+         <b>Testing</b> heading are used.
+      </description>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Run the RCP product"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/overview.htm"
+         skip="false">
+      <description>
+         To run the RCP product,
+         perform the following steps:
+      </description>
+      <subitem label="Click the &quot;Launch an Eclipse application&quot; hyperlink under the &quot;Testing&quot; heading" 
+               skip="false"/>
+      <subitem label="Note: &quot;RCP Application&quot; now shows up in the window title bar" 
+               skip="true"/>
+      <subitem label="Exit the RCP application" 
+               skip="false"/>
+   </item>
+
+</cheatsheet>

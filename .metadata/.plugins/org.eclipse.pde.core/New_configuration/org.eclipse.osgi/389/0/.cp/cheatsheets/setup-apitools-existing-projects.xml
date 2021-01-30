@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--/*******************************************************************************
+ * Copyright (c) 2009, 2011 IBM Corporation and others.
+ *
+ * This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/-->
+<cheatsheet
+      title="Setting up API Tools for existing plug-in projects">
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet will help in setting up API Tools for existing plug-in projects.
+      </description>
+   </intro>
+   <item
+         skip="true"
+         title="Prerequisite">
+      <description>
+         The plug-in projects should be located in the workspace and be in open state. The API is public and the relevant packages are exported through the &quot;Exported Packages&quot; on the &quot;Runtime&quot; tab of the Manifest Editor.
+      </description>
+   </item>
+   <item
+         href="/org.eclipse.pde.doc.user/reference/api-tooling/actions/ref-apitooling-setup-action.htm"
+         title="Setting up API Tools">
+      <description>
+      </description>
+      <subitem
+            label="Select any project in package explorer and invoke the &quot;API Tools Setup&quot; wizard from &quot;PDE Tools&quot; in the right-click context menu.">
+      </subitem>
+      <subitem
+            label="Select all the projects for which API Tools is to be enabled. Click &quot;Finish&quot;.">
+      </subitem>
+      <subitem
+            label="When prompted for setting up an API Baseline, select &quot;Yes&quot;.">
+      </subitem>
+      <subitem
+            label="You are now presented with the &quot;API Baseline&quot; preference page. Click &quot;Add Baseline&quot; to create a default baseline. Provide a name and location, where the location contains an older version of the bundle(s) you are enabling API Tools for. Click &quot;Reset&quot;. Click &quot;Finish&quot;. This will trigger a full build.">
+      </subitem>
+   </item>
+   <item
+         title="Testing API Tools">
+      <description>
+         This is optional and is there just to make sure everything is in place properly.
+         
+      </description>
+      <subitem
+            label="Open any class in one of the exported packages. Add a public function to it and save it."
+            skip="false">
+      </subitem>
+      <subitem
+            label="There will be two problems generated. Use a quick-fix to fix them. First, quick-fix the version change in MANIFEST.MF and then the @since tag to the newly added method."
+            skip="false">
+      </subitem>
+      <subitem
+            label="Select the class or project in the package explorer and select &quot;API Baseline&quot; from the &quot;Compare with&quot; right-click context menu.">
+      </subitem>
+      <subitem
+            label="Let the default baseline &quot;1.0&quot; be selected and click &quot;Finish&quot;.">
+      </subitem>
+      <subitem
+            label="The &quot;API Tools&quot; view will open displaying the newly added method.">
+      </subitem>
+   </item>
+</cheatsheet>

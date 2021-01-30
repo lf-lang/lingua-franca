@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<introContent>
+	<extensionContent id="org.eclipse.m2e" name="Maven Integration for Eclipse"
+		    style="css/overview.css" path="overview/@">
+		<group id="content-group" style-id="content-group">
+			<link id="m2eclipse-overview" style-id="content-link" 
+			      label="Maven Integration for Eclipse"
+			      url="http://www.eclipse.org/m2e/">
+				<text>See an overview of the features provided by Maven Integration for Eclipse (m2eclipse).</text>
+			</link>
+			<!--
+            url="http://org.eclipse.ui.intro/runAction?pluginId=org.eclipse.m2e.book&amp;class=org.eclipse.m2e.actions.ShowOwerviewAction&amp;id=org.eclipse.m2e.actions.owerview.action">
+            url="http://org.eclipse.ui.intro/showHelpTopic?id=/org.eclipse.m2e.book/book/"
+      -->      
+		</group>
+	</extensionContent>
+</introContent>

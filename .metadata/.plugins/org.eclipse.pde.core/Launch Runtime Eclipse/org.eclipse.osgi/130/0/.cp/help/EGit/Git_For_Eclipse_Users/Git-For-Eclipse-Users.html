@@ -1,0 +1,521 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>Git for Eclipse Users</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Git for Eclipse Users</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Updating-This-Document.html" title="Updating This Document">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Updating This Document</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<p>This post is aimed at those who have been using Eclipse for a while, and probably have been using either the baked-in CVS or external SVN providers to store their source code. The content of the post is about Git: what it means to you, as an Eclipse user, and specifically, how it affects how you obtain or work with projects from Eclipse.org.</p>
+		<p>This post is not about the relative merits of Git over CVS/SVN, or of Git versus other distributed version control systems (DVCS) like Mercurial (Hg). Other sites can give those flavours if needed.</p>
+		<p>Once you understand the conceptual differences between CVS/SVN and Git, and then subsequently start to use Git, you may find it very difficult to go back. You should really start to experiment only if you think you're going to migrate in the near future, because using Git is like watching TV in colour: once you've discovered it, it's really difficult to go back to black &amp; white.</p>
+		<dl>
+			<dd>☞ 
+				<b>Once you start to use a DVCS, it's very unlikely you'll want to go back</b>
+			</dd>
+		</dl>
+		<h2 id="Centralised_version_control_systems">Centralised version control systems</h2>
+		<p>So, what do you need to know about Git? Well, both CVS and SVN are known as 
+			<i>centralised</i> version control systems (CVCS). That is, there is one Master repository where people share code; everyone checks out their code (or branch) from that repository, and checks changes back in. For code that needs to be sent person-to-person (for example, for review, or as a way of contributing fixes), it is possible to create a 
+			<i>patch</i>, which is a diff of your code against the given Master repository version (often HEAD, but sometimes a branch like Eclipse_35). 
+		</p>
+		<p>Two problems surface with a centralised version control system, although they aren't immediately obvious: </p>
+		<ul>
+			<li>You need to be 'online' to perform actions, like diff or patch 
+				<a href="#reference-1">[1</a>].
+			</li>
+			<li>Patches generated against a particular branch can become outdated fairly quickly as development of the snapshot-in-time branch moves on (e.g. when it is time to apply the patch, HEAD is different than it was when the patch was generated).</li>
+		</ul>
+		<p>
+			<a href="#ref-1">[1</a>] 
+			<i>(A note on SVN: since SVN keeps the last-known checkout, it's possible to do a limited set of operations while disconnected from SVN, like diff from the last-known checkout. However, in general, you are prevented from doing many of the operations that are possible while connected.)</i>
+		</p>
+		<p>The first problem is rarely apparent for those working with Eclipse in a location at (or near) the repository itself. Those in the same continent will rarely experience delays due to global network variation; in addition, they tend to be employed in an organisation and sit at a desktop connected to wired networking for most of the day. Road warriors (those with laptops and who code from the local coffee shop) tend to operate in a more frequently disconnected mode, which limits repository functionality to when they are connected.</p>
+		<p>The second problem is simply an artifact of the way in which patches work. These are generally performed against HEAD (a snapshot in time) and then applied later (sometimes months or even 
+			<a href="https://bugs.eclipse.org/bugs/show_bug.cgi?id=4922" target="egit_external">eight years later</a>). Although they record the version of the file they were patched against, the patch itself is sensitive to big changes in the file, sometimes leading to the patch being inapplicable. Even relatively simple operations, like a file rename, can throw a well-formed CVCS patch out of the window.
+		</p>
+		<h2 id="Distributed_Version_Control_Systems">Distributed Version Control Systems</h2>
+		<p>Distributed Version Control Systems (DVCS) are a family of version control systems unlike those with which many are familiar. Two of the most popular are 
+			<a href="http://www.git-scm.org" target="egit_external">Git</a> and 
+			<a href="http://mercurial.selenic.com" target="egit_external">Hg</a>, although others (
+			<a href="http://darcs.net/" target="egit_external">Darcs</a>, 
+			<a href="http://bazaar.canonical.com/en/" target="egit_external">Bazaar</a>, 
+			<a href="http://www.bitkeeper.com/" target="egit_external">Bitkeeper</a>, etc.) exist. In a DVCS each user has a complete copy of the repository, including its entire history.  A user may potentially push changes to or pull changes from any other repository. Although policy may confer special status on one or more repositories, in principle every repository is a first-class citizen in the DVCS model. This stands in contrast to a centralised version control system, where every individual checks files into and out of an authoritative repository.
+		</p>
+		<dl>
+			<dd>☞ 
+				<b>Each user has a full copy of the repository</b>
+			</dd>
+		</dl>
+		<p>This initially sounds impossible, especially if you're used to centralised version control systems, and even more so if they involve pessimistic file-based locking. (If you do firmly want pessimistic locking, please stop reading here. Thanks.) Questions arise, like:</p>
+		<ol>
+			<li>If everyone has a copy of the repository, don't all the forks diverge?</li>
+			<li>Where is the master repository kept?</li>
+			<li>Isn't the repository, like, really big?</li>
+			<li>No really, I like pessimistic locking.</li>
+		</ol>
+		<p>Let's answer each one of these questions in turn. (If I missed your favourite question, then please feel free to add one in the comments.)</p>
+		<ol>
+			<li>Yes, the forks 
+				<i>can</i> diverge. But after all, open-source can diverge anyway. There's nothing stopping me from forking the <code>dev.eclipse.org</code> codebase, and publishing my own version of it called 
+				<a href="http://sourceforge.net/projects/rcpapps/files/maclipse/" target="egit_external">Maclipse</a>. The key thing here is that whilst forks are possible, 
+				<i>forking is not a bad thing in itself</i>. After all, look at Linux and Android; originally, they shared a history, but are now different. XFree86 and X.Org 
+				<a href="http://www.x.org/wiki/XorgFoundation" target="egit_external">split</a> over licensing issues. MySQL was forked to create 
+				<a href="http://askmonty.org/wiki/index.php/MariaDB" target="egit_external">MariaDB</a>, and so on. The key thing about forks is that the best survive. X.Org is now the default X client, whereas XFree86 was the default beforehand. The jury is still out on MySQL versus MariaDB. And although Maclipse has been downloaded literally <span title="Actually, about one and a half thousand. That's more than I expected.">tens of times</span>, it hasn't caused a dent in Eclipse's growth.
+				<dl>
+					<dd>☞ 
+						<b>Forks happen</b>
+					</dd>
+				</dl>
+			</li>
+			<li>Do not try to bend the <span title="spoon">master repository</span> – that's impossible. Instead, try only to realise the truth; there is no <span title="spoon">master repository</span>. In fact, there's a veritable matrix of master repositories possible. Each repository can be considered a node in a graph; nodes in the graph can be connected to each other in any way. However, rather than an n-n set of links, the graph usually self-organises into a tree-like structure, logically associating with one point that acts as a funnel for everything else. In a sense, that's a master repository – everyone has already made the choice; now you have to understand it. Should an oracle intervene, a neo-master can be chosen.
+				<dl>
+					<dd>☞ 
+						<b>There is no master repository</b>
+					</dd>
+				</dl>
+			</li>
+			<li>Given that there is no master repository, it becomes clear that the repository must live in its entirety on each of the nodes in the DVCS. This usually leads to fears about the size of the repository, even taking into account that storage is cheap. A key point here is that DVCS repositories are usually far 
+				<i>smaller</i> than their counterpart CVCS repositories, not least of the reasons for which being that everyone has to have a full repository in order to do any work. It's a natural consequence that they're smaller. However, they're smaller also because each repository contains far less scope than a CVCS repository. For example, most organisations will have one mammoth CVCS repository with several thousand top-level 'modules' (or 'projects') underneath. Because of the administrative overhead of 'creating a new repository', it is often easier to reuse the same one for everything. (SVN put some limits on how wide it could grow, which CVS tended not to have; but even so, the main 
+				<a href="http://svn.apache.org/viewvc?view=revision&amp;revision=908283" target="egit_external">Apache SVN</a> is over 900k revisions.) By contrast, a DVCS is usually nothing more than a directory with a few administrative files inside. It doesn't require administrator privileges or specific ports; in fact, since there's no central server to speak of, it doesn't even need to be shared by network protocols. As a result, a DVCS repository is much more granular – and easy to create – than a conventional CVCS repository. Firstly, it's always on your machine (there's no centralised server to configure) and secondly, all you need access to is a file system. So typically, a DVCS “repository” will often be at the level of an Eclipse project or project working set. For example, although the [
+				<a href="http://dev.eclipse.org/viewcvs/index.cgi/?root=RT_Project" target="egit_external">http://dev.eclipse.org/viewcvs/index.cgi/?root=RT_Project</a> CVS <span title="RunTime">RT</span> repository] is shared by 
+				<a href="http://dev.eclipse.org/viewcvs/index.cgi/org.eclipse.equinox/?root=RT_Project" target="egit_external">Equinox</a> and 
+				<a href="http://dev.eclipse.org/viewcvs/index.cgi/org.eclipse.ecf/?root=RT_Project&amp;view=log" target="egit_external">ECF</a>, a DVCS-based solution would almost certainly see the Equinox and ECF projects in their own repositories; perhaps, even breaking down further into (say) ECF-Doc and ECF-Bundles. Think of a DVCS repository as one or a few Eclipse projects instead of hundreds of projects together.
+				<dl>
+					<dd>☞ 
+						<b>DVCS repositories are much smaller, typically because they contain only a small number of highly-related projects</b>
+					</dd>
+				</dl>
+			</li>
+			<li>That's not a question. Look, if you want the benefits of a centralised DVCS with pessimistic locking and pessimistic users, then go look at 
+				<a href="http://www-01.ibm.com/software/awdtools/clearcase/" target="egit_external">ClearCase</a>.
+				<dl>
+					<dd>☞ 
+						<b>Friends don't let friends use ClearCase</b>
+					</dd>
+				</dl>
+			</li>
+		</ol>
+		<h2 id="How_does_it_work.3F">How does it work?</h2>
+		<p>There are two pieces of information that identify elements in a CVCS; a file's 
+			<i>name</i>, and its 
+			<i>version</i> (sometimes called 
+			<i>revision</i>). In the case of CVS, each file has its own version stream (1.1, 1.2, 1.3), whilst in SVN, each changeset has a 'repository revision' number. Tags (or branches) are symbolic identifiers which may be attached to any specific set of files or repository revision, and are mostly for human consumption (e.g. HEAD, trunk, ECLIPSE_35).
+		</p>
+		<p>This doesn't work in a DVCS. Because there is no central repository, there is no central repository version number (either for the repository as a whole, or for individual files).</p>
+		<p>Instead, a DVCS operates at the level of a 
+			<i>changeset</i>. Logically, a repository is made up of an initial (empty) state, followed by many changesets. (A changeset is merely a change to a set of files; if you think 'patch' from CVS or SVN, you're not far off.)
+		</p>
+		<p>Identifying a changeset is much harder. We can't use a (global) revision number, because that concept isn't used. Instead, a changeset is represented as a hash of its contents. For example, given the changeset:</p>
+		<pre>--- a/README.txt
++++ b/README.txt
+@@ -1 +1 @@
+-SVN is great
++Git is great
+</pre>
+		<p>we can create a 'hash' using (for example) <code>md5</code>, to generate the string <code>0878a8189e6a3ae1ded86d9e9c7cbe3f</code>. When referring to our change with others, we can use this hash to identify the change in question.</p>
+		<dl>
+			<dd>☞ 
+				<b>Changesets are identified by a hash of their contents</b>
+			</dd>
+		</dl>
+		<p>Clearly, though, this doesn't work on its own. What happens if we do the same change later on? It would have the same change, and we don't want the same hash value.</p>
+		<p>What happens is that a changeset contains two things; the change itself, and a back-pointer to the previous changeset. In other words, we end up with something like:</p>
+		<pre>previous: 48b2179994d494485b79504e8b5a6b23ce24a026
+--- a/README.txt
++++ b/README.txt
+@@ -1 +1 @@
+-SVN is great
++Git is great
+</pre>
+		<dl>
+			<dd>☞ 
+				<b>Changesets (recursively) contain pointers to the previous changeset</b>
+			</dd>
+		</dl>
+		<p>Now, if we were to have the same change again, the 
+			<i>previous</i> value would be different, so we'd get a different hash value. We could set up an argument:
+		</p>
+		<pre>previous: 48b2179994d494485b79504e8b5a6b23ce24a026
+--- a/README.txt
++++ b/README.txt
+@@ -1 +1 @@
+-SVN is great
++Git is great
+</pre>
+		<pre>previous: 8cafc7ecd01d86977d2af254fc400cee
+--- a/README.txt
++++ b/README.txt
+@@ -1 +1 @@
+-Git is great
++SVN is great
+</pre>
+		<pre>previous: cba3ef5b2d1101c2ac44846dc4cdc6f4
+--- a/README.txt
++++ b/README.txt
+@@ -1 +1 @@
+-Git is great
++SVN is great
+</pre>
+		<p>Each time, the value of the changeset includes a pointer to what comes before, so the hash is continually changing.</p>
+		<p>
+			<b>Note</b>: Rather than using <code>md5</code>, as shown here, most DVCS (including Git) use an <code>sha1</code> hash instead. Also, the exact way that the prior elements in the tree are stored, and their relationships, isn't accurately portrayed above; however, it gives sufficiently well the idea of how they are organised.
+		</p>
+		<dl>
+			<dd>☞ 
+				<b>Git changesets are identified by an SHA-1 hash</b>
+			</dd>
+		</dl>
+		<h2 id="Changesets_and_branches">Changesets and branches</h2>
+		<p>Given that a changeset is a long value like <code>48b2179994d494485b79504e8b5a6b23ce24a026</code>, it can be unfriendly to use. Fortunately, there are a couple of ways around this. Git, like other DVCSs, allow you to use an abbreviated form of the changeset, provided that it's unique in the repository. For small repositories, this means that you can refer to changesets by really short values, like <code>48b21</code> or even <code>48</code>. Conventionally, developers often use 6 digits of the hash – but large projects (like the Linux kernel) tend to have to use slightly larger references in order to have uniqueness.</p>
+		<dl>
+			<dd>☞ 
+				<b>Git hashes can be shortened to any unique prefix</b>
+			</dd>
+		</dl>
+		<p>The current version of your repository is simply a pointer to the end of the tree. For this reason, it's often referred to as a 
+			<i>tip</i>, but <code>HEAD</code> is the symbolic identifier for what the current repository is pointing to. Similarly, any branch can be referred to by its changeset id, which includes that and all prior changes. The default branch is usually called 
+			<i>master</i>.
+		</p>
+		<dl>
+			<dd>☞ 
+				<b>The default 'trunk' is called 'master' in Git</b>
+			</dd>
+			<dd>☞ 
+				<b>The tip of the current branch is referred to as 'HEAD</b>'
+			</dd>
+		</dl>
+		<p>As a direct corollary to this, creating branches in a DVCS is fast. All that happens is that the repository on disk is updated to point to a different element in the (already physically present) tree, and you're done. Furthermore, it's trivial to ping-pong between different branches on the same repository that may contain different states and evolve independently.</p>
+		<dl>
+			<dd>☞ 
+				<b>Creating, and switching between, branches is fast</b>
+			</dd>
+		</dl>
+		<p>Because branching is so fast, branches get used for things that a user of a CVCS wouldn't normally use branching for. For example, each bug in Bugzilla could have a new branch associated with it; if a couple of independent features are being worked on concurrently, they'd get their own branch; if you needed to drop back to do maintenance work on an ECLIPSE_35 branch, then you'd switch to a branch for that as well. Branches get created at least as frequently as 
+			<a href="http://www.peterfriese.de/using-cvs-change-sets/" target="egit_external">changesets</a> might in CVS, if not more so.
+		</p>
+		<dl>
+			<dd>☞ 
+				<b>Create a new branch for each Bugzilla or feature item that you work on</b>
+			</dd>
+			<dd>☞ 
+				<b>Think of branches as throwaway changesets</b>
+			</dd>
+		</dl>
+		<h2 id="Merging">Merging</h2>
+		<p>With great power comes great flexibility, but ultimately, you want to get your changes into some kind of merged stream (like HEAD). One of the fears of unconstrained branching is that of unconstrained merge pains later on. SVN makes this slightly less difficult than CVS, but unless you merge to HEAD frequently, you can easily get lost – particularly when refactorings start happening.</p>
+		<dl>
+			<dd>☞ 
+				<b>It's painful to merge in a CVCS; therefore branches tend not to happen</b>
+			</dd>
+		</dl>
+		<p>Fortunately, DVCSs are all about merging. Given that each node in the changeset tree contains a pointer to its previous node (and transitively, to the beginning of time), it's much more powerful than the standard flat CVCS diff. In other words, not only do you know what changes need to be made, but also 
+			<i>at what point in history they need to be made</i>. So, if you have a changeset that renames a file, and then merge in a changeset that points to the file as it was before it was renamed, a CVCS will just fall over; but a DVCS will be able to apply the change 
+			<i>before</i> the rename occurred, and then play forward the changes.
+		</p>
+		<p>Merges are just the weaving together of two (or more) local branches into one. The 
+			<a href="http://www.kernel.org/pub/software/scm/git/docs/git-merge.html" target="egit_external">git merge</a> documentation has some graphical examples of this; but basically, it's just like any other merge you've seen. However, unlike CVCS, you don't have to specify anything about where you're merging from and to; the trees automatically know what their split point was in the past, and can work it out from there.
+		</p>
+		<dl>
+			<dd>☞ 
+				<b>Merging in a DVCS like Git is trivial</b>
+			</dd>
+		</dl>
+		<h2 id="Pulling_and_pushing">Pulling and pushing</h2>
+		<p>So far, we've not talked much about the distributed nature of DVCS. Implicitly, though, the changes and ideas above are all to support distribution.</p>
+		<p>Given that a DVCS tree is merely a pointer to a branch (which transitively contains a long list of previous branches), and that each one of these nodes is identified by its hash, then you and I can share the same revision identifiers for common parts of our tree. There are three cases to consider for comparing our two trees:</p>
+		<ul>
+			<li>Your tip is an ancestor of my tip</li>
+			<li>My tip is an ancestor of your tip</li>
+			<li>Neither of our tips are direct ancestors; however, we both share a common ancestor</li>
+		</ul>
+		<p>The first two cases are trivial; if we synchronise trees, they just become a fast-forward merge. In fact, if that occurs, chances are you won't know who is ahead of the other; it will just happen.</p>
+		<p>The last case is only slightly more tricky; a common ancestor must be found; say, <code>746d6c</code>. Then I send changes between my tip and <code>746d6c</code>, and you send changes between your tip and <code>746d6c</code>. That way, we both end up with the same contents on our repositories.</p>
+		<p>Changes flow between repositories by 
+			<i>push</i> and 
+			<i>pull</i> operations. In essence, it doesn't matter whether I push my changes to you, or you pull my changes from me; the net result is the same. However, in the case of Eclipse.org infrastructure, it's likely that a central Git repository will be writable only by Eclipse committers. Thus, if I contribute a fix, I can ask a committer to pull the fix from my repository, and then they (after reviewing, and optionally rebasing) can push the fix to the Eclipse.org repository.
+		</p>
+		<p>The best part of a DVCS is that it takes care of all the paperwork for you. You don't need to use SVN-like <code>314:321</code> tags to remind you where you branched from; you don't even have to worry if you haven't updated recently. It all just works.</p>
+		<dl>
+			<dd>☞ 
+				<b>Pulling and pushing in a DVCS like Git is trivial</b>
+			</dd>
+		</dl>
+		<h2 id="Cloning_and_remotes">Cloning and remotes</h2>
+		<p>Where you can push (or pull) to is configured on a per (local) repository basis. Typically, if you clone an existing project, then a 
+			<i>remote name</i> called 
+			<i>origin</i> is automatically set up for you. For example, if you wanted to get hold of 
+			<a href="http://git.eclipse.org/cgit.cgi/babel/org.eclipse.babel.server.git/" target="egit_external"> org.eclipse.babel.server.git</a>, then you could do:
+		</p>
+		<pre>git clone git://git.eclipse.org/gitroot/babel/org.eclipse.babel.server.git
+</pre>
+		<p>We can then keep up-to-date with what's happening on the remote server by executing a pull from the remote:</p>
+		<pre>git pull origin
+</pre>
+		<p>...but we're not limited to one repository. Let's say we wanted to create a separate copy on 
+			<a href="http://www.github.com" target="egit_external">GitHub</a> for easy forking; we can do that by adding another remote Git URL and then pushing to that:
+		</p>
+		<pre>git remote add github <a href="http://github.com/alblue/babel.git" target="egit_external">http://github.com/alblue/babel.git</a>
+git push github
+</pre>
+		<p>We can now use <code>git push</code> and <code>git pull</code> to move items between the two git repositories. By default, they both refer to the special-named 
+			<i>origin</i>, but you can specify whatever remote to talk to on the command line.
+		</p>
+		<dl>
+			<dd>☞ 
+				<b>Origin is the name of the default remote, but you can have many remotes per repository.</b>
+			</dd>
+		</dl>
+		<h2 id="Initialising.2C_committing_and_branching">Initialising, committing and branching</h2>
+		<p>To create a new Git repository, the <code>git init</code> command is used. This creates an empty repository in the current directory. They can, but often don't, end with <code>.git</code> – typically it's only repositories pushed to remote servers that use the <code>.git</code> extension. As noted above, a Git repository should ideally hold only one or a few highly related/coupled projects.</p>
+		<dl>
+			<dd>☞ 
+				<b>'git init' creates a fresh repository in the current directory</b>
+			</dd>
+		</dl>
+		<p>Git allows you to commit files, much like any other VCS. Each commit may be a single file, or many files; and a message goes along with it. Unlike other VCS, Git has a separate concept of an 
+			<i>index</i>, which is a set of files that would be committed. You can think of it as an active changeset; as you're working on multiple files, you want only some changes to be committed as a unit. These files get <code>git add</code>ed to the index first, then <code>git commit</code>ted subsequently. (If you don't like this behaviour, there's a <code>git commit -a</code> option, which performs as CVS or SVN would.)
+		</p>
+		<dl>
+			<dd>☞ 
+				<b>'git add' is used to add files and track changes to files</b>
+			</dd>
+			<dd>☞ 
+				<b>'git commit' is used to commit tracked files</b>
+			</dd>
+		</dl>
+		<p>To create branches, you can use <code>git branch</code> (which creates, but does not switch to, the new branch) and <code>git checkout</code> (which switches to the new branch). A shorthand for new branches is <code>git checkout -b</code>, which creates-and-switches to a branch. At any point, <code>git branch</code> shows you a list of branches and marks the current one with a * next to the name.</p>
+		<dl>
+			<dd>☞ 
+				<b>'git branch' is used to create and list branches</b>
+			</dd>
+			<dd>☞ 
+				<b>'git checkout' is used to switch branches</b>
+			</dd>
+			<dd>☞ 
+				<b>'git checkout -b' is used to create and then switch branches</b>
+			</dd>
+		</dl>
+		<h2 id="Worked_example">Worked example</h2>
+		<p>Here's a transcript of working with setting up an initial repository, then copying data to and from a 'remote' repository, albeit in a different directory on the same system. The instructions are for a Unix-like environment (e.g. Cygwin on Windows).</p>
+		<pre>$ mkdir /tmp/example
+$ cd /tmp/example
+$ git init
+Initialized empty Git repository in /tmp/example/.git/
+$ echo "Hello, world" &gt; README.txt
+$ git commit # Won't commit files by default
+# On branch master
+#
+# Initial commit
+#
+# Untracked files:
+#   (use "git add &lt;file&gt;..." to include in what will be committed)
+#
+#	README.txt
+nothing added to commit but untracked files present (use "git add" to track)
+$ git add README.txt # Similar to Team -&gt; Add to Version Control
+$ # git commit # Would prompt for message
+$ git commit -m "Added README.txt"
+[master (root-commit) 0dd1f35] Added README.txt
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+ create mode 100644 README.txt
+$ echo "Hello, solar system" &gt; README.txt
+$ git commit
+# On branch master
+# Changed but not updated:
+#   (use "git add &lt;file&gt;..." to update what will be committed)
+#   (use "git checkout -- &lt;file&gt;..." to discard changes in working directory)
+#
+#	modified:   README.txt
+#
+no changes added to commit (use "git add" and/or "git commit -a")
+$ git commit -a -m "Updated README.txt"
+[master 9b1939a] Updated README.txt
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+$ git log --graph --oneline # Shows graph nodes (not much here) and change info
+* 9b1939a Updated README.txt
+* 0dd1f35 Added README.txt
+$ git checkout -b french 0dd1f35 # create and switch to a new branch 'french'
+Switched to a new branch 'french'
+$ cat README.txt 
+Hello, world
+$ echo "Bonjour, tout le monde" &gt; README.txt
+$ git add README.txt # or commit -a
+$ git commit -m "Ajouté README.txt"
+[french 66a644c] Ajouté README.txt
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+$ git log --graph --oneline
+* 66a644c Ajouté README.txt
+* 0dd1f35 Added README.txt
+$ git checkout -b web 0dd1f35 # Create and checkout a branch 'web' from initial commit
+$ echo '&lt;a href="<a href="http://git.eclipse.org" target="egit_external">http://git.eclipse.org</a>"&gt;git.eclipse.org&lt;/a&gt;' &gt; index.html
+$ git add index.html
+$ git commit -m "Added homepage"
+[web d47e30c] Added homepage
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+ create mode 100644 index.html
+$ git checkout master
+$ git branch # See what branches we've got
+  french
+* master
+  web
+$ git merge web # pull 'web' into current branch 'master'
+Merge made by recursive.
+ index.html |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+ create mode 100644 index.html
+$ git checkout french # Switch to 'french' branch
+Switched to branch 'french'
+$ git merge web # And merge in the same
+Merge made by recursive.
+ index.html |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+ create mode 100644 index.html
+$ git log --graph --oneline
+*   e974231 Merge branch 'web' into french
+|\  
+| * d47e30c Added homepage
+* | 66a644c Ajouté README.txt
+|/  
+* 0dd1f35 Added README.txt
+$ git checkout master
+$ git log --graph --oneline
+*   e3de4de Merge branch 'web'
+|\  
+| * d47e30c Added homepage
+* | 9b1939a Updated README.txt
+|/  
+* 0dd1f35 Added README.txt
+$ (mkdir /tmp/other;cd /tmp/other;git init) # Could do this in other process
+$ (cd /tmp/other;git config --bool core.bare true) # Need to tell git that /tmp/other is a bare repository so we can "push" to it
+Initialized empty Git repository in /tmp/other/.git/
+$ git remote add other /tmp/other # could be a URL over http/git
+$ git push other master # push branch 'master' to remote repository 'other'
+Counting objects: 11, done.
+Delta compression using up to 2 threads.
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (11/11), 981 bytes, done.
+Total 11 (delta 1), reused 0 (delta 0)
+Unpacking objects: 100% (11/11), done.
+To /tmp/other
+ * [new branch]      master -&gt; master
+$ git push --all other # Push all branches to 'other'
+Counting objects: 8, done.
+Delta compression using up to 2 threads.
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (5/5), 567 bytes, done.
+Total 5 (delta 0), reused 0 (delta 0)
+Unpacking objects: 100% (5/5), done.
+To /tmp/other
+ * [new branch]      french -&gt; french
+ * [new branch]      web -&gt; web
+$ cd /tmp/other # Switch to 'other' repository. git commands now apply to this repository
+$ git config --bool core.bare false # need to allow this repository to have checked out files
+$ ls # Nothing to be seen, but it's there
+$ git branch
+  french
+* master
+  web
+$ git checkout web # Get the contents of the 'web' branch in other
+$ ls
+README.txt index.html
+$ echo '&lt;h1&gt;Git rocks!&lt;/h1&gt;' &gt;&gt; index.html
+$ git commit -a -m "Added Git Rocks!"
+[web 510621a] Added Git Rocks
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+$ cd /tmp/example # Back to first repo. git commands now apply to 'example' repository
+$ git pull other web # Pull changes from 'other' repo 'web' branch
+remote: Counting objects: 5, done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 3 (delta 0), reused 0 (delta 0)
+Unpacking objects: 100% (3/3), done.
+From /tmp/other
+ * branch            web        -&gt; FETCH_HEAD
+Merge made by recursive.
+ index.html |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+$ git log --graph --oneline
+*   146932f Merge branch 'web' of /tmp/other
+|\  
+| * 510621a Added Git Rocks
+* |   e3de4de Merge branch 'web'
+|\ \  
+| |/  
+| * d47e30c Added homepage
+* | 9b1939a Updated README.txt
+|/  
+* 0dd1f35 Added README.txt
+</pre>
+		<h2 id="Rebasing_and_fast-forwarding">Rebasing and fast-forwarding</h2>
+		<p>Often, you'll work on a branch for a while and then want to commit it to the repository. You can do this at any point, but it's considered good practice to 
+			<i>rebase</i> your local branch before doing so. For example, you can end up with multiple branches in the log (with <code>git log --graph --oneline</code>):
+		</p>
+		<pre>*   f0fde4e Merge change I11dc6200
+|\  
+| * 86dfb92 Mark the next version as 0.6
+* |   0c8c04d Merge change I908e4c77
+|\ \  
+| |/  
+|/|   
+| * 843dc8f Add support for logAllRefUpdates configuration parameter
+* | 74ba6fc Remove TODO file and move to bugzilla
+* | ba7c6e8 Fix SUBMITTING_PATCHES to follow the Eclipse IP process
+* | c5e8589 Fix tabs-to-spaces in SUBMITTING_PATCHES
+* | 677ca7b Update SUBMITTING_PATCHES to point to Contributor Guide
+* | 8847865 Document protected members of RevObjectList
+* | a0a0ce8 Make it possible to clear a PlotCommitList
+* | 4a3870f Include description for missing bundle prereqs
+|/  
+* 144b16d Cleanup MANIFEST.MF in JGit
+</pre>
+		<p>What happened here was that two branches split off from change <code>144b16d</code>, ultimately driving another branch at <code>74ba6fc</code> and a few merges (at <code>0c8c04d</code> and <code>f0fde4e</code>). (You can see a similar effect in 
+			<a href="http://code.google.com/p/wave-protocol/source/list" target="egit_external">Google Code's Hg view of Wave Protocol</a>.) Ultimately, whilst the DVCS can handle these long-running branches and subsequent merges, humans tend to prefer to see fewer branches in the final repository.
+		</p>
+		<p>A 
+			<i>fast-forward</i> merge (in Git terms) is one which doesn't need any kind of merge operation. This usually happens when you are moving from an older branch to a newer branch on the same timeline; such as when updating to a newer version from a remote repository. These are essentially just moving the HEAD pointer further down the branch.
+		</p>
+		<p>A 
+			<i>rebase</i> is uprooting the branch from the original commit, and re-writing history as if it had been done from the current point in time. For example, in the above Git trace, <code>1441b16d</code> to <code>843dc8f</code> to <code>0c8c04d</code> was only one commit off the main tree. Had the change been rebased on <code>74ba6fc</code>, then we would have only seen a single timeline across those commits. It's generally considered good practice to rebase changes prior to pushing to a remote tree to avoid these kind of fan-outs, but it's not necessary to do so. Furthermore, the rebase operation changes the <code>sha1</code> hashes of your tree, which can affect those who have forked your repository. Best practice is to frequently rebase your changes in your own local repository, but once they've been made public (by pushing to a shared repository) to avoid rebasing further.
+		</p>
+		<dl>
+			<dd>☞ 
+				<b>Rebasing replants your tree; but do it on local branches only</b>
+			</dd>
+		</dl><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Updating-This-Document.html" title="Updating This Document">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Updating This Document</td>
+			</tr>
+		</table>
+	</body>
+</html>

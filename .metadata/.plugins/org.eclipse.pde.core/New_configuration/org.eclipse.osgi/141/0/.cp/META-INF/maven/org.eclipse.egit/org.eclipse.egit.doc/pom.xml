@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (C) 2010, Matthias Sohn <matthias.sohn@sap.com>
+
+   All rights reserved. This program and the accompanying materials
+   are made available under the terms of the Eclipse Public License 2.0
+   which accompanies this distribution, and is available at
+   https://www.eclipse.org/legal/epl-2.0/
+
+   SPDX-License-Identifier: EPL-2.0
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.eclipse.egit</groupId>
+    <artifactId>egit-parent</artifactId>
+    <version>5.10.0.202012080955-r</version>
+  </parent>
+
+  <artifactId>org.eclipse.egit.doc</artifactId>
+  <packaging>eclipse-plugin</packaging>
+
+  <name>Git Team Provider (Documentation)</name>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+          <dependencies>
+            <dependency>
+              <groupId>ant</groupId>
+              <artifactId>optional</artifactId>
+              <version>1.5.4</version>
+            </dependency>
+            <dependency>
+              <groupId>org.eclipse.mylyn.docs</groupId>
+              <artifactId>org.eclipse.mylyn.wikitext.ant</artifactId>
+              <version>3.0.9</version>
+            </dependency>
+            <dependency>
+              <groupId>org.eclipse.mylyn.docs</groupId>
+              <artifactId>org.eclipse.mylyn.wikitext.mediawiki.ant</artifactId>
+              <version>3.0.9</version>
+            </dependency>
+          </dependencies>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <configuration>
+                <target if="update.egit.doc">
+                <ant target="all" inheritRefs="true" antfile="build-help.xml"/>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- skip pack200 compression, since the normal and the packed egit.doc are both 5 MB -->
+      <plugin>
+        <groupId>org.eclipse.tycho.extras</groupId>
+        <artifactId>tycho-pack200a-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.eclipse.tycho.extras</groupId>
+        <artifactId>tycho-pack200b-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

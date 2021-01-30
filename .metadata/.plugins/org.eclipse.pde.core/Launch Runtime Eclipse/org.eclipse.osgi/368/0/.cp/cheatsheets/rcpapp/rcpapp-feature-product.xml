@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+     Copyright (c) 2005, 2010 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Simple Cheat Sheet -->
+
+<cheatsheet title="Define a feature based product">
+
+   <!-- Introduction -->
+
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet will demonstrate how to define a feature based product
+         configuration using a plug-in based one and create a feature for an RCP
+         application using PDE.  
+         <br/>
+         <br/>
+         To learn more about using cheat sheets, click the help button
+         in the top right corner (?). 
+      </description>
+   </intro>
+
+   <!-- Item -->
+
+   <item title="Open the plug-in development perspective"
+         href="/org.eclipse.pde.doc.user/guide/tools/views/views.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the plug-in development perspective,
+         select <b>Window-&gt;Open Perspective-&gt;Other...</b> 
+         and choose <b>Plug-in Development</b>.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.
+      </description>
+      <command serialization="org.eclipse.ui.perspectives.showPerspective(org.eclipse.ui.perspectives.showPerspective.perspectiveId=org.eclipse.pde.ui.PDEPerspective)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Open the product editor"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/editor.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the product editor (if it is not already open),
+         expand the <b>com.example.rcpapp</b> tree dialog
+         in the <b>Package Explorer</b> view and double-click
+         on the <b>rcpapp.product</b> file.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.         
+      </description>
+      <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/rcpapp.product)" required="false" translate="" />
+   </item>
+
+   <item title="Switch to a feature based product configuration"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/overview.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         Select the <b>Overview</b> tab to display the <b>Overview</b> 
+         page if it is not the initial page.
+         <br/>
+         <br/>
+         To switch to a feature based product configuration, 
+         select the <b>features</b> radio button under the <b>Product Definition</b> heading.
+         <br/>
+         <br/>
+         Select <b>File-&gt;Save</b> from the main menu.         
+      </description>
+   </item>
+
+   <item title="Create the feature"
+         href="/org.eclipse.pde.doc.user/guide/tools/project_wizards/new_feature_project.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To create the feature, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Dependencies&quot; tab to display the &quot;Dependencies&quot; page" 
+               skip="false"/>
+      <subitem label="Select the &quot;New Feature...&quot; tool button in the &quot;Features&quot; section." 
+               skip="false"/>
+      <subitem label="Input &quot;com.example.feature&quot; into the &quot;Project Name&quot; text box on the &quot;Feature Properties&quot; page" 
+               skip="false"/>
+      <subitem label="Input &quot;RCP Application Feature&quot; into the &quot;Feature Name&quot; text box and click &quot;Next &gt;&quot;" 
+               skip="false"/>
+      <subitem label="Select the &quot;com.example.rcpapp&quot; checkbox on the &quot;Refererenced Plug-ins and Fragments&quot; page and click &quot;Finish&quot;" 
+               skip="false"/>  
+   </item>
+
+   <!-- Item -->
+
+   <item title="Add a feature description and license agreement"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/feature_editor/information.htm"
+         skip="false">
+      <description>
+         The <b>com.example.rcpapp</b> feature editor should be opened
+         on the <b>Overview</b> page.
+         <br/>
+         <br/>
+         To add a feature description and license agreement, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Information&quot; tab" 
+               skip="false"/>  
+      <subitem label="Input &quot;RCP application feature description&quot; into the &quot;Text&quot; text box within the &quot;Feature Description&quot; tab" 
+               skip="false"/>  
+      <subitem label="Select the &quot;License Agreement&quot; tab within the &quot;Information&quot; page" 
+               skip="false"/>  
+      <subitem label="Input &quot;RCP application license agreement&quot; into the &quot;Text&quot; text box" 
+               skip="false"/>
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Add features to the product configuration"
+         dialog="true"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/configuration.htm"
+         skip="false">
+      <description>
+         To add features to the product configuration, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;rcpapp.product&quot; tab in the workbench to return back to the product editor (opened on the &quot;Dependencies&quot; page)" 
+               skip="false">
+         <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/rcpapp.product)" required="false" translate="" />
+      </subitem>  
+      <subitem label="Click the &quot;Add...&quot; button under the &quot;Features&quot; heading" 
+               skip="false"/>  
+      <subitem label="Select the &quot;org.eclipse.rcp&quot; feature within the &quot;Feature Selection&quot; dialog box and click &quot;OK&quot;" 
+               skip="false"/>  
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Export the feature based product"
+         href="/org.eclipse.pde.doc.user/guide/tools/export_wizards/export_product.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To export the feature based product, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Overview&quot; tab to display the &quot;Overview&quot; page" 
+               skip="false"/>      
+      <subitem label="Click the &quot;Eclipse Product export wizard&quot; hyperlink under the &quot;Exporting&quot; heading to launch the &quot;Export&quot; dialog box" 
+               skip="false">
+         <command serialization="org.eclipse.ui.file.export(exportWizardId=org.eclipse.pde.ui.productExportWizard)" required="false" translate="" />
+      </subitem>
+      <subitem
+            label="Verify that &quot;/com.example.rcpapp/rcpapp.product&quot; is entered in the &quot;Configuration&quot; combo box within the &quot;Product Configuration&quot; group"
+            skip="true">
+      </subitem>
+      <subitem label="Input &quot;rcpapp_feature-based&quot; in the &quot;Root directory&quot; text box contained in the &quot;Product Configuration&quot; group" 
+               skip="false"/>
+      <subitem label="Input a destination directory in the &quot;Directory&quot; text box under the &quot;Destination&quot; group (e.g. &quot;C:\&quot; for Windows) and click &quot;Finish&quot;" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Browse the exported feature based product directory"
+         dialog="true"
+         skip="false">
+      <description>
+         To browse the exported feature based product directory, perform the following steps:
+      </description>
+      <subitem label="Navigate your file system to the destination directory specified in the previous step (e.g. &quot;C:\&quot; for Windows)" 
+               skip="false"/>
+      <subitem label="Note the presence of the &quot;rcpapp_feature-based&quot; directory in the destination directory and open it" 
+               skip="false"/>
+      <subitem label="Note the presence of the &quot;com.example.rcpapp&quot; plug-in along with other RCP plug-ins it depends upon within the &quot;plugins&quot; sub-directory" 
+               skip="true"/>
+      <subitem label="Note the presence of the &quot;com.example.rcpapp&quot; feature and &quot;org.eclipse.rcp&quot; feature within the &quot;features&quot; sub-directory" 
+               skip="true"/>
+      <subitem label="Note the &quot;rcpapp&quot; launcher with a branded icon (&quot;rcpapp.exe&quot; on Windows)" 
+               skip="false"/>                 
+      <subitem label="Run the &quot;rcpapp&quot; launcher" 
+               skip="false"/>    
+      <subitem label="Observe the feature based RCP application you created that is fully executable outside the Eclipse workspace" 
+               skip="true"/>    
+   </item>
+      
+</cheatsheet>
+

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cheatsheet title="Create a Hello World application">
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet shows you how to create the famous &quot;Hello World&quot; application and try it out. You will create a Java project and a Java class that will print &quot;Hello world!&quot; in the console when run.<br/>
+<br/>
+If you need help at any step, click the (?) to the right. Let&apos;s get started!
+      </description>
+   </intro>
+   <item title="Open the Java perspective" dialog="false" skip="false" href="/org.eclipse.platform.doc.user/concepts/concepts-4.htm">
+      <description>
+         If you&apos;re not already in the Java perspective, in the main menu select <b>Window</b> &gt; <b>Open Perspective</b> &gt; <b>Java</b> or click on the &quot;Click to Perform&quot; link below.
+      </description>
+      <command serialization="org.eclipse.ui.perspectives.showPerspective(org.eclipse.ui.perspectives.showPerspective.perspectiveId=org.eclipse.jdt.ui.JavaPerspective)" required="false" translate="">
+      </command>
+   </item>
+   <item title="Create a Java project" dialog="true" skip="false" href="/org.eclipse.jdt.doc.user/concepts/concept-java-project.htm">
+      <description>
+         Before creating a class, we need a project to put it in. In the main toolbar, click on the <b>New Java Project</b> button, or click on the link below. Enter <b>HelloWorld</b> for the project name, then	click <b>Finish</b>.
+      </description>
+      <command serialization="org.eclipse.ui.newWizard(newWizardId=org.eclipse.jdt.ui.wizards.JavaProjectWizard)" required="false" translate="">
+      </command>
+   </item>
+   <item title="Create your HelloWorld class" dialog="true" skip="false" href="/org.eclipse.jdt.doc.user/gettingStarted/qs-9.htm">
+      <description>
+         The next step is to create a new class. In the main toolbar again, click on the <b>New Java Class</b> button (or the link below). If not already specified, select <b>HelloWorld/src</b> as the source folder. Enter <b>HelloWorld</b> for the class name, select the checkbox to create the <b>main()</b> method, then click <b>Finish</b>.<br/>
+<br/>
+The Java editor will automatically open showing your new class.
+      </description>
+      <command serialization="org.eclipse.ui.newWizard(newWizardId=org.eclipse.jdt.ui.wizards.NewClassCreationWizard)" required="false" translate="">
+      </command>
+   </item>
+   <item title="Add a print statement" dialog="false" skip="false" href="/org.eclipse.jdt.doc.user/concepts/concept-java-editor.htm">
+      <description>
+         Now that you have your HelloWorld class, in the <b>main()</b> method, add the following statement:<br/>
+<br/>
+System.out.println(&quot;Hello world!&quot;);<br/>
+<br/>
+Then <b>save</b> your changes; the class will automatically compile upon saving.
+      </description>
+   </item>
+   <item title="Run your Java application" dialog="false" skip="false" href="/org.eclipse.jdt.doc.user/gettingStarted/qs-12.htm">
+      <description>
+         To <b>run</b> your application, right-click on your class in the Package Explorer and select <b>Run As</b> &gt; <b>Java Application</b>. The <b>Console</b> view should appear at the bottom and display the &quot;Hello, world!&quot; output.<br/>
+<br/>
+Congratulations! You have successfully created a Hello World
+application!
+      </description>
+   </item>
+</cheatsheet>

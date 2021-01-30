@@ -1,0 +1,31 @@
+/*******************************************************************************
+ * Copyright (c) 2005, 2006 IBM Corporation and others.
+ *
+ * This program and the accompanying materials 
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ * 
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
+body {
+	background-image : url(../graphics/contentpage/whatsnew_wtr.jpg);
+}
+
+/* show the "selected" image for this page */
+#navigation-links a#whatsnew img, 
+#navigation-links a#whatsnew:hover img,
+#navigation-links a#whatsnew:focus img,
+#navigation-links a#whatsnew:active img {
+	background-image : url(../graphics/icons/ctool/whatsnew48sel.gif); 
+}
+
+/*
+ * Default images for content links in this page.
+ */
+.content-link img { background-image : url(../graphics/icons/obj48/new_obj.gif); }
+.content-link:hover img { background-image : url(../graphics/icons/obj48/newhov_obj.gif); }

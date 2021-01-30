@@ -1,0 +1,165 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit User Guide - Concepts</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Concepts</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="User-Guide.html" title="EGit User Guide">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Tasks.html" title="Tasks">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">EGit User Guide</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Tasks</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Concepts">Concepts</h1>
+		<p>Git is built on a few simple and very powerful ideas. Knowing them helps to understand more easily how git works.</p>
+		<h2 id="Repository">Repository</h2>
+		<p>The Repository or Object Database stores all objects which make up the history of the project. All objects in this database are identified through a secure 20 byte 
+			<a href="http://en.wikipedia.org/wiki/SHA-1" target="egit_external">SHA-1 hash</a> of the object content. This has several advantages:
+		</p>
+		<ul>
+			<li>comparing two objects boils down to comparing two SHA-1 hashes.</li>
+			<li>since object names are computed from the object content in the same way in every git repository, the same object will be stored under the same name in all repositories which happen to contain this object.</li>
+			<li>an object never changes once created (obvious since changing the contents means a new hash must be calculated and a new name assigned).</li>
+			<li>repository corruption can easily be detected by checking if the SHA-1 object name still is the secure hash of the object's content.</li>
+		</ul>
+		<p>Git has four object types :</p>
+		<ul>
+			<li>A 
+				<b>Blob object</b> stores file content.
+			</li>
+			<li>A 
+				<b>Tree object</b> stores the directory structure and contains 
+				<b>Blob objects</b> and other 
+				<b>Tree objects</b> together with their file system names and modes.
+			</li>
+			<li>A 
+				<b>Commit object</b> represents a snapshot of the directory structure at the time of the commit and has a link to its predecessor 
+				<b>Commit object</b> which form an acyclic graph of the repository revisions forming the repository history.
+			</li>
+			<li>A 
+				<b>Tag object</b> is a symbolic named link to another repository object which contains the object's name and type. Optionally, it also contains information about who created the tag and other signing information.
+			</li>
+		</ul>
+		<p>The object database is stored in the <code>.git/objects</code> directory. Objects are either stored as loose objects or in a single-file packed format for efficient storage and transport.</p>
+		<p>
+			<b>Trust</b>
+		</p>
+		<p>Git provides a built-in trust chain through secure SHA-1 hashes which allows it to verify if objects obtained from a (potentially untrusted) source are correct and have not been modified since they have been created.</p>
+		<p>If you get the signed tag for e.g. a project release which you can verify with e.g. the tagger's (the project lead's) public signing key, git ensures that the chain of trust covers the following:</p>
+		<ul>
+			<li>the signed tag identifies a commit object.</li>
+			<li>the commit object represents exactly one project revision including its content and history.</li>
+			<li>the commit object contains the tree of blob objects and other tree objects representing the directory structure of the project revision.</li>
+			<li>the blob objects contain the file contents for this project revision.</li>
+		</ul>
+		<p>All of the involved object names can be checked for consistency using the SHA-1 algorithm to ensure the correctness of the project revision and that the entire history can be trusted.</p>
+		<h2 id="Index">Index</h2>
+		<p>The 
+			<b>Git Index</b> is a binary file stored in the <code>.git/index</code> directory containing a sorted list of file names, file modes, and file meta data used to efficiently detect file modifications. It also contains the SHA-1 object names of blob objects.
+		</p>
+		<p>It has the following important properties:</p>
+		<ul>
+			<li>The index contains all information necessary to generate a single uniquely defined tree object. E.g. a commit operation generates this tree, stores it in the object database and associates it with the commit.</li>
+			<li>The index enables fast comparison of the tree it defines with the current working directory. This is achieved by storing additional meta data about the involved files in the index data.</li>
+			<li>The index can efficiently store information about merge conflicts between the trees involved in the merge so that for each pathname there is enough information about the involved trees to enable a three-way merge.</li>
+		</ul>
+		<h2 id="Branches">Branches</h2>
+		<p>A branch in Git is a named reference to a commit. There are two types of branches, namely "Local" and "Remote Tracking" branches which serve different purposes.</p>
+		<h3 id="Local_Branches">Local Branches</h3>
+		<p>Whenever a change to a (local) Repository is committed, a new commit object is created. Without any other means, it would be very difficult to keep track of the changes in the Repository, in particular when other commits are added to the Repository, for example due to an update from the remote Repository or when checking out another commit.</p>
+		<p>A local branch helps with this task by providing a (local) name by which the "current" commit can be found. When changes are committed to the local repository, the branch is automatically updated to point to the newly created commit.</p>
+		<p>In addition, it is possible to add a so-called upstream configuration to a local branch which can be helpful when synchronizing with a remote repository.</p>
+		<h3 id="Remote_Tracking_Branches">Remote Tracking Branches</h3>
+		<p>Remote tracking branches are created automatically when cloning and fetching from remote repositories. A remote tracking branch in the local repository always corresponds to a (local) branch in the remote repository. The name of such a branch follows certain conventions.</p>
+		<p>The remote tracking branch points to the same commit as the corresponding branch in the remote repository (at the time of the clone/fetch).</p>
+		<p>Remote tracking branches can be used for automated creation of upstream configuration for local branches.</p>
+		<h2 id="Working_Directory">Working Directory</h2>
+		<p>The working directory is the directory used to modify files for the next commit. By default it is located one level above the .git directory. Making a new commit typically involves the following steps:</p>
+		<ul>
+			<li>Check out the branch the new commit shall be based on. This changes the working directory so that it reflects the 
+				<i>HEAD</i> revision of the branch.
+			</li>
+			<li>Do modifications in the working directory.</li>
+			<li>Tell git about these modifications (add modified files). This transfers the modified file contents into the object database and prepares the tree to be committed in the index.</li>
+			<li>Commit the tree prepared in the index into the object database.</li>
+			<li>The result is a new commit object and the 
+				<i>HEAD</i> of the current branch moves to the new commit.
+			</li>
+		</ul>
+		<h2 id="Recording_Changes_in_the_Repository">Recording Changes in the Repository</h2>
+		<p>You start from a fresh checkout of a branch of a local repository. You want to do some changes and record snapshots of these changes in the repository whenever you reach a state you want to record.</p>
+		<p>Each file in the working directory can either be 
+			<i>tracked</i> or 
+			<i>untracked</i>:
+		</p>
+		<ul>
+			<li>
+				<b>Tracked</b> files are those which were in the last snapshot or files which have been newly staged into the 
+				<i>index</i>. They can be 
+				<i>unmodified</i>, 
+				<i>modified</i>, or 
+				<i>staged</i>.
+			</li>
+			<li>
+				<b>Untracked</b> files are all other files (they were not in the last snapshot and have not yet been added to the 
+				<i>index</i>).
+			</li>
+		</ul>
+		<p>When you first clone a repository, all files in the working directory will be 
+			<i>tracked</i> and 
+			<i>unmodified</i> since they have been freshly checked out and you haven't started editing them yet.
+		</p>
+		<p>As you edit files, git will recognize they are 
+			<i>modified</i> with respect to the last commit. You 
+			<i>stage</i> the modified files into the index and then 
+			<i>commit</i> the staged changes. The cycle can then repeat.
+		</p>
+		<p>This lifecycle is illustrated here:</p>
+		<p>
+			<img border="0" src="images/Egit-0.9-lifecycle-file.png"/>
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="User-Guide.html" title="EGit User Guide">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="User-Guide.html" title="EGit User Guide">
+						<img alt="EGit User Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Tasks.html" title="Tasks">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">EGit User Guide</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Tasks</td>
+			</tr>
+		</table>
+	</body>
+</html>

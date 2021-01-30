@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (C) 2010, Philipp Thun <philipp.thun@sap.com>
+
+   All rights reserved. This program and the accompanying materials
+   are made available under the terms of the Eclipse Public License 2.0
+   which accompanies this distribution, and is available at
+   https://www.eclipse.org/legal/epl-2.0/
+
+   SPDX-License-Identifier: EPL-2.0
+-->
+<cheatsheet title="Cloning a Git Repository">
+	<intro>
+		<description>
+			With the Git Clone Wizard you can clone repositories using different transport protocols.
+		</description>
+	</intro>
+	<item title="Start Clone Wizard" dialog="true">
+		<description>
+			The clone wizard can be started by clicking &quot;Click to perform&quot; below.<br /><br />
+			Alternatively you can launch this wizard from the &quot;Import Projects from Git&quot; wizard using &quot;Import... &gt; Git &gt; Projects from Git &gt; Next &gt; Clone...&quot; or from the &quot;Git Repositories View&quot; using the &quot;Clone a Git Repository&quot; toolbar button.<br /><br />
+			<b>To start this cheat sheet from a separately opened wizard, click the help icon and then select &quot;Cloning a Git Repository&quot;.</b>
+		</description>
+		<command required="false" serialization="org.eclipse.egit.ui.RepositoriesViewClone" />
+	</item>
+	<item title="Repository Source (Optional)" dialog="true" skip="true">
+		<description>
+			Depending on which additional plug-ins have been installed, you may need to choose between different sources for cloning the repository.<br /><br />
+			If you are not sure, choose &quot;Clone URI&quot; from the list of available sources.<br /><br />
+			If the wizard is already asking your for repository details like a URI, then you can skip to the next item in the cheat sheet.
+		</description>
+	</item>
+	<item
+		href="/org.eclipse.egit.doc/help/EGit/User_Guide/Tasks.html#Repository_Selection"
+		title="Repository Selection" dialog="true">
+		<description>
+			<b>Enter the repository location.</b><br /><br />
+			If you already have a <b>repository URI</b> in your clipboard, i.e. copied from a gitweb, github, wiki or any other page, it will be automatically entered into the URI field. The other fields (i.e. Host, Repository path, Protocol, Port) will then be automatically filled.<br /><br />
+			In case cloning requires <b>authentication</b> (which is not the case for many repositories), enter your credentials into the User and Password fields.<br /><br />
+			For a complete description of all fields as well as the supported protocols, see the referenced <b>documentation</b> (click on help icon on top of this section).<br /><br />
+			<b>Click Next</b>
+		</description>
+	</item>
+	<item title="Branch Selection" dialog="true">
+		<description>
+			<b>Choose branches to be cloned from the repository.</b><br /><br />
+			By default all available branches are checked.<br /><br />
+			<b>Click Next</b>
+		</description>
+	</item>
+	<item title="Local Destination" dialog="true">
+		<description>
+			<b>Define local storage settings.</b><br /><br />
+			Specify the <b>destination directory</b> of the cloned repository. If this directory does not yet exist, it will be created by the wizard.<br /><br />
+			Optionally, you can change the <b>initial branch</b> that will be created and checked out locally. The default <b>remote name</b> is &apos;origin&apos;. This can also be changed if necessary.<br /><br />
+			<b>Click Finish to end the wizard.</b>
+		</description>
+		<onCompletion>You have now successfully cloned a Git repository.</onCompletion>
+	</item>
+</cheatsheet>

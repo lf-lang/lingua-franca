@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<contexts>
+   <context id="LifecycleMappingPage" title="Maven Plugin Connectors">
+      <description>m2e lifecycle mapping wizard</description>
+      <topic href="help/LifecycleMappingPage.html" label="Lifecycle Mapping"/>
+   </context>
+</contexts>

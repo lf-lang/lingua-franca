@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?><!--
+     Copyright (c) 2005, 2008 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<introContent>
+  <!-- Extension to the SDK Samples Page. -->
+  <extensionContent id="org.eclipse.pde.swt" name= "SWT samples" alt-style="css/samples.properties" style="css/samples.css" path="samples/@">
+     <group label="SWT" id="swt" style-id="content-group">
+     	<text style-id="group-description">Run SWT samples using either the standalone SWT launcher or as an integrated workbench view.</text>
+        <link label="Workbench views and standalone applications" url="http://org.eclipse.ui.intro/runAction?pluginId=org.eclipse.pde.ui&amp;class=org.eclipse.pde.internal.ui.samples.ShowSampleAction&amp;id=org.eclipse.sdk.samples.swt.examples" id="swt-examples" style-id="content-link">
+        	<text>The SWT Example launcher will allow you to launch a collection of SWT examples.  Some of the examples can be run independent of the eclipse platform and others will be available as views inside the workbench.</text>
+		</link>
+        <anchor id="swtGroupAnchor"/>
+     </group>
+  </extensionContent>
+</introContent>

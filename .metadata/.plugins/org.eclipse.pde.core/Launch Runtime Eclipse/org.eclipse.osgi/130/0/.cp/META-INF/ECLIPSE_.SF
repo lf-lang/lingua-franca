@@ -1,0 +1,959 @@
+Signature-Version: 1.0
+SHA-256-Digest-Manifest-Main-Attributes: CS1VE+ONGII0HKVBvjQC3KICfmJ/W
+ NUK/Fse0E2Y7ME=
+SHA-256-Digest-Manifest: gBLvk7zV3kP+13oK4KKRtF9zhpUYDiPfvpaKFnMj70U=
+Created-By: 1.8.0_51 (Oracle Corporation)
+
+Name: help/EGit/User_Guide/images/Egit-0.11-getstarted-history2.png
+SHA-256-Digest: k8nfUhMnk7F8DUlOkXtH+W1i9/L+uyCqNX0EJSUXGQY=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-StagingView.png
+SHA-256-Digest: QKMoHwn+P7/tA/VbIQBRQhzSzGOAKK5zSueGg3uoRJE=
+
+Name: plugin.xml
+SHA-256-Digest: yU90K6AWGh6DSWUt3Sh4mR/VbwiX6sxTbdHSBkH1n/8=
+
+Name: help/EGit/New_and_Noteworthy/5.10/Contributors.html
+SHA-256-Digest: zVvVeMGLsOC2R0RjnytXJmd44G8q0IYmPhzxR17Rrfo=
+
+Name: help/EGit/Contributor_Guide/Contributing-Patches.html
+SHA-256-Digest: luik05t02NAf7AnKOz0q5vAe2tuDNhf7ZeCoqu3U6cU=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-ReplaceExistingTag.png
+SHA-256-Digest: UcU/Sv76mnDxWYZf4dRr+PsoskcLrYD4Sf8aY0ydRrk=
+
+Name: help/EGit/User_Guide/images/Egit-4.0-git_flow_submenu-repository
+ _node_right_click.png
+SHA-256-Digest: BwCW8TCrWp68wgYPNF02fIVSYZJTeypr8GXODopVvTo=
+
+Name: help/EGit/User_Guide/images/RepoMgrRefresh.png
+SHA-256-Digest: QrSrBQLKdshuAo/7cPDxgVfkAjPts+qjZodIyImE2Zk=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RepoViewTag.png
+SHA-256-Digest: eG/stI5vCdlayZW+WhQuQ4IwVtZ1IFMNQVLQ26t/hLc=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-share.png
+SHA-256-Digest: I3iIXjNupXkMbjFCcZDScS5opsBqLhFVcbuMBRILqZU=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-project.png
+SHA-256-Digest: 2waw63kYtf6GdTre9lfYNOhES2oN2WQ032qcB0hXuZU=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-conflict-delete
+ .png
+SHA-256-Digest: 2xOPlxbGEdB5c/9fc97f5T22qo8Tt31LTz5/O7gai2k=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-expand-collapse
+ .png
+SHA-256-Digest: G/vtA+Hk5SB9cKQJ2f8vKEuLPGKM1Xy1h7GKamEpfEM=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-outgoing-delete
+ .png
+SHA-256-Digest: 64vc6GHHWFdU/lq+JILTGFuAZQyXLox8QZclbbrNoYk=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-outgoing-add.pn
+ g
+SHA-256-Digest: lx2I/9+mMMKrv27UK6u1pfdx2frIsfRJxfKLrfR+IsU=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-fetch-wizard-refspec.png
+SHA-256-Digest: hR5h7xW0oZRO4B3Nq6OATVbWuoJ1NVq5UxOWdr3Mp6A=
+
+Name: help/EGit/User_Guide/Concepts.html
+SHA-256-Digest: KXbJXeCYriGbzQuzNG6LoVV1N7U8JMRiHesCIyUUyEg=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-FetchResultDialog.png
+SHA-256-Digest: wYm63RIqI3dP7nmJ3f5dzz72cSu85UZZZOBM48qJR6k=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-clone-wizard-url-page.png
+SHA-256-Digest: vvZN5BaYeiZTRP/7JmMvCMsTET2it68uGpvfAsrSuBE=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-initialConfigurationDialog
+ .png
+SHA-256-Digest: o2vCUkmBgHJc/xtzg8LYwCFHbf/y3NpgnXofj7EQ/3M=
+
+Name: intro/css/overview.css
+SHA-256-Digest: uV8s9Z9poPtSRTujAAwykKCwu98MHkIVoTFABMTuxeQ=
+
+Name: META-INF/maven/org.eclipse.egit/org.eclipse.egit.doc/pom.xml
+SHA-256-Digest: AM4XTYy7/G00Y6SBmz9g6Kw3ETRF7M7JfR1sEIU2MAs=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-incoming-add.pn
+ g
+SHA-256-Digest: U1TBcMGgi0AySW+hHPFKz3Jlwf3gevYfxJPyvKU0Zsc=
+
+Name: intro/overviewExtensionContent.xml
+SHA-256-Digest: zSEQjp0f99nBOEEK2vBtYVlu/zWUrxVekwj54MqLIRQ=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-DeleteRepository.png
+SHA-256-Digest: LD6CyMBt2XhdrTL74+yvhx0vLvbGbQB4tJnJrYsZ/sM=
+
+Name: intro/css/whatsnew.css
+SHA-256-Digest: 8vp9hvBuBYJAqFYbZQvZ6gdAajZZurvluJvhLaN2H8A=
+
+Name: help/EGit/User_Guide/images/Egit-1.2-historyview-file-menu.png
+SHA-256-Digest: j96kcbMF1z4SQayESDO4yE1dlMwLfG8MDFyYUx9397w=
+
+Name: help/EGit/Contributor_Guide/images/Oomph-03-project-egit.png
+SHA-256-Digest: efYb32NjYZQ2fPHA8fLqeKiSmaXIYy0ig4X1xeJj6bc=
+
+Name: help/EGit/User_Guide/images/Git_merge_conflict.png
+SHA-256-Digest: A4bW+1g3+r3QYFAqrnhzE2iSR+3rl8fsAMnP3NAPtQY=
+
+Name: help/EGit/User_Guide/Tasks.html
+SHA-256-Digest: +8EO41o4jjSpV9cEgXdsdlIEPFYx65KVrx5vTs6C2A8=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-push-wizard-destination-pag
+ e.png
+SHA-256-Digest: HBVu9i08u91DmAOFhvI3iV36lH1SwsR2rFJg0P89BZY=
+
+Name: help/EGit/User_Guide/images/Commit-editor-commit-page.png
+SHA-256-Digest: RP5OzSHmbRn8en3ltl9Ur6/vjqyyNRQz3tCqoPszep0=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-MergeDialog.png
+SHA-256-Digest: 8528bv5oIcjbIcSt/DCrP4GYi96tsAJBdCxDJPqDn1I=
+
+Name: help/EGit/Contributor_Guide/images/Oomph-06-ide.png
+SHA-256-Digest: BwKbKCgoMTVowedX4Xy6mkWj4+TwN9hRgzOwH/RJ5sU=
+
+Name: intro/tutorialsExtensionContent.xml
+SHA-256-Digest: U8/N3H0n8BOm5UbLJAuinUFOI545Q8T5dCmsLUZE/k0=
+
+Name: help/EGit/User_Guide/images/Conflicts.png
+SHA-256-Digest: /63FUxALstFwm5Ks4hBLokr2ekRDhXwcD5l4GXc3KNI=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-lifecycle-file.png
+SHA-256-Digest: ypy0I8sXMkq2Vrz4yxdCpBtHy2sXUh8MCXiA0kFzSHs=
+
+Name: help/EGit/User_Guide/images/Egit-1.2-reflog-view.png
+SHA-256-Digest: /EifpQUJewBnGpUqfzNVPo0QjoXpau++93U79i0zv6o=
+
+Name: contexts.xml
+SHA-256-Digest: 1HdzTc5E/DhSMg/Q6iCa3KznY37Rz8mv0ugOWlYmhEY=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-create-project.p
+ ng
+SHA-256-Digest: r01GMT2QEo1aZN7kBTjjJahfB2c5f1D0PHR1zWBK/zc=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-push-wizard-delete-refspec.
+ png
+SHA-256-Digest: zhz61v8+RnQdb0aaDWdePAt4htvpPN7jhli2I0ssOBo=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-filtersettings
+ .png
+SHA-256-Digest: jH13yXKir/QsFYszk3pDFuSAn3kouNXqYNDZI79iQA4=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-navigation.png
+SHA-256-Digest: /Lu4tlY0Xn/0eTM5OJMm/QZI50e0RGLS34cJ/DRius4=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view.png
+SHA-256-Digest: 9rFHGloKMp4bgkEslr3ODIQczTOUcu/SvvSZJ9zvkXQ=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RepoViewPushConfig.png
+SHA-256-Digest: e6h2wL8fzOHOBedMav9NBvRuoK3QsW1RsQx/OfRFd2M=
+
+Name: intro/css/tutorials.css
+SHA-256-Digest: snpUjxfB8ipYBKdmaiuywR10YeeHI+3TVfeG3KZ/qi8=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-GitTreeCompareView.png
+SHA-256-Digest: S7n6MPbvouvjvnZJ93SdM8roolh2vhigdCJtlWj/M08=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseEdit.png
+SHA-256-Digest: aym44nGZWQcE0kDF84IuGvzeB0rhdQQaStaem+CqBAA=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-openAndCompare
+ .png
+SHA-256-Digest: ipge/GiF57bt2psXEmWCnX7d1Qtrv+SNonPk2V5ngus=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-openAndCompare
+ FromDetails.png
+SHA-256-Digest: R//G+W0scESN/s8ol/caqd5A3shplIn+1v0fU7+Ibl0=
+
+Name: help/EGit/Contributor_Guide/Website.html
+SHA-256-Digest: o2HtoGLcNjWLAbdIWdNhZhEb131cZKCU/4E/FPx7ct8=
+
+Name: help/EGit/User_Guide/images/RepoMgrRemoteConfig.png
+SHA-256-Digest: xMm+6nTVbjB2wj251VUWloy56diZUMpHF64w0xbpVS4=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-FetchWizardResult.png
+SHA-256-Digest: vZMcLdEqigiUYYXqha3EL8bNAuZO6tiVhKXZyyJ702I=
+
+Name: help/JGit/New_and_Noteworthy/5.10/5.10.html
+SHA-256-Digest: 7Luc5NeDs+/H68OPat63ARO0JK/S/q/ihshT2TrTOWg=
+
+Name: help/EGit/User_Guide/images/EGit-0.10-MergeDemoHistory.png
+SHA-256-Digest: uGZJ5TqYeMpr+Op14Gn5PkJk5Ys4pR1uvC9IVCWteYc=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-outgoing-change
+ .png
+SHA-256-Digest: t+fM3HLdukQ3P7CtH3m0ATZXdw6xMOfqpezjAai386w=
+
+Name: help/book.css
+SHA-256-Digest: DFKDDk5g3B202RFFeBRshYEgmpgTfzpO8A+FtuZjkfk=
+
+Name: help/EGit/User_Guide/images/CherryPick2.png
+SHA-256-Digest: 3xWQQqYsBtIxSJpZbBZUDgoGoVM7A1bj7LcJ26frPhA=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-repoview.png
+SHA-256-Digest: /CVkoUHvUHbdqVwW8lCiBBOEYOs9qu/2JRRfIWgYbh8=
+
+Name: help/EGit/User_Guide/images/Commit-editor-commit-page-egit-4.6.p
+ ng
+SHA-256-Digest: CiBSv5YeCZzR4BrT2t83to+a7ijLNdEBubDsQ70iQr4=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-ViewDiffInHistory.png
+SHA-256-Digest: 9J53lNkBqjDUvVYQPKRPvlcw/61jMBbeoqAmYJM+lDs=
+
+Name: help/EGit/User_Guide/images/Egit-1.1-tags.png
+SHA-256-Digest: pt4VK4ttgTK8BuZlhkYi2CFfyBrVm6JU2+UHpvvgMRA=
+
+Name: help/EGit/User_Guide/images/04-QuickDiffPreferences.png
+SHA-256-Digest: 8hbPicD5yy54eyutVN8TF3QbR37lM/X3WfKwWWD7jB8=
+
+Name: help/EGit/Contributor_Guide/images/Oomph-04-installer-progress.p
+ ng
+SHA-256-Digest: R5G9u2ANiu9JfhtZfsAdx2rtLVxbqtnm9OEGHbFGOy0=
+
+Name: help/EGit/User_Guide/images/Git-open-commit-toolbar.png
+SHA-256-Digest: CRAmshNkaJLmEL8zWowAWxMtt1gugAdSt/5NFwCr5qk=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-StagingViewConflictsResolve
+ d.png
+SHA-256-Digest: +HbPyvAmTNZpWNOIwGgLRtG/1U+tPnHO43NKmyRYbgo=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-PlanInteractiveRebase.png
+SHA-256-Digest: ML64tSdHgenRDOl2uZ3Lb57HBb+GSjiuvvAw65GsBKs=
+
+Name: help/EGit/User_Guide/Updating-This-Document.html
+SHA-256-Digest: LjcEbTNei160ODbFWYAU5O5ovExWhP5/ve8z1YsTk1I=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseHistoryAft
+ erEdit.png
+SHA-256-Digest: TWUNYWhQ0MP0psY63nSyimDQUH1SFbsOjkiNft0CIxM=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-StagingViewMarkResolved.png
+SHA-256-Digest: 4tYkg5jv/A0gEh6zDeYZDqYn+3UKQM8jXB4XqcYrlHQ=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-MergeResultDialog.png
+SHA-256-Digest: oTIWAOh/wjQyIzTNHI/FBadCCR5wRqQsOiyWoJMAIJo=
+
+Name: help/EGit/User_Guide/images/Egit_no_home.png
+SHA-256-Digest: 41qmp6EPxMkXM0h+6ArfrJ00v6Y9E4m8PDl5kyPjCEw=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-import-projects-general-pro
+ ject.png
+SHA-256-Digest: nI2mzY/BgpLM/2IeY7Vg9boboKYayxt7cok2c0luxKI=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RepositoryGerritDeco.png
+SHA-256-Digest: TmvzIxeoUUheC9ZWHLcO7aRmbrsvukoPeGOTp5TeHUQ=
+
+Name: help/EGit/User_Guide/images/RepoMgrSimpleFetch.png
+SHA-256-Digest: 2sEXC+ncRrVeXO7GzqR3UISdPwgtBrwlNWxMaR1uXRs=
+
+Name: help/EGit/User_Guide/images/Egit-4.5-CommittingPreferences.png
+SHA-256-Digest: fRbLfPc//cAnMCGPflBZmsL+3TZ6Ipj1jI7flT6HT2E=
+
+Name: help/EGit/Git_For_Eclipse_Users/Updating-This-Document.html
+SHA-256-Digest: e0NM5qPDCfxtUJqS3nUvxbRZfX5oPWyyelfS5Sxv/To=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-github-cloneurl.png
+SHA-256-Digest: 9D/6PshTKemMNCvNU6IAfBqSSgSz4PSixwslTF5pN4k=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-ssh-preferences.png
+SHA-256-Digest: ZJ8SBFN3aU0E0ne8ud04U3DLPoXkObvNQKoyEKmPohk=
+
+Name: help/EGit/User_Guide/images/06-QuickDiffInEditorPopup.png
+SHA-256-Digest: oDfLxYPWVrr96h+Ww0x1s4rgVGKoQHNdDsfT6xGiUfo=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-clone-wizard-destination-pa
+ ge.png
+SHA-256-Digest: xnGiUeA4M3iOpzToT5JBLS9LgwlDIwb5wikge+VdxiQ=
+
+Name: help/JGit/User_Guide/User-Guide.html
+SHA-256-Digest: LMLyIjckmxn5CVLbaZ3Ov8j44p6juIJam2A9rb61kow=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseFinished.p
+ ng
+SHA-256-Digest: b/2DqGOZIkcYFQMABLEYhzpm1LQtojo2KosCKKhd9Mo=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-RepoViewReferencesNode.png
+SHA-256-Digest: me7opNbmr5ynSHOzD6mVk98ZtWt9/Lu1+Iwly9Mes1g=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-getstarted-compare.png
+SHA-256-Digest: uffuY+VBnBzCg44K4go/S+rZ+8Stg9yIDH0iBOCsnE8=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-HistoryViewMain.png
+SHA-256-Digest: l/ojYGkEgMSD4XSfdzRe96JW37EPV0QdSgfH6yppT0c=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-SynchronizeSwitchModel.png
+SHA-256-Digest: EerlzUM9Ms0bC3iBFjZFZ7f/DBDuxcpDenC2c+yfUe0=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseReword.png
+SHA-256-Digest: XwS+fvO8r+5hMRJUPANLhx0jcET4KDpbPRKgf0cWrJM=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-repo-view-createRemoteWizar
+ dFetch.png
+SHA-256-Digest: PHLIdIZQxX7g/g9E6VYALbnn/DUlRWJ4VUFtPxl0qyE=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RepoViewRemote.png
+SHA-256-Digest: h4qfinl9x4YSPdBpbvjT2qd5w8DjPbVLCq+9Ck1t3Q4=
+
+Name: help/EGit/User_Guide/images/Egit-4.0-git_flow-repository_node_ri
+ ght_click.png
+SHA-256-Digest: nshQ1euuqdHrL9cy5AsIE3WPIPNaKLFT0pB9CjlsCm8=
+
+Name: help/EGit/User_Guide/images/RepoMgrBranchesAndTags.png
+SHA-256-Digest: BqAWrSXKx8fuzktygbGgKa32JAhgfnhEQTddO4U97DQ=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-StartedInteractiveRebase.pn
+ g
+SHA-256-Digest: eD4BmSkKr/G+xg72ZmZhFVTGzVt7b60yGLu1BEhYF9c=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-select-merge-mode.png
+SHA-256-Digest: kpVV8tGnrWxgjporysxGj/seeil+g5B/I0t7mtgnNsg=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-allbranches.pn
+ g
+SHA-256-Digest: BZYlzFaE7m3aNjTiA+cGPR3OqzTzKaQaNZBUEwCQMmY=
+
+Name: help/EGit/User_Guide/images/RepoMgrRemoteCreated.png
+SHA-256-Digest: aFgy7cD/IivVK39I7C2j6UJHMdwCzcolmq4e6EPqXSw=
+
+Name: help/EGit/User_Guide/images/Git-open-commit.png
+SHA-256-Digest: zb2w7LGLTJYVjLUUjeB3MBCAzbjY/bix+iKFVRsj4IU=
+
+Name: help/EGit/User_Guide/images/05-QuickDiffInEditor.png
+SHA-256-Digest: HLhyP4QaFbqI3E+28gkRWFYB8CDtnVvmIt1pfRe4u58=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-GerritDownloadCommand.png
+SHA-256-Digest: YW21esqL6JoSUJljiC6R3h+89skztgpKCEqRAGWJui4=
+
+Name: help/EGit/User_Guide/images/Egit-4.0-git_flow_start_release_from
+ _history_view_context_menu.png
+SHA-256-Digest: NzxQBYJMlCZ6RuM0dPJ+gcNLGWISdTBnLNOCgZER+mU=
+
+Name: help/EGit/User_Guide/images/Commit-editor-notes-page-egit-4.6.pn
+ g
+SHA-256-Digest: FtoGXOVvAxoJ9eR8gtTZWrk/Th1sFVYX1A10fOshMZU=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-push-wizard-ssh-passphrase.
+ png
+SHA-256-Digest: fyF+a3D4ZGzJS8Rotx+CK/uUHY0Nmt7wKE2H9ZIqTes=
+
+Name: images/home.gif
+SHA-256-Digest: 822F9NyDQdLchnGhqoug5tXI/IfhSo7q6RJuxl/uzVg=
+
+Name: help/EGit/User_Guide/images/EGit-0.10-MergeDemoHistoryAfterRebas
+ e.png
+SHA-256-Digest: tz6z5c8rhMc9PMlIUOPtv2eGJUoOSzRJszsniUoSBEg=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-incoming-deleti
+ on.png
+SHA-256-Digest: 4G2PXTpYOFuW6occdmUQJViYVAvLF7B+xuW9XeEFzz8=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-StagingViewFilterFiles.png
+SHA-256-Digest: y0+AnRoentXd+VLBSpEpW+S1PyIijenZKgyIFn9uo3w=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-StartInteractiveRebase.png
+SHA-256-Digest: WuT3vuShbMXWNzZ1vkPnhugwWEq1f4qOPiBVcT3h1Qo=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-github-pushresult.png
+SHA-256-Digest: fh6uy5bFx0dmt2KS8NFg1U4xN6v5Px2HGq9PdwO/lJg=
+
+Name: help/EGit/Contributor_Guide/Automated-Developer-Setup.html
+SHA-256-Digest: SvVGKOlENArMUMoTxYdKDJoAqBh+PtQMGvRfnxknY0E=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-configure-commit-template.
+ png
+SHA-256-Digest: c/+JxdnzAsPBs2exX7Tr79IUwZnEJw140LfupOuX+TY=
+
+Name: help/EGit/User_Guide/images/RepoMgrBareRepository.png
+SHA-256-Digest: dQCAB9Tu+DQm2ddxG32J17+eINnxL4nnFgYiYL0hg8Y=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-StagingViewSettings.png
+SHA-256-Digest: iNMqMlGGgKwLEyZ6keVpZz+HmtamiqdhkcWzYrNVeKU=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-PushResultDialog.png
+SHA-256-Digest: sbX+Ep1BKHB8gnLZJB64ZMi5cFIhKtU3c5f+A4zUufg=
+
+Name: intro/css/tutorials.properties
+SHA-256-Digest: A5WwIBSYe/IaMzazw+itQwOJCG9ZaqnaKQxJsIcuDPA=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-github-pushurl.png
+SHA-256-Digest: VIvy2rUIiaKwwAy2knJEX3mvwdic/kytTQgI+L4WoAk=
+
+Name: help/EGit/User_Guide/images/Egit-2.1-clone-wizard-gerrit-page.pn
+ g
+SHA-256-Digest: 8Q29EeoIY+Kt6/iufhGHz7TPgAhCM2ZLsCY251IS58A=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-commit-using-template.png
+SHA-256-Digest: 2FdGNX2tmDCx88LeWtFhPcEOeGQmi4dbxUVUQx8NoqY=
+
+Name: help/EGit/User_Guide/images/Egit-13-clone-submodules-wizard.png
+SHA-256-Digest: fUhfWW58i7jkWvpLw84m2yEMPohpe6NSE+MlVPeyd3c=
+
+Name: help/JGit/User_Guide/Reference.html
+SHA-256-Digest: dTPYuMVUIJQvm4jifv54bwDAxXpwNu+eHmbpNFLJOyk=
+
+Name: help/EGit/Contributor_Guide/images/Oomph_-01a-proxy-settings.png
+SHA-256-Digest: tmAa2Mp7cZQYgs9S0DjzSYSKRVxeOviB/+clgNFoaso=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-mode.png
+SHA-256-Digest: LMNQxIuTVBwq3zgCuN2FUMA5ZDCQRRV9QCsgkLaI6lA=
+
+Name: help/EGit/Contributor_Guide/images/Oomph-01-advanced-mode.png
+SHA-256-Digest: tThFvlTRcdjKNCTN4ojIlnM5nTyzgbwy8BRtV0slGYw=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RepoViewBranch.png
+SHA-256-Digest: bgy1vDJC9xRKuTZupW/Fw6RzumpxOB7sdoTLKfK/kU0=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-ConfigureFetchFromUpstream.
+ png
+SHA-256-Digest: iGc3DtD/6d/XY+aCvEvkDBzTLAqDrS1TzW69yYPEZW0=
+
+Name: help/EGit/User_Guide/images/CherryPick1.png
+SHA-256-Digest: dr8FQ2eKQH2WEwe0CVn3O4kcdp/Jhal2u6iejCPpQIE=
+
+Name: help/EGit/User_Guide/images/Egit-4.4-PushChangeToGerritDialog.pn
+ g
+SHA-256-Digest: sSQdk11n4kSD90az2y4A9jw3P9rkwI7WZ7OY22A6M7Y=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-merge-tool.png
+SHA-256-Digest: wrtiQuZiawUTGvRYPggZMk3xZSKMj/IC9GetXEU3WFI=
+
+Name: help/EGit/User_Guide/images/RepoMgrViewWithRepos.png
+SHA-256-Digest: qmByuNtLZsGqYoR6y36DqBvoMFqWIZviK65PYiw1hX0=
+
+Name: help/EGit/New_and_Noteworthy/5.10/See-Also.html
+SHA-256-Digest: hiaZ9Ho7lC+0GqQO87wqRa3XzlyheUpCKVl4KWQYBJQ=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-import-projects-select-repo
+ sitory.png
+SHA-256-Digest: UC1wo7wZyqFc3as4htS/OCsX6CYaIhAYAW2sGmsQAd4=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RepoViewReference.png
+SHA-256-Digest: KUfz61iolaKC8JKINiWZ09qWN9Yu21C9QSJtwrycqqg=
+
+Name: help/EGit/User_Guide/images/EGit_5_6_Repository_Groups.png
+SHA-256-Digest: uR4WZkixb9ylmzuqPPxZvnFuRfsS0J2ECIQHgXMj0eM=
+
+Name: help/EGit/New_and_Noteworthy/5.10/5.10.html
+SHA-256-Digest: lPsZz+UR3aUX2YyfZ/pgW/1qvfhznFBcLE1jYiVU0iI=
+
+Name: help/EGit/User_Guide/User-Guide.html
+SHA-256-Digest: ysO78byvTE1kQssthVU/TS2JsdSbeVcxT8N6inpLpUI=
+
+Name: help/images/topiclabel/egit.svg
+SHA-256-Digest: n3iFA74bU9yEmU9OJNvGA6u3oVC9pdOomwMMoUHYEn0=
+
+Name: help/EGit/User_Guide/images/Egit-3.5-ConfigureBranchDialog.png
+SHA-256-Digest: XvopFIk3TTXPxxzOBnF+Qil0SwPNJZXQ7xyUM42GMjo=
+
+Name: help/EGit/User_Guide/images/03-ExampleDecoration.png
+SHA-256-Digest: 8nbZFDX4VrsM6lkDPSJkpSWfuntWkui6qO88ap3gQQ4=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-push-wizard-refspec-conflic
+ t.png
+SHA-256-Digest: 5FbsqakKLZr7tt23r3d/l8OBom8h+fX9TzEVxNvtKdg=
+
+Name: help/EGit/User_Guide/images/Egit-1.2-historyview-2files-menu.png
+SHA-256-Digest: eA6eFHJy4QGRehWspZ/maiJz9aA+DABfzoONzX2JDWA=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-getstarted-ignore-added.pn
+ g
+SHA-256-Digest: 3WoM2SdrnhkEe02QmDY+mFB0DLbHy8vG3qmAcTSnsXk=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-allbranchesTog
+ gle.png
+SHA-256-Digest: KTExMgmiZh/eWzEjLmtCtbSOwfv6DArxYr2WxXHSPfc=
+
+Name: help/EGit/User_Guide/images/EGit-5.0_LFS_enable_locally.png
+SHA-256-Digest: t3ZJ1MtcXYFVpBjX3bCecKXkWhp67tFHJlgyP2yoYUY=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-BlameImprovements.png
+SHA-256-Digest: KQqsjBu4t9PUzBj/uxp0HaE9VGCjGJ+VCqOOoxPh7u0=
+
+Name: help/EGit/User_Guide/images/RepoMgrCreateRepositoryIcon.png
+SHA-256-Digest: QLKhU7GmTFt9W56wdNZC5aenXckNsTlcRMNx8seGiPw=
+
+Name: cheatsheets/push.xml
+SHA-256-Digest: RK3l+LYY8SuV7gtxn1LJbPnywmN59swdIi4X5wlE+pQ=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-HistoryViewQuickDiff.png
+SHA-256-Digest: H2/RdEXUY48zz1Bhw0PpPzA9xZPHogstoTlTRtPWbjQ=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-GitTreeCompareViewRepo.png
+SHA-256-Digest: HuGf9f0wnZ9pv6DT6SzBNL95xQVlbX5wF0E09vZBUI0=
+
+Name: help/EGit/Contributor_Guide/Updating-This-Document.html
+SHA-256-Digest: a6aTl5uwE44+dYHRa9T+Et0v+H3l+xTrzGhQmwPUMA4=
+
+Name: help/EGit/User_Guide/images/ResolvedConflicts.png
+SHA-256-Digest: bX1IW3D+It0ASY7xqhI4vN8dSrDcah3ifemSYoasR2Y=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-incoming-change
+ .png
+SHA-256-Digest: IrXrr4KRhP7DA6B2Fcmpi7+AjfACoBIVCCOHBl38UNs=
+
+Name: help/EGit/Contributor_Guide/images/Oomph-02-proxy-product-select
+ ion.png
+SHA-256-Digest: bEfNE0cEamNa6lbVD83yn0SsWH52WwJ5mWTNs59gGW4=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseSquash.png
+SHA-256-Digest: TJ8GrY1ifsYHz7YhUL2Rm+/ebAR1v4Zmi2VYEFWzwv8=
+
+Name: help/EGit/User_Guide/images/02-IconDecorations.png
+SHA-256-Digest: TGfuMefnZgY9Elm/ifVMTE/T3sLgSwXRgpaDrugyXAs=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-import-projects-filled-lis
+ t.png
+SHA-256-Digest: F4oycnIoLM6vmDoz9aG2FZ3R/q9Of09JdwLXfYfh4h4=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-RepoViewTopLevel.png
+SHA-256-Digest: 25nm1UGvG6yY7vwBomJlmbZyJ+HP4ZziVgerqSqCCOY=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-CreateTagDialog.png
+SHA-256-Digest: 7CeIsmpI6hsSmJlFEwXQ+cMPDbSFFi+EZV20AAmp7sw=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-import-projects-select-proj
+ ects.png
+SHA-256-Digest: vl6hK5toZMkDtOlZ2070PTFN5+piiU8DnoE0ZsDTKkg=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-commit-dialog.png
+SHA-256-Digest: tnINDNOBYm/h7DGTWZASYw/RdHHTosd0O/MiNgQNv9g=
+
+Name: images/prev.gif
+SHA-256-Digest: ho4O92wMkbppVlqv7B0oySYonlqXVm7qBY+Y+oD9jls=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-overview.png
+SHA-256-Digest: UvnvXIjDmfT0a3f+bLlVIN2Xmof8amCJUuCvW7CxjeA=
+
+Name: help/JGit/User_Guide/Snippets.html
+SHA-256-Digest: mpgLJuyvPc8Gs1R2ngwR+qPmK3lWeKBcW1aLH2nf7E8=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-RemoveRepository.png
+SHA-256-Digest: ydQT/XP+X+n+zZaBpL3lH0ItzwjsvH8mzWVRpgfXiKI=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-ConfigurePushToUpstream.png
+SHA-256-Digest: FkxrgoyFvzlrhCS+DHoCYAfczY2nPihr01k591bTm6c=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-github-create-repo.png
+SHA-256-Digest: wIRI8aJhXN4qAfx8giWHD2IDWIV61DPl0AV5tYkpJTs=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-push-wizard-accept-hostkey.
+ png
+SHA-256-Digest: BFfj0VSOBXNFfg4QefSuJQ20nefwMFMnNf2gCIfbFbg=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-shared-project.p
+ ng
+SHA-256-Digest: u1pDkIclllgdqRF1SdlQquMSpIsumTvvSQJv1knECvk=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-project-created.
+ png
+SHA-256-Digest: Fnj6Y+pwH2D9Iw+WRAkgQxKuHGuveCXL6qTqjMUa2jA=
+
+Name: help/EGit/New_and_Noteworthy/5.10/Updating-This-Document.html
+SHA-256-Digest: ThlDhYNGTaShXOGCqyNhEoutit6OrUZr96Hsy/iXu3E=
+
+Name: help/EGit/User_Guide/images/RepoMgrAddRepositoryIcon.png
+SHA-256-Digest: xf3RuhgRbsNa8iHmMv+yeOxH9gGPU8PW3BV6yMeXqPM=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-activate-task.png
+SHA-256-Digest: IU43NGd+ZjIeJ+tNkQguaa0sJtqrJrm2EILLN6GOLrY=
+
+Name: images/next.gif
+SHA-256-Digest: mPQwWc2mzoNT0IPbzfzbX1BHJDbcx/Lbs9IKlTnGp0M=
+
+Name: help/EGit/User_Guide/images/Git-search-dropdown.png
+SHA-256-Digest: Qru2FhF5XGcF0fOUp19ISEgdtvTAV1wpQD1bBE9ewHI=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-push-wizard-refspec-allbran
+ ches.png
+SHA-256-Digest: bk48zosq8Wms3DzDqaKrn179hwEaIv9XEhUJ2UokxHw=
+
+Name: help/EGit/User_Guide/images/Pe_downarrow1.png
+SHA-256-Digest: 4BOlkhsFeaxsPjq5ONkQNcL6XxRGi1tsL4ipJeSsEfg=
+
+Name: help/JGit/New_and_Noteworthy/5.10/Updating-This-Document.html
+SHA-256-Digest: GxCnbmYPhKgYXmeVlSmSEY8dKY/k4fZDBc1ke6TeQf8=
+
+Name: help/EGit/User_Guide/images/RepoMgrOpenTextEditor.png
+SHA-256-Digest: qU159P70rg2qzEVhbPXu+ouS5sXsxBKRjVxekLKlg0U=
+
+Name: help/EGit/Git_For_Eclipse_Users/Git-For-Eclipse-Users.html
+SHA-256-Digest: cXNtxUh8E3IKgCxTXmu73PGSWiwGPwBhfX7ayQVejO8=
+
+Name: help/EGit/Contributor_Guide/Bugs.html
+SHA-256-Digest: 6BztoRWmxdQySZUjqT/BT2/h2hS9MJgGdLGRdvXRQU4=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-GitMenu.png
+SHA-256-Digest: cZGNnC9U/dVFZMjLraW76Ke96XUnVXrb9Ll98oLmCzM=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-ContentAssistGerritChange.
+ png
+SHA-256-Digest: Gtvk139S9yqASr14qbzeDwPXyejDuxhQnuW9BvEiu/I=
+
+Name: help/EGit/Contributor_Guide/Running-EGit-from-Eclipse.html
+SHA-256-Digest: WxCB2p4eeU6yPcewD4dtFpQjldTbIE15m/KIhRxd4Jg=
+
+Name: help/EGit/Contributor_Guide/Tests.html
+SHA-256-Digest: k4JiLpS1vBkWo6oConQTQtLkZaOwxYaSJUZDj5edi0g=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-StagingViewRebaseButtons.pn
+ g
+SHA-256-Digest: XKtFXOIZT5GY2bdEPYw7VnxHsMFgz8wiKk2WXiPmwTw=
+
+Name: help/EGit/User_Guide/images/Commit-editor-diff-page.png
+SHA-256-Digest: ryhDJ6dsBFRObJkHtDm/iIiU24keUnJws/y6gYHgTm0=
+
+Name: help/EGit/User_Guide/images/RepoMgrCheckedOutBranch.png
+SHA-256-Digest: NlICJaohJhaDKzdwxf33htdchLM6A6McGdFGRTfeluE=
+
+Name: intro/css/overview.properties
+SHA-256-Digest: qSYVUO5Lk8B6DrqmIWABGidtbGn/ykdFvDuGB8jsMqg=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-github-push-preview.png
+SHA-256-Digest: t6YruOdvVU2RA5dvZo6mfCmpkXgblk3MWQYEIxxFm24=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-application.png
+SHA-256-Digest: dD1xYFxvT03Ecd06A7lHz8BAlGu0jHz5RRySJWwVB8Q=
+
+Name: help/toc.xml
+SHA-256-Digest: lILn7ysScifo2ypog1OXgbtNaAu+WOA8vJarIWA18Io=
+
+Name: help/EGit/Contributor_Guide/Builds.html
+SHA-256-Digest: HzEg1+Y6rLxZsoBZKZjKMU//QKhTHj9dGJ3TN97p7N0=
+
+Name: help/EGit/Contributor_Guide/Development-IDE-Configuration.html
+SHA-256-Digest: W7Km6Kz0yO+qha2zQQ+WZnev9TttafWE0nykAb1tAmI=
+
+Name: help/EGit/User_Guide/images/Egit-1.2-historyview-menu.png
+SHA-256-Digest: t05CmPvnP+tK8dxC0gBDDk0Yq0b6VHrJXM+/gCttP5U=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-ProjectMenu-Remote.png
+SHA-256-Digest: ZDiCdDWla+twNFKI1TSOz8asAo0dQJYM+EPNqg50XwI=
+
+Name: help/EGit/User_Guide/images/EGit-0.10-StartRebaseFromRepoView.pn
+ g
+SHA-256-Digest: LKPZhxT2iAqwXI5iczFiHqaqHBKM1HJWhE+h9j4FqLs=
+
+Name: help/EGit/User_Guide/images/Egit-1.0-synchronize-custom.png
+SHA-256-Digest: 8kKxcBGr/irUerQYxOZtaLtm4qVNzvnuVsi8R5zfe24=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-search.png
+SHA-256-Digest: aarZf91fleAPP26ztVvRzd8L8EFW1YXhVOQJlMyi4dA=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseAmend.png
+SHA-256-Digest: kyPLFurp0Yg8FcAykXgKj5ZajVoMWDxo5/OKGpizX+M=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-GitToolbar.png
+SHA-256-Digest: 6SztNRnDUkgkhXZAZhULSjngCBZRTbnRz+Fforo0C18=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-StagingViewConflicts.png
+SHA-256-Digest: lSYznDt1yv4ABR0v0azdBB7X0S0USWMW6f2Kwn3Bnww=
+
+Name: help/EGit/Contributor_Guide/Documentation.html
+SHA-256-Digest: oGlaEy6tgUsm4xJeK+GvsNFDsgrdCpdS+Z9wbH/7op0=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-ProjectMenu-Main.png
+SHA-256-Digest: hAll6NVEP+d50Ei/NLqR+iKz82OkF3gAJLE8v6AHUIw=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-DeleteRepository.png
+SHA-256-Digest: 8ESibfXB8W14qfSWOIkTEcJyJQ9g0OyYC1fnAeOG9Uw=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-comparemode.pn
+ g
+SHA-256-Digest: A6+c38THYTegL47EivXKShLnwY1gQWesouLIrR/XO8M=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseView.png
+SHA-256-Digest: VjSP1elr3aC0cDqZslXlKwlIE7TO8VO7b/QQjfME6JM=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-conflict-modify
+ .png
+SHA-256-Digest: eB3toPwK4nUb2Zgw757mKxfCYXt0tPVp4Ym5zs/fidU=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-branchAndMerge
+ .png
+SHA-256-Digest: ARrwWYtdSwZN/LhsJuBYOBWB4pGAdVr030IAcmQV8TA=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-repo-view-createRemoteWizar
+ dPush.png
+SHA-256-Digest: NQ4SjX5vqAv3nQFiXj+Bzq8N+kLg4fEvkHQF+hRnwgA=
+
+Name: help/EGit/User_Guide/images/Egit-3.5-CreateBranchDialog.png
+SHA-256-Digest: hAejolgAqK50V0FXwzAdiQmNntjeJbraDD/qbXxLPS4=
+
+Name: help/EGit/User_Guide/Reference.html
+SHA-256-Digest: CH8BHiBfiyikVVeYaNKf+cES+xLcMG/vzSNqIO9odrU=
+
+Name: help/JGit/User_Guide/Updating-This-Document.html
+SHA-256-Digest: yzG56u3JlvPWdunz5Hke+b9Hv1mBNDbHhwG5uw305ac=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-push-wizard-confirm-push.pn
+ g
+SHA-256-Digest: dn0GTMn9Gxl8OYAgIk8nnhr8W8C/K7eOK99wbZf4bMo=
+
+Name: intro/css/whatsnew.properties
+SHA-256-Digest: LD2/lw9G13agCtFNQiI9Qtxg3S0mCboNcY2LnlM39G0=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-email.png
+SHA-256-Digest: 5cTfprZWduiC6Uat/63Ef3gTUTKvmZprpp4Vlxlo2Eg=
+
+Name: help/EGit/Contributor_Guide/Obtaining-Sources.html
+SHA-256-Digest: cy+Tb+RIw9CdEYeVB6BFAB+zvH8YGqNLYEnkoSLtYwI=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-HistoryViewSettingsFilter.p
+ ng
+SHA-256-Digest: E4wvAPti5htWUHLO9T2MsFc9YrBtf+QtRI9cxESdjMw=
+
+Name: help/EGit/User_Guide/images/Egit-3.4-merge-options.png
+SHA-256-Digest: psr0HLwfr/Dhk3+ZeI10RWhcJkDsDKuvggdWxhTfy6M=
+
+Name: help/EGit/Contributor_Guide/Gerrit-Code-Review-Cheatsheet.html
+SHA-256-Digest: JHSNXwR6nIh+Z/uMVLg/gOSxgdw6fD5/8v1sIzTx+IU=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-StagingViewOpenMergeTool.pn
+ g
+SHA-256-Digest: dVtp4kmwSh+HprzT/2QHgNJyjans91pgbPRuPZ+WUf8=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseSquashMess
+ age.png
+SHA-256-Digest: /z15twHzNyldj+iV9x2XStpnQycJ2IeMN/K+NOrPc7E=
+
+Name: help/EGit/User_Guide/images/Egit-0.0-create-patch-dialog.png
+SHA-256-Digest: CQUcmsXLZGUYx8nNAFuAbnhWCbbl7weKXWmW5cnDXzo=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-import-projects-add-dialog
+ .png
+SHA-256-Digest: LKr1d5ybAQF+4NLNsQQSc1yFP3qsXq5LdFoIoolR2/Q=
+
+Name: help/EGit/User_Guide/images/Egit-1.0-synchronize-dynamic.png
+SHA-256-Digest: Apg+owqpbm3JkyaY9cc0gpIuC+pzmtc7bYQDUv1YQiE=
+
+Name: help/EGit/User_Guide/images/Commit-editor-diff-page-egit-4.6.png
+SHA-256-Digest: DsivAIAexKMFKUAXq3NzRZWvZl03DyHSyQ87Y7alN+M=
+
+Name: help/EGit/User_Guide/images/RepoMgrLinkWithSelection.png
+SHA-256-Digest: pqGOybiBAR4PF5F+Nmz48jabshymZUuIFgM1bU6YRK4=
+
+Name: plugin.properties
+SHA-256-Digest: 8zgYVxq/r+CsWgr2PrXhPwA8JTFLRSHVfym6+aDOOug=
+
+Name: help/EGit/Contributor_Guide/images/Start-swtbot-test.png
+SHA-256-Digest: W4VU8vm6pZPIn/vKupueLDpY+xDas1u19fRKMFFPTgk=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-ResourceMenu.png
+SHA-256-Digest: 5HYBF8EeCnQRvLpMvhUdGMzS4out3OEk6gapNtcSfA4=
+
+Name: help/EGit/Contributor_Guide/images/Oomph-05-eclipse-progress.png
+SHA-256-Digest: 3xh5YbGxrH+YF2+ok91uR6iGDg3Sya5CxRsHya7Cd/k=
+
+Name: help/EGit/User_Guide/images/RepoMgrLinkWithEditor.png
+SHA-256-Digest: TtIr2yYKCqtobKHdOH1Dr7Gx8ADbHX0gAAkNsWVQ3II=
+
+Name: help/images/prev.gif
+SHA-256-Digest: WX/JXuWyoF5dKNB8uRQ/NygLS23R2vrqDnlNFXS0tmk=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-clone-wizard-branch-page.p
+ ng
+SHA-256-Digest: nUuhvY2miqWLfP6jVcwMEUrSt35zydZOs/zfo4Ux+v4=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-fetch-wizard-source-url-pag
+ e.png
+SHA-256-Digest: A/77rUuY4n43hZk1FT5fTAz960hS7HVbEN6wf45jcF8=
+
+Name: help/EGit/Contributor_Guide/images/EGit-Target-Platforms.png
+SHA-256-Digest: Og6ydM4cS5gHwS5H2w2hWW2LMPrfP5eMs9vsNWPxgbM=
+
+Name: help/EGit/Contributor_Guide/Contributor-Guide.html
+SHA-256-Digest: RDzdjqoibxmnrskinpQPz437bOj88njvPInz5EntwSY=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-github-push-refspec.png
+SHA-256-Digest: NFMQ3a57SHp8uXyUc+D0FSl7Blf/5MCDrVQrkjVAIXg=
+
+Name: help/EGit/Contributor_Guide/Manual-Developer-Setup.html
+SHA-256-Digest: YutNyDQHBA2FPXNpiPpfCW3+uqck/E8O/yDapDb1ITo=
+
+Name: help/EGit/User_Guide/images/EGit_Amend_Commit_Button.png
+SHA-256-Digest: P8vmI1P0wV/amWYvvNIgxAyIMfQySeM5DzZamhhj9y0=
+
+Name: help/EGit/User_Guide/images/Egit-1.3-CloneSources.png
+SHA-256-Digest: Bhr0AGCdQGUh3DupnKbEa5SdCDF+wqT3O3W3dBHpxsQ=
+
+Name: help/EGit/User_Guide/images/Egit-3.2-InteractiveRebaseHistoryAft
+ erRebase.png
+SHA-256-Digest: zgYv2h61r7FuEK6m7txL8hZ4X3igXGst8jel2t0wjus=
+
+Name: help/EGit/User_Guide/images/EGit-5.0_LFS_enable_globally.png
+SHA-256-Digest: 9mYW5/ZF7QXdHlNJ/EZihh3C8H/3u/L+iliJeXRNacs=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RepoViewFetchConfig.png
+SHA-256-Digest: r1y4F8a7Fazs6VmIyLzlDxky4xUYsq1zeKJmRL8JLQw=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RepoViewWorkingDir.png
+SHA-256-Digest: MoCyLodenXJEvWNHeIve20dYUX/JQGAwMXSTpaZaLKA=
+
+Name: help/EGit/User_Guide/images/Egit-1.1-tags-history.png
+SHA-256-Digest: eVQqK2p9KNi2JpVLOfeXrc8/uBi1DvHcTaao9d1mzE0=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-overview-labels
+ .png
+SHA-256-Digest: QbHWBhg41iAnHjoKZ6k1+vAMEq4Yo/GEtRHgvu8ADCQ=
+
+Name: help/EGit/User_Guide/images/Commit-editor-notes-page.png
+SHA-256-Digest: DXKq5LL7zO0U8y1EXI8K20e4EVDWP38M64HmylTD2QM=
+
+Name: help/EGit/User_Guide/images/Git-search-results.png
+SHA-256-Digest: ndh9SiKb0SitrxBRY6ASbmV91eJx28ZIH+7eUUiQbvc=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-import-projects-select-wiz
+ ard.png
+SHA-256-Digest: c/W+wRHgx937nMX7c1T/UeL7gmIx1zeYEDbhxjOkIqw=
+
+Name: help/EGit/User_Guide/images/Egit-1.2-commit-dialog-path-assist.p
+ ng
+SHA-256-Digest: s2lNehjbWwDVgP+vYXTXzwK04sIeAd20rNWc1FqMcDI=
+
+Name: help/EGit/User_Guide/images/RepoMgrNewRemote.png
+SHA-256-Digest: HRLCq3GSh3UyTcwLx4Fuh0lea6UYPzwBX1zDBKF71z0=
+
+Name: help/JGit/User_Guide/Advanced-Topics.html
+SHA-256-Digest: Es2J6Z9kqO9NbG0Iaksg1H9IlXE/6Ixl1shBdNh+fSg=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-synchronize-conflict-add.pn
+ g
+SHA-256-Digest: ICspNm/k9b2aExRqiuF/hmkb+Jz5zHZOT/F4L4vtMW8=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-github-pushed-repo.png
+SHA-256-Digest: 7spgJ5AqYAxgy8lI/T5zbMvT1S1TYcayEEmZSj08Tms=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-commit-dialog-spell-quickfi
+ x.png
+SHA-256-Digest: 2q3y7HXProz5s74SeeAxGiwRutWwplea5z1QKElZRQU=
+
+Name: help/JGit/New_and_Noteworthy/5.10/Contributors.html
+SHA-256-Digest: 4qGFdMTXLb30dN0a9RK+PNnkaOO8x4wxfB50jOw9Nd4=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-name.png
+SHA-256-Digest: LSSCeIIEJC4fYqKSOjs7Wb/JucTVZHPelV7S25f2dFI=
+
+Name: help/EGit/User_Guide/images/Egit-1.2-project-menu-switchto.png
+SHA-256-Digest: LykvhhmvQ4B1P0CJLdiCFrFi1LNgDYkiFIA8HzJWaCs=
+
+Name: help/EGit/User_Guide/images/Egit-0.0-create-patch-menu.png
+SHA-256-Digest: zPFnxoLYX148Too+TKIN2V2rMPGmqS/q4NhRZCznhRw=
+
+Name: help/EGit/User_Guide/images/Egit-13-submodules-node.png
+SHA-256-Digest: P7FbSVawrNrJgj6ZzYQ8X3psdORJ+GWvjYnELtukBNs=
+
+Name: help/EGit/User_Guide/images/Egit-4.0-git_flow_init-repository_no
+ de_right_click.png
+SHA-256-Digest: vdV9EA3raqgq2APN1QTr0JyLZfKWvRLclQ3SXv0Px04=
+
+Name: intro/whatsnewExtensionContent.xml
+SHA-256-Digest: XG2DtIzaPUyA+iA14Cmz3i53ZHxGlV62+FdIXjj14v8=
+
+Name: help/EGit/User_Guide/images/RepoMgrPasteRepositoryPath.png
+SHA-256-Digest: Tt4Pm55GfKuRg74qYuVwSiYuN4eubtacBiqIcgpH9Bc=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-commited.png
+SHA-256-Digest: 4K7mmlSfLJ/0wysOA7erovKCrBVmUvlyiCftC4kn6gc=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-ImportProjectsFromRepoView
+ .png
+SHA-256-Digest: zTICBqe+flvejVOvClNvIrYWQWL1N5CgRTEEmzKDkws=
+
+Name: help/JGit/User_Guide/images/Jgit-glog.png
+SHA-256-Digest: 4L/kX8MHgwEYIH2vh0ADKxY4rmoOa5F7xgCD3Tdn7Bg=
+
+Name: images/topiclabel/egit.svg
+SHA-256-Digest: Am7cvytjrz6X10fZ61eIhjBLe39RDMhZdHbD/V9BrUE=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-getstarted-commit.png
+SHA-256-Digest: FeAHFhR0N4c78hnpcc0VMyfgme3Un5KOfW4mNuysRyk=
+
+Name: help/EGit/User_Guide/images/EGit-Typo.png
+SHA-256-Digest: rVwPFh51+dONkQB+o3yko51LWKI03qe+N3bmN1kbn6s=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-FetchChangeFromGerritDialog
+ .png
+SHA-256-Digest: +AP8cYhkbF6XYToqoFgwGi34JSUd95PTLzFyGAXP9Ws=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-history-view-config.png
+SHA-256-Digest: rCv03D2MJ0MGNIg7+5S17+ijzxqs34ZTwtK7V5ydOq0=
+
+Name: help/EGit/User_Guide/images/EGit-5.0_LFS_enable_automatically.pn
+ g
+SHA-256-Digest: lLWyfRNxQSNYSdHlbPRA8HilayrccUUmHHJMZJJ9AyU=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-PushChangeToGerritDialog.pn
+ g
+SHA-256-Digest: T1fI32129GtkXEqjYo/Q0o3Iz9eW8vh62FC+r1BLNNc=
+
+Name: help/EGit/User_Guide/images/Git-search-page.png
+SHA-256-Digest: O24dRSXJesdJ+aVjazE0I2PYnxLMw3eaVAhQ8MTlwp8=
+
+Name: help/EGit/User_Guide/images/RepoMgrCreateRepositoryDialog.png
+SHA-256-Digest: p9kWdZSWGoz+NPaRvyEbQAAnCNYaNFcJ05RVAezc5EM=
+
+Name: about.html
+SHA-256-Digest: hMJrV+FYorISIZEWBm1Jm3ZG0/Eocpst6NWbNc59qRM=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-RebaseResultWizard.png
+SHA-256-Digest: MmvAsoXk14vwAAhorvcX9SqLt6b60d8KOWRHG68Vp5E=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-fetch-wizard-source-page.pn
+ g
+SHA-256-Digest: qKUwAV3WpsHf1p+tY1FmX+M2VVAhG8TWcpE1YDDo2wc=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-HistoryViewSettings.png
+SHA-256-Digest: NCQofaT1+Xie+DT4zUpD8bSDzDrKVB043ZXvysmApRM=
+
+Name: help/EGit/User_Guide/images/EGit-0.12-SetupRepo-RepoStructureTwo
+ Projects.jpg
+SHA-256-Digest: CQdDfJXwzPa3WCApDPpXk2RMRPwB6CDwdEFLpS3xlac=
+
+Name: help/EGit/User_Guide/images/Egit-0.10-merge-conflict.png
+SHA-256-Digest: hnP5RG96vBe6U2b4Iq034bb7UR836Lp2UrPR64s3WU8=
+
+Name: help/EGit/User_Guide/images/CherryPick3.png
+SHA-256-Digest: wWC6HdvYkPxgwi8UpyTobULH4g+BU+eTWhpvrrmmnEY=
+
+Name: cheatsheets/clone.xml
+SHA-256-Digest: HeF5lAcNsy+lpDcf5EuuRLH5SKomTigu+dHtvsYr2E4=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-ProjectMenuAdvanced2.png
+SHA-256-Digest: 5vzyt8Sf/8Vp7uPzjNgcah9D6sLtDjBD8V2yKa9mFug=
+
+Name: help/EGit/User_Guide/images/RepoMgrCloneRepositoryIcon.png
+SHA-256-Digest: RDbDr96b5Kmg36E4p/k7CLNaJS8HAhscjCch/yoquOA=
+
+Name: help/EGit/User_Guide/images/Egit-3.1-PushConfirmationDialog.png
+SHA-256-Digest: h4uIJJTttIYv9yBhXglXM+CY9d8DYvspkZ7qyLvbRfM=
+
+Name: help/EGit/User_Guide/images/EGit-Corrected.png
+SHA-256-Digest: mIc2O7EnIbt4lLbxpcAxUSkBg+yp1J7dXi6L2O+ddk8=
+
+Name: META-INF/maven/org.eclipse.egit/org.eclipse.egit.doc/pom.propert
+ ies
+SHA-256-Digest: Lu0BZCFX/SSCTrdRj+3SnH5ANRae2s4hT2RtXM3h0/E=
+
+Name: help/EGit/User_Guide/images/01-TextDecorations.png
+SHA-256-Digest: 89X8RTXURkIgorrnuV0xu4pDHYM6El4iKSh8/YsYUSc=
+
+Name: help/images/next.gif
+SHA-256-Digest: uhZVDNeQgCegR1xctWrCZqIQObvqmh1lD7b7VHN4eE0=
+
+Name: help/JGit/User_Guide/Concepts.html
+SHA-256-Digest: JmEDcMdUH/vUtVHqgo6xAof0gAPLdbVibhHJKOIsIZs=
+
+Name: help/EGit/User_Guide/images/RepoMgrHierarchicalBranchLayout.png
+SHA-256-Digest: /UAfD8WHF151ckeKyqQ2mRh97w9qsK1eKw1JnCNHvuk=
+
+Name: help/images/home.gif
+SHA-256-Digest: 0JidKNoX40w9e5w8YzYfLsTav8Kv2UR5H9zNkvZMr88=
+
+Name: help/EGit/User_Guide/images/Egit-0.11-getstarted-history1.png
+SHA-256-Digest: Ku7rnMmfjAUtZvSpagvrhJSjXpm3F5oHc2OoH/gOAow=
+
+Name: help/EGit/User_Guide/images/Egit-0.9-label-decorators.png
+SHA-256-Digest: aSTRNaw4DsXRiz3JJ/+i+HFPQMNbx+b6c4+ikxvpan0=
+

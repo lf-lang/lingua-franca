@@ -1,0 +1,7 @@
+a#egit-guide img {
+	background-image: url(../../images/topiclabel/egit.svg);
+}
+
+a#egit-guide:hover img {
+	background-image: url(../../images/topiclabel/egit.svg);
+}

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!--
+     Copyright (c) 2005, 2008 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Composite Cheat Sheet -->
+
+<compositeCheatsheet name="Creating a Rich Client Application">
+
+   <!-- Task Group -->
+
+   <taskGroup kind="set" name="Create a rich client application">
+      <intro>
+         This cheat sheet will guide you through the individual steps to 
+         create a plug-in, define a plug-in based product, customize
+         a product, export a Rich Client Platform (RCP) application and define a feature-based
+         product using the Plug-in Development Environment (PDE).
+         <br/>
+         <br/>
+         To assist you along the way, wizards and commands
+         will be available for you to launch automatically.
+      </intro>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Create a plug-in">
+         <intro>
+            This cheat sheet will demonstrate how to create and run a minimal RCP application. 
+         </intro>
+         <param name="path" value="rcpapp/rcpapp-create.xml" />
+         <onCompletion>
+         	Congratulations!  You just created an RCP application!
+         </onCompletion>
+      </task>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Define a plug-in based product">
+         <intro>
+            This cheat sheet will demonstrate how to define and run a plug-in
+            based product configuration.  
+         </intro>
+         <param name="path" value="rcpapp/rcpapp-plugin-product.xml" />
+         <onCompletion>
+         	Congratulations!  You just defined a plug-in based product configuration for an RCP application!
+         </onCompletion>
+      </task>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Customize a product">
+         <intro>
+         This cheat sheet will demonstrate how to add window images,
+         add a splash screen and customize a launcher for an RCP
+         application.  
+         </intro>
+         <param name="path" value="rcpapp/rcpapp-customize.xml" />
+         <onCompletion>
+         	Congratulations!  You just customized your product configuration!
+         </onCompletion>
+      </task>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Export an RCP product">
+         <intro>
+         This cheat sheet will demonstrate how to modify a product 
+         configuration and export a standalone RCP product.
+         </intro>
+         <param name="path" value="rcpapp/rcpapp-export.xml" />
+         <onCompletion>
+         	Congratulations!  You just exported a fully-branded product!
+         </onCompletion>
+      </task>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Define a feature-based product">
+         <intro>
+         This cheat sheet will demonstrate how to convert a plug-in based product
+         configuration to a feature-based one. 
+         </intro>
+         <param name="path" value="rcpapp/rcpapp-feature-product.xml" />
+         <onCompletion>
+         	Congratulations!  You just defined a feature-based product!
+         </onCompletion>
+      </task>
+
+      <onCompletion>
+         Congratulations!  You just created a plug-in, defined a plug-in based product, 
+         customized a product, exported an RCP product and defined a feature-based
+         product using PDE.
+      </onCompletion>
+
+   </taskGroup>
+
+
+</compositeCheatsheet>

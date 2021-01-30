@@ -1,0 +1,45 @@
+/*******************************************************************************
+ * Copyright (c) 2006, 2009 IBM Corporation and others.
+ *
+ * This program and the accompanying materials 
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ * 
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
+/*
+ * We are not using titles on this page.
+ */
+.intro-header {
+	display : none;
+}
+
+/* show the "selected" image for this page */
+#navigation-links a#webresources img {
+	background-image : url(../graphics/icons/ctool/webresources-select.png); 
+	width : 64px;
+	height: 64px;
+	margin-top : 12px
+}
+
+/* Hack for IE6, which cannot display png files with alpha channel transparency */
+* html #navigation-links a#webresources img {
+	background-image : url(../graphics/icons/ctool/webresources-select.gif); 
+}
+
+#navigation-links a#.high-contrast#webresources img {
+	display : none;
+}
+
+.page {
+	background-image: url(../graphics/contentpage/wr_banner.jpg);
+}
+
+#navigation-links #webresources .link-label {
+	display : none;
+}

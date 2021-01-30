@@ -1,0 +1,11 @@
+a#swt-examples img { background-image : url(../../images/topiclabel/sa_samplecube48.svg); }
+a#swt-examples:hover img { background-image : url(../../images/topiclabel/sa_samplecube48.svg); }
+
+a#multi-page-editor img { background-image : url(../../images/topiclabel/sa_sampleorb48.svg); }
+a#multi-page-editor:hover img { background-image : url(../../images/topiclabel/sa_sampleorb48.svg); }
+
+a#property-sheet img { background-image : url(../../images/topiclabel/sa_sampleorb48.svg); }
+a#property-sheet:hover img { background-image : url(../../images/topiclabel/sa_sampleorb48.svg); }
+
+a#readmetool img { background-image : url(../../images/topiclabel/sa_sampleorb48.svg); }
+a#readmetool:hover img { background-image : url(../../images/topiclabel/sa_sampleorb48.svg); }

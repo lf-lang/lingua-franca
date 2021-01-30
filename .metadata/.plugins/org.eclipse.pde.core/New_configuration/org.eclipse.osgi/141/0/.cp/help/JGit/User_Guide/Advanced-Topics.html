@@ -1,0 +1,172 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>JGit User Guide - Advanced Topics</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Advanced Topics</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Snippets.html" title="Snippets">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Updating-This-Document.html" title="Updating This Document">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Snippets</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Updating This Document</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Advanced_Topics">Advanced Topics</h1>
+		<h2 id="Reducing_memory_usage_with_RevWalk">Reducing memory usage with RevWalk</h2>
+		<p>The revision walk interface and the RevWalk and RevCommit
+			classes are designed to be light-weight. However, when used
+			with any repository of considerable size they may still
+			require a lot of memory. This section provides hints on what
+			you can do to reduce memory when walking the revision graph.</p>
+		<h3 id="Restrict_the_walked_revision_graph">Restrict the walked revision graph</h3>
+		<p>Try to walk only the amount of the graph you
+			actually need to walk.  That is, if you are looking for the commits in
+			refs/heads/master not yet in refs/remotes/origin/master, make sure you
+			markStart() for refs/heads/master and markUninteresting()
+			refs/remotes/origin/master.  The RevWalk traversal will only parse the
+			commits necessary for it to answer you, and will try to avoid looking
+			back further in history.  That reduces the size of the internal object
+			map, and thus reduces overall memory usage.</p>
+		<pre>RevWalk walk = new RevWalk(repository);
+ObjectId from = repository.resolve("refs/heads/master");
+ObjectId to = repository.resolve("refs/remotes/origin/master");
+</pre>
+		<pre>walk.markStart(walk.parseCommit(from));
+walk.markUninteresting(walk.parseCommit(to));
+</pre>
+		<pre>// ...
+</pre>
+		<h3 id="Discard_the_body_of_a_commit">Discard the body of a commit</h3>
+		<p>There is a setRetainBody(false) method you can use to discard the body
+			of a commit if you don't need the author, committer or message
+			information during the traversal.  Examples of when you don't need
+			this data is when you are only using the RevWalk to compute the merge
+			base between branches, or to perform a task you would have used `git
+			rev-list` with its default formatting for.</p>
+		<pre>RevWalk walk = new RevWalk(repository);
+walk.setRetainBody(false);
+// ...
+</pre>
+		<p>If you do need the body, consider extracting the data you need and
+			then calling dispose() on the RevCommit, assuming you only need the
+			data once and can then discard it. If you need to hang onto the data,
+			you may find that JGit's internal representation uses less overall
+			memory than if you held onto it yourself, especially if you want the
+			full message. This is because JGit uses a byte[] internally to store the
+			message in UTF-8.  Java String storage would be bigger using UTF-16,
+			assuming the message is mostly US-ASCII data.</p>
+		<pre>RevWalk walk = new RevWalk(repository);
+// more setup
+Set&lt;String&gt; authorEmails = new HashSet&lt;String&gt;();
+</pre>
+		<pre>for (RevCommit commit : walk) {
+	// extract the commit fields you need, for example:
+	authorEmails.add(commit.getAuthorIdent().getEmailAddress());
+</pre>
+		<pre> 	commit.dispose();
+}
+</pre>
+		<h3 id="Subclassing_RevWalk_and_RevCommit">Subclassing RevWalk and RevCommit</h3>
+		<p>If you need to attach additional data to a commit, consider
+			subclassing both RevWalk and RevCommit, and using the createCommit()
+			method in RevWalk to consruct an instance of your RevCommit subclass.
+			Put the additional data as fields in your RevCommit subclass, so that
+			you don't need to use an auxiliary HashMap to translate from RevCommit
+			or ObjectId to your additional data fields.</p>
+		<pre>public class ReviewedRevision extends RevCommit {
+</pre>
+		<pre>	private final Date reviewDate;
+</pre>
+		<pre>	private ReviewedRevision(AnyObjectId id, Date reviewDate) {
+		super(id);
+		this.reviewDate = reviewDate;
+	}
+</pre>
+		<pre>	public List&lt;String&gt; getReviewedBy() {
+		return getFooterLines("Reviewed-by");
+	}
+</pre>
+		<pre>	public Date getReviewDate() {
+		return reviewDate;
+	}
+</pre>
+		<pre>	public static class Walk extends RevWalk {
+</pre>
+		<pre>		public Walk(Repository repo) {
+			super(repo);
+		}
+</pre>
+		<pre>		@Override
+		protected RevCommit createCommit(AnyObjectId id) {
+			return new ReviewedRevision(id, getReviewDate(id));
+		}
+</pre>
+		<pre>		private Date getReviewDate(AnyObjectId id) {
+			// ...
+		}
+</pre>
+		<pre>	}
+}
+</pre>
+		<h3 id="Cleaning_up_after_a_revision_walk">Cleaning up after a revision walk</h3>
+		<p>A RevWalk cannot shrink its internal object map.  If you have just
+			done a huge traversal of say all history of the repository, that will
+			load everything into the object map, and it cannot be released.  If
+			you don't need this data in the near future, it may be a good idea to
+			throw away the RevWalk and allocate a new one for your next traversal.
+			That will let the GC reclaim everything and make it available for
+			another use.  On the other hand, reusing an existing object map is
+			much faster than building a new one from scratch.  So you need to
+			balance the reclaiming of memory against the user's desire to perform
+			fast updates of an existing repository view.</p>
+		<pre>RevWalk walk = new RevWalk(repository);
+// ...
+for (RevCommit commit : walk) {
+	// ...
+}
+walk.dispose();
+</pre><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Snippets.html" title="Snippets">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="User-Guide.html" title="JGit User Guide">
+						<img alt="JGit User Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Updating-This-Document.html" title="Updating This Document">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Snippets</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Updating This Document</td>
+			</tr>
+		</table>
+	</body>
+</html>

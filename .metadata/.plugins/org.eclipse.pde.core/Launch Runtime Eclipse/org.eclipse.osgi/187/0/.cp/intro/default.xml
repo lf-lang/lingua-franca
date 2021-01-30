@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?><!--
+    Copyright (c) 2010, 2018 The Eclipse Foundation and others.
+    All rights reserved. This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License v2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+    	The Eclipse Foundation - initial API and implementation
+ -->
+
+<introContent>
+  	<extensionContent id="org.eclipse.epp.mpc.ui" name="Marketplace Client" 
+  		style="css/default.css" path="overview/@"
+  		alt-style="css/overview.properties">
+		<group style-id="content-group" id="content-group">
+       		<link label="Eclipse Marketplace"  
+       			url="http://org.eclipse.ui.intro/runAction?class=org.eclipse.epp.internal.mpc.ui.actions.WelcomeIntroAction&amp;pluginId=org.eclipse.epp.mpc.ui&amp;standby=true" 
+       			id="orgeclipseeppmpcui-introLink" style-id="content-link">
+          		<text>Install Eclipse extensions and solutions</text>
+       		</link>
+       	</group>
+  	</extensionContent>
+</introContent>

@@ -1,0 +1,162 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>JGit User Guide - Reference</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Reference</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Concepts.html" title="Concepts">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Snippets.html" title="Snippets">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Concepts</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Snippets</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Reference">Reference</h1>
+		<h2 id="Porcelain_API">Porcelain API</h2>
+		<p>While JGit contains a lot of low level code to work with Git repositories, it also contains a higher level API that mimics some of the Git porcelain commands in the 
+			<i>org.eclipse.jgit.api</i> package. 
+		</p>
+		<p>Most users of JGit should start here.</p>
+		<h3 id="AddCommand_.28git-add.29">AddCommand (git-add)</h3>
+		<p>AddCommand allows you to add files to the index and has options available via its setter methods.</p>
+		<ul>
+			<li>addFilepattern()</li>
+		</ul>
+		<p>Here's a quick example of how to add a set of files to the index using the porcelain API.</p>
+		<pre>Git git = new Git(db);
+AddCommand add = git.add();
+add.addFilepattern("someDirectory").call();
+</pre>
+		<h3 id="CommitCommand_.28git-commit.29">CommitCommand (git-commit)</h3>
+		<p>CommitCommand allows you to perform commits and has options available via its setter methods.</p>
+		<ul>
+			<li>setAuthor()</li>
+			<li>setCommitter()</li>
+			<li>setAll()</li>
+		</ul>
+		<p>Here's a quick example of how to commit using the porcelain API.</p>
+		<pre>Git git = new Git(db);
+CommitCommand commit = git.commit();
+commit.setMessage("initial commit").call();
+</pre>
+		<h3 id="TagCommand_.28git-tag.29">TagCommand (git-tag)</h3>
+		<p>TagCommand supports a variety of tagging options through its setter methods.</p>
+		<ul>
+			<li>setName()</li>
+			<li>setMessage()</li>
+			<li>setTagger()</li>
+			<li>setObjectId()</li>
+			<li>setForceUpdate()</li>
+			<li>setSigned() - not supported yet, will throw exception</li>
+		</ul>
+		<p>Here's a quick example of how to tag a commit using the porcelain API.</p>
+		<pre>Git git = new Git(db);
+RevCommit commit = git.commit().setMessage("initial commit").call();
+RevTag tag = git.tag().setName("tag").call();
+</pre>
+		<h3 id="LogCommand_.28git-log.29">LogCommand (git-log)</h3>
+		<p>LogCommand allows you to easily walk a commit graph.</p>
+		<ul>
+			<li>add(AnyObjectId start)</li>
+			<li>addRange(AnyObjectId since, AnyObjectId until)</li>
+		</ul>
+		<p>Here's a quick example of how get some log messages.</p>
+		<pre>Git git = new Git(db);
+Iterable&lt;RevCommit&gt; log = git.log().call();
+</pre>
+		<h3 id="MergeCommand_.28git-merge.29">MergeCommand (git-merge)</h3>
+		<p>TODO</p>
+		<h2 id="Ant_Tasks">Ant Tasks</h2>
+		<p>JGit has Ant tasks for some common tasks contained in the 
+			<b>org.eclipse.jgit.ant</b> bundle.
+		</p>
+		<p>To use these tasks:</p>
+		<pre>   &lt;taskdef resource="org/eclipse/jgit/ant/ant-tasks.properties"&gt;
+       &lt;classpath&gt;
+         &lt;pathelement location="path/to/org.eclipse.jgit.ant-VERSION.jar"/&gt;
+         &lt;pathelement location="path/to/org.eclipse.jgit-VERSION.jar"/&gt;
+         &lt;pathelement location="path/to/jsch-0.1.44-1.jar"/&gt;
+       &lt;/classpath&gt;
+   &lt;/taskdef&gt;
+</pre>
+		<p>This would then provide git-clone, git-init and git-checkout tasks.</p>
+		<h3 id="git-clone">git-clone</h3>
+		<pre>   &lt;git-clone uri="<a href="http://egit.eclipse.org/jgit.git" target="egit_external">http://egit.eclipse.org/jgit.git</a>" /&gt;
+</pre>
+		<p>The following attributes are required:</p>
+		<ul>
+			<li>uri: the uri to clone from</li>
+		</ul>
+		<p>The following attributes are optional:</p>
+		<ul>
+			<li>dest: the destination to clone to (defaults to use a human readable directory name based on the last path component of the uri)</li>
+			<li>bare: true/false/yes/no to indicate if the cloned repository should be bare or not (defaults to false)</li>
+			<li>branch: the initial branch to check out when cloning the repository (defaults to HEAD)</li>
+		</ul>
+		<h3 id="git-init">git-init</h3>
+		<pre>   &lt;git-init /&gt;
+</pre>
+		<p>The following attributes are optional:</p>
+		<ul>
+			<li>dest: the path where a git repository is initialized (defaults $GIT_DIR or the current directory)</li>
+			<li>bare: true/false/yes/no to indicate if the repository should be bare or not (defaults to false)</li>
+		</ul>
+		<h3 id="git-checkout">git-checkout</h3>
+		<pre>   &lt;git-checkout src="path/to/repo" branch="origin/experimental" /&gt;
+</pre>
+		<p>The following attributes are required:</p>
+		<ul>
+			<li>src: the path to the git repository</li>
+			<li>branch: the initial branch to checkout</li>
+		</ul>
+		<p>The following attributes are optional:</p>
+		<ul>
+			<li>createbranch: true/false/yes/no to indicate whether the branch should be created if it does not already exist (defaults to false)</li>
+			<li>force: true/false/yes/no: if true/yes and the branch with the given name already exists, the start-point of an existing branch will be set to a new start-point; if false, the existing branch will not be changed (defaults to false)</li>
+		</ul>
+		<h3 id="git-add">git-add</h3>
+		<p>TODO</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Concepts.html" title="Concepts">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="User-Guide.html" title="JGit User Guide">
+						<img alt="JGit User Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Snippets.html" title="Snippets">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Concepts</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Snippets</td>
+			</tr>
+		</table>
+	</body>
+</html>

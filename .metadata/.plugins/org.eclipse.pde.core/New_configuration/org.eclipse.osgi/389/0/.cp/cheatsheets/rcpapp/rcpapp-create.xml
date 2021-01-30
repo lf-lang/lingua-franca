@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+     Copyright (c) 2005, 2010 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Simple Cheat Sheet -->
+
+<cheatsheet title="Create a plug-in">
+
+   <!-- Introduction -->
+
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet will demonstrate how to create and run an
+         RCP application using PDE. 
+         <br/>
+         <br/>
+         To learn more about using cheat sheets, click the help button
+         in the top right corner (?). 
+      </description>
+   </intro>
+
+   <!-- Item -->
+
+   <item title="Open the plug-in development perspective"
+         href="/org.eclipse.pde.doc.user/guide/tools/views/views.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the plug-in development perspective,
+         select <b>Window-&gt;Open Perspective-&gt;Other...</b> 
+         and choose <b>Plug-in Development</b>.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.
+      </description>
+      <command serialization="org.eclipse.ui.perspectives.showPerspective(org.eclipse.ui.perspectives.showPerspective.perspectiveId=org.eclipse.pde.ui.PDEPerspective)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Create the plug-in"
+         href="/org.eclipse.pde.doc.user/guide/tools/project_wizards/new_plugin_project.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To create the plug-in, perform the following steps:
+      </description>
+      <subitem label="Select &quot;File-&gt;New-&gt;Project...&quot; from the main menu, expand the &quot;Plug-in Development&quot; category within the resulting &quot;New Project&quot; dialog box, and choose &quot;Plug-in Project&quot;" 
+               skip="false">
+         <command serialization="org.eclipse.ui.newWizard(newWizardId=org.eclipse.pde.ui.NewProjectWizard)" required="false" translate="" />
+      </subitem>
+      <subitem label="Input &quot;com.example.rcpapp&quot; into the &quot;Project Name&quot; text box on the &quot;Plug-in Project&quot; page and click &quot;Next &gt;&quot;" 
+               skip="false"/>
+      <subitem label="Select the &quot;Yes&quot; radio button under the &quot;Rich Client Application&quot; heading on the &quot;Plug-in Content&quot; page and click &quot;Next &gt;&quot;" 
+               skip="false"/>
+      <subitem label="Select the &quot;RCP 3.x application (minimal)&quot; template from the list of &quot;Available Templates&quot; and click &quot;Finish&quot;" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Run the RCP Application"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/launchers/eclipse_application_launcher.htm"
+         skip="false">
+      <description>
+         To run the RCP application,
+         perform the following steps:
+      </description>
+      <subitem label="Select the &quot;com.example.rcpapp&quot; plug-in editor from the workbench and select the &quot;Overview&quot; tab within it" 
+               skip="false">
+         <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/META-INF/MANIFEST.MF)" required="false" translate="" />
+      </subitem>               
+      <subitem label="Click the &quot;Launch an Eclipse application&quot; hyperlink under the &quot;Testing&quot; heading" 
+               skip="false"/>
+      <subitem label="Verify that you see an empty window with a window title of &quot;Hello RCP&quot;" 
+               skip="true"/>
+      <subitem label="Exit the RCP application" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Modify the plug-in source"
+         dialog="true"
+         skip="false">
+      <description>
+         In this step, we want to suppress the <b>Hello RCP</b> text in
+         the window title bar of our RCP application.
+         <br/>
+         <br/>
+         To modify the plug-in source accordingly, 
+         perform the following steps:
+      </description>
+      <subitem label="Open &quot;ApplicationWorkbenchWindowAdvisor.java&quot; by locating it in the &quot;src&quot; folder of the &quot;com.example.rcpapp&quot; package in the &quot;Package Explorer&quot; view and double-clicking it" 
+               skip="false">                                                    
+         <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/src/com/example/rcpapp/ApplicationWorkbenchWindowAdvisor.java)" required="false" translate="" />
+      </subitem>
+      <subitem label="Comment out &apos;configurer.setTitle(&quot;Hello RCP&quot;);&apos; in the &quot;preWindowOpen()&quot; method" 
+               skip="false"/>
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Test the RCP Application"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/launchers/eclipse_application_launcher.htm"
+         skip="false">
+      <description>
+         To test the RCP application,
+         perform the following steps:
+      </description>
+      <subitem label="Select the &quot;com.example.rcpapp&quot; plug-in editor from the workbench and select the &quot;Overview&quot; tab within it" 
+               skip="false">
+         <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/META-INF/MANIFEST.MF)" required="false" translate="" />
+      </subitem>               
+      <subitem label="Click the &quot;Launch an Eclipse application&quot; hyperlink under the &quot;Testing&quot; heading" 
+               skip="false"/>
+      <subitem label="Verify that you see an empty window with no window title" 
+               skip="true"/>
+      <subitem label="Exit the RCP application" 
+               skip="false"/>
+   </item>
+
+</cheatsheet>

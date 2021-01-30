@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Copyright (c) 2005, 2010 IBM Corporation and others.
+
+    This program and the accompanying materials
+    are made available under the terms of the Eclipse Public License 2.0
+    which accompanies this distribution, and is available at
+    https://www.eclipse.org/legal/epl-2.0/
+
+    SPDX-License-Identifier: EPL-2.0
+   
+    Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Simple Cheat Sheet -->
+
+<cheatsheet title="Create a feature">
+
+   <!-- Introduction -->
+
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet will demonstrate how to create a feature for a plug-in using
+         PDE. 
+         <br/>
+         <br/>
+         To learn more about using cheat sheets, click the help button
+         in the top right corner (?). 
+      </description>
+   </intro>
+
+
+   <!-- Item -->
+
+   <item title="Open the plug-in development perspective"
+         href="/org.eclipse.pde.doc.user/guide/tools/views/views.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the plug-in development perspective,
+         select <b>Window-&gt;Open Perspective-&gt;Other...</b> 
+         and choose <b>Plug-in Development</b>.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.
+      </description>
+      <command serialization="org.eclipse.ui.perspectives.showPerspective(org.eclipse.ui.perspectives.showPerspective.perspectiveId=org.eclipse.pde.ui.PDEPerspective)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Create the feature"
+         href="/org.eclipse.pde.doc.user/guide/tools/project_wizards/new_feature_project.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To create the feature, perform the following steps:
+      </description>
+      <subitem label="Select &quot;File-&gt;New-&gt;Project...&quot;, and choose &quot;Feature Project&quot; under the &quot;Plug-in Development&quot; heading" 
+               skip="false">
+         <command serialization="org.eclipse.ui.newWizard(newWizardId=org.eclipse.pde.ui.NewFeatureProjectWizard)" required="false" translate="" />
+      </subitem>
+      <subitem label="Input &quot;com.example.feature&quot; into the &quot;Project Name&quot; text box on the &quot;Feature Properties&quot; page" 
+               skip="false"/>
+      <subitem label="Input &quot;Hello World! Feature&quot; into the &quot;Feature Name&quot; text box and click &quot;Next &gt;&quot;" 
+               skip="false"/>
+      <subitem label="Select the &quot;com.example.helloworld&quot; checkbox on the &quot;Referenced Plug-ins and Fragments&quot; page and click &quot;Finish&quot;" 
+               skip="false"/>  
+   </item>
+
+   <!-- Item -->
+
+   <item title="Add a feature description and license agreement"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/feature_editor/information.htm"
+         skip="false">
+      <description>
+         The <b>com.example.helloworld</b> feature editor should be opened
+         on the <b>Overview</b> page.
+         <br/>
+         <br/>
+         To add a feature description and license agreement, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Information&quot; tab" 
+               skip="false"/>  
+      <subitem label="Input &quot;Hello, Eclipse world! feature description&quot; into the &quot;Text&quot; dialog box" 
+               skip="false"/>  
+      <subitem label="Select the &quot;Copyright Notice&quot; tab within the &quot;Information&quot; page" 
+               skip="false"/>  
+      <subitem label="Input &quot;(C) 2006&quot; into the &quot;Text&quot; dialog box" 
+               skip="false"/>
+      <subitem label="Select the &quot;License Agreement&quot; tab within the &quot;Information&quot; page" 
+               skip="false"/>  
+      <subitem label="Input &quot;Hello, Eclipse world! license agreement&quot; into the &quot;Text&quot; dialog box" 
+               skip="false"/>
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>
+   </item>
+
+</cheatsheet>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?><!--
+     Copyright (c) 2005, 2008 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<introContent>
+  <!-- Extension to the SDK Samples Page. -->
+  <extensionContent id="org.eclipse.pde.workbench" name= "Workbench samples" alt-style="css/samples.properties" style="css/samples.css" path="samples/@">
+	<group label="Workbench" id="workbench" style-id="content-group">
+    	<text style-id="group-description">The following samples demonstrate how to tightly integrate into the Eclipse workbench.</text>
+        <link label="Multi-page editor" url="http://org.eclipse.ui.intro/runAction?pluginId=org.eclipse.pde.ui&amp;class=org.eclipse.pde.internal.ui.samples.ShowSampleAction&amp;id=org.eclipse.sdk.samples.multipageeditor" id="multi-page-editor" style-id="content-link">
+           	<text>Shows how to create an editor with multiple pages</text>
+        </link>
+        <link label="Property sheet and outline" url="http://org.eclipse.ui.intro/runAction?pluginId=org.eclipse.pde.ui&amp;class=org.eclipse.pde.internal.ui.samples.ShowSampleAction&amp;id=org.eclipse.sdk.samples.propertysheet" id="property-sheet" style-id="content-link">
+            <text>Demonstrates how to use property sheet and outline views</text>
+        </link>
+        <link label="Readme tool" url="http://org.eclipse.ui.intro/runAction?pluginId=org.eclipse.pde.ui&amp;class=org.eclipse.pde.internal.ui.samples.ShowSampleAction&amp;id=org.eclipse.sdk.samples.readmetool" id="readmetool" style-id="content-link">
+            <text>Shows how to create your own extension points</text>
+        </link>
+        <anchor id="jdtAnchor"/>
+        <anchor id="workbenchGroupAnchor"/>
+	</group>
+  </extensionContent>
+</introContent>

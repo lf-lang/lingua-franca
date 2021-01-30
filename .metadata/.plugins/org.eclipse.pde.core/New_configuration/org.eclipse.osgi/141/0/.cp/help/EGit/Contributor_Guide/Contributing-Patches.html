@@ -1,0 +1,467 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit Contributor Guide - Contributing Patches</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Contributing Patches</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Website.html" title="Website">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Gerrit-Code-Review-Cheatsheet.html" title="Gerrit Code Review Cheatsheet">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Website</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Gerrit Code Review Cheatsheet</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Contributing_Patches">Contributing Patches</h1>
+		<h2 id="Using_Gerrit_at_Eclipse">Using Gerrit at Eclipse</h2>
+		<p>EGit and JGit projects are using 
+			<a href="https://www.gerritcodereview.com/" target="egit_external">Gerrit Code Review</a> for Git based patch submission and review. 
+		</p>
+		<p>Parts of this chapter are also available in the 
+			<a href="https://wiki.eclipse.org/Gerrit#Doing_Code_Reviews_with_Gerrit" target="egit_external">Eclipse Gerrit wiki</a>.
+		</p>
+		<p>Both projects can accept contributions 
+			<i>only</i> via Gerrit. Please do not send patches by e-mail. Although both projects are mirrored to Github, EGit and JGit also cannot accept Github pull requests.
+		</p>
+		<h3 id="User_Account">User Account</h3>
+		<ul>
+			<li>In order to contribute you need an 
+				<a href="https://dev.eclipse.org/site_login/createaccount.php" target="egit_external">Eclipse user account</a> on eclipse.org, on creation of a new account you must agree to the Contributor Agreement.
+			</li>
+		</ul>
+		<h3 id="Legal_Paperwork">Legal Paperwork</h3>
+		<p>Before your first contribution can be accepted, you need to electronically sign the 
+			<a href="https://www.eclipse.org/legal/ECA.php" target="egit_external">Eclipse Contributor Agreement</a> (ECA). The ECA is good for three years. Find more information in the 
+			<a href="https://www.eclipse.org/legal/ecafaq.php" target="egit_external">ECA FAQ</a>.
+		</p>
+		<p>Minimally, all Git commits you contribute must have the following:</p>
+		<ul>
+			<li>A single line summary in the comment field, followed by a more detailed descriptive paragraph;</li>
+			<li>Your credentials (email address) captured in the "Author" field; and</li>
+			<li>A "Signed-off-by" entry with matching credentials in the comment.</li>
+			<li>The "Signed-off-by" entry is required. By including this, you confirm that you are in compliance with the 
+				<a href="https://www.eclipse.org/legal/DCO.php" target="egit_external">Developer Certificate of Origin</a>.
+			</li>
+		</ul>
+		<p>In addition ensure</p>
+		<ul>
+			<li>that the contributed code is licensed under the project license (EPL 2.0 for EGit and EDL 1.0 for JGit). This is done by putting a 
+				<a href="https://www.eclipse.org/projects/handbook/#ip-copyright-headers" target="egit_external">copyright and license header</a> into every new java file. See other existing project source files for the correct content.
+			</li>
+		</ul>
+		<p>With a valid ECA on file, the signed-off commit and the copyright and license header in place, we will be able to accept small patches (&lt;1000 LoC) immediately. For larger patches, we will also have to create a contribution questionnaire for review by the Eclipse IP team, but this usually doesn't require additional actions from you.</p>
+		<p>To verify whether a contribution 
+			<a href="https://dev.eclipse.org/mhonarc/lists/eclipse.org-committers/msg00973.html" target="egit_external">requires a CQ</a>, use one of the following git commands to check:
+		</p>
+		<ul>
+			<li>If it's committed: <tt>git log --shortstat</tt></li>
+			<li>If not committed: <tt>git diff --stat</tt></li>
+		</ul>
+		<p>These commands tell you the number of insertions(+), and deletions(-). If the total number of lines inserted (e.g. added) in a contribution is greater than 1000 (yes, this includes comments) then a CQ is required.</p>
+		<p>Find more details about how to contribute in 
+			<a href="https://wiki.eclipse.org/Development_Resources/Contributing_via_Git" target="egit_external">Contributing via Git (for contributors)</a> and 
+			<a href="https://wiki.eclipse.org/Development_Resources/Handling_Git_Contributions" target="egit_external">Handling Git Contributions (for committers)</a>.
+		</p>
+		<h3 id="Logon">Logon</h3>
+		<h4 id="Gerrit_Web_UI">Gerrit Web UI</h4>
+		<p>Logon to the Gerrit Web UI at <code>
+			<a href="https://git.eclipse.org/r/" target="egit_external">https://git.eclipse.org/r/</a></code> using the email address you registered with your Eclipse (and Bugzilla) account and your Eclipse password.
+		</p>
+		<h4 id="Git_over_SSH">Git over SSH</h4>
+		<p>When accessing Gerrit over SSH from git or EGit use the username displayed 
+			<a href="https://git.eclipse.org/r/#/settings/" target="egit_external">here</a> and upload your public SSH key to Gerrit 
+			<a href="https://git.eclipse.org/r/#/settings/ssh-keys" target="egit_external">here</a>. 
+		</p>
+		<p>Gerrit SSH URl: <code>ssh://username@git.eclipse.org:29418/egit/egit.git</code></p>
+		<h4 id="Git_over_HTTPS">Git over HTTPS</h4>
+		<p>When accessing Gerrit over HTTPS from git or EGit use username and HTTP password displayed 
+			<a href="https://git.eclipse.org/r/#/settings/http-password" target="egit_external">here</a>
+		</p>
+		<p>Gerrit HTTPS URl: <code>
+			<a href="https://git.eclipse.org/r/p/egit/egit.git" target="egit_external">https://git.eclipse.org/r/p/egit/egit.git</a></code>
+		</p>
+		<h3 id="SSH_Keys">SSH Keys</h3>
+		<ul>
+			<li>Add one or more public SSH keys to 
+				<a href="https://git.eclipse.org/r/#/settings/ssh-keys" target="egit_external">Gerrit here</a>.  
+			</li>
+			<li>If you are 
+				<b>absolutely certain</b> you do not have keys already, you must create a public and private pair of SSH keys. It is strongly recommended that you 
+				<a href="https://help.github.com/working-with-key-passphrases" target="egit_external">use a passphrase</a>.
+			</li>
+			<li>
+				<b>Generating SSH key pair on command line</b>
+			</li>
+		</ul>
+		<pre><pre style="width: 60em;">ssh-keygen -t rsa -C "your_email@youremail.com"</pre>
+</pre>
+		<ul>
+			<li>Execute SSH once to accept the host key (or copy it from the registration web page)</li>
+		</ul>
+		<pre style="width: 60em;">ssh -p 29418 username@git.eclipse.org
+</pre>
+		<p> </p>
+		<ul>
+			<li>
+				<a href="https://wiki.eclipse.org/EGit/User_Guide#Eclipse_SSH_Configuration" target="egit_external">Generating SSH key pair in Eclipse</a>
+			</li>
+		</ul>
+		<h3 id="Doing_Code_Reviews_with_Gerrit">Doing Code Reviews with Gerrit</h3>
+		<ul>
+			<li>Visit the 
+				<a href="https://git.eclipse.org/r/" target="egit_external">Eclipse Gerrit Code Review instance</a> to start reviewing, 
+			</li>
+			<li>
+				<a href="https://git.eclipse.org/r/#/settings/projects" target="egit_external">Register to watch projects</a> if you want to be notified by email on new or updated changes pushed for review
+			</li>
+			<li>Adjust your 
+				<a href="https://git.eclipse.org/r/#/settings/preferences" target="egit_external">Gerrit preferences</a> to customize it to your needs
+			</li>
+			<li>See the 
+				<a href="https://git.eclipse.org/r/Documentation/index.html#_user_guide" target="egit_external">Gerrit user guide</a> for more information about using Gerrit.
+			</li>
+			<li>The 
+				<a href="https://wiki.eclipse.org/EGit/User_Guide#EGit_Tutorial_.28EclipseCon_Europe_Nov_2011.29" target="egit_external">EGit tutorial</a> walks you through the basic steps of working with Gerrit and EGit.
+			</li>
+			<li>Use 
+				<a href="https://git.eclipse.org/r/Documentation/user-search.html" target="egit_external">Gerrit queries</a> to filter the review list for changes you are interested in:
+				<ul>
+					<li>
+						<a href="https://git.eclipse.org/r/#/q/status:open+project:egit/egit,n,z" target="egit_external">EGit changes pending in review</a>
+					</li>
+					<li>
+						<a href="https://git.eclipse.org/r/#/q/status:open+project:jgit/jgit,n,z" target="egit_external">JGit changes pending in review</a>
+					</li>
+				</ul>
+			</li>
+		</ul>
+		<h3 id="Using_Gerrit_with_git_command_line:">Using Gerrit with git command line:</h3>
+		<ul>
+			<li>Upload your patch from Git to the target project:</li>
+		</ul>
+		<p>
+			<b>JGit</b>
+		</p>
+		<pre style="width: 60em;">git push ssh://username@git.eclipse.org:29418/jgit/jgit.git HEAD:refs/for/master
+</pre>
+		<p> 
+
+			<b>EGit</b>
+		</p>
+		<pre style="width: 60em;">git push ssh://username@git.eclipse.org:29418/egit/egit.git HEAD:refs/for/master
+</pre>
+		<p> </p>
+		<ul>
+			<li>Visit the 
+				<a href="https://git.eclipse.org/r/" target="egit_external">Eclipse Gerrit Code Review server</a> to start reviewing
+			</li>
+		</ul>
+		<h4 id="Adding_a_dedicated_remote">Adding a dedicated remote</h4>
+		<p>Since git can have multiple remotes, you can define one to be used to refer to Gerrit to save typing. Inside a previously checked-out repository you can run: </p>
+		<pre>cd path/to/jgit
+git config remote.review.url ssh://username@git.eclipse.org:29418/jgit/jgit.git
+git config remote.review.push HEAD:refs/for/master
+
+cd path/to/egit 
+git config remote.review.url ssh://username@git.eclipse.org:29418/egit/egit.git
+git config remote.review.push HEAD:refs/for/master
+</pre>
+		<p> 
+			You can now submit review requests from either repository using: </p>
+		<pre>git push review
+</pre>
+		<h3 id="Using_Gerrit_with_EGit:">Using Gerrit with EGit:</h3>
+		<p>Eclipse will look for your private key in the SSH2 Home location specified in the General&gt;Network Connections&gt;SSH2 Preference Page.  If your <code>id_rsa</code> private key makes use of the AES-128-CBC algorithm (view the file as text to confirm), Eclipse will need at least <code>com.jcraft.jsch 0.1.44</code> to make use of it.</p>
+		<ul>
+			<li>
+				<a href="../../EGit/User_Guide/Tasks.html#Cloning_Remote_Repositories" title="EGit/User_Guide#Cloning_Remote_Repositories">Clone the JGit and EGit repositories</a> and select 
+				<b>Gerrit Configuration...</b> in the context menu of the remote "origin" in the Git Repositories view to 
+				<a href="https://wiki.eclipse.org/EGit/User_Guide#Gerrit_Configuration" target="egit_external">configure pushing to the code review queue</a>.
+			</li>
+			<li>Alternative approach: Add a new review remote in the Git Repositories view and select 
+				<b>Gerrit Configuration...</b> in the context menu of the remote
+				<ul>
+					<li>From the appropriate Remotes node, create a New Remote and choose to Configure for Push.  A unique name should be chosen, 
+						<i>review</i> is suggested.
+					</li>
+					<li>Changes committed to your local clone can now be pushed to Gerrit using the 
+						<i>review</i> Remote.  You will be prompted for your private key's passphrase if Eclipse is looking for it in the right place.
+					</li>
+				</ul>
+			</li>
+			<li>Instead of using the 
+				<b>Gerrit Configuration...</b> wizard you can do the configuration steps manually:
+				<ul>
+					<li>Change the main URI or Add a Push URI (your Gerrit user name must be used here) 
+						<ul>
+							<li><code>ssh://username@git.eclipse.org:29418/(project).git</code>  </li>
+						</ul>
+					</li>
+					<li>In the Ref mapping section, add a RefSpec specification of <code>HEAD:refs/for/master</code></li>
+				</ul>
+			</li>
+		</ul>
+		<ul>
+			<li>Visit our 
+				<a href="https://git.eclipse.org/r/" target="egit_external">Gerrit Code Review instance</a> to start reviewing
+			</li>
+		</ul>
+		<h3 id="Using_the_Mylyn_Gerrit_Connector">Using the Mylyn Gerrit Connector</h3>
+		<p>The Mylyn Gerrit Connector can be installed from the Mylyn p2 repository, e.g. for juno from 
+			<a href="https://download.eclipse.org/mylyn/releases/juno" target="egit_external">https://download.eclipse.org/mylyn/releases/juno</a>.
+		</p>
+		<p>It contains several useful features:</p>
+		<ul>
+			<li>Cloning from Gerrit and automatic configuration
+				<ul>
+					<li>The wizards "Import Projects from Git" and "Clone Git Repository" will offer the possibility to browse the list of repositories on Gerrit servers and to clone selected repositories. After cloning the Gerrit configuration will be done automatically.</li>
+				</ul>
+			</li>
+			<li>Importing Gerrit changes as Mylyn tasks</li>
+			<li>Fetching patch sets directly from the task editor</li>
+			<li>Reviewing changes in the task editor</li>
+			<li>Submitting changes from the task editor</li>
+		</ul>
+		<h2 id="Granularity_of_Changes">Granularity of Changes</h2>
+		<ul>
+			<li>Make small commits, as small as reasonable. This makes them easy to review.</li>
+			<li>Each commit should have a commit message that explains very clearly what the commit sets out to achieve (unless this is abundantly clear from the code itself, which is basically only the case for trivial patches). Also, when you fix a bug then report which bug you fix. When there are deeper reasons for doing things the way the commit does, then explain these as well. This all is for the reviewers and yourself: the context of the commit is completely clear.</li>
+			<li>Do not mix concerns in commits: have a commit do a single thing. This makes them reviewable 'in isolation'. The purpose of the commit is clear and can be understood easily by the reviewers and yourself.</li>
+			<li>Do not break the build and tests for 
+				<b>any commit</b>: this is very important for bug hunting.
+			</li>
+			<li>Split your work into multiple smaller pieces of work (when possible) and implement each of these pieces in a series of commits.</li>
+			<li>A series of commits should work towards a 'feature' in a clear way and only 'enable' the feature in the last commit of the series.</li>
+			<li>In a series of commits first lay the groundwork and then build on that towards the feature.</li>
+		</ul>
+		<h3 id="Branches">Branches</h3>
+		<p>When working with Gerrit, you can create local branches as you wish. When you are ready to push your changes, only the commits from your branch are pushed and are converted to reviews on Gerrit. The branch name itself is not visible on Gerrit.</p>
+		<p>Do not mix unrelated changes in branches: When you encounter a bug while working on something then create a new branch to fix the bug. Make sure you base it on the state of the remote branch that you want your fix to go to, e.g. 
+			<i>origin/master</i>. If you have other changes that depend on the bug being fixed then rebase your work on that new branch.
+		</p>
+		<p>Merge/Rebase: If you want your branch to include new commits from the remote repository, rebase your local branch. The reason for this is that in Gerrit, changes are reviewed one commit at a time, and modified until all review feedback has been addressed. This is different from a pull request workflow, where the combined changes are reviewed and feedback is addressed with additional commits.</p>
+		<h2 id="Coding_standards">Coding standards</h2>
+		<p>Eclipse has standards for how to write code.</p>
+		<p>
+			<a href="https://wiki.eclipse.org/Coding_Conventions" title="Coding_Conventions" target="egit_external">Coding conventions</a>
+		</p>
+		<p>
+			<a href="https://wiki.eclipse.org/User_Interface_Guidelines" title="User_Interface_Guidelines" target="egit_external">Use interface guidelines</a>
+		</p>
+		<p>These documents have links to other document. Browse through them without expecting to learn everything, just so you know roughly what areas and types of details they covert. When you are
+			not sure about how to write a piece of code or design the user interface, these are the two
+			first places to look at.</p>
+		<p>In addition there is all the worlds collective knowledge on how to write programs that shine.
+			When there is a conflict, the Eclipse guide lines and conventions take precedence.</p>
+		<p>Breaking the rules is ok if there is a very good reason and you can tell us what that reason
+			is.</p>
+		<p>In addition to these general rules, we regard performance high. If the EGit plugin is slow 
+			in any way, that is a bug and should be reported and fixed. Java isn't slow, but there is a
+			lot of slow Java code.</p>
+		<h3 id="Braces_for_one-line_statements">Braces for one-line statements</h3>
+		<p>Before 3.7.0 both in JGit and EGit, the preferred coding style was to leave off braces around statements with one line (with some exceptions to this rule), e.g.:</p>
+		<pre>if (condition)
+    doSomething();
+</pre>
+		<p>Starting with 3.7.0 braces are mandatory independently on the number of lines, without exceptions. The old code will remain as is, but the new changes should use the style below:</p>
+		<pre>if (condition) {
+    doSomething();
+}
+</pre>
+		<p>The main reason to the change was to simplify the review process, coding guidelines and to make them more consistent with Eclipse code formatter, see .</p>
+		<h3 id="Removing_trailing_whitespace">Removing trailing whitespace</h3>
+		<p>In JGit and EGit we have enabled the save action "Remove trailing white spaces on all lines" for Java sources. This works except for empty comment lines, see .</p>
+		<p>As a workaround, use the following sequence of commands in the Java editor to trick the save action:</p>
+		<ul>
+			<li>remove the offending trailing whitespace</li>
+			<li>the save action re-adds the trailing whitespace</li>
+			<li>CTRL-Z (CMD-Z on Mac) removes the re-added whitespace without  triggering the save action again</li>
+		</ul>
+		<p>Another workaround is to use 
+			<a href="https://stackoverflow.com/questions/10413922/convert-spaces-to-tabs-in-lines-i-changed-in-a-commit?answertab=active#tab-top" target="egit_external">this little script</a> from the command line to edit away trailing whitespace from changed lines.
+		</p>
+		<h3 id="Use_of_the_.22final.22_modifier">Use of the "final" modifier</h3>
+		<p>New code uses the "final" modifier in the following circumstances
+			<a href="https://gerrit-review.googlesource.com/c/gerrit/+/61701/" target="egit_external">https://gerrit-review.googlesource.com/c/gerrit/+/61701/</a>.
+		</p>
+		<p>Always:</p>
+		<ul>
+			<li>final fields: marking fields as final forces them to be initialized in the constructor or at declaration</li>
+			<li>final static fields: clearly communicates the intent</li>
+			<li>where necessary to use final variables in inner anonymous classes</li>
+		</ul>
+		<p>Optional:</p>
+		<ul>
+			<li>final classes: use when appropriate, e.g. API restriction</li>
+			<li>final methods: similar to final classes</li>
+		</ul>
+		<p>Never:</p>
+		<ul>
+			<li>local variables: it clutters the code, and makes the code less readable. When copying old code to new location, finals should be removed</li>
+			<li>method parameters: similar to local variables</li>
+		</ul>
+		<h2 id="Commit_message_guidelines">Commit message guidelines</h2>
+		<ul>
+			<li>The commit message header should fit on one line, try to keep it shorter than 50 characters, at most 72. A blank line separates it from the body of the message.</li>
+			<li>The first line should be a clear and concise description about the change. It is recommended to start with the modified subsystem, followed by a colon and a description starting with capital letter and without period at the end. For example: <code>UploadPack: Use reachability checker to validate non-advertised wants</code></li>
+			<li>In case of release engineering tasks without bugzilla entries the commit message header may look like "[findbugs] Fix warning XYZ for String constructor". The prefix in brackets is an indication why this comes without a corresponding bug. </li>
+			<li>Enter a newline before providing a more detailed description about the change.</li>
+			<li>Format the commit message to have newline characters after every 60-70 characters. </li>
+			<li>Find more reasoning about commit message formatting in 
+				<a href="https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html" target="egit_external">"A Note About Git Commit Messages"</a>
+			</li>
+			<li>
+				<i>Commit message footers</i> (everything following the last blank line in the commit message) in 
+				<i>Key: value</i> format are used for additional commit meta data. Some tools especially 
+				<i>Gerrit</i> parse this meta data to provide additional functionality.
+				<ul>
+					<li>If there is an associated bug number in Bugzilla about it, it should come as a 
+						<i>Bug:</i> footer right before Gerrit's Change-Id entry (if available) or towards the end. Use exactly the capitalization "Bug", since the automatic linking mechanism to the bug database is case sensitive.
+					</li>
+					<li>If a 
+						<i>Contribution Questionnaire</i> has been issued to initiate and track the review of contributed changes by the Eclipse Foundation's IP team the IPZilla bug number should be added as  
+						<i>CQ:</i> footer in the format shown below
+					</li>
+					<li>A 
+						<i>Gerrit Change-Id</i> footer is required for all changes pushed to Gerrit (to enable pushing new patchsets for the same change), it should be added in the format shown below. Use the 
+						<a href="Gerrit-Code-Review-Cheatsheet.html#Install_the_commit-msg_hook_in_your_repository" title="EGit/Contributor_Guide#Install_the_commit-msg_hook_in_your_repository">Gerrit commit message hook or EGit</a> to add the 
+						<i>Change-Id</i>.
+					</li>
+					<li>A "Signed-off-by" can be added at the end of the commit message (see example below). Note: At the moment this footer is not required for committers, but for non-committer contributors. It may be used to list all who modified (amended, rebased, cherry-picked) this change.</li>
+				</ul>
+			</li>
+		</ul>
+		<pre>CommitDialog: Fix the commit dialog to respect the workbench's selection
+
+Originally, the commit dialog would automatically check off all
+files in the dialog. This behaviour contradicts a user's expectation
+because their selection in the workbench is completely ignored. The
+code has been corrected to only preselect what the user has actually
+selected.
+
+Bug: 12345
+CQ: 6031
+Change-Id: I71ac4844ab9d2f848352eba9252090c586b4146a
+Signed-off-by: Your Name &lt;your.email@example.org&gt;
+</pre>
+		<p>If you use Mylyn to fetch a bug from bugzilla, and then activate the task, the commit message will automatically be formatted exactly like requested above.</p>
+		<h2 id="License_Header">License Header</h2>
+		<p>All new code files, including test code, must have a license header.</p>
+		<p>
+			<b>JGit</b> is licensed under the 
+			<a href="https://www.eclipse.org/org/documents/edl-v10.php" target="egit_external">Eclipse Distribution License</a> which is a form of the 
+			<a href="https://opensource.org/licenses/BSD-3-Clause" target="egit_external">New BSD License</a>.
+			Use of this license by an Eclipse project requires unanimous approval by the Board of Directors of the Eclipse Foundation
+			which was approved in a 
+			<a href="https://www.eclipse.org/org/foundation/boardminutes/2009_09_16_Minutes.php" target="egit_external">meeting of the board in Sep 2009</a>.
+		</p>
+		<p>The license and copyright header to be used for 
+			<b>JGit</b> is
+		</p>
+		<pre>/*
+ * Copyright &#169; YEAR CONTRIBUTOR[ and others]
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Distribution License v. 1.0 which is available at
+ * <a href="https://www.eclipse.org/org/documents/edl-v10.php" target="egit_external">https://www.eclipse.org/org/documents/edl-v10.php</a>.
+ * 
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+</pre>
+		<p>
+			<b>EGit</b> is licensed under the 
+			<a href="https://www.eclipse.org/legal/epl-2.0/" target="egit_external">Eclipse Public License 2.0</a> and uses the license header
+		</p>
+		<pre>/*******************************************************************************
+ * Copyright &#169; YEAR CONTRIBUTOR[ and others.]
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * <a href="https://www.eclipse.org/legal/epl-2.0/" target="egit_external">https://www.eclipse.org/legal/epl-2.0/</a>
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *******************************************************************************/
+</pre>
+		<p>The license header is placed at the very beginning of a file; in Java files above the "package" line.</p>
+		<p>See 
+			<a href="https://www.eclipse.org/legal/copyrightandlicensenotice.php" target="egit_external">https://www.eclipse.org/legal/copyrightandlicensenotice.php</a> for more information.
+		</p>
+		<h2 id="Copyright">Copyright</h2>
+		<p>When contributing patches, you have to update the copyright section at the beginning of the file if there is one. Please follow the style that is already present in the file. Some examples follow.</p>
+		<p>When there is only one copyright present (from a person or a company), like this:</p>
+		<pre>Copyright (C) 2010, 2011 Some Name &lt;some@example.org&gt;
+</pre>
+		<p>Change it like this (notice the updated year):</p>
+		<pre>Copyright (C) 2010, YEAR Some Name &lt;some@example.org&gt; and others.
+</pre>
+		<p>If there is a section <tt>Contributors:</tt> below the legal text and your change is more than a few lines, you can add your name there and optionally describe the change and link to a bug number. You can also start such a section if you contributed a significant change.</p>
+		<p>When there are multiple copyright entries there, add yours as a separate line. So, given this:</p>
+		<pre>Copyright (C) 2010 Some Name &lt;some@example.org&gt;
+Copyright (C) 2011 Other Name &lt;other@example.org&gt;
+</pre>
+		<p>Add another line:</p>
+		<pre>Copyright (C) 2010 Some Name &lt;some@example.org&gt;
+Copyright (C) 2011 Other Name &lt;other@example.org&gt;
+Copyright (C) YEAR Your Name &lt;you@example.org&gt;
+</pre>
+		<p>For new files, copy one of the existing headers and start the copyright section with your name.</p>
+		<h2 id="Test_before_submitting">Test before submitting</h2>
+		<p>See the 
+			<a href="#Manual_alpha_testing">Manual alpha testing</a> section for some advice about how to test you work yourself.
+		</p>
+		<ul>
+			<li>Add automated tests for enhancements and bug fixes to ensure functional correctness and avoid regressions</li>
+			<li>Run all existing tests. It does not take very long.</li>
+			<li>Pay attention to the Java and Eclipse SDK baselines. EGit requires only Java 8 and Eclipse 4.4. You cannot use API's that are newer.</li>
+		</ul>
+		<h2 id="Sending_patches_by_mail">Sending patches by mail</h2>
+		<p>EGit and JGit can accept patches only via Gerrit as per 
+			<a href="#Contributing_Patches">Contributing_Patches</a>.
+		</p>
+		<p>
+			<br/>
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Website.html" title="Website">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="EGit Contributor Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Gerrit-Code-Review-Cheatsheet.html" title="Gerrit Code Review Cheatsheet">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Website</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Gerrit Code Review Cheatsheet</td>
+			</tr>
+		</table>
+	</body>
+</html>

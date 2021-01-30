@@ -682,9 +682,9 @@ class PythonGenerator extends CGenerator {
      * Execute the command that compiles and installs the current Python module
      */
     def pythonCompileCode() {
-        val compileCmd = createCommand('''python3''', #["setup.py", "build"])
+        val compileCmd = createCommand('''python3''', #["setup.py", "build"],findCommandEnv('''python3'''))
         val installCmd = createCommand('''python3''',
-            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."])
+            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."],findCommandEnv('''python3'''))
 
         compileCmd.directory(new File(getSrcGenPath))
         installCmd.directory(new File(getSrcGenPath))
@@ -850,7 +850,7 @@ class PythonGenerator extends CGenerator {
      * @param filename Name of the file to process.
      */
      override processProtoFile(String filename) {
-        val protoc = createCommand("protoc", #['''--python_out=src-gen/«this.filename»''', filename])
+        val protoc = createCommand("protoc", #['''--python_out=src-gen/«this.filename»''', filename], findCommandEnv("protoc"))
         if (protoc === null) {
             return
         }

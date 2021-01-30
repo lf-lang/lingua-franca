@@ -1,0 +1,677 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (c) 2007, 2008 Sonatype, Inc.
+  All rights reserved. This program and the accompanying materials
+  are made available under the terms of the Eclipse Public License 2.0
+  which accompanies this distribution, and is available at
+  https://www.eclipse.org/legal/epl-2.0/
+
+  SPDX-License-Identifier: EPL-2.0
+  
+  Contributors:
+      Sonatype, Inc. - initial API and implementation
+      Rob Newton - added warning preferences page for disabling warnings
+-->
+<?eclipse version="3.4"?>
+<plugin>
+   <extension-point id="discoveryLaunch" name="discoveryLaunch" schema="schema/discoveryLaunch.exsd"/>
+
+   <extension point="org.eclipse.ui.intro.configExtension">
+      <configExtension configId="org.eclipse.ui.intro.universalConfig"
+                       content="intro/overview.xml"/>
+      <!--
+      New and Noteworthy is disabled until a web page is made accessible 
+      <configExtension configId="org.eclipse.ui.intro.universalConfig"
+                       content="intro/whatsnew.xml"/>
+      -->
+   </extension>
+
+	<extension
+		point="org.eclipse.ui.ide.markerResolution">
+		<markerResolutionGenerator
+			class="org.eclipse.m2e.core.ui.internal.markers.MarkerResolutionGenerator"
+			markerType="org.eclipse.m2e.core.maven2Problem.configuration">
+		</markerResolutionGenerator>
+	</extension>
+
+   <extension point="org.eclipse.ui.decorators">
+     <decorator
+           adaptable="true"
+           icon="icons/mlabel.gif"
+           id="org.eclipse.m2e.core.maven2decorator"
+           label="%m2.decorator.name"
+           lightweight="true"
+           location="TOP_LEFT"
+           state="true">
+       <description>%m2.decorator.description</description>
+       <enablement>
+         <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+       </enablement>
+     </decorator>
+
+     <decorator id="org.eclipse.m2e.core.mavenVersionDecorator"
+                adaptable="true"
+                label="%m2.decorator.version.name"
+                lightweight="false"
+                class="org.eclipse.m2e.core.ui.internal.MavenVersionDecorator"
+                state="false">
+       <description>%m2.decorator.version.description</description>
+       <enablement>
+         <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+       </enablement>
+     </decorator>
+   </extension>
+
+   <extension point="org.eclipse.ui.popupMenus">
+      <!--
+      NOW WE HAVE PROJECT MENU CONTRIBUTIONS
+       -->
+      <objectContribution id="org.eclipse.m2e.core.projectMenu"
+                          objectClass="org.eclipse.core.resources.IProject"
+                          adaptable="true">
+		<menu
+            id="org.eclipse.m2e.core.mavenMenu"
+            path="additions"
+            label="%m2.popup.project.label">
+            <groupMarker name="new"/>
+            <separator name="org.eclipse.m2e.core.separator1"/>
+            <groupMarker name="update"/>
+            <separator name="org.eclipse.m2e.core.separator2"/>
+            <groupMarker name="open"/>
+            <separator name="org.eclipse.m2e.core.separator3"/>
+            <groupMarker name="nature"/>
+            <separator name="org.eclipse.m2e.core.separator4"/>
+            <groupMarker name="import"/>
+         </menu>
+      </objectContribution>
+      <objectContribution id="org.eclipse.m2e.core.projectMenu.newModuleProject"
+                          objectClass="org.eclipse.core.resources.IProject"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.actions.moduleProjectWizardAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.ModuleProjectWizardAction"
+                 label="%m2.popup.ModuleProjectWizardAction"
+                 style="push"
+                 icon="icons/new_m2_project.gif"
+                 menubarPath="org.eclipse.m2e.core.mavenMenu/new"
+                 enablesFor="1"/>
+         <visibility>
+           <and>
+             <objectState name="open" value="true"/>
+             <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+           </and>
+         </visibility>
+      </objectContribution>
+      <objectContribution id="org.eclipse.m2e.core.projectMenu.addDependencyPlugin"
+                          objectClass="org.eclipse.core.resources.IProject"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.addPluginAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.AddPluginAction"
+                 label="%m2.popup.AddPluginAction"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.mavenMenu/new"
+                 enablesFor="1"/>
+         <action id="org.eclipse.m2e.addDependencyAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.AddDependencyAction"
+                 label="%m2.popup.AddDependencyAction"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.mavenMenu/new"
+                 enablesFor="1"/>
+         <visibility>
+           <and>
+             <objectState name="open" value="true"/>
+             <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+           </and>
+         </visibility>
+      </objectContribution>
+      <objectContribution id="org.eclipse.m2e.updateConfigurationAction"
+                          objectClass="org.eclipse.core.resources.IProject"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.updateProjectAction"
+         		 definitionId="org.eclipse.m2e.core.ui.command.updateProject"
+                 class="org.eclipse.m2e.core.ui.internal.actions.UpdateMavenProjectAction"
+                 label="%m2.popup.UpdateMavenProjectAction"
+                 style="push"
+                 icon="icons/update_dependencies.gif"
+                 menubarPath="org.eclipse.m2e.core.mavenMenu/update"
+                 enablesFor="+"/>
+         <visibility>
+           <and>
+             <objectState name="open" value="true"/>
+             <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+           </and>
+         </visibility>
+      </objectContribution>
+
+      <objectContribution id="org.eclipse.m2e.disableAction"
+                          objectClass="org.eclipse.core.resources.IProject"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.disableAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.DisableNatureAction"
+                 label="%m2.popup.DisableNatureAction"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.mavenMenu/nature"
+                 enablesFor="+"/>
+         <visibility>
+           <and>
+             <objectState name="open" value="true"/>
+             <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+           </and>
+         </visibility>
+      </objectContribution>
+
+      <!--
+      NOW WE HAVE POMFILE MENU CONTRIBUTIONS
+       -->
+      <objectContribution id="org.eclipse.m2e.core.fileMenu"
+                          objectClass="org.eclipse.core.resources.IFile"
+                          adaptable="true">
+		<menu
+            id="org.eclipse.m2e.core.fileMenu"
+            path="additions"
+            label="%m2.popup.project.label">
+            <groupMarker name="new"/>
+            <separator name="org.eclipse.m2e.core.separator1"/>
+            <groupMarker name="update"/>
+            <separator name="org.eclipse.m2e.core.separator2"/>
+            <groupMarker name="open"/>
+            <separator name="org.eclipse.m2e.core.separator3"/>
+            <groupMarker name="nature"/>
+            <separator name="org.eclipse.m2e.core.separator4"/>
+            <groupMarker name="import"/>
+         </menu>
+         <visibility>
+            <objectState name="name" value="pom.xml"/>
+         </visibility>
+      </objectContribution>
+
+      <objectContribution id="org.eclipse.m2e.core.fileMenu.newModuleProject"
+                          objectClass="org.eclipse.core.resources.IFile"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.actions.moduleProjectWizardAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.ModuleProjectWizardAction"
+                 label="%m2.popup.ModuleProjectWizardAction"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.fileMenu/new"
+                 enablesFor="1"/>
+         <visibility>
+            <objectState name="name" value="pom.xml"/>
+         </visibility>
+      </objectContribution>
+      <objectContribution id="org.eclipse.m2e.core.fileMenu.addDependencyPlugin"
+                          objectClass="org.eclipse.core.resources.IFile"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.addPluginAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.AddPluginAction"
+                 label="%m2.popup.AddPluginAction"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.fileMenu/new"
+                 enablesFor="1"/>
+         <action id="org.eclipse.m2e.addDependencyAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.AddDependencyAction"
+                 label="%m2.popup.AddDependencyAction"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.fileMenu/new"
+                 enablesFor="1"/>
+         <visibility>
+            <objectState name="name" value="pom.xml"/>
+         </visibility>
+      </objectContribution>
+	  <objectContribution id="org.eclipse.m2e.core.fileMenu.updateProjectAction"
+                          objectClass="org.eclipse.core.resources.IFile"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.updateProjectAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.UpdateMavenProjectAction"
+                 label="%m2.popup.UpdateMavenProjectAction"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.fileMenu/update"
+                 enablesFor="1"/>
+         <visibility>
+           <and>
+              <objectState name="name" value="pom.xml"/>
+           </and>
+         </visibility>
+      </objectContribution>
+      <!-- MNGECLIPSE-2564 -for *not* maven project, add the Convert to Maven Project action -->
+      <objectContribution id="org.eclipse.m2e.enableNatureAction"
+                          objectClass="org.eclipse.core.resources.IProject"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.enableNatureAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.EnableNatureAction"
+                 label="%convert.to.maven.name"
+                 style="push"
+	             menubarPath="org.eclipse.ui.projectConfigure/additions"
+                 enablesFor="+"/>
+         <visibility>
+           <and>
+             <objectState name="open" value="true"/>
+             <not>
+               <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+             </not>
+           </and>
+         </visibility>
+      </objectContribution>
+
+      <!--
+      NOW WE HAVE WORKING SET MENU CONTRIBUTIONS
+       -->
+      <objectContribution id="org.eclipse.m2e.core.workingSetMenu"
+      	     adaptable="true"
+             objectClass="org.eclipse.ui.IWorkingSet">
+		<menu
+            id="org.eclipse.m2e.core.workingSetMenu"
+            path="additions"
+            label="%m2.popup.project.label">
+            <groupMarker name="new"/>
+            <separator name="org.eclipse.m2e.core.separator1"/>
+            <groupMarker name="update"/>
+            <separator name="org.eclipse.m2e.core.separator2"/>
+            <groupMarker name="open"/>
+            <separator name="org.eclipse.m2e.core.separator3"/>
+            <groupMarker name="nature"/>
+            <separator name="org.eclipse.m2e.core.separator4"/>
+            <groupMarker name="import"/>
+         </menu>
+      </objectContribution>
+
+      <objectContribution id="org.eclipse.m2e.workingSet.updateConfigurationAction"
+      	     adaptable="true"
+             objectClass="org.eclipse.ui.IWorkingSet">
+         <action id="org.eclipse.m2e.updateConfigurationAction"
+         		 definitionId="org.eclipse.m2e.core.ui.command.updateProject"
+                 class="org.eclipse.m2e.core.ui.internal.actions.UpdateMavenProjectAction"
+                 label="%m2.popup.UpdateMavenProjectAction"
+                 style="push"
+                 icon="icons/update_dependencies.gif"
+                 menubarPath="org.eclipse.m2e.core.workingSetMenu/update"
+                 enablesFor="+"/>
+      </objectContribution>
+
+      <objectContribution id="org.eclipse.m2e.core.openPomArtifact"
+          objectClass="org.apache.maven.artifact.Artifact"
+          adaptable="false">
+        <action id="org.eclipse.m2e.core.ui.openPomArtifact"
+                class="org.eclipse.m2e.core.ui.internal.actions.OpenPomAction"
+                label="%openpomaction.label"
+                enablesFor="1"/>
+      </objectContribution>
+      <objectContribution id="org.eclipse.m2e.core.openAetherPomDependencyNode"
+          objectClass="org.eclipse.aether.graph.DependencyNode"
+          adaptable="false">
+        <action id="org.eclipse.m2e.core.ui.openPomDependency"
+                class="org.eclipse.m2e.core.ui.internal.actions.OpenPomAction"
+                label="%openpomaction.label3"
+                enablesFor="1"/>
+      </objectContribution>
+      <objectContribution id="org.eclipse.m2e.core.openPomDependency"
+            objectClass="org.eclipse.m2e.model.edit.pom.Dependency"
+            adaptable="false">
+        <action id="org.eclipse.m2e.core.ui.openPomDependency"
+                class="org.eclipse.m2e.core.ui.internal.actions.OpenPomAction"
+                label="%openpomaction.label4"
+                enablesFor="1"/>
+      </objectContribution>
+      <objectContribution
+            adaptable="true"
+            id="org.eclipse.m2e.assignWorkingSet"
+            objectClass="org.eclipse.core.resources.IProject">
+         <action
+               class="org.eclipse.m2e.core.ui.internal.actions.AssignWorkingSetAction"
+               id="org.eclipse.m2e.createWorkingSet"
+               label="%action.assignWorkingSet.label"
+               menubarPath="org.eclipse.m2e.core.mavenMenu/assignWorkingSet">
+         </action>
+         <visibility>
+           <and>
+             <objectState name="open" value="true"/>
+             <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+           </and>
+         </visibility>
+      </objectContribution>
+   </extension>
+
+   <extension point="org.eclipse.ui.popupMenus">
+       <objectContribution id="org.eclipse.m2e.disableWorkspaceResolutionAction"
+                          objectClass="org.eclipse.core.resources.IProject"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.disableWorkspaceResolutionAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.ChangeNatureAction:disableWorkspaceResolution"
+                 label="%m2.popup.ChangeNatureAction.disableWorkspaceResolution"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.mavenMenu/nature"
+                 enablesFor="1"/> <!-- is it really 1 or + -->
+         <visibility>
+          <and>
+             <objectState name="open" value="true"/>
+             <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+           </and>
+         </visibility>
+         <enablement>
+         	<not>
+           		<test property="org.eclipse.m2e.workspaceResulutionEnable"/>
+           	</not>
+         </enablement>
+      </objectContribution>
+       <objectContribution id="org.eclipse.m2e.enableWorkspaceResolutionAction"
+                          objectClass="org.eclipse.core.resources.IProject"
+                          adaptable="true">
+         <action id="org.eclipse.m2e.enableWorkspaceResolutionAction"
+                 class="org.eclipse.m2e.core.ui.internal.actions.ChangeNatureAction:enableWorkspaceResolution"
+                 label="%m2.popup.ChangeNatureAction.enableWorkspaceResolution"
+                 style="push"
+                 menubarPath="org.eclipse.m2e.core.mavenMenu/nature"
+                 enablesFor="1"/> <!-- is it really 1 or + -->
+         <visibility>
+          <and>
+             <objectState name="open" value="true"/>
+             <objectState name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+           </and>
+         </visibility>
+         <enablement>
+           	<test property="org.eclipse.m2e.workspaceResulutionEnable"/>
+         </enablement>
+      </objectContribution>
+   </extension>
+
+   <extension point="org.eclipse.core.expressions.propertyTesters">
+      <propertyTester
+            id="org.eclipse.m2e.core.MavenPropertyTester"
+            class="org.eclipse.m2e.core.ui.internal.actions.MavenPropertyTester"
+            namespace="org.eclipse.m2e"
+            properties="workspaceResulutionEnable,hasArtifactKey,hasProjectArtifactKey,isBuildDirectory"
+            type="org.eclipse.core.runtime.IAdaptable"/>
+      <propertyTester
+            id="org.eclipse.m2e.core.MavenPropertyTester2"
+            class="org.eclipse.m2e.core.ui.internal.actions.MavenPropertyTester"
+            namespace="org.eclipse.m2e"
+            properties="isTransitiveDependencyTreeNode,isDirectDependencyTreeNode"
+            type="org.eclipse.aether.graph.DependencyNode"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.commands">
+      <command id="org.eclipse.m2e.core.ui.command.openPom"
+               categoryId="org.eclipse.ui.category.navigate"
+               name="%m2.shortcut.open.pom"/>
+      <command
+            categoryId="org.eclipse.ui.category.edit"
+            description="%command.adddependency.description"
+            id="org.eclipse.m2e.core.ui.command.addDependency"
+            name="%m2.shortcut.addDependency">
+      </command>
+      <command
+            categoryId="org.eclipse.ui.category.edit"
+            description="%command.addplugin.description"
+            id="org.eclipse.m2e.core.ui.command.addPlugin"
+            name="%m2.shortcut.addPlugin">
+      </command>
+       <command
+             categoryId="org.eclipse.ui.category.window"
+             description="%command.updateproject.description"
+             id="org.eclipse.m2e.core.ui.command.updateProject"
+             name="%m2.shortcut.updateProject">
+       </command>      
+   </extension>
+
+    <extension
+          point="org.eclipse.ui.handlers">
+       <handler
+             class="org.eclipse.m2e.core.ui.internal.actions.UpdateMavenProjectCommandHandler"
+             commandId="org.eclipse.m2e.core.ui.command.updateProject">
+       </handler>
+    </extension>
+    
+   <extension point="org.eclipse.ui.keywords">
+      <keyword id="org.eclipse.m2e.core.maven" label="%keyword.label"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.preferencePages">
+      <page id="org.eclipse.m2e.core.preferences.Maven2PreferencePage"
+            class="org.eclipse.m2e.core.ui.internal.preferences.MavenPreferencePage"
+            name="%m2.preferences.page.name">
+         <keywordReference id="org.eclipse.m2e.core.maven"/>
+      </page>
+      <page id="org.eclipse.m2e.core.preferences.MavenInstallationsPreferencePage"
+            category="org.eclipse.m2e.core.preferences.Maven2PreferencePage"
+            class="org.eclipse.m2e.core.ui.internal.preferences.launch.MavenInstallationsPreferencePage"
+            name="%page.installations.name">
+         <keywordReference id="org.eclipse.m2e.core.maven"/>
+      </page>
+      <page id="org.eclipse.m2e.core.preferences.MavenSettingsPreferencePage"
+            category="org.eclipse.m2e.core.preferences.Maven2PreferencePage"
+            class="org.eclipse.m2e.core.ui.internal.preferences.MavenSettingsPreferencePage"
+            name="%page.usersettings.name">
+      <keywordReference id="org.eclipse.m2e.core.maven"/>
+      </page>
+      <page id="org.eclipse.m2e.core.preferences.MavenArchetypesPreferencePage"
+            category="org.eclipse.m2e.core.preferences.Maven2PreferencePage"
+            class="org.eclipse.m2e.core.ui.internal.preferences.MavenArchetypesPreferencePage"
+            name="%page.archetypes.name">
+         <keywordReference id="org.eclipse.m2e.core.maven"/>
+      </page>
+      <page id="org.eclipse.m2e.core.ui.preferences.UserInterfacePreferencePage"
+         category="org.eclipse.m2e.core.preferences.Maven2PreferencePage"
+         class="org.eclipse.m2e.core.ui.internal.preferences.UserInterfacePreferencePage"
+         name="%page.userinterface.name">
+         <keywordReference id="org.eclipse.m2e.maven"/>
+      </page>
+      <page id="org.eclipse.m2e.core.ui.preferences.WarningsPreferencePage"
+         category="org.eclipse.m2e.core.preferences.Maven2PreferencePage"
+         class="org.eclipse.m2e.core.ui.internal.preferences.WarningsPreferencePage"
+         name="%page.warnings.name">
+         <keywordReference id="org.eclipse.m2e.maven"/>
+     </page>
+      <page id="org.eclipse.m2e.core.preferences.LifecycleMappingPreferencePag"
+            class="org.eclipse.m2e.core.ui.internal.preferences.LifecycleMappingPreferencePage"
+            category="org.eclipse.m2e.core.preferences.Maven2PreferencePage"
+            name="%page.lifecyclemapping.name">
+         <keywordReference id="org.eclipse.m2e.core.maven"/>
+      </page>
+   </extension>
+
+   <extension point="org.eclipse.ui.newWizards">
+      <category id="org.eclipse.m2e" name="%m2.wizard.name"/>
+
+      <wizard id="org.eclipse.m2e.core.wizards.Maven2ProjectWizard"
+            category="org.eclipse.m2e"
+            class="org.eclipse.m2e.core.ui.internal.wizards.MavenProjectWizard"
+            icon="icons/new_m2_project.gif"
+            name="%m2.wizard.project.name"
+            project="true">
+         <description>%m2.wizard.project.description</description>
+      </wizard>
+
+      <wizard id="org.eclipse.m2e.core.wizards.Maven2ModuleWizard"
+              category="org.eclipse.m2e"
+              class="org.eclipse.m2e.core.ui.internal.wizards.MavenModuleWizard"
+              icon="icons/new_m2_project.gif"
+              name="%m2.wizard.module.name"
+              project="true">
+         <description>%m2.wizard.module.description</description>
+      </wizard>
+   </extension>
+
+   <extension point="org.eclipse.ui.importWizards">
+     <category id="org.eclipse.ui.Basic" name="%category.general.name"/>
+     <category id="org.eclipse.m2e" name="%m2.wizard.name"/>
+
+     <wizard id="org.eclipse.m2e.core.wizards.MavenInstallFileWizard"
+             class="org.eclipse.m2e.core.ui.internal.wizards.MavenInstallFileWizard"
+             category="org.eclipse.m2e"
+             icon="icons/import_jar.gif"
+             name="%wizard.install.name">
+         <selection class="org.eclipse.core.resources.IFile" name="*.jar"/>
+         <description>%wizard.install.description</description>
+     </wizard>
+
+     <wizard id="org.eclipse.m2e.core.wizards.Maven2ImportWizard"
+             class="org.eclipse.m2e.core.ui.internal.wizards.MavenImportWizard"
+             icon="icons/import_m2_project.gif"
+             category="org.eclipse.m2e"
+             name="%m2.wizard.import.name">
+        <description>%m2.wizard.import.description</description>
+     </wizard>
+   </extension>
+
+   <extension point="org.eclipse.ui.console.consoleFactories">
+      <consoleFactory label="%consoleFactory.label" icon="icons/m2.gif"
+            class="org.eclipse.m2e.core.ui.internal.console.MavenConsoleFactory"/>
+   </extension>
+
+   <extension point="org.eclipse.ui.console.consolePageParticipants">
+      <consolePageParticipant
+            class="org.eclipse.m2e.core.ui.internal.console.MavenConsolePageParticipant"
+            id="org.eclipse.m2e.core.launch.console.Maven2ConsolePageParticipant">
+         <enablement>
+            <instanceof value="org.eclipse.m2e.core.ui.internal.console.MavenConsoleImpl"/>
+         </enablement>
+      </consolePageParticipant>
+   </extension>
+
+   <extension point="org.eclipse.ui.views">
+      <category id="org.eclipse.m2e.core.views.repositories"
+                name="%category.maven.name"/>
+      <view id="org.eclipse.m2e.core.views.MavenRepositoryView"
+            category="org.eclipse.m2e.core.views.repositories"
+            class="org.eclipse.m2e.core.ui.internal.views.MavenRepositoryView"
+            icon="icons/maven_indexes.gif"
+            name="%view.repos.name"/>
+      <view
+            allowMultiple="false"
+            category="org.eclipse.m2e.core.views.repositories"
+            class="org.eclipse.m2e.core.ui.internal.views.build.BuildDebugView"
+            id="org.eclipse.m2e.core.views.MavenBuild"
+            name="%view.build.name"
+            restorable="true">
+      </view>
+   </extension>
+
+   <extension point="org.eclipse.ui.bindings">
+      <key
+            commandId="org.eclipse.m2e.core.ui.command.addDependency"
+            contextId="org.eclipse.core.runtime.xml"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="Ctrl+Shift+D">
+      </key>
+      <key
+            commandId="org.eclipse.m2e.core.ui.command.addPlugin"
+            contextId="org.eclipse.core.runtime.xml"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="Ctrl+Shift+P">
+      </key>
+      <key
+            commandId="org.eclipse.m2e.core.ui.command.updateProject"
+			contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="Alt+F5">
+      </key>
+   </extension>
+   <extension point="org.eclipse.ui.propertyPages">
+      <page id="org.eclipse.m2e.core.MavenProjectPreferencePage"
+            class="org.eclipse.m2e.core.ui.internal.preferences.MavenProjectPreferencePage"
+            name="%page.maven.name">
+         <filter name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+         <enabledWhen>
+            <adapt
+                  type="org.eclipse.core.resources.IProject">
+            </adapt>
+         </enabledWhen>
+      </page>
+      <page
+            category="org.eclipse.m2e.core.MavenProjectPreferencePage"
+            class="org.eclipse.m2e.core.ui.internal.preferences.LifecycleMappingPropertyPage"
+            id="org.eclipse.m2e.core.ui.lifecycleMappingPropertyPage"
+            name="%page.mappings.name">
+         <filter name="nature" value="org.eclipse.m2e.core.maven2Nature"/>
+         <enabledWhen>
+            <adapt
+                  type="org.eclipse.core.resources.IProject">
+            </adapt>
+         </enabledWhen>
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.ui.ide.markerSupport">
+      <markerTypeCategory
+            name="%m2.problem.category">
+         <markerTypeReference
+               id="org.eclipse.m2e.core.maven2Problem">
+         </markerTypeReference>
+         <markerTypeReference
+               id="org.eclipse.m2e.core.maven2Problem.configuration">
+         </markerTypeReference>
+         <markerTypeReference
+               id="org.eclipse.m2e.core.maven2Problem.pomloading">
+         </markerTypeReference>
+         <markerTypeReference
+               id="org.eclipse.m2e.core.maven2Problem.build">
+         </markerTypeReference>
+         <markerTypeReference
+               id="org.eclipse.m2e.core.maven2Problem.build.participant">
+         </markerTypeReference>
+         <markerTypeReference
+               id="org.eclipse.m2e.core.maven2Problem.lifecycleMapping">
+         </markerTypeReference>
+      </markerTypeCategory>
+   </extension>
+   <extension
+         point="org.eclipse.help.contexts">
+      <contexts
+            file="helpContext.xml">
+      </contexts>
+   </extension>
+   <extension
+         point="org.eclipse.core.runtime.adapters">
+      <factory
+            adaptableType="org.eclipse.m2e.core.ui.internal.views.nodes.IndexedArtifactFileNode"
+            class="org.eclipse.m2e.core.ui.internal.views.nodes.IndexedArtifactFileNode$AdapterFactory">
+         <adapter
+               type="org.eclipse.m2e.core.internal.index.IndexedArtifactFile">
+         </adapter>
+         <adapter
+               type="org.eclipse.m2e.core.embedder.ArtifactKey">
+         </adapter>
+      </factory>
+   </extension>
+    <extension point="org.eclipse.ui.navigator.navigatorContent">
+	    <commonFilter
+	        description="%m2.build.directory.filter.description"
+	        id="org.eclipse.m2e.ui.filter.hideMavenBuildDir"
+	        name="%m2.build.directory.filter.name"
+	        activeByDefault="false">
+	        <filterExpression>
+	            <and>
+	                <adapt type="org.eclipse.core.resources.IFolder">
+	                    <test property="org.eclipse.core.resources.projectNature" value="org.eclipse.m2e.core.maven2Nature"/>
+	                    <test property="org.eclipse.m2e.isBuildDirectory" />
+	                </adapt>
+	            </and>
+	        </filterExpression>
+	    </commonFilter>
+	</extension>
+	<extension point="org.eclipse.ui.navigator.viewer">
+	    <viewerContentBinding
+	          viewerId="org.eclipse.ui.navigator.ProjectExplorer">
+	          <includes>
+	            <contentExtension pattern="org.eclipse.m2e.ui.filter.hideMavenBuildDir"/>
+	          </includes>
+	    </viewerContentBinding>
+	</extension>
+   <extension
+         point="org.eclipse.ui.preferenceTransfer">
+	<transfer
+            icon="m2e.gif"
+            name="M2E lifecycle mapping ignores"
+            id="org.eclipse.m2e.ui.prefs">
+            <mapping scope="instance">
+                <entry node="org.eclipse.m2e.core">
+                   <key name="XXX_mappings"/>
+                </entry>
+            </mapping>
+      <description>
+              Export m2e ignores
+        </description>
+    </transfer>         
+   </extension>
+   <extension point="org.eclipse.m2e.core.archetypeCatalogs">
+      <remote  url="https://repo1.maven.org/maven2/archetype-catalog.xml" description="Maven Central"/>
+   </extension>
+</plugin>

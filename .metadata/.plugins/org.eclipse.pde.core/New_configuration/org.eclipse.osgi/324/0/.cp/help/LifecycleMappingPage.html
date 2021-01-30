@@ -1,0 +1,26 @@
+<html>
+	<head>
+		<title>m2e Lifecycle Mapping</title>
+	</head>
+<body>
+<h3>Column Descriptions</h3>
+<ul>
+<li><b>Maven Build</b> - step of Maven execution which requires special handling in Eclipse</li>
+<li><b>Action</b> - action for m2e to use to handle the Maven exceution</li>
+</ul>
+ 
+<h3>Available Actions</h3>
+<ul>
+<li><b>Resolve Later</b> - Make no changes, errors will exist after import</li>
+<li><b>Install ...</b> - Installs an Eclipse plugin which handles execution (not always available)</li>
+<li><b>Do Not Execute (add to pom)</b> - Add lifecycle metadata to executing pom(s) to ignore goal in m2e</li>
+<li><b>Do Not Execute (add to parent)</b> - As above except metadata is added to pom(s) that add the plugin</li>
+</ul>
+
+<h3>Lifecycle Mapping</h3>
+<p>M2Eclipse requires metadata to map Maven execution goals to actions within Eclipse.  The m2e marketplace contains Eclipse plugins to provide this metadata for common Maven plugins.</p>  
+
+<p>As safe defaults cannot be provided for every execution goal, custom lifecycle mapping metadata can be embedded into the pom or the goal can be ignored using a quickfix (it is up to the developer to determine which is the correct behaviour for their project.)</p>
+
+</body>
+</html>

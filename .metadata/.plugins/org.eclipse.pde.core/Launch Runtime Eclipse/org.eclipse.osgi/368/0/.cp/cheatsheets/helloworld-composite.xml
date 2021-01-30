@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!--
+     Copyright (c) 2005, 2008 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Composite Cheat Sheet -->
+
+<compositeCheatsheet name="Creating an Eclipse plug-in">
+
+   <!-- Task Group -->
+
+   <taskGroup kind="set" name="Create an Eclipse plug-in">
+      <intro>
+         This cheat sheet will guide you through the individual steps to 
+         create a plug-in, a plug-in extension, a feature and an update site
+         using the Plug-in Development Environment (PDE).  It will also
+         demonstrate how to install and uninstall a feature using
+         Install/Update.
+         <br/>
+         <br/>
+         To assist you along the way, wizards and commands
+         will be available for you to launch automatically.
+      </intro>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Create a plug-in">
+         <intro>
+            This cheat sheet will demonstrate how to  
+            create, modify and test a plug-in. 
+         </intro>
+         <param name="path" value="helloworld/helloworld-create.xml" />
+         <onCompletion>
+         	Congratulations!  You just created a plug-in!
+         </onCompletion>
+      </task>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Create a plug-in extension">
+         <intro>
+            This cheat sheet will demonstrate how to create and test a plug-in extension. 
+         </intro>
+         <param name="path" value="helloworld/helloworld-extension.xml" />
+         <onCompletion>
+         	Congratulations!  You just created a plug-in extension!
+         </onCompletion>         
+      </task>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Create a feature">
+         <intro>
+            This cheat sheet will demonstrate how to create a feature for a plug-in using
+            PDE.
+         </intro>
+         <param name="path" value="helloworld/helloworld-feature.xml" />
+         <onCompletion>
+         	Congratulations!  You just created a feature!
+         </onCompletion>  
+      </task>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Create an update site">
+         <intro>
+            This cheat sheet will demonstrate how to create an update site for a plug-in.
+         </intro>
+         <param name="path" value="helloworld/helloworld-update.xml" />
+         <onCompletion>
+         	Congratulations!  You just created an update site!
+         </onCompletion>  
+      </task>
+
+      <!-- Task -->
+
+      <task kind="cheatsheet" name="Install and uninstall a feature">
+         <intro>
+            This cheat sheet will demonstrate how to install and uninstall a feature
+            using Install/Update.
+         </intro>
+         <param name="path" value="helloworld/helloworld-install.xml" />
+         <onCompletion>
+         	Congratulations!  You just installed and uninstalled a feature!
+         </onCompletion>  
+      </task>
+
+      <onCompletion>
+         Congratulations!  You just created a plug-in, a plug-in extension, a 
+         feature and an update site using PDE.  You also installed and 
+         uninstalled a feature using Install/Update
+      </onCompletion>
+
+   </taskGroup>
+
+
+</compositeCheatsheet>

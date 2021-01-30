@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?><!--
+     Copyright (c) 2005, 2008 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<introContent>
+  <!-- Extension to the SDK Overview Page. -->
+  <extensionContent id="org.eclipse.pde" name="PDE" alt-style="css/overview.properties" style="css/overview.css" path="overview/@">
+    <group style-id="content-group" id="content-group">
+    	<link style-id="content-link" label="Eclipse plug-in development" url="http://org.eclipse.ui.intro/showHelpTopic?id=/org.eclipse.pde.doc.user/guide/intro/pde_overview.htm" id="pde">
+      		<text>Learn how to extend Eclipse by building new plug-ins</text>
+    	</link>
+    </group>
+  </extensionContent>
+</introContent>

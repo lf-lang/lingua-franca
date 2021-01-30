@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit Contributor Guide - Tests</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Tests</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Documentation.html" title="Documentation">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Bugs.html" title="Bugs">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Documentation</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Bugs</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Tests">Tests</h1>
+		<h2 id="JGit_Unit_Tests">JGit Unit Tests</h2>
+		<p>The JGit unit tests are executed during the maven build.
+			To run them from the Eclipse workbench use the launch configurations which are part of the sources of the test bundles'.</p>
+		<h2 id="JGit_HTTP_Tests">JGit HTTP Tests</h2>
+		<p>The JGit HTTP tests in 
+			<i>org.eclipse.jgit.http.test</i> rely on the Jetty web container.
+		</p>
+		<p>To run these tests from Eclipse the Jetty feature is needed. Use one of the target platforms as described in 
+			<a href="Manual-Developer-Setup.html#Dependencies">dependencies</a>.
+		</p>
+		<p>Alternatively, install "Jetty 9.4.20.v20190813" from 
+			<a href="https://download.eclipse.org/jetty/updates/jetty-bundles-9.x/9.4.20.v20190813/" target="egit_external">https://download.eclipse.org/jetty/updates/jetty-bundles-9.x/9.4.20.v20190813/</a>
+		</p>
+		<h2 id="EGit_Core_Tests">EGit Core Tests</h2>
+		<p>The EGit Core tests are executed during the maven build for the bundle 
+			<i>org.eclipse.egit.core.test</i>.
+		</p>
+		<p>To run them from the Eclipse workbench use the launch configuration which is part of the sources of the test bundle 
+			<i>org.eclipse.egit.core.test</i>.
+		</p>
+		<h2 id="EGit_UI_Tests">EGit UI Tests</h2>
+		<p>The EGit UI tests are using SWTBot, using the 'SWTBot for Eclipse Testing' feature.</p>
+		<p>You need to install at least "SWTBot for Eclipse Testing" and "SWTBot IDE Feature":</p>
+		<ul>
+			<li>
+				<a href="https://download.eclipse.org/technology/swtbot/snapshots/" target="egit_external">https://download.eclipse.org/technology/swtbot/snapshots/</a>
+			</li>
+		</ul>
+		<p>Starting a UI test from Eclipse:</p>
+		<ul>
+			<li>select the test class or test method</li>
+			<li>click 
+				<b>Run As &gt; SWTBot Test</b>
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Start-swtbot-test.png"/>
+		</p>
+		<p>Do not touch the mouse or keyboard when the UI test is running since this may
+			disturb the UI test by e.g. moving the current focus to another window.</p>
+		<h3 id="During_Maven_Build">During Maven Build</h3>
+		<p>The tests are executed in the integration-test phase of the 
+			<a href="https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html" target="egit_external">default Maven lifecycle</a>.
+		</p>
+		<p>If you want to skip execution of UI tests (only execute core tests):</p>
+		<pre>mvn -P skip-ui-tests clean install
+</pre>
+		<p>If you want to skip all tests:</p>
+		<pre>mvn clean install -Dmaven.test.skip=true
+</pre>
+		<h2 id="Auxilary_testing_tools">Auxilary testing tools</h2>
+		<p>Any code, including testing code, does not always do what you expected it to. The most common failure is probably the failure to actually execute the part of the code you wanted to test. Code coverage tools like 
+			<a href="https://www.eclemma.org/" target="egit_external">EclEmma</a> can easily visualize what part of the code is being executed.
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Documentation.html" title="Documentation">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="EGit Contributor Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Bugs.html" title="Bugs">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Documentation</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Bugs</td>
+			</tr>
+		</table>
+	</body>
+</html>

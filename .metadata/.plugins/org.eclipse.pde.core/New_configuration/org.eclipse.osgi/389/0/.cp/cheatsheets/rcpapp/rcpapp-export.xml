@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+     Copyright (c) 2005, 2010 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Simple Cheat Sheet -->
+
+<cheatsheet title="Export an RCP product">
+
+   <!-- Introduction -->
+
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet will demonstrate how to modify a build 
+         configuration and export an
+         RCP product using PDE.  
+         <br/>
+         <br/>
+         To learn more about using cheat sheets, click the help button
+         in the top right corner (?). 
+      </description>
+   </intro>
+
+   <!-- Item -->
+
+   <item title="Open the plug-in development perspective"
+         href="/org.eclipse.pde.doc.user/guide/tools/views/views.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the plug-in development perspective,
+         select <b>Window-&gt;Open Perspective-&gt;Other...</b> 
+         and choose <b>Plug-in Development</b>.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.
+      </description>
+      <command serialization="org.eclipse.ui.perspectives.showPerspective(org.eclipse.ui.perspectives.showPerspective.perspectiveId=org.eclipse.pde.ui.PDEPerspective)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Open the build configuration editor"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/manifest_editor/build.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the build configuration editor,
+         expand the <b>com.example.rcpapp</b> tree dialog
+         in the <b>Package Explorer</b> view and double-click
+         on the <b>build.properties</b> file.
+         <br/>
+         <br/>
+         Select the <b>Build</b> tab to display the <b>Build Configuration</b> 
+         page if it is not the initial page.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.         
+      </description>
+      <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/build.properties)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Modify the build configuration"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/manifest_editor/build.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         In order to control what files are deployed with our packaged
+         RCP application, we need to modify the build configuration.
+         <br/>
+         <br/>
+         To modify the build configuration, perform the following steps:
+      </description>
+      <subitem label="Select the checkbox corresponding to the &quot;icons&quot; directory under the &quot;Binary Build&quot; heading" 
+               skip="false"/>
+      <subitem label="Select the checkbox corresponding to the &quot;splash.bmp&quot; file under the &quot;Binary Build&quot; heading" 
+               skip="true"/>
+      <subitem label="Select &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Open the product editor"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/editor.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the product editor (if it is not already open),
+         expand the <b>com.example.rcpapp</b> tree dialog
+         in the <b>Package Explorer</b> view and double-click
+         on the <b>rcpapp.product</b> file.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.         
+      </description>
+      <command serialization="org.eclipse.ui.navigate.openResource(filePath=/com.example.rcpapp/rcpapp.product)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Export the plug-in based product"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/product_editor/overview.htm"
+         dialog="true"
+         skip="false">
+      <description>
+         To export the plug-in based product, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Overview&quot; tab within the product editor to display the &quot;Overview&quot; page" 
+               skip="false"/>     
+      <subitem label="Click the &quot;Eclipse Product export wizard&quot; hyperlink under the &quot;Exporting&quot; heading to launch the &quot;Export&quot; dialog box" 
+               skip="false">
+         <command serialization="org.eclipse.ui.file.export(exportWizardId=org.eclipse.pde.ui.productExportWizard)" required="false" translate="" />
+      </subitem>
+      <subitem label="Verify that &quot;/com.example.rcpapp/rcpapp.product&quot; is entered in the &quot;Configuration&quot; combo box within the &quot;Product Configuration&quot; group" 
+               skip="true"/>
+      <subitem label="Input &quot;rcpapp_plugin-based&quot; in the &quot;Root directory&quot; text box contained in the &quot;Product Configuration&quot; group" 
+               skip="false"/>
+      <subitem label="Input a destination directory in the &quot;Directory&quot; text box under the &quot;Destination&quot; group (e.g. &quot;C:\&quot; for Windows) and click &quot;Finish&quot;" 
+               skip="false"/>
+   </item>
+
+   <!-- Item -->
+
+   <item title="Browse the exported plug-in based product directory"
+         dialog="true"
+         skip="false">
+      <description>
+         To browse the exported plug-in based product directory, perform the following steps:
+      </description>
+      <subitem label="Navigate your file system to the destination directory specified in the previous step (e.g. &quot;C:\&quot; for Windows)" 
+               skip="false"/>
+      <subitem label="Note the presence of the &quot;rcpapp_plugin-based&quot; directory in the destination directory and open it" 
+               skip="false"/>
+      <subitem label="Note the presence of the &quot;com.example.rcpapp&quot; plug-in along with many other RCP plug-ins it depends upon within the &quot;plugins&quot; sub-directory" 
+               skip="true"/>
+      <subitem label="Note the &quot;rcpapp&quot; launcher with a branded icon (&quot;rcpapp.exe&quot; on Windows)" 
+               skip="false"/>                 
+      <subitem label="Run the &quot;rcpapp&quot; launcher" 
+               skip="false"/>    
+      <subitem label="Observe the plug-in based RCP application you created that is fully executable outside the Eclipse workspace" 
+               skip="true"/>                   
+      <subitem label="Exit the RCP application" 
+               skip="false"/>     
+   </item>
+      
+</cheatsheet>
+

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (C) 2010, Philipp Thun <philipp.thun@sap.com>
+
+   All rights reserved. This program and the accompanying materials
+   are made available under the terms of the Eclipse Public License 2.0
+   which accompanies this distribution, and is available at
+   https://www.eclipse.org/legal/epl-2.0/
+
+   SPDX-License-Identifier: EPL-2.0
+-->
+<cheatsheet title="Pushing to another Git Repository">
+	<intro>
+		<description>
+			With the Git Push Wizard you can push commits to another repository using different transport protocols.
+		</description>
+	</intro>
+	<item title="Start Push Wizard" dialog="true">
+		<description>
+			The push wizard can be started from the context menu on a repository or project by &quot;Push...&quot; or &quot;Team > Push...&quot;.<br /><br />
+			<b>To start this cheat sheet from within the opened wizard, click the help icon and then select &quot;Pushing to another Git Repository&quot;.</b>
+		</description>
+	</item>
+	<item
+		href="/org.eclipse.egit.doc/help/EGit/User_Guide/Tasks.html#Push_URI"
+		title="Destination Git Repository" dialog="true">
+		<description>
+			<b>Select a push specification or enter the repository location.</b><br /><br />
+			If you already configured a <b>push specification</b>, you can select it from the &quot;Configured remote repository&quot; drop-down list. Otherwise you have to specify the URI of a repository you want to push to as follows:<br /><br />
+			If you have a <b>repository URI</b> in your clipboard, i.e. copied from a gitweb, github, wiki or any other page, it will be automatically entered into the URI field. The other fields (i.e. Host, Repository path, Protocol, Port) will then be automatically filled.<br /><br />
+			In case pushing requires <b>authentication</b> (which is the most likely case), enter your credentials into the User and Password fields.
+		</description>
+	</item>
+	<item
+		href="/org.eclipse.egit.doc/help/EGit/User_Guide/User-Guide.html#Eclipse_SSH_Configuration"
+		title="Using SSH" skip="true" dialog="true">
+		<description>
+			If you connect to the repository via SSH for the first time, you have to accept the <b>host key</b> of the repository before proceeding.<br /><br />
+			In case your SSH key is protected by a <b>passphrase</b>, you have to enter it in a dialog that opens automatically.
+		</description>
+	</item>
+	<item
+		href="/org.eclipse.egit.doc/help/EGit/User_Guide/Tasks.html#Push_Ref_Specifications"
+		title="Push Ref Specifications" dialog="true">
+		<description>
+			<b>Specify reference mappings</b><br /><br />
+			To map your local branch names to the same branch names that are available in the destination repository click &quot;Add all branches spec&quot;.<br /><br />
+			If you want to declare different mappings, either enter reference names into the &quot;Source ref&quot; and &quot;Destination ref&quot; fields or select an existing entry from the drop-down lists. Afterwards click &quot;Add Spec&quot; to transfer the mapping into the &quot;Specifications for push&quot; list.<br /><br />
+			A typical mapping is 'HEAD' as source reference and 'refs/heads/master' as destination reference. This means that the current HEAD (which points to the currently checked out branch) is mapped to the destination master branch.<br /><br />
+			When pushing to a <b>Gerrit code review</b> system enter 'refs/for/master' as destination reference. This pushes the change to the review queue for the master branch.
+		</description>
+	</item>
+	<item
+		href="/org.eclipse.egit.doc/help/EGit/User_Guide/Tasks.html#Push_Confirmation"
+		title="Push Confirmation" dialog="true">
+		<description>
+			<b>Confirm the push configuration</b><br /><br />
+			A preview of all changes pushed to the destination repository is shown. The &quot;Status&quot; column contains '[new branch]' for references that will be newly created in the destination repository. For reference updates, the range of commits will be shown, i.e. the SHA1 of the first and the last commit to be pushed.<br /><br />
+			<b>Click Finish.</b>
+		</description>
+	</item>
+	<item title="Push Results" dialog="true">
+		<description>
+			The results page shows a list similar to the previous page and a confirmation message from the destination repository.<br /><br />
+			In case of errors the error message from the destination repository is displayed as well.<br /><br />
+			<b>Click Ok to end the wizard.</b>
+		</description>
+		<onCompletion>You have now successfully pushed to another Git repository.</onCompletion>
+	</item>
+</cheatsheet>

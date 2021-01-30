@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit Contributor Guide - Documentation</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Documentation</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Builds.html" title="Builds">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Tests.html" title="Tests">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Builds</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Tests</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Documentation">Documentation</h1>
+		<h2 id="JGit_3">JGit</h2>
+		<p>The JGit project generates a project report and javadocs using a Maven site. This Maven site is deployed to 
+			<a href="https://download.eclipse.org/jgit/site/$" target="egit_external">https://download.eclipse.org/jgit/site/$</a>{project.version}.
+			E.g. 
+			<a href="https://download.eclipse.org/jgit/site/4.4.1.201607150455-r/" target="egit_external">https://download.eclipse.org/jgit/site/4.4.1.201607150455-r/</a>
+		</p>
+		<p>Generating the site:</p>
+		<pre><b>$ mvn site:site</b>
+</pre>
+		<p>Staging the site locally under ./target/staging:</p>
+		<pre><b>$ mvn site:stage</b>
+</pre>
+		<p>If you can connect to build.eclipse.org over ssh (ask webmaster if you are a committer and need ssh access) you can deploy a local build of the site:</p>
+		<pre><b>$ mvn site:deploy</b>
+</pre>
+		<p>The site is deployed under 
+			<a href="https://download.eclipse.org/jgit/site/$" target="egit_external">https://download.eclipse.org/jgit/site/$</a>{project.version}
+		</p>
+		<p>To select the ssh key to use for deploying over ssh add the following section to your Maven settings.xml:</p>
+		<pre>&lt;server&gt;
+     &lt;id&gt;jgit.website&lt;/id&gt;
+     &lt;username&gt;username&lt;/username&gt;
+     &lt;privateKey&gt;${user.home}/.ssh/id_rsa&lt;/privateKey&gt;
+     &lt;password&gt;{&lt;encrypted passphrase&gt;}&lt;/password&gt;
+     &lt;filePermissions&gt;664&lt;/filePermission&gt;
+     &lt;directoryPermissions&gt;775&lt;/directoryPermissions&gt;
+     &lt;configuration&gt;&lt;/configuration&gt;
+&lt;/server&gt;
+</pre>
+		<p>Password encryption for Maven is described in 
+			<a href="https://maven.apache.org/guides/mini/guide-encryption.html" target="egit_external">https://maven.apache.org/guides/mini/guide-encryption.html</a>
+		</p>
+		<p>To deploy the site from JGit HIPP (Hudson) at 
+			<a href="https://hudson.eclipse.org/jgit/" target="egit_external">https://hudson.eclipse.org/jgit/</a> enable the Maven profile 
+			<b>build-server</b> and add the Maven goals 
+			<b>site:site site:deploy</b>.
+		</p>
+		<p>If you uploaded the site for a new release update the index
+			/home/data/httpd/download.eclipse.org/jgit/docs/latest/apidocs/index.html
+			to refer to the new release's site.</p>
+		<h2 id="EGit_3">EGit</h2>
+		<p>The EGit project sources its documentation from the wiki and generates Eclipse help content from it (under the covers, we are using 
+			<a href="https://wiki.eclipse.org/Mylyn/WikiText" target="egit_external">Mylyn WikiText</a> to make this possible). This significantly lowers the barrier for people to contribute documentation to the EGit project. To contribute documentation, simply modify the 
+			<a href="https://wiki.eclipse.org/EGit/User_Guide" target="egit_external">EGit User's Guide</a>. Have a look at the 
+			<a href="https://wiki.eclipse.org/DocumentationGuidelines/StyleGuidelines" title="DocumentationGuidelines/StyleGuidelines" target="egit_external">Style Guidelines</a> and 
+			<a href="https://wiki.eclipse.org/Eclipse_Doc_Style_Guide" title="Eclipse_Doc_Style_Guide" target="egit_external">Eclipse Documentation Style Guide</a> to get some guidance on how to write good documentation. More on that can be found 
+			<a href="https://wiki.eclipse.org/DocumentationGuidelines" title="DocumentationGuidelines" target="egit_external">here</a>.
+		</p>
+		<p>The documentation is contained in the 
+			<b>org.eclipse.egit.doc</b> plug-in. The 
+			<b>build-help.xml</b> drives the generation of the help content. It is integrated into the maven build. The regular maven build of 
+			<b>org.eclipse.egit.doc</b>
+		</p>
+		<pre><b>$ mvn clean install</b> 
+</pre>
+		<p>will only package the help content committed to the egit repository. To update the help content by downloading the latest documentation from the wiki run</p>
+		<pre><b>$ mvn clean install -Dupdate.egit.doc</b>
+</pre>
+		<p>Don't forget to check all the generated help pages and especially all hyperlinks and images before pushing the updated help to the code review system for inclusion into the continuous build.</p>
+		<p>The aim is to generate new documentation every month or so (or just on demand). If you're making big changes or want the documentation refreshed, please let us know on the egit-dev mailing list.</p>
+		<p>
+			<br/>
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Builds.html" title="Builds">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="EGit Contributor Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Tests.html" title="Tests">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Builds</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Tests</td>
+			</tr>
+		</table>
+	</body>
+</html>

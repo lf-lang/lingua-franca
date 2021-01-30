@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="org.eclipse.m2e.editor.xml.markerLocation">
+   <implementation class="org.eclipse.m2e.core.ui.internal.markers.MarkerLocationService"/>
+   <service>
+      <provide interface="org.eclipse.m2e.core.internal.markers.IMarkerLocationService"/>
+      <provide interface="org.eclipse.m2e.core.internal.markers.IEditorMarkerService"/>
+   </service>
+</scr:component>

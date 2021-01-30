@@ -1,0 +1,124 @@
+/*******************************************************************************
+ * Copyright (c) 2006, 2007 IBM Corporation and others.
+ *
+ * This program and the accompanying materials 
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ * 
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
+/* 
+ * This file contains styles that are shared between multiple themes.
+ */
+
+/* Folding section settings. */
+
+/* The foldable part of the section. It is off by default. */
+.section-body {
+	display: none;
+}
+
+/* The label part of the folding section */
+.section-title-link .section-title {
+	display : inline;
+}
+
+.section-title-link .section-title,
+.section-title-link:focus .section-title {
+	color: #00517d;
+}
+
+.section-title-link {
+	vertical-align: bottom;
+}
+
+/* The 'open' toggle image part of the folding section. */
+#page-content .section-title-link .section-toggle-image-open {
+	display: none;
+	clear: right;
+	width : 7px;
+	height : 7px;
+	background-image : url(../graphics/icons/ctool/widget_open.gif);
+}
+
+/* The 'closed' toggle image part of the folding section. */
+#page-content .section-title-link .section-toggle-image-closed {
+	display: inline;
+	clear: right;
+	width : 7px;
+	height : 7px;
+	background-image : url(../graphics/icons/ctool/widget_closed.gif);
+}
+
+/*
+ * Section title during hover.
+ */
+.section-title-link:hover .section-title,
+.section-title-link:active .section-title {
+	color: #6699cc;
+}
+
+.section-title-link:hover .section-title {
+	text-decoration: underline;
+}
+
+/*
+ * Toggle image during hover.
+ */
+#page-content .section-title-link:hover .section-toggle-image-closed,
+#page-content .section-title-link:active .section-toggle-image-closed {
+	background-image : url(../graphics/icons/ctool/widget_closed_hov.gif);
+}
+#page-content .section-title-link:hover .section-toggle-image-open,
+#page-content .section-title-link:active .section-toggle-image-open {
+	background-image : url(../graphics/icons/ctool/widget_open_hov.gif);
+}
+
+
+body .importance-new {
+	background-image: linear-gradient(to right, #fffacd00, #fffacdff);
+}
+
+body .importance-high {
+	background-image: linear-gradient(to right, #fff7da00, #fff7daff);
+}
+
+body .importance-medium {
+	background-image: linear-gradient(to right, #fffbed00, #fffbedff);
+}
+
+body .importance-callout {
+	background-image: linear-gradient(to right, #eeeeee00, #eeeeeeff);
+}
+
+ul.news-list {
+	list-style-image: url("../graphics/icons/ctool/arrow.svg");
+}
+
+@media (prefers-color-scheme: dark) {
+	body .importance-new {
+		background-image: linear-gradient(to right, #66666600, #666666ff);
+	}
+
+	body .importance-high {
+		background-image: linear-gradient(to right, #66666600, #666666ff);
+	}
+
+	body .importance-medium {
+		background-image: linear-gradient(to right, #4d4d4d00, #4d4d4dff);
+	}
+
+	body .importance-callout {
+		background-image: linear-gradient(to right, #4d4d4d00, #4d4d4dff);
+	}
+	
+	ul.news-list {
+		list-style-image: url("../graphics/icons/ctool/arrow_light.svg");
+	}
+}
+

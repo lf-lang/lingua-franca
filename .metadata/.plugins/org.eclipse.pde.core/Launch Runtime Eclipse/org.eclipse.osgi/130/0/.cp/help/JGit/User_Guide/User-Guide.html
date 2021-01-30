@@ -1,0 +1,132 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>JGit User Guide</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">JGit User Guide</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Concepts.html" title="Concepts">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Concepts</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Getting_Started">Getting Started</h1>
+		<p>If you're new to Git or distributed version control systems generally, then you might want to read 
+			<a href="../../EGit/Git_For_Eclipse_Users/Git-For-Eclipse-Users.html" title="EGit/Git For Eclipse Users">Git for Eclipse Users</a> first. If you need more details and background read the book 
+			<a href="http://book.git-scm.com" target="egit_external">Pro Git</a>.
+		</p>
+		<h2 id="Taking_JGit_for_a_Spin">Taking JGit for a Spin</h2>
+		<p>Although you are probably interested in JGit because you want to integrate it into an existing application or create a tool, JGit is more than simply a Java library for working with git repository. So before diving into the different aspects of the library let's take JGit for a spin.</p>
+		<p>You are probably familiar with the git command line interface (CLI) that can be used from the shell or in scripts. JGit comes with its own small CLI, which, although not as feature-full as the git CLI, is a good way to showcase what JGIt can do. Furthermore, the programs serve as an excellent source of inspiration for how to accomplish different tasks. </p>
+		<h3 id="Building_the_JGit_CLI">Building the JGit CLI</h3>
+		<p>Assuming that you have the EGit git repository cloned and ready, build the jgit binary by running the jgit maven build (see 
+			<a href="../../EGit/Contributor_Guide/Manual-Developer-Setup.html#JGit" title="EGit/Contributor_Guide#JGit">the Contributor Guide</a>):
+		</p>
+		<pre>~/src/jgit$ mvn clean install
+</pre>
+		<p>Find the jgit binary here (path relative to root of working tree of your clone of the jgit repository): </p>
+		<pre>org.eclipse.jgit.pgm/target/jgit
+</pre>
+		<p>Check your build by running the "version" command:</p>
+		<pre>prompt$ ./jgit version
+jgit version 0.10.0-SNAPSHOT
+</pre>
+		<p>If you want to use jgit frequently you may consider to ease running it via a symbolic link (usually goes under /usr/local/bin)</p>
+		<pre>sudo ln -s /path/to/jgit /usr/local/bin/jgit
+</pre>
+		<h3 id="Running_the_JGit_CLI">Running the JGit CLI</h3>
+		<h4 id="Overview">Overview</h4>
+		<p>When given the 
+			<b>-h</b> flag, commands provide a helpful message listing what flags they support.
+		</p>
+		<pre>prompt$ ./jgit version -h
+jgit version [--help (-h)]
+</pre>
+		<pre> --help (-h) : display this help text
+</pre>
+		<p>Running 
+			<b>jgit</b> with no arguments lists the most commonly used commands.
+		</p>
+		<pre>prompt$ ./jgit
+jgit --git-dir GIT_DIR --help (-h) --show-stack-trace command [ARG ...]
+</pre>
+		<pre>The most commonly used commands are:
+ branch   List, create, or delete branches
+ clone    Clone a repository into a new directory
+ commit   Record changes to the repository
+ daemon   Export repositories over git://
+ diff     Show diffs
+ fetch    Update remote refs from another repository
+ init     Create an empty git repository
+ log      View commit history
+ push     Update remote repository from local refs
+ rm       Stop tracking a file
+ tag      Create a tag
+ version  Display the version of jgit
+</pre>
+		<p>The commands are modeled after their corresponding command in the git CLI. 
+			We will not cover all the commands here, but simply give some examples.</p>
+		<p>
+			<b>jgit</b> also provides a number of debug and test commands, to list all the available commands run
+		</p>
+		<pre>prompt$ ./jgit debug-show-commands
+</pre>
+		<h4 id="Inspecting_the_Repository">Inspecting the Repository</h4>
+		<p>Before inspecting the most recent commits, you probably want to know which branches the repository contains and what branch is currently checked out. Using the branch commands -v flag, you get a small summary of branches, their revision, and the first line of the revision's commit message.</p>
+		<pre>prompt$ ./jgit branch -v
+  master       4d4adfb Git Project import: don't hide but gray out existing projects
+* traceHistory 6b9fe04 [historyView] Add trace instrumentation
+</pre>
+		<p>The log command, like 
+			<a href="http://www.kernel.org/pub/software/scm/git/docs/git-log.html" target="egit_external">git-log(1)</a>, shows the commit log. For example,
+		</p>
+		<pre>prompt$ ./jgit log --author Matthias --grep tycho master
+commit 482442b599abf75b63b397680aaff09c4e48c0ed
+Author: Matthias Sohn &lt;matthias.sohn@sap.com&gt;
+Date:   Fri Oct 08 10:58:52 2010 +0200
+</pre>
+		<pre>    Update build to use tycho 0.10.0
+...
+</pre>
+		<p>will show you all commits in the "master" branch, where the author name matches "Matthias" and the commit messages contains the word tycho. More search criteria to filter the commit log, such as committer name, can be given.</p>
+		<h4 id="Graphical_History_View">Graphical History View</h4>
+		<p>Finally, to show some of the graphical capabilities of JGit, we will end this small tour by launching the graphical log tool.</p>
+		<pre>prompt$ ./jgit glog
+</pre>
+		<p>This should give you a window with the revision graph plotted to the left and three columns containing the first line of the message, the author name, and the commit date.</p>
+		<p>
+			<img border="0" src="images/Jgit-glog.png"/>
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Concepts.html" title="Concepts">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Concepts</td>
+			</tr>
+		</table>
+	</body>
+</html>

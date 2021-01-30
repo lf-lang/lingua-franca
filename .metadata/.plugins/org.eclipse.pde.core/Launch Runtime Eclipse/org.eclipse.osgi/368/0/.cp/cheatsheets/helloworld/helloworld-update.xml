@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+     Copyright (c) 2005, 2009 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<!-- Simple Cheat Sheet -->
+
+<cheatsheet title="Create an update site">
+
+   <!-- Introduction -->
+
+   <intro href="/org.eclipse.platform.doc.user/reference/ref-cheatsheets.htm">
+      <description>
+         This cheat sheet will demonstrate how to create an update site for a plug-in
+         using PDE.
+         <br/>
+         <br/>
+         To learn more about using cheat sheets, click the help button
+         in the top right corner (?). 
+      </description>
+   </intro>
+
+
+   <!-- Item -->
+
+   <item title="Open the plug-in development perspective"
+         href="/org.eclipse.pde.doc.user/guide/tools/views/views.htm"
+         dialog="false"
+         skip="false">
+      <description>
+         To open the plug-in development perspective,
+         select <b>Window-&gt;Open Perspective-&gt;Other...</b> 
+         and choose <b>Plug-in Development</b>.
+         <br/>
+         <br/>
+         Alternatively, click the following button to perform the task.
+      </description>
+      <command serialization="org.eclipse.ui.perspectives.showPerspective(org.eclipse.ui.perspectives.showPerspective.perspectiveId=org.eclipse.pde.ui.PDEPerspective)" required="false" translate="" />
+   </item>
+
+   <!-- Item -->
+
+   <item title="Create the update site"
+         dialog="true"
+         href="/org.eclipse.pde.doc.user/guide/tools/project_wizards/new_update_site_project.htm"
+         skip="false">
+      <description>
+         To create the update site, perform the following steps:
+      </description>
+      <subitem label="Select &quot;File-&gt;New-&gt;Project...&quot;, and choose &quot;Update Site Project&quot; under the &quot;Plug-in Development&quot; heading" 
+               skip="false">
+         <command serialization="org.eclipse.ui.newWizard(newWizardId=org.eclipse.pde.ui.NewSiteProjectWizard)" required="false" translate="" />
+      </subitem>
+      <subitem label="Input &quot;helloworld.site&quot; into the &quot;Project Name&quot; text box on the &quot;Update Site Project&quot; page" 
+               skip="false"/>
+      <subitem label="Deselect the &quot;Use default location&quot; check box"
+               skip="false"/>  
+      <subitem label="Note:  For the purpose of this cheat sheet we will define a Windows pathname for our update site location.  For Unix platforms, adjust accordingly." 
+               skip="true"/>  
+      <subitem label="Input &quot;C:\helloworld.site&quot; in the &quot;Location&quot; text box and click &quot;Finish&quot;" 
+               skip="false"/>  
+   </item>
+
+   <!-- Item -->
+
+   <item title="Create the update site description"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/site_editor/archives.htm"
+         skip="false">
+      <description>
+         The site editor should be open on the <b>Site Map</b> tab.
+         <br/>
+         <br/>
+         To create the update site description, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Archives&quot; tab" 
+               skip="false"/>  
+      <subitem label="Input &quot;file:///C:/helloworld.site/&quot; into the &quot;URL&quot; text box" 
+               skip="false"/>
+      <subitem label="Input &quot;Hello World! Update Site&quot; into the &quot;Description&quot; text box" 
+               skip="false"/>
+      <subitem label="Click &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>  
+   </item>
+
+   <!-- Item -->
+
+   <item title="Create a feature category"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/site_editor/site_map.htm"
+         skip="false">
+      <description>
+         To create a feature category, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Site Map&quot; tab from the site editor" 
+               skip="false"/>  
+      <subitem label="Click the &quot;New Category&quot; button" 
+               skip="false"/>  
+      <subitem label="Input &quot;Hello World!&quot; into the &quot;ID&quot; text box" 
+               skip="false"/>
+      <subitem label="Input &quot;Hello World!&quot; into the &quot;Name&quot; text box" 
+               skip="false"/>
+      <subitem label="Click &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>  
+   </item>
+
+   <!-- Item -->
+
+   <item title="Add a feature to a feature category"
+         dialog="true"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/site_editor/site_map.htm"
+         skip="false">
+      <description>
+         To add a feature to a feature category, perform the following steps:
+      </description>
+      <subitem label="Select the &quot;Hello World!&quot; feature category in the &quot;Managing the Site&quot; list box" 
+               skip="false"/>  
+      <subitem label="Click the &quot;Add Feature...&quot; button" 
+               skip="false"/>  
+      <subitem label="Select &quot;com.example.feature&quot; from the list box and click &quot;OK&quot;" 
+               skip="false"/>  
+      <subitem label="Click &quot;File-&gt;Save&quot; from the main menu" 
+               skip="false"/>                 
+   </item>
+
+   <!-- Item -->
+
+   <item title="Build and export a feature to an update site"
+         dialog="false"
+         href="/org.eclipse.pde.doc.user/guide/tools/editors/site_editor/site_map.htm"
+         skip="false">
+      <description>
+         To build a feature and export it to an update site, perform the following steps:
+      </description>
+      <subitem label="Click the &quot;Build All&quot; button" 
+               skip="false"/>  
+      <subitem label="Verify the &quot;com.example.helloworld_1.0.0.jar&quot; jar file has been created in the &quot;plugins&quot; folders on the update site (See the &quot;Package Explorer&quot; view or the &quot;C:\helloworld.site&quot; folder)" 
+               skip="true"/>    
+      <subitem label="Verify the &quot;com.example.feature_1.0.0.jar&quot; jar file has been created in the &quot;features&quot; folders on the update site" 
+               skip="true"/>    
+               
+                           
+   </item>
+
+</cheatsheet>

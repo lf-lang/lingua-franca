@@ -1,0 +1,262 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit Contributor Guide - Builds</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Builds</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Running-EGit-from-Eclipse.html" title="Running EGit from Eclipse">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Documentation.html" title="Documentation">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Running EGit from Eclipse</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Documentation</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Builds">Builds</h1>
+		<p>The central EGit and JGit builds run on the Jenkins build infrastructure provided by the Eclipse foundation.</p>
+		<ul>
+			<li>
+				<a href="https://ci.eclipse.org/egit/" target="egit_external">EGit Jenkins instance</a>
+			</li>
+			<li>
+				<a href="https://ci.eclipse.org/jgit/" target="egit_external">JGit Jenkins instance</a>
+			</li>
+		</ul>
+		<p>Prerequisites for the Maven build are</p>
+		<ul>
+			<li>
+				<a href="https://maven.apache.org/download.html" target="egit_external">at least Maven 3.5.2</a>
+			</li>
+			<li>see 
+				<a href="https://maven.apache.org/settings.html" target="egit_external">settings.xml reference</a> on how to do basic Maven configuration
+			</li>
+			<li>if you want to learn how Maven works start reading 
+				<a href="https://maven.apache.org/guides/getting-started/index.html" target="egit_external">the Maven Getting Started Guide</a>
+			</li>
+		</ul>
+		<h2 id="JGit_2">JGit</h2>
+		<ul>
+			<li>JGit can be built using Maven or Bazel</li>
+			<li>use Java 8 to run the JGit build</li>
+			<li>JGit packaging projects (Eclipse features and p2 repository) are built using Maven and Tycho.</li>
+		</ul>
+		<h2 id="EGit_2">EGit</h2>
+		<ul>
+			<li>EGit is built using Maven and Tycho.</li>
+		</ul>
+		<h2 id="Mailing_Lists">Mailing Lists</h2>
+		<p>If you're interested in following builds, please check out the following mailing lists:</p>
+		<ul>
+			<li>
+				<a href="https://dev.eclipse.org/mailman/listinfo/jgit-build" target="egit_external">Subscribe to jgit-build@eclipse.org</a>
+			</li>
+			<li>
+				<a href="https://dev.eclipse.org/mailman/listinfo/egit-build" target="egit_external">Subscribe to egit-build@eclipse.org</a>
+			</li>
+		</ul>
+		<h2 id="Maven_Build">Maven Build</h2>
+		<ul>
+			<li>Due to a 
+				<a href="https://wiki.eclipse.org/Tycho/How_Tos/Dependency_on_pom-first_artifacts" target="egit_external">limitation of Tycho</a> it is not possible to mix pom-first and manifest-first builds in the same reactor build hence the pom-first JGit build has to run separately before the build for the manifest-first JGit packaging project.
+			</li>
+			<li>The local maven builds must share the same local Maven repository otherwise dependencies between these builds cannot be resolved.</li>
+			<li>To run the build behind a firewall follow 
+				<a href="https://maven.apache.org/guides/mini/guide-proxies.html" target="egit_external">https://maven.apache.org/guides/mini/guide-proxies.html</a> 
+			</li>
+		</ul>
+		<p>Complete build sequence for a clean build (assuming $M2_HOME/bin is on the path and local Maven repository at ~/.m2/repository):</p>
+		<pre style="width: 55em;">[~/src/jgit] $ mvn clean install
+[INFO] Scanning for projects...
+...
+
+[~/src/jgit] $ mvn -f org.eclipse.jgit.packaging/pom.xml clean install
+[INFO] Scanning for projects...
+...
+
+[~/src/jgit] $ cd ../egit
+
+[~/src/egit] $ mvn clean install
+[INFO] Scanning for projects...
+...
+
+[~/src/jgit] $ cd ../egit-github
+
+[~/src/egit-github] $ mvn clean install
+[INFO] Scanning for projects...
+...
+</pre>
+		<p>The EGit build uses the JGit p2 repository to resolve jgit dependencies. For local builds the build assumes
+			that egit and jgit source trees are located under a common parent folder. If this is not the case the path
+			to the jgit p2 repository has to be injected via system property:</p>
+		<pre>[~/src/egit] $ mvn clean install -Djgit-site=file:/path/to/jgit/org.eclipse.jgit.packaging/org.eclipse.jgit.repository/target/repository
+</pre>
+		<p>in the same way you can configure a custom path for the build of egit-github to the egit p2 repository</p>
+		<pre>[~/src/egit-github] $ mvn clean install -Degit-site=file:/path/to/egit/org.eclipse.egit.repository/target/repository
+</pre>
+		<p>The Jenkins build uses (for SNAPSHOT builds):</p>
+		<pre>[~/src/egit] $ mvn clean install -Djgit-site=<a href="https://repo.eclipse.org/content/unzip/snapshots.unzip/" target="egit_external">https://repo.eclipse.org/content/unzip/snapshots.unzip/</a>
+                     org/eclipse/jgit/org.eclipse.jgit.repository/${JGIT_VERSION}/org.eclipse.jgit.repository-${JGIT_VERSION}.zip-unzip/
+</pre>
+		<p>If you wan to build EGit for the specific Photon (4.8) platform, consider using the <code>egit-4.8</code> target platform:</p>
+		<pre>[~/src/egit] $ mvn -Dtarget-platform=egit-4.8 clean install
+</pre>
+		<p>For EGit version 4.10, <code>egit-4.5</code> (Mars, Eclipse 4.5), <code>egit-4.6</code> (Neon, Eclipse 4.6), <code>egit-4.7</code> (Oxygen, Eclipse 4.7), and <code>egit-4.8</code> (Photon, Eclipse 4.8) are available. In addition <code>egit-4.8-staging</code> refers to the Photon staging repository.</p>
+		<p>Upon a successful build, a p2 update site should be generated inside 
+			<i>egit/org.eclipse.egit.repository/target/repository</i>. If not, make sure the target platform has been downloaded from within Eclipse (Windows&gt;Preferences&gt;Plug-in Development&gt;Target Platform). The default target platform defined in the maven build is currently Eclipse 4.7. If you skip setting the system property <code>target-platform</code> the target platform for Eclipse 4.7 will be used.
+		</p>
+		<h2 id="JGit_Bazel_Build">JGit Bazel Build</h2>
+		<p>Since Gerrit is built using 
+			<a href="https://www.bazel.io/" target="egit_external">Bazel</a> a Bazel build was also implemented for JGit.
+			This simplifies working on Gerrit features which also require changes in JGit.
+		</p>
+		<ul>
+			<li>
+				<a href="https://www.bazel.io/versions/master/docs/install.html" target="egit_external">Install Bazel</a>
+			</li>
+			<li>To build all libraries run</li>
+		</ul>
+		<pre>bazel build :all
+</pre>
+		<ul>
+			<li>The following test labels are supported: api, attributes, dfs, diff, http, lfs, lfs-server, nls, notes, pack, patch, pgm, reftree, revplot, revwalk, storage, submodule, symlinks, transport, treewalk, util</li>
+			<li>To run all tests execute</li>
+		</ul>
+		<pre>bazel test //...
+</pre>
+		<ul>
+			<li>To run specific tests, using labels:</li>
+		</ul>
+		<pre>bazel test --test_tag_filters=api,dfs,revplot,treewalk //...
+</pre>
+		<ul>
+			<li>to rerun all tests ignoring cached test results execute</li>
+		</ul>
+		<pre>bazel test //... --cache_test_results=NO
+</pre>
+		<ul>
+			<li>to set number of concurrent test runs</li>
+		</ul>
+		<pre>bazel test //... --jobs=4
+</pre>
+		<ul>
+			<li>to debug a test run</li>
+		</ul>
+		<pre>bazel test --test_output=streamed --test_filter=&lt;fully qualified test method&gt; &lt;test target&gt;
+</pre>
+		<p>e.g.</p>
+		<pre>bazel test --test_output=streamed --test_filter=org.eclipse.jgit.api.GitConstructionTest.testClose //org.eclipse.jgit.test:org_eclipse_jgit_api_GitConstructionTest
+</pre>
+		<ul>
+			<li>to configure loggers for test runs edit org.eclipse.jgit.test/tst-rsrc/simplelogger.properties, see the 
+				<a href="https://www.slf4j.org/api/org/slf4j/impl/SimpleLogger.html" target="egit_external">slf4j SimpleLogger documentation</a>
+			</li>
+			<li>to run tests repeatedly use</li>
+		</ul>
+		<pre>bazel test --runs_per_test=3 &lt;test target&gt;
+</pre>
+		<ul>
+			<li>since 5.4.0 builds run with 
+				<a href="https://github.com/google/error-prone" target="egit_external">the errorprone static analyzer</a> by default. If you want to enable it for older JGit versions execute
+			</li>
+		</ul>
+		<pre>bazel build --java_toolchain //tools:error_prone_warnings_toolchain :all
+</pre>
+		<p>Note that the Bazel build does not yet support building JGit OSGi bundles, Eclipse features and the p2 repository which are required to install JGit in Eclipse.</p>
+		<h2 id="FindBugs_and_PMD">FindBugs and PMD</h2>
+		<p>As part of the build, JGit and EGit run FindBugs and PMD to find issues.</p>
+		<ul>
+			<li>
+				<a href="https://ci.eclipse.org/jgit/job/jgit/findbugs" target="egit_external">JGit FindBugs Results</a>
+			</li>
+			<li>
+				<a href="https://ci.eclipse.org/jgit/job/jgit/dry" target="egit_external">JGit DRY (PMD) Results</a>
+			</li>
+			<li>
+				<a href="https://ci.eclipse.org/egit/job/egit/findbugs" target="egit_external">EGit FindBugs Results</a>
+			</li>
+			<li>
+				<a href="https://ci.eclipse.org/egit/job/egit/dry" target="egit_external">EGit DRY (PMD) Results</a>
+			</li>
+		</ul>
+		<h2 id="Checking_for_JGit_API_Changes_using_API_Baseline">Checking for JGit API Changes using API Baseline</h2>
+		<p>The JGit projects have API tooling enabled. In order to use PDE API tools to get assistance with maintaining API changes and additions you need to set an API baseline:</p>
+		<ul>
+			<li>download the p2 repository for the latest EGit release (which includes the JGit artifacts) to a local folder, e.g. <code>~/egit-releases/updates-4.9.1</code>, find the p2 repository URLs 
+				<a href="https://wiki.eclipse.org/EGit/FAQ#Where_can_I_find_older_releases_of_EGit.3F" target="egit_external">here</a> and download the p2 repository of the latest minor release (service releases don't change API) using the corresponding link in the last column of that table
+			</li>
+			<li>in Eclipse click "Preferences &gt; Plug-In Development &gt; API Baselines", click "Add Baseline..." and define a new baseline (e.g. egit-4.9.1) and point it to the local copy of the corresponding EGit p2 repository.</li>
+			<li>the API tools will then raise warning/errors for all detected problems and provide quick fixes helping to resolve these problems</li>
+			<li>see the 
+				<a href="https://wiki.eclipse.org/PDE/API_Tools/User_Guide" target="egit_external">PDE API Tools User Guide</a> for more details.
+			</li>
+		</ul>
+		<h2 id="Signing_and_Publishing">Signing and Publishing</h2>
+		<p>EGit and JGit builds running on the JGit/EGit Jenkins instances are automatically signed 
+			(using the 
+			<a href="https://wiki.eclipse.org/Common_Build_Infrastructure#Signing_tool" title="Common_Build_Infrastructure#Signing_tool" target="egit_external">CBI eclipse-jarsigner-plugin</a>) and published to the folder
+		</p>
+		<pre>
+master branch:         /home/data/httpd/download.eclipse.org/egit/updates-nightly
+latest stable branch:  /home/data/httpd/download.eclipse.org/egit/updates-stable-nightly
+</pre>
+		<ul>
+			<li>To enable signing the maven profile <code>eclipse-sign</code> must be enabled via the option <code>-P eclipse-sign</code> in the respective build jobs running at 
+				<a href="https://ci.eclipse.org/egit/" target="egit_external">https://ci.eclipse.org/egit/</a>
+			</li>
+		</ul>
+		<h2 id="Contribution_to_Release_Train">Contribution to Release Train</h2>
+		<p>The release train contribution for JGit and EGit is maintained in the git repository </p>
+		<pre>ssh://git.eclipse.org/gitroot/simrel/org.eclipse.simrel.build.git
+</pre>
+		<p>in the file</p>
+		<pre>egit.aggrcon
+</pre>
+		<p>The release train build is coordinated on the 
+			<a href="https://dev.eclipse.org/mailman/listinfo/cross-project-issues-dev" target="egit_external">cross-project-issues-dev mailing list</a>
+		</p>
+		<p>
+			<br/>
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Running-EGit-from-Eclipse.html" title="Running EGit from Eclipse">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="EGit Contributor Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Documentation.html" title="Documentation">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Running EGit from Eclipse</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Documentation</td>
+			</tr>
+		</table>
+	</body>
+</html>

@@ -1,0 +1,99 @@
+Manifest-Version: 1.0
+Bundle-SymbolicName: org.eclipse.jdt; singleton:=true
+Bundle-Name: %pluginName
+Bundle-Version: 3.18.600.v20201202-1800
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.ui.intro;bundle-version="[3.2.0,4.0.0)",or
+ g.eclipse.ui.cheatsheets;bundle-version="[3.2.0,4.0.0)"
+Bundle-ManifestVersion: 2
+Eclipse-SourceReferences: scm:git:git://git.eclipse.org/gitroot/jdt/ec
+ lipse.jdt.git;path="org.eclipse.jdt";tag="I20201120-1800";commitId=2e
+ cc2402193c46b4b5204001af6ccd1ca8bb5d8c
+Bundle-Vendor: %providerName
+Build-Jdk-Spec: 11
+Created-By: Maven Archiver 3.5.0
+
+Name: about.properties
+SHA-256-Digest: c84FvFUdH/24aw9X0Kyet1KwrnOsdQp8YRr60l3qB8s=
+
+Name: plugin.xml
+SHA-256-Digest: Ei+lLHDqmBijkjAhafsq+hJG+4vJZ+2x/aYxbMiApyU=
+
+Name: intro/css/overview.properties
+SHA-256-Digest: O001OvFPcH2ZSPT8JNUu8zNO7kKk8WYCk4QNPgSOGEk=
+
+Name: intro/samplesExtensionContent.xml
+SHA-256-Digest: 0/K5LB5d3IVmWI8yt4nR3XPBT2SfbbxtNJCjhueg3fI=
+
+Name: images/topiclabel/tu_swtapp48.svg
+SHA-256-Digest: jONa6BidiBwEmE75e244vPAZg1Ivl9fRTxcqyVqvJaY=
+
+Name: intro/whatsnewExtensionContent.xml
+SHA-256-Digest: LmpKWedFs1DKPO+8igtTQsY/8q/eFvFXViMHTtYkcWY=
+
+Name: about.mappings
+SHA-256-Digest: IItmjCZG4hGup7b71RvKZvPYol5y4wOJ1u+F4PMyWCw=
+
+Name: intro/css/tutorials.css
+SHA-256-Digest: y8MV0D+Qr1VWzZXykpcggSPhW34A7Kk5zxKuuG46jnA=
+
+Name: about.ini
+SHA-256-Digest: fB0dsHrgJICK5tJL6xtkdiVriEehi4dK9IGnv6w/yEM=
+
+Name: plugin.properties
+SHA-256-Digest: lr5ZY2TGJ8iF0QL4T7STS6hDiww8hPEjmMG9H1gzvg4=
+
+Name: cheatsheets/HelloWorldSWT.xml
+SHA-256-Digest: nkKGKu4s7JskrG7vEYZCrA+Y4K9QYpY+LTsf74R7WNo=
+
+Name: intro/css/samples.css
+SHA-256-Digest: 84PfF32fsocIEpc2M5luWwrqwoq2as3JLUdJMzZv6r8=
+
+Name: about.html
+SHA-256-Digest: 0RM1x9lTJa7T8YkysaegPuBIeaEvSZypRDfXoMpsJAU=
+
+Name: cheatsheets/HelloWorld.xml
+SHA-256-Digest: XBni+RSgMk9vv0IcodrnZEnYW1ZONNsllC7o6UnigNM=
+
+Name: intro/css/overview.css
+SHA-256-Digest: kPkVcfRWcQCZ+cUK+CddZoKzns+GpIq4N9niBQhyHyA=
+
+Name: images/topiclabel/ov_javadev48.svg
+SHA-256-Digest: DD3X2eakaJD+WcR2cUpyGUtvHA86LrRlRRboCNAChIg=
+
+Name: intro/css/migrate.css
+SHA-256-Digest: kPkVcfRWcQCZ+cUK+CddZoKzns+GpIq4N9niBQhyHyA=
+
+Name: eclipse32.png
+SHA-256-Digest: ktA85ZDd0SYDxbcnnzVpnpATbdHzzTvB7x6Y8FkhCS4=
+
+Name: intro/overviewExtensionContent.xml
+SHA-256-Digest: umJqcAD6nYhnqeBtAFP+VXcIwstWdvQssxdy0eG5+x0=
+
+Name: intro/css/whatsnew.css
+SHA-256-Digest: AltKFGULKq2q6DQS7Ar5x8+CusV8nTB9svE0cBiZnm4=
+
+Name: intro/css/migrate.properties
+SHA-256-Digest: HPHQdvOujaC8tn1mWGWbSZ2uGzbcBZzzPGKbsjE9VhM=
+
+Name: intro/css/samples.properties
+SHA-256-Digest: 7jyhkDLKf5LzBlDjt5nhh3M2RS4s4GeHIyHaDioxdTY=
+
+Name: images/topiclabel/sa_samplepyramid48.svg
+SHA-256-Digest: XpDgvz82aCFR6CTLNfJw/kUMsgm8BAtWrMg6WlPtdsg=
+
+Name: images/topiclabel/tu_javaapp48.svg
+SHA-256-Digest: g+9RSCLUL0HThRN0F+zZrDDWPrtA4Mxlk4Jxedf404A=
+
+Name: intro/css/whatsnew.properties
+SHA-256-Digest: VPHNJSuY3UJsgEfUput7YDem63dZqTNYCRjjvBeGxe0=
+
+Name: intro/migrateExtensionContent.xml
+SHA-256-Digest: 7n5e/bgt7soL+IZajDpH1taTPqdJwhdzjDfSD9T3bfA=
+
+Name: intro/tutorialsExtensionContent.xml
+SHA-256-Digest: TqGMseMthEV9N0OPmA/pjGZfx3TVOB8gM5GyzKsFil4=
+
+Name: intro/css/tutorials.properties
+SHA-256-Digest: mqwfAt2tp2DQzdkHATVcfnRg1hZqf6j6m86I1lnUVNE=
+

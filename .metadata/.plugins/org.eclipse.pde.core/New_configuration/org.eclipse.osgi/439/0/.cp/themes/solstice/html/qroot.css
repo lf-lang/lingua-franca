@@ -1,0 +1,256 @@
+/*******************************************************************************
+ * Copyright (c) 2006, 2009 IBM Corporation and others.
+ *
+ * This program and the accompanying materials 
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ * 
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
+ 
+/*
+ * Set up the content for the root page.
+ */
+html, body {	
+	/* overflow : auto; */
+	/* overflow-clip: rect(0, auto, auto, 0); */
+	background-color : white;
+}
+
+#qroot {
+}
+
+/* Header should be 70px total */
+.intro-header {
+	display: block;
+}
+#branding {
+	position: absolute;
+	top : 0px;
+	left : 0px;
+}
+#branding > img {
+	/* content: url("../graphics/icons/eclipse-logo-bw-332x78.png"); */
+	width: auto;
+	height:40px;	/* width should be approx 170px */
+	margin-top: 15px;
+	margin-left: 10px;
+}
+
+
+/* For the main page content's title */
+.intro-header h1 {
+	position:absolute;
+	bottom: 20px;
+	left: 220px;
+	
+	color:white; 
+	font-family: Verdana, Arial, Helvetica;
+	font-weight: normal;
+	font-size: 22px;
+	letter-spacing:-0.03em;
+}
+
+.page-description {
+	display: block;
+	padding-top: 20px;
+	font-size: 27px;
+}
+
+#extra-group1 {
+	display: none;
+}
+
+/* extra-group1, 2, 3 and 4 are consecutive full blocks */
+#extra-group2, #extra-group3, #extra-group4 {
+	display: block;
+	clear: both;
+	margin-left:8%;
+	margin-right:8%;
+}
+
+#extra-group5 {
+	display: block;
+	position: fixed;
+	bottom: 10px;
+	right: 10px;
+	background: white;
+	z-index: 100;
+}
+
+/* Hide the extra div for links in the normal state and spacer images. */
+a .link-extra-div, #page-links a .background-image {
+	display: none;
+}
+
+#navigation-links {
+	position: initial;
+	padding: 0;
+}
+#navigation-links #page-links { display: block; }
+#navigation-links a { float: none; }
+#navigation-links a .text { display: block; }
+
+#page-links a {
+	display: block;
+	margin-bottom : 20px;
+	min-height: 5em;
+	padding-left: 60px;	/* image will be placed here */
+	position:relative;
+	z-index: 100;
+}
+
+#page-links a img.background-image, #page-links a img.content-img {
+	width: 32px;
+	height: auto;
+	
+	/* position image to the left of the text */
+	position:absolute;
+	left: 0px;
+	top: 0px;
+}
+
+#page-links a:hover .link-label {
+	text-decoration: underline;
+}
+
+#page-links a .link-label {
+	font-family: Verdana, Arial, Helvetica; 
+	line-height:1.5;
+	color: #F59616;
+}
+
+#page-links a p .text {
+	font-family: Verdana, Arial, Helvetica; 
+	line-height: 1.3;
+}
+
+/* Link images */
+#page-links a#overview .content-img { background: url("../graphics/icons/ctool/overview.png") center/contain no-repeat; }
+/*
+#page-links a#overview:hover .content-img,
+#page-links a#overview:active .content-img,
+#page-links a#overview:focus .content-img { background: url("../graphics/icons/ctool/overview_hov.png") center/contain no-repeat; }
+*/
+
+#page-links a#tutorials .content-img { background: url("../graphics/icons/ctool/tutorials.png") center/contain no-repeat; }
+/*
+#page-links a#tutorials:hover .content-img,
+#page-links a#tutorials:active .content-img,
+#page-links a#tutorials:focus .content-img { background: url("../graphics/icons/ctool/tutorials_hov.png") center/contain no-repeat; }
+*/
+
+#page-links a#samples .content-img { background: url("../graphics/icons/ctool/samples.png") center/contain no-repeat; }
+/*
+#page-links a#samples:hover .content-img,
+#page-links a#samples:active .content-img,
+#page-links a#samples:focus .content-img { background: url("../graphics/icons/ctool/samples_hov.png") center/contain no-repeat; }
+*/
+
+#page-links a#whatsnew .content-img { background: url("../graphics/icons/ctool/whatsnew.png") center/contain no-repeat; }
+/*
+#page-links a#whatsnew:hover .content-img,
+#page-links a#whatsnew:active .content-img,
+#page-links a#whatsnew:focus .content-img { background: url("../graphics/icons/ctool/whatsnew_hov.png") center/contain no-repeat; }
+*/
+
+#page-links a#firststeps .content-img { background: url("../graphics/icons/ctool/firststeps.png") center/contain no-repeat; }
+/*
+#page-links a#firststeps:hover .content-img,
+#page-links a#firststeps:active .content-img,
+#page-links a#firststeps:focus .content-img { background: url("../graphics/icons/ctool/firststeps_hov.png") center/contain no-repeat; }
+*/
+
+#page-links a#migrate .content-img { background: url("../graphics/icons/ctool/migrate.png") center/contain no-repeat; }
+/*
+#page-links a#migrate:hover .content-img,
+#page-links a#migrate:active .content-img,
+#page-links a#migrate:focus .content-img { background: url("../graphics/icons/ctool/migrate_hov.png") center/contain no-repeat; }
+*/
+
+#page-links a#webresources .content-img { background: url("../graphics/icons/ctool/webresources.png") center/contain no-repeat; }
+/*
+#page-links a#webresources:hover .content-img,
+#page-links a#webresources:active .content-img,
+#page-links a#webresources:focus .content-img { background: url("../graphics/icons/ctool/webresources_hov.png") center/contain no-repeat; }
+*/
+
+
+/*
+* Workbench
+*/
+
+#page-links a#workbench:hover .link-label,
+#action-links a#workbench:hover .link-label
+{
+    color : #FFEC89;
+    text-decoration : none;
+}
+
+#workbench p span {
+    display : none;
+}
+
+#page-links a#workbench .content-img,
+#action-links a#workbench .content-img {
+    background: url(../graphics/icons/ctool/workbench.png) center/contain no-repeat;
+	position: relative;    
+}
+
+#page-links a#workbench,
+#action-links a#workbench {
+	text-align : left;
+	height : 64px;
+	float : left;
+}
+
+#page-links a#workbench,
+#action-links a#workbench {
+    position : absolute;
+    right : 20px;
+    top : 5px;
+    width : auto;
+    text-align:center;
+    margin-bottom : 0px;
+}
+
+#page-links a#workbench .content-img,
+#action-links a#workbench .content-img {
+    background: url(../graphics/icons/ctool/workbench.png) center/contain no-repeat;
+    display:block;
+    color: white;
+    width:32px;
+    height:auto;
+    margin:5px auto 0;
+}
+#page-links a#workbench img,
+#action-links a#workbench img {
+    padding: 0px;
+}
+
+#page-links a#workbench .link-label,
+#action-links a#workbench .link-label {
+   position: static;
+   margin-right : 0px;
+   margin-left: 0px;
+   font-family:Arial,sans-serif;
+   font-size:8pt;
+   color: white;
+   text-align:center;
+}
+
+#page-links a#workbench .text,
+#action-links a#workbench .text {
+   display : none;
+}
+
+#page-links a#workbench span,
+#action-links a#workbench span {
+    margin-top : 0px;
+    line-height : normal;
+}

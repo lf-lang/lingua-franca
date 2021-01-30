@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<introContent>
+  <!-- Extension to the SDK Migration Page. -->
+  <extensionContent id="org.eclipse.jdt" name="Java development tools" alt-style="css/migrate.properties" style="css/migrate.css" path="migrate/@">
+     <group id="content-group" style-id="content-group">
+    	<link style-id="content-link" label="Java development tools" url="http://org.eclipse.ui.intro/showHelpTopic?id=/org.eclipse.jdt.doc.isv/porting/eclipse_4_18_porting_guide.html" id="java">
+      		<text>Eclipse JDT 4.18 Plug-in Migration Guide</text>
+    	</link>
+     </group>
+  </extensionContent>
+</introContent>

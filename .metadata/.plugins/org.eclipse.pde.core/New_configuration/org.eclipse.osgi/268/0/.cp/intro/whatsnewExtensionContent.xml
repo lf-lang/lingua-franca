@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<introContent>
+  <!-- Extension to the SDK What's New Page. -->
+  <extensionContent id="org.eclipse.jdt" name="Java development tools" alt-style="css/whatsnew.properties" style="css/whatsnew.css" path="whatsnew/@">
+     <group id="content-group" style-id="content-group">
+    	<link label="Java development tools" url="http://org.eclipse.ui.intro/showHelpTopic?id=/org.eclipse.jdt.doc.user/whatsNew/jdt_whatsnew.html" id="jdt-noteworthy" style-id="content-link">
+           <text>Find out about significant changes made to the Java development tools</text>
+        </link>
+     </group>
+  </extensionContent>
+</introContent>

@@ -1,0 +1,124 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit Contributor Guide - Automated Developer Setup</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Automated Developer Setup</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Manual-Developer-Setup.html" title="Manual Developer Setup">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">EGit Contributor Guide</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Manual Developer Setup</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Automated_Developer_Setup">Automated Developer Setup</h1>
+		<p>The fastest developer setup for contributing to JGit/EGit is to use the Eclipse Installer and the
+			EGit project setup to prepare an Eclipse IDE for JGit/EGit:</p>
+		<ul>
+			<li>download and unpack the 
+				<a href="https://www.eclipse.org/downloads/eclipse-packages/" target="egit_external">Eclipse Installer</a>
+			</li>
+			<li>start the Eclipse Installer</li>
+			<li>select the advanced mode</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Oomph-01-advanced-mode.png"/>
+		</p>
+		<ul>
+			<li>if the right most icon in the bottom toolbar of the installer rotates, there is an update available for the installer, which should be installed before continuing</li>
+			<li>if you are behind a proxy, change the proxy settings from the toolbar at the bottom</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Oomph_-01a-proxy-settings.png"/>
+		</p>
+		<ul>
+			<li>on the product page select "Eclipse IDE for Eclipse Committers" and click "Next"</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Oomph-02-proxy-product-selection.png"/>
+		</p>
+		<ul>
+			<li>on the project page select project "EGit" and click "Next"</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Oomph-03-project-egit.png"/>
+		</p>
+		<ul>
+			<li>on Variables page accept default target platform, to fine tune variables click "Show all variables", click "Next"</li>
+			<li>on the Confirmation page click "Finish"</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Oomph-04-installer-progress.png"/>
+		</p>
+		<ul>
+			<li>the installer installs the chosen IDE and starts it, as soon as the installer says "Press Finish to close the dialog" you can close the installer window</li>
+			<li>the newly installed IDE will automatically clone the JGit and EGit repositories and configure the workbench for JGit/EGit development. You can observe the setup progress in the toolbar, if necessary you can reopen the setup wizard by clicking its icon in the status bar</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Oomph-05-eclipse-progress.png"/>
+		</p>
+		<ul>
+			<li>when the setup finished the IDE should looks similar to this</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Oomph-06-ide.png"/>
+		</p>
+		<p>If you want to improve the EGit project setup, check the setup file in tools\oomph\EGit.setup (in your newly cloned egit repository). You can find more information about Oomph at</p>
+		<ul>
+			<li>
+				<a href="https://help.eclipse.org/" target="egit_external">https://help.eclipse.org/</a>
+			</li>
+			<li>
+				<a href="https://projects.eclipse.org/projects/tools.oomph" target="egit_external">https://projects.eclipse.org/projects/tools.oomph</a>
+			</li>
+			<li>
+				<a href="https://wiki.eclipse.org/Eclipse_Installer" target="egit_external">https://wiki.eclipse.org/Eclipse_Installer</a>
+			</li>
+			<li>
+				<a href="https://wiki.eclipse.org/Eclipse_Oomph_Authoring" target="egit_external">https://wiki.eclipse.org/Eclipse_Oomph_Authoring</a>
+			</li>
+		</ul><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="EGit Contributor Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Manual-Developer-Setup.html" title="Manual Developer Setup">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">EGit Contributor Guide</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Manual Developer Setup</td>
+			</tr>
+		</table>
+	</body>
+</html>

@@ -1,0 +1,90 @@
+Signature-Version: 1.0
+SHA-256-Digest-Manifest-Main-Attributes: 5EtZVgnIp3M8QZWF892j0l91n2Yz6
+ bx9mHtc8V94mT0=
+SHA-256-Digest-Manifest: qvTU9GIfZUEa5I1KysOOtwp/+uV9PCg0HBTxxFQXgNk=
+Created-By: 1.8.0_51 (Oracle Corporation)
+
+Name: about.properties
+SHA-256-Digest: QDWKiWjA7VwoB2E+e+Q9XsZJk94SGfrmAsbNnQxmd2I=
+
+Name: plugin.xml
+SHA-256-Digest: 6l+C77u91Dj9NPpGHYyjQTVZmjnu0gTQCZ/CCUc8DEQ=
+
+Name: intro/css/overview.properties
+SHA-256-Digest: FhjiagL72AxWCbJ/D9oEOHe+r9NAoRHxoQGSIDOCBnU=
+
+Name: intro/samplesExtensionContent.xml
+SHA-256-Digest: MLS8+9IqTW8NWqhDnK2/mFGQ4w4vwjxi37sSa/pShfs=
+
+Name: images/topiclabel/tu_swtapp48.svg
+SHA-256-Digest: ibOCPJYMK6l9IwtxOyhtWcBSn2inqy6XrfLpduOqYTM=
+
+Name: intro/whatsnewExtensionContent.xml
+SHA-256-Digest: mnSsrx78c8PVhFRbsajOsH3mWJGXqTc9xS786KwD8K0=
+
+Name: about.mappings
+SHA-256-Digest: 2vIVODeRPDQ2NV0hey2DFw2vyyHkmo4fHc2YWiA7aXY=
+
+Name: intro/css/tutorials.css
+SHA-256-Digest: TVMuLWhnclItWq+YsVf1OFj+mONnomd4B0U4MtSgi7o=
+
+Name: about.ini
+SHA-256-Digest: E/6xDiwP5vserz41L1BfMES/LW9ydWl4gh5+A1gRrqA=
+
+Name: plugin.properties
+SHA-256-Digest: rOzy7ZoPMuqnsfsX3xPQPIc/Ltl/gOvu20qg+T3vtz4=
+
+Name: cheatsheets/HelloWorldSWT.xml
+SHA-256-Digest: frhTH1ktUuy7Jy8iDJZL4pWdppLiZ4qa2TDPcSTu0rg=
+
+Name: intro/css/samples.css
+SHA-256-Digest: gyEPskB/ipEnOnwdems0T31Femwyod5GVrScduW+lHo=
+
+Name: about.html
+SHA-256-Digest: fz3somdR7f7Qlv4MFhaJfkDWglIbzI8gaTyRV90fCPs=
+
+Name: cheatsheets/HelloWorld.xml
+SHA-256-Digest: IL2eOcOpigxfUI6XSGqK/Y7LUM6VtDfkJgSD/yibFWU=
+
+Name: intro/css/overview.css
+SHA-256-Digest: rQ7JVGpJxiTfBz2e/BPnfSx/KHv3gmdWjXCP5xLJq2c=
+
+Name: images/topiclabel/ov_javadev48.svg
+SHA-256-Digest: OKYiEJ6KcMKYcjLbk6XJr9dpvYQb2RqoKawYjljDDyI=
+
+Name: intro/css/migrate.css
+SHA-256-Digest: BDu9QpLzMhdxnbfzUAwbrUrNaVpi0pklWfyknJjlNB8=
+
+Name: eclipse32.png
+SHA-256-Digest: 4Vi6RhGrdWsIEJf2umgsolfDHPhCntdl7133+BjuodY=
+
+Name: intro/overviewExtensionContent.xml
+SHA-256-Digest: st7IjynaqN1on+F0rSCFwobfaSn05VQpaIXT8tvY+yI=
+
+Name: intro/css/whatsnew.css
+SHA-256-Digest: 2fTHtL8mtGmHc0RamnqebY2cHZwkSvNLwhfPpymwRGI=
+
+Name: intro/css/migrate.properties
+SHA-256-Digest: cABj+LjxQriNS34pm8oO+56c1sYfP+NLeDQ4IGqe+WY=
+
+Name: intro/css/samples.properties
+SHA-256-Digest: mH6CUZZyArYM/cN4IUbcwGkeX/PKcP/qMxPlDCA6qLs=
+
+Name: images/topiclabel/sa_samplepyramid48.svg
+SHA-256-Digest: wjOsiByWoaOn0l7l/aSi2wXbOP5u3VhbUgHKINOXh0Q=
+
+Name: images/topiclabel/tu_javaapp48.svg
+SHA-256-Digest: bsd6Fh/D/E7ZUBv3D3eOduGMQxA21Ba5STfOo4D1Kcg=
+
+Name: intro/css/whatsnew.properties
+SHA-256-Digest: KfP/VWeZMNPS8Q0pYmtKvHUzkmmKwhd9Wj5Z8vVEvRI=
+
+Name: intro/migrateExtensionContent.xml
+SHA-256-Digest: LMJ/XQJRU3dfsLiFUtqfU2TFH7G72Aqoi4+h4+TTHsU=
+
+Name: intro/tutorialsExtensionContent.xml
+SHA-256-Digest: +MXhczI+f63YMExx9S3u52z/QQc+wcLW+klPU0KPgns=
+
+Name: intro/css/tutorials.properties
+SHA-256-Digest: 7T7rA5Jjj1caTxb1fEE0k5+xffKEY9oZhuzVg81R5uk=
+

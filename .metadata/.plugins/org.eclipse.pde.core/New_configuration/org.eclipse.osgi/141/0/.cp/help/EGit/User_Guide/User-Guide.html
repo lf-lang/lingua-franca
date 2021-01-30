@@ -1,0 +1,380 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit User Guide</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">EGit User Guide</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Concepts.html" title="Concepts">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Concepts</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Getting_Started">Getting Started</h1>
+		<h2 id="Overview">Overview</h2>
+		<p>If you're new to Git or distributed version control systems generally, then you might want to read 
+			<a href="../../EGit/Git_For_Eclipse_Users/Git-For-Eclipse-Users.html" title="EGit/Git For Eclipse Users">Git for Eclipse Users</a> first. More background and details can be found in the on-line book 
+			<a href="https://git-scm.com/book/en/v2" target="egit_external">Pro Git</a>.
+		</p>
+		<p>If you are coming from CVS, you can find common CVS workflows for Git 
+			<a href="https://wiki.eclipse.org/Platform-releng/Git_Workflows" title="Platform-releng/Git Workflows" target="egit_external">Platform-releng/Git Workflows</a>.
+		</p>
+		<h3 id="The_Preferences_Dialog">The Preferences Dialog</h3>
+		<p>Many of the configurations you will make in Eclipse are found in the Preferences Dialog. To open the Preference Dialog click 
+			<b>Window &gt; Preferences</b> in the menu bar at the top. To see the preferences for git, click 
+			<b>Team &gt; Git</b> in the tree on the left. 
+		</p>
+		<h2 id="Basic_Tutorial:_Adding_a_project_to_version_control">Basic Tutorial: Adding a project to version control</h2>
+		<h3 id="Configuration">Configuration</h3>
+		<h4 id="Identifying_yourself">Identifying yourself</h4>
+		<p>Whenever the history of the repository is changed (technically, whenever a commit is created), Git keeps track of the user who created that commit. The identification consists of a name (typically a person's name) and an e-mail address. This information is stored in file <code>~/.gitconfig</code> under dedicated keys.
+			<br/>
+		</p>
+		<p>EGit will ask you for this information when you create your first commit. By default, this dialog is shown only once until you create a new workspace or tick the checkbox "Show initial configuration dialog" on the Git Preference page:</p>
+		<p>
+			<img border="0" src="images/Egit-0.11-initialConfigurationDialog.png"/>
+		</p>
+		<p>You can also untick "Don't show this dialog again" if you want to see it again later.</p>
+		<p>Instead of using this dialog, you can always change this information using the Git configuration:
+			<br/>
+		</p>
+		<ul>
+			<li>Click 
+				<b>Window &gt; Preferences &gt; Team &gt; Git &gt; Configuration</b>
+			</li>
+			<li>Click 
+				<b>New Entry</b> and enter the key value pairs <code>user.email</code> and <code>user.name</code>
+				<br/>
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-email.png"/>
+		</p>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-name.png"/>
+		</p>
+		<h4 id="Setting_up_the_Home_Directory_on_Windows">Setting up the Home Directory on Windows</h4>
+		<p>Add the environment variable <code>HOME</code> to your environment variables.</p>
+		<ol>
+			<li>In Windows 7, type "environment" at the start menu.</li>
+			<li>Select "Edit environment variables for your account".</li>
+			<li>Under "User Variables", click the "New" button.</li>
+			<li>Enter "HOME" in the name field.</li>
+			<li>Enter "%USERPROFILE%" or some other path in the value field.</li>
+			<li>Click OK, and OK again. You have just added the Home directory on Windows.&lt;br /&gt;</li>
+			<li>File &gt; Exit, then restart the application.</li>
+		</ol>
+		<p>Note that if you use 
+			<a href="http://www.cygwin.com/" target="egit_external">Cygwin</a>, you should already have <code>HOME</code> set. For example, if you installed Cygwin to <code>C:\cygwin</code> and your username is Fred, then Cygwin should have already set <code>HOME</code> to <code>C:\cygwin\home\Fred</code> (or something similar). You can verify this by entering <code>echo %HOME%</code> in the Windows command prompt, or <code>echo $HOME</code> in the Cygwin shell.
+		</p>
+		<p>EGit needs this path for looking up the user configuration (.gitconfig). <code>HOME</code> should point to your home directory e.g. <code>C:\Users\Tom</code>. 
+			<b>Ensure correct case!</b> E.g. <code>C:\users</code> instead of <code>C:\Users</code> may cause problems!
+		</p>
+		<p>If the <code>HOME</code> variable is not defined the home directory will be calculated by concatenating <code>HOMEDRIVE</code> and <code>HOMEPATH</code>.</p>
+		<p>If both <code>HOME</code> and <code>HOMEDRIVE</code> are not defined <code>HOMESHARE</code> will be used.</p>
+		<p>EGit shows a warning if <code>HOME</code> is not defined explicitly. Keep in mind that if you set the HOME environment variable while Eclipse is running, you will still see following warning. You will have to restart Eclipse for it to recognize the HOME value.</p>
+		<p>
+			<img border="0" src="images/Egit_no_home.png"/>
+		</p>
+		<h4 id="Pointing_out_the_System_wide_configuration">Pointing out the System wide configuration</h4>
+		<p>If you use Git for Windows as a companion to EGit, make sure EGit knows where Git is installed so it can find the "system wide settings", e.g. how core.autocrlf is set. Go to the settings and look under Team&gt;Git&gt;Configuration and then the System Settings tab. </p>
+		<p>If you selected one of the options to use Git from the Command Line Prompt when you installed Git for Windows, then the location of the system
+			wide settings is filled in with a path and everything is fine. If not, use the Browse button to locate where Git is installed, e.g. C:\Program Files(x86)\Git. </p>
+		<p>This advice also applies to users of other Git packagings, e.g. Git under Cygwin or TortoiseGit.</p>
+		<p>Non-Windows users should in theory check this setting, but the system wide settings are usually not used on non-Windows platforms.</p>
+		<h3 id="Create_Repository">Create Repository</h3>
+		<ul>
+			<li>Create a new Java project <code>HelloWorld</code>. (In this case, the project was built outside of your Eclipse Workspace.)</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-project.png"/>
+		</p>
+		<ul>
+			<li>Select the project, click 
+				<b>File &gt; Team &gt; Share Project</b>.
+			</li>
+			<li>Select repository type 
+				<b>Git</b> and click 
+				<b>Next</b>.
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-share.png"/>
+		</p>
+		<ul>
+			<li>To configure the Git repository select the new project <code>HelloWorld</code>.</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-create-project.png"/>
+		</p>
+		<ul>
+			<li>Click 
+				<b>Create Repository</b> to initialize a new Git repository for the <code>HelloWorld</code> project. If your project already resides in the working tree of an existing Git repository the repository is chosen automatically.
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-project-created.png"/>
+		</p>
+		<ul>
+			<li>Click 
+				<b>Finish</b> to close the wizard.
+			</li>
+			<li>The decorator text "[master]" behind the project shows that this project is tracked in a repository on the 
+				<i>master</i> branch and the question mark decorators show that the <code>.classpath</code> and <code>.project</code> and the <code>.settings</code> files are not yet under version control.
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-shared-project.png"/>
+		</p>
+		<h3 id="Track_Changes">Track Changes</h3>
+		<ul>
+			<li>Click 
+				<b>Team &gt; Add to Index</b> on the project node. (This menu item is named 
+				<b>Add</b> on older versions of Egit.)
+			</li>
+			<li>The 
+				<i>+</i> decorators show that now the project's files have been added to version control.
+			</li>
+			<li>Mark the "bin" folder as "ignored by Git", either by right-clicking on it and selecting 
+				<b>Team &gt; Ignore</b> or by creating a file <code>.gitignore</code> in the project folder with the following content:
+			</li>
+		</ul>
+		<pre>/bin
+</pre>
+		<ul>
+			<li>This excludes the <code>bin</code> folder from Git's list of tracked files.</li>
+			<li>Add <code>.gitignore</code> to version control (
+				<b>Team &gt; Add</b>):
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.11-getstarted-ignore-added.png"/>
+		</p>
+		<ul>
+			<li>You may have to set your Package Explorer filters in order to see <code>.gitignore</code> displayed in the Package Explorer. To access filters, select the down arrow on the right edge of the Package Explorer tab to display View Menu.</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Pe_downarrow1.png"/>
+		</p>
+		<ul>
+			<li>Select 
+				<b>Filters...</b> from the View Menu and you will be presented with the Java Element Filters dialog. Unselect the top entry to display files that begin with . (period) such as <code>.gitignore</code>.
+			</li>
+		</ul>
+		<ul>
+			<li>Click 
+				<b>Team &gt; Commit</b> in the project context menu.
+			</li>
+			<li>Enter a commit message explaining your change, the first line (followed by an empty line) will become the short log for this commit. By default the author and committer are taken from the <code>.gitconfig</code> file in your home directory.</li>
+			<li>You may click 
+				<b>Add Signed-off-by</b> to add a 
+				<i>Signed-off-by:</i> tag.
+			</li>
+			<li>If you are committing the change of another author you may alter the author field to give the name and email address of the author.</li>
+			<li>Click 
+				<b>Commit</b> to commit your first change.
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-commit.png"/>
+		</p>
+		<ul>
+			<li>Note that the decorators of the committed files have changed as a result of your commit.</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-commited.png"/>
+		</p>
+		<h3 id="Inspect_History">Inspect History</h3>
+		<ul>
+			<li>Click 
+				<b>Team &gt; Show in History</b> from the context menu to inspect the history of a resource:
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.11-getstarted-history1.png"/>
+		</p>
+		<ul>
+			<li>Create a new Java class <code>Hello.java</code> and implement it.</li>
+			<li>Add it to version control and commit your change.</li>
+			<li>Improve your implementation and commit the improved class.</li>
+			<li>The resource history should now show 2 commits for this class.</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.9-getstarted-application.png"/>
+		</p>
+		<p>
+			<img border="0" src="images/Egit-0.11-getstarted-history2.png"/>
+		</p>
+		<ul>
+			<li>Click the 
+				<b>Compare Mode</b> toggle button in the History View.
+			</li>
+			<li>Double click <code>src/Hello.java</code> in the Resource list of the History View to open your last committed change in the Compare View.</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.11-getstarted-compare.png"/>
+		</p>
+		<p>
+			<br/>
+
+			<b>Congratulations, you just have mastered your first project using Git&nbsp;!</b>
+
+			<br/>
+			<br/>
+		</p>
+		<h2 id="GitHub_Tutorial">GitHub Tutorial</h2>
+		<h3 id="Create_Local_Repository">Create Local Repository</h3>
+		<ul>
+			<li>follow 
+				<a href="https://wiki.eclipse.org/EGit/User_Guide/Getting_Started" title="EGit/User Guide/Getting Started" target="egit_external">EGit/User Guide/Getting Started</a> to create a new local repository (with your content instead of the demo project).
+			</li>
+		</ul>
+		<h3 id="Create_Repository_at_GitHub">Create Repository at GitHub</h3>
+		<ul>
+			<li>create a new repository at GitHub:</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.10-github-create-repo.png"/>
+		</p>
+		<p>On the next screen you can see the URLs you may use to access your fresh new repository:</p>
+		<ul>
+			<li>click 
+				<b>SSH</b> to choose the 
+				<i>SSH protocol</i>. It can be used for read and write access.
+			</li>
+			<li>click 
+				<b>HTTP</b> to choose the 
+				<i>HTTP protocol</i>. It can also be used for read and write access.
+			</li>
+			<li>click 
+				<b>Git Read-Only</b> to choose the anonymous 
+				<i>git protocol</i> for cloning. It's the most efficient protocol git supports. Since the 
+				<i>git protocol</i> doesn't support authentication it's usually used to provide efficient read-only access to public repositories.
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.10-github-cloneurl.png"/>
+		</p>
+		<h3 id="Eclipse_SSH_Configuration">Eclipse SSH Configuration</h3>
+		<ul>
+			<li>Open the Eclipse Preference Dialog (
+				<b>Window &gt; Preferences</b>).  Navigate to and expand the Network Connections option and select SSH. Ensure that your SSH2 home is configured correctly (usually this is <tt>~/.ssh</tt>) and contains your SSH2 keys:
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.10-ssh-preferences.png"/>
+		</p>
+		<ul>
+			<li>if you don't have SSH keys yet you may generate them on the second tab of this dialog (
+				<b>Key Management</b>). Use a good pass phrase to protect your private key, for more details see 
+				<a href="http://help.github.com/working-with-key-passphrases/" target="egit_external">"working with key passphrases"</a>.
+			</li>
+			<li>upload your public SSH key to your 
+				<a href="https://github.com/settings/keys" target="egit_external">GitHub account</a> or 
+				<a href="https://gitlab.com/profile/keys" target="egit_external">GitLab profile</a> settings.
+			</li>
+		</ul>
+		<p>Further information about advanced SSH configuration (such as using Putty or another SSH agent with EGit) is available in the 
+			<a href="https://wiki.eclipse.org/EGit/FAQ#SSH_config" title="EGit/FAQ#SSH_config" target="egit_external">EGit FAQ (section SSH)</a>.
+		</p>
+		<h3 id="Push_Upstream">Push Upstream</h3>
+		<ul>
+			<li>Click 
+				<b>Team &gt; Remote &gt; Push...</b> and copy and paste the SSH URL of your new GitHub repository.
+			</li>
+			<li>If you are behind a firewall which doesn't allow SSH traffic, use the GitHub HTTPS URL instead and provide your GitHub user and password instead of using the uploaded public SSH key. To store your credentials into the Eclipse secure store click 
+				<b>Store in Secure Store</b>.
+			</li>
+			<li>
+				<b>Note:</b> many HTTP proxies are configured to block HTTP URLs containing a user name, since disclosing a user name in an HTTP URL is considered a security risk. In that case remove the user name from the HTTP URL and only provide it in the user field. It will be sent as an HTTP header.
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.10-github-pushurl.png"/>
+		</p>
+		<ul>
+			<li>Click 
+				<b>Next</b> and on first connection accept GitHub's host key.
+			</li>
+		</ul>
+		<ul>
+			<li>Enter your SSH key's passphrase and click 
+				<b>OK</b>.
+			</li>
+		</ul>
+		<ul>
+			<li>On the next wizard page click 
+				<b>Add all branches spec</b> to map your local branch names to the same branch names in the destination repository (on a one-to-one basis).
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.10-github-push-refspec.png"/>
+		</p>
+		<ul>
+			<li>Click 
+				<b>Next</b>. The push confirmation dialog will show a preview of the changes that will be pushed to the destination repository.
+			</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.10-github-push-preview.png"/>
+		</p>
+		<ul>
+			<li>Click 
+				<b>Finish</b> to confirm that you want to push these changes.
+			</li>
+		</ul>
+		<ul>
+			<li>The next dialog reports the result of the push operation.</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.10-github-pushresult.png"/>
+		</p>
+		<ul>
+			<li>Point your browser at your GitHub repository to see that your new repository content has arrived.</li>
+		</ul>
+		<p>
+			<img border="0" src="images/Egit-0.10-github-pushed-repo.png"/>
+		</p>
+		<p>
+			<br/>
+		</p>
+		<h2 id="EclipseCon_2012_Git_Tutorial">EclipseCon 2012 Git Tutorial</h2>
+		<p>Find all exercises and the slides 
+			<a href="https://docs.google.com/open?id=0B4F_gjXVrHZVRXkydE0xVFBRRkc1WUpEcXdwQ2I1dw" target="egit_external">here</a>.
+		</p>
+		<p>Follow the 
+			<a href="https://docs.google.com/document/d/1UCbNCvljiInc6-vwBsHHzOQ1ItC10f1bFAOi8T30DJ8/edit" target="egit_external">exercise #1</a> to prepare for the Git Tutorial.
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Concepts.html" title="Concepts">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top"></td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Concepts</td>
+			</tr>
+		</table>
+	</body>
+</html>

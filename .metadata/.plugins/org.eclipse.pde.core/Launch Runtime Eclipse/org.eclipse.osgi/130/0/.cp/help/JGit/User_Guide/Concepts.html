@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>JGit User Guide - Concepts</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Concepts</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="User-Guide.html" title="JGit User Guide">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Reference.html" title="Reference">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">JGit User Guide</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Reference</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Concepts">Concepts</h1>
+		<h2 id="API">API</h2>
+		<h3 id="Repository">Repository</h3>
+		<p>A 
+			<b>Repository</b> holds all objects and refs used for managing source code.
+		</p>
+		<p>To build a repository, you invoke flavors of 
+			<b>RepositoryBuilder</b>.
+		</p>
+		<pre class="source-java">FileRepositoryBuilder builder = new FileRepositoryBuilder();
+Repository repository = builder.setGitDir(new File("/my/git/directory"))
+  .readEnvironment() // scan environment GIT_* variables
+  .findGitDir() // scan up the file system tree
+  .build();
+
+</pre>
+		<h3 id="Git_Objects">Git Objects</h3>
+		<p>All objects are represented by a SHA-1 id in the Git object model. In JGit, this is represented by the 
+			<b>AnyObjectId</b> and 
+			<b>ObjectId</b> classes. 
+		</p>
+		<p>There are four types of objects in the Git object model:</p>
+		<ul>
+			<li>blob
+				<ul>
+					<li>is used to store file data</li>
+				</ul>
+			</li>
+			<li>tree
+				<ul>
+					<li>can be thought of as a directory; it references other trees and blobs</li>
+				</ul>
+			</li>
+			<li>commit
+				<ul>
+					<li>a commit points to a single tree</li>
+				</ul>
+			</li>
+			<li>tag
+				<ul>
+					<li>marks a commit as special; generally used to mark specific releases</li>
+				</ul>
+			</li>
+		</ul>
+		<p>To resolve an object from a repository, simply pass in the right revision string.</p>
+		<pre>ObjectId head = repository.resolve("HEAD");
+</pre>
+		<h3 id="Ref">Ref</h3>
+		<p>A ref is a variable that holds a single object identifier. The object identifier can be any valid Git object (blob, tree, commit, tag).</p>
+		<p>For example, to query for the reference to head, you can simply call</p>
+		<pre>Ref HEAD = repository.getRef("refs/heads/master");
+</pre>
+		<h3 id="RevWalk">RevWalk</h3>
+		<p>A 
+			<b>RevWalk</b> walks a commit graph and produces the matching commits in order.
+		</p>
+		<pre>RevWalk walk = new RevWalk(repository);
+</pre>
+		<p>TODO talk about filters</p>
+		<h3 id="RevCommit">RevCommit</h3>
+		<p>A 
+			<b>RevCommit</b> represents a commit in the Git object model.
+		</p>
+		<p>To parse a commit, simply use a 
+			<b>RevWalk</b> instance:
+		</p>
+		<pre>RevWalk walk = new RevWalk(repository);
+RevCommit commit = walk.parseCommit(objectIdOfCommit);
+</pre>
+		<h3 id="RevTag">RevTag</h3>
+		<p>A 
+			<b>RevTag</b> represents a tag in the Git object model.
+		</p>
+		<p>To parse a tag, simply use a 
+			<b>RevWalk</b> instance:
+		</p>
+		<pre>RevWalk walk = new RevWalk(repository);
+RevTag tag = walk.parseTag(objectIdOfTag);
+</pre>
+		<h3 id="RevTree">RevTree</h3>
+		<p>A 
+			<b>RevTree</b> represents a tree in the Git object model.
+		</p>
+		<p>To parse a tree, simply use a 
+			<b>RevWalk</b> instance:
+		</p>
+		<pre>RevWalk walk = new RevWalk(repository);
+RevTree tree = walk.parseTree(objectIdOfTree);
+</pre><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="User-Guide.html" title="JGit User Guide">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="User-Guide.html" title="JGit User Guide">
+						<img alt="JGit User Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Reference.html" title="Reference">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">JGit User Guide</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Reference</td>
+			</tr>
+		</table>
+	</body>
+</html>

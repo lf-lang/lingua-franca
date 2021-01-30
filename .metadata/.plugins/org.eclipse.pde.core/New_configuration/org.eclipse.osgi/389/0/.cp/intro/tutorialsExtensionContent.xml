@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?><!--
+     Copyright (c) 2005, 2008 IBM Corporation and others.
+
+     This program and the accompanying materials
+     are made available under the terms of the Eclipse Public License 2.0
+     which accompanies this distribution, and is available at
+     https://www.eclipse.org/legal/epl-2.0/
+
+     SPDX-License-Identifier: EPL-2.0
+    
+     Contributors:
+         IBM Corporation - initial API and implementation
+ -->
+
+<introContent>
+  <!-- Extension to the SDK Tutorial Page. -->
+  <extensionContent id="org.eclipse.pde" name="PDE" alt-style="css/tutorials.properties" style="css/tutorials.css" path="tutorials/@">
+    <group label="Eclipse Plug-in Development" id="pde" style-id="content-group">
+      <link url="http://org.eclipse.ui.intro/showStandby?partId=org.eclipse.platform.cheatsheet&amp;input=org.eclipse.pde.helloworld" 
+            label="Create an Eclipse plug-in" 
+            id="pde-hello-world" 
+            style-id="content-link">
+        <text>
+           End-to-end tutorial demonstrating how to create a plug-in, 
+           a plug-in extension, a feature, and an update site as well as 
+           how to install and uninstall a feature
+        </text>
+      </link>
+      <link url="http://org.eclipse.ui.intro/showStandby?partId=org.eclipse.platform.cheatsheet&amp;input=org.eclipse.pde.rcpapp" 
+            label="Create a Rich Client Platform (RCP) application" 
+            id="rcp" 
+            style-id="content-link">
+        <text>
+           End-to-end tutorial demonstrating how to create a plug-in, define a 
+           plug-in based product, customize a product, export an RCP application 
+           and define a feature based product
+        </text>
+      </link>
+    </group>
+  </extensionContent>
+</introContent>

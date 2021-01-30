@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit Contributor Guide - Development IDE Configuration</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Development IDE Configuration</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Obtaining-Sources.html" title="Obtaining Sources">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Builds.html" title="Builds">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Obtaining Sources</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Builds</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Development_IDE_Configuration">Development IDE Configuration</h1>
+		<p>Download and install the Eclipse package "Eclipse IDE for Eclipse Committers" or "Eclipse for RCP and RAP Developers" from here, if you don't already have it:</p>
+		<p>
+			<a href="http://www.eclipse.org/downloads/" target="egit_external">http://www.eclipse.org/downloads/</a>
+		</p>
+		<h2 id="Tools">Tools</h2>
+		<p>
+			<b>Note:</b> You have to use at least Eclipse 4.3.2 (Kepler SR2), earlier versions had a bug where the following did not work (see 
+			<a href="https://bugs.eclipse.org/bugs/show_bug.cgi?id=409073" target="egit_external">bug 409073</a>).
+		</p>
+		<p>To install all the necessary tools to work on EGit/JGit, there is a 
+			<a href="http://git.eclipse.org/c/egit/egit.git/plain/tools/egit-developer-tools.p2f" target="egit_external">egit-developer-tools.p2f</a> file which you can use as follows:
+		</p>
+		<ul>
+			<li>File &gt; Import &gt; Install &gt; Install Software Items from File</li>
+			<li>Browse...
+				<ul>
+					<li>Go to the location of your egit repository, open the 
+						<i>tools</i> directory and select 
+						<i>egit-developer-tools.p2f</i>
+					</li>
+					<li>Alternatively, if you only want to contribute to JGit, download the file from the above link and select it</li>
+				</ul>
+			</li>
+			<li>All the items you don't already have should be selected automatically</li>
+			<li>Finish the wizard</li>
+			<li>Restart</li>
+		</ul>
+		<h2 id="Java_Requirements">Java Requirements</h2>
+		<p>EGit and JGit have Java 7.0 and 
+			<a href="https://wiki.eclipse.org/EGit/FAQ#What_versions_of_Eclipse_does_EGit_target.3F" target="egit_external">Eclipse Platform 3.8.2 (Juno)</a> as minimum requirements, so dependencies to newer Java and platform versions must be avoided.
+		</p>
+		<p>We are using 
+			<i>API Tools Environment Descriptions</i> (see changes for 
+			<a href="https://git.eclipse.org/r/#/c/4785/" target="egit_external">JGit</a> and 
+			<a href="https://git.eclipse.org/r/#/c/4365/" target="egit_external">EGit</a>) to facilitate detecting code which isn't working on Java 7. If you followed the instructions in the 
+			<i>Tools</i> section above, the necessary descriptions should already be installed. Otherwise install 
+			<i>API Tools Environment Descriptions</i> from the release train repository, see 
+			<a href="http://wiki.eclipse.org/Execution_Environments#Installing_Execution_Environment_Descriptions" title="Execution_Environments#Installing_Execution_Environment_Descriptions" target="egit_external">Installing Execution Environment Descriptions</a>.
+		</p>
+		<h2 id="Dependencies">Dependencies</h2>
+		<p>After importing the EGit and JGit projects in Eclipse, they will not compile due to missing dependencies. There are a few ways to install these.</p>
+		<h3 id="Option_1_.28recommended.29:_Use_a_Target_Platform">Option 1 (recommended): Use a Target Platform</h3>
+		<p>
+			<img align="right" title="EGit target platforms in org.eclipse.egit.target" alt="EGit target platforms in org.eclipse.egit.target" border="0" src="images/EGit-Target-Platforms.png‎"/>
+		</p>
+		<p>This is the easiest method to install dependencies:</p>
+		<ul>
+			<li>Open the 
+				<i>org.eclipse.egit.target</i> project
+			</li>
+			<li>Choose the 
+				<i>egit-&lt;version&gt;.target</i> file matching the version of your Eclipse platform (e.g. 4.5 for Mars) and open it (this may take a while as it downloads the indexes of the p2 repositories the target platform refers to)
+			</li>
+			<li>In the resulting editor, click on the 
+				<i>Set as Target Platform</i> link at the top right (this may also take a while since it downloads the dependencies)
+			</li>
+		</ul>
+		<p>After that, the workspace should build cleanly. If not, try Project &gt; Clean... &gt; All. If this also doesn't help open Preferences &gt; Plug-In Development &gt; Target Platform,
+			select the checked target platform and click "Reload..." this will flush PDE's bundle cache and re-download the artifacts listed in the target platform.</p>
+		<p>There are different target definitions, one for each version of Eclipse that EGit supports. The one you select will be the one that is started if you want to try out a feature or bug fix.</p>
+		<p>You can always switch between them to test on different Eclipse versions. E.g. when you are developing some major UI functionality, you should try it with the oldest supported Eclipse release to make sure it doesn't depend on API that is only available in later versions.</p>
+		<h3 id="Option_2:_Install_from_Orbit_P2_Repository">Option 2: Install from Orbit P2 Repository</h3>
+		<p>Install the dependencies from the Orbit p2 repository by importing the p2f file described 
+			<a href="#Tools">above</a>.
+		</p>
+		<p>If you want to try another Orbit p2 repository version on the 
+			<a href="https://download.eclipse.org/tools/orbit/downloads/" target="egit_external">Orbit Downloads</a> page, click on the newest recommended build (R-Build) and copy the update site link from "Orbit Build Repository" (it should end with <tt>/repository</tt>). Add this update site in Eclipse using "Install New Software..." and then find and select the following entries:
+		</p>
+		<ul>
+			<li>Java Mocking and Stubbing Framework</li>
+			<li>Args4j</li>
+			<li>Protocol Buffers</li>
+			<li>Apache Jakarta log4j Plug-in</li>
+			<li>Apache Commons Compress</li>
+			<li>XZ Data Compression</li>
+			<li>Hamcrest Library of Matchers</li>
+			<li>JavaEWAH</li>
+		</ul>
+		<h2 id="Running">Running</h2>
+		<p>Now that everything builds, the next step is to run an Eclipse instance with the EGit/JGit code of the workspace:</p>
+		<ul>
+			<li>Right click on the 
+				<i>org.eclipse.egit.ui</i> project
+			</li>
+			<li>Debug As &gt; Eclipse Application</li>
+		</ul>
+		<p>This should create a new launch configuration and start a new nested Eclipse instance in debug mode. The created launch configuration can be edited, e.g. to change where the workspace of the nested Eclipse should be located.</p>
+		<p>The launch configuration can also be used in normal (non-debug) mode of course.</p>
+		<p>Also see the 
+			<a href="http://help.eclipse.org/juno/topic/org.eclipse.pde.doc.user/guide/tools/launchers/eclipse_application_launcher.htm" target="egit_external">reference on eclipse application launchers</a>.
+		</p>
+		<p>
+			<br/>
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Obtaining-Sources.html" title="Obtaining Sources">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="EGit Contributor Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Builds.html" title="Builds">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">Obtaining Sources</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Builds</td>
+			</tr>
+		</table>
+	</body>
+</html>

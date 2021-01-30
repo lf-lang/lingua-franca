@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='utf-8' ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title>EGit Contributor Guide - Obtaining Sources</title>
+		<link type="text/css" rel="stylesheet" href="../../book.css"/>
+	</head>
+	<body>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<th style="width: 100%" align="center" colspan="3">Obtaining Sources</th>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right">
+					<a href="Development-IDE-Configuration.html" title="Development IDE Configuration">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">EGit Contributor Guide</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Development IDE Configuration</td>
+			</tr>
+		</table><hr class="navigation-separator"/>
+		<h1 id="Obtaining_Sources">Obtaining Sources</h1>
+		<p>EGit and JGit are self hosted in Git. You can browse the repositories on the web: 
+
+			<a href="http://git.eclipse.org/c/egit/" target="egit_external">EGit</a>, 
+			<a href="http://git.eclipse.org/c/jgit/" target="egit_external">JGit</a>
+		</p>
+		<p>The first section below describes how to clone a repository and can be skipped if you have done this before.</p>
+		<p>The next section lists the repositories and their URLs.</p>
+		<h2 id="Cloning">Cloning</h2>
+		<h3 id="On_the_command_line">On the command line</h3>
+		<pre style="width: 40em;">
+git clone &lt;enter URL&gt;
+</pre>
+		<p>After that, import the projects into Eclipse using Import &gt; Existing Projects into Workspace.</p>
+		<h3 id="Using_EGit_.28see_.5Bhttp:.2F.2Fwww.eclipse.org.2Fegit.2Fdownload.2F_download_page.5D.29">Using EGit (see 
+			<a href="http://www.eclipse.org/egit/download/" target="egit_external">download page</a>)
+		</h3>
+		<p>First, verify that the default repository folder as set on the main Git preference page is to your liking.</p>
+		<p>Then, clone the repository and import the projects:</p>
+		<ul>
+			<li>Open 
+				<i>File</i> &gt; 
+				<i>Import...</i> and select 
+				<i>Git</i> &gt; 
+				<i>Projects from Git</i>
+			</li>
+			<li>Selet 
+				<i>URI</i>
+			</li>
+			<li>Enter the URL (see next section) </li>
+			<li>Import existing projects into the workspace from the newly created working directory</li>
+		</ul>
+		<h2 id="Repositories">Repositories</h2>
+		<p>To develop EGit, the EGit and JGit repositories are needed, the others are optional. To develop JGit, only JGit is needed. </p>
+		<h3 id="EGit">EGit</h3>
+		<p>URL: 
+			<a href="https://git.eclipse.org/r/egit/egit.git" target="egit_external">https://git.eclipse.org/r/egit/egit.git</a>
+		</p>
+		<p>This is the main repository, where the standard EGit feature is developed. It contains the code for the UI and Eclipse integration.</p>
+		<h3 id="JGit">JGit</h3>
+		<p>URL: 
+			<a href="https://git.eclipse.org/r/jgit/jgit.git" target="egit_external">https://git.eclipse.org/r/jgit/jgit.git</a>
+		</p>
+		<p>This is the Java implementation of Git used by EGit, for working with Git repositories.</p>
+		<h3 id="EGit_GitHub_Integration">EGit GitHub Integration</h3>
+		<p>URL: 
+			<a href="https://git.eclipse.org/r/p/egit/egit-github.git" target="egit_external">https://git.eclipse.org/r/p/egit/egit-github.git</a>
+		</p>
+		<p>EGit also provides tools for integrating with GitHub and Mylyn tasks.</p>
+		<p>For getting the dependencies, open the file <code>org.eclipse.mylyn.github-feature/github.target</code> (
+			<a href="http://git.eclipse.org/c/egit/egit-github.git/plain/org.eclipse.mylyn.github-feature/github.target" target="egit_external">view on web</a>) and select 
+			<i>Set as Target Platfrom</i>.
+		</p>
+		<h3 id="EGit_PDE_Tools">EGit PDE Tools</h3>
+		<p>URL: 
+			<a href="https://git.eclipse.org/r/egit/egit-pde.git" target="egit_external">https://git.eclipse.org/r/egit/egit-pde.git</a>
+		</p>
+		<p>EGit also provides tools for integrating with 
+			<a href="http://wiki.eclipse.org/PDE/Build" title="PDE/Build" target="egit_external">PDE Build</a> and Eclipse RelEng Tools. If you are an Eclipse developer using PDE Build and/or the Eclipse RelEng tools you might be interesting in the following as well. Otherwise you might just skip this section. 
+		</p>
+		<p>In addition to the 
+			<a href="Development-IDE-Configuration.html#Dependencies">dependencies</a> required for JGit and EGit you also need Eclipse PDE (&gt;= 3.6.1) as well as <code>org.eclipse.releng.tools</code> in your target platform or checked out from Git in your workspaces.
+		</p><hr class="navigation-separator"/>
+		<table class="navigation" style="width: 100%;" border="0" summary="navigation">
+			<tr>
+				<td style="width: 20%" align="left">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="Previous" border="0" src="../../images/prev.gif"/>
+					</a>
+				</td>
+				<td style="width: 60%" align="center">
+					<a href="Contributor-Guide.html" title="EGit Contributor Guide">
+						<img alt="EGit Contributor Guide" border="0" src="../../images/home.gif"/>
+					</a>
+				</td>
+				<td style="width: 20%" align="right">
+					<a href="Development-IDE-Configuration.html" title="Development IDE Configuration">
+						<img alt="Next" border="0" src="../../images/next.gif"/>
+					</a>
+				</td>
+			</tr>
+			<tr>
+				<td style="width: 20%" align="left" valign="top">EGit Contributor Guide</td>
+				<td style="width: 60%" align="center"></td>
+				<td style="width: 20%" align="right" valign="top">Development IDE Configuration</td>
+			</tr>
+		</table>
+	</body>
+</html>

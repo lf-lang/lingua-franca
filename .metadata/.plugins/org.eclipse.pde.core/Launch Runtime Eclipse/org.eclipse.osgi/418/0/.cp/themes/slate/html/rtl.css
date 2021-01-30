@@ -1,0 +1,181 @@
+/*******************************************************************************
+ * Copyright (c) 2009, 2015 IBM Corporation and others.
+ *
+ * This program and the accompanying materials 
+ * are made available under the terms of the Eclipse Public License 2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/legal/epl-2.0/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ * 
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
+/* 
+ * This file contains styles that are specific to right to left display
+ */
+
+#page-links {
+     direction: rtl;
+ }
+
+table {
+    direction: rtl;
+}
+
+#page-links a { 
+	float: right !important;
+	margin-right: 0% !important;
+	margin-left: auto !important;
+}
+
+#page-links a span.link-label {
+	left: auto !important;
+	right: 100px !important;
+	margin-right: auto !important;
+	margin-left: 60px !important;
+}
+
+#page-links a p .text {
+    left: auto !important;
+	right: 100px !important;
+	margin-right: auto !important;
+	margin-left: 53px !important; 
+}
+
+#page-content p { 
+	text-align : right; 
+}
+
+#page-content #content-header H4, .page-description {
+	text-align : right;
+}
+
+#page-content table tr td a > .link-label {
+    left:0px;
+}
+
+#page-content * td a .link-label { 
+    display:block;
+    left:0px;
+    margin-right:0px;
+    position:static;
+    top:0px;
+}
+
+#page-content * td a  .text { 
+    display:block;
+    left:0px;
+    margin-right:0px;
+    position:static;
+    top:0px;
+}
+
+#page-content * a p {
+    margin-bottom:0px;
+    position:static;
+    top:0px;
+}
+
+#branding { 
+	left: auto !important;
+	right: 20px !important;
+}
+
+.content-img { 
+	padding-left: auto !important;
+	padding-right: 15px !important;
+}
+
+.content-group {
+	text-align: right;
+}
+
+.intro-header {  
+	margin-left: auto !important;
+	margin-right: 0% !important;
+	text-align: right !important;
+}
+
+.intro-header span {
+    margin-right : 45px;
+    padding-right : 45px;
+}
+
+#navigation-links a {
+  float:right;
+  margin-left:auto;
+  margin-left : 10px;
+}
+
+#action-links a {
+    float:left;
+    margin-left:20px;
+    margin-right : auto;
+}
+
+div div#rss-news {  
+   position:static;
+   margin-left:0px;
+   margin-bottom: 0px;
+   margin-top: 10px;
+   top : 0px;
+   margin-right : 30px;
+}
+
+div ul.news-list {
+	list-style-image: url("../graphics/icons/ctool/arrow_rtl.svg");
+	margin-left: 0px;
+	padding-right: 10px;
+	margin-right: 10px;
+}
+
+/* The 'closed' toggle image part of the folding section. */
+#page-content .section-title-link .section-toggle-image-closed {
+	background-image : url(../graphics/icons/ctool/widget_closed_rtl.gif);
+}
+
+#page-content .section-title-link:hover .section-toggle-image-closed,
+#page-content .section-title-link:active .section-toggle-image-closed {
+	background-image : url(../graphics/icons/ctool/widget_closed_hov_rtl.gif);
+}
+
+#standby #links-background {
+    text-align:right;
+}
+
+#standby #page-links a {
+	text-align : right; 
+}
+
+#standby #page-links a .link-label {
+    left:auto;
+    right : 60px;
+}
+
+#standby #page-links p {
+    right : 60px;
+}  
+
+#standby #page-links a p .text {
+    margin-right:auto;
+    left:auto;
+    right : 60px;
+}
+
+#page-links a#workbench { 
+	right: auto !important;
+	left: 20px !important;
+}
+
+#page-links a#workbench .link-label { 
+	margin-right: auto !important;
+	margin-left: 0px !important;
+}
+
+@media (prefers-color-scheme: dark) {
+	div ul.news-list {
+		list-style-image: url("../graphics/icons/ctool/arrow_rtl_light.svg");
+	}
+}
