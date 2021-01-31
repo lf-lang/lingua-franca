@@ -551,12 +551,12 @@ int __next() {
         next_tag = stop_tag;
     }
 
-#ifdef _LF_IS_FEDERATED
-    // In case this is in a federation, notify the RTI of the
-    // next earliest tag at which this federate might produce an event.
-    // This function may block until it is safe to advance the current tag
-    // to the next tag. Specifically, it blocks if there are upstream federates.
-    // If an action triggers during that wait, it will unblock
+#ifdef _LF_COORD_CENTRALIZED
+    // In case this is in a federation with centralized coordination, notify 
+    // the RTI of the next earliest tag at which this federate might produce 
+    // an event. This function may block until it is safe to advance the current 
+    // tag to the next tag. Specifically, it blocks if there are upstream 
+    // federates. If an action triggers during that wait, it will unblock
     // and return with a time (typically) less than the next_time.
     tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
     if (compare_tags(grant_tag, next_tag) != 0) {
@@ -571,7 +571,7 @@ int __next() {
     if (_lf_is_tag_after_stop_tag(next_tag)) {
         next_tag = stop_tag;
     }
-#endif // _LF_IS_FEDERATED
+#endif // _LF_COORD_CENTRALIZED
 
     // Wait for physical time to advance to the next event time (or stop time).
     // This can be interrupted if a physical action triggers (e.g., a message
@@ -719,7 +719,7 @@ bool _lf_is_blocked_by_executing_reaction(reaction_t* reaction) {
     if (reaction == NULL) {
         return false;
     }
-    for (int i = 1; i < executing_q->size; i++) {
+    for (size_t i = 1; i < executing_q->size; i++) {
         reaction_t* running = (reaction_t*) executing_q->d[i];
         if (LEVEL(running->index) < LEVEL(reaction->index)
                 && OVERLAPPING(reaction->chain_id, running->chain_id)) {
@@ -817,7 +817,6 @@ volatile bool __advancing_time = false;
  * @param reaction The reaction.
  */
 void _lf_enqueue_reaction(reaction_t* reaction) {
-    bool reaction_inserted = false;
     // Acquire the mutex lock.
     pthread_mutex_lock(&mutex);
     // Do not enqueue this reaction twice.
@@ -1087,7 +1086,7 @@ void start_threads() {
     LOG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
     __thread_ids = (pthread_t*)malloc(_lf_number_of_threads * sizeof(pthread_t));
     number_of_idle_threads = _lf_number_of_threads;
-    for (int i = 0; i < _lf_number_of_threads; i++) {
+    for (unsigned int i = 0; i < _lf_number_of_threads; i++) {
         pthread_create(&__thread_ids[i], NULL, worker, NULL);
     }
 }

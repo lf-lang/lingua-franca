@@ -636,12 +636,13 @@ class CGenerator extends GeneratorBase {
                 pr("}")
 
                 // Generate a function that will either do nothing
-                // (if there is only one federate) or, if there are
+                // (if there is only one federate or the coordination 
+                // is set to decentralized) or, if there are
                 // downstream federates, will notify the RTI
                 // that the specified logical time is complete.
                 pr('''
                     void logical_tag_complete(instant_t timestep, microstep_t microstep) {
-                        «IF federates.length > 1»
+                        «IF federates.length > 1 && config.coordination == CoordinationType.CENTRALIZED»
                             _lf_logical_tag_complete(timestep, microstep);
                         «ENDIF»
                     }
@@ -687,6 +688,7 @@ class CGenerator extends GeneratorBase {
                             // if the socket ID is not -1, the connection is still open. 
                             // Send an EOF by closing the socket here.
                             for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+                                // Close outbound connections
                                 if (_lf_federate_sockets_for_outbound_p2p_connections[i] != -1) {
                                     close(_lf_federate_sockets_for_outbound_p2p_connections[i]);
                                     _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
@@ -694,8 +696,9 @@ class CGenerator extends GeneratorBase {
                             }
                             «IF federate.inboundP2PConnections.length > 0»
                                 «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
-                                // void* thread_return;
-                                // pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                                void* thread_return;
+                                info_print("Waiting for incoming connections to close.");
+                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
                             write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
@@ -4107,6 +4110,8 @@ class CGenerator extends GeneratorBase {
         // in the C target. Therefore, the nuances regarding
         // the microstep delay are currently not implemented.
         var String additionalDelayString = '-1';
+        // Name of the next immediate destination of this message
+        var String next_destination_name = '''"federate «receivingFed.id»"'''
         if (delay !== null) {
             additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
             // FIXME: handle the case where the delay is a parameter.
@@ -4122,16 +4127,24 @@ class CGenerator extends GeneratorBase {
             // Send the message via rti
             socket = '''_lf_rti_socket_TCP'''
             messageType = "TIMED_MESSAGE"
+            next_destination_name = '''"the RTI"'''
         }
         
         
         var String sendingFunction = '''send_timed_message'''
-        var String commonArgs = '''«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+        var String commonArgs = '''«additionalDelayString», 
+                   «socket»,
+                   «messageType»,
+                   «receivingPortID»,
+                   «receivingFed.id»,
+                   «next_destination_name»,
+                   message_length'''
         if (isPhysical) {
             // Messages going on a physical connection do not
             // carry a timestamp or require the delay;
             sendingFunction = '''send_message'''            
-            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id»,
+                   «next_destination_name», message_length'''
         }
         
         if (isTokenType(type)) {

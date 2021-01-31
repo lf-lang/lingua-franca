@@ -1070,7 +1070,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
                 intended_tag.microstep++;
             }
             if (_lf_is_tag_after_stop_tag(intended_tag)) {
-                warning_print("Attempt to schedule an event after stop_tag was rejected.");
+                DEBUG_PRINT("Attempt to schedule an event after stop_tag was rejected.");
                 // Scheduling an event will incur a microstep
                 // after the stop tag.
                 _lf_recycle_event(e);

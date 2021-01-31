@@ -276,6 +276,7 @@ void create_server(int specified_port) {
  *  federates.
  * @param port The ID of the destination port.
  * @param federate The ID of the destination federate.
+ * @param next_destination_str The name of the next destination in string format
  * @param length The message length.
  * @param message The message.
  */
@@ -283,6 +284,7 @@ void send_message(int socket,
                   int message_type,
                   unsigned int port,
                   unsigned int federate,
+                  const char next_destination_str[],
                   size_t length,
                   unsigned char* message) {
     assert(port < 65536);
@@ -300,14 +302,14 @@ void send_message(int socket,
     // The next four bytes are the message length.
     encode_int(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
 
-    LOG_PRINT("Sending untimed message to federate %d.", federate);
+    LOG_PRINT("Sending untimed message to %s.", next_destination_str);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     pthread_mutex_lock(&socket_mutex);
-    write_to_socket_errexit(socket, header_length, header_buffer, "Failed to send message header to the RTI.");
-    write_to_socket_errexit(socket, length, message, "Failed to send message body to the RTI.");
+    write_to_socket_errexit(socket, header_length, header_buffer, "Failed to send message header to to %s.", next_destination_str);
+    write_to_socket_errexit(socket, length, message, "Failed to send message body to to %s.", next_destination_str);
     pthread_mutex_unlock(&socket_mutex);
 }
 
@@ -336,6 +338,7 @@ void send_message(int socket,
  *  federates.
  * @param port The ID of the destination port.
  * @param federate The ID of the destination federate.
+ * @param next_destination_str The name of the next destination in string format
  * @param length The message length.
  * @param message The message.
  */
@@ -344,6 +347,7 @@ void send_timed_message(interval_t additional_delay,
                         int message_type,
                         unsigned int port,
                         unsigned int federate,
+                        const char next_destination_str[],
                         size_t length,
                         unsigned char* message) {
     assert(port < 65536);
@@ -391,27 +395,27 @@ void send_timed_message(interval_t additional_delay,
         // should be (get_logical_time(), get_microstep())
     }
 
+    // Next 8 bytes are the timestamp.
+    encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    // Next 4 bytes are the microstep.
+    encode_int(current_message_microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
+    LOG_PRINT("Sending message with tag (%lld, %u) to %s.",
+            current_message_timestamp - start_time, current_message_microstep, next_destination_str);
+
+    // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
+    const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
+
     if (_lf_is_tag_after_stop_tag((tag_t){.time=current_message_timestamp,.microstep=current_message_microstep})) {
         // Message tag is past the timeout time (the stop time) so it should
         // not be sent.
         return;
     }
-
-    // Next 8 bytes are the timestamp.
-    encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
-    // Next 4 bytes are the microstep.
-    encode_int(current_message_microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
-    LOG_PRINT("Sending message with tag (%lld, %u) to federate %d.",
-            current_message_timestamp - start_time, current_message_microstep, federate);
-
-    // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
-    const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     pthread_mutex_lock(&socket_mutex);
     write_to_socket_errexit(socket, header_length, header_buffer,
-            "Failed to send timed message header to the RTI.");
+            "Failed to send timed message header to %s.", next_destination_str);
     write_to_socket_errexit(socket, length, message,
-            "Federate %d failed to send timed message body.");
+            "Federate %d failed to send timed message body to %s.", next_destination_str);
     pthread_mutex_unlock(&socket_mutex);
 }
 
@@ -455,7 +459,7 @@ void* handle_p2p_connections_from_federates(void* ignored) {
         }
         LOG_PRINT("Accepted new connection from remote federate.");
 
-        size_t header_length = 1 + sizeof(ushort) + 1;
+        int header_length = 1 + sizeof(ushort) + 1;
         unsigned char buffer[header_length];
         int bytes_read = read_from_socket(socket_id, header_length, (unsigned char*)&buffer);
         if (bytes_read != header_length || buffer[0] != P2P_SENDING_FED_ID) {
@@ -789,7 +793,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
 
         instant_t r5 = get_physical_time();
 
-        if (bytes_read < 1 + sizeof(instant_t)
+        if (bytes_read < (int)(1 + sizeof(instant_t))
                 || buffer[0] != PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE) {
             warning_print("Clock sync: Did not get the expected coded probe message from the RTI. "
                     "Skipping clock synchronization round.");
@@ -850,9 +854,10 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     
     if (_lf_rti_socket_stat.received_T4_messages_in_current_sync_window >=
             _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL) {
-
+        
+        lf_stat_ll stats = {0, 0, 0, 0};
 #ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default 
-        lf_stat_ll stats = calculate_socket_stat(&_lf_rti_socket_stat);
+        stats = calculate_socket_stat(&_lf_rti_socket_stat);
         // Issue a warning if standard deviation is high in data
         if (stats.standard_deviation >= CLOCK_SYNC_GUARD_BAND) {
             warning_print("Clock sync: Large standard deviation detected in network delays (%lld) for the current period."
@@ -865,21 +870,18 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // For the AVG algorithm, history is a running average and can be directly
         // applied                                                 
         _lf_global_physical_clock_offset += _lf_rti_socket_stat.history;
+        // @note AVG and SD will be zero if collect-stats is set to false
         LOG_PRINT("Clock sync:"
                     " New offset: %lld."
                     " Round trip delay to RTI (now): %lld."
-#ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default 
                     " (AVG): %lld."
                     " (SD): %lld."
-#endif
                     " Local round trip delay: %lld."
                     " Test offset: %lld.",
                     _lf_global_physical_clock_offset,
                     network_round_trip_delay,
-#ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default
                     stats.average,
                     stats.standard_deviation,
-#endif                    
                     _lf_rti_socket_stat.local_delay,
                     _lf_global_test_physical_clock_offset);
         // Reset the stats
@@ -1279,7 +1281,7 @@ void handle_message(int socket, unsigned char* buffer) {
     // Allocate memory for the message contents.
     unsigned char* message_contents = (unsigned char*)malloc(length);
     int bytes_read = read_from_socket(socket, length, message_contents);
-    if (bytes_read < length) {
+    if (bytes_read < (int)length) {
         // FIXME: Need better error handling?
         error_print_and_exit("Failed to read message body.");
     }
@@ -1332,8 +1334,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
 
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
-                               // with decentralized coordination
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // For logical connections in decentralized coordination,
     // increment the barrier to prevent advancement of tag beyond
     // the received tag if possible. The following function call
@@ -1349,8 +1350,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     unsigned char* message_contents = (unsigned char*)malloc(length);
     int bytes_read = read_from_socket(socket, length, message_contents);
     if (bytes_read < length) {
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
-                               // with decentralized coordination
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
         pthread_mutex_lock(&mutex);
         // Decrement the barrier to allow advancement of tag.
         _lf_decrement_global_tag_barrier_already_locked();
@@ -1374,8 +1374,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     schedule_message_received_from_network_already_locked(action, tag, message_contents,
                                                           length);
 
-#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs \
-                               // with decentralized coordination
+#ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // Finally, decrement the barrier to allow the execution to continue
     // past the raised barrier
     _lf_decrement_global_tag_barrier_already_locked();
