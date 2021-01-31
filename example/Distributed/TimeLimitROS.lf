@@ -56,6 +56,8 @@ preamble {=
 
     #include "rclcpp/rclcpp.hpp"
     #include "std_msgs/msg/int32.hpp"
+    
+    #define QUEUE_DEPTH 1000
 =}
 
 reactor Clock(offset:time(0), period:time(1 sec)) {
@@ -65,7 +67,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
                 MinimalPublisher()
                 : Node("minimal_publisher")
                 {
-                    publisher_ = this->create_publisher<std_msgs::msg::Int32>("LF_TimeLimit_y", 10);
+                    publisher_ = this->create_publisher<std_msgs::msg::Int32>("LF_TimeLimit_y", QUEUE_DEPTH);
                 }
             
                 rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr publisher_;
@@ -100,7 +102,7 @@ reactor Destination {
                 MinimalSubscriber(void* physical_action)
                 : Node("LF_TimeLimit_Destination"), physical_action_(physical_action) {
                     subscription_ = this->create_subscription<std_msgs::msg::Int32>(
-                    "LF_TimeLimit_y", 10, std::bind(&MinimalSubscriber::topic_callback, this, std::placeholders::_1));
+                    "LF_TimeLimit_y", QUEUE_DEPTH, std::bind(&MinimalSubscriber::topic_callback, this, std::placeholders::_1));
                 }
 
             private:
@@ -123,7 +125,10 @@ reactor Destination {
     reaction(ros_message_x) {=
         // printf("%d\n", x->value);
         if (ros_message_x->value != self->s) {
-            warning_print("Expected %d and got %d.", self->s, ros_message_x->value);
+            warning_print("Expected %d and got %d. " 
+                "Jumping my expectation to %d in order to catch up with the sender.", 
+                self->s, ros_message_x->value, ros_message_x->value);
+            self->s = ros_message_x->value;
         }
         self->s++;
     =}
