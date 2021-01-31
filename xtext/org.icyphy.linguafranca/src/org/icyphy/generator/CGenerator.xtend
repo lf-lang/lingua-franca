@@ -636,12 +636,13 @@ class CGenerator extends GeneratorBase {
                 pr("}")
 
                 // Generate a function that will either do nothing
-                // (if there is only one federate) or, if there are
+                // (if there is only one federate or the coordination 
+                // is set to decentralized) or, if there are
                 // downstream federates, will notify the RTI
                 // that the specified logical time is complete.
                 pr('''
                     void logical_tag_complete(instant_t timestep, microstep_t microstep) {
-                        «IF federates.length > 1»
+                        «IF federates.length > 1 && config.coordination == CoordinationType.CENTRALIZED»
                             _lf_logical_tag_complete(timestep, microstep);
                         «ENDIF»
                     }
@@ -4052,6 +4053,8 @@ class CGenerator extends GeneratorBase {
         // in the C target. Therefore, the nuances regarding
         // the microstep delay are currently not implemented.
         var String additionalDelayString = '-1';
+        // Name of the next immediate destination of this message
+        var String next_destination_name = '''"federate «receivingFed.id»"'''
         if (delay !== null) {
             additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
             // FIXME: handle the case where the delay is a parameter.
@@ -4067,11 +4070,18 @@ class CGenerator extends GeneratorBase {
             // Send the message via rti
             socket = '''_lf_rti_socket_TCP'''
             messageType = "TIMED_MESSAGE"
+            next_destination_name = '''"the RTI"'''
         }
         
         
         var String sendingFunction = '''send_timed_message'''
-        var String commonArgs = '''«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+        var String commonArgs = '''«additionalDelayString», 
+                   «socket»,
+                   «messageType»,
+                   «receivingPortID»,
+                   «receivingFed.id»,
+                   «next_destination_name»,
+                   message_length'''
         if (isPhysical) {
             // Messages going on a physical connection do not
             // carry a timestamp or require the delay;
