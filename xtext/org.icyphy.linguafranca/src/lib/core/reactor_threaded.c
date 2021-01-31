@@ -551,12 +551,12 @@ int __next() {
         next_tag = stop_tag;
     }
 
-#ifdef _LF_IS_FEDERATED
-    // In case this is in a federation, notify the RTI of the
-    // next earliest tag at which this federate might produce an event.
-    // This function may block until it is safe to advance the current tag
-    // to the next tag. Specifically, it blocks if there are upstream federates.
-    // If an action triggers during that wait, it will unblock
+#ifdef _LF_COORD_CENTRALIZED
+    // In case this is in a federation with centralized coordination, notify 
+    // the RTI of the next earliest tag at which this federate might produce 
+    // an event. This function may block until it is safe to advance the current 
+    // tag to the next tag. Specifically, it blocks if there are upstream 
+    // federates. If an action triggers during that wait, it will unblock
     // and return with a time (typically) less than the next_time.
     tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
     if (compare_tags(grant_tag, next_tag) != 0) {
@@ -571,7 +571,7 @@ int __next() {
     if (_lf_is_tag_after_stop_tag(next_tag)) {
         next_tag = stop_tag;
     }
-#endif // _LF_IS_FEDERATED
+#endif // _LF_COORD_CENTRALIZED
 
     // Wait for physical time to advance to the next event time (or stop time).
     // This can be interrupted if a physical action triggers (e.g., a message
