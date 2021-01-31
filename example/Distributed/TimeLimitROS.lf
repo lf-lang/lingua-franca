@@ -1,0 +1,155 @@
+/** 
+ * This is used to test the performance of ROS (number of reactions per second).
+ * 
+ * 1- To get this example working, install full ROS 2 desktop
+ *    ('https://index.ros.org/doc/ros2/Installation/Foxy/').
+ * 
+ *    Please note that 'colcon' should also be installed.
+ *    See 'https://index.ros.org/doc/ros2/Tutorials/Colcon-Tutorial/' for more details.
+ * 
+ * 2- Follow the instruction in 
+ *    https://index.ros.org/doc/ros2/Tutorials/Writing-A-Simple-Cpp-Publisher-And-Subscriber/
+ *    **section 1** to create a 'TimeLimitROS' package in the current (example/Distributed) folder.
+ * 
+ * 3- Follow section 2.2 and 2.3 to modify the CMakeLists.txt and package.xml.
+ * 
+ * 4- Replace the default C++14 standard in CMakeLists.txt (i.e., set(CMAKE_CXX_STANDARD 14)) 
+ *    with:
+ * 
+ *       # Default to C++20
+ *       if(NOT CMAKE_CXX_STANDARD)
+ *           set(CMAKE_CXX_STANDARD 20)
+ *       endif()
+ * 
+ * and rename the source in 'add_executable' to reflect
+ * 
+ *   add_executable(TimeLimitROS src/TimeLimitROS.cpp)
+ * 
+ * 5- Use lfc (in bin/) to compile the provided .lf file
+ *    
+ *       lfc TimeLimitROS.lf
+ * 
+ * 6- Run the provided build-ROS-node.sh:
+ * 
+ *       ./build-ROS-node.sh TimeLimitROS TimeLimitROS
+ * 
+ * This will create a 'TimeLimitROS' node in the package TimeLimitROS (these names can be changed in 
+ * CMakeLists.txt and in the argument to build-ROS-node.sh).
+ * 
+ * 7- Source the appropriate setup.bash and run the node:
+ * 
+ *       source TimeLimitROS/install/setup.bash
+ *       ros2 run TimeLimitROS TimeLimitROS
+ * 
+ */
+
+target C {
+    keepalive: true,
+    no-compile: true
+};
+
+preamble {=
+    #include <functional>
+    #include <memory>
+    #include <string>
+    #include <iostream>
+
+    #include "rclcpp/rclcpp.hpp"
+    #include "std_msgs/msg/int32.hpp"
+=}
+
+reactor Clock(offset:time(0), period:time(1 sec)) {
+    preamble {=
+        class MinimalPublisher : public rclcpp::Node {
+            public:
+                MinimalPublisher()
+                : Node("minimal_publisher")
+                {
+                    publisher_ = this->create_publisher<std_msgs::msg::Int32>("LF_TimeLimit_y", 10);
+                }
+            
+                rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr publisher_;
+        };        
+    =}
+    state minimal_publisher:{=std::shared_ptr<MinimalPublisher>=};
+    timer t(offset, period);
+    state count:int(0);
+    reaction(startup) {=
+        // std::cout << "Executing startup." << std::endl;
+        char *argv[] = {(char*)"LF_TimeLimit_Clock", NULL};
+        rclcpp::init(1, argv);
+        self->minimal_publisher = std::make_shared<MinimalPublisher>();
+    =}
+    reaction(t) {=
+        auto message = std_msgs::msg::Int32();
+        message.data = ++(self->count);
+        //printf("Reacting at time %ld.\n", get_elapsed_logical_time());
+        self->minimal_publisher->publisher_->publish(message);
+        rclcpp::spin_some(self->minimal_publisher);
+    =}
+    
+    reaction(shutdown) {=
+        // std::cout << "Executing shutdown reaction." << std::endl;
+        rclcpp::shutdown();
+    =}
+}
+reactor Destination {
+    preamble {=
+        class MinimalSubscriber : public rclcpp::Node {
+            public:
+                MinimalSubscriber(void* physical_action)
+                : Node("LF_TimeLimit_Destination"), physical_action_(physical_action) {
+                    subscription_ = this->create_subscription<std_msgs::msg::Int32>(
+                    "LF_TimeLimit_y", 10, std::bind(&MinimalSubscriber::topic_callback, this, std::placeholders::_1));
+                }
+
+            private:
+                void topic_callback(const std_msgs::msg::Int32::SharedPtr msg) const {
+                    schedule_copy(physical_action_, 0, &(msg->data), sizeof(instant_t));
+                }
+                rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr subscription_;
+                void* physical_action_;
+        };
+    =}
+    physical action ros_message_x:int;
+    state minimal_subscriber:{=std::shared_ptr<MinimalSubscriber>=};
+    state s:int(1);
+    
+    reaction(startup) ->  ros_message_x {=
+        // std::cout << "Executing startup." << std::endl;
+        self->minimal_subscriber = std::make_shared<MinimalSubscriber>(ros_message_x);
+    =}
+    
+    reaction(ros_message_x) {=
+        // printf("%d\n", x->value);
+        if (ros_message_x->value != self->s) {
+            warning_print("Expected %d and got %d.", self->s, ros_message_x->value);
+        }
+        self->s++;
+    =}
+    
+    // Keep spinning for new messages
+    timer t(0, 100 usec);
+    reaction(t) {=
+        rclcpp::spin_some(self->minimal_subscriber);
+        // std::cout << "Timer triggered." << std::endl;
+    =}
+    
+    reaction(shutdown) {=
+        info_print("**** shutdown reaction invoked.");
+        if (self->s != 10000002) {
+            warning_print("Expected 10000002 but got %d.", self->s);
+        }
+        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
+        rclcpp::shutdown();
+    =}
+}
+main reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
+    timer stop(10 secs);
+    reaction(stop) {=
+        info_print("Requesting stop.");
+        request_stop();
+    =}
+    c = new Clock(period = period);
+    d = new Destination();
+}
