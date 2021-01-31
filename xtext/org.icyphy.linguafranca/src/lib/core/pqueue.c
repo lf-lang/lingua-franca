@@ -38,9 +38,9 @@
 #include "pqueue.h"
 #include "util.h"
 
-#define left(i)   ((i) << 1)
-#define right(i)  (((i) << 1) + 1)
-#define parent(i) ((i) >> 1)
+#define LF_LEFT(i)   ((i) << 1)
+#define LF_RIGHT(i)  (((i) << 1) + 1)
+#define LF_PARENT(i) ((i) >> 1)
 
 /**
  * Find an element in the queue that matches the given element up to
@@ -69,11 +69,11 @@ void* find_equal(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
     if (q->eqelem(curr, e)) {
         return curr;
     } else {
-        rval = find_equal(q, e, left(pos), max);
+        rval = find_equal(q, e, LF_LEFT(pos), max);
         if (rval) 
             return rval;
         else
-            return find_equal(q, e, right(pos), max);
+            return find_equal(q, e, LF_RIGHT(pos), max);
     }
     return NULL;
 }
@@ -107,11 +107,11 @@ void* find_equal_same_priority(pqueue_t *q, void *e, int pos) {
     if (q->getpri(curr) == q->getpri(e) && q->eqelem(curr, e)) {
         return curr;
     } else {
-        rval = find_equal_same_priority(q, e, left(pos));
+        rval = find_equal_same_priority(q, e, LF_LEFT(pos));
         if (rval) 
             return rval;
         else
-            return find_equal_same_priority(q, e, right(pos));   
+            return find_equal_same_priority(q, e, LF_RIGHT(pos));   
     }
 
     // for (int i=1; i < q->size; i++) {
@@ -162,7 +162,7 @@ size_t pqueue_size(pqueue_t *q) {
 }
 
 static size_t maxchild(pqueue_t *q, size_t i) {
-    size_t child_node = left(i);
+    size_t child_node = LF_LEFT(i);
 
     if (child_node >= q->size)
         return 0;
@@ -179,9 +179,9 @@ static size_t bubble_up(pqueue_t *q, size_t i) {
     void *moving_node = q->d[i];
     pqueue_pri_t moving_pri = q->getpri(moving_node);
 
-    for (parent_node = parent(i);
+    for (parent_node = LF_PARENT(i);
          ((i > 1) && q->cmppri(q->getpri(q->d[parent_node]), moving_pri));
-         i = parent_node, parent_node = parent(i))
+         i = parent_node, parent_node = LF_PARENT(i))
     {
         q->d[i] = q->d[parent_node];
         q->setpos(q->d[i], i);
@@ -300,7 +300,7 @@ void pqueue_dump(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
         fprintf(stdout,
                 "%zu\t%zu\t%zu\t%zu\t%ul\t",
                 i,
-                left(i), right(i), parent(i),
+                LF_LEFT(i), LF_RIGHT(i), LF_PARENT(i),
                 (unsigned int)maxchild(q, i));
         print(out, q->d[i]);
     }
@@ -330,28 +330,28 @@ static int subtree_is_valid(pqueue_t *q, int pos) {
         error_print_and_exit("subtree_is_valid() called with a negative pos index.");
     }
 
-    int left_pos = left(pos);
+    int left_pos = LF_LEFT(pos);
     if (left_pos < 0) {
         error_print_and_exit("subtree_is_valid(): index overflow detected.");
     }
 
     if ((size_t)left_pos < q->size) {
         /* has a left child */
-        if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[left(pos)])))
+        if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[LF_LEFT(pos)])))
             return 0;
-        if (!subtree_is_valid(q, left(pos)))
+        if (!subtree_is_valid(q, LF_LEFT(pos)))
             return 0;
     }
 
-    int right_pos = right(pos);
+    int right_pos = LF_RIGHT(pos);
     if (right_pos < 0) {
         error_print_and_exit("subtree_is_valid(): index overflow detected.");
     }
     if ((size_t)right_pos < q->size) {
         /* has a right child */
-        if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[right(pos)])))
+        if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[LF_RIGHT(pos)])))
             return 0;
-        if (!subtree_is_valid(q, right(pos)))
+        if (!subtree_is_valid(q, LF_RIGHT(pos)))
             return 0;
     }
     return 1;
