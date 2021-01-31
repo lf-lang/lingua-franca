@@ -459,7 +459,7 @@ void* handle_p2p_connections_from_federates(void* ignored) {
         }
         LOG_PRINT("Accepted new connection from remote federate.");
 
-        size_t header_length = 1 + sizeof(ushort) + 1;
+        int header_length = 1 + sizeof(ushort) + 1;
         unsigned char buffer[header_length];
         int bytes_read = read_from_socket(socket_id, header_length, (unsigned char*)&buffer);
         if (bytes_read != header_length || buffer[0] != P2P_SENDING_FED_ID) {
@@ -793,7 +793,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
 
         instant_t r5 = get_physical_time();
 
-        if (bytes_read < 1 + sizeof(instant_t)
+        if (bytes_read < (int)(1 + sizeof(instant_t))
                 || buffer[0] != PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE) {
             warning_print("Clock sync: Did not get the expected coded probe message from the RTI. "
                     "Skipping clock synchronization round.");
@@ -854,9 +854,10 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     
     if (_lf_rti_socket_stat.received_T4_messages_in_current_sync_window >=
             _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL) {
-
+        
+        lf_stat_ll stats = {0, 0, 0, 0};
 #ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default 
-        lf_stat_ll stats = calculate_socket_stat(&_lf_rti_socket_stat);
+        stats = calculate_socket_stat(&_lf_rti_socket_stat);
         // Issue a warning if standard deviation is high in data
         if (stats.standard_deviation >= CLOCK_SYNC_GUARD_BAND) {
             warning_print("Clock sync: Large standard deviation detected in network delays (%lld) for the current period."
@@ -869,21 +870,18 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // For the AVG algorithm, history is a running average and can be directly
         // applied                                                 
         _lf_global_physical_clock_offset += _lf_rti_socket_stat.history;
+        // @note AVG and SD will be zero if collect-stats is set to false
         LOG_PRINT("Clock sync:"
                     " New offset: %lld."
                     " Round trip delay to RTI (now): %lld."
-#ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default 
                     " (AVG): %lld."
                     " (SD): %lld."
-#endif
                     " Local round trip delay: %lld."
                     " Test offset: %lld.",
                     _lf_global_physical_clock_offset,
                     network_round_trip_delay,
-#ifdef _LF_CLOCK_SYNC_COLLECT_STATS // Enabled by default
                     stats.average,
                     stats.standard_deviation,
-#endif                    
                     _lf_rti_socket_stat.local_delay,
                     _lf_global_test_physical_clock_offset);
         // Reset the stats
@@ -1283,7 +1281,7 @@ void handle_message(int socket, unsigned char* buffer) {
     // Allocate memory for the message contents.
     unsigned char* message_contents = (unsigned char*)malloc(length);
     int bytes_read = read_from_socket(socket, length, message_contents);
-    if (bytes_read < length) {
+    if (bytes_read < (int)length) {
         // FIXME: Need better error handling?
         error_print_and_exit("Failed to read message body.");
     }

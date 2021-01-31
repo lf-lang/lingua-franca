@@ -197,7 +197,7 @@ void encode_ll(long long data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
     // alignment problems.
     int shift = 0;
-    for(int i = 0; i < sizeof(long long); i++) {
+    for(size_t i = 0; i < sizeof(long long); i++) {
         buffer[i] = (data & (0xffLL << shift)) >> shift;
         shift += 8;
     }
