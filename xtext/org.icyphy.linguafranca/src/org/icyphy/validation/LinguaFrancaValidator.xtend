@@ -728,7 +728,27 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 case COMPILER:
                     checkIfString(param)
                 case COORDINATION:
-                    param.checkIfOneOf(Arrays.asList(CoordinationType.values())) 
+                    param.checkIfOneOf(Arrays.asList(CoordinationType.values()))
+                case DOCKER: {
+                    // If the value of this parameter is a list of key-value pairs,
+                    // then options are being given.
+                    if (param.value.keyvalue !== null) {
+                        for (entry: param.value.keyvalue.pairs) {
+                            if (entry.name.equals('FROM')) {
+                                if (entry.value.literal === null) {
+                                    error('Target property docker FROM'
+                                            + ' entry needs to be a string (default is "alpine:latest",' 
+                                            + ' with quotation marks).',
+                                            Literals.KEY_VALUE_PAIR__VALUE)
+                                }
+                            }
+                        }
+                    } else {
+                        error('Target property docker needs to key-value pairs'
+                                + ' such as: docker: {FROM: "alpine:latest"}',
+                                Literals.KEY_VALUE_PAIR__VALUE)
+                    }
+                }
                 case FLAGS:
                     param.checkIfString
                 case FAST:
