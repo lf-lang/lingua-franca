@@ -155,6 +155,8 @@ ThreadedMultiport.lf
 ThreadedThreaded.lf
 TimeLimit.lf
 TimeLimitThreaded.lf
+TimeLimitDistributedDecentralized.lf
+TimeLimitDistributedPhysical.lf
 Timeout.lf
 TimeoutZero.lf
 TimeoutThreaded.lf
