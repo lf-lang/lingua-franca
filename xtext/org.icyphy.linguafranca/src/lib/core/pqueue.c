@@ -298,7 +298,7 @@ void pqueue_dump(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
     fprintf(stdout,"posn\tleft\tright\tparent\tmaxchild\t...\n");
     for (i = 1; i < q->size ;i++) {
         fprintf(stdout,
-                "%d\t%d\t%d\t%d\t%ul\t",
+                "%zu\t%zu\t%zu\t%zu\t%ul\t",
                 i,
                 left(i), right(i), parent(i),
                 (unsigned int)maxchild(q, i));
@@ -342,7 +342,12 @@ static int subtree_is_valid(pqueue_t *q, int pos) {
         if (!subtree_is_valid(q, left(pos)))
             return 0;
     }
-    if (right(pos) < q->size) {
+
+    int right_pos = right(pos);
+    if (right_pos < 0) {
+        error_print_and_exit("subtree_is_valid(): index overflow detected.");
+    }
+    if ((size_t)right_pos < q->size) {
         /* has a right child */
         if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[right(pos)])))
             return 0;
