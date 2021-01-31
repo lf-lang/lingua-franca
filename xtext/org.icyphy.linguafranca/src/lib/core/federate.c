@@ -276,6 +276,7 @@ void create_server(int specified_port) {
  *  federates.
  * @param port The ID of the destination port.
  * @param federate The ID of the destination federate.
+ * @param next_destination_str The name of the next destination in string format
  * @param length The message length.
  * @param message The message.
  */
@@ -283,6 +284,7 @@ void send_message(int socket,
                   int message_type,
                   unsigned int port,
                   unsigned int federate,
+                  char* next_destination_str,
                   size_t length,
                   unsigned char* message) {
     assert(port < 65536);
@@ -300,14 +302,14 @@ void send_message(int socket,
     // The next four bytes are the message length.
     encode_int(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
 
-    LOG_PRINT("Sending untimed message to federate %d.", federate);
+    LOG_PRINT("Sending untimed message to %s.", next_destination_str);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     pthread_mutex_lock(&socket_mutex);
-    write_to_socket_errexit(socket, header_length, header_buffer, "Failed to send message header to the RTI.");
-    write_to_socket_errexit(socket, length, message, "Failed to send message body to the RTI.");
+    write_to_socket_errexit(socket, header_length, header_buffer, "Failed to send message header to to %s.", next_destination_str);
+    write_to_socket_errexit(socket, length, message, "Failed to send message body to to %s.", next_destination_str);
     pthread_mutex_unlock(&socket_mutex);
 }
 
@@ -336,6 +338,7 @@ void send_message(int socket,
  *  federates.
  * @param port The ID of the destination port.
  * @param federate The ID of the destination federate.
+ * @param next_destination_str The name of the next destination in string format
  * @param length The message length.
  * @param message The message.
  */
@@ -344,6 +347,7 @@ void send_timed_message(interval_t additional_delay,
                         int message_type,
                         unsigned int port,
                         unsigned int federate,
+                        char* next_destination_str,
                         size_t length,
                         unsigned char* message) {
     assert(port < 65536);
@@ -391,27 +395,27 @@ void send_timed_message(interval_t additional_delay,
         // should be (get_logical_time(), get_microstep())
     }
 
+    // Next 8 bytes are the timestamp.
+    encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    // Next 4 bytes are the microstep.
+    encode_int(current_message_microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
+    LOG_PRINT("Sending message with tag (%lld, %u) to %s.",
+            current_message_timestamp - start_time, current_message_microstep, next_destination_str);
+
+    // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
+    const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
+
     if (_lf_is_tag_after_stop_tag((tag_t){.time=current_message_timestamp,.microstep=current_message_microstep})) {
         // Message tag is past the timeout time (the stop time) so it should
         // not be sent.
         return;
     }
-
-    // Next 8 bytes are the timestamp.
-    encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
-    // Next 4 bytes are the microstep.
-    encode_int(current_message_microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
-    LOG_PRINT("Sending message with tag (%lld, %u) to federate %d.",
-            current_message_timestamp - start_time, current_message_microstep, federate);
-
-    // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
-    const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     pthread_mutex_lock(&socket_mutex);
     write_to_socket_errexit(socket, header_length, header_buffer,
-            "Failed to send timed message header to the RTI.");
+            "Failed to send timed message header to %s.", next_destination_str);
     write_to_socket_errexit(socket, length, message,
-            "Federate %d failed to send timed message body.");
+            "Federate %d failed to send timed message body to %s.", next_destination_str);
     pthread_mutex_unlock(&socket_mutex);
 }
 
