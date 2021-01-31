@@ -708,6 +708,8 @@ class CGenerator extends GeneratorBase {
             }
             writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
             
+            // Create docker file.
+            writeDockerFile()
         }
         // Restore the base filename.
         filename = baseFilename
@@ -727,6 +729,59 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * The file will go into src-gen/filename.Dockerfile.
+     * If the target property "no-compile" is set, then no Dockerfile
+     * is generated either (it wouldn't ve very useful).
+     */
+    def writeDockerFile() {
+        var srcGenPath = getSrcGenPath()
+        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
+        val contents = new StringBuilder()
+        
+        // If a dockerfile exists, remove it.
+        var file = new File(dockerFile)
+        if (file.exists) {
+            file.delete
+        }
+        var from = config.docker.get('from')
+        if (from === null) {
+            from = 'alpine:latest'
+        }
+        var compileCommand = '''«this.config.compiler» «config.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
+        if (!config.buildCommands.nullOrEmpty) {
+            compileCommand = config.buildCommands.join(' ')
+        }
+        var additionalFiles = ''
+        if (!config.fileNames.nullOrEmpty) {
+            additionalFiles = '''COPY "«config.fileNames.join('" "')»" "src-gen/"'''
+        }
+        pr(contents, '''
+            # Generated docker file for «filename».lf.
+            # Build with:
+            #    docker build -t «filename.toLowerCase» -f «dockerFile» .
+            # Run with:
+            #    docker run -t --rm «filename.toLowerCase»
+            # -t creates a pseudo terminal for output
+            # --rm removes the container/app after running. Otherwise, it will persist.
+            FROM «from»
+            WORKDIR /lingua-franca
+            COPY src-gen/core src-gen/core
+            COPY "src-gen/«filename».c" "src-gen/ctarget.h" "src-gen/"
+            «additionalFiles»
+            RUN set -ex && \
+                apk add --no-cache gcc musl-dev && \
+                mkdir bin && \
+                «compileCommand» && \
+                apk del gcc musl-dev && \
+                rm -rf src-gen
+            CMD ["./bin/«filename»"]
+        ''')
+        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        println("Dockerfile written to " + dockerFile)
     }
     
     /**

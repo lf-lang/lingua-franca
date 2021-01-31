@@ -430,6 +430,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         config.cmakeInclude = param.value.toText
                     case COMPILER:
                         config.compiler = param.value.toText
+                    case DOCKER:
+                        for (entry: param.value.keyvalue.pairs) {
+                            // All docker options are strings.
+                            // Tolerate an id (which has no quotation mark).
+                            var value = entry.value.id
+                            if (value === null) {
+                                value = entry.value.literal.withoutQuotes
+                            }
+                            config.docker.put(entry.name.toLowerCase, value)
+                        }
                     case FAST:
                         config.fastMode = param.value.toBoolean
                     case COORDINATION:

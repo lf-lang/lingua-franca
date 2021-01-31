@@ -20,11 +20,13 @@
  */
 package org.icyphy
 
+import java.util.LinkedHashMap
 import java.util.List
-import org.icyphy.Target.ClockSyncMode
-import org.icyphy.Target.LogLevel
 import org.icyphy.Target.BuildType
+import org.icyphy.Target.ClockSyncMode
 import org.icyphy.Target.CoordinationType
+import org.icyphy.Target.LogLevel
+import org.icyphy.linguaFranca.Element
 
 /** 
  * A class for keeping the current target configuration.
@@ -84,6 +86,11 @@ class Configuration {
      */
     public CoordinationType coordination = CoordinationType.CENTRALIZED
 
+    /**
+     * Docker options.
+     */
+    public LinkedHashMap<String,String> docker = new LinkedHashMap<String,String>
+    
     /**
      * If true, configure the execution environment such that it does not
      * wait for physical time to match logical time. The default is false.

@@ -385,6 +385,11 @@ public enum Target {
         COMPILER("compiler", Arrays.asList(Target.ALL)),
         
         /**
+         * Key-value pairs giving options for generated docker files.
+         */
+        DOCKER("docker", Arrays.asList(Target.C)),
+
+        /**
          * Directive to let the execution engine allow logical time to elapse
          * faster than physical time.
          */
