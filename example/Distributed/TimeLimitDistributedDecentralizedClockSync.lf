@@ -1,0 +1,61 @@
+// Test that the stop function can be used to internally impose a
+// a time limit.
+// This is also used to test performance (number of reactions per second).
+// See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
+// Correct output for this 1, 2, 3, 4.
+// Failure for this test is failing to halt or getting the wrong data.
+target C {
+    flags: "-O2 -Wall -g -rdynamic",
+    coordination: decentralized,
+    clock-sync: on,                // Turn on runtime clock synchronization.
+    clock-sync-options: {
+        local-federates-on: true,  // Forces all federates to perform clock sync.
+        collect-stats: true,       // Collect useful statistics like average network delay
+                                   // and the standard deviation for the network delay over
+                                   // one clock synchronization cycle. Generates a warning
+                                   // if the standard deviation is higher than the clock sync
+                                   // guard.
+        test-offset: 200 msec,     // Artificially offsets clocks by multiples of 200 msec.
+        period: 5 msec,            // Period with which runtime clock sync is performed.
+        trials: 10,                // Number of messages exchanged to perform clock sync.
+        attenuation: 10            // Attenuation applied to runtime clock sync adjustments.
+    }
+};
+reactor Clock(offset:time(0), period:time(1 sec)) {
+	output y:int;
+	timer t(offset, period);
+	state count:int(0);
+	reaction(t) -> y {=
+		(self->count)++;
+		//printf("Reacting at time %ld.\n", get_elapsed_logical_time());
+		SET(y, self->count);
+	=}
+}
+reactor Destination {
+	input x:int;
+	state s:int(1);
+	reaction(x) {=
+		// printf("%d\n", x->value);
+		if (x->value != self->s) {
+		    warning_print("Expected %d and got %d.", self->s, x->value);
+		}
+		self->s++;
+	=}
+    reaction(shutdown) {=
+        info_print("**** shutdown reaction invoked.");
+        if (self->s != 10000002) {
+            warning_print("Expected 10000002 but got %d.", self->s);
+        }
+        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
+    =}
+}
+federated reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
+	timer stop(10 secs);
+	reaction(stop) {=
+        info_print("Requesting stop.");
+		request_stop();
+	=}
+	c = new Clock(period = period);
+	d = new Destination();
+	c.y -> d.x after 1 usec;
+}
