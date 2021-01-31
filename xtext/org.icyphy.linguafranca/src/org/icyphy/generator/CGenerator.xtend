@@ -4086,7 +4086,8 @@ class CGenerator extends GeneratorBase {
             // Messages going on a physical connection do not
             // carry a timestamp or require the delay;
             sendingFunction = '''send_message'''            
-            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id»,
+                   «next_destination_name», message_length'''
         }
         
         if (isTokenType(type)) {
