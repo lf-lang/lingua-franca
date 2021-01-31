@@ -36,6 +36,7 @@
 #include <string.h>
 
 #include "pqueue.h"
+#include "util.h"
 
 #define left(i)   ((i) << 1)
 #define right(i)  (((i) << 1) + 1)
@@ -46,11 +47,22 @@
  * and including the given maximum priority.
  */ 
 void* find_equal(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
+    if (pos < 0) {
+        error_print_and_exit("find_equal() called with a negative pos index.");
+    }
+
+    // Stop the recursion when we've reached the end of the 
+    // queue. This has to be done before accessing the queue
+    // to avoid segmentation fault.
+    if (!q || (size_t)pos >= q->size) {
+        return NULL;
+    }
+
     void* rval;
     void* curr = q->d[pos];
-    // Stop the recursion when we've reached the end of the 
-    // queue or once we've surpassed the maximum priority.
-    if (!q || pos >= q->size || !curr || q->cmppri(q->getpri(curr), max)) {
+
+    // Stop the recursion when we've surpassed the maximum priority.
+    if (!curr || q->cmppri(q->getpri(curr), max)) {
         return NULL;
     }
     
@@ -72,10 +84,14 @@ void* find_equal(pqueue_t *q, void *e, int pos, pqueue_pri_t max) {
  * has to _also_ have the same priority.
  */ 
 void* find_equal_same_priority(pqueue_t *q, void *e, int pos) {
+    if (pos < 0) {
+        error_print_and_exit("find_equal_same_priority() called with a negative pos index.");
+    }
+
     // Stop the recursion when we've reached the end of the 
     // queue. This has to be done before accessing the queue
     // to avoid segmentation fault.
-    if (!q || pos >= q->size) {
+    if (!q || (size_t)pos >= q->size) {
         return NULL;
     }
     
@@ -277,7 +293,7 @@ void* pqueue_peek(pqueue_t *q) {
 }
 
 void pqueue_dump(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
-    int i;
+    size_t i;
 
     fprintf(stdout,"posn\tleft\tright\tparent\tmaxchild\t...\n");
     for (i = 1; i < q->size ;i++) {
@@ -310,7 +326,16 @@ void pqueue_print(pqueue_t *q, FILE *out, pqueue_print_entry_f print) {
 }
 
 static int subtree_is_valid(pqueue_t *q, int pos) {
-    if (left(pos) < q->size) {
+    if (pos < 0) {
+        error_print_and_exit("subtree_is_valid() called with a negative pos index.");
+    }
+
+    int left_pos = left(pos);
+    if (left_pos < 0) {
+        error_print_and_exit("subtree_is_valid(): index overflow detected.");
+    }
+
+    if ((size_t)left_pos < q->size) {
         /* has a left child */
         if (q->cmppri(q->getpri(q->d[pos]), q->getpri(q->d[left(pos)])))
             return 0;

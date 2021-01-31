@@ -33,6 +33,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <stdarg.h>   // Defines va_list
+
 /**
  * Holds generic statistical data
  */
