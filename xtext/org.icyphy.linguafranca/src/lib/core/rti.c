@@ -1060,7 +1060,6 @@ void* clock_synchronization_thread(void* noargs) {
  **/
 void handle_federate_resign(federate_t *my_fed) {
     //Nothing more to do. Close the socket and exit.
-    unsigned char temporary_read_buffer[1];
     pthread_mutex_lock(&rti_mutex);
     my_fed->state = NOT_CONNECTED;
     _lf_rti_mark_federate_requesting_stop(my_fed);
@@ -1207,7 +1206,7 @@ void connect_to_federates(int socket_descriptor) {
         // If any error occurs, this will be set to non-zero.
         unsigned char error_code = 0;
 
-        ushort fed_id;
+        ushort fed_id = NUMBER_OF_FEDERATES;
 
         // First byte received is the message ID.
         if (buffer[0] != FED_ID) {

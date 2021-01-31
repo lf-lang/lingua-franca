@@ -197,7 +197,7 @@ void encode_ll(long long data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
     // alignment problems.
     int shift = 0;
-    for(int i = 0; i < sizeof(long long); i++) {
+    for(size_t i = 0; i < sizeof(long long); i++) {
         buffer[i] = (data & (0xffLL << shift)) >> shift;
         shift += 8;
     }
@@ -421,7 +421,6 @@ void update_socket_stat(socket_stat_t* socket_stat,
 lf_stat_ll calculate_socket_stat(struct socket_stat_t* socket_stat) {
     // Initialize the stat struct
     lf_stat_ll stats = {0, 0, 0, 0};
-    long long sum = 0;
     // Calculate the average and max
     for (int i = 0; i < socket_stat->network_stat_sample_index; i++) {
         if (socket_stat->network_stat_samples[i] > stats.max) {

@@ -451,7 +451,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     case FLAGS: {
                         config.compilerFlags.clear()
                         if (!param.value.toText.isEmpty) {
-                            config.compilerFlags.add(param.value.toText)
+                            config.compilerFlags.addAll(param.value.toText.split(' '))
                         }
                     }
                     case NO_COMPILE:
@@ -483,7 +483,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             if (context.args.containsKey("target-flags")) {
                 config.compilerFlags.clear()
                 if (!context.args.getProperty("target-flags").isEmpty) {
-                    config.compilerFlags.add(context.args.getProperty("target-flags"))
+                    config.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
                 }
             }
         }
