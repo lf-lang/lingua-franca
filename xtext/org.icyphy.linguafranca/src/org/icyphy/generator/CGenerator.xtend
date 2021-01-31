@@ -688,6 +688,7 @@ class CGenerator extends GeneratorBase {
                             // if the socket ID is not -1, the connection is still open. 
                             // Send an EOF by closing the socket here.
                             for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+                                // Close outbound connections
                                 if (_lf_federate_sockets_for_outbound_p2p_connections[i] != -1) {
                                     close(_lf_federate_sockets_for_outbound_p2p_connections[i]);
                                     _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
@@ -695,8 +696,9 @@ class CGenerator extends GeneratorBase {
                             }
                             «IF federate.inboundP2PConnections.length > 0»
                                 «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
-                                // void* thread_return;
-                                // pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                                void* thread_return;
+                                info_print("Waiting for incoming connections to close.");
+                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
                             write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
