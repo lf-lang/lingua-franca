@@ -284,7 +284,7 @@ void send_message(int socket,
                   int message_type,
                   unsigned int port,
                   unsigned int federate,
-                  char* next_destination_str,
+                  const char next_destination_str[],
                   size_t length,
                   unsigned char* message) {
     assert(port < 65536);
@@ -347,7 +347,7 @@ void send_timed_message(interval_t additional_delay,
                         int message_type,
                         unsigned int port,
                         unsigned int federate,
-                        char* next_destination_str,
+                        const char next_destination_str[],
                         size_t length,
                         unsigned char* message) {
     assert(port < 65536);
