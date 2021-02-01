@@ -379,7 +379,7 @@ class CGenerator extends GeneratorBase {
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
         if (federates.length > 1) {
-            coreFiles.addAll("net_util.c", "net_util.h", "rti.c", "rti.h", "federate.c")
+            coreFiles.addAll("net_util.c", "net_util.h", "rti.c", "rti.h", "federate.c", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
             createLauncher(coreFiles)
         }
@@ -868,7 +868,7 @@ class CGenerator extends GeneratorBase {
                     || targetClockSyncOptions?.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
             ) {
                 pr('''
-                    synchronize_initial_physical_time_with_rti();
+                    synchronize_initial_physical_clock_with_rti(_lf_rti_socket_TCP);
                 ''')
             }
         

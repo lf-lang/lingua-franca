@@ -151,12 +151,6 @@ instant_t _lf_last_reported_physical_time_ns = 0LL;
 instant_t _lf_last_reported_unadjusted_physical_time_ns = NEVER;
 
 /**
- * Records the physical time at which the clock of this federate was
- * synchronized with the RTI. Used to calculate the drift.
- */
-instant_t _lf_last_clock_sync_instant = 0LL;
-
-/**
  * Return the current physical time in nanoseconds since January 1, 1970,
  * adjusted by the global physical time offset.
  */
@@ -174,14 +168,14 @@ instant_t get_physical_time() {
     // Apply the test offset
     adjusted_clock_ns += _lf_global_test_physical_clock_offset;
 
-    if (_lf_global_physical_clock_drift != 0LL
-            && _lf_last_clock_sync_instant != 0LL) {
-        // Apply the calculated drift, if appropriate
-        interval_t drift = (adjusted_clock_ns - _lf_last_clock_sync_instant) *
-                           _lf_global_physical_clock_drift;
-        adjusted_clock_ns += drift;
-        DEBUG_PRINT("Physical time adjusted for clock drift by %lld.", drift);
-    }
+    // if (_lf_global_physical_clock_drift != 0LL
+    //         && _lf_last_clock_sync_instant != 0LL) {
+    //     // Apply the calculated drift, if appropriate
+    //     interval_t drift = (adjusted_clock_ns - _lf_last_clock_sync_instant) *
+    //                        _lf_global_physical_clock_drift;
+    //     adjusted_clock_ns += drift;
+    //     DEBUG_PRINT("Physical time adjusted for clock drift by %lld.", drift);
+    // }
     
     // Check if the clock has progressed since the last reported value
     // This ensures that the clock is monotonic
