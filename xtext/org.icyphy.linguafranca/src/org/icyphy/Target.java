@@ -192,7 +192,7 @@ public enum Target {
                 "xor_eq"
                 )
     ),
-    TS("TS", false, Arrays.asList(
+    TS("TypeScript", false, Arrays.asList(
                 // List via: https://github.com/Microsoft/TypeScript/issues/2536 
                 // Reserved words
                 "break",
