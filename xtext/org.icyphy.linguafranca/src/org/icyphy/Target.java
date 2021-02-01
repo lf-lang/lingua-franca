@@ -192,7 +192,7 @@ public enum Target {
                 "xor_eq"
                 )
     ),
-    TS("TypeScript", false, Arrays.asList(
+    TS("TS", false, Arrays.asList(
                 // List via: https://github.com/Microsoft/TypeScript/issues/2536 
                 // Reserved words
                 "break",
@@ -613,7 +613,7 @@ public enum Target {
     /**
      * Interface for dictionary elements. It associates an entry with a type.
      */
-    protected interface DictionaryElement {
+    public interface DictionaryElement {
         public TargetPropertyType getType();
     }
     
@@ -764,14 +764,10 @@ public enum Target {
          */
         @Override
         public String toString() {
-            String defaultMsg = "";
-            // FIXME: temporarily disabled because it will break the unit tests.
-//            if (this.defaultOption != null) {
-//                defaultMsg = "The default is " + defaultOption.toString();
-//            }
+            // FIXME: print (default) after default option.
             return "one of the following: "
                     + options.stream().map(option -> option.toString())
-                            .collect(Collectors.joining(", ")) + defaultMsg;
+                            .collect(Collectors.joining(", "));
         }
 
     }
@@ -869,8 +865,7 @@ public enum Target {
      */
     private static Object doMatch(final String string, final Object[] candidates) {
         return Arrays.stream(candidates)
-                .filter(e -> (e.toString().equalsIgnoreCase(string)
-                        || (e instanceof Enum<?> && ((Enum<?>)e).name().equalsIgnoreCase(string))))
+                .filter(e -> (e.toString().equalsIgnoreCase(string)))
                 .findAny().orElse(null);
     }
     
