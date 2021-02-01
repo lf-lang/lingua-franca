@@ -29,8 +29,8 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.icyphy.linguaFranca.TargetDecl
 import org.icyphy.Target
+import org.icyphy.linguaFranca.TargetDecl
 
 /**
  * Generates code from your model files on save.
@@ -47,7 +47,7 @@ class LinguaFrancaGenerator extends AbstractGenerator {
         // Determine which target is desired.
         var GeneratorBase generator
 
-        val t = Target.get(
+        val t = Target.match(
             resource.allContents.toIterable.filter(TargetDecl).head.name)
             
         switch (t) {

@@ -103,7 +103,7 @@ class ModelInfo {
         }
         
         // Find the target. A target must exist because the grammar requires it.
-        var Target target = Target.get(
+        var Target target = Target.match(
             model.eAllContents.toIterable.filter(TargetDecl).head.name)
         
         // Perform C-specific traversals.

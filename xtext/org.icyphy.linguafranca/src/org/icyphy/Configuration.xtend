@@ -20,11 +20,16 @@
  */
 package org.icyphy
 
+import java.io.File
 import java.util.List
-import org.icyphy.Target.ClockSyncMode
-import org.icyphy.Target.LogLevel
+import java.util.Map
 import org.icyphy.Target.BuildType
+import org.icyphy.Target.ClockSyncMode
+import org.icyphy.Target.ClockSyncOption
 import org.icyphy.Target.CoordinationType
+import org.icyphy.Target.LogLevel
+import org.icyphy.linguaFranca.Element
+import java.io.IOException
 
 /** 
  * A class for keeping the current target configuration.
@@ -35,8 +40,79 @@ import org.icyphy.Target.CoordinationType
  */
 class Configuration {
 
+
+    static def boolean fileExists(String filename, String directory) {
+        // Make sure the file exists and issue a warning if not.
+        val file = filename.findFile(directory)
+        if (file === null) {
+            // See if it can be found as a resource.
+            val stream = Configuration.getResourceAsStream(filename)
+            if (stream === null) {
+                // Warn that file hasn't been found.
+                return false
+//                this.reportWarning(value, 
+//                    '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
+            } else {
+                // Sadly, even with this not null, the file may not exist.
+                try {
+                    stream.read()
+                } catch (IOException ex) {
+                    // Warn that file hasn't been found.
+//                    this.
+//                        reportWarning(
+//                            value, '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
+                    return false;
+                }
+                stream.close()
+            }
+        }
+        return true
+    }
+
     /**
-     * The custom build command, which replaces the default build process of
+     * Search for a given file name in the current directory.
+     * If not found, search in directories in LF_CLASSPATH.
+     * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
+     * if it is defined.
+     * The first file found will be returned.
+     * 
+     * @param fileName The file name or relative path + file name
+     * in plain string format
+     * @return A Java file or null if not found
+     */
+     static def File findFile(String fileName, String directory) {
+
+        var File foundFile;
+
+        // Check in local directory
+        foundFile = new File(directory + '/' + fileName);
+        if (foundFile.exists && foundFile.isFile) {
+            return foundFile;
+        }
+
+        // Check in LF_CLASSPATH
+        // Load all the resources in LF_CLASSPATH if it is set.
+        var classpathLF = System.getenv("LF_CLASSPATH");
+        if (classpathLF === null) {
+            classpathLF = System.getenv("CLASSPATH")
+        }
+        if (classpathLF !== null) {
+            var String[] paths = classpathLF.split(
+                System.getProperty("path.separator"));
+            for (String path : paths) {
+                foundFile = new File(path + '/' + fileName);
+                if (foundFile.exists && foundFile.isFile) {
+                    return foundFile;
+                }
+            }
+        }
+        // Not found.
+        return null;
+    }
+
+
+    /**
+     * A list of custom build commands that replace the default build process of
      * directly invoking a designated compiler. A common usage of this target
      * property is to set the command to build on the basis of a Makefile.
      */
@@ -49,9 +125,14 @@ class Configuration {
     public ClockSyncMode clockSync = ClockSyncMode.INITIAL
 
     /**
+     * Clock sync options.
+     */
+    public Map<ClockSyncOption, Element> clockSyncOptions = newLinkedHashMap
+
+    /**
      * Parameter passed to cmake. The default is 'Release'.
      */
-    public BuildType cmakeBuildType = BuildType.Release
+    public BuildType cmakeBuildType = BuildType.RELEASE
 
     /**
      * An optional additional .cmake file to include.
@@ -128,6 +209,11 @@ class Configuration {
      * If true, do not perform runtime validation. The default is false.
      */
     public boolean noRuntimeValidation = false
+
+    /**
+     * List of proto files to be processed by the code generator.
+     */
+    public List<String> protoFiles = newLinkedList
 
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,

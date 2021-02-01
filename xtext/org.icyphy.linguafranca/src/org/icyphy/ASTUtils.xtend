@@ -945,6 +945,26 @@ class ASTUtils {
     }
     
     /**
+     * Given the right-hand side of a target property, return a list with all
+     * the files that the property lists.
+     * 
+     * Arrays are traversed, so strings are collected recursively.
+     * @param value The right-hand side of a target property.
+     */
+    def static List<String> toListOfStrings(Element value) {
+        val files = newLinkedList
+        if (value.array !== null) {
+            for (element : value.array.elements) {
+                files.addAll(element.toListOfStrings)
+            }
+            return files
+        } else {
+            files.add(value.toText)
+        }
+        return files
+    }
+    
+    /**
      * Translate the given type into its textual representation, but
      * do not append any array specifications.
      * @param type AST node to render as string.
@@ -1016,7 +1036,7 @@ class ASTUtils {
      */
     def static boolean isInteger(String literal) {
         try {
-            Integer.parseInt(literal)
+            Integer.decode(literal)
         } catch (NumberFormatException e) {
             return false
         }

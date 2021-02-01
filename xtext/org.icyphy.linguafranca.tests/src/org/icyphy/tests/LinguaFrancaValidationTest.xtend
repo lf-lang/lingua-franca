@@ -27,10 +27,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.icyphy.tests
 
 import com.google.inject.Inject
+import java.util.Set
 import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.eclipse.xtext.testing.validation.ValidationTestHelper
+import org.icyphy.Target
+import org.icyphy.Target.ArrayType
+import org.icyphy.Target.DictionaryType
+import org.icyphy.Target.PrimitiveType
+import org.icyphy.Target.TargetProperties
+import org.icyphy.Target.TargetPropertyType
+import org.icyphy.Target.UnionType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
@@ -39,7 +47,9 @@ import org.icyphy.linguaFranca.Visibility
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
-import org.icyphy.Target
+
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -787,14 +797,156 @@ class LinguaFrancaValidationTest {
         ]
     }
     
+    /**
+     * Maps a type to a list of known good values.
+     */
+    val primitiveTypeToKnownGood = #{
+            PrimitiveType.BOOLEAN -> #{"true", "\"true\"", "'true'", "false", "\"false\"", "'false'"},
+            PrimitiveType.INTEGER -> #{"0", "1", "\"42\"", "\"-1\"", "-2"},
+            PrimitiveType.NON_NEGATIVE_INTEGER -> #{"0", "1", "42"},
+            PrimitiveType.TIME_VALUE -> #{"1 msec", "2 sec"},
+            PrimitiveType.STRING -> #{"1", "\"foo\"", "bar", "'baz'"}
+        }
+    
+    /**
+     * Maps a type to a list of known bad values.
+     */
+    val primitiveTypeToKnownBad = #{
+            PrimitiveType.BOOLEAN -> #{"1 sec", "foo", "\"foo\"", "\'bar\'", "[1]", "{baz: 42}"},
+            PrimitiveType.INTEGER -> #{"foo", "\"bar\"", "'baz'", "1 sec", "[1, 2]", "{foo: \"bar\"}"},
+            PrimitiveType.NON_NEGATIVE_INTEGER -> #{"-42", "foo", "\"bar\"", "'baz'", "1 sec", "[1, 2]", "{foo: \"bar\"}"},
+            PrimitiveType.TIME_VALUE -> #{"foo", "\"bar\"", "'baz'", "\"3 sec\"", "'4 weeks'", "[1, 2]", "{foo: \"bar\"}"},
+            PrimitiveType.STRING -> #{"1 msec", "[1, 2]", "{foo: \"bar\"}"}
+        }
+    
+    /**
+     * Maps a type to a list, each entry of which represents a list with 
+     * three entries: a known wrong value, the suffix to add to the reported
+     * name, and the type that it should be.
+     */
+    val compositeTypeToKnownBad = #{
+        UnionType.STRING_OR_STRING_ARRAY -> #[
+            #["[1 msec]", "[0]", PrimitiveType.STRING],
+            #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],
+            #["{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY]
+        ]
+    }
+    
+    /**
+     * Synthesize a target property that conforms to the given type, or return
+     * an empty set if it is too complicated.
+     * 
+     * Cases not covered by this function (most composite types) should be added
+     * to the compositeTypeToKnownBad map.
+     *  
+     **/
+    def Set<String> synthesizeExamples(TargetPropertyType type, boolean correct) {
+        val values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad 
+        if (type instanceof PrimitiveType) {
+            val examples = values.get(type)
+            assertNotNull(examples)
+            return examples
+        } else {
+            if (type instanceof UnionType) {
+                val examples = newHashSet
+                if (correct) {
+                    type.options.forEach[
+                    if (it instanceof TargetPropertyType) {
+                        synthesizeExamples(it, correct).forEach[examples.add(it)]
+                    } else {
+                        // It must be a plain Enum<?>
+                        examples.add(it.toString())
+                    }
+                ]
+                } else {
+                    // Return some obviously incorrect examples for the common
+                    // case where the options are from an ordinary Enum<?>.
+                    if (!type.options.exists[it instanceof TargetPropertyType]) {
+                        return #{"foo", "\"bar\"", "'baz'", "1", "-1", "{x: 42}", "[1, 2, 3]"}
+                    }
+                }
+                return examples
+            } else if (type instanceof ArrayType) {
+                val examples = newHashSet
+                if (correct) {
+                    // Produce an array that has an entry for each value.
+                    examples.add('''[«values.get(type.type)?.join(', ')»]''')
+                }
+                return examples
+            } else if (type instanceof DictionaryType) {
+                val examples = newHashSet
+                // Produce a set of singleton dictionaries. 
+                // If incorrect examples are wanted, garble the key.
+                type.options.forEach [ option |
+                    synthesizeExamples(option.type, correct).forEach [
+                        examples.
+                            add('''{«option»«!correct? "iamwrong"»: «it»}''')
+                    ]
+                ]
+                return examples
+            } else {
+                println("Encountered unknown type. Aborting test.")
+                assertTrue(false)
+            }
+        }
+        return #{}
+    }
+    
     @Test
     def void checkTargetProperties() {
-        parseWithoutError('''
-                target C {coordination: centralized};
+        
+        for (prop : TargetProperties.values) {
+            println('''Testing target property «prop» of type «prop.type»''')
+            println("====")
+            println("Known good assignments:")
+            val knownCorrect = synthesizeExamples(prop.type, true)
+            knownCorrect.forEach[
+            println('''«prop.toString»: «it»''')
+            parseWithoutError('''
+                target C {«prop.toString»: «it»};
                 reactor Y {}
                 main reactor X {
                     y = new Y() 
                 }
-            ''').assertNoIssues()
+            ''').assertNoErrors()]
+            
+            val knownIncorrect = synthesizeExamples(prop.type, false)
+            
+            println("Known bad assignments:")
+            if (!knownIncorrect.isNullOrEmpty) {
+                knownIncorrect.forEach[
+                    println('''«prop.toString»: «it»''')
+                parseWithoutError('''
+                    target C {«prop.toString»: «it»};
+                    reactor Y {}
+                    main reactor X {
+                        y = new Y() 
+                    }
+                ''').assertError(LinguaFrancaPackage::eINSTANCE.keyValuePair, null,
+                    '''Target property '«prop.toString»' is required to be «prop.type».''')
+                    ]
+            } else {
+                // No type was synthesized. It must be a composite type.
+                val list = compositeTypeToKnownBad.get(prop.type)
+                if (list === null) {
+                    println('''No known incorrect values provided for target property '«prop»'. Aborting test.''')
+                    assertTrue(false)
+                } else {
+                    list.forEach [
+                        println('''«prop.toString»:«it.get(0)»''')
+                        parseWithoutError('''
+                            target C {«prop.toString»: «it.get(0)»};
+                            reactor Y {}
+                            main reactor X {
+                                y = new Y() 
+                            }
+                        ''').assertError(
+                            LinguaFrancaPackage::eINSTANCE.keyValuePair,
+                            null, '''Target property '«prop.toString»«it.get(1)»' is required to be «it.get(2)».''')
+                    ]
+                }
+            }            
+            println("====")
+        }
     }
  }

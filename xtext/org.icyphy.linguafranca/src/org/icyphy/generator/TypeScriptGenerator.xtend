@@ -252,7 +252,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Assumes protoc compiler has been installed on this machine
         
         // First test if the project directory contains any .proto files
-        if (protoFiles.size != 0) {
+        if (config.protoFiles.size != 0) {
             // Working example: protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --js_out=import_style=commonjs,binary:./generated --ts_out=./generated *.proto
             
             // FIXME: Should we include protoc as a submodule? If so, how to invoke it?
@@ -263,7 +263,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts",
                 "--js_out=import_style=commonjs,binary:" + outPath,
                 "--ts_out=" + srcGenPath)
-            protocArgs.addAll(protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
+            protocArgs.addAll(config.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
             val protoc = createCommand("protoc", protocArgs)
                 
             if (protoc === null) {
@@ -1301,7 +1301,7 @@ class TypeScriptGenerator extends GeneratorBase {
      private def generateProtoPreamble() {
         pr("// Imports for protocol buffers")
         // Generate imports for .proto files
-        for (file : protoFiles) {
+        for (file : config.protoFiles) {
             var name = file
             // Remove any extension the file name may have.
             val dot = name.lastIndexOf('.')
