@@ -524,7 +524,7 @@ public enum Target {
          * code included in the sources.
          */
         PROTOBUFS("protobufs", UnionType.STRING_OR_STRING_ARRAY, Arrays.asList(Target.C, Target.TS, Target.Python), (config, value) -> {
-            config.fileNames = ASTUtils.toListOfStrings(value);
+            config.protoFiles = ASTUtils.toListOfStrings(value);
         }),
         /**
          * Directive to specify the number of threads.
