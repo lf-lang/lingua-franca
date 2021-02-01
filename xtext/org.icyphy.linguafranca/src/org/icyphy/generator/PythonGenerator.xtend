@@ -79,7 +79,7 @@ class PythonGenerator extends CGenerator {
         super()
         // set defaults
         config.compiler = "gcc"
-        config.compilerFlags = ""// -Wall -Wconversion"
+        config.compilerFlags = newArrayList // -Wall -Wconversion"
         config.linkerFlags = ""
     }
     	

@@ -27,11 +27,23 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
- * Header file for utility functions for Lingua Franca programs.
+ * Header file for utility types and functions for Lingua Franca programs.
  */
 
 #ifndef UTIL_H
 #define UTIL_H
+
+#include <stdarg.h>   // Defines va_list
+
+/**
+ * Holds generic statistical data
+ */
+typedef struct lf_stat_ll {
+    long long average;
+    long long standard_deviation;
+    long long variance;
+    long long max;
+} lf_stat_ll;
 
 /**
  * A handy macro that can concatenate three strings.
@@ -43,15 +55,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONCATENATE_THREE_STRINGS(__string1, __string2, __string3) __string1 __string2 __string3
 
 /**
- * LOG_LEVEL is set in generated code to 1 or 2 if the target
- * logging property is LOG or DEBUG respectively. If LOG_LEVEL
- * has not been set, the LOG_PRINT and DEBUG_PRINT messages will
- * not be produced.
+ * LOG_LEVEL is set in generated code to 0 through 4 if the target
+ * logging property is error, warning, info, log, or debug.
+ * The default level is info (2). Currently, 0, 1, and 2 are
+ * treated identically and error_print, warning_print, and info_print
+ * all result in printed output.
+ * If log is set (3), then LOG_DEBUG messages
+ * will be printed as well.
+ * If debug is set (4), the DEBUG_PRINT messages will
+ * be printed as well.
  */
 #ifndef LOG_LEVEL
-#define LOG_LEVEL 0
-#else
-#define VERBOSE  // If LOG_LEVEL has been defined, then define VERBOSE.
+#define LOG_LEVEL 2
 #endif
 
 /**
@@ -85,7 +100,7 @@ void log_print(char* format, ...);
 /**
  * A macro used to print useful logging information. It can be enabled
  * by setting the target property 'logging' to 'LOG' or
- * by defining LOG_LEVEL to 1 in the top-level preamble.
+ * by defining LOG_LEVEL to 3 or 4 in the top-level preamble.
  * The input to this macro is exactly like printf: (format, ...).
  * "LOG: " is prepended to the beginning of the message
  * and a newline is appended to the end of the message.
@@ -99,7 +114,7 @@ void log_print(char* format, ...);
  * it do not themselves incur significant overhead to evaluate.
  */
 #define LOG_PRINT(format, ...) \
-            do { if(LOG_LEVEL) { \
+            do { if(LOG_LEVEL > 2) { \
                     log_print(format, ##__VA_ARGS__); \
                 } } while (0)
 
@@ -130,7 +145,7 @@ void debug_print(char* format, ...);
  * it do not themselves incur significant overhead to evaluate.
  */
 #define DEBUG_PRINT(format, ...) \
-            do { if(LOG_LEVEL > 1) { \
+            do { if(LOG_LEVEL > 3) { \
                     debug_print(format, ##__VA_ARGS__); \
                 } } while (0)
 

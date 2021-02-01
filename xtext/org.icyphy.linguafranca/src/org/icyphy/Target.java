@@ -90,7 +90,7 @@ public enum Target {
                 "_Static_assert", // (since C11)
                 "_Thread_local" // (since C11)
                 )
-    ), CCpp("CCpp", true, Target.C.keywords), 
+    ), CCPP("CCpp", true, Target.C.keywords), 
     CPP("Cpp", true, Arrays.asList(
                 // List via: https://en.cppreference.com/w/cpp/keyword
                 "alignas", // (since C++11)
@@ -471,14 +471,20 @@ public enum Target {
         /**
          * Flags to be passed on to the target compiler.
          */
-        FLAGS("flags", PrimitiveType.STRING, Arrays.asList(Target.C, Target.CCpp), (config, value) -> {
-            config.compilerFlags = ASTUtils.toText(value);
+        FLAGS("flags", PrimitiveType.STRING, Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+            config.compilerFlags.clear();
+            String str = ASTUtils.toText(value);
+            if (!str.isEmpty()) {
+                // FIXME: this is unsafe because it doesn't account for whitespace within quotes.
+                Arrays.asList(str.split("\\s"))
+                        .forEach(sw -> config.compilerFlags.add(sw));
+            }
         }),
         
         /**
          * Directive to specify the coordination mode
          */
-        COORDINATION("coordination", UnionType.COORDINATION_UNION, Arrays.asList(Target.C, Target.CCpp, Target.Python), (config, value) -> {
+        COORDINATION("coordination", UnionType.COORDINATION_UNION, Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value) -> {
             config.coordination = (CoordinationType) UnionType.COORDINATION_UNION.match(ASTUtils.toText(value));
         }),
         
@@ -501,7 +507,7 @@ public enum Target {
          * Directive to not invoke the target compiler.
          */
         NO_COMPILE("no-compile", PrimitiveType.BOOLEAN,
-                Arrays.asList(Target.C, Target.CPP, Target.CCpp),
+                Arrays.asList(Target.C, Target.CPP, Target.CCPP),
                 (config, value) -> {
                     config.noCompile = ASTUtils.toBoolean(value);
                 }),
@@ -524,7 +530,7 @@ public enum Target {
          * Directive to specify the number of threads.
          */
         THREADS("threads", PrimitiveType.NON_NEGATIVE_INTEGER,
-                Arrays.asList(Target.C, Target.CPP, Target.CCpp),
+                Arrays.asList(Target.C, Target.CPP, Target.CCPP),
                 (config, value) -> {
                     config.threads = ASTUtils.toInteger(value);
                 }),
@@ -591,6 +597,10 @@ public enum Target {
             return (TargetProperties)Target.doMatch(string, TargetProperties.values());
         }
 
+        public static List<TargetProperties> getOptions() {
+            return Arrays.asList(TargetProperties.values());
+        }
+        
         /**
          * Return the alias.
          */
@@ -598,6 +608,13 @@ public enum Target {
         public String toString() {
             return this.alias;
         }
+    }
+    
+    /**
+     * Interface for dictionary elements. It associates an entry with a type.
+     */
+    protected interface DictionaryElement {
+        public TargetPropertyType getType();
     }
     
     public enum DictionaryType implements TargetPropertyType {
@@ -676,16 +693,19 @@ public enum Target {
         
     public enum UnionType implements TargetPropertyType {
         STRING_OR_STRING_ARRAY(
-                Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY)),
-        BUILD_TYPE_UNION(Arrays.asList(BuildType.values())),
-        COORDINATION_UNION(Arrays.asList(CoordinationType.values())),
-        LOGGING_UNION(Arrays.asList(LogLevel.values())),
-        CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()));
+                Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY), null),
+        BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
+        COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
+        LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
+        CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()), ClockSyncMode.INITIAL);
 
-        public List<Enum<?>> options;
+        public final List<Enum<?>> options;
         
-        private UnionType(List<Enum<?>> list) {
+        private final Enum<?> defaultOption;
+        
+        private UnionType(List<Enum<?>> list, Enum<?> defaultOption) {
             this.options = list;
+            this.defaultOption = defaultOption; 
         }
         
         public Enum<?> match(String string) {
@@ -744,9 +764,14 @@ public enum Target {
          */
         @Override
         public String toString() {
+            String defaultMsg = "";
+            // FIXME: temporarily disabled because it will break the unit tests.
+//            if (this.defaultOption != null) {
+//                defaultMsg = "The default is " + defaultOption.toString();
+//            }
             return "one of the following: "
                     + options.stream().map(option -> option.toString())
-                            .collect(Collectors.joining(", "));
+                            .collect(Collectors.joining(", ")) + defaultMsg;
         }
 
     }
@@ -844,8 +869,9 @@ public enum Target {
      */
     private static Object doMatch(final String string, final Object[] candidates) {
         return Arrays.stream(candidates)
-                .filter(e -> e.toString().equalsIgnoreCase(string)).findAny()
-                .orElse(null);
+                .filter(e -> (e.toString().equalsIgnoreCase(string)
+                        || (e instanceof Enum<?> && ((Enum<?>)e).name().equalsIgnoreCase(string))))
+                .findAny().orElse(null);
     }
     
     /**
@@ -1000,19 +1026,14 @@ public enum Target {
         }
     }
     
-    /**
-     * Interface for dictionary elements. It associates an entry with a type.
-     */
-    public interface DictionaryElement {
-        public TargetPropertyType getType();
-    }
     
     public enum ClockSyncOption implements DictionaryElement {
         ATTENUATION("attenuation", PrimitiveType.NON_NEGATIVE_INTEGER),
         LOCAL_FEDERATES_ON("local-federates-on", PrimitiveType.BOOLEAN),
         PERIOD("period", PrimitiveType.TIME_VALUE),
         TEST_OFFSET("test-offset", PrimitiveType.TIME_VALUE),
-        TRIALS("trials", PrimitiveType.NON_NEGATIVE_INTEGER);
+        TRIALS("trials", PrimitiveType.NON_NEGATIVE_INTEGER),
+        COLLECT_STATS("collect-stats", PrimitiveType.BOOLEAN);
         
         public final PrimitiveType type;
         

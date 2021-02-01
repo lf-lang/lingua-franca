@@ -54,7 +54,7 @@ class LinguaFrancaGenerator extends AbstractGenerator {
             case C: {
                 generator = new CGenerator()
             }
-            case CCpp: {
+            case CCPP: {
                 generator = new CCppGenerator()
             }
             case CPP: {

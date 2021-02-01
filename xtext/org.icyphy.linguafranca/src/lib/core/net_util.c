@@ -39,6 +39,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>     // Defines memcpy()
 #include <stdarg.h>     // Defines va_list
 #include <time.h>       // Defines nanosleep()
+#include <math.h>       // For sqrtl() and powl
 
 #ifndef NUMBER_OF_FEDERATES
 #define NUMBER_OF_FEDERATES 1
@@ -195,7 +196,7 @@ void encode_ll(long long data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
     // alignment problems.
     int shift = 0;
-    for(int i = 0; i < sizeof(long long); i++) {
+    for(size_t i = 0; i < sizeof(long long); i++) {
         buffer[i] = (data & (0xffLL << shift)) >> shift;
         shift += 8;
     }

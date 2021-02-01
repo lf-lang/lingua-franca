@@ -218,28 +218,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Delay the start of all federates by this amount. */
 #define DELAY_START SEC(1)
 
-/**
- * Number of required clock sync T4 messages per synchronization
- * interval. The offset to the clock will not be adjusted until 
- * this number of T4 clock synchronization messages have been received.
- */
-#ifndef _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL
-#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL 10
-#endif
-
-/** Runtime clock offset updates will be divided by this number. */
-#ifndef _LF_CLOCK_SYNC_ATTENUATION
-#define _LF_CLOCK_SYNC_ATTENUATION 10
-#endif
-
-/**
- * Define a guard band to filter clock synchronization
- * messages based on discrepancies in the network delay.
- * @see Coded probes in Geng, Yilong, et al.
- * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
- */
-#define CLOCK_SYNC_GUARD_BAND USEC(200)
-
 ////////////////////////////////////////////
 //// Message types
 
@@ -517,28 +495,6 @@ typedef enum fed_state_t {
     GRANTED,        // Most recent NEXT_EVENT_TIME has been granted.
     PENDING         // Waiting for upstream federates.
 } fed_state_t;
-
-/**
- * Statistics for a given socket.
- * The RTI initiates a clock synchronization action by sending its
- * current physical time T1 to a federate.  The federate records
- * the local time T2 that it receives T1. It sends a reply at
- * local time T3, which the RTI receives at its time T4. The RTI
- * sends back T4.  The round trip delay on the socket is therefore
- * estimated as:  (T4 - T1) - (T3 - T2).
- */
-typedef struct socket_stat_t {
-    instant_t remote_physical_clock_snapshot_T1;  // T1 in PTP. The first snapshot of the physical
-                                                  // clock of the remote device (the RTI).
-    instant_t local_physical_clock_snapshot_T2;   // T2 in PTP. The first snapshot of the physical
-                                                  // clock of the local device (the federate).
-    interval_t local_delay;                       // T3 - T2. Estimated delay between a consecutive
-                                                  // receive and send on the socket for one byte.
-    int received_T4_messages_in_current_sync_window; // Checked against _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL
-                                                     // Must be reset to 0 every time it reaches the threshold. 
-    interval_t history;                              // A history of clock synchronization data. For AVG
-                                                     // strategy, this is a running partially compute average.
-} socket_stat_t;
 
 /** Information about a federate, including its runtime state,
  *  mode of execution, and connectivity with other federates.

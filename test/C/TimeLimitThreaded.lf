@@ -5,7 +5,6 @@
 // See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 target C {
     flags: "-O2",
-    fast: true,
     threads: 8
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
@@ -35,6 +34,7 @@ reactor Destination {
             fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
             exit(1);
         }
+        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
 main reactor TimeLimit(period:time(1 usec)) {

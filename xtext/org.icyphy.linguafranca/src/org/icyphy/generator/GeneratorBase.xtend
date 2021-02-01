@@ -430,7 +430,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 config.compiler = context.args.getProperty("target-compiler")
             }
             if (context.args.containsKey("target-flags")) {
-                config.compilerFlags = context.args.getProperty("target-flags")
+                config.compilerFlags.clear()
+                if (!context.args.getProperty("target-flags").isEmpty) {
+                    config.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
+                }
             }
         }
 
@@ -827,7 +830,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val returnCode = compile.executeCommand(stderr)
 
         if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-            reportError('''«config.compiler»r returns error code «returnCode»''')
+            reportError('''«config.compiler» returns error code «returnCode»''')
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
@@ -905,8 +908,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
         // Finally add the compiler flags in target parameters (if any)
         if (!config.compilerFlags.isEmpty()) {
-            val flags = config.compilerFlags.split(' ')
-            compileArgs.addAll(flags)
+            compileArgs.addAll(config.compilerFlags)
         }
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
         // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
@@ -1455,7 +1457,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
         }
     }
-
 
     /**
      *  Lookup a file in the classpath and copy its contents to a destination path 

@@ -1,0 +1,77 @@
+/**
+ * This program tests clock synchronization.
+ * It checks the clock synchronization error and fails
+ * if it exceeds a threshold.  Note that failures could
+ * occur here intermittently because clock synchronization
+ * accuracy depends on many conditions. But the threshold
+ * is quite high, so failures should be rare.
+ * @author Edward A. Lee
+ */
+target C {
+    coordination: decentralized,
+    timeout: 10 sec,
+    clock-sync: on,                // Turn on runtime clock synchronization.
+    clock-sync-options: {
+        local-federates-on: true,  // Forces all federates to perform clock sync.
+        collect-stats: true,       // Collect useful statistics like average network delay
+                                   // and the standard deviation for the network delay over
+                                   // one clock synchronization cycle. Generates a warning
+                                   // if the standard deviation is higher than the clock sync
+                                   // guard.
+        test-offset: 200 msec,     // Artificially offsets clocks by multiples of 200 msec.
+        period: 5 msec,            // Period with which runtime clock sync is performed.
+        trials: 10,                // Number of messages exchanged to perform clock sync.
+        attenuation: 10            // Attenuation applied to runtime clock sync adjustments.
+    },
+};
+
+/**
+ * Reactor that outputs periodically.
+ */
+reactor Ticker(period:time(1600 msec)) {    
+    output out:int;
+    
+    timer tick(0, period);
+        
+    reaction(tick) -> out {=
+        SET(out, 42);
+    =}
+}
+
+/**
+ * Print a message when an input arrives.
+ */
+reactor Printer {
+    input in:int;
+
+    reaction(startup) {=
+        interval_t offset = _lf_global_physical_clock_offset + _lf_global_test_physical_clock_offset;
+        info_print("Clock sync error at startup is %lld ns.", offset);
+    =}
+        
+    reaction(in) {=
+        info_print("Received %d.", in->value);
+    =}
+    
+    reaction(shutdown) {=
+        interval_t offset = _lf_global_physical_clock_offset + _lf_global_test_physical_clock_offset;
+        info_print("Clock sync error at shutdown is %lld ns.", offset);
+        // Error out if the offset is bigger than 1 msec.
+        if (offset > MSEC(1)) {
+            error_print("Offset exceeds test threshold of 1 msec.");
+            exit(1);
+        }
+    =}
+}
+
+reactor Federate {
+    source = new Ticker();
+    play = new Printer();
+    source.out -> play.in;
+}
+
+federated reactor ClockSync {
+    fed1 = new Federate();
+    fed2 = new Federate();
+}
+

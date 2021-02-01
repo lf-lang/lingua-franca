@@ -615,7 +615,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 warning(
                     "Unrecognized target parameter: " + param.name +
                         ". Recognized parameters are: " +
-                        TargetProperties.values().join(", ") + ".",
+                        TargetProperties.getOptions().join(", ") + ".",
                     Literals.KEY_VALUE_PAIR__NAME)
             }
 
