@@ -31,7 +31,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "util.h"
 #include "net_util.h"
-#include "rti.h"        // Defines socket_stat_t
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -383,69 +382,4 @@ void extract_header(
     *length = extract_int(&(buffer[sizeof(unsigned short) + sizeof(unsigned short)]));
 
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
-}
-
-#ifdef _LF_CLOCK_SYNC_COLLECT_STATS
-/**
- * Update statistic on the socket based on the newly calculated network delay 
- * and clock synchronization error
- * 
- * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
- * @param network_round_trip_delay The newly calculated round trip delay to the remote federate/RTI
- * @param clock_synchronization_error The newly calculated clock synchronization error relative to
- *  the remote federate/RTI
- */
-void update_socket_stat(socket_stat_t* socket_stat, 
-                        long long network_round_trip_delay,
-                        long long clock_synchronization_error) {
-    // Add the data point
-    socket_stat->network_stat_samples[socket_stat->network_stat_sample_index] = network_round_trip_delay;
-    socket_stat->network_stat_sample_index++;
-    
-    // Calculate maximums
-    if (socket_stat->network_stat_round_trip_delay_max < network_round_trip_delay) {
-        socket_stat->network_stat_round_trip_delay_max = network_round_trip_delay;
-    }
-
-    if (socket_stat->clock_synchronization_error_bound < clock_synchronization_error) {
-        socket_stat->clock_synchronization_error_bound = clock_synchronization_error;
-    }
-}
-
-/**
- * Calculate statistics of the socket.
- * The releavent information is returned as a lf_stat struct.
- * 
- * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
- */
-lf_stat_ll calculate_socket_stat(struct socket_stat_t* socket_stat) {
-    // Initialize the stat struct
-    lf_stat_ll stats = {0, 0, 0, 0};
-    // Calculate the average and max
-    for (int i = 0; i < socket_stat->network_stat_sample_index; i++) {
-        if (socket_stat->network_stat_samples[i] > stats.max) {
-            stats.max = socket_stat->network_stat_samples[i];
-        }
-        stats.average += socket_stat->network_stat_samples[i] / socket_stat->network_stat_sample_index;
-    }
-    for (int i = 0; i < socket_stat->network_stat_sample_index; i++) {
-        long long delta = socket_stat->network_stat_samples[i] - stats.average;
-        stats.variance += powl(delta, 2);
-    }
-    stats.variance /= socket_stat->network_stat_sample_index;
-    stats.standard_deviation = sqrtl(stats.variance);
-
-    return stats;
-}
-#endif
-
-/**
- * Reset statistics on the socket.
- * 
- * @param socket_stat The socket_stat_t struct that  keeps track of stats for a given connection
- */
-void reset_socket_stat(struct socket_stat_t* socket_stat) {
-    socket_stat->received_T4_messages_in_current_sync_window = 0;
-    socket_stat->history = 0LL;
-    socket_stat->network_stat_sample_index = 0;
 }
