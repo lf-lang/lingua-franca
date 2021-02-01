@@ -1,6 +1,5 @@
-// Test that the stop function can be used to internally impose a
-// a time limit.
-// This is also used to test performance (number of reactions per second).
+// This is also to test performance of the federated runtime in decentralized mode 
+// using physical connections (number of reactions per second).
 // See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 // Correct output for this 1, 2, 3, 4.
 // Failure for this test is failing to halt or getting the wrong data.
