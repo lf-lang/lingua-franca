@@ -1554,7 +1554,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * Search for a given file name in the current directory.
      * If not found, search in directories in LF_CLASSPATH.
-     * If not found there, search relative to the CLASSPATH.
+     * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
+     * if it is defined.
      * The first file found will be returned.
      * 
      * @param fileName The file name or relative path + file name
@@ -1574,6 +1575,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Check in LF_CLASSPATH
         // Load all the resources in LF_CLASSPATH if it is set.
         this.classpathLF = System.getenv("LF_CLASSPATH");
+        if (this.classpathLF === null) {
+            classpathLF = System.getenv("CLASSPATH")
+        }
         if (this.classpathLF !== null) {
             var String[] paths = this.classpathLF.split(
                 System.getProperty("path.separator"));
