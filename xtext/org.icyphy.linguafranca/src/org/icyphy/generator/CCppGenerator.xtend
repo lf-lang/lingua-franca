@@ -264,7 +264,7 @@ class CCppGenerator extends CGenerator {
         super()
         // set defaults
         config.compiler = "g++"
-        config.compilerFlags = "-O2"// -Wall -Wconversion"
+        config.compilerFlags.add("-O2") // -Wall -Wconversion"
     }
 	
     /** 
@@ -639,6 +639,6 @@ class CCppGenerator extends CGenerator {
     }
     
     override getTarget() {
-        return Target.CCpp
+        return Target.CCPP
     }
 }

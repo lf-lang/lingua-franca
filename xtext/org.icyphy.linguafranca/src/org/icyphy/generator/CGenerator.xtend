@@ -44,6 +44,9 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.InferredType
+import org.icyphy.Target
+import org.icyphy.Target.ClockSyncMode
+import org.icyphy.Target.CoordinationType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -64,9 +67,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Target.ClockSyncMode
-import org.icyphy.Target.CoordinationType
-import org.icyphy.Target
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -326,7 +326,7 @@ class CGenerator extends GeneratorBase {
         super()
         // set defaults
         config.compiler = "gcc"
-        config.compilerFlags = "-O2"// -Wall -Wconversion"
+        config.compilerFlags.add("-O2") // -Wall -Wconversion"
     }
 
     ////////////////////////////////////////////
@@ -379,7 +379,7 @@ class CGenerator extends GeneratorBase {
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
         if (federates.length > 1) {
-            coreFiles.addAll("net_util.c", "net_util.h", "rti.c", "rti.h", "federate.c")
+            coreFiles.addAll("net_util.c", "net_util.h", "rti.c", "rti.h", "federate.c", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
             createLauncher(coreFiles)
         }
@@ -406,45 +406,50 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjectsEnd = new StringBuilder()                
                         
                 // Enable clock synchronization if the federate is not local and clock-sync is enabled
-                if (config.clockSync != ClockSyncMode.OFF
-                    && (!federationRTIProperties.get('host').toString.equals(federate.host) 
-                    || config.clockSyncOptions.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
-                ) {
-                    // Determine the period with clock clock sync will be done.
-                    var period = 'MSEC(5)'  // The default.
-                    if (config.clockSyncOptions?.get('period') !== null) {
-                        val timeValue = config.clockSyncOptions.get('period')
-                        period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
-                    }
-                    // Determine how many trials there will be each time clock sync is done.
-                    var trials = '10' // The default.
-                    if (config.clockSyncOptions?.get('trials') !== null) {
-                        trials = config.clockSyncOptions.get('trials').literal
-                    }
-                    // Determine the attenuation to apply each time clock sync is done.
-                    var attenuation = '10' // The default.
-                    if (config.clockSyncOptions?.get('attenuation') !== null) {
-                        attenuation = config.clockSyncOptions.get('attenuation').literal
-                    }
-                    // Insert the #defines at the beginning
-                    code.insert(0, '''
-                        #define _LF_CLOCK_SYNC_INITIAL
-                        #define _LF_CLOCK_SYNC_PERIOD_NS «period»
-                        #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
-                        #define _LF_CLOCK_SYNC_ATTENUATION «attenuation»
-                    ''')
-                    System.out.println("Initial clock synchronization is enabled for federate "
-                        + federate.id
-                    );
-                    if (config.clockSync == ClockSyncMode.ON) {
-                        code.insert(0, '''
-                            #define _LF_CLOCK_SYNC_ON
-                        ''')
-                        System.out.println("Runtime clock synchronization is enabled for federate "
-                            + federate.id
-                        );
-                    }
-                }
+//<<<<<<< HEAD
+//                if (config.clockSync != ClockSyncMode.OFF
+//                    && (!federationRTIProperties.get('host').toString.equals(federate.host) 
+//                    || config.clockSyncOptions.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
+//                ) {
+//                    // Determine the period with clock clock sync will be done.
+//                    var period = 'MSEC(5)'  // The default.
+//                    if (config.clockSyncOptions?.get('period') !== null) {
+//                        val timeValue = config.clockSyncOptions.get('period')
+//                        period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
+//                    }
+//                    // Determine how many trials there will be each time clock sync is done.
+//                    var trials = '10' // The default.
+//                    if (config.clockSyncOptions?.get('trials') !== null) {
+//                        trials = config.clockSyncOptions.get('trials').literal
+//                    }
+//                    // Determine the attenuation to apply each time clock sync is done.
+//                    var attenuation = '10' // The default.
+//                    if (config.clockSyncOptions?.get('attenuation') !== null) {
+//                        attenuation = config.clockSyncOptions.get('attenuation').literal
+//                    }
+//                    // Insert the #defines at the beginning
+//                    code.insert(0, '''
+//                        #define _LF_CLOCK_SYNC_INITIAL
+//                        #define _LF_CLOCK_SYNC_PERIOD_NS «period»
+//                        #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
+//                        #define _LF_CLOCK_SYNC_ATTENUATION «attenuation»
+//                    ''')
+//                    System.out.println("Initial clock synchronization is enabled for federate "
+//                        + federate.id
+//                    );
+//                    if (config.clockSync == ClockSyncMode.ON) {
+//                        code.insert(0, '''
+//                            #define _LF_CLOCK_SYNC_ON
+//                        ''')
+//                        System.out.println("Runtime clock synchronization is enabled for federate "
+//                            + federate.id
+//                        );
+//                    }
+//                }
+//=======
+                initializeClockSynchronization(federate)
+                
+
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
                 // This should go first in the start_timers function.
@@ -673,12 +678,13 @@ class CGenerator extends GeneratorBase {
                 pr("}")
 
                 // Generate a function that will either do nothing
-                // (if there is only one federate) or, if there are
+                // (if there is only one federate or the coordination 
+                // is set to decentralized) or, if there are
                 // downstream federates, will notify the RTI
                 // that the specified logical time is complete.
                 pr('''
                     void logical_tag_complete(instant_t timestep, microstep_t microstep) {
-                        «IF federates.length > 1»
+                        «IF federates.length > 1 && config.coordination == CoordinationType.CENTRALIZED»
                             _lf_logical_tag_complete(timestep, microstep);
                         «ENDIF»
                     }
@@ -724,6 +730,7 @@ class CGenerator extends GeneratorBase {
                             // if the socket ID is not -1, the connection is still open. 
                             // Send an EOF by closing the socket here.
                             for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+                                // Close outbound connections
                                 if (_lf_federate_sockets_for_outbound_p2p_connections[i] != -1) {
                                     close(_lf_federate_sockets_for_outbound_p2p_connections[i]);
                                     _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
@@ -731,8 +738,9 @@ class CGenerator extends GeneratorBase {
                             }
                             «IF federate.inboundP2PConnections.length > 0»
                                 «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
-                                // void* thread_return;
-                                // pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                                void* thread_return;
+                                info_print("Waiting for incoming connections to close.");
+                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                             unsigned char message_marker = RESIGN;
                             write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
@@ -764,6 +772,73 @@ class CGenerator extends GeneratorBase {
         
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * Initialize clock synchronization (if enabled) and its related options for a given federate.
+     * 
+     * Clock synchronization can be enabled using the clock-sync target property.
+     * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
+     * 
+     * @param federate The federate to initialize clock synchronizatino for
+     */
+    protected def initializeClockSynchronization(FederateInstance federate) {
+        // Check if clock synchronization should be enabled for this federate in the first place
+        if (config.clockSync != ClockSyncMode.OFF
+            && (!federationRTIProperties.get('host').toString.equals(federate.host) 
+            || config.clockSyncOptions.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
+        ) {
+            // Determine the period with clock clock sync will be done.
+            var period = 'MSEC(5)'  // The default.
+            if (config.clockSyncOptions?.get('period') !== null) {
+                val timeValue = config.clockSyncOptions.get('period')
+                period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
+            }
+            // Determine how many trials there will be each time clock sync is done.
+            var trials = '10' // The default.
+            if (config.clockSyncOptions?.get('trials') !== null) {
+                trials = config.clockSyncOptions.get('trials').literal
+            }
+            // Determine the attenuation to apply each time clock sync is done.
+            var attenuation = '10' // The default.
+            if (config.clockSyncOptions?.get('attenuation') !== null) {
+                attenuation = config.clockSyncOptions.get('attenuation').literal
+            }            
+            // Determine if statistics should be collected
+            var collectStats = true // The default
+            if (config.clockSyncOptions?.get('collect-stats') !== null) {
+                collectStats = config.clockSyncOptions.get('collect-stats').literal?.equalsIgnoreCase('true')
+            }
+            // Insert the #defines at the beginning
+            code.insert(0, '''
+                #define _LF_CLOCK_SYNC_INITIAL
+                #define _LF_CLOCK_SYNC_PERIOD_NS «period»
+                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
+                #define _LF_CLOCK_SYNC_ATTENUATION «attenuation»
+            ''')
+            System.out.println("Initial clock synchronization is enabled for federate "
+                + federate.id
+            );
+            if (config.clockSync == ClockSyncMode.ON) {
+                var collectStatsEnable = ''
+                if (collectStats) {
+                    collectStatsEnable = "#define _LF_CLOCK_SYNC_COLLECT_STATS"
+                    System.out.println("Will collect clock sync statistics for federate " + federate.id)
+                    // Add libm to the compiler flags
+                    // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
+                    // FIXME: This is probably going to fail on MacOS (especially using clang)
+                    // because libm functions are builtin
+                    config.compilerFlags.add("-lm")
+                }
+                code.insert(0, '''
+                    #define _LF_CLOCK_SYNC_ON
+                    «collectStatsEnable»
+                ''')
+                System.out.println("Runtime clock synchronization is enabled for federate "
+                    + federate.id
+                );
+            }
+        }
     }
     
     /**
@@ -835,7 +910,7 @@ class CGenerator extends GeneratorBase {
                     || config.clockSyncOptions?.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
             ) {
                 pr('''
-                    synchronize_initial_physical_time_with_rti();
+                    synchronize_initial_physical_clock_with_rti(_lf_rti_socket_TCP);
                 ''')
             }
         
@@ -1187,7 +1262,7 @@ class CGenerator extends GeneratorBase {
             if (distCode.length === 0) pr(distCode, distHeader)
             
             val logFileName = '''log/«filename»_RTI.log'''
-            val compileCommand = '''«this.config.compiler» «config.compilerFlags» src-gen/«filename»_RTI.c -o bin/«filename»_RTI -pthread'''
+            val compileCommand = '''«this.config.compiler» «config.compilerFlags.join(" ")» src-gen/«filename»_RTI.c -o bin/«filename»_RTI -pthread'''
             
             // The mkdir -p flag below creates intermediate directories if needed.
             pr(distCode, '''
@@ -1206,7 +1281,7 @@ class CGenerator extends GeneratorBase {
                 echo "Copying source files for RTI to host «target»"
                 scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
-                echo "Compiling on host «target» using: «config.compiler» «config.compilerFlags» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                echo "Compiling on host «target» using: «config.compiler» «config.compilerFlags.join(" ")» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
                 ssh «target» ' \
                     cd «path»; \
                     echo "In «path» compiling RTI with: «compileCommand»" >> «logFileName» 2>&1; \
@@ -1254,7 +1329,7 @@ class CGenerator extends GeneratorBase {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 val logFileName = '''log/«filename»_«federate.name».log'''
-                val compileCommand = '''«config.compiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «config.compilerFlags»'''
+                val compileCommand = '''«config.compiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «config.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
@@ -2891,15 +2966,21 @@ class CGenerator extends GeneratorBase {
         // FIXME: if we align the levels with the ordinals of the
         // enum (see CppGenerator), then we don't need this function.
         switch(generator.config.logLevel) {
-            case ERROR: '''''' // #define LOG_LEVEL 0
-            case WARN: '''''' // #define LOG_LEVEL 1
-            case INFO: '''''' // #define LOG_LEVEL 2
-            case LOG: '''
+            case ERROR: '''
+                #define LOG_LEVEL 0
+            '''
+            case WARN: '''
                 #define LOG_LEVEL 1
-            ''' // #define LOG_LEVEL 3
-            case DEBUG: '''
+            '''
+            case INFO: '''
                 #define LOG_LEVEL 2
-            ''' // #define LOG_LEVEL 4
+            ''' 
+            case LOG: '''
+                #define LOG_LEVEL 3
+            '''
+            case DEBUG: '''
+                #define LOG_LEVEL 4
+            '''
         }
     }
     
@@ -4016,6 +4097,8 @@ class CGenerator extends GeneratorBase {
         // in the C target. Therefore, the nuances regarding
         // the microstep delay are currently not implemented.
         var String additionalDelayString = '-1';
+        // Name of the next immediate destination of this message
+        var String next_destination_name = '''"federate «receivingFed.id»"'''
         if (delay !== null) {
             additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
             // FIXME: handle the case where the delay is a parameter.
@@ -4031,16 +4114,24 @@ class CGenerator extends GeneratorBase {
             // Send the message via rti
             socket = '''_lf_rti_socket_TCP'''
             messageType = "TIMED_MESSAGE"
+            next_destination_name = '''"the RTI"'''
         }
         
         
         var String sendingFunction = '''send_timed_message'''
-        var String commonArgs = '''«additionalDelayString», «socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+        var String commonArgs = '''«additionalDelayString», 
+                   «socket»,
+                   «messageType»,
+                   «receivingPortID»,
+                   «receivingFed.id»,
+                   «next_destination_name»,
+                   message_length'''
         if (isPhysical) {
             // Messages going on a physical connection do not
             // carry a timestamp or require the delay;
             sendingFunction = '''send_message'''            
-            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id», message_length'''
+            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id»,
+                   «next_destination_name», message_length'''
         }
         
         if (isTokenType(type)) {

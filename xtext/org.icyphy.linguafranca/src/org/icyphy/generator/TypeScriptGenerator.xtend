@@ -72,7 +72,7 @@ class TypeScriptGenerator extends GeneratorBase {
         super()
         // set defaults for federate compilation
         config.compiler = "gcc"
-        config.compilerFlags = "-O2"
+        config.compilerFlags.add("-O2")
     }
     
     // Path to the generated project directory

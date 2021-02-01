@@ -1,6 +1,4 @@
-// Test that the stop function can be used to internally impose a
-// a time limit.
-// This is also used to test performance (number of reactions per second).
+// This is used to test the performance of the federated runtime (number of reactions per second).
 // See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 // Correct output for this 1, 2, 3, 4.
 // Failure for this test is failing to halt or getting the wrong data.
@@ -9,8 +7,8 @@
 // for over 32 million reactions per second.
 // This translates to 31 nanoseconds per reaction invocation.
 target C {
-    flags: "-O2",
-    fast: true
+    flags: "-O2 -Wall",
+    coordination: centralized
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
@@ -26,7 +24,7 @@ reactor Destination {
 	input x:int;
 	state s:int(1);
 	reaction(x) {=
-		// printf("%d\n", x->value);
+		printf("%d\n", x->value);
 		if (x->value != self->s) {
 		    printf("Error: Expected %d and got %d.\n", self->s, x->value);
 		    exit(1);
@@ -39,10 +37,9 @@ reactor Destination {
             fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
             exit(1);
         }
-        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-main reactor TimeLimit(period:time(1 usec)) {
+federated reactor TimeLimitDistributed(period:time(1 usec)) {
 	timer stop(10 secs);
 	reaction(stop) {=
 		request_stop();
