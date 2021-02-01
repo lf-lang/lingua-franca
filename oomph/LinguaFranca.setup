@@ -16,6 +16,25 @@
     name="lingua.franca"
     label="Lingua Franca">
   <setupTask
+      xsi:type="setup:CompoundTask"
+      name="Installer Adjustment">
+    <setupTask
+        xsi:type="setup:VariableTask"
+        name="github.remoteURIs"
+        label="Github repository">
+      <choice
+          value="https://${github.user.id|username}@github.com/@{remoteURI}.git"
+          label="HTTPS (read-write)"/>
+      <choice
+          value="https://github.com/@{remoteURI}.git"
+          label="HTTPS (read-only, anonymous)"/>
+      <choice
+          value="git@github.com:@{remoteURI}.git"
+          label="Git (read-write)"/>
+      <description>Choose from the available Github URIs</description>
+    </setupTask>
+  </setupTask>
+  <setupTask
       xsi:type="jdt:JRETask"
       version="JavaSE-11"
       location="${jre.location-11}">
