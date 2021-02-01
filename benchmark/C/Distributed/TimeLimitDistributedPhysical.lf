@@ -1,4 +1,4 @@
-// This is used to test performance of the federated runtime in decentralized mode 
+// This is used to test the performance of the federated runtime in decentralized mode 
 // using physical connections (number of reactions per second).
 // See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 // Correct output for this 1, 2, 3, 4.
