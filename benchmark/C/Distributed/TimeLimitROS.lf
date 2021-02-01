@@ -1,5 +1,6 @@
 /** 
- * This is used to test the performance of ROS (number of reactions per second).
+ * This is used to test the performance of using ROS as a communication method between
+ * reactors (number of reactions per second).
  * 
  * 1- To get this example working, install full ROS 2 desktop
  *    ('https://index.ros.org/doc/ros2/Installation/Foxy/').
