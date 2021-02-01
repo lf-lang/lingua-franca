@@ -182,17 +182,15 @@ int handle_T1_clock_sync_message(unsigned char* buffer, int socket, instant_t t2
  */
 void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r4);
 
-#ifdef _LF_CLOCK_SYNC_ON
 /** 
  * Thread that listens for UDP inputs from the RTI.
  */
 void* listen_to_rti_UDP_thread(void* args);
-#endif // _LF_CLOCK_SYNC
 
 /**
  * Create the thread responsible for handling clock synchronization
  * with the RTI.
  */
-void create_clock_sync_thread();
+pthread_t create_clock_sync_thread(pthread_t* thread_id);
 
 #endif // CLOCK_SYNC_H

@@ -1426,7 +1426,7 @@ void synchronize_with_other_federates() {
     pthread_t thread_id;
     pthread_create(&thread_id, NULL, listen_to_rti_TCP, NULL);
 
-    create_clock_sync_thread();
+    create_clock_sync_thread(&thread_id);
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time. Microstep is ignored.
