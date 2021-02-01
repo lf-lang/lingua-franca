@@ -10,7 +10,7 @@
  * 
  * 2- Follow the instruction in 
  *    https://index.ros.org/doc/ros2/Tutorials/Writing-A-Simple-Cpp-Publisher-And-Subscriber/
- *    **section 1** to create a 'TimeLimitROS' package in the current (example/Distributed) folder.
+ *    **section 1** to create a 'timelimitros' package in the current (example/Distributed) folder.
  * 
  * 3- Follow section 2.2 and 2.3 to modify the CMakeLists.txt and package.xml.
  * 
@@ -24,29 +24,30 @@
  * 
  * and rename the source in 'add_executable' to reflect
  * 
- *   add_executable(TimeLimitROS src/TimeLimitROS.cpp)
+ *   add_executable(TimeLimitROS src/timelimitros.cpp)
  * 
  * 5- Use lfc (in bin/) to compile the provided .lf file
  *    
- *       lfc TimeLimitROS.lf
+ *       lfc timelimitros.lf
  * 
  * 6- Run the provided build-ROS-node.sh:
  * 
- *       ./build-ROS-node.sh TimeLimitROS TimeLimitROS
+ *       ./build-ROS-node.sh timelimitros timelimitros
  * 
- * This will create a 'TimeLimitROS' node in the package TimeLimitROS (these names can be changed in 
+ * This will create a 'timelimitros' node in the package timelimitros (these names can be changed in 
  * CMakeLists.txt and in the argument to build-ROS-node.sh).
  * 
  * 7- Source the appropriate setup.bash and run the node:
  * 
- *       source TimeLimitROS/install/setup.bash
- *       ros2 run TimeLimitROS TimeLimitROS
+ *       source timelimitros/install/setup.bash
+ *       ros2 run timelimitros timelimitros
  * 
  */
 
 target C {
     keepalive: true,
-    no-compile: true
+    no-compile: true,
+    threads: 2
 };
 
 preamble {=
