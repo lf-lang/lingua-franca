@@ -551,21 +551,21 @@ class LinguaFrancaValidationTest {
         for (target : Target.values) {
             for (visibility : Visibility.values) {
                 val model_reactor_scope = parseWithoutError('''
-                    target «target.name»;
+                    target «target»;
                     reactor Foo {
                         «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
                     }
                 ''')
                 
                 val model_file_scope = parseWithoutError('''
-                    target «target.name»;
+                    target «target»;
                     «IF visibility != Visibility.NONE»«visibility» «ENDIF»preamble {==}
                     reactor Foo {
                     }
                 ''')
                 
                 val model_no_preamble = parseWithoutError('''
-                    target «target.name»;
+                    target «target»;
                     reactor Foo {
                     }
                 ''')
