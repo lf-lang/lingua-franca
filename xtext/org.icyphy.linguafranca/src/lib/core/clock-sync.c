@@ -447,7 +447,6 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     }
 }
 
-#ifdef _LF_CLOCK_SYNC_ON
 /** 
  * Thread that listens for UDP inputs from the RTI.
  */
@@ -542,16 +541,17 @@ void* listen_to_rti_UDP_thread(void* args) {
     }
     return NULL;
 }
-#endif // _LF_CLOCK_SYNC
 
 /**
  * Create the thread responsible for handling clock synchronization
- * with the RTI.
+ * with the RTI if (runtime) clock synchronization is on.
+ * 
+ * @return On success, returns 0; On error, it returns an error number
  */
-void create_clock_sync_thread() {
+pthread_t create_clock_sync_thread(pthread_t* thread_id) {
 #ifdef _LF_CLOCK_SYNC_ON
-    pthread_t thread_id;
     // One for UDP messages if clock synchronization is enabled for this federate
-    pthread_create(&thread_id, NULL, listen_to_rti_UDP_thread, NULL);
+    return pthread_create(thread_id, NULL, listen_to_rti_UDP_thread, NULL);
 #endif // _LF_CLOCK_SYNC_ON
+    return 0;
 }
