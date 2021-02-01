@@ -369,9 +369,9 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // Check against the guard band.
         if (coded_probe_distance >= CLOCK_SYNC_GUARD_BAND) {
             // Discard this clock sync cycle
-            error_print("Clock sync: Skipping the current clock synchronization cycle "
+            warning_print("Clock sync: Skipping the current clock synchronization cycle "
                     "due to impure coded probes.");
-            error_print("Clock sync: Coded probe packet stats: "
+            warning_print("Clock sync: Coded probe packet stats: "
                     "Distance: %lld. r5 - r4 = %lld. t5 - t4 = %lld.",
                     coded_probe_distance,
                     r5 - r4,
@@ -416,9 +416,12 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         stats = calculate_socket_stat(&_lf_rti_socket_stat);
         // Issue a warning if standard deviation is high in data
         if (stats.standard_deviation >= CLOCK_SYNC_GUARD_BAND) {
+            // Reset the stats
             warning_print("Clock sync: Large standard deviation detected in network delays (%lld) for the current period."
                         " Clock synchronization offset might not be accurate.",
                         stats.standard_deviation);
+            reset_socket_stat(&_lf_rti_socket_stat);
+            return;
         }
 #endif
         // The number of received T4 messages has reached _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL

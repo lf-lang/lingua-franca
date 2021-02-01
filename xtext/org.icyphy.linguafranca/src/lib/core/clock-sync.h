@@ -53,7 +53,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @see Coded probes in Geng, Yilong, et al.
  * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
  */
-#define CLOCK_SYNC_GUARD_BAND USEC(200)
+#define CLOCK_SYNC_GUARD_BAND USEC(100)
 
 /**
  * Statistics for a given socket.
