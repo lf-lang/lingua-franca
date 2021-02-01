@@ -408,23 +408,23 @@ class CGenerator extends GeneratorBase {
                 // Enable clock synchronization if the federate is not local and clock-sync is enabled
                 if (config.clockSync != ClockSyncMode.OFF
                     && (!federationRTIProperties.get('host').toString.equals(federate.host) 
-                    || targetClockSyncOptions.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
+                    || config.clockSyncOptions.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
                 ) {
                     // Determine the period with clock clock sync will be done.
                     var period = 'MSEC(5)'  // The default.
-                    if (targetClockSyncOptions?.get('period') !== null) {
-                        val timeValue = targetClockSyncOptions.get('period')
+                    if (config.clockSyncOptions?.get('period') !== null) {
+                        val timeValue = config.clockSyncOptions.get('period')
                         period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
                     }
                     // Determine how many trials there will be each time clock sync is done.
                     var trials = '10' // The default.
-                    if (targetClockSyncOptions?.get('trials') !== null) {
-                        trials = targetClockSyncOptions.get('trials').literal
+                    if (config.clockSyncOptions?.get('trials') !== null) {
+                        trials = config.clockSyncOptions.get('trials').literal
                     }
                     // Determine the attenuation to apply each time clock sync is done.
                     var attenuation = '10' // The default.
-                    if (targetClockSyncOptions?.get('attenuation') !== null) {
-                        attenuation = targetClockSyncOptions.get('attenuation').literal
+                    if (config.clockSyncOptions?.get('attenuation') !== null) {
+                        attenuation = config.clockSyncOptions.get('attenuation').literal
                     }
                     // Insert the #defines at the beginning
                     code.insert(0, '''
@@ -814,7 +814,7 @@ class CGenerator extends GeneratorBase {
             }
 
             // If a test clock offset has been specified, insert code to set it here.
-            val testOffset = targetClockSyncOptions?.get('test-offset')
+            val testOffset = config.clockSyncOptions?.get('test-offset')
             if (testOffset !== null) {
                 // Validator assures this is a time value.
                 val offset = (new TimeValue(testOffset.time, testOffset.unit)).toNanoSeconds.toString
@@ -832,7 +832,7 @@ class CGenerator extends GeneratorBase {
             // unless that is overridden with the clock-sync-options target property.
             if (config.clockSync !== ClockSyncMode.OFF
                 && (!federationRTIProperties.get('host').toString.equals(federate.host) 
-                    || targetClockSyncOptions?.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
+                    || config.clockSyncOptions?.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
             ) {
                 pr('''
                     synchronize_initial_physical_time_with_rti();
@@ -932,14 +932,14 @@ class CGenerator extends GeneratorBase {
         
         // Determine the period with clock clock sync will be done.
         var period = 'MSEC(5)'  // The default.
-        if (targetClockSyncOptions?.get('period') !== null) {
-            val timeValue = targetClockSyncOptions.get('period')
+        if (config.clockSyncOptions?.get('period') !== null) {
+            val timeValue = config.clockSyncOptions.get('period')
             period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
         }
         // Determine how many trials there will be each time clock sync is done.
         var trials = '10' // The default.
-        if (targetClockSyncOptions?.get('trials') !== null) {
-            trials = targetClockSyncOptions.get('trials').literal
+        if (config.clockSyncOptions?.get('trials') !== null) {
+            trials = config.clockSyncOptions.get('trials').literal
         }
         
         if (config.clockSync == ClockSyncMode.INITIAL) {
@@ -4126,7 +4126,7 @@ class CGenerator extends GeneratorBase {
         srcGenDir.mkdirs
         
         // Handle .proto files.
-        for (file : this.protoFiles) {
+        for (file : config.protoFiles) {
             this.processProtoFile(file)
             val dotIndex = file.lastIndexOf('.')
             var rootFilename = file
