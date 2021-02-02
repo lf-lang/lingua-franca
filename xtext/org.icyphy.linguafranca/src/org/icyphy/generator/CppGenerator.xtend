@@ -1019,11 +1019,11 @@ class CppGenerator extends GeneratorBase {
             "--target",
             "install",
             "--config",
-            '''«IF config.cmakeBuildType === null»"Release"«ELSE»"«config.cmakeBuildType»"«ENDIF»'''])
+            '''«IF config.cmakeBuildType === null»"Release"«ELSE»"«config.cmakeBuildType»"«ENDIF»'''], findCommandEnv("cmake"))
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
             '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
-            srcPath])
+            srcPath], findCommandEnv("cmake"))
         if (makeBuilder === null || cmakeBuilder === null) {
             return
         }

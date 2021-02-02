@@ -335,6 +335,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     var indentation = new LinkedHashMap<StringBuilder, String>()
     
+    /**
+     * Defines the execution environment that is used to execute binaries.
+     */
+    enum ExecutionEnvironment {
+    	NATIVE,
+    	BASH
+    }
+    
 
     ////////////////////////////////////////////
     //// Code generation functions to override for a concrete code generator.
@@ -889,7 +897,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 1) {
                 val buildCommand = createCommand(tokens.head,
-                    tokens.tail.toList)
+                    tokens.tail.toList, findCommandEnv(tokens.head))
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
                 if (buildCommand === null) { 
@@ -928,10 +936,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  will never have a `-c` flag.
      */
     protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val cFilename = getTargetFileName(fileToCompile);            
-        val relativeSrcFilename = "src-gen" + File.separator + cFilename;
-        val relativeBinFilename = "bin" + File.separator + fileToCompile;
-
+    	val isBash = findCommandEnv(config.compiler)
+    	val cFilename = getTargetFileName(fileToCompile); 
+    	var relativeSrcFilename = "src-gen" + File.separator + cFilename;
+        var relativeBinFilename = "bin" + File.separator + fileToCompile;
+    	if (isBash == ExecutionEnvironment.BASH) {
+    		relativeSrcFilename = "src-gen/" + cFilename;
+    		relativeBinFilename = "bin/" + fileToCompile;
+    	}
         var compileArgs = newArrayList
         compileArgs.add(relativeSrcFilename)
         compileArgs.addAll(config.compileAdditionalSources)
@@ -961,7 +973,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 reportError("ERROR: Did not output executable; no main reactor found.")
             }
         }
-        return createCommand(config.compiler, compileArgs)
+        return createCommand(config.compiler, compileArgs, isBash)
     }
 
     ////////////////////////////////////////////
@@ -1084,24 +1096,22 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
     protected def createCommand(String cmd) {
-        return createCommand(cmd, #[])
+        return createCommand(cmd, #[], findCommandEnv(cmd))
     }
     
     /**
-     * Creates a ProcessBuilder for a given command and its arguments.
+     * Tries to find the command.
      * 
-     * This method ensures that the given command is executable. It first tries 
-     * to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). If 
-     * that fails, it tries again with bash. In case this fails again, this
-     * method returns null. Otherwise, it returns correctly constructed 
-     * ProcessBuilder object. 
+     * It tries to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
+     * If that fails, it tries again with bash. 
+     * In case this fails again, raise an error.
      * 
-     * @param cmd The command to be executed
-     * @param args A list of arguments for the given command
-     * @return A ProcessBuilder object if the command was found or null otherwise.
+     * 
+     * @param cmd The command to be find.
+     * @return Returns an ExecutionEnvironment.
      */
-    protected def createCommand(String cmd, List<String> args) {
-        // Make sure the command is found in the PATH.
+    protected def findCommandEnv(String cmd) {
+    	// Make sure the command is found in the PATH.
         print('''--- Looking for command «cmd» ... ''')
         // Use 'where' on Windows, 'which' on other systems
         val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
@@ -1109,9 +1119,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val whichReturn = whichBuilder.start().waitFor()
         if (whichReturn == 0) {
             println("SUCCESS")
-            val builder = new ProcessBuilder(#[cmd] + args)
-            builder.directory(new File(directory))
-            return builder
+
+            return ExecutionEnvironment.NATIVE
         }
         println("FAILED")
         // Try running with bash.
@@ -1124,13 +1133,38 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val bashReturn = bashBuilder.runSubprocess(#[bashOut], #[])
         if (bashReturn == 0) {
             println("SUCCESS")
-            // extract the full command from the output of which
-            val newCmd = bashOut.toString().trim()
-            // use that command to build the process
-            val builder = new ProcessBuilder(#[newCmd] + args)
+           	return ExecutionEnvironment.BASH
+        }
+        reportError("The command " + cmd + " could not be found.\n" +
+                    "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
+                    "You can set PATH in ~/.bash_profile on Linux or Mac.")
+        return null as ExecutionEnvironment
+            
+    }
+    
+    /**
+     * Creates a ProcessBuilder for a given command and its arguments.
+     * 
+     * This method returns correctly constructed ProcessBuilder object 
+     *according to the Execution environment. Raise an error if the env is null.
+     * 
+     * @param cmd The command to be executed
+     * @param args A list of arguments for the given command
+     * @param env is the type of the Execution Environment.
+     * @return A ProcessBuilder object if the command was found or null otherwise.
+     */
+    protected def createCommand(String cmd, List<String> args, ExecutionEnvironment env) { 
+        if (env == ExecutionEnvironment.NATIVE) {
+            val builder = new ProcessBuilder(#[cmd] + args)
             builder.directory(new File(directory))
             return builder
-        }
+        } else if (env == ExecutionEnvironment.BASH) {
+            val newCmd = #["bash", "--login", "-c", "\"", cmd]
+            // use that command to build the process
+            val builder = new ProcessBuilder(newCmd + args + #["\""])
+            builder.directory(new File(directory))
+            return builder
+        } 
         println("FAILED")
         reportError("The command " + cmd + " could not be found.\n" +
                     "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
