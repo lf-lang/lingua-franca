@@ -41,6 +41,7 @@ import org.icyphy.validation.LinguaFrancaValidator;
  * faulty references to be caught at compile time. Switch statements that take
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
+ * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 public enum Target {
@@ -91,7 +92,8 @@ public enum Target {
                 "_Static_assert", // (since C11)
                 "_Thread_local" // (since C11)
                 )
-    ), CCPP("CCpp", true, Target.C.keywords), 
+    ), 
+    CCPP("CCpp", true, Target.C.keywords), 
     CPP("Cpp", true, Arrays.asList(
                 // List via: https://en.cppreference.com/w/cpp/keyword
                 "alignas", // (since C++11)
@@ -360,12 +362,13 @@ public enum Target {
     
     /**
      * Private constructor for targets.
+     * 
      * @param name String representation of this target.
      * @param requires Types Whether this target requires type annotations or not.
      * @param keywords List of reserved strings in the target language.
      */
-    private Target(String alias, boolean requiresTypes, List<String> keywords) {
-        this.description = alias;
+    private Target(String description, boolean requiresTypes, List<String> keywords) {
+        this.description = description;
         this.requiresTypes = requiresTypes;
         this.keywords = keywords;
     }
@@ -384,14 +387,15 @@ public enum Target {
 
     /**
      * Return the entry that matches the given string.
-     * @param string The string to match against.
+     * @param name The string to match against.
+     * @return The matching target (or null if there is none).
      */
-    public static Target forName(String string) {
-        return (Target)Target.doMatch(string, Target.values());
+    public static Target forName(String name) {
+        return (Target)Target.doMatch(name, Target.values());
     }
 
     /**
-     * Return the alias.
+     * Return the description.
      */
     @Override
     public String toString() {
@@ -401,108 +405,135 @@ public enum Target {
     // Inner classes.
     
     /**
-     * All target properties along with a list of targets that supports them.
+     * A target properties along with a type and a list of supporting targets
+     * that supports it, as well as a function for configuration updates.
+     * 
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
-    public enum TargetProperties {
+    public enum TargetProperty {
         
         /**
          * Directive to let the generator use the custom build command.
          */
-        BUILD("build", UnionType.STRING_OR_STRING_ARRAY, Arrays.asList(Target.C), (config, value) -> {
-            config.buildCommands = ASTUtils.toListOfStrings(value);
-        }),
+        BUILD("build", UnionType.STRING_OR_STRING_ARRAY,
+                Arrays.asList(Target.C), (config, value) -> {
+                    config.buildCommands = ASTUtils.toListOfStrings(value);
+                }),
         
         /**
          * Directive to specify the target build type such as 'Release' or 'Debug'.
          */
-        BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION, Arrays.asList(Target.CPP), (config, value) -> {
-            config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.match(ASTUtils.toText(value));
-        }),
+        BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
+                Arrays.asList(Target.CPP), (config, value) -> {
+                    config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
+                            .forName(ASTUtils.toText(value));
+                }),
         
         /**
          * Directive to let the federate execution handle clock synchronization in software.
          */
-        CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION, Arrays.asList(Target.C), (config, value) -> {
-            config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION.match(ASTUtils.toText(value));
-        }),
-
+        CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
+                Arrays.asList(Target.C), (config, value) -> {
+                    config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
+                            .forName(ASTUtils.toText(value));
+                }),
+        
         /**
          * Key-value pairs giving options for clock synchronization.
          */
-        CLOCK_SYNC_OPTIONS("clock-sync-options", DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C), (config, value) -> {
-            for (KeyValuePair entry: value.getKeyvalue().getPairs()) {
-                // FIXME: convert to string values here, not later on during code generation.
-                config.clockSyncOptions.put((ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT.match(entry.getName()), entry.getValue());
-            }
-        }),
-
+        CLOCK_SYNC_OPTIONS("clock-sync-options",
+                DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C),
+                (config, value) -> {
+                    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                        // FIXME: convert to string values here, not later on
+                        // during code generation.
+                        config.clockSyncOptions.put(
+                                (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
+                                        .forName(entry.getName()),
+                                entry.getValue());
+                    }
+                }),
+        
         /**
-         * Directive to specify a cmake to be included by the generated build systems.
+         * Directive to specify a cmake to be included by the generated build
+         * systems.
          *
-         * This gives full control over the C++ build as any cmake parameters can be adjusted in the included file.
+         * This gives full control over the C++ build as any cmake parameters
+         * can be adjusted in the included file.
          */
-        CMAKE_INCLUDE("cmake-include", PrimitiveType.STRING, Arrays.asList(Target.CPP), (config, value) -> {
-            config.cmakeInclude = ASTUtils.toText(value);
-        }),
+        CMAKE_INCLUDE("cmake-include", PrimitiveType.STRING,
+                Arrays.asList(Target.CPP), (config, value) -> {
+                    config.cmakeInclude = ASTUtils.toText(value);
+                }),
         
         /**
          * Directive to specify the target compiler.
          */
-        COMPILER("compiler", PrimitiveType.STRING,  Arrays.asList(Target.ALL), (config, value) -> {
-            config.compiler = ASTUtils.toText(value);
-        }),
+        COMPILER("compiler", PrimitiveType.STRING, Arrays.asList(Target.ALL),
+                (config, value) -> {
+                    config.compiler = ASTUtils.toText(value);
+                }),
         
         /**
          * Directive to let the execution engine allow logical time to elapse
          * faster than physical time.
          */
-        FAST("fast", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL), (config, value) -> {
-            config.fastMode = ASTUtils.toBoolean(value);
-        }),
+        FAST("fast", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+                (config, value) -> {
+                    config.fastMode = ASTUtils.toBoolean(value);
+                }),
         
         /**
          * Directive to stage particular files on the class path to be
          * processed by the code generator.
          */
-        FILES("files", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.ALL), (config, value) -> {
-            config.fileNames = ASTUtils.toListOfStrings(value);
-        }),
+        FILES("files", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.ALL),
+                (config, value) -> {
+                    config.fileNames = ASTUtils.toListOfStrings(value);
+                }),
         
         /**
          * Flags to be passed on to the target compiler.
          */
-        FLAGS("flags", PrimitiveType.STRING, Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
-            config.compilerFlags.clear();
-            String str = ASTUtils.toText(value);
-            if (!str.isEmpty()) {
-                // FIXME: this is unsafe because it doesn't account for whitespace within quotes.
-                Arrays.asList(str.split("\\s"))
-                        .forEach(sw -> config.compilerFlags.add(sw));
-            }
-        }),
+        FLAGS("flags", PrimitiveType.STRING,
+                Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
+                    config.compilerFlags.clear();
+                    String str = ASTUtils.toText(value);
+                    if (!str.isEmpty()) {
+                        // FIXME: this is unsafe because it doesn't account for
+                        // whitespace within quotes.
+                        Arrays.asList(str.split("\\s"))
+                                .forEach(sw -> config.compilerFlags.add(sw));
+                    }
+                }),
         
         /**
          * Directive to specify the coordination mode
          */
-        COORDINATION("coordination", UnionType.COORDINATION_UNION, Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value) -> {
-            config.coordination = (CoordinationType) UnionType.COORDINATION_UNION.match(ASTUtils.toText(value));
-        }),
+        COORDINATION("coordination", UnionType.COORDINATION_UNION,
+                Arrays.asList(Target.C, Target.CCPP, Target.Python),
+                (config, value) -> {
+                    config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
+                            .forName(ASTUtils.toText(value));
+                }),
         
         /**
          * Directive to let the execution engine remain active also if there
          * are no more events in the event queue.
          */
-        KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL), (config, value) -> {
-            config.keepalive = ASTUtils.toBoolean(value);
-        }),
+        KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+                (config, value) -> {
+                    config.keepalive = ASTUtils.toBoolean(value);
+                }),
         
         /**
          * Directive to specify the grain at which to report log messages during execution.
          */
-        LOGGING("logging", UnionType.LOGGING_UNION, Arrays.asList(Target.ALL), (config, value) -> {
-            config.logLevel = (LogLevel) UnionType.LOGGING_UNION.match(ASTUtils.toText(value));
-        }),
+        LOGGING("logging", UnionType.LOGGING_UNION, Arrays.asList(Target.ALL),
+                (config, value) -> {
+                    config.logLevel = (LogLevel) UnionType.LOGGING_UNION
+                            .forName(ASTUtils.toText(value));
+                }),
         
         /**
          * Directive to not invoke the target compiler.
@@ -520,13 +551,17 @@ public enum Target {
                 Arrays.asList(Target.CPP), (config, value) -> {
                     config.noRuntimeValidation = ASTUtils.toBoolean(value);
                 }),
+        
         /**
          * Directive for specifying .proto files that need to be compiled and their
          * code included in the sources.
          */
-        PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.C, Target.TS, Target.Python), (config, value) -> {
-            config.protoFiles = ASTUtils.toListOfStrings(value);
-        }),
+        PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY,
+                Arrays.asList(Target.C, Target.TS, Target.Python),
+                (config, value) -> {
+                    config.protoFiles = ASTUtils.toListOfStrings(value);
+                }),
+        
         /**
          * Directive to specify the number of threads.
          */
@@ -535,6 +570,7 @@ public enum Target {
                 (config, value) -> {
                     config.threads = ASTUtils.toInteger(value);
                 }),
+        
         /**
          * Directive to specify the execution timeout.
          */
@@ -542,6 +578,7 @@ public enum Target {
                 (config, value) -> {
                     config.timeout = ASTUtils.toTimeValue(value);
                 }),
+        
         /**
          * Directive to let the runtime produce execution traces.
          */
@@ -549,10 +586,11 @@ public enum Target {
                 Arrays.asList(Target.C, Target.CPP), (config, value) -> {
                     config.tracing = ASTUtils.toBoolean(value);
                 });
+        
         /**
          * String representation of this target property.
          */
-        public final String alias;
+        public final String description;
         
         /**
          * List of targets that support this property. If a property is used for
@@ -566,15 +604,26 @@ public enum Target {
          */
         public final TargetPropertyType type;
         
+        /**
+         * Function that given a configuration object and an Element AST node
+         * updates the configuration. It is assumed that validation already
+         * occurred, so this code should be straightforward.
+         */
         public final BiConsumer<Configuration, Element> setter;
         
         /**
          * Private constructor for target properties.
-         * @param name String representation of this property.
+         * 
+         * @param description String representation of this property.
+         * @param type        The type that values assigned to this property
+         *                    should conform to.
          * @param supportedBy List of targets that support this property.
+         * @param setter      Function for configuration updates.
          */
-        private TargetProperties(String alias, TargetPropertyType type, List<Target> supportedBy, BiConsumer<Configuration, Element> setter) {
-            this.alias = alias;
+        private TargetProperty(String description, TargetPropertyType type,
+                List<Target> supportedBy,
+                BiConsumer<Configuration, Element> setter) {
+            this.description = description;
             this.type = type;
             this.supportedBy = supportedBy;
             this.setter = setter;
@@ -582,32 +631,39 @@ public enum Target {
 
         /**
          * Update the given configuration using the given target properties.
-         * @param config The configuration object to update.
-         * @param properties Target properties that inform the configuration.
+         * 
+         * @param config     The configuration object to update.
+         * @param properties AST node that holds all the target properties.
          */
-        public static void update(Configuration config, List<KeyValuePair> properties) {
+        public static void update(Configuration config,
+                List<KeyValuePair> properties) {
             properties.forEach(property -> match(property.getName()).setter
                     .accept(config, property.getValue()));
         }
-        
+
         /**
          * Return the entry that matches the given string.
-         * @param string The string to match against.
+         * @param name The string to match against.
          */
-        public static TargetProperties match(String string) {
-            return (TargetProperties)Target.doMatch(string, TargetProperties.values());
+        public static TargetProperty match(String name) {
+            return (TargetProperty)Target.doMatch(name, TargetProperty.values());
         }
 
-        public static List<TargetProperties> getOptions() {
-            return Arrays.asList(TargetProperties.values());
+        /**
+         * Return a list with all target properties.
+         * 
+         * @return All existing target properties.
+         */
+        public static List<TargetProperty> getOptions() {
+            return Arrays.asList(TargetProperty.values());
         }
         
         /**
-         * Return the alias.
+         * Return the description.
          */
         @Override
         public String toString() {
-            return this.alias;
+            return this.description;
         }
     }
     
@@ -618,14 +674,21 @@ public enum Target {
         public TargetPropertyType getType();
     }
     
+    /**
+     * A dictionary type with a predefined set of possible keys and assignable
+     * types.
+     * 
+     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     *
+     */
     public enum DictionaryType implements TargetPropertyType {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values()));
-        
+
         /**
-         * The key-value pairs that are allowed in this dictionary.
+         * The keys and assignable types that are allowed in this dictionary.
          */
         public List<DictionaryElement> options;
-        
+
         /**
          * A dictionary type restricted to sets of predefined keys and types of
          * values.
@@ -636,8 +699,15 @@ public enum Target {
             this.options = options;
         }
         
-        public DictionaryElement match(String string) {
-            return (DictionaryElement) Target.doMatch(string, options.toArray());
+        /**
+         * Return the dictionary element of which the key matches the given
+         * string.
+         * 
+         * @param name The string to match against.
+         * @return The matching dictionary element (or null if there is none).
+         */
+        public DictionaryElement forName(String name) {
+            return (DictionaryElement) Target.doMatch(name, options.toArray());
         }
         
         /**
@@ -690,29 +760,61 @@ public enum Target {
                             .collect(Collectors.joining(", "));
         }
     }
-        
+    /**
+     * A type that can assume one of several types.
+     * 
+     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     *
+     */
     public enum UnionType implements TargetPropertyType {
         STRING_OR_STRING_ARRAY(
-                Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY), null),
-        FILE_OR_FILE_ARRAY(Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
+                Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY),
+                null),
+        FILE_OR_FILE_ARRAY(
+                Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
-        COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
+        COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
+                CoordinationType.CENTRALIZED),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
-        CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()), ClockSyncMode.INITIAL);
+        CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
+                ClockSyncMode.INITIAL);
 
+        /**
+         * The constituents of this type union.
+         */
         public final List<Enum<?>> options;
         
+        /**
+         * The default type, if there is one.
+         */
         private final Enum<?> defaultOption;
         
-        private UnionType(List<Enum<?>> list, Enum<?> defaultOption) {
-            this.options = list;
+        /**
+         * Private constructor for creating unions types.
+         * 
+         * @param options The types that that are part of the union.
+         * @param defaultOption The default type.
+         */
+        private UnionType(List<Enum<?>> options, Enum<?> defaultOption) {
+            this.options = options;
             this.defaultOption = defaultOption; 
         }
         
-        public Enum<?> match(String string) {
-            return (Enum<?>) Target.doMatch(string, options.toArray());
+        /**
+         * Return the type among those in this type union that matches the given
+         * name.
+         * 
+         * @param name The string to match against.
+         * @return The matching dictionary element (or null if there is none).
+         */
+        public Enum<?> forName(String name) {
+            return (Enum<?>) Target.doMatch(name, options.toArray());
         }
         
+        /**
+         * Recursively check that the passed in element conforms to the rules of
+         * this union.
+         */
         @Override
         public void check(Element e, String name, LinguaFrancaValidator v) {
             Optional<Enum<?>> match = this.match(e);
@@ -733,12 +835,13 @@ public enum Target {
                 TargetPropertyType.produceError(name, this.toString(), v);
             }
         }
-        
 
         /**
+         * Internal method for matching a given element against the allowable
+         * types.
          * 
-         * @param e
-         * @return
+         * @param e AST node that represents the value of a target property.
+         * @return The matching type wrapped in an Optional object.
          */
         private Optional<Enum<?>> match(Element e) {
             return this.options.stream().filter(option -> {
@@ -765,7 +868,8 @@ public enum Target {
         }
         
         /**
-         * Return a human-readable description of this type.
+         * Return a human-readable description of this type. If three is a
+         * default option, then indicate it.
          */
         @Override
         public String toString() {
@@ -780,16 +884,34 @@ public enum Target {
 
     }
     
+    /**
+     * An array type of which the elements confirm to a given type.
+     * 
+     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     *
+     */
     public enum ArrayType implements TargetPropertyType {
         STRING_ARRAY(PrimitiveType.STRING),
         FILE_ARRAY(PrimitiveType.FILE);
         
+        /**
+         * Type parameter of this array type.
+         */
         public TargetPropertyType type;
         
+        /**
+         * Private constructor to create a new array type.
+         * 
+         * @param type The type of elements in the array.
+         */
         private ArrayType(TargetPropertyType type) {
             this.type = type;
         }
         
+        /**
+         * Check that the passed in element represents an array and ensure that
+         * its elements are all of the correct type.
+         */
         @Override
         public void check(Element e, String name, LinguaFrancaValidator v) {
             Array array = e.getArray();
@@ -803,6 +925,9 @@ public enum Target {
             }
         }
         
+        /**
+         * Return true of the given element is an array.
+         */
         @Override
         public boolean validate(Element e) {
             if (e.getArray() != null) {
@@ -821,7 +946,9 @@ public enum Target {
     }
     
     /**
-     * Cmake build types.
+     * Enumeration of Cmake build types.
+     * 
+     * @author{Christian Menard <christian.menard@tu-dresden.de>}
      */
     public enum BuildType {
         RELEASE("Release"), 
@@ -852,6 +979,7 @@ public enum Target {
     
     /**
      * Enumeration of coordination types.
+     * 
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum CoordinationType {
@@ -865,12 +993,13 @@ public enum Target {
             return this.name().toLowerCase();
         }
     }
-    
+
     /**
-     * Given a string and a list of candidate objects, return the first candidate
-     * that matches, or null if no candidate matches.
-     * @param string The string to match against candidates.
-     * @param candidates The candidates to match the string against. 
+     * Given a string and a list of candidate objects, return the first
+     * candidate that matches, or null if no candidate matches.
+     * 
+     * @param string     The string to match against candidates.
+     * @param candidates The candidates to match the string against.
      */
     private static Object doMatch(final String string, final Object[] candidates) {
         return Arrays.stream(candidates)
@@ -880,9 +1009,12 @@ public enum Target {
     
     /**
      * Enumeration of clock synchronization modes.
-     * OFF: The clock synchronization is universally off.
-     * STARTUP: Clock synchronization occurs at startup only.
-     * ON: Clock synchronization occurs at startup and at runtime.
+     * 
+     * - OFF: The clock synchronization is universally off.
+     * - STARTUP: Clock synchronization occurs at startup only.
+     * - ON: Clock synchronization occurs at startup and at runtime.
+     * 
+     * @author{Edward A. Lee <eal@berkeley.edu>}
      */
     public enum ClockSyncMode {
         OFF, INITIAL, ON;
@@ -896,36 +1028,44 @@ public enum Target {
             return this.name().toLowerCase();
         }
     }
+
     /**
      * An interface for types associated with target properties.
      * 
-     * @author Marten Lohstroh
+     * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public interface TargetPropertyType {
-        
+
         /**
-         * Return true if the the given Element is a valid instance of this type.
+         * Return true if the the given Element is a valid instance of this
+         * type.
+         * 
          * @param e The Element to validate.
+         * @return True if the element conforms to this type, false otherwise.
          */
         public boolean validate(Element e);
-        
+
         /**
          * Check (recursively) the given Element against its associated type(s)
          * and add found problems to the given list of errors.
-         * @param e The Element to type check.
+         * 
+         * @param e    The Element to type check.
          * @param name The name of the target property.
-         * @param v A reference to the validator to report errors to.
+         * @param v    A reference to the validator to report errors to.
          */
         public void check(Element e, String name, LinguaFrancaValidator v);
-        
+
         /**
          * Helper function to produce an error during type checking.
-         * @param name The description of the target property.
+         * 
+         * @param name        The description of the target property.
          * @param description The description of the type.
-         * @param v A reference to the validator to report errors to.
+         * @param v           A reference to the validator to report errors to.
          */
-        public static void produceError(String name, String description, LinguaFrancaValidator v) {
-            v.targetPropertyErrors.add("Target property '" + name + "' is required to be " + description + ".");
+        public static void produceError(String name, String description,
+                LinguaFrancaValidator v) {
+            v.targetPropertyErrors.add("Target property '" + name
+                    + "' is required to be " + description + ".");
         }
     }
     
@@ -933,7 +1073,7 @@ public enum Target {
      * Primitive types for target properties, each with a description used in
      * error messages and predicate used for validating values.
      * 
-     * @author Marten Lohstroh
+     * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum PrimitiveType implements TargetPropertyType {
         BOOLEAN("'true' or 'false'",
@@ -1010,8 +1150,9 @@ public enum Target {
         /**
          * Check (recursively) the given Element against its associated type(s)
          * and add found problems to the given list of errors.
-         * @param e The element to type check.
-         * @param name The name of the target property.
+         * 
+         * @param e      The element to type check.
+         * @param name   The name of the target property.
          * @param errors A list of errors to append to if problems are found.
          */
         public void check(Element e, String name, LinguaFrancaValidator v) {
@@ -1038,7 +1179,10 @@ public enum Target {
         }
     }
     
-    
+    /**
+     * 
+     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     */
     public enum ClockSyncOption implements DictionaryElement {
         ATTENUATION("attenuation", PrimitiveType.NON_NEGATIVE_INTEGER),
         LOCAL_FEDERATES_ON("local-federates-on", PrimitiveType.BOOLEAN),
@@ -1088,5 +1232,4 @@ public enum Target {
             return this.name().toLowerCase();
         }
     }
-
 }

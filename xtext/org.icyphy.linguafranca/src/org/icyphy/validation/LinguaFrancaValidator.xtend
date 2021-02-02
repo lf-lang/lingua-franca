@@ -40,7 +40,6 @@ import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
 import org.icyphy.Target
-import org.icyphy.Target.TargetProperties
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -78,6 +77,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.Target.TargetProperty
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -612,14 +612,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // Check only if the container's container is a Target.
         if (param.eContainer.eContainer instanceof TargetDecl) {
 
-            val prop = TargetProperties.match(param.name)
+            val prop = TargetProperty.match(param.name)
 
             // Make sure the key is valid.
             if (prop === null) {
                 warning(
                     "Unrecognized target parameter: " + param.name +
                         ". Recognized parameters are: " +
-                        TargetProperties.getOptions().join(", ") + ".",
+                        TargetProperty.getOptions().join(", ") + ".",
                     Literals.KEY_VALUE_PAIR__NAME)
             }
 
@@ -1088,7 +1088,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if fast is defined
-                TargetProperties.match(pair.name) == TargetProperties.FAST
+                TargetProperty.match(pair.name) == TargetProperty.FAST
         )) {
             if (info.model.reactors.exists(
                 reactor |
@@ -1117,7 +1117,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if clock-sync is defined
-                TargetProperties.match(pair.name) == TargetProperties.CLOCK_SYNC
+                TargetProperty.match(pair.name) == TargetProperty.CLOCK_SYNC
         )) {
 
             if (info.model.reactors.exists( reactor |
