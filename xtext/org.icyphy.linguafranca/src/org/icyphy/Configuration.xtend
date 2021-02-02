@@ -21,18 +21,16 @@
 package org.icyphy
 
 import java.io.File
+import java.io.IOException
 import java.util.List
-import java.util.Map
+import org.eclipse.core.resources.ResourcesPlugin
+import org.eclipse.core.runtime.Path
+import org.eclipse.emf.common.util.URI
 import org.icyphy.Target.BuildType
 import org.icyphy.Target.ClockSyncMode
-import org.icyphy.Target.ClockSyncOption
 import org.icyphy.Target.CoordinationType
 import org.icyphy.Target.LogLevel
-import org.icyphy.linguaFranca.Element
-import java.io.IOException
-import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.emf.common.util.URI
-import org.eclipse.core.runtime.Path
+import org.icyphy.linguaFranca.TimeUnit
 
 /** 
  * A class for keeping the current target configuration.
@@ -147,7 +145,7 @@ class Configuration {
     /**
      * Clock sync options.
      */
-    public Map<ClockSyncOption, Element> clockSyncOptions = newLinkedHashMap
+    public ClockSyncOptions clockSyncOptions = new ClockSyncOptions();
 
     /**
      * Parameter passed to cmake. The default is 'Release'.
@@ -251,5 +249,19 @@ class Configuration {
      * The default is false.
      */
     public boolean tracing = false
+    
+}
 
+class ClockSyncOptions {
+    public int attenuation = 10
+    
+    public TimeValue period = new TimeValue(5, TimeUnit.MSEC)
+    
+    public int trials = 10
+    
+    public boolean localFederatesOn
+    
+    public boolean collectStats = true // Should this be the default???
+    
+    public TimeValue testOffset;
 }
