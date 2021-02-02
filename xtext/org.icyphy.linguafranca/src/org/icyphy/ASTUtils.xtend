@@ -946,7 +946,7 @@ class ASTUtils {
     
     /**
      * Given the right-hand side of a target property, return a list with all
-     * the files that the property lists.
+     * the strings that the property lists.
      * 
      * Arrays are traversed, so strings are collected recursively.
      * @param value The right-hand side of a target property.
