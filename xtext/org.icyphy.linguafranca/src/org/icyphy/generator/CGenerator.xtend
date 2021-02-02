@@ -2900,7 +2900,7 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protoc = createCommand("protoc-c", #["--c_out=src-gen", filename])
+        val protoc = createCommand("protoc-c", #["--c_out=src-gen", filename], findCommandEnv("protoc -c"))
         if (protoc === null) {
             return
         }
