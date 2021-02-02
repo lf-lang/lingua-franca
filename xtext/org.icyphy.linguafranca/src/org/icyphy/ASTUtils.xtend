@@ -826,7 +826,7 @@ class ASTUtils {
     def static String toText(Element e) {
         var str = ""
         if (e.literal !== null) {
-            str = e.literal.withoutQuotes
+            str = e.literal.withoutQuotes.trim
         }
         if (e.id !== null) {
             str = e.id
@@ -952,16 +952,19 @@ class ASTUtils {
      * @param value The right-hand side of a target property.
      */
     def static List<String> toListOfStrings(Element value) {
-        val files = newLinkedList
+        val elements = newLinkedList
         if (value.array !== null) {
             for (element : value.array.elements) {
-                files.addAll(element.toListOfStrings)
+                elements.addAll(element.toListOfStrings)
             }
-            return files
+            return elements
         } else {
-            files.add(value.toText)
+            val v = value.toText
+            if (!v.isEmpty) {
+                elements.add(value.toText)
+            }
         }
-        return files
+        return elements
     }
     
     /**
