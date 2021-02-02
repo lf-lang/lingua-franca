@@ -521,10 +521,7 @@ public enum Target {
          */
         FLAGS("flags", UnionType.STRING_OR_STRING_ARRAY,
                 Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
-                    config.compilerFlags.clear();
-                    value.getArray().getElements()
-                            .forEach(sw -> config.compilerFlags
-                                    .add(ASTUtils.toText(sw)));
+                    config.compilerFlags = ASTUtils.toListOfStrings(value);
                 }),
         
         /**
