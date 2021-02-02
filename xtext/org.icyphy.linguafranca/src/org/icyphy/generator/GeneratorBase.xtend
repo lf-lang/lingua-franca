@@ -32,6 +32,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
@@ -46,7 +47,6 @@ import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
-import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -397,28 +397,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var target = resource.findTarget
         if (target.config !== null) {
             // Update the configuration according to the set target properties.
-            //TargetProperties.update(this.config, target.config.pairs ?: emptyList)
-            target.config.pairs.forEach[p |
-                val property = TargetProperties.match(p.name)
-                property.setter.accept(config, p.value)
-                // FIXME: move this into the validator. In that case, all of this reduces to the commented-out one-liner above.
-                if (property === TargetProperties.FILES) {
-                    this.config.fileNames.forEach [ file |
-                        if (!file.fileExists(directory)) {
-                            reportWarning(
-                                p, '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
-                        }
-                    ]
-                }
-                if (property === TargetProperties.PROTOBUFS) {
-                    this.config.protoFiles.forEach [ file |
-                        if (!file.fileExists(directory)) {
-                            reportWarning(
-                                p, '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
-                        }
-                    ]
-                }
-            ]
+            TargetProperties.update(this.config, target.config.pairs ?: emptyList)
         }
         
         // Override target properties if specified as command line arguments.
@@ -1419,7 +1398,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
-                val uri = new java.net.URI(parsed.filepath)
+                val uri = new URI(parsed.filepath)
                 val files = workspaceRoot.findFilesForLocationURI(uri)
                 // No idea why there might be more than one file matching the URI,
                 // but Eclipse seems to think there might be. We will just use the
@@ -1584,7 +1563,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = new java.net.URI("file:/" + eResource.toPath)
+                    val uri = new URI("file:/" + eResource.toPath)
                     val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                     val files = workspaceRoot.findFilesForLocationURI(uri)
                     if (files !== null && files.length > 0 && files.get(0) !== null) {
@@ -2063,23 +2042,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def toPath(Resource resource) {
         return resource.getURI.toPath
-    }
-
-    /**
-     * Create a string representing the absolute file path of a URI.
-     */
-    protected def toPath(URI uri) {
-        if (uri.isPlatform) {
-            val file = ResourcesPlugin.workspace.root.getFile(
-                new Path(uri.toPlatformString(true)))
-            return file.rawLocation.toFile.absolutePath
-        } else if (uri.isFile) {
-        	val file = new File(uri.toFileString)
-            return file.absolutePath
-        } else {
-            throw new IOException("Unrecognized file protocol in URI " +
-                uri.toString)
-        }
     }
 
     /**

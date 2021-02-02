@@ -30,6 +30,9 @@ import org.icyphy.Target.CoordinationType
 import org.icyphy.Target.LogLevel
 import org.icyphy.linguaFranca.Element
 import java.io.IOException
+import org.eclipse.core.resources.ResourcesPlugin
+import org.eclipse.emf.common.util.URI
+import org.eclipse.core.runtime.Path
 
 /** 
  * A class for keeping the current target configuration.
@@ -108,6 +111,23 @@ class Configuration {
         }
         // Not found.
         return null;
+    }
+
+    /**
+     * Create a string representing the absolute file path of a URI.
+     */
+    static def toPath(URI uri) {
+        if (uri.isPlatform) {
+            val file = ResourcesPlugin.workspace.root.getFile(
+                new Path(uri.toPlatformString(true)))
+            return file.rawLocation.toFile.absolutePath
+        } else if (uri.isFile) {
+            val file = new File(uri.toFileString)
+            return file.absolutePath
+        } else {
+            throw new IOException("Unrecognized file protocol in URI " +
+                uri.toString)
+        }
     }
 
 

@@ -47,7 +47,7 @@ class LinguaFrancaGenerator extends AbstractGenerator {
         // Determine which target is desired.
         var GeneratorBase generator
 
-        val t = Target.match(
+        val t = Target.Target.forName(
             resource.allContents.toIterable.filter(TargetDecl).head.name)
             
         switch (t) {

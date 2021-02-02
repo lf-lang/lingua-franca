@@ -51,6 +51,9 @@ import org.junit.jupiter.api.^extension.ExtendWith
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
+import static extension org.icyphy.ASTUtils.*
+import java.util.List
+
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
 /**
@@ -801,22 +804,23 @@ class LinguaFrancaValidationTest {
      * Maps a type to a list of known good values.
      */
     val primitiveTypeToKnownGood = #{
-            PrimitiveType.BOOLEAN -> #{"true", "\"true\"", "'true'", "false", "\"false\"", "'false'"},
-            PrimitiveType.INTEGER -> #{"0", "1", "\"42\"", "\"-1\"", "-2"},
-            PrimitiveType.NON_NEGATIVE_INTEGER -> #{"0", "1", "42"},
-            PrimitiveType.TIME_VALUE -> #{"1 msec", "2 sec"},
-            PrimitiveType.STRING -> #{"1", "\"foo\"", "bar", "'baz'"}
+            PrimitiveType.BOOLEAN -> #["true", "\"true\"", "'true'", "false", "\"false\"", "'false'"],
+            PrimitiveType.INTEGER -> #["0", "1", "\"42\"", "\"-1\"", "-2"],
+            PrimitiveType.NON_NEGATIVE_INTEGER -> #["0", "1", "42"],
+            PrimitiveType.TIME_VALUE -> #["1 msec", "2 sec"],
+            PrimitiveType.STRING -> #["1", "\"foo\"", "bar", "'baz'"],
+            PrimitiveType.FILE -> #["valid.file", "something.json", "\"foobar.proto\""]
         }
     
     /**
      * Maps a type to a list of known bad values.
      */
     val primitiveTypeToKnownBad = #{
-            PrimitiveType.BOOLEAN -> #{"1 sec", "foo", "\"foo\"", "\'bar\'", "[1]", "{baz: 42}"},
-            PrimitiveType.INTEGER -> #{"foo", "\"bar\"", "'baz'", "1 sec", "[1, 2]", "{foo: \"bar\"}"},
-            PrimitiveType.NON_NEGATIVE_INTEGER -> #{"-42", "foo", "\"bar\"", "'baz'", "1 sec", "[1, 2]", "{foo: \"bar\"}"},
-            PrimitiveType.TIME_VALUE -> #{"foo", "\"bar\"", "'baz'", "\"3 sec\"", "'4 weeks'", "[1, 2]", "{foo: \"bar\"}"},
-            PrimitiveType.STRING -> #{"1 msec", "[1, 2]", "{foo: \"bar\"}"}
+            PrimitiveType.BOOLEAN -> #["1 sec", "foo", "\"foo\"", "\'bar\'", "[1]", "{baz: 42}"],
+            PrimitiveType.INTEGER -> #["foo", "\"bar\"", "'baz'", "1 sec", "[1, 2]", "{foo: \"bar\"}"],
+            PrimitiveType.NON_NEGATIVE_INTEGER -> #["-42", "foo", "\"bar\"", "'baz'", "1 sec", "[1, 2]", "{foo: \"bar\"}"],
+            PrimitiveType.TIME_VALUE -> #["foo", "\"bar\"", "'baz'", "\"3 sec\"", "'4 weeks'", "[1, 2]", "{foo: \"bar\"}"],
+            PrimitiveType.STRING -> #["1 msec", "[1, 2]", "{foo: \"bar\"}"]
         }
     
     /**
@@ -829,6 +833,11 @@ class LinguaFrancaValidationTest {
             #["[1 msec]", "[0]", PrimitiveType.STRING],
             #["[foo, {bar: baz}]", "[1]", PrimitiveType.STRING],
             #["{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY]
+        ],
+        UnionType.FILE_OR_FILE_ARRAY -> #[
+            #["[1 msec]", "[0]", PrimitiveType.FILE],
+            #["[foo, {bar: baz}]", "[1]", PrimitiveType.FILE],
+            #["{bar: baz}", "", UnionType.FILE_OR_FILE_ARRAY]
         ]
     }
     
@@ -840,15 +849,15 @@ class LinguaFrancaValidationTest {
      * to the compositeTypeToKnownBad map.
      *  
      **/
-    def Set<String> synthesizeExamples(TargetPropertyType type, boolean correct) {
+    def List<String> synthesizeExamples(TargetPropertyType type, boolean correct) {
         val values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad 
         if (type instanceof PrimitiveType) {
-            val examples = values.get(type)
+            val examples = values.get(type).toList
             assertNotNull(examples)
             return examples
         } else {
             if (type instanceof UnionType) {
-                val examples = newHashSet
+                val examples = newLinkedList
                 if (correct) {
                     type.options.forEach[
                     if (it instanceof TargetPropertyType) {
@@ -862,19 +871,22 @@ class LinguaFrancaValidationTest {
                     // Return some obviously incorrect examples for the common
                     // case where the options are from an ordinary Enum<?>.
                     if (!type.options.exists[it instanceof TargetPropertyType]) {
-                        return #{"foo", "\"bar\"", "'baz'", "1", "-1", "{x: 42}", "[1, 2, 3]"}
+                        return #["foo", "\"bar\"", "'baz'", "1", "-1", "{x: 42}", "[1, 2, 3]"]
                     }
                 }
                 return examples
             } else if (type instanceof ArrayType) {
-                val examples = newHashSet
+                val examples = newLinkedList
                 if (correct) {
                     // Produce an array that has an entry for each value.
-                    examples.add('''[«values.get(type.type)?.join(', ')»]''')
+                    val entries = values.get(type.type)
+                    if (!entries.nullOrEmpty) {
+                        examples.add('''[«entries.join(', ')»]''')
+                    }
                 }
                 return examples
             } else if (type instanceof DictionaryType) {
-                val examples = newHashSet
+                val examples = newLinkedList
                 // Produce a set of singleton dictionaries. 
                 // If incorrect examples are wanted, garble the key.
                 type.options.forEach [ option |
@@ -885,30 +897,51 @@ class LinguaFrancaValidationTest {
                 ]
                 return examples
             } else {
-                println("Encountered unknown type. Aborting test.")
+                println("Encountered an unknown type. Aborting test.")
                 assertTrue(false)
             }
         }
-        return #{}
+        return #[]
     }
     
     @Test
     def void checkTargetProperties() {
         
         for (prop : TargetProperties.values) {
-            println('''Testing target property «prop» of type «prop.type»''')
+            println('''Testing target property «prop» which is «prop.type»''')
             println("====")
             println("Known good assignments:")
             val knownCorrect = synthesizeExamples(prop.type, true)
             knownCorrect.forEach[
             println('''«prop.toString»: «it»''')
-            parseWithoutError('''
+            val model = parseWithoutError('''
                 target C {«prop.toString»: «it»};
                 reactor Y {}
                 main reactor X {
                     y = new Y() 
                 }
-            ''').assertNoErrors()]
+            ''')
+            model.assertNoErrors()
+            // Also make sure warnings are produced when files are not present.
+            if (prop.type == PrimitiveType.FILE) {
+                model.assertWarning(LinguaFrancaPackage::eINSTANCE.keyValuePair,
+                null, '''Could not find file: '«it.withoutQuotes»'.''')
+            }
+            
+            ]
+            if (prop.type == prop.type == ArrayType.FILE_ARRAY || prop.type == UnionType.FILE_OR_FILE_ARRAY) {
+                val model = parseWithoutError('''
+                target C {«prop.toString»: «synthesizeExamples(ArrayType.FILE_ARRAY, true).get(0)»};
+                reactor Y {}
+                main reactor X {
+                    y = new Y() 
+                }
+            ''')
+                primitiveTypeToKnownGood.get(PrimitiveType.FILE).forEach[
+                    model.assertWarning(LinguaFrancaPackage::eINSTANCE.keyValuePair,
+                null, '''Could not find file: '«it.withoutQuotes»'.''')
+                ]
+            }
             
             val knownIncorrect = synthesizeExamples(prop.type, false)
             

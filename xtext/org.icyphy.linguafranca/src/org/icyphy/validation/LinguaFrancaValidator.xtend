@@ -93,7 +93,7 @@ import static extension org.icyphy.ASTUtils.*
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     var Target target
-    var info = new ModelInfo()
+    public var info = new ModelInfo()
 
     /**
      * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
@@ -128,6 +128,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
+
+    public val List<String> targetPropertyErrors = newLinkedList
+    
+    public val List<String> targetPropertyWarnings = newLinkedList
 
     @Check
     def checkImportedReactor(ImportedReactor reactor) {
@@ -629,11 +633,16 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
 
             // Report problem with the assigned value.
-            val errors = newLinkedList
-            prop.type.check(param.value, param.name, errors)
-            errors.forEach [
+            prop.type.check(param.value, param.name, this)
+            targetPropertyErrors.forEach [
                 error(it, Literals.KEY_VALUE_PAIR__VALUE)
             ]
+            targetPropertyErrors.clear()
+            targetPropertyWarnings.forEach [
+                warning(it, Literals.KEY_VALUE_PAIR__VALUE)
+            ]
+            targetPropertyWarnings.clear()
+            
         }
     }
 
@@ -1058,11 +1067,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkTargetDecl(TargetDecl target) {
-        if (!Target.matches(target.name)) {
+        if (!Target.hasForName(target.name)) {
             warning("Unrecognized target: " + target.name,
                 Literals.TARGET_DECL__NAME)
         } else {
-            this.target = Target.match(target.name);
+            this.target = Target.forName(target.name);
         }
     }
 
