@@ -32,6 +32,7 @@ import org.icyphy.linguaFranca.Element;
 import org.icyphy.linguaFranca.KeyValuePair;
 import org.icyphy.linguaFranca.KeyValuePairs;
 import org.icyphy.linguaFranca.TimeUnit;
+import org.icyphy.validation.LinguaFrancaValidator;
 
 /** 
  * Enumeration of targets and their associated properties. These classes are
@@ -371,11 +372,11 @@ public enum Target {
     
     /**
      * Check whether a given string corresponds with the name of a valid target.
-     * @param string The string to find a matching target for.
+     * @param name The string for which to determine whether there is a match.
      * @return true if a matching target was found, false otherwise.
      */
-    public final static boolean matches(String string) {
-        if (Target.match(string) != null) {
+    public final static boolean hasForName(String name) {
+        if (Target.forName(name) != null) {
             return true;
         }
         return false;
@@ -385,7 +386,7 @@ public enum Target {
      * Return the entry that matches the given string.
      * @param string The string to match against.
      */
-    public static Target match(String string) {
+    public static Target forName(String string) {
         return (Target)Target.doMatch(string, Target.values());
     }
 
@@ -464,7 +465,7 @@ public enum Target {
          * Directive to stage particular files on the class path to be
          * processed by the code generator.
          */
-        FILES("files", UnionType.STRING_OR_STRING_ARRAY, Arrays.asList(Target.ALL), (config, value) -> {
+        FILES("files", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.ALL), (config, value) -> {
             config.fileNames = ASTUtils.toListOfStrings(value);
         }),
         
@@ -523,7 +524,7 @@ public enum Target {
          * Directive for specifying .proto files that need to be compiled and their
          * code included in the sources.
          */
-        PROTOBUFS("protobufs", UnionType.STRING_OR_STRING_ARRAY, Arrays.asList(Target.C, Target.TS, Target.Python), (config, value) -> {
+        PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY, Arrays.asList(Target.C, Target.TS, Target.Python), (config, value) -> {
             config.protoFiles = ASTUtils.toListOfStrings(value);
         }),
         /**
@@ -644,11 +645,10 @@ public enum Target {
          * this dictionary.
          */
         @Override
-        public void check(Element e, String name, List<String> errors) {
+        public void check(Element e, String name, LinguaFrancaValidator v) {
             KeyValuePairs kv = e.getKeyvalue();
             if (kv == null) {
-                TargetPropertyType.produceError(name, this.toString(),
-                        errors);
+                TargetPropertyType.produceError(name, this.toString(), v);
             } else {
                 for (KeyValuePair pair : kv.getPairs()) {
                     String key = pair.getName();
@@ -658,11 +658,11 @@ public enum Target {
                     if (match.isPresent()) {
                         // Make sure the type is correct, too.
                         TargetPropertyType type = match.get().getType();
-                        type.check(val, name + "." + key, errors);
+                        type.check(val, name + "." + key, v);
                     } else {
                         // No match found; report error.
                         TargetPropertyType.produceError(name,
-                                this.toString(), errors);
+                                this.toString(), v);
                     }
                 }
             }
@@ -694,6 +694,7 @@ public enum Target {
     public enum UnionType implements TargetPropertyType {
         STRING_OR_STRING_ARRAY(
                 Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY), null),
+        FILE_OR_FILE_ARRAY(Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
         COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
@@ -713,19 +714,23 @@ public enum Target {
         }
         
         @Override
-        public void check(Element e, String name, List<String> errors) {
+        public void check(Element e, String name, LinguaFrancaValidator v) {
             Optional<Enum<?>> match = this.match(e);
             if (match.isPresent()) {
                 // Go deeper if the element is an array or dictionary.
                 Enum<?> type = match.get();
                 if (type instanceof DictionaryType) {
-                    ((DictionaryType) type).check(e, name, errors);
+                    ((DictionaryType) type).check(e, name, v);
                 } else if (type instanceof ArrayType) {
-                    ((ArrayType) type).check(e, name, errors);
+                    ((ArrayType) type).check(e, name, v);
+                } else if (type instanceof PrimitiveType) {
+                    ((PrimitiveType) type).check(e, name, v);
+                } else if (!(type instanceof Enum<?>)) {
+                    throw new RuntimeException("Encountered an unknown type.");
                 }
             } else {
                 // No match found; report error.
-                TargetPropertyType.produceError(name, this.toString(), errors);
+                TargetPropertyType.produceError(name, this.toString(), v);
             }
         }
         
@@ -773,7 +778,8 @@ public enum Target {
     }
     
     public enum ArrayType implements TargetPropertyType {
-        STRING_ARRAY(PrimitiveType.STRING);
+        STRING_ARRAY(PrimitiveType.STRING),
+        FILE_ARRAY(PrimitiveType.FILE);
         
         public TargetPropertyType type;
         
@@ -782,14 +788,14 @@ public enum Target {
         }
         
         @Override
-        public void check(Element e, String name, List<String> errors) {
+        public void check(Element e, String name, LinguaFrancaValidator v) {
             Array array = e.getArray();
             if (array == null) {
-                TargetPropertyType.produceError(name, this.toString(), errors);
+                TargetPropertyType.produceError(name, this.toString(), v);
             } else {
                 List<Element> elements = array.getElements();
                 for (int i = 0; i < elements.size(); i++) {
-                    this.type.check(elements.get(i), name + "[" + i + "]", errors);
+                    this.type.check(elements.get(i), name + "[" + i + "]", v);
                 }
             }
         }
@@ -905,18 +911,18 @@ public enum Target {
          * and add found problems to the given list of errors.
          * @param e The Element to type check.
          * @param name The name of the target property.
-         * @param errors A list of errors to append to if problems are found.
+         * @param v A reference to the validator to report errors to.
          */
-        public void check(Element e, String name, List<String> errors);
+        public void check(Element e, String name, LinguaFrancaValidator v);
         
         /**
          * Helper function to produce an error during type checking.
          * @param name The description of the target property.
          * @param description The description of the type.
-         * @param errors The list of errors to append to.
+         * @param v A reference to the validator to report errors to.
          */
-        public static void produceError(String name, String description, List<String> errors) {
-            errors.add("Target property '" + name + "' is required to be " + description + ".");
+        public static void produceError(String name, String description, LinguaFrancaValidator v) {
+            v.targetPropertyErrors.add("Target property '" + name + "' is required to be " + description + ".");
         }
     }
     
@@ -1006,9 +1012,18 @@ public enum Target {
          * @param name The name of the target property.
          * @param errors A list of errors to append to if problems are found.
          */
-        public void check(Element e, String name, List<String> errors) {
+        public void check(Element e, String name, LinguaFrancaValidator v) {
             if (!this.validate(e)) {
-                TargetPropertyType.produceError(name, this.description, errors);
+                TargetPropertyType.produceError(name, this.description, v);
+            }
+            // If this is a file, perform an additional check to make sure
+            // the file actually exists.
+            if (this == FILE) {
+                String file = ASTUtils.toText(e);
+                if (!Configuration.fileExists(file, v.info.directory)) {
+                    v.targetPropertyWarnings
+                            .add("Could not find file: '" + file + "'.");
+                }
             }
         }
 
