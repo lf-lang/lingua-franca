@@ -519,16 +519,12 @@ public enum Target {
         /**
          * Flags to be passed on to the target compiler.
          */
-        FLAGS("flags", PrimitiveType.STRING,
+        FLAGS("flags", UnionType.STRING_OR_STRING_ARRAY,
                 Arrays.asList(Target.C, Target.CCPP), (config, value) -> {
                     config.compilerFlags.clear();
-                    String str = ASTUtils.toText(value);
-                    if (!str.isEmpty()) {
-                        // FIXME: this is unsafe because it doesn't account for
-                        // whitespace within quotes.
-                        Arrays.asList(str.split("\\s"))
-                                .forEach(sw -> config.compilerFlags.add(sw));
-                    }
+                    value.getArray().getElements()
+                            .forEach(sw -> config.compilerFlags
+                                    .add(ASTUtils.toText(sw)));
                 }),
         
         /**

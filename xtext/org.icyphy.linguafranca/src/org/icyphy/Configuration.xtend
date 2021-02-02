@@ -261,7 +261,12 @@ class ClockSyncOptions {
     
     public boolean localFederatesOn
     
-    public boolean collectStats = true // Should this be the default???
+    /**
+     * Whether or not to collect statistics while performing clock synchronization.
+     * This setting is only considered when clock synchronization has been activated.
+     * The default is true.
+     */
+    public boolean collectStats = true
     
     public TimeValue testOffset;
 }
