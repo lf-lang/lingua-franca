@@ -27,7 +27,6 @@
 package org.icyphy.validation
 
 import java.util.ArrayList
-import java.util.Arrays
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
@@ -40,6 +39,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
+import org.icyphy.Target
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -77,11 +77,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Target.BuildType
-import org.icyphy.Target.CoordinationType
-import org.icyphy.Target.TargetProperties
-import org.icyphy.Target.LogLevel
-import org.icyphy.Target
+import org.icyphy.TargetProperty
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -96,9 +92,8 @@ import org.icyphy.Target
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
-    var Target target;
-
-    var info = new ModelInfo()
+    var Target target
+    public var info = new ModelInfo()
 
     /**
      * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
@@ -133,6 +128,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
+
+    public val List<String> targetPropertyErrors = newLinkedList
+    
+    public val List<String> targetPropertyWarnings = newLinkedList
 
     @Check
     def checkImportedReactor(ImportedReactor reactor) {
@@ -613,15 +612,18 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // Check only if the container's container is a Target.
         if (param.eContainer.eContainer instanceof TargetDecl) {
 
-            if (!TargetProperties.isValidName(param.name)) {
+            val prop = TargetProperty.forName(param.name)
+
+            // Make sure the key is valid.
+            if (prop === null) {
                 warning(
                     "Unrecognized target parameter: " + param.name +
                         ". Recognized parameters are: " +
-                        TargetProperties.values().join(", ") + ".",
+                        TargetProperty.getOptions().join(", ") + ".",
                     Literals.KEY_VALUE_PAIR__NAME)
             }
-            val prop = TargetProperties.get(param.name)
 
+            // Check whether the property is supported by the target.
             if (!prop.supportedBy.contains(this.target)) {
                 warning(
                     "The target parameter: " + param.name +
@@ -630,130 +632,17 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     Literals.KEY_VALUE_PAIR__NAME)
             }
 
-            // Perform property-specific checks.
-            switch prop {
-                case BUILD_TYPE:
-                    param.checkIfOneOf(Arrays.asList(BuildType.values()))
-                case CLOCK_SYNC:
-                    if (!param.value.id.equalsIgnoreCase('off') 
-                            && !param.value.id.equalsIgnoreCase('initial') 
-                            && !param.value.id.equalsIgnoreCase('on')) {
-                        error("Target property clock-sync is required to be off, initial, or on. "
-                                + "Default is initial.",
-                            Literals.KEY_VALUE_PAIR__VALUE)
-                    }
-                case CLOCK_SYNC_OPTIONS: {
-                    if (param.value.keyvalue === null) {
-                        error("Target property clock-sync-options needs to be a list of "
-                               + "key-value pairs like "
-                               + "{local-federates-on: true, test-offset: 200 msec}",
-                               Literals.KEY_VALUE_PAIR__VALUE)
-                    }
-                    for (entry: param.value.keyvalue.pairs) {
-                        if (entry.name.equalsIgnoreCase('local-federates-on')) {
-                            if (entry.value.literal === null
-                                    || (!entry.value.literal.equalsIgnoreCase('true')
-                                    && !entry.value.literal.equalsIgnoreCase('false'))) {
-                                error("Target property clock-sync-options local-federates-on"
-                                        + " entry needs to be true or false.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            }
-                        } else if (entry.name.equalsIgnoreCase('test-offset')) {
-                            if (entry.value.unit === null) {
-                                error("Target property clock-sync-options test-offset"
-                                        + " entry needs to be a time value (with units).",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            }
-                        } else if (entry.name.equalsIgnoreCase('period')) {
-                            if (entry.value.unit === null) {
-                                error("Target property clock-sync-options period"
-                                        + " entry needs to be a time value (with units).",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            }
-                        } else if (entry.name.equalsIgnoreCase('attenuation')) {
-                            if (entry.value.literal === null) {
-                                error("Target property clock-sync-options attenuation"
-                                        + " entry needs to be a positive integer.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            } else {
-                                try {
-                                    val value = Integer.decode(entry.value.literal)
-                                    if (value <= 0) {
-                                        error("Target property clock-sync-options attenuation"
-                                                + " entry needs to be a positive integer.",
-                                                Literals.KEY_VALUE_PAIR__VALUE)
-                                    }
-                                } catch (NumberFormatException ex) {
-                                    error("Target property clock-sync-options attenuation"
-                                            + " entry needs to be a positive integer.",
-                                            Literals.KEY_VALUE_PAIR__VALUE)
-                                }
-                            }
-                        } else if (entry.name.equalsIgnoreCase('trials')) {
-                            if (entry.value.literal === null) {
-                                error("Target property clock-sync-options trials"
-                                        + " entry needs to be an integer.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            } else {
-                                try {
-                                    val value = Integer.decode(entry.value.literal)
-                                    if (value <= 0) {
-                                        error("Target property clock-sync-options trials"
-                                                + " entry needs to be a positive integer.",
-                                                Literals.KEY_VALUE_PAIR__VALUE)
-                                    }
-                                } catch (NumberFormatException ex) {
-                                    error("Target property clock-sync-options trials"
-                                            + " entry needs to be a positive integer.",
-                                            Literals.KEY_VALUE_PAIR__VALUE)
-                                }
-                            }
-                        } else if (entry.name.equalsIgnoreCase('collect-stats')) {
-                            if (entry.value.literal === null
-                                    || (!entry.value.literal.equalsIgnoreCase('true')
-                                    && !entry.value.literal.equalsIgnoreCase('false'))) {
-                                error("Target property clock-sync-options collect-stats"
-                                        + " entry needs to be true or false.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            }
-                        } else {
-                            error("Unrecognized clock-sync-options entry. Options are: "
-                                    + "local-federates-on, test-offset.",
-                                    Literals.KEY_VALUE_PAIR__VALUE)
-                        }
-                    }
-                }
-                case CMAKE_INCLUDE:
-                    param.checkIfString
-                case COMPILER:
-                    checkIfString(param)
-                case COORDINATION:
-                    param.checkIfOneOf(Arrays.asList(CoordinationType.values())) 
-                case FLAGS:
-                    param.checkIfString
-                case FAST:
-                    param.checkIfBoolean
-                case KEEPALIVE:
-                    param.checkIfBoolean
-                case LOGGING:
-                    param.checkIfOneOf(Arrays.asList(LogLevel.values()))
-                case NO_COMPILE:
-                    param.checkIfBoolean
-                case NO_RUNTIME_VALIDATION:
-                    param.checkIfBoolean
-                case THREADS: 
-                    param.checkIfInteger(true)
-                case TIMEOUT:
-                    param.checkValidTime
-                case TRACING:
-                    checkIfBoolean(param)
-                case BUILD:
-                    param.checkIfStringOrListOfStrings
-                case FILES:
-                    param.checkIfStringOrListOfStrings
-                case PROTOBUFS:
-                    param.checkIfStringOrListOfStrings
-            }
+            // Report problem with the assigned value.
+            prop.type.check(param.value, param.name, this)
+            targetPropertyErrors.forEach [
+                error(it, Literals.KEY_VALUE_PAIR__VALUE)
+            ]
+            targetPropertyErrors.clear()
+            targetPropertyWarnings.forEach [
+                warning(it, Literals.KEY_VALUE_PAIR__VALUE)
+            ]
+            targetPropertyWarnings.clear()
+            
         }
     }
 
@@ -1178,11 +1067,11 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkTargetDecl(TargetDecl target) {
-        if (!Target.isValidName(target.name)) {
+        if (!Target.hasForName(target.name)) {
             warning("Unrecognized target: " + target.name,
                 Literals.TARGET_DECL__NAME)
         } else {
-            this.target = Target.get(target.name);
+            this.target = Target.forName(target.name);
         }
     }
 
@@ -1199,7 +1088,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if fast is defined
-                TargetProperties.get(pair.name) == TargetProperties.FAST
+                TargetProperty.forName(pair.name) == TargetProperty.FAST
         )) {
             if (info.model.reactors.exists(
                 reactor |
@@ -1228,13 +1117,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if clock-sync is defined
-                TargetProperties.get(pair.name) == TargetProperties.CLOCK_SYNC
+                TargetProperty.forName(pair.name) == TargetProperty.CLOCK_SYNC
         )) {
 
-            if (info.model.reactors.exists( reactor |
-                // Check to see if the program has a federated reactor and if there is a physical connection
-                // defined.
-                reactor.isFederated
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a federated reactor and if there is a physical connection
+                    // defined.
+                    reactor.isFederated
             ) == false) {
                 warning(
                     "The clock-sync target property is incompatible with non-federated programs.",
@@ -1316,103 +1206,5 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
     static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
-    
-    def checkIfBoolean(KeyValuePair param) {
-        if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
-            error('''Target property '«param.name»' is required to be 'true' or 'false.''',
-                Literals.KEY_VALUE_PAIR__VALUE)
-        }
-    }
-    
-    /**
-     * Report an error stating that the given parameter must be of the given type.
-     */
-    def shouldBe(KeyValuePair param, String type) {
-        error('''Target property '«param.name»' is required to be «type».''',
-            Literals.KEY_VALUE_PAIR__VALUE)
-    }
-    
-    def boolean isString(KeyValuePair param) {
-        if (param.value.literal !== null || param.value.id !== null) {
-            return true
-        }
-        return false
-    }
-    
-    /**
-     * Check whether the given parameter is a string.
-     */
-    def checkIfString(KeyValuePair param) {
-        if (!param.isString) {
-            param.shouldBe("a string")
-            return false
-        }
-        return true
-    }
-    
-    def boolean isListOfStrings(KeyValuePair param) {
-        if (param.value.array !== null) {
-            for (entry : param.value.array.elements) {
-                if (entry.id !== null || entry.literal !== null) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-    
-    def checkIfStringOrListOfStrings(KeyValuePair param) {
-        if (!param.isString && !param.isListOfStrings) {
-            param.shouldBe("a string or a list of strings")
-        }
-    }
-    
-    /**
-     * Check whether the given parameter is an integer.
-     */
-    def checkIfInteger(KeyValuePair param, Boolean nonNegative) {
-        val type = nonNegative ? "a non-negative integer" : "an integer"
-        if (param.value.literal === null) {
-            param.shouldBe(type)
-        }
-        try {
-            val value = Integer.decode(param.value.literal)
-            if (nonNegative && value < 0) {
-                param.shouldBe(type)
-            }
-        } catch (NumberFormatException ex) {
-            param.shouldBe(type)
-        }
-    }
-    
-    /**
-     * Return true of the given parameter matches the given value.
-     */
-    def matches(KeyValuePair param, String value) {
-        return (value.equalsIgnoreCase(param.value.id) ||
-            (param.value.literal !== null &&
-                value.equalsIgnoreCase(param.value.literal)))
-    }
-    
-    def shouldBeOneOf(KeyValuePair param, Iterable<Enum<?>> list,
-        Enum<?> defaultValue) {
-        error('''Target property '«param.name»' is required to be one of: «list». «IF defaultValue !== null»The default is '«defaultValue»'.«ENDIF»''',
-            Literals.KEY_VALUE_PAIR__VALUE)
-    }
-    
-    def checkIfOneOf(KeyValuePair param, Iterable<Enum<?>> list) {
-        if (!list.exists [
-            param.matches(it.toString)
-        ]) {
-            param.shouldBeOneOf(list, null)
-        }
-    }
-    
-    def checkValidTime(KeyValuePair param) {
-        if (param.value.unit === null) {
-            param.shouldBeOneOf(Arrays.asList(TimeUnit.VALUES.filter[it != TimeUnit.NONE]), null)
-        } else if (param.value.time < 0) {
-            param.shouldBe("a non-negative time value with units")
-        }
-    }
+
 }

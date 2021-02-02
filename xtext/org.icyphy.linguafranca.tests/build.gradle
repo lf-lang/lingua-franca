@@ -9,5 +9,9 @@ dependencies {
 	testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
 }
 test {
+    testLogging {
+        events "passed", "skipped", "failed"
+        //showStandardStreams = true
+    }
 	useJUnitPlatform()
 }
