@@ -639,6 +639,6 @@ class CCppGenerator extends CGenerator {
     }
     
     override getTarget() {
-        return Target.CCpp
+        return Target.CCPP
     }
 }
