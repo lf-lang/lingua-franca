@@ -36,7 +36,6 @@ import org.icyphy.Target
 import org.icyphy.Target.ArrayType
 import org.icyphy.Target.DictionaryType
 import org.icyphy.Target.PrimitiveType
-import org.icyphy.Target.TargetProperties
 import org.icyphy.Target.TargetPropertyType
 import org.icyphy.Target.UnionType
 import org.icyphy.TimeValue
@@ -53,6 +52,7 @@ import static org.junit.Assert.assertTrue
 
 import static extension org.icyphy.ASTUtils.*
 import java.util.List
+import org.icyphy.Target.TargetProperty
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -907,7 +907,7 @@ class LinguaFrancaValidationTest {
     @Test
     def void checkTargetProperties() {
         
-        for (prop : TargetProperties.values) {
+        for (prop : TargetProperty.values) {
             println('''Testing target property «prop» which is «prop.type»''')
             println("====")
             println("Known good assignments:")
