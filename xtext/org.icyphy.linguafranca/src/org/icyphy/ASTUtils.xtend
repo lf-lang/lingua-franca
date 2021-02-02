@@ -819,7 +819,8 @@ class ASTUtils {
     
     /**
      * Return a textual representation of the given element, 
-     * without quotes if there are any.
+     * without quotes if there are any. Leading or trailing 
+     * whitespace is removed.
      * 
      * @param e The element to be rendered as a string.
      */
@@ -948,7 +949,8 @@ class ASTUtils {
      * Given the right-hand side of a target property, return a list with all
      * the strings that the property lists.
      * 
-     * Arrays are traversed, so strings are collected recursively.
+     * Arrays are traversed, so strings are collected recursively. Empty strings
+     * are ignored; they are not added to the list.
      * @param value The right-hand side of a target property.
      */
     def static List<String> toListOfStrings(Element value) {
