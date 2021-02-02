@@ -769,10 +769,13 @@ public enum Target {
          */
         @Override
         public String toString() {
-            // FIXME: print (default) after default option.
-            return "one of the following: "
-                    + options.stream().map(option -> option.toString())
-                            .collect(Collectors.joining(", "));
+            return "one of the following: " + options.stream().map(option -> {
+                if (option == this.defaultOption) {
+                    return option.toString() + " (default)";
+                } else {
+                    return option.toString();
+                }
+            }).collect(Collectors.joining(", "));
         }
 
     }
@@ -954,7 +957,7 @@ public enum Target {
             }
             return true;
         }), 
-        TIME_VALUE("a time value (with units)", v -> {
+        TIME_VALUE("a time value with units", v -> {
             if ((v.getKeyvalue() != null || v.getArray() != null
                     || v.getLiteral() != null || v.getId() != null)
                     || (v.getTime() != 0 && v.getUnit() == TimeUnit.NONE)) {
@@ -968,10 +971,9 @@ public enum Target {
                 return false;
             }
             return true;
-        }),
+        }), 
         FILE("a path to a file", v -> {
-         // FIXME: Ideally, we'd check whether the file exists, but for that we need to know the current directory.
-            return STRING.validator.test(v); 
+            return STRING.validator.test(v);
         });
 
         /**

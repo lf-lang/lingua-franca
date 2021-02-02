@@ -406,47 +406,6 @@ class CGenerator extends GeneratorBase {
                 initializeTriggerObjectsEnd = new StringBuilder()                
                         
                 // Enable clock synchronization if the federate is not local and clock-sync is enabled
-//<<<<<<< HEAD
-//                if (config.clockSync != ClockSyncMode.OFF
-//                    && (!federationRTIProperties.get('host').toString.equals(federate.host) 
-//                    || config.clockSyncOptions.get('local-federates-on')?.literal?.equalsIgnoreCase('true')) // FIXME: warning
-//                ) {
-//                    // Determine the period with clock clock sync will be done.
-//                    var period = 'MSEC(5)'  // The default.
-//                    if (config.clockSyncOptions?.get('period') !== null) {
-//                        val timeValue = config.clockSyncOptions.get('period')
-//                        period = (new TimeValue(timeValue.time, timeValue.unit)).toNanoSeconds.toString;
-//                    }
-//                    // Determine how many trials there will be each time clock sync is done.
-//                    var trials = '10' // The default.
-//                    if (config.clockSyncOptions?.get('trials') !== null) {
-//                        trials = config.clockSyncOptions.get('trials').literal
-//                    }
-//                    // Determine the attenuation to apply each time clock sync is done.
-//                    var attenuation = '10' // The default.
-//                    if (config.clockSyncOptions?.get('attenuation') !== null) {
-//                        attenuation = config.clockSyncOptions.get('attenuation').literal
-//                    }
-//                    // Insert the #defines at the beginning
-//                    code.insert(0, '''
-//                        #define _LF_CLOCK_SYNC_INITIAL
-//                        #define _LF_CLOCK_SYNC_PERIOD_NS «period»
-//                        #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «trials»
-//                        #define _LF_CLOCK_SYNC_ATTENUATION «attenuation»
-//                    ''')
-//                    System.out.println("Initial clock synchronization is enabled for federate "
-//                        + federate.id
-//                    );
-//                    if (config.clockSync == ClockSyncMode.ON) {
-//                        code.insert(0, '''
-//                            #define _LF_CLOCK_SYNC_ON
-//                        ''')
-//                        System.out.println("Runtime clock synchronization is enabled for federate "
-//                            + federate.id
-//                        );
-//                    }
-//                }
-//=======
                 initializeClockSynchronization(federate)
                 
 
