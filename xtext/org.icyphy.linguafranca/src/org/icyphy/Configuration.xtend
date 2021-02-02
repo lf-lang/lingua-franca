@@ -26,11 +26,11 @@ import java.util.List
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.URI
-import org.icyphy.Target.BuildType
-import org.icyphy.Target.ClockSyncMode
-import org.icyphy.Target.CoordinationType
-import org.icyphy.Target.LogLevel
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.TargetProperty.BuildType
+import org.icyphy.TargetProperty.ClockSyncMode
+import org.icyphy.TargetProperty.CoordinationType
+import org.icyphy.TargetProperty.LogLevel
 
 /** 
  * A class for keeping the current target configuration.

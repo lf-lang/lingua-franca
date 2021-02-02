@@ -45,8 +45,8 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
 import org.icyphy.InferredType
 import org.icyphy.Target
-import org.icyphy.Target.ClockSyncMode
-import org.icyphy.Target.CoordinationType
+import org.icyphy.TargetProperty.ClockSyncMode
+import org.icyphy.TargetProperty.CoordinationType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
