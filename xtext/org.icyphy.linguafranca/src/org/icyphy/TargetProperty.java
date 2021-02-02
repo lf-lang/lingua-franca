@@ -264,7 +264,7 @@ public enum TargetProperty {
      */
     public static void update(Configuration config,
             List<KeyValuePair> properties) {
-        properties.forEach(property -> match(property.getName()).setter
+        properties.forEach(property -> forName(property.getName()).setter
                 .accept(config, property.getValue()));
     }
 
@@ -272,8 +272,8 @@ public enum TargetProperty {
      * Return the entry that matches the given string.
      * @param name The string to match against.
      */
-    public static TargetProperty match(String name) {
-        return (TargetProperty)Target.doMatch(name, TargetProperty.values());
+    public static TargetProperty forName(String name) {
+        return (TargetProperty)Target.match(name, TargetProperty.values());
     }
 
     /**
@@ -293,7 +293,7 @@ public enum TargetProperty {
         return this.description;
     }
 
-    // Inner classes.
+    // Inner classes for the various supported types.
     
     /**
      * Interface for dictionary elements. It associates an entry with a type.
@@ -335,7 +335,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public DictionaryElement forName(String name) {
-            return (DictionaryElement) Target.doMatch(name, options.toArray());
+            return (DictionaryElement) Target.match(name, options.toArray());
         }
         
         /**
@@ -436,7 +436,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public Enum<?> forName(String name) {
-            return (Enum<?>) Target.doMatch(name, options.toArray());
+            return (Enum<?>) Target.match(name, options.toArray());
         }
         
         /**

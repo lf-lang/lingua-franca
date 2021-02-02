@@ -22,17 +22,6 @@ package org.icyphy;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import org.icyphy.linguaFranca.Array;
-import org.icyphy.linguaFranca.Element;
-import org.icyphy.linguaFranca.KeyValuePair;
-import org.icyphy.linguaFranca.KeyValuePairs;
-import org.icyphy.linguaFranca.TimeUnit;
-import org.icyphy.validation.LinguaFrancaValidator;
 
 /** 
  * Enumeration of targets and their associated properties. These classes are
@@ -386,12 +375,13 @@ public enum Target {
     }
 
     /**
-     * Return the entry that matches the given string.
+     * Return the target that matches the given string.
+     * 
      * @param name The string to match against.
      * @return The matching target (or null if there is none).
      */
     public static Target forName(String name) {
-        return (Target)Target.doMatch(name, Target.values());
+        return (Target)Target.match(name, Target.values());
     }
 
     /**
@@ -409,11 +399,9 @@ public enum Target {
      * @param string     The string to match against candidates.
      * @param candidates The candidates to match the string against.
      */
-    public static Object doMatch(final String string, final Object[] candidates) {
+    public static Object match(final String string, final Object[] candidates) {
         return Arrays.stream(candidates)
                 .filter(e -> (e.toString().equalsIgnoreCase(string)))
                 .findAny().orElse(null);
     }
-
-    
 }

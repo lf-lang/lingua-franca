@@ -612,7 +612,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // Check only if the container's container is a Target.
         if (param.eContainer.eContainer instanceof TargetDecl) {
 
-            val prop = TargetProperty.match(param.name)
+            val prop = TargetProperty.forName(param.name)
 
             // Make sure the key is valid.
             if (prop === null) {
@@ -1088,7 +1088,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if fast is defined
-                TargetProperty.match(pair.name) == TargetProperty.FAST
+                TargetProperty.forName(pair.name) == TargetProperty.FAST
         )) {
             if (info.model.reactors.exists(
                 reactor |
@@ -1117,13 +1117,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if clock-sync is defined
-                TargetProperty.match(pair.name) == TargetProperty.CLOCK_SYNC
+                TargetProperty.forName(pair.name) == TargetProperty.CLOCK_SYNC
         )) {
 
-            if (info.model.reactors.exists( reactor |
-                // Check to see if the program has a federated reactor and if there is a physical connection
-                // defined.
-                reactor.isFederated
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a federated reactor and if there is a physical connection
+                    // defined.
+                    reactor.isFederated
             ) == false) {
                 warning(
                     "The clock-sync target property is incompatible with non-federated programs.",
