@@ -445,12 +445,36 @@ public enum Target {
                 DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C),
                 (config, value) -> {
                     for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                        // FIXME: convert to string values here, not later on
-                        // during code generation.
-                        config.clockSyncOptions.put(
-                                (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
-                                        .forName(entry.getName()),
-                                entry.getValue());
+                        ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
+                                .forName(entry.getName());
+                        switch (option) {
+                            case ATTENUATION:
+                                config.clockSyncOptions.attenuation = ASTUtils
+                                        .toInteger(entry.getValue());
+                                break;
+                            case COLLECT_STATS:
+                                config.clockSyncOptions.collectStats = ASTUtils
+                                        .toBoolean(entry.getValue());
+                                break;
+                            case LOCAL_FEDERATES_ON:
+                                config.clockSyncOptions.localFederatesOn = ASTUtils
+                                        .toBoolean(entry.getValue());
+                                break;
+                            case PERIOD:
+                                config.clockSyncOptions.period = ASTUtils
+                                        .toTimeValue(entry.getValue());
+                                break;
+                            case TEST_OFFSET:
+                                config.clockSyncOptions.testOffset = ASTUtils
+                                        .toTimeValue(entry.getValue());
+                                break;
+                            case TRIALS:
+                                config.clockSyncOptions.trials = ASTUtils
+                                        .toInteger(entry.getValue());
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }),
         

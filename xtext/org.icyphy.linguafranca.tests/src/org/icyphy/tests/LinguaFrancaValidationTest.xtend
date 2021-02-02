@@ -907,7 +907,7 @@ class LinguaFrancaValidationTest {
     @Test
     def void checkTargetProperties() {
         
-        for (prop : TargetProperty.values) {
+        for (prop : TargetProperty.options) {
             println('''Testing target property «prop» which is «prop.type»''')
             println("====")
             println("Known good assignments:")
