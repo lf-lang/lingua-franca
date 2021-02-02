@@ -37,8 +37,10 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.InferredType
+import org.icyphy.Target
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Parameter
@@ -52,9 +54,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Delay
-import org.icyphy.Target
-import org.icyphy.Target.LogLevel
+import org.icyphy.TargetProperty.LogLevel
 
 /** Generator for TypeScript target.
  *

@@ -33,12 +33,10 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.eclipse.xtext.testing.validation.ValidationTestHelper
 import org.icyphy.Target
-import org.icyphy.Target.ArrayType
-import org.icyphy.Target.DictionaryType
-import org.icyphy.Target.PrimitiveType
-import org.icyphy.Target.TargetProperty
-import org.icyphy.Target.TargetPropertyType
-import org.icyphy.Target.UnionType
+import org.icyphy.TargetProperty
+import org.icyphy.TargetProperty.DictionaryType
+import org.icyphy.TargetProperty.PrimitiveType
+import org.icyphy.TargetProperty.TargetPropertyType
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
@@ -52,6 +50,8 @@ import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.TargetProperty.UnionType
+import org.icyphy.TargetProperty.ArrayType
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)

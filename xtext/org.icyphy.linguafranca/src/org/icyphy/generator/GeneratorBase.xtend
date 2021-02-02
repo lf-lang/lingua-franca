@@ -57,7 +57,8 @@ import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.Configuration
 import org.icyphy.InferredType
 import org.icyphy.Target
-import org.icyphy.Target.CoordinationType
+import org.icyphy.TargetProperty
+import org.icyphy.TargetProperty.CoordinationType
 import org.icyphy.TimeValue
 import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
@@ -84,7 +85,6 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
 import static extension org.icyphy.Configuration.*
-import org.icyphy.Target.TargetProperty
 
 /**
  * Generator base class for shared code between code generators.

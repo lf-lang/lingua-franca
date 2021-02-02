@@ -58,7 +58,7 @@ import org.icyphy.ASTUtils
 import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 import com.google.inject.Inject
 import org.icyphy.Target
-import org.icyphy.Target.LogLevel
+import org.icyphy.TargetProperty.LogLevel
 
 /** Generator for C++ target.
  * 

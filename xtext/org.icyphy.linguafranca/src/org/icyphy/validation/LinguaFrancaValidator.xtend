@@ -77,7 +77,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Target.TargetProperty
+import org.icyphy.TargetProperty
 
 /**
  * Custom validation checks for Lingua Franca programs.
