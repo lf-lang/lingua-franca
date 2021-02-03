@@ -119,9 +119,7 @@ public enum TargetProperty {
                             .forName(entry.getName());
                     switch (option) {
                         case FROM:
-                            config.docker.put(
-                                    "from",
-                                    ASTUtils.toText(entry.getValue()));
+                            config.docker.from = ASTUtils.toText(entry.getValue());
                             break;
                         default:
                             break;

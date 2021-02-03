@@ -20,18 +20,17 @@
  */
 package org.icyphy
 
-import java.util.LinkedHashMap
 import java.io.File
 import java.io.IOException
 import java.util.List
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.URI
-import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.TargetProperty.BuildType
 import org.icyphy.TargetProperty.ClockSyncMode
 import org.icyphy.TargetProperty.CoordinationType
 import org.icyphy.TargetProperty.LogLevel
+import org.icyphy.linguaFranca.TimeUnit
 
 /** 
  * A class for keeping the current target configuration.
@@ -99,7 +98,7 @@ class Configuration {
     /**
      * Docker options.
      */
-    public LinkedHashMap<String,String> docker = new LinkedHashMap<String,String>
+    public DockerOptions docker = new DockerOptions();
     
     /**
      * If true, configure the execution environment such that it does not
@@ -299,4 +298,14 @@ class ClockSyncOptions {
      * The default is null.
      */
     public TimeValue testOffset;
+}
+
+/**
+ * Settings related to Docker options.
+ */
+class DockerOptions {
+    /**
+     * The base image and tag from which to build the Docker image. The default is "alpine:latest".
+     */
+    public String from = "alpine:latest"
 }
