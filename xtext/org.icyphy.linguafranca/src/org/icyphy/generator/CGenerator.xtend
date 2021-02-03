@@ -741,10 +741,14 @@ class CGenerator extends GeneratorBase {
     /**
      * Write a Dockerfile for the current federate as given by filename.
      * The file will go into src-gen/filename.Dockerfile.
-     * If the target property "no-compile" is set, then no Dockerfile
-     * is generated either (it wouldn't ve very useful).
+     * If there is no main reactor, then no Dockerfile will be generated
+     * (it wouldn't be very useful).
      */
     def writeDockerFile() {
+        if (this.mainDef === null) {
+            return
+        }
+        
         var srcGenPath = getSrcGenPath()
         val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
         val contents = new StringBuilder()
