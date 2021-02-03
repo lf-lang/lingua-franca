@@ -758,10 +758,6 @@ class CGenerator extends GeneratorBase {
         if (file.exists) {
             file.delete
         }
-        var from = config.docker.get('from')
-        if (from === null) {
-            from = 'alpine:latest'
-        }
         var compileCommand = '''«this.config.compiler» «config.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
         if (!config.buildCommands.nullOrEmpty) {
             compileCommand = config.buildCommands.join(' ')
@@ -772,13 +768,14 @@ class CGenerator extends GeneratorBase {
         }
         pr(contents, '''
             # Generated docker file for «filename».lf.
-            # Build with:
-            #    docker build -t «filename.toLowerCase» -f «dockerFile» .
+            # From the same directory as «filename».lf, «directory»,
+            # build the docker image with:
+            #    docker build -t «filename.toLowerCase» -f src-gen/«filename».Dockerfile .
             # Run with:
             #    docker run -t --rm «filename.toLowerCase»
             # -t creates a pseudo terminal for output
             # --rm removes the container/app after running. Otherwise, it will persist.
-            FROM «from»
+            FROM «config.docker.from»
             WORKDIR /lingua-franca
             COPY src-gen/core src-gen/core
             COPY "src-gen/«filename».c" "src-gen/ctarget.h" "src-gen/"
