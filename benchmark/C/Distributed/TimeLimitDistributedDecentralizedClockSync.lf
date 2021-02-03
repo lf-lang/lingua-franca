@@ -6,6 +6,7 @@
 target C {
     flags: "-O2 -Wall -g -rdynamic",
     coordination: decentralized,
+    timeout: 10 secs,
     clock-sync: on,                // Turn on runtime clock synchronization.
     clock-sync-options: {
         local-federates-on: true,  // Forces all federates to perform clock sync.
@@ -49,11 +50,6 @@ reactor Destination {
     =}
 }
 federated reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
-	timer stop(10 secs);
-	reaction(stop) {=
-        info_print("Requesting stop.");
-		request_stop();
-	=}
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x after 1 usec;
