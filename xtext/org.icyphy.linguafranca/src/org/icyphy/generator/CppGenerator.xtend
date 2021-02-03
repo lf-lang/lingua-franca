@@ -128,6 +128,8 @@ class CppGenerator extends GeneratorBase {
             // No main reactor. Nothing to do.
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
+        } else {
+            reactors.add(mainReactor)
         }
 
         fsa.generateFile('''«filename»/main.cc''',
@@ -141,7 +143,7 @@ class CppGenerator extends GeneratorBase {
         copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''',
             fsa.getAbsolutePath('''/«filename»/__include__/CLI/CLI11.hpp'''))
 
-        for (r : this.instantiationGraph.nodesInTopologicalOrder) {
+        for (r : reactors) {
             fsa.generateFile('''«filename»/«r.toDefinition.headerFile»''',
                 r.toDefinition.generateReactorHeader)
             val implFile = r.toDefinition.isGeneric ? r.toDefinition.headerImplFile : r.toDefinition.sourceFile
@@ -974,7 +976,7 @@ class CppGenerator extends GeneratorBase {
         
         add_executable(«filename»
           main.cc
-          «FOR r : this.instantiationGraph.nodesInTopologicalOrder»
+          «FOR r : reactors»
               «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile»«ENDIF»
           «ENDFOR»
           «FOR r : resources»

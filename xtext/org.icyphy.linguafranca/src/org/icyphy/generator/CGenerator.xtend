@@ -348,7 +348,7 @@ class CGenerator extends GeneratorBase {
 
         // Generate code for each reactor.
         val names = newLinkedHashSet
-        for (r : this.instantiationGraph.nodesInTopologicalOrder) {
+        for (r : reactors) {
             for (d : this.instantiationGraph.getDeclarations(r)) {
                 if (!names.add(d.name)) {
                     // Report duplicate declaration.
