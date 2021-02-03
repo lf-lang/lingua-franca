@@ -32,6 +32,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
@@ -46,7 +47,6 @@ import org.eclipse.core.resources.IMarker
 import org.eclipse.core.resources.IResource
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
-import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -54,7 +54,11 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
+import org.icyphy.Configuration
 import org.icyphy.InferredType
+import org.icyphy.Target
+import org.icyphy.TargetProperty
+import org.icyphy.TargetProperty.CoordinationType
 import org.icyphy.TimeValue
 import org.icyphy.graph.InstantiationGraph
 import org.icyphy.linguaFranca.Action
@@ -62,7 +66,6 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
-import org.icyphy.linguaFranca.Element
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Model
@@ -81,13 +84,7 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Target.BuildType
-import org.icyphy.Target.TargetProperties
-import org.icyphy.Target.ClockSyncMode
-import org.icyphy.Target.CoordinationType
-import org.icyphy.Target.LogLevel
-import org.icyphy.Target
-import org.icyphy.Configuration
+import static extension org.icyphy.Configuration.*
 
 /**
  * Generator base class for shared code between code generators.
@@ -299,10 +296,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     )
     
     
-    /**
-     * List of proto files to be processed by the code generator.
-     */
-    protected List<String> protoFiles = newLinkedList
     
     /**
      * Contents of $LF_CLASSPATH, if it was set.
@@ -322,10 +315,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected String targetBankIndexType = "int"
 
-    /**
-     * Clock sync options.
-     */
-    protected LinkedHashMap<String,Element> targetClockSyncOptions = newLinkedHashMap
+
         
     ////////////////////////////////////////////
     //// Private fields.
@@ -406,70 +396,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         var target = resource.findTarget
         if (target.config !== null) {
-            for (param: target.config.pairs ?: emptyList) {
-
-                switch TargetProperties.get(param.name) {
-                    case BUILD: {
-                        if (param.value.literal !== null) {
-                            config.buildCommands.add(param.value.toText)
-                        } else if (param.value.array !== null) {
-                            for (cmd : param.value.array.elements) {
-                                config.buildCommands.add(cmd.toText)
-                            }
-                        }
-                    }
-                    case BUILD_TYPE:
-                        config.cmakeBuildType = BuildType.create(param.value.toText)
-                    case CLOCK_SYNC:
-                        config.clockSync = ClockSyncMode.create(param.value.toText)
-                    case CLOCK_SYNC_OPTIONS:
-                        for (entry: param.value.keyvalue.pairs) {
-                            targetClockSyncOptions.put(entry.name, entry.value)
-                        }
-                    case CMAKE_INCLUDE:
-                        config.cmakeInclude = param.value.toText
-                    case COMPILER:
-                        config.compiler = param.value.toText
-                    case DOCKER:
-                        for (entry: param.value.keyvalue.pairs) {
-                            // All docker options are strings.
-                            // Tolerate an id (which has no quotation mark).
-                            var value = entry.value.id
-                            if (value === null) {
-                                value = entry.value.literal.withoutQuotes
-                            }
-                            config.docker.put(entry.name.toLowerCase, value)
-                        }
-                    case FAST:
-                        config.fastMode = param.value.toBoolean
-                    case COORDINATION:
-                        config.coordination = CoordinationType.create(param.value.toText)
-                    case FILES:
-                        config.fileNames.addAll(this.collectFiles(param.value))
-                    case PROTOBUFS: 
-                        this.protoFiles.addAll(this.collectFiles(param.value))
-                    case FLAGS: {
-                        config.compilerFlags.clear()
-                        if (!param.value.toText.isEmpty) {
-                            config.compilerFlags.addAll(param.value.toText.split(' '))
-                        }
-                    }
-                    case NO_COMPILE:
-                        config.noCompile = param.value.toBoolean
-                    case NO_RUNTIME_VALIDATION:
-                        config.noRuntimeValidation = param.value.toBoolean
-                    case KEEPALIVE:
-                        config.keepalive = param.value.toBoolean
-                    case LOGGING:
-                        config.logLevel = LogLevel.create(param.value.toText)
-                    case THREADS:
-                        config.threads = param.value.toInteger
-                    case TIMEOUT:
-                        config.timeout = param.value.toTimeValue
-                    case TRACING:
-                        config.tracing = param.value.toBoolean
-                }
-            }
+            // Update the configuration according to the set target properties.
+            TargetProperty.update(this.config, target.config.pairs ?: emptyList)
         }
         
         // Override target properties if specified as command line arguments.
@@ -591,7 +519,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         srcGenDir.mkdirs
         
         for (filename : config.fileNames) {
-            val file = filename.findFile
+            val file = filename.findFile(this.directory)
             if (file !== null) {
                 val target = new File(targetDirectory + File.separator + file.name)
                 if (target.exists) {
@@ -1470,7 +1398,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
-                val uri = new java.net.URI(parsed.filepath)
+                val uri = new URI(parsed.filepath)
                 val files = workspaceRoot.findFilesForLocationURI(uri)
                 // No idea why there might be more than one file matching the URI,
                 // but Eclipse seems to think there might be. We will just use the
@@ -1507,95 +1435,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 )
             }
         }
-    }
-
-    /**
-     * Given the right-hand side of a target property, return a list with all
-     * the files that the property lists.
-     * 
-     * Arrays are traversed, so files are collected recursively. If elements
-     * are found that do not denote files, warnings are reported.
-     * @param value The right-hand side of a target property.
-     */
-    def List<String> collectFiles(Element value) {
-        val files = newLinkedList
-        var filename = ""
-        if (value.array !== null) {
-            for (element : value.array.elements) {
-                files.addAll(element.collectFiles)
-            }
-            return files
-        } else if (value.literal !== null) {
-            filename = value.literal.withoutQuotes
-            files.add(filename)
-        } else if (value.id !== "") {
-            filename = value.id
-            files.add(filename)
-        } else {
-            this.
-                reportWarning(
-                    value, '''Expected a string, path, or array but found something else.''')
-        }
-        // Make sure the file exists and issue a warning if not.
-        val file = filename.findFile
-        if (file === null) {
-            // See if it can be found as a resource.
-            val stream = this.class.getResourceAsStream(filename)
-            if (stream === null) {
-                // Warn that file hasn't been found.
-                this.reportWarning(value, 
-                    '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
-            } else {
-                // Sadly, even with this not null, the file may not exist.
-                try {
-                    stream.read()
-                } catch (IOException ex) {
-                    // Warn that file hasn't been found.
-                    this.
-                        reportWarning(
-                            value, '''Could not find «filename». Consider setting LF_CLASSPATH environment variable.''')
-                }
-                stream.close()
-            }
-        }
-        return files
-    }
-
-    /**
-     * Search for a given file name in the current directory.
-     * If not found, search in directories in LF_CLASSPATH.
-     * If not found there, search relative to the CLASSPATH.
-     * The first file found will be returned.
-     * 
-     * @param fileName The file name or relative path + file name
-     * in plain string format
-     * @return A Java file or null if not found
-     */
-     def File findFile(String fileName) {
-
-        var File foundFile;
-
-        // Check in local directory
-        foundFile = new File(this.directory + '/' + fileName);
-        if (foundFile.exists && foundFile.isFile) {
-            return foundFile;
-        }
-
-        // Check in LF_CLASSPATH
-        // Load all the resources in LF_CLASSPATH if it is set.
-        this.classpathLF = System.getenv("LF_CLASSPATH");
-        if (this.classpathLF !== null) {
-            var String[] paths = this.classpathLF.split(
-                System.getProperty("path.separator"));
-            for (String path : paths) {
-                foundFile = new File(path + '/' + fileName);
-                if (foundFile.exists && foundFile.isFile) {
-                    return foundFile;
-                }
-            }
-        }
-        // Not found.
-        return null;
     }
 
     /**
@@ -1724,7 +1563,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = new java.net.URI("file:/" + eResource.toPath)
+                    val uri = new URI("file:/" + eResource.toPath)
                     val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                     val files = workspaceRoot.findFilesForLocationURI(uri)
                     if (files !== null && files.length > 0 && files.get(0) !== null) {
@@ -2203,23 +2042,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def toPath(Resource resource) {
         return resource.getURI.toPath
-    }
-
-    /**
-     * Create a string representing the absolute file path of a URI.
-     */
-    protected def toPath(URI uri) {
-        if (uri.isPlatform) {
-            val file = ResourcesPlugin.workspace.root.getFile(
-                new Path(uri.toPlatformString(true)))
-            return file.rawLocation.toFile.absolutePath
-        } else if (uri.isFile) {
-        	val file = new File(uri.toFileString)
-            return file.absolutePath
-        } else {
-            throw new IOException("Unrecognized file protocol in URI " +
-                uri.toString)
-        }
     }
 
     /**

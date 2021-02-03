@@ -2,11 +2,8 @@
  * Test case for MQTT pub/sub. In this version, the publisher and
  * subscriber are mapped to distinct federates. The code generator
  * produces three programs, bin/MQTTDistributed_RTI,
- * bin/MQTTDistributed_Publisher, and bin/MQTTDistributed_Subscriber,
- * all three of which must be run. A Makefile is provided for
- * convenience. After generating code. You can use "make compile"
- * to generate the programs and "make run" to run them. See
- * prerequisites below.
+ * bin/MQTTDistributed_source, and bin/MQTTDistributed_destination,
+ * plus a script bin/MQTTDistributed that runs all three.
  * 
  * The publisher sends a sequence of strings, and at the MQTTSubscriber
  * reactor, the offset parameter gives the logical time increment
@@ -17,14 +14,15 @@
  * They are the sender's timestamp plus the offset.
  * Otherwise, the timestamps will be larger and will match the
  * physical time at which the subscriber receives the message.
- * Since the publisher and subscriber are running in the same
+ * Since the source and destination are running in the same
  * executable, there is no clock synchronization error.
  * However, the interprocess communication seems rather high.
  * On a Mac, I am seeing latencies on the order of one second.
  * 
  * To measure the total communication latency from the MessageGenerator,
  * through the publisher and through MQTT, set the offset to 0.
- * In this case, the subscriber will always retimestamp the received
+ * In this case, the subscriber will always issue a warning and
+ * retimestamp the received
  * message using physical time. At the end of execution, when the
  * timeout expires, the average and maximum latency will be printed.
  * 
@@ -96,7 +94,7 @@ reactor MessageGenerator(root:string("")) {
         SET_NEW_ARRAY(message, length);
         // Populate the output string and increment the count.
         snprintf(message->value, length, "%s %d", self->root, self->count++);
-        printf("MessageGenerator: At time %lld, publish message: %s\n",
+        info_print("MessageGenerator: At time %lld, publish message: %s",
             get_elapsed_logical_time(),
             message->value
         );
@@ -111,29 +109,36 @@ reactor MessageGenerator(root:string("")) {
 reactor PrintMessage {
     input message:char*;
     reaction(message) {=
-        printf("PrintMessage: At (elapsed) logical time %lld, subscriber receives: %s\n",
+        info_print("PrintMessage: At (elapsed) logical time %lld, subscriber receives: %s",
             get_elapsed_logical_time(),
             message->value
         );
     =}
 }
 
-federated reactor MQTTTest {
+reactor Source {
+    msg = new MessageGenerator(root = "Hello World");
     pub = new MQTTPublisher(
         topic = "my/test",
         address = "tcp://localhost:1883",
         clientID = "TestPublisher",
         include_physical_timestamp = 1
     );
-    msg = new MessageGenerator(root = "Hello World");
     msg.message->pub.in;
-    
+}
+
+reactor Destination {
     sub = new MQTTSubscriber(
         address = "tcp://localhost:1883",
         clientID = "TestSubscriber2",
         topic = "my/test",
-        offset = 0 msec
+        offset = 0 sec
     );
     dsp = new PrintMessage();
     sub.message->dsp.message;
+}
+
+federated reactor MQTTTest {
+    source = new Source();
+    destination = new Destination();
 }
