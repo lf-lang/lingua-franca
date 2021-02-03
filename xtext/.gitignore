@@ -1,5 +1,5 @@
+*.out
 *.class
-*.java
 *.xml_gen
 *.xtendbin
 *._trace
@@ -11,5 +11,4 @@ src-gen/
 xtend-gen/
 /*/target/
 /.gradle
-org.icyphy.linguafranca/.launch/
-org.icyphy.linguafranca/.settings/
+/*/.vscode/
