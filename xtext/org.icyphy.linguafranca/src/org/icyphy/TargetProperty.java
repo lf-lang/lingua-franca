@@ -109,6 +109,27 @@ public enum TargetProperty {
             }),
     
     /**
+     * Key-value pairs giving options for clock synchronization.
+     */
+    DOCKER("docker",
+            DictionaryType.DOCKER_DICT, Arrays.asList(Target.C),
+            (config, value) -> {
+                for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                    Docker option = (Docker) DictionaryType.DOCKER_DICT
+                            .forName(entry.getName());
+                    switch (option) {
+                        case FROM:
+                            config.docker.put(
+                                    "from",
+                                    ASTUtils.toText(entry.getValue()));
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }),
+    
+    /**
      * Directive to let the execution engine allow logical time to elapse
      * faster than physical time.
      */
@@ -310,7 +331,8 @@ public enum TargetProperty {
      *
      */
     public enum DictionaryType implements TargetPropertyType {
-        CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values()));
+        CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
+        DOCKER_DICT(Arrays.asList(Docker.values()));
     
         /**
          * The keys and assignable types that are allowed in this dictionary.
@@ -832,7 +854,39 @@ public enum TargetProperty {
             return this.type;
         }
     }
+
+    /**
+     * Docker options.
+     * @author{Edward A. Lee <eal@berkeley.edu>}
+     */
+    public enum Docker implements DictionaryElement {
+        FROM("FROM", PrimitiveType.STRING);
+        
+        public final PrimitiveType type;
+        
+        private final String description;
+        
+        private Docker(String alias, PrimitiveType type) {
+            this.description = alias;
+            this.type = type;
+        }
+        
+        /**
+         * Return the description of this dictionary element.
+         */
+        @Override
+        public String toString() {
+            return this.description;
+        }
     
+        /**
+         * Return the type associated with this dictionary element.
+         */
+        public TargetPropertyType getType() {
+            return this.type;
+        }
+    }
+
     /**
      * Log levels in descending order of severity.
      * @author{Marten Lohstroh <marten@berkeley.edu>}
