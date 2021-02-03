@@ -101,11 +101,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     ////////////////////////////////////////////
     //// Public fields.
 
-    // Map from time units to an expression that can convert a number in
-    // the specified time unit into nanoseconds. This expression may need
-    // to have a suffix like 'LL' or 'L' appended to it, depending on the
-    // target language, to ensure that the result is a 64-bit long.            
-    public static var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+    /**
+     * Map from time units to an expression that can convert a number in
+     * the specified time unit into nanoseconds. This expression may need
+     * to have a suffix like 'LL' or 'L' appended to it, depending on the
+     * target language, to ensure that the result is a 64-bit long.
+     */
+    public static val timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
         TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
         TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
         TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
@@ -116,7 +118,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
     
-    public static var GEN_DELAY_CLASS_NAME = "__GenDelay"
+    /**
+     * Constant that specifies how to name generated delay reactors.
+     */
+    public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
         
     ////////////////////////////////////////////
     //// Protected fields.
@@ -188,15 +193,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var mode = Mode.UNDEFINED
     
     /**
-     * A list of Reactor definitions in the main resource, including non-main 
-     * reactors defined in imported resources.
+     * The set of resources that referenced reactor classes reside in.
      */
-    protected var List<Reactor> reactors = newLinkedList // FIXME: derived from instantiationGraph 
-    
-    /**
-     * The set of resources referenced reactor classes reside in.
-     */
-    protected var Set<Resource> resources = newLinkedHashSet // FIXME: derived from instantiationGraph
+    protected var Set<Resource> resources = newLinkedHashSet
     
     /**
      * Graph that tracks dependencies between instantiations.
@@ -501,7 +500,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         // Topologically sort the reactors such that all of a reactor's
         // dependencies occur earlier in the sorted list or reactors.
-        this.reactors = this.instantiationGraph.nodesInTopologicalOrder
+        //this.reactors = this.instantiationGraph.nodesInTopologicalOrder
         
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
@@ -1152,7 +1151,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         prComment(sourceFile)
         val models = new LinkedHashSet<Model>
         
-        for (r : this.reactors ?: emptyList) {
+        for (r : this.instantiationGraph.nodesInTopologicalOrder ?: emptyList) {
             // The following assumes all reactors have a container.
             // This means that generated reactors **have** to be
             // added to a resource; not doing so will result in a NPE.
