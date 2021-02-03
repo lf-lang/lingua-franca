@@ -13,3 +13,13 @@ xtend-gen/
 /.gradle
 org.icyphy.linguafranca/.launch/
 org.icyphy.linguafranca/.settings/
+org.icyphy.linguafranca.ide/.classpath
+org.icyphy.linguafranca.ide/.project
+org.icyphy.linguafranca.tests/.classpath
+org.icyphy.linguafranca.tests/.project
+org.icyphy.linguafranca.tests/org.icyphy.linguafranca.tests.launch
+org.icyphy.linguafranca.web/.classpath
+org.icyphy.linguafranca.web/.settings/
+org.icyphy.linguafranca/.classpath
+org.icyphy.linguafranca/.launch/
+org.icyphy.linguafranca/.project
