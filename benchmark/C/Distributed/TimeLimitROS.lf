@@ -1,5 +1,6 @@
 /** 
- * This is used to test the performance of ROS (number of reactions per second).
+ * This is used to test the performance of using ROS as a communication method between
+ * reactors (number of reactions per second).
  * 
  * 1- To get this example working, install full ROS 2 desktop
  *    ('https://index.ros.org/doc/ros2/Installation/Foxy/').
@@ -62,32 +63,32 @@ preamble {=
 
 reactor Clock(offset:time(0), period:time(1 sec)) {
     preamble {=
-        class MinimalPublisher : public rclcpp::Node {
+        class TimeLimitClock : public rclcpp::Node {
             public:
-                MinimalPublisher()
-                : Node("minimal_publisher")
+                TimeLimitClock()
+                : Node("LF_TimeLimit_Clock")
                 {
-                    publisher_ = this->create_publisher<std_msgs::msg::Int32>("LF_TimeLimit_y", QUEUE_DEPTH);
+                    clock_ = this->create_publisher<std_msgs::msg::Int32>("LF_TimeLimit_y", QUEUE_DEPTH);
                 }
             
-                rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr publisher_;
+                rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr clock_;
         };        
     =}
-    state minimal_publisher:{=std::shared_ptr<MinimalPublisher>=};
+    state timelimit_clock:{=std::shared_ptr<TimeLimitClock>=};
     timer t(offset, period);
     state count:int(0);
     reaction(startup) {=
         // std::cout << "Executing startup." << std::endl;
         char *argv[] = {(char*)"LF_TimeLimit_Clock", NULL};
         rclcpp::init(1, argv);
-        self->minimal_publisher = std::make_shared<MinimalPublisher>();
+        self->timelimit_clock = std::make_shared<TimeLimitClock>();
     =}
     reaction(t) {=
         auto message = std_msgs::msg::Int32();
         message.data = ++(self->count);
-        //printf("Reacting at time %ld.\n", get_elapsed_logical_time());
-        self->minimal_publisher->publisher_->publish(message);
-        rclcpp::spin_some(self->minimal_publisher);
+        // printf("Reacting at time %ld.\n", get_elapsed_logical_time());
+        self->timelimit_clock->clock_->publish(message);
+        rclcpp::spin_some(self->timelimit_clock);
     =}
     
     reaction(shutdown) {=
@@ -95,48 +96,53 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
         rclcpp::shutdown();
     =}
 }
-reactor Destination {
+reactor Destination(period:time(1 sec)) {
     preamble {=
-        class MinimalSubscriber : public rclcpp::Node {
+        class TimeLimitDestination : public rclcpp::Node {
             public:
-                MinimalSubscriber(void* physical_action)
+                TimeLimitDestination(void* physical_action)
                 : Node("LF_TimeLimit_Destination"), physical_action_(physical_action) {
-                    subscription_ = this->create_subscription<std_msgs::msg::Int32>(
-                    "LF_TimeLimit_y", QUEUE_DEPTH, std::bind(&MinimalSubscriber::topic_callback, this, std::placeholders::_1));
+                    destination_ = this->create_subscription<std_msgs::msg::Int32>("LF_TimeLimit_y", 
+                                                                                    QUEUE_DEPTH, std::bind(&TimeLimitDestination::x_callback, 
+                                                                                    this, std::placeholders::_1));
                 }
 
             private:
-                void topic_callback(const std_msgs::msg::Int32::SharedPtr msg) const {
-                    schedule_copy(physical_action_, 0, &(msg->data), sizeof(instant_t));
+                void x_callback(const std_msgs::msg::Int32::SharedPtr msg) const {
+                    schedule_int(physical_action_, 0, msg->data);
                 }
-                rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr subscription_;
+                rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr destination_;
                 void* physical_action_;
         };
     =}
     physical action ros_message_x:int;
-    state minimal_subscriber:{=std::shared_ptr<MinimalSubscriber>=};
+    state destination:{=std::shared_ptr<TimeLimitDestination>=};
     state s:int(1);
+    state received_messages:int(0);
+    state dropped_messages:int(0);
     
-    reaction(startup) ->  ros_message_x {=
+    reaction(startup) ros_message_x {=
         // std::cout << "Executing startup." << std::endl;
-        self->minimal_subscriber = std::make_shared<MinimalSubscriber>(ros_message_x);
+        self->destination = std::make_shared<TimeLimitDestination>(ros_message_x);
     =}
     
     reaction(ros_message_x) {=
-        // printf("%d\n", x->value);
+        // printf("%d\n", ros_message_x->value);
+        self->received_messages++;
         if (ros_message_x->value != self->s) {
-            warning_print("Expected %d and got %d. " 
+            /* warning_print("Expected %d and got %d. " 
                 "Jumping my expectation to %d in order to catch up with the sender.", 
-                self->s, ros_message_x->value, ros_message_x->value);
+                self->s, ros_message_x->value, ros_message_x->value); */
+            self->dropped_messages += ros_message_x->value - self->s;
             self->s = ros_message_x->value;
         }
         self->s++;
     =}
     
     // Keep spinning for new messages
-    timer t(0, 100 usec);
+    timer t(0, period);
     reaction(t) {=
-        rclcpp::spin_some(self->minimal_subscriber);
+        rclcpp::spin_some(self->destination);
         // std::cout << "Timer triggered." << std::endl;
     =}
     
@@ -145,7 +151,10 @@ reactor Destination {
         if (self->s != 10000002) {
             warning_print("Expected 10000002 but got %d.", self->s);
         }
-        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
+        info_print("Approx. time per reaction: %lldns" 
+            " Dropped messages: %d",
+            get_elapsed_physical_time()/(self->received_messages+1),
+            self->dropped_messages);
         rclcpp::shutdown();
     =}
 }
@@ -156,5 +165,5 @@ main reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
         request_stop();
     =}
     c = new Clock(period = period);
-    d = new Destination();
+    d = new Destination(period = period);
 }

@@ -60,11 +60,14 @@
  * @author Edward A. Lee
  */
 target C {
-    threads: 1, // Must use threaded implementation so schedule is thread safe.
-    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/util.c",
+    // Must use threaded implementation so schedule is thread safe.
+    threads: 1,
+    // Need to compile net_util.c also because this is not federated so it will not be
+    // included automatically.
+    flags: "-I/usr/local/include -L/usr/local/lib -g -lpaho-mqtt3c src-gen/core/net_util.c",
     timeout: 10 secs
 };
- 
+  
 import MQTTPublisher from "MQTTPublisher.lf";
 import MQTTSubscriber from "MQTTSubscriber.lf";
 
@@ -97,7 +100,7 @@ reactor MessageGenerator(root:string("")) {
         );
     =}
 }
-
+ 
 /**
  * Reactor that prints an incoming string.
  * @param prefix A prefix for the message.
@@ -111,7 +114,7 @@ reactor PrintMessage {
             message->value
         );
     =}
-}
+} 
 
 main reactor MQTTPhysical {
     pub = new MQTTPublisher(

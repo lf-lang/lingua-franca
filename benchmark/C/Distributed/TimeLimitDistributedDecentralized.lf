@@ -1,25 +1,11 @@
-// Test that the stop function can be used to internally impose a
-// a time limit.
-// This is also used to test performance (number of reactions per second).
+// This is used to test the performance of the federated runtime in decentralized mode 
+// (number of reactions per second).
 // See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 // Correct output for this 1, 2, 3, 4.
 // Failure for this test is failing to halt or getting the wrong data.
 target C {
     flags: "-O2 -Wall -g -rdynamic",
-    coordination: decentralized,
-    clock-sync: on,                // Turn on runtime clock synchronization.
-    clock-sync-options: {
-        local-federates-on: true,  // Forces all federates to perform clock sync.
-        collect-stats: true,       // Collect useful statistics like average network delay
-                                   // and the standard deviation for the network delay over
-                                   // one clock synchronization cycle. Generates a warning
-                                   // if the standard deviation is higher than the clock sync
-                                   // guard.
-        test-offset: 200 msec,     // Artificially offsets clocks by multiples of 200 msec.
-        period: 5 msec,            // Period with which runtime clock sync is performed.
-        trials: 10,                // Number of messages exchanged to perform clock sync.
-        attenuation: 10            // Attenuation applied to runtime clock sync adjustments.
-    }
+    coordination: decentralized
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;

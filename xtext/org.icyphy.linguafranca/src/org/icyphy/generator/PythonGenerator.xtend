@@ -830,7 +830,7 @@ class PythonGenerator extends CGenerator {
             }
         }
         // Handle .proto files.
-        for (name : this.protoFiles) {
+        for (name : config.protoFiles) {
             this.processProtoFile(name)
             val dotIndex = name.lastIndexOf('.')
             var rootFilename = name
