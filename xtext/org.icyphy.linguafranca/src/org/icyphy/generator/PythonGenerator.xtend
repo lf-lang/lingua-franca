@@ -778,7 +778,7 @@ class PythonGenerator extends CGenerator {
         
         val models = new LinkedHashSet<Model>
         
-        for (r : this.reactors ?: emptyList) {
+        for (r : this.instantiationGraph.nodesInTopologicalOrder) {
             // The following assumes all reactors have a container.
             // This means that generated reactors **have** to be
             // added to a resource; not doing so will result in a NPE.
@@ -817,7 +817,7 @@ class PythonGenerator extends CGenerator {
         // and running multiple instances of the same function can cause
         // a segmentation fault.
         if (config.threads > 0) {
-            for (r : this.reactors ?: emptyList) {
+            for (r : this.instantiationGraph.nodesInTopologicalOrder) {
                 pr('''
                     pthread_mutex_t py_«r.toDefinition.name»_reaction_mutex = PTHREAD_MUTEX_INITIALIZER;
                 ''')

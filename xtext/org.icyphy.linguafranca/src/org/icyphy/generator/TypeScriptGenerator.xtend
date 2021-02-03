@@ -138,7 +138,7 @@ class TypeScriptGenerator extends GeneratorBase {
         generateCLAProcessing()
            
         // Generate code for each reactor. 
-        for (r : reactors) {
+        for (r : this.instantiationGraph.nodesInTopologicalOrder) {
            r.toDefinition.generateReactor()
         }
         
