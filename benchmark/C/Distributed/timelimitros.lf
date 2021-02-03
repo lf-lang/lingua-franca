@@ -47,7 +47,7 @@
 target C {
     keepalive: true,
     no-compile: true,
-    threads: 2
+    timeout: 10 secs
 };
 
 preamble {=
@@ -160,11 +160,6 @@ reactor Destination(period:time(1 sec)) {
     =}
 }
 main reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
-    timer stop(10 secs);
-    reaction(stop) {=
-        info_print("Requesting stop.");
-        request_stop();
-    =}
     c = new Clock(period = period);
     d = new Destination(period = period);
 }

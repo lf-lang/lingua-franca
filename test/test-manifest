@@ -52,6 +52,12 @@ DistributedCountDecentralizedLateHierarchy.lf
 DistributedCountPhysical.lf
 DistributedCountPhysicalDecentralized.lf
 DistributedDoublePort.lf
+DistributedLoopedAction.lf
+DistributedLoopedActionDecentralized.lf
+DistributedLoopedPhysicalAction.lf
+DistributedLoopedPhysicalActionDecentralized.lf
+DistributedNetworkOrder.lf
+DistributedNetworkOrderDecentralized.lf
 DistributedStop.lf
 DistributedStopZero.lf
 DistributedToken.lf

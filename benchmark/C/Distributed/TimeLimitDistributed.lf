@@ -8,7 +8,8 @@
 // This translates to 31 nanoseconds per reaction invocation.
 target C {
     flags: "-O2 -Wall",
-    coordination: centralized
+    coordination: centralized,
+    timeout: 10 secs
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
@@ -40,10 +41,6 @@ reactor Destination {
     =}
 }
 federated reactor TimeLimitDistributed(period:time(1 usec)) {
-	timer stop(10 secs);
-	reaction(stop) {=
-		request_stop();
-	=}
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x;
