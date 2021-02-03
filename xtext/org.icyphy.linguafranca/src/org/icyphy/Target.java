@@ -30,6 +30,7 @@ import java.util.List;
  * faulty references to be caught at compile time. Switch statements that take
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
+ * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 public enum Target {
@@ -80,7 +81,8 @@ public enum Target {
                 "_Static_assert", // (since C11)
                 "_Thread_local" // (since C11)
                 )
-    ), CCpp("CCpp", true, Target.C.keywords), 
+    ), 
+    CCPP("CCpp", true, Target.C.keywords), 
     CPP("Cpp", true, Arrays.asList(
                 // List via: https://en.cppreference.com/w/cpp/keyword
                 "alignas", // (since C++11)
@@ -326,10 +328,11 @@ public enum Target {
             "_Thread_local" // (since C11)
             )
     );
+    
     /**
      * String representation of this target.
      */
-    public final String name;
+    private final String description;
         
     /**
      * Whether or not this target requires types.
@@ -347,269 +350,58 @@ public enum Target {
     public final static Target[] ALL = Target.values();
     
     /**
-     * All target properties along with a list of targets that supports them.
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
-     */
-    public enum TargetProperties {
-        
-        /**
-         * Directive to let the generator use the custom build command.
-         */
-        BUILD("build", Arrays.asList(Target.C)),
-        
-        /**
-         * Directive to specify the target build type such as 'Release' or 'Debug'.
-         */
-        BUILD_TYPE("build-type", Arrays.asList(Target.CPP)),
-        
-        /**
-         * Directive to let the federate execution handle clock synchronization in software.
-         */
-        CLOCK_SYNC("clock-sync", Arrays.asList(Target.C)),
-
-        /**
-         * Key-value pairs giving options for clock synchronization.
-         */
-        CLOCK_SYNC_OPTIONS("clock-sync-options", Arrays.asList(Target.C)),
-
-        /**
-         * Directive to specify a cmake to be included by the generated build systems.
-         *
-         * This gives full control over the C++ build as any cmake parameters can be adjusted in the included file.
-         */
-        CMAKE_INCLUDE("cmake-include", Arrays.asList(Target.CPP)),
-        
-        /**
-         * Directive to specify the target compiler.
-         */
-        COMPILER("compiler", Arrays.asList(Target.ALL)),
-        
-        /**
-         * Directive to let the execution engine allow logical time to elapse
-         * faster than physical time.
-         */
-        FAST("fast", Arrays.asList(Target.ALL)),
-        
-        /**
-         * Directive to stage particular files on the class path to be
-         * processed by the code generator.
-         */
-        FILES("files", Arrays.asList(Target.ALL)),
-        
-        /**
-         * Flags to be passed on to the target compiler.
-         */
-        FLAGS("flags", Arrays.asList(Target.C, Target.CCpp)),
-        
-        /**
-         * Directive to specify the coordination mode
-         */
-        COORDINATION("coordination", Arrays.asList(Target.C, Target.CCpp, Target.Python)),
-        
-        /**
-         * Directive to let the execution engine remain active also if there
-         * are no more events in the event queue.
-         */
-        KEEPALIVE("keepalive", Arrays.asList(Target.ALL)),
-        
-        /**
-         * Directive to specify the grain at which to report log messages during execution.
-         */
-        LOGGING("logging", Arrays.asList(Target.ALL)),
-        
-        /**
-         * Directive to not invoke the target compiler.
-         */
-        NO_COMPILE("no-compile", Arrays.asList(Target.C, Target.CPP, Target.CCpp)),
-        
-        /**
-         * Directive to disable validation of reactor rules at runtime.
-         */
-        NO_RUNTIME_VALIDATION("no-runtime-validation", Arrays.asList(Target.CPP)),
-        /**
-         * Directive for specifying .proto files that need to be compiled and their
-         * code included in the sources.
-         */
-        PROTOBUFS("protobufs", Arrays.asList(Target.C, Target.TS, Target.Python)),
-        /**
-         * Directive to specify the number of threads.
-         */
-        THREADS("threads", Arrays.asList(Target.C, Target.CPP, Target.CCpp)),
-        
-        /**
-         * Directive to specify the execution timeout.
-         */
-        TIMEOUT("timeout", Arrays.asList(Target.ALL)),
-
-        /**
-         * Directive to let the runtime produce execution traces.
-         */
-        TRACING("tracing", Arrays.asList(Target.C, Target.CPP));
-        
-        /**
-         * List of targets that support this property. If a property is used for
-         * a target that does not support it, a warning reported during
-         * validation.
-         */
-        public final List<Target> supportedBy;
-        
-        /**
-         * String representation of this target property.
-         */
-        public final String name;
-        
-        /**
-         * Private constructor for target properties.
-         * @param name String representation of this property.
-         * @param supportedBy List of targets that support this property.
-         */
-        private TargetProperties(String name, List<Target> supportedBy) {
-            this.name = name;
-            this.supportedBy = supportedBy;
-        }
-
-        /**
-         * Check whether a given string corresponds with the name of a valid target property.
-         * @param name The name to find a matching target property for.
-         * @return true if a matching property was found, false otherwise.
-         */
-        public final static boolean isValidName(String name) {
-            if (TargetProperties.get(name) != null) {
-                return true;
-            }
-            return false;
-        }
-        
-        /**
-         * Return the target property that corresponds with the given string.
-         * @param name The name to find a matching target property for.
-         * @return a matching target property, null otherwise.
-         */
-        public final static TargetProperties get(String name) {
-            for (TargetProperties p : TargetProperties.values()) {
-                if (p.toString().equalsIgnoreCase(name))
-                    return p;
-            }
-            return null;
-        }
-
-        /**
-         * Print the name of this target property.
-         */
-        @Override
-        public String toString() {
-            return this.name;
-        }
-    }
-    /**
-     * Build types
-     */
-    public enum BuildType {
-        Release, Debug, RelWithDebInfo, MinSizeRel;
-        
-        public static BuildType create(String string) {
-            return (BuildType)Target.create(string, BuildType.values());
-        }
-    }
-    
-    public enum CoordinationType {
-        CENTRALIZED, DECENTRALIZED;
-        
-        public static CoordinationType create(String string) {
-            return (CoordinationType)Target.create(string, CoordinationType.values());
-        }
-        
-        @Override
-        public String toString() {
-            return this.name().toLowerCase();
-        }
-    }
-    
-    private static <T extends Enum<?>> Enum<?> create(final String string, final T[] candidates) {
-        return Arrays.stream(candidates)
-                .filter(e -> e.name().equalsIgnoreCase(string)).findAny()
-                .orElse(null);
-    }
-    /**
-     * The clock synchronization technique that is used.
-     * OFF: The clock synchronization is universally off.
-     * STARTUP: Clock synchronization occurs at startup only.
-     * ON: Clock synchronization occurs at startup and at runtime.
-     */
-    public enum ClockSyncMode {
-        OFF, INITIAL, ON;
-        
-        public static ClockSyncMode create(String string) {
-            return (ClockSyncMode)Target.create(string, ClockSyncMode.values());
-        }
-        
-        @Override
-        public String toString() {
-            return this.name().toLowerCase();
-        }
-
-    }
-    
-    /**
-     * Log levels in descending order of severity.
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
-     */
-    public enum LogLevel {
-        ERROR, WARN, INFO, LOG, DEBUG;
-        
-        public static LogLevel create(String string) {
-            return (LogLevel)Target.create(string, LogLevel.values());
-        }
-        
-        @Override
-        public String toString() {
-            return this.name().toLowerCase();
-        }
-
-    }
-
-    /**
      * Private constructor for targets.
+     * 
      * @param name String representation of this target.
      * @param requires Types Whether this target requires type annotations or not.
      * @param keywords List of reserved strings in the target language.
      */
-    private Target(String name, boolean requiresTypes, List<String> keywords) {
-        this.name = name;
+    private Target(String description, boolean requiresTypes, List<String> keywords) {
+        this.description = description;
         this.requiresTypes = requiresTypes;
         this.keywords = keywords;
     }
-
+    
     /**
      * Check whether a given string corresponds with the name of a valid target.
-     * @param name The name to find a matching target for.
+     * @param name The string for which to determine whether there is a match.
      * @return true if a matching target was found, false otherwise.
      */
-    public final static boolean isValidName(String name) {
-        if (Target.get(name) != null) {
+    public final static boolean hasForName(String name) {
+        if (Target.forName(name) != null) {
             return true;
         }
         return false;
     }
 
     /**
-     * Return the target that corresponds with the given string.
-     * @param name The name to find a matching target for.
-     * @return a matching target, null otherwise.
+     * Return the target that matches the given string.
+     * 
+     * @param name The string to match against.
+     * @return The matching target (or null if there is none).
      */
-    public final static Target get(String name) {
-        for (Target t : Target.values()) {
-            if (t.toString().equalsIgnoreCase(name))
-                return t;
-        }
-        return null;
+    public static Target forName(String name) {
+        return (Target)Target.match(name, Target.values());
     }
 
     /**
-     * Print the name of this target property.
+     * Return the description.
      */
     @Override
     public String toString() {
-        return this.name;
+        return this.description;
+    }
+    
+    /**
+     * Given a string and a list of candidate objects, return the first
+     * candidate that matches, or null if no candidate matches.
+     * 
+     * @param string     The string to match against candidates.
+     * @param candidates The candidates to match the string against.
+     */
+    public static Object match(final String string, final Object[] candidates) {
+        return Arrays.stream(candidates)
+                .filter(e -> (e.toString().equalsIgnoreCase(string)))
+                .findAny().orElse(null);
     }
 }

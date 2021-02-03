@@ -68,7 +68,7 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
-import org.icyphy.Target.CoordinationType
+import org.icyphy.TargetProperty.CoordinationType
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -819,14 +819,15 @@ class ASTUtils {
     
     /**
      * Return a textual representation of the given element, 
-     * without quotes if there are any.
+     * without quotes if there are any. Leading or trailing 
+     * whitespace is removed.
      * 
      * @param e The element to be rendered as a string.
      */
     def static String toText(Element e) {
         var str = ""
         if (e.literal !== null) {
-            str = e.literal.withoutQuotes
+            str = e.literal.withoutQuotes.trim
         }
         if (e.id !== null) {
             str = e.id
@@ -945,6 +946,30 @@ class ASTUtils {
     }
     
     /**
+     * Given the right-hand side of a target property, return a list with all
+     * the strings that the property lists.
+     * 
+     * Arrays are traversed, so strings are collected recursively. Empty strings
+     * are ignored; they are not added to the list.
+     * @param value The right-hand side of a target property.
+     */
+    def static List<String> toListOfStrings(Element value) {
+        val elements = newLinkedList
+        if (value.array !== null) {
+            for (element : value.array.elements) {
+                elements.addAll(element.toListOfStrings)
+            }
+            return elements
+        } else {
+            val v = value.toText
+            if (!v.isEmpty) {
+                elements.add(value.toText)
+            }
+        }
+        return elements
+    }
+    
+    /**
      * Translate the given type into its textual representation, but
      * do not append any array specifications.
      * @param type AST node to render as string.
@@ -1016,7 +1041,7 @@ class ASTUtils {
      */
     def static boolean isInteger(String literal) {
         try {
-            Integer.parseInt(literal)
+            Integer.decode(literal)
         } catch (NumberFormatException e) {
             return false
         }
