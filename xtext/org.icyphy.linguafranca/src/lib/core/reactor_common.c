@@ -986,7 +986,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
     }
 
     if (extra_delay < 0LL) {
-        warning_print("schedule called with a negative extra_delay. Replacing with zero.");
+        warning_print("schedule called with a negative extra_delay %lld. Replacing with zero.", extra_delay);
         extra_delay = 0LL;
     }
 
