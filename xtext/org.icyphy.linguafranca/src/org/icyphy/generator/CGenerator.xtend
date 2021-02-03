@@ -368,7 +368,10 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
+        // Note that net_util.h/c are not used by the infrastructure
+        // unless the program is federated, but they are often useful for user code,
+        // so we include them anyway.
+        var coreFiles = newArrayList("net_util.c", "net_util.h", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
         if (config.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
@@ -379,7 +382,7 @@ class CGenerator extends GeneratorBase {
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
         if (federates.length > 1) {
-            coreFiles.addAll("net_util.c", "net_util.h", "rti.c", "rti.h", "federate.c", "clock-sync.h", "clock-sync.c")
+            coreFiles.addAll("rti.c", "rti.h", "federate.c", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
             createLauncher(coreFiles)
         }
