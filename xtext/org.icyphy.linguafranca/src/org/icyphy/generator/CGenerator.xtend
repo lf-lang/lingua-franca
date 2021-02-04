@@ -758,7 +758,8 @@ class CGenerator extends GeneratorBase {
         if (file.exists) {
             file.delete
         }
-        var compileCommand = '''«this.config.compiler» «config.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
+        // The Docker configuration uses gcc, so config.compiler is ignored here.
+        var compileCommand = '''gcc «config.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
         if (!config.buildCommands.nullOrEmpty) {
             compileCommand = config.buildCommands.join(' ')
         }
