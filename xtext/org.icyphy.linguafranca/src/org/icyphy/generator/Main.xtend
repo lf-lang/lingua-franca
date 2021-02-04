@@ -132,7 +132,7 @@ class Main {
         // Validate the resource
         val issues = validator.validate(resource, CheckMode.ALL,
             CancelIndicator.NullImpl)
-        if (!issues.empty) {
+        if (!issues.empty) { // FIXME: warnings should not prevent code generation.
             System::err.println('Aborting. Unable to validate resource.');
             issues.forEach[System.err.println(it)]
             System::exit(1)

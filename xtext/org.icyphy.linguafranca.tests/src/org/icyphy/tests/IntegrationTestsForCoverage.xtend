@@ -95,7 +95,7 @@ class IntegrationTestsForCoverage {
     /**
      * Ensure that duplicate identifiers for actions reported.
      */
-    //@Test
+    @Test
     def void generateCodeForAllIntegrationTests() {
         val set = resourceSetProvider.get
         for (target : Target.values) {
@@ -112,6 +112,7 @@ class IntegrationTestsForCoverage {
                         true)
                     val issues = validator.validate(resource, CheckMode.ALL,
                         CancelIndicator.NullImpl)
+                    issues.forEach[println(it)]
                     assertTrue(
                         "Ensure that all integration tests yield no errors or warnings.",
                         issues.isEmpty)
@@ -123,7 +124,7 @@ class IntegrationTestsForCoverage {
                         cancelIndicator = CancelIndicator.NullImpl
                         args = properties;
                     ]
-
+                    // By doing this, we also get code coverage in the generator package.
                     generator.generate(resource, fileAccess, context)
 
                 ]
