@@ -783,8 +783,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         fOut.close()
     }
     
-    /** Invoke the C compiler on the generated RTI 
-     * 
+    /** 
+     * Invoke the C compiler on the generated RTI 
      * The C RTI is used across targets. Thus we need to be able to compile 
      * it from GeneratorBase. 
      */
@@ -798,8 +798,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * 
      * This is required here in order to allow any target to compile the RTI.
      * 
-     * @param directory the directory to run the compiler in
-     * @param the source file to compile
+     * @param directory The directory to run the compiler in.
+     * @param file The source file to compile without the .c extension.
      * param doNotLinkIfNoMain If true, the compile command will have a
      *  `-c` flag when there is no main reactor. If false, the compile command
      *  will never have a `-c` flag.
@@ -859,14 +859,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
     
-    /** Return a command to compile the specified C file.
-     * 
+    /**
+     * Return a command to compile the specified C file.
      * This produces a C specific compile command. Since this command is
      * used across targets to build the RTI, it needs to be available in
      * GeneratorBase.
      * 
-     *  @param fileToCompile The C filename without the .c extension.
-     *  @param doNotLinkIfNoMain If true, the compile command will have a
+     * @param fileToCompile The C filename without the .c extension.
+     * @param doNotLinkIfNoMain If true, the compile command will have a
      *  `-c` flag when there is no main reactor. If false, the compile command
      *  will never have a `-c` flag.
      */

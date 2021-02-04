@@ -740,32 +740,13 @@ class PythonGenerator extends CGenerator {
           directory + File.separator + "src-gen" + File.separator + filename
     }
     
-         
-   
     /**
-     * Invoke pip on the generated code.
+     * Do nothing. The Python generator handles compiling differently.
      */
-    override compileCode() {
+    override runCCompiler(String directory, String file, boolean doNotLinkIfNoMain) {
         // Note that this function is deliberately left empty to prevent the CGenerator from
         // compiling this code. The Python generator will create a setup.py and compile generated
         // C code appropriately.
-        
-        // The following is unfinished code to enable federated execution in Python
-        // If there is more than one federate, compile each one.
-        //var fileToCompile = "" // base file name.
-        /*for (federate : federates) {
-            // Empty string means no federates were defined, so we only
-            // compile one file.
-            if (!federate.isSingleton) {
-                fileToCompile = filename + '_' + federate.name
-            }*/
-        //executeCommand(pythonCompileCommand, directory + File.separator + "src-gen")
-        //}
-        // Also compile the RTI files if there is more than one federate.
-        /*if (federates.length > 1) {
-            compileRTI()
-        }*/
-        // TODO: add support for compiling federates
     }
     
     /** 
