@@ -1111,6 +1111,22 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     /**
+     * Creates a ProcessBuilder for a given command and its arguments.
+     * 
+     * This method returns correctly constructed ProcessBuilder object 
+     *according to the Execution environment. Raise an error if the env is null.
+     * 
+     * @param cmd The command to be executed
+     * @param args A list of arguments for the given command
+     * @param env is the type of the Execution Environment.
+     * @return A ProcessBuilder object if the command was found or null otherwise.
+     */
+    protected def createCommand(String cmd, List<String> args) {
+    	val env = findCommandEnv(cmd)
+    	createCommand(cmd, args, env) 
+    }
+    
+    /**
      * Return the target.
      */
     def findTarget(Resource resource) {
