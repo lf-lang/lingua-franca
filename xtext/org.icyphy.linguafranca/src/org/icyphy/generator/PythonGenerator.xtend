@@ -986,8 +986,10 @@ class PythonGenerator extends CGenerator {
                 }
                 else
                 {
-                    // If there are no federates, compile and install the generated code
-                    pythonCompileCode                
+                    if (config.noCompile !== true) {
+                        // If there are no federates, compile and install the generated code
+                        pythonCompileCode
+                    }
                 }
             }
 
