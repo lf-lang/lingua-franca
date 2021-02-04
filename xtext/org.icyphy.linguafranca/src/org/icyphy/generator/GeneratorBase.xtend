@@ -327,6 +327,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     
     /**
      * Defines the execution environment that is used to execute binaries.
+     * 
+     * A given command may be directly executable on the host (NATIVE) 
+     * or it may need to be executed within a bash shell (BASH). 
+     * On Unix-like machines, this is typically determined by the PATH variable
+     * which could be different in these two environments.
      */
     enum ExecutionEnvironment {
         NATIVE,
@@ -835,7 +840,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 1) {
                 val buildCommand = createCommand(tokens.head,
-                    tokens.tail.toList, findCommandEnv(tokens.head))
+                    tokens.tail.toList)
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
                 if (buildCommand === null) { 
@@ -1037,13 +1042,22 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         return createCommand(cmd, #[], findCommandEnv(cmd))
     }
     
-    /**
-     * Tries to find the command.
-     * 
+    /** 
      * It tries to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
      * If that fails, it tries again with bash. 
      * In case this fails again, raise an error.
      * 
+     * Return ExecutionEnvironment.NATIVE 
+     * if the specified command is directly executable on the current host
+     * Returns ExecutionEnvironment.BASH 
+     * if the command must be executed within a bash shell.
+     * 
+     * The latter occurs, for example, if the specified command 
+     * is not in the native path but is in the path
+     * specified by the user's bash configuration file.
+     * If the specified command is not found in either the native environment 
+     * nor the bash environment,
+     * then this reports and error and returns null.
      * 
      * @param cmd The command to be find.
      * @return Returns an ExecutionEnvironment.
@@ -1114,16 +1128,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Creates a ProcessBuilder for a given command and its arguments.
      * 
      * This method returns correctly constructed ProcessBuilder object 
-     *according to the Execution environment. Raise an error if the env is null.
+     *according to the Execution environment. It finds the execution environment using findCommandEnv(). 
+     * Raise an error if the env is null.
      * 
      * @param cmd The command to be executed
      * @param args A list of arguments for the given command
-     * @param env is the type of the Execution Environment.
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
     protected def createCommand(String cmd, List<String> args) {
     	val env = findCommandEnv(cmd)
-    	createCommand(cmd, args, env) 
+    	return createCommand(cmd, args, env) 
     }
     
     /**

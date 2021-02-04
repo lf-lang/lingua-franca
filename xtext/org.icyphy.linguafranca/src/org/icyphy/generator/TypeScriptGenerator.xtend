@@ -238,7 +238,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Install npm modules only if the default package.json was copied over.
         
         if (runNpmInstall) {
-            val npmInstall = createCommand("npm", #["install"], findCommandEnv("npm"))
+            val npmInstall = createCommand("npm", #["install"])
             if (npmInstall === null || npmInstall.executeCommand() !== 0) {
                 reportError(resource.findTarget, "ERROR: npm install command failed."
                     + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
@@ -264,7 +264,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--js_out=import_style=commonjs,binary:" + outPath,
                 "--ts_out=" + srcGenPath)
             protocArgs.addAll(config.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
-            val protoc = createCommand("protoc", protocArgs, findCommandEnv("protoc"))
+            val protoc = createCommand("protoc", protocArgs)
                 
             if (protoc === null) {
                 return
@@ -311,7 +311,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 val babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
                 // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
                 println("Compiling")
-                val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], findCommandEnv(babelPath))
+                val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"])
                 if (babel !== null) {
                     babel.directory(new File(projectPath))
                     if (babel.executeCommand() == 0) {
