@@ -1813,15 +1813,19 @@ void termination() {
         warning_print("Number of unfreed tokens: %d.", __count_token_allocations);
     }
     // Print elapsed times.
-    char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
-    readable_time(time_buffer, get_elapsed_logical_time());
-    info_print("---- Elapsed logical time (in nsec): %s", time_buffer);
+    // If these are negative, then the program failed to start up.
+    interval_t elapsed_time = get_elapsed_logical_time();
+    if (elapsed_time >= 0LL) {
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        readable_time(time_buffer, elapsed_time);
+        info_print("---- Elapsed logical time (in nsec): %s", time_buffer);
 
-    // If physical_start_time is 0, then execution didn't get far enough along
-    // to initialize this.
-    if (physical_start_time > 0LL) {
-        readable_time(time_buffer, get_elapsed_physical_time());
-        info_print("---- Elapsed physical time (in nsec): %s", time_buffer);
+        // If physical_start_time is 0, then execution didn't get far enough along
+        // to initialize this.
+        if (physical_start_time > 0LL) {
+            readable_time(time_buffer, get_elapsed_physical_time());
+            info_print("---- Elapsed physical time (in nsec): %s", time_buffer);
+        }
     }
 }
 
