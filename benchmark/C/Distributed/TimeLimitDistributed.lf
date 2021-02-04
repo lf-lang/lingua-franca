@@ -7,7 +7,7 @@
 // for over 32 million reactions per second.
 // This translates to 31 nanoseconds per reaction invocation.
 target C {
-    flags: "-O2 -Wall",
+    flags: ["-O2", "-Wall"],
     coordination: centralized,
     timeout: 10 secs
 };

@@ -10,7 +10,7 @@
  * 
  * 2- Follow the instruction in 
  *    https://index.ros.org/doc/ros2/Tutorials/Writing-A-Simple-Cpp-Publisher-And-Subscriber/
- *    **section 1** to create a 'timelimitros' package in the current (example/Distributed) folder.
+ *    **section 1** to create a 'timelimit-ros' package in the current (example/Distributed) folder.
  * 
  * 3- Follow section 2.2 and 2.3 to modify the CMakeLists.txt and package.xml.
  * 
@@ -24,23 +24,23 @@
  * 
  * and rename the source in 'add_executable' to reflect
  * 
- *   add_executable(TimeLimitROS src/timelimitros.cpp)
+ *   add_executable(timelimit-ros src/timelimit-ros.cpp)
  * 
  * 5- Use lfc (in bin/) to compile the provided .lf file
  *    
- *       lfc timelimitros.lf
+ *       lfc timelimit-ros.lf
  * 
  * 6- Run the provided build-ROS-node.sh:
  * 
- *       ./build-ROS-node.sh timelimitros timelimitros
+ *       ./build-ROS-node.sh timelimit-ros timelimit-ros
  * 
- * This will create a 'timelimitros' node in the package timelimitros (these names can be changed in 
+ * This will create a 'timelimit-ros' node in the package timelimit-ros (these names can be changed in 
  * CMakeLists.txt and in the argument to build-ROS-node.sh).
  * 
  * 7- Source the appropriate setup.bash and run the node:
  * 
- *       source timelimitros/install/setup.bash
- *       ros2 run timelimitros timelimitros
+ *       source timelimit-ros/install/setup.bash
+ *       ros2 run timelimit-ros timelimit-ros
  * 
  */
 
@@ -159,7 +159,7 @@ reactor Destination(period:time(1 sec)) {
         rclcpp::shutdown();
     =}
 }
-main reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
+main reactor TimeLimitROS(period:time(1 usec)) {
     c = new Clock(period = period);
     d = new Destination(period = period);
 }
