@@ -8,10 +8,48 @@ dependencies {
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:${xtextVersion}"
 	testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
 }
+
+// jacoco {
+//      toolVersion = "0.8.6"
+// 		reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
+// }
+
+// jacocoTestReport {
+// 	dependsOn test // tests are required to run before generating the report
+//     reports {
+//         xml.enabled false
+//         csv.enabled false
+//         html.destination "${buildDir}/reports/jacoco"
+//     }
+// }
+
+apply plugin: 'java'
+apply plugin: 'jacoco'
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled true
+        html.destination file("${buildDir}/reports/html/jacoco")
+        xml.destination file("${buildDir}/reports/xml/jacoco")
+        csv.destination file("${buildDir}/reports/csv/jacoco")
+    }
+
+    def mainCls = fileTree(dir: "$project.buildDir/../../org.icyphy.linguafranca/build/classes/java/main")
+    def mainSrc =  "$project.buildDir/../../org.icyphy.linguafranca/xtend-gen"
+    def javaSrc = "$project.buildDir/../../org.icyphy.linguafranca/src"
+    //Example: kotlin compiled classes
+    //def kotlinTree = fileTree(dir: "$project.buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
+    //...etc...
+    classDirectories.from = files(mainCls)//[javaTree, kotlinTree])
+    sourceDirectories.from = files([mainSrc, javaSrc]) // FIXME: does not seem to work.
+}
+
 test {
     testLogging {
         events "passed", "skipped", "failed"
-        //showStandardStreams = true
+        showStandardStreams = true
     }
 	useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }
