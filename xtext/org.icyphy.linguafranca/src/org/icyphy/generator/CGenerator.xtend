@@ -379,8 +379,7 @@ class CGenerator extends GeneratorBase {
         }
         
         // If there are federates, copy the required files for that.
-        // Also, create two RTI C files, one that launches the federates
-        // and one that does not.
+        // Also, create the RTI C file and the launcher script.
         if (federates.length > 1) {
             coreFiles.addAll("rti.c", "rti.h", "federate.c", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
@@ -716,7 +715,7 @@ class CGenerator extends GeneratorBase {
             writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
             
             // Create docker file.
-            writeDockerFile()
+            writeDockerFile(filename)
         }
         // Restore the base filename.
         filename = baseFilename
@@ -743,8 +742,9 @@ class CGenerator extends GeneratorBase {
      * The file will go into src-gen/filename.Dockerfile.
      * If there is no main reactor, then no Dockerfile will be generated
      * (it wouldn't be very useful).
+     * @param The root filename (without any extension).
      */
-    def writeDockerFile() {
+    def writeDockerFile(String filename) {
         if (this.mainDef === null) {
             return
         }
@@ -767,14 +767,8 @@ class CGenerator extends GeneratorBase {
             additionalFiles = '''COPY "«config.fileNames.join('" "')»" "src-gen/"'''
         }
         pr(contents, '''
-            # Generated docker file for «filename».lf.
-            # From the same directory as «filename».lf, «directory»,
-            # build the docker image with:
-            #    docker build -t «filename.toLowerCase» -f src-gen/«filename».Dockerfile .
-            # Run with:
-            #    docker run -t --rm «filename.toLowerCase»
-            # -t creates a pseudo terminal for output
-            # --rm removes the container/app after running. Otherwise, it will persist.
+            # Generated docker file for «filename».lf in «directory».
+            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
             FROM «config.docker.from»
             WORKDIR /lingua-franca
             COPY src-gen/core src-gen/core
@@ -786,7 +780,8 @@ class CGenerator extends GeneratorBase {
                 «compileCommand» && \
                 apk del gcc musl-dev && \
                 rm -rf src-gen
-            CMD ["./bin/«filename»"]
+            # Use ENTRYPOINT not CMD so that command-line arguments go through
+            ENTRYPOINT ["./bin/«filename»"]
         ''')
         writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
         println("Dockerfile written to " + dockerFile)
@@ -1027,7 +1022,10 @@ class CGenerator extends GeneratorBase {
         // federates.
         // FIXME: No support below for some federates to be FAST and some REALTIME.
         pr(rtiCode, '''
-            process_args(argc, argv);
+            if (!process_args(argc, argv)) {
+                // Processing command-line arguments failed.
+                return -1;
+            }
             printf("Starting RTI for %d federates in federation ID %s\n", NUMBER_OF_FEDERATES, federation_id);
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
@@ -1121,6 +1119,9 @@ class CGenerator extends GeneratorBase {
                 new File(srcGenPath + File.separator + cFilename));
         fOut.write(rtiCode.toString().getBytes())
         fOut.close()
+        
+        // Write a Dockerfile for the RTI.
+        writeDockerFile(filename + '_RTI')
     }
     
     /** Create the launcher shell scripts. This will create one or two file
