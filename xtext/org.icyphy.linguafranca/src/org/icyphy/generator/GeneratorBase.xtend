@@ -101,11 +101,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     ////////////////////////////////////////////
     //// Public fields.
 
-    // Map from time units to an expression that can convert a number in
-    // the specified time unit into nanoseconds. This expression may need
-    // to have a suffix like 'LL' or 'L' appended to it, depending on the
-    // target language, to ensure that the result is a 64-bit long.            
-    public static var timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+    /**
+     * Map from time units to an expression that can convert a number in
+     * the specified time unit into nanoseconds. This expression may need
+     * to have a suffix like 'LL' or 'L' appended to it, depending on the
+     * target language, to ensure that the result is a 64-bit long.
+     */
+    public static val timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
         TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
         TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
         TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
@@ -116,7 +118,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
     
-    public static var GEN_DELAY_CLASS_NAME = "__GenDelay"
+    /**
+     * Constant that specifies how to name generated delay reactors.
+     */
+    public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
         
     ////////////////////////////////////////////
     //// Protected fields.
