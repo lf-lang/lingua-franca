@@ -34,15 +34,17 @@ jacocoTestReport {
         xml.destination file("${buildDir}/reports/xml/jacoco")
         csv.destination file("${buildDir}/reports/csv/jacoco")
     }
-
+    //def fileFilter = ['*/org/icyphy/services/**/*', '*/org/icyphy/serializer/**/*', '*/org/icyphy/linguaFranca/**/*']
+    //def fileFilter = []
     def mainCls = fileTree(dir: "$project.buildDir/../../org.icyphy.linguafranca/build/classes/java/main")
+    
     def mainSrc =  "$project.buildDir/../../org.icyphy.linguafranca/xtend-gen"
     def javaSrc = "$project.buildDir/../../org.icyphy.linguafranca/src"
     //Example: kotlin compiled classes
     //def kotlinTree = fileTree(dir: "$project.buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
     //...etc...
     classDirectories.from = files(mainCls)//[javaTree, kotlinTree])
-    sourceDirectories.from = files([mainSrc, javaSrc]) // FIXME: does not seem to work.
+    sourceDirectories.from = files([mainSrc, javaSrc])
 }
 
 test {
