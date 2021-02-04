@@ -1191,7 +1191,11 @@ void connect_to_federates(int socket_descriptor) {
         uint32_t client_length = sizeof(client_fd);
         int socket_id = accept(socket_descriptor_TCP, &client_fd, &client_length);
         if (socket_id < 0) {
-            error_print_and_exit("RTI failed to accept the socket. %s.", strerror(errno));
+            // When running within Docker, at least, accept() seems to timeout every couple of seconds.
+            // We used to exit here. Now, we just issue a warning and continue waiting.
+            warning_print("RTI failed to accept the socket. %s.", strerror(errno));
+            i--;
+            continue;
         }
 
         // The first message from the federate should contain its ID and the federation ID.
