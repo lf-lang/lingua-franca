@@ -57,7 +57,7 @@ import static org.junit.Assert.assertTrue
  * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class IntegrationTestsForCoverage {
+class LinguaFrancaCoverageTest {
     @Inject extension ParseHelper<Model>
     
     @Inject Provider<ResourceSet> resourceSetProvider
@@ -125,7 +125,7 @@ class IntegrationTestsForCoverage {
                         args = properties;
                     ]
                     // By doing this, we also get code coverage in the generator package.
-                    generator.generate(resource, fileAccess, context)
+                    //generator.generate(resource, fileAccess, context)
 
                 ]
             }
