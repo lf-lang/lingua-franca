@@ -4,7 +4,7 @@
 // Correct output for this 1, 2, 3, 4.
 // Failure for this test is failing to halt or getting the wrong data.
 target C {
-    flags: "-O2 -Wall",
+    flags: ["-O2", "-Wall"],
     coordination: decentralized,
     timeout: 10 secs
 };
@@ -36,7 +36,7 @@ reactor Destination {
         info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-federated reactor TimeLimitDistributedPhysical(period:time(1 nsec)) {
+federated reactor TimeLimitDistributedPhysical(period:time(1 usec)) {
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y ~> d.x;
