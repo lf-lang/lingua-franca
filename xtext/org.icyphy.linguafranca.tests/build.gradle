@@ -36,7 +36,7 @@ jacocoTestReport {
     }
     //def fileFilter = ['*/org/icyphy/services/**/*', '*/org/icyphy/serializer/**/*', '*/org/icyphy/linguaFranca/**/*']
     //def fileFilter = []
-    def mainCls = fileTree(dir: "$project.buildDir/../../org.icyphy.linguafranca/build/classes/java/main")
+    def mainCls = fileTree(dir: "$project.buildDir/../../org.icyphy.linguafranca/build/classes/java/main")//, excludes: fileFilter)
     
     def mainSrc =  "$project.buildDir/../../org.icyphy.linguafranca/xtend-gen"
     def javaSrc = "$project.buildDir/../../org.icyphy.linguafranca/src"

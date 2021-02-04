@@ -125,7 +125,7 @@ class LinguaFrancaCoverageTest {
                         args = properties;
                     ]
                     // By doing this, we also get code coverage in the generator package.
-                    //generator.generate(resource, fileAccess, context)
+                    generator.generate(resource, fileAccess, context)
 
                 ]
             }
