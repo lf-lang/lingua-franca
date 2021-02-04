@@ -7,13 +7,13 @@ import launch_ros.actions
 def generate_launch_description():
     return launch.LaunchDescription([
         launch_ros.actions.Node(
-            package='TimeLimitROSNative',
-            executable='TimeLimitROSNative-Dest',
+            package='timelimitros-native',
+            executable='timelimitros-native-dest',
             output='screen'
         ),
         launch_ros.actions.Node(
-            package='TimeLimitROSNative',
-            executable='TimeLimitROSNative-Clock',
+            package='timelimitros-native',
+            executable='timelimitros-native-clock',
             output='screen'
         )
     ])

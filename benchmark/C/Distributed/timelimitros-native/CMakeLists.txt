@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(TimeLimitROSNative)
+project(timelimitros-native)
 
 # Default to C++20
 if(NOT CMAKE_CXX_STANDARD)
@@ -15,15 +15,15 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 
-add_executable(TimeLimitROSNative-Clock src/TimeLimitROSNative-Clock.cpp)
-ament_target_dependencies(TimeLimitROSNative-Clock rclcpp std_msgs)
+add_executable(timelimitros-native-clock src/timelimitros-native-clock.cpp)
+ament_target_dependencies(timelimitros-native-clock rclcpp std_msgs)
 
-add_executable(TimeLimitROSNative-Dest src/TimeLimitROSNative-Dest.cpp)
-ament_target_dependencies(TimeLimitROSNative-Dest rclcpp std_msgs)
+add_executable(timelimitros-native-dest src/timelimitros-native-dest.cpp)
+ament_target_dependencies(timelimitros-native-dest rclcpp std_msgs)
 
 install(TARGETS
-   TimeLimitROSNative-Clock
-   TimeLimitROSNative-Dest
+   timelimitros-native-clock
+   timelimitros-native-dest
    DESTINATION lib/${PROJECT_NAME})
 
 # Install launch files.
