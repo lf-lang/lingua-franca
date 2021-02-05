@@ -713,13 +713,14 @@ class CGenerator extends GeneratorBase {
                     pr("void __termination() {stop_trace();}");
                 }
             }
-            writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
+            val targetFile = srcGenPath + File.separator + cFilename
+            writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (!config.noCompile && config.buildCommands.nullOrEmpty) {
                 runCCompiler(directory, filename, true)
-                writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), filename + ".c")
+                writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
             }
         }
         // Restore the base filename.
