@@ -97,24 +97,34 @@ import static extension org.icyphy.Configuration.*
  */
 abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
-    // //////////////////////////////////////////
-    // // Public fields.
-    // Map from time units to an expression that can convert a number in
-    // the specified time unit into nanoseconds. This expression may need
-    // to have a suffix like 'LL' or 'L' appended to it, depending on the
-    // target language, to ensure that the result is a 64-bit long.            
-    public static var timeUnitsToNs = #{TimeUnit.NSEC -> 1L, TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L,
-        TimeUnit.USECS -> 1000L, TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L, TimeUnit.SEC -> 1000000000L,
-        TimeUnit.SECS -> 1000000000L, TimeUnit.SECOND -> 1000000000L, TimeUnit.SECONDS -> 1000000000L,
-        TimeUnit.MIN -> 60000000000L, TimeUnit.MINS -> 60000000000L, TimeUnit.MINUTE -> 60000000000L,
-        TimeUnit.MINUTES -> 60000000000L, TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
-        TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L, TimeUnit.WEEK -> 604800000000000L,
-        TimeUnit.WEEKS -> 604800000000000L}
+    ////////////////////////////////////////////
+    //// Public fields.
 
-    public static var GEN_DELAY_CLASS_NAME = "__GenDelay"
-
-    // //////////////////////////////////////////
-    // // Protected fields.
+    /**
+     * Map from time units to an expression that can convert a number in
+     * the specified time unit into nanoseconds. This expression may need
+     * to have a suffix like 'LL' or 'L' appended to it, depending on the
+     * target language, to ensure that the result is a 64-bit long.
+     */
+    public static val timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+        TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
+        TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
+        TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
+        TimeUnit.SECOND -> 1000000000L, TimeUnit.SECONDS -> 1000000000L,
+        TimeUnit.MIN -> 60000000000L, TimeUnit.MINS -> 60000000000L,
+        TimeUnit.MINUTE -> 60000000000L, TimeUnit.MINUTES -> 60000000000L,
+        TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
+        TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
+        TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
+    
+    /**
+     * Constant that specifies how to name generated delay reactors.
+     */
+    public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
+        
+    ////////////////////////////////////////////
+    //// Protected fields.
+        
     /**
      * All code goes into this string buffer.
      */
@@ -762,8 +772,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         fOut.close()
     }
 
-    /** Invoke the C compiler on the generated RTI 
-     * 
+    /** 
+     * Invoke the C compiler on the generated RTI 
      * The C RTI is used across targets. Thus we need to be able to compile 
      * it from GeneratorBase. 
      */
@@ -777,8 +787,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * 
      * This is required here in order to allow any target to compile the RTI.
      * 
-     * @param directory the directory to run the compiler in
-     * @param the source file to compile
+     * @param directory The directory to run the compiler in.
+     * @param file The source file to compile without the .c extension.
      * param doNotLinkIfNoMain If true, the compile command will have a
      *  `-c` flag when there is no main reactor. If false, the compile command
      *  will never have a `-c` flag.
@@ -836,15 +846,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
         }
     }
-
-    /** Return a command to compile the specified C file.
-     * 
+    
+    /**
+     * Return a command to compile the specified C file.
      * This produces a C specific compile command. Since this command is
      * used across targets to build the RTI, it needs to be available in
      * GeneratorBase.
      * 
-     *  @param fileToCompile The C filename without the .c extension.
-     *  @param doNotLinkIfNoMain If true, the compile command will have a
+     * @param fileToCompile The C filename without the .c extension.
+     * @param doNotLinkIfNoMain If true, the compile command will have a
      *  `-c` flag when there is no main reactor. If false, the compile command
      *  will never have a `-c` flag.
      */

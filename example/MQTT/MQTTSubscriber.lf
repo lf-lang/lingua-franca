@@ -65,7 +65,7 @@ reactor MQTTSubscriber (
 ) {
     preamble {=
         #include "MQTTClient.h"
-        #include "util.h"
+        #include "core/net_util.h"
         #include <pthread.h>
         
         #define QOS         2
@@ -95,10 +95,8 @@ reactor MQTTSubscriber (
                         
             // Extract the timestamp and calculate delay from current_time to that timestamp.
             // Note that if this subscriber's current time is ahead of current time
-            // at the publisher (something that should not happen even in a distributed
-            // implementation), then this extra delay may be negative. If it becomes
-            // less than -offset, then the schedule_copy() function will complain
-            // by printing a warning to stderr and revise the timestamp to current time.
+            // at the publisher (something that can easily happen in a distributed execution),
+            // then this extra delay may be negative and a warning will be issued.
             // First acquire the mutex lock. Otherwise, logical time could have a big
             // jump between this calculation and the call to schedule, resulting in a long delay.
             
@@ -227,7 +225,7 @@ reactor MQTTSubscriber (
         // assuming that the sender sent the message at a physical time matching its
         // logical timestamp.
         interval_t latency = get_logical_time() - *timestamp;
-        // printf("DEBUG: MQTTSubscriber.reaction: Received timestamp is larger than sent timestamp by: %lld.\n", latency);
+        LOG_PRINT("MQTTSubscriber.reaction: Received timestamp is larger than sent timestamp by: %lld.", latency);
         
         // If a physical timestamp was sent, use that to collect
         // latency stats instead of the logical time increment.

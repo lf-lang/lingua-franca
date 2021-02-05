@@ -1,0 +1,46 @@
+/**
+ * This program illustrates the strangeness of the way microsteps are currently handled
+ * (at least as of February, 2021) when scheduling in the future. The two outputs of the
+ * Source reactor s are never simultaneous.  At the Destination reactor d1, they are also
+ * never simultaneous, but at d2, they are always simultaneous.
+ * 
+ * @author Edward A. Lee
+ */
+target C;
+reactor Source {
+    output out1:int;
+    output out2:int;
+    logical action redo;
+    state count:int(0);
+    reaction(startup, redo) -> out1, out2, redo {=
+        if (self->count++ < 10) {
+            if (self->count % 2 == 1) {
+               SET (out2, self->count);
+            } else {
+               SET(out1, self->count);
+            }
+            schedule(redo, 0);
+        }
+    =}
+}
+reactor Destination {
+    input in1:int;
+    input in2:int;
+    reaction (in1, in2) {=
+        if (in1->is_present) {
+            printf("in1 received %d at microstep %d\n", in1->value, get_microstep());
+        }
+        if (in2->is_present) {
+            printf("in2 received %d at microstep %d\n", in2->value, get_microstep());
+        }
+    =}
+}
+main reactor Anomaly {
+    s = new Source();
+    d1 = new Destination();
+    d2 = new Destination();
+    s.out1 -> d1.in1;
+    s.out2 -> d1.in2;
+    s.out1 -> d2.in1 after 10 msec;
+    s.out2 -> d2.in2 after 10 msec;
+}

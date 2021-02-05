@@ -368,7 +368,10 @@ class CGenerator extends GeneratorBase {
 
         // Copy the required core library files into the target file system.
         // This will overwrite previous versions.
-        var coreFiles = newArrayList("reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
+        // Note that net_util.h/c are not used by the infrastructure
+        // unless the program is federated, but they are often useful for user code,
+        // so we include them anyway.
+        var coreFiles = newArrayList("net_util.c", "net_util.h", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
         if (config.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
@@ -379,7 +382,7 @@ class CGenerator extends GeneratorBase {
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
         if (federates.length > 1) {
-            coreFiles.addAll("net_util.c", "net_util.h", "rti.c", "rti.h", "federate.c", "clock-sync.h", "clock-sync.c")
+            coreFiles.addAll("rti.c", "rti.h", "federate.c", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
             createLauncher(coreFiles)
         }
@@ -710,25 +713,30 @@ class CGenerator extends GeneratorBase {
                     pr("void __termination() {stop_trace();}");
                 }
             }
-            writeSourceCodeToFile(getCode().getBytes(), srcGenPath + File.separator + cFilename)
+            val targetFile = srcGenPath + File.separator + cFilename
+            writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
+            // If this code generator is directly compiling the code, compile it now so that we
+            // clean it up after, removing the #line directives after errors have been reported.
+            if (!config.noCompile && config.buildCommands.nullOrEmpty) {
+                runCCompiler(directory, filename, true)
+                writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
+            }
         }
         // Restore the base filename.
         filename = baseFilename
         
+        // If a build directive has been given, invoke it now.
+        // Note that the code does not get cleaned in this case.
         if (!config.noCompile) {
             if (!config.buildCommands.nullOrEmpty) {
                 runBuildCommand()
-            } else {
-                compileCode()
+            } else if (federates.length > 1) {
+                // Compile the RTI files if there is more than one federate.
+                compileRTI()
             }
-        } else {
-            println("Exiting before invoking target compiler.")
         }
-        
-        // FIXME: does not work with source files generated for federated execution        
-        // writeCleanCode(filename)
-        
+                
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
     }
@@ -868,39 +876,6 @@ class CGenerator extends GeneratorBase {
                             
             for (remoteFederate : federate.outboundP2PConnections) {
                 pr('''connect_to_federate(«remoteFederate.id»);''')
-            }
-        }
-    }
-    
-    /** Invoke the compiler on the generated code. */
-    protected def compileCode() {
-        // If there is more than one federate, compile each one.
-        var fileToCompile = filename // base file name.
-        for (federate : federates) {
-            // Empty string means no federates were defined, so we only
-            // compile one file.
-            if (!federate.isSingleton) {
-                fileToCompile = filename + '_' + federate.name
-            }
-            runCCompiler(directory, fileToCompile, true)
-        }
-        // Also compile the RTI files if there is more than one federate.
-        if (federates.length > 1) {
-            compileRTI()
-        }
-    }
-    
-    /**
-     * Overwrite the generated code after compile with a
-     * sanitized version with enhanced readability.
-     */
-    protected def writeCleanCode(String baseFilename) {
-        if (federates.length == 1) {
-            writeSourceCodeToFile(this.getCode.removeLineDirectives.getBytes(), filename + ".c")
-        } else {
-            for (federate : federates) {
-                // FIXME retrieve the code for each federate and sanatize it.
-                // It is unclear where this code is stored (if at all).
             }
         }
     }
