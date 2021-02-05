@@ -675,6 +675,11 @@ int __next() {
         next_tag = stop_tag;
     }
 
+    // If the event queue has changed, return to iterate.
+    if ((event_t*)pqueue_peek(event_q) != event) {
+        return 1;
+    }
+
     // At this point, finally, we have an event to process.
     // Advance current time to match that of the first event on the queue.
     _lf_advance_logical_time(next_tag.time);
