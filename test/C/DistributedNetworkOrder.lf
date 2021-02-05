@@ -15,11 +15,11 @@ reactor Sender {
     reaction(t) {=
         int payload = 1;
         if (get_elapsed_logical_time() == 0LL) {
-            send_timed_message(MSEC(10), _lf_rti_socket_TCP, TIMED_MESSAGE, 0, 1, sizeof(int), 
+            send_timed_message(MSEC(10), _lf_rti_socket_TCP, TIMED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
                                 (unsigned char*)&payload);
         } else if (get_elapsed_logical_time() == MSEC(5)) {
             payload = 2;
-            send_timed_message(MSEC(5), _lf_rti_socket_TCP, TIMED_MESSAGE, 0, 1, sizeof(int), 
+            send_timed_message(MSEC(5), _lf_rti_socket_TCP, TIMED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
                                 (unsigned char*)&payload);
         }
     =}

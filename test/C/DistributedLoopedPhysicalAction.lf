@@ -9,7 +9,7 @@ target C {
     timeout: 1 sec
 };
 
-reactor Sender(take_a_break_after:int(10), break_interval:time(400 msec)) {
+reactor Sender(take_a_break_after:int(10), break_interval:time(550 msec)) {
     output out:int;
     physical action act;
     state sent_messages:int(0);
@@ -27,7 +27,7 @@ reactor Sender(take_a_break_after:int(10), break_interval:time(400 msec)) {
     =}
 }
 
-reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
+reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
     input in:int;
     state received_messages:int(0);
     state total_received_messages:int(0);
@@ -60,7 +60,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     =}
     
     reaction(shutdown) {=
-        if (self->breaks != 3 ||
+        if (self->breaks != 2 ||
             (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
         ) {
             fprintf(stderr,"ERROR: test failed. Breaks: %d, Messages: %d.\n", self->breaks, self->total_received_messages);
