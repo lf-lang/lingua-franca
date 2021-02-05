@@ -1457,6 +1457,20 @@ bool __fed_has_upstream = false;
  */
 bool __fed_has_downstream = false;
 
+/**
+ * In some situations, federates can send logical_tag_complete for
+ * the same tag twice or more in-a-row to the RTI. For example, when 
+ * __next() returns without advancing tag. To prevent overwhelming 
+ * the RTI with extra messages, record the last sent logical tag 
+ * complete message and check against it in 
+ * _lf_logical_tag_complete().
+ * 
+ * @note Here, the underlying assumption is that the TCP stack will
+ *  deliver the Logical TAG Complete message to the RTI eventually
+ *  if it is deliverable
+ */
+tag_t last_sent_logical_tag_complete = (tag_t) {.time = NEVER, .microstep = 0u};
+
 /** 
  * Send a logical tag complete (LTC) message to the RTI.
  * This function assumes the caller holds the mutex lock.
@@ -1465,22 +1479,41 @@ bool __fed_has_downstream = false;
  * @param microstep The microstep of the tag
  */
 void _lf_logical_tag_complete(instant_t time, microstep_t microstep) {
+    tag_t tag_to_send = (tag_t){.time=time, .microstep=microstep};
+    int compare_with_last_tag = compare_tags(last_sent_logical_tag_complete, tag_to_send);
+    if (compare_with_last_tag == 0) {
+        // Sending this tag more than once can happen if __next() returns without
+        // adding an event to the event queue (and thus not advancing tag).
+        DEBUG_PRINT("Was trying to send logical tag complete (%lld, %u) twice to the RTI.", 
+                           last_sent_logical_tag_complete.time - start_time,
+                           last_sent_logical_tag_complete.microstep);
+        return;
+    } else if (compare_with_last_tag > 0) {
+        // This is a critical error. The federate is trying to inform the RTI of
+        // the completion of a tag when it has already reported a larger tag as completed.
+        error_print_and_exit("Was trying to send logical tag complete (%lld, %u) out of order to the RTI.", 
+                    last_sent_logical_tag_complete.time - start_time,
+                    last_sent_logical_tag_complete.microstep);
+        return;
+    }
     LOG_PRINT("Handling the completion of logical tag (%lld, %u).", time - start_time, microstep);
     send_tag(LOGICAL_TAG_COMPLETE, time, microstep);
+    last_sent_logical_tag_complete = tag_to_send;
 }
 
-/** If this federate depends on upstream federates or sends data to downstream
- *  federates, then notify the RTI of the next event on the event queue.
- *  If there are upstream federates, then this will block until either the
- *  RTI grants the advance to the requested time or the wait for the response
- *  from the RTI is interrupted by a change in the event queue (e.g., a
- *  physical action triggered).  This returns either the specified time or
- *  a lesser time when it is safe to advance logical time to the returned time.
- *  The returned time may be less than the specified time if there are upstream
- *  federates and either the RTI responds with a lesser time or
- *  the wait for a response from the RTI is interrupted by a
- *  change in the event queue.
- *  This function assumes the caller holds the mutex lock.
+/** 
+ * If this federate depends on upstream federates or sends data to downstream
+ * federates, then notify the RTI of the next event on the event queue.
+ * If there are upstream federates, then this will block until either the
+ * RTI grants the advance to the requested time or the wait for the response
+ * from the RTI is interrupted by a change in the event queue (e.g., a
+ * physical action triggered).  This returns either the specified time or
+ * a lesser time when it is safe to advance logical time to the returned time.
+ * The returned time may be less than the specified time if there are upstream
+ * federates and either the RTI responds with a lesser time or
+ * the wait for a response from the RTI is interrupted by a
+ * change in the event queue.
+ * This function assumes the caller holds the mutex lock.
  */
 tag_t __next_event_tag(instant_t time, microstep_t microstep) {
     if (!__fed_has_downstream && !__fed_has_upstream) {
@@ -1513,7 +1546,7 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
 
     // If time advance has already been granted for this tag or a larger
     // tag, then return immediately.
-    if (compare_tags(convert_volatile_tag_to_nonvolatile(__tag), (tag_t){.time=time, .microstep=microstep}) > 0) {
+    if (compare_tags(convert_volatile_tag_to_nonvolatile(__tag), (tag_t){.time=time, .microstep=microstep}) >= 0) {
         return (tag_t){.time = time, .microstep = microstep};
     }
 

@@ -182,8 +182,6 @@ ushort setup_clock_synchronization_with_rti() {
         error_print("Failed to set SO_SNDTIMEO option on the socket: %s.", strerror(errno));
     }
 #else // No runtime clock synchronization. Send port -1 or 0 instead.
-    unsigned char UDP_port_number[1 + sizeof(ushort)];
-    UDP_port_number[0] = UDP_PORT;
 #ifdef _LF_CLOCK_SYNC_INITIAL
     port_to_return = 0u;
 #endif

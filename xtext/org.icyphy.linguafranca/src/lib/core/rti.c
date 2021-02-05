@@ -427,6 +427,22 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
 
     tag_t candidate_tag_advance = fed->next_event;
 
+    // Check if the candidate tag is smaller than an already granted tag
+    // to this federate. Occurrence of this warning might indicate that
+    // the federate in question has fallen behind in processing events received
+    // from upstream federates.
+    if (compare_tags(candidate_tag_advance, fed->last_granted) < 0) {
+        DEBUG_PRINT("RTI was trying to send a TAG (%lld, %u) " 
+                        "to federate %d that was earlier than the "
+                        "previously granted tag (%lld, %u).",
+                        candidate_tag_advance.time - start_time,
+                        candidate_tag_advance.microstep,
+                        fed->id,
+                        fed->last_granted.time - start_time,
+                        fed->last_granted.microstep);
+        return false;
+    }
+
     // Look at its upstream federates (including this one).
     for (int j = 0; j < fed->num_upstream; j++) {
         // First, find the minimum completed time or time of the
@@ -500,6 +516,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
                 fed->completed.microstep);
         DEBUG_PRINT("Note that 7611933392160328808 should be read as NEVER.");
         send_tag_advance_grant(fed, candidate_tag_advance);
+        fed->last_granted = candidate_tag_advance;
         return true;
     } else {
         DEBUG_PRINT("RTI can only allow fed %d to advance to (%lld, %u), but this is not greater "
@@ -1419,6 +1436,8 @@ void initialize_federate(int id) {
     federates[id].clock_synchronization_enabled = true;
     federates[id].completed.time = NEVER;
     federates[id].completed.microstep = 0u;
+    federates[id].last_granted.time = NEVER;
+    federates[id].last_granted.microstep = 0u;
     federates[id].next_event.time = NEVER;
     federates[id].next_event.microstep = 0u;
     federates[id].state = NOT_CONNECTED;
