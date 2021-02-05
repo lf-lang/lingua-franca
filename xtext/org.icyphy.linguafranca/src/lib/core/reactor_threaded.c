@@ -533,6 +533,13 @@ int __next() {
         }
     } else {
         // There is an event in the event queue.
+        if (event->time < current_tag.time) {
+            error_print_and_exit("__next(): Popped an event that has a relative intended time (%lld) that is "
+                                  "earlier than the current relative time (%lld).",
+                                  event->time - start_time,
+                                  current_tag.time - start_time);
+        }
+
         next_tag.time = event->time;
         if (next_tag.time == current_tag.time) {
             next_tag.microstep =  get_microstep() + 1;
@@ -597,7 +604,9 @@ int __next() {
         // Before returning from this __next(), check if the new event
         // that has caused wait_until() to be interrupted is earlier than the
         // current event.
-        if ((event_t*)pqueue_peek(event_q) != event) {
+        event_t* next_event = (event_t*)pqueue_peek(event_q);
+        next_tag.time = next_event->time;
+        if (next_event != event) {
             // Get the current physical time.
             instant_t current_physical_time_ns = get_physical_time();
             // Set current time to match physical time, but not less than
