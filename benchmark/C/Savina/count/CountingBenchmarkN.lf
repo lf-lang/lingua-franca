@@ -15,6 +15,29 @@
  * @author Hannes Klein
  * @Abanob Bostouros
  */
+
+ /* [[[cog
+ # This file is a code generator using the python module cog:
+ # See https://nedbatchelder.com/code/cog/
+ #
+ # All instructions for code  generation are in-lined in comments
+ # like this one. With that you can use this file as a normal source file
+ # but also to generate code.
+ #
+ # To change the generated code in-line within this file run:
+ # $ python -m cog -r this-file.lf
+ # To generate a new file from this file stripping the generator code in the process run:
+ # $ python -m cog -d -o output-file.lf this-file.lf
+ #
+ # Use the command line option -D to specify generator parameters, for example:
+ # $ python -m cog -r -D parameter=100 this-file.lf
+ #
+ # Generator parameters used in this file:
+ # -D countTo=1000000
+ #
+ ]]] */
+ // [[[end]]]
+
 target C;
 
 
@@ -105,15 +128,14 @@ reactor CountingReactor (numIterations:int(12)){
 }
 
 main reactor CountingBenchmark(numIterations:int(12), countTo:int(1000000)) {
-
+/* [[[cog
+  cog.outl(f"producer = new ProducerReactor(countTo = {countTo});")
+]]] */
     producer = new ProducerReactor(countTo = countTo);
-
+//[[[end]]]
 
 
     reaction(startup) -> producer.inStartCounting {=
-        //printBenchmarkInfo("CountingBenchmark");
-        //printArgs("numIterations", numIterations, "countTo", countTo);
-        //printSystemInfo();
         SET(producer.inStartCounting,true);
     =}
 
