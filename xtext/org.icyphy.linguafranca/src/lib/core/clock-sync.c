@@ -369,9 +369,9 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // Check against the guard band.
         if (coded_probe_distance >= CLOCK_SYNC_GUARD_BAND) {
             // Discard this clock sync cycle
-            warning_print("Clock sync: Skipping the current clock synchronization cycle "
+            LOG_PRINT("Clock sync: Skipping the current clock synchronization cycle "
                     "due to impure coded probes.");
-            warning_print("Clock sync: Coded probe packet stats: "
+            LOG_PRINT("Clock sync: Coded probe packet stats: "
                     "Distance: %lld. r5 - r4 = %lld. t5 - t4 = %lld.",
                     coded_probe_distance,
                     r5 - r4,
@@ -417,7 +417,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // Issue a warning if standard deviation is high in data
         if (stats.standard_deviation >= CLOCK_SYNC_GUARD_BAND) {
             // Reset the stats
-            warning_print("Clock sync: Large standard deviation detected in network delays (%lld) for the current period."
+            LOG_PRINT("Clock sync: Large standard deviation detected in network delays (%lld) for the current period."
                         " Clock synchronization offset might not be accurate.",
                         stats.standard_deviation);
             reset_socket_stat(&_lf_rti_socket_stat);
