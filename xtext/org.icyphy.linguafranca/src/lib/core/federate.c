@@ -1485,13 +1485,16 @@ void _lf_logical_tag_complete(instant_t time, microstep_t microstep) {
         // Sending this tag more than once can happen if __next() returns without
         // adding an event to the event queue (and thus not advancing tag).
         DEBUG_PRINT("Was trying to send logical tag complete (%lld, %u) twice to the RTI.", 
-                           last_sent_logical_tag_complete.time - start_time,
-                           last_sent_logical_tag_complete.microstep);
+                           tag_to_send.time - start_time,
+                           tag_to_send.microstep);
         return;
     } else if (compare_with_last_tag > 0) {
         // This is a critical error. The federate is trying to inform the RTI of
         // the completion of a tag when it has already reported a larger tag as completed.
-        error_print_and_exit("Was trying to send logical tag complete (%lld, %u) out of order to the RTI.", 
+        error_print_and_exit("Was trying to send logical tag complete (%lld, %u) out of order to the RTI "
+                    "when it has already sent (%lld, %u).", 
+                    tag_to_send.time - start_time,
+                    tag_to_send.microstep,
                     last_sent_logical_tag_complete.time - start_time,
                     last_sent_logical_tag_complete.microstep);
         return;

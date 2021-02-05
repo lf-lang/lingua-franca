@@ -40,7 +40,7 @@ reactor Destination {
         info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-federated reactor TimeLimitDistributed(period:time(500 usec)) {
+federated reactor TimeLimitDistributed(period:time(700 usec)) {
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x;

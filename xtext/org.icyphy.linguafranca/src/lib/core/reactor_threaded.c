@@ -626,6 +626,7 @@ int __next() {
             }
         } else {
             warning_print("wait_until() was interrupted but neither the event queue nor the stop tag have changed.");
+            // This could cause the program to execute instructions in the worker thread for virtually no reason
             return 1;
         }
     }
