@@ -1328,11 +1328,13 @@ trigger_t* _lf_action_to_trigger(void* action) {
  * @param next_time The time step to advance to.
  */ 
 void _lf_advance_logical_time(instant_t next_time) {
-    if (current_tag.time != next_time) {
+    if (current_tag.time < next_time) {
         current_tag.time = next_time;
         current_tag.microstep = 0;
-    } else {
+    } else if (current_tag.time == next_time) {
         current_tag.microstep++;
+    } else {
+        error_print_and_exit("_lf_advance_logical_time(): Attempted to move tag back in time.");
     }
     LOG_PRINT("Advanced (elapsed) tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
 }

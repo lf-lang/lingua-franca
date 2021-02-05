@@ -1013,7 +1013,7 @@ void handle_message(int socket, unsigned char* buffer) {
     }
     LOG_PRINT("Message received by federate: %s. Length: %d.", message_contents, length);
 
-    DEBUG_PRINT("Calling schedule.");
+    DEBUG_PRINT("Calling schedule for message received on a physical connection.");
     _lf_schedule_value(&action, 0, message_contents, length);
 }
 
