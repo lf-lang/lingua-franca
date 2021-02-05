@@ -25,7 +25,7 @@ reactor Destination {
 	input x:int;
 	state s:int(1);
 	reaction(x) {=
-		printf("%d\n", x->value);
+		// printf("%d\n", x->value);
 		if (x->value != self->s) {
 		    printf("Error: Expected %d and got %d.\n", self->s, x->value);
 		    exit(1);
@@ -33,14 +33,14 @@ reactor Destination {
 		self->s++;
 	=}
     reaction(shutdown) {=
-        printf("**** shutdown reaction invoked.\n");
+        info_print("**** shutdown reaction invoked.");
         if (self->s != 10000002) {
-            fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
-            exit(1);
+            warning_print("Expected 10000002 but got %d.", self->s);
         }
+        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-federated reactor TimeLimitDistributed(period:time(1 usec)) {
+federated reactor TimeLimitDistributed(period:time(500 usec)) {
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x;

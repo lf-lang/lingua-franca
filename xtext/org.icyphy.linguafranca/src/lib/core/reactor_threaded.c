@@ -559,9 +559,12 @@ int __next() {
     // federates. If an action triggers during that wait, it will unblock
     // and return with a time (typically) less than the next_time.
     tag_t grant_tag = next_event_tag(next_tag.time, next_tag.microstep);
-    if (compare_tags(grant_tag, next_tag) != 0) {
+    if (compare_tags(grant_tag, next_tag) < 0) {
         // RTI has granted tag advance to an earlier tag or the wait
-        // for the RTI response was interrupted by a local physical action.
+        // for the RTI response was interrupted by a local physical action with
+        // a tag earlier than requested. FIXME: Isn't this a race condition?
+        // What if RTI has granted a TAG and is in-transit when the physical action
+        // arrives?
         // Continue executing. The event queue may have changed.
         return 1;
     }
@@ -580,42 +583,55 @@ int __next() {
     if (!wait_until(next_tag.time)) {
         DEBUG_PRINT("__next(): Wait until time interrupted.");
         // Sleep was interrupted.
-        // May have been an asynchronous call to schedule().
-        // Set current time to match physical time, but not less than
-        // current logical time nor more than next time in the event queue.
+
         // Since wait_until releases the mutex lock internally, we need to check
         // again for any changes in stop_tag while the mutex was unlocked.
         if (_lf_is_tag_after_stop_tag(next_tag)) {
-            next_tag = stop_tag;
+            // Interrupt could have been due to a request_stop()
+            // Return to the worker loop to check
+            return 1;
         }
-        // Get the current physical time.
-        instant_t current_physical_time_ns = get_physical_time();
-        if (current_physical_time_ns > current_tag.time) {
-            if (current_physical_time_ns < next_tag.time) {
-                // In federated programs, barriers could be raised on a specific tag.
-                // If next_tag is larger than the barrier, next() should wait until the barrier
-                // is removed before advancing the tag
+
+        // The cause of interruption is not a call to request_stop().
+        // May have been an asynchronous call to schedule().
+        // Before returning from this __next(), check if the new event
+        // that has caused wait_until() to be interrupted is earlier than the
+        // current event.
+        if ((event_t*)pqueue_peek(event_q) != event) {
+            // Get the current physical time.
+            instant_t current_physical_time_ns = get_physical_time();
+            // Set current time to match physical time, but not less than
+            // current logical time nor more than next time in the event queue.
+            if (current_physical_time_ns > current_tag.time) {
+                if (current_physical_time_ns < next_tag.time) {
+                    // In federated programs, barriers could be raised on a specific tag.
+                    // If next_tag is larger than the barrier, next() should wait until the barrier
+                    // is removed before advancing the tag
 #ifdef _LF_IS_FEDERATED // Only wait on the tag barrier in federated LF programs
-                // Wait until the global barrier on tag (horizon) is larger than the next_tag.
-                // This can effectively add to the STP offset in certain cases, for example,
-                // when a message with timestamp (0,0) has arrived at (0,0).
-                _lf_wait_on_global_tag_barrier((tag_t){
-                                                .time = current_physical_time_ns,
-                                                .microstep = 0});
-#endif
-                // Advance tag.
-                _lf_advance_logical_time(current_physical_time_ns);
+                    // Wait until the global barrier on tag (horizon) is larger than the next_tag.
+                    // This can effectively add to the STP offset in certain cases, for example,
+                    // when a message with timestamp (0,0) has arrived at (0,0).
+                    _lf_wait_on_global_tag_barrier((tag_t){
+                                                    .time = current_physical_time_ns,
+                                                    .microstep = 0});
+#endif // _LF_IS_FEDERATED
+                    // Advance tag.
+                    _lf_advance_logical_time(current_physical_time_ns);
+                    return 1;
+                }
+            } else {
+                // Current physical time does not exceed current logical
+                // time, so do not advance tag.
                 return 1;
             }
         } else {
-            // Current physical time does not exceed current logical
-            // time, so do not advance tag.
+            warning_print("wait_until() was interrupted but neither the event queue nor the stop tag have changed.");
             return 1;
         }
-    } else {
-        DEBUG_PRINT("Physical time is ahead of next tag time by %lld. This should be small.",
-                get_physical_time() - next_tag.time);
     }
+    
+    DEBUG_PRINT("Physical time is ahead of next tag time by %lld. This should be small.",
+                get_physical_time() - next_tag.time);
     
     // If the event queue has changed, return to iterate.
     if ((event_t*)pqueue_peek(event_q) != event) {
