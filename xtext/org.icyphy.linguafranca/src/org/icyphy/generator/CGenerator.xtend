@@ -4661,7 +4661,10 @@ class CGenerator extends GeneratorBase {
         // for a variable-width multiport, which is not currently supported.
         // It will be -2 if it is not multiport.
         pr(builder, '''
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wunused-variable"
             int «input.name»_width = self->__«input.name»__width;
+            #pragma GCC diagnostic pop
         ''')
     }
     
