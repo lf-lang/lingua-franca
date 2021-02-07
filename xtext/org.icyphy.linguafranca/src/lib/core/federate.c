@@ -1118,13 +1118,16 @@ void handle_timed_message(int socket, unsigned char* buffer) {
  * has been received.
  * This is used to communicate between the listen_to_rti_TCP thread and the
  * main federate thread.
+ * This variable should only be accessed while holding the mutex lock.
  */
-volatile tag_t __tag = {.time = NEVER, .microstep = 0u};
+tag_t _lf_last_tag = {.time = NEVER, .microstep = 0u};
 
-/** Indicator of whether a NET has been sent to the RTI and no TAG
- *  yet received in reply.
+/**
+ * Indicator of whether a NET has been sent to the RTI and no TAG
+ * yet received in reply.
+ * This variable should only be accessed while holding the mutex lock.
  */
-volatile bool __tag_pending = false;
+bool __tag_pending = false;
 
 /** Handle a time advance grant (TAG) message from the RTI.
  *  This function assumes the caller does not hold the mutex lock,
@@ -1137,10 +1140,10 @@ void handle_tag_advance_grant() {
                      "Failed to read the time advance grant from the RTI.");
 
     pthread_mutex_lock(&mutex);
-    __tag.time = extract_ll(buffer);
-    __tag.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+    _lf_last_tag.time = extract_ll(buffer);
+    _lf_last_tag.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     __tag_pending = false;
-    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", __tag.time - start_time, __tag.microstep);
+    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _lf_last_tag.time - start_time, _lf_last_tag.microstep);
     // Notify everything that is blocked.
     pthread_cond_broadcast(&event_q_changed);
     pthread_mutex_unlock(&mutex);
@@ -1149,11 +1152,9 @@ void handle_tag_advance_grant() {
 /**
  * Used to prevent the federate from sending a REQUEST_STOP
  * message multiple times to the RTI.
- * 
- * @note Access to this variable should always be protected by
- *  mutex lock.
+ * This variable should only be accessed while holding the mutex lock.
  */
-volatile bool federate_has_already_sent_a_stop_request_to_rti = false;
+bool federate_has_already_sent_a_stop_request_to_rti = false;
 
 /** 
  * Send a STOP_REQUEST message to the RTI.
@@ -1551,12 +1552,12 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
 
     // If time advance has already been granted for this tag or a larger
     // tag, then return immediately.
-    if (compare_tags(convert_volatile_tag_to_nonvolatile(__tag), (tag_t){.time=time, .microstep=microstep}) >= 0) {
+    if (compare_tags(_lf_last_tag, (tag_t){.time=time, .microstep=microstep}) >= 0) {
         return (tag_t){.time = time, .microstep = microstep};
     }
 
     send_tag(NEXT_EVENT_TIME, time, microstep);
-    LOG_PRINT("Sent next event tag (%lld, %u) to RTI.", time - start_time, microstep);
+    LOG_PRINT("Sent next event tag (NET) (%lld, %u) to RTI.", time - start_time, microstep);
 
     // If there are no upstream federates, return immediately, without
     // waiting for a reply. This federate does not need to wait for
@@ -1574,11 +1575,10 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
         // the RTI has responded with a TAG.
         DEBUG_PRINT("Waiting for changes on the event queue.");
         if (pthread_cond_wait(&event_q_changed, &mutex) != 0) {
-            error_print("Wait errored.");
+            error_print("Wait error.");
         }
 
         if (__tag_pending) {
-            DEBUG_PRINT("RTI has not replied, but a change was detected on the event queue.");
             // The RTI has not replied, so the wait must have been
             // interrupted by activity on the event queue.
             // If there is now an earlier event on the event queue,
@@ -1590,6 +1590,7 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
                 } else {
                     microstep = 0u;
                 }
+                LOG_PRINT("RTI has not replied to NET, but an earlier event was detected on the event queue.");
 
                 return (tag_t){.time = head_event->time, .microstep = microstep};
             }
@@ -1600,8 +1601,5 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
         }
     }
 
-    // Convert the volatile __tag to a non-volatile variable before returning.
-    // This is relatively safe to do here because of the __tag_pending guard and the conditional wait
-    // that happens prior to this and the fact that the mutex is locked.
-    return convert_volatile_tag_to_nonvolatile(__tag);
+    return _lf_last_tag;
 }
