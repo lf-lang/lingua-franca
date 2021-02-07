@@ -1017,12 +1017,11 @@ class CGenerator extends GeneratorBase {
         // Start the RTI server before launching the federates because if it
         // fails, e.g. because the port is not available, then we don't want to
         // launch the federates.
+        // Also, generate code that blocks until the federates resign.
         pr(rtiCode, '''
             int socket_descriptor = start_rti_server(«federationRTIProperties.get('port')»);
+            wait_for_federates(socket_descriptor);
         ''')
-        
-        // Generate code that blocks until the federates resign.
-        pr(rtiCode, "wait_for_federates(socket_descriptor);")
         
         // Handle RTI's exit
         pr(rtiCode, '''
