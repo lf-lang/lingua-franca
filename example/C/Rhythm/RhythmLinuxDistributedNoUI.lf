@@ -13,7 +13,7 @@
  * @author Soroush Bateni
  */
 target C {
-    flags: "-lasound -lm",
+    flags: ["-lasound", "-lm"],
     coordination: decentralized,
     timeout: 20 sec,
     clock-sync: on,

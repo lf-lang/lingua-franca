@@ -13,7 +13,7 @@
  * @author Soroush Bateni
  */
 target C {
-    flags: "-lncurses -lasound -lm",
+    flags: ["-lncurses", "-lasound", "-lm"],
     coordination: decentralized,
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",

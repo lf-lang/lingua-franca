@@ -12,7 +12,7 @@
  * @author Edward A. Lee
  */
 target C {
-    flags: "-lncurses -framework AudioToolbox -framework CoreFoundation -lm",
+    flags: ["-lncurses", "-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
     coordination: decentralized,
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
