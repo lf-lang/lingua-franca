@@ -2345,7 +2345,14 @@ class CGenerator extends GeneratorBase {
         var structType = selfStructType(decl)
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
-        pr(reactionInitialization, structType + "* self = (" + structType + "*)instance_args;")
+        if (structType !== null) {
+             pr(reactionInitialization, '''
+                 #pragma GCC diagnostic push
+                 #pragma GCC diagnostic ignored "-Wunused-variable"
+                 «structType»* self = («structType»*)instance_args;
+                 #pragma GCC diagnostic pop
+             ''')
+        }
 
         // A reaction may send to or receive from multiple ports of
         // a contained reactor. The variables for these ports need to
