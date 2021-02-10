@@ -41,6 +41,9 @@ import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Delay
+import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.TimeValue
+import org.icyphy.linguaFranca.TimeUnit
 
 /** Instance of a federate, or marker that no federation has been defined
  *  (if isSingleton() returns true). Every top-level reactor (contained
@@ -77,6 +80,11 @@ class FederateInstance {
      *  empty if isSingleton() returns true.
      */
     public var Set<String> containedReactorNames = new LinkedHashSet<String>
+    
+    /**
+     * A list of ...
+     */
+    public var outputsConnectedToPhysicalActions = new LinkedHashSet<Delay>()
     
     /** The host, if specified using the 'at' keyword. */
     public var String host = 'localhost'
@@ -229,6 +237,28 @@ class FederateInstance {
      def isSingleton() {
          return ((instantiation === null) || (generator.federates.size <= 1))
      }
+     
+    /**
+     * Find output ports that are connected to a physical action trigger upstream
+     * in the same reactor. Return a list of such outputs paired with the minimum delay
+     * from the nearest physical action.
+     * @param instance The reactor instance containing the output ports
+     * @return A LinkedHashMap<Output, TimeValue>
+     */
+     def findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
+         var physicalActionToOutputMinDelay = new LinkedHashMap<Output, TimeValue>()
+         // Find reactions that write to the output port of the reactor
+         for (output : instance.outputs) {
+             for (reaction : output.dependsOnReactions) {
+                 var minDelay = findNearestPhysicalActionTrigger(reaction)
+                 // FIXME: Need a better way to represent a maximum TimeValue
+                 if (minDelay != new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS)) {
+                    physicalActionToOutputMinDelay.put(output.definition as Output, minDelay)                 
+                 }
+             }
+         }
+         return physicalActionToOutputMinDelay
+     }
 
     /////////////////////////////////////////////
     //// Private Fields
@@ -238,5 +268,53 @@ class FederateInstance {
     
     /** The generator using this. */
     var generator = null as GeneratorBase
+    
+    /**
+     * Find the nearest (shortest) path to a physical action trigger from this
+     * 'reaction' in terms of minimum delay.
+     * 
+     * @param reaction The reaction to start with
+     * @return The minimum delay found to the nearest physical action and
+     *  TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS) otherwise
+     */
+    def TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
+        // FIXME: Need a better way to represent a maximum TimeValue
+        var minDelay = new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS);
+        for (trigger : reaction.triggers) {
+            if (trigger.definition instanceof Action) {
+                var action = trigger.definition as Action
+                var actionInstance = trigger as ActionInstance
+                if (action.origin === ActionOrigin.PHYSICAL) {
+                    if (actionInstance.minDelay.isEarlierThan(minDelay)) {
+                        minDelay = actionInstance.minDelay;
+                    }
+                } else {
+                    // Logical action
+                    // Follow it upstream inside the reactor
+                    for (uReaction: actionInstance.dependsOnReactions) {
+                        // Avoid a loop
+                        if (uReaction != reaction) {
+                            var uMinDelay = TimeValue.operator_plus(actionInstance.minDelay, findNearestPhysicalActionTrigger(uReaction))
+                            if (uMinDelay.isEarlierThan(minDelay)) {
+                                minDelay = uMinDelay;
+                            }
+                        }
+                    }
+                }
+                
+            } else if (trigger.definition instanceof Output) {
+                // Outputs of contained reactions
+                var outputInstance = trigger as PortInstance
+                for (uReaction: outputInstance.dependsOnReactions) {
+                    println("Found reaction " + uReaction.name + " upstream in contained reactors")
+                    var uMinDelay = findNearestPhysicalActionTrigger(uReaction)
+                    if (uMinDelay.isEarlierThan(minDelay)) {
+                        minDelay = uMinDelay;
+                    }
+                }
+            }
+        }
+        return minDelay
+    }
     
 }
