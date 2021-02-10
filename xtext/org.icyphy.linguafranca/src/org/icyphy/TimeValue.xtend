@@ -113,9 +113,12 @@ class TimeValue {
         val bigTime = new BigInteger(this.time.toString)
         
         switch(this.unit) {
-            case TimeUnit.NONE : 
-                if (time != 0)
+            case TimeUnit.NONE : {
+                if (time != 0) {
                     throw new Error("Non-zero time values must have a unit.")
+                }
+                this.nanoSecs = bigTime
+            }
             case TimeUnit.NSEC,
             case TimeUnit.NSECS:
                 this.nanoSecs = bigTime
@@ -173,6 +176,53 @@ class TimeValue {
      */
     override String toString() {
         '''«this.time» «this.unit»'''
+    }
+    
+    def static TimeValue operator_plus(TimeValue a, TimeValue b) {
+        // Figure out the actual number
+        var sum = a.toNanoSeconds() + b.toNanoSeconds()
+        var long timeInTimeUnit = 0L
+        // Figure out the unit
+        // Set the unit to be a's unit
+        switch(a.unit) {
+            case TimeUnit.NONE : {
+                timeInTimeUnit = sum.longValue
+                if (sum != 0) {
+                    // Assume nanoseconds
+                    a.unit = TimeUnit.NSECS
+                }
+            }
+            case TimeUnit.NSEC,
+            case TimeUnit.NSECS:
+                timeInTimeUnit = sum.longValue
+            case TimeUnit.USEC,
+            case TimeUnit.USECS:
+                timeInTimeUnit = sum.divide(US).longValue
+            case TimeUnit.MSEC,
+            case TimeUnit.MSECS:
+                timeInTimeUnit = sum.divide(MS).longValue
+            case TimeUnit.SEC,
+            case TimeUnit.SECS,
+            case TimeUnit.SECOND,
+            case TimeUnit.SECONDS:
+                timeInTimeUnit = sum.divide(S).longValue
+            case TimeUnit.MIN,
+            case TimeUnit.MINS,
+            case TimeUnit.MINUTE,
+            case TimeUnit.MINUTES:
+                timeInTimeUnit = sum.divide(M).longValue
+            case TimeUnit.HOURS,
+            case TimeUnit.HOUR:
+                timeInTimeUnit = sum.divide(H).longValue
+            case TimeUnit.DAY,
+            case TimeUnit.DAYS:
+                timeInTimeUnit = sum.divide(D).longValue
+            case TimeUnit.WEEK,
+            case TimeUnit.WEEKS:
+                timeInTimeUnit = sum.divide(W).longValue
+                
+        }
+        return new TimeValue(timeInTimeUnit, a.unit)
     }
     
 }

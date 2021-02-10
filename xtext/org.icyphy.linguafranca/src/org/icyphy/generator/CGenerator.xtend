@@ -67,6 +67,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.TimeUnit
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -3475,6 +3476,23 @@ class CGenerator extends GeneratorBase {
         for (child : instance.children) {
             if (reactorBelongsToFederate(child, federate)) {
                 generateReactorInstance(child, federate)
+            }
+        }
+        
+        // FIXME: A demonstration of the usage of findOutputsConnectedToPhysicalActions
+        // Should be removed/changed fairly soon
+        if (federates.length > 1) {
+            val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance)
+            var minDelay = new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS);
+            for (output : outputDelayMap.keySet) {
+                val outputDelay = outputDelayMap.get(output)
+                if (outputDelay.isEarlierThan(minDelay)) {
+                    minDelay = outputDelay
+                }
+            }
+            if (minDelay != new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS)) {
+                println("Found minimum delay from a physical action to output for reactor " + instance.name + 
+                        " to be " + minDelay.toString())
             }
         }
         

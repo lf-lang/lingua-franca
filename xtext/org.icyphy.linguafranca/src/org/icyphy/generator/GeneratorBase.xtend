@@ -2000,6 +2000,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 for (reactorName : federateInstance.containedReactorNames) {
                     federateByReactor.put(reactorName, federateInstance)
                 }
+                
             }
 
             // In a federated execution, we need keepalive to be true,
