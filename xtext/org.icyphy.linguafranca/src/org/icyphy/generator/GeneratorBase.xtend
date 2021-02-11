@@ -2317,7 +2317,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         if (d.parameter !== null) {
             return d.toText
         } else {
-            return new TimeValue(0, d.unit).timeInTargetLanguage
+            return new TimeValue(d.interval, d.unit).timeInTargetLanguage
         }
     }
 
