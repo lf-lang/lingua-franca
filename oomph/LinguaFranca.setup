@@ -269,10 +269,10 @@
             pattern=".*\xtext\.*"/>
         <operand
             xsi:type="predicates:LocationPredicate"
-            pattern=".*/oomph/.*"/>
+            pattern=".*/oomph"/>
         <operand
             xsi:type="predicates:LocationPredicate"
-            pattern=".*\oomph\.*"/>
+            pattern=".*\oomph"/>
       </predicate>
     </sourceLocator>
   </setupTask>
