@@ -316,6 +316,8 @@
       <requirement
           name="org.eclipse.jdt.feature.group"/>
       <requirement
+          name="org.eclipse.cdt.feature.group"/>
+      <requirement
           name="com.google.inject"/>
       <requirement
           name="com.google.guava"
