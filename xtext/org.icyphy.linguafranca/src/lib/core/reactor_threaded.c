@@ -513,8 +513,8 @@ tag_t get_next_event_tag() {
     if (event != NULL) {
         // There is an event in the event queue.
         if (event->time < current_tag.time) {
-            error_print_and_exit("__next(): Popped an event that has a relative intended time (%lld) that is "
-                                  "earlier than the current relative time (%lld).",
+            error_print_and_exit("get_next_event_tag(): Earliest event on the event queue (%lld) is "
+                                  "earlier than the current time (%lld).",
                                   event->time - start_time,
                                   current_tag.time - start_time);
         }
@@ -525,17 +525,16 @@ tag_t get_next_event_tag() {
         } else {
             next_tag.microstep = 0;
         }
-        LOG_PRINT("Got event with time %lld and microstep %d off the event queue with size %d.",
-                next_tag.time - start_time, next_tag.microstep, pqueue_size(event_q));
     }
 
     // If a timeout tag was given, adjust the next_tag from the
     // event tag to that timeout tag.
-    // FIXME: This is primarily done to let the RTI
-    // know about the timeout time? 
+    // FIXME: Why is this needed? 
     if (_lf_is_tag_after_stop_tag(next_tag)) {
         next_tag = stop_tag;
     }
+    LOG_PRINT("Next event tag is (%lld, %d). Event queue has size %d.",
+            next_tag.time - start_time, next_tag.microstep, pqueue_size(event_q));
     return next_tag;
 }
 
