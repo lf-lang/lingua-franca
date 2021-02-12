@@ -178,51 +178,61 @@ class TimeValue {
         '''«this.time» «this.unit»'''
     }
     
-    def static TimeValue operator_plus(TimeValue a, TimeValue b) {
-        // Figure out the actual number
-        var sum = a.toNanoSeconds() + b.toNanoSeconds()
-        var long timeInTimeUnit = 0L
-        // Figure out the unit
-        // Set the unit to be a's unit
-        switch(a.unit) {
-            case TimeUnit.NONE : {
-                timeInTimeUnit = sum.longValue
-                if (sum != 0) {
-                    // Assume nanoseconds
-                    a.unit = TimeUnit.NSECS
+    /**
+     * Map from time units to an expression that can convert a number in
+     * the specified time unit into nanoseconds. This expression may need
+     * to have a suffix like 'LL' or 'L' appended to it, depending on the
+     * target language, to ensure that the result is a 64-bit long.
+     */
+    public static val timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+        TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
+        TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
+        TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
+        TimeUnit.SECOND -> 1000000000L, TimeUnit.SECONDS -> 1000000000L,
+        TimeUnit.MIN -> 60000000000L, TimeUnit.MINS -> 60000000000L,
+        TimeUnit.MINUTE -> 60000000000L, TimeUnit.MINUTES -> 60000000000L,
+        TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
+        TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
+        TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
+        
+    public static TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS)
+    public static TimeValue MIN_VALUE = new TimeValue(Long.MIN_VALUE, TimeUnit.WEEKS)
+    
+    /**
+     * Return the result of adding b's time to the calling
+     * object's time.
+     * 
+     * The unit of the returned TimeValue will be the minimum 
+     * of the units of both operands except if only one of the units 
+     * is TimeUnit.NONE. In that case, the unit of the other input is used.
+     * 
+     * @input b The right operand
+     * @return A new TimeValue (the current value will not be affected) 
+     */
+    def TimeValue add(TimeValue b) {
+        // Figure out the actual sum
+        var sumOfNumbers = this.toNanoSeconds() + b.toNanoSeconds()
+        // Unit of the return
+        var TimeUnit returnUnit
+        // Compare a's unit against b's unit and use the smallest value
+        returnUnit = (this.unit.compareTo(b.unit) <= 0) ? this.unit : b.unit
+        // In the corner case where returnUnit is NONE
+        if (returnUnit == TimeUnit.NONE) {
+            // Check if b's value is also NONE
+            if (b.unit == TimeUnit.NONE) {
+                // Since both time units are NONE, the sum should be 0
+                if (sumOfNumbers != 0) {
+                    // Double-check to ensure the logic is correct
+                    throw new Error("Adding two TimeValues failed: Non-zero time values must have a unit.")
                 }
+                return new TimeValue(0, TimeUnit.NONE)                
             }
-            case TimeUnit.NSEC,
-            case TimeUnit.NSECS:
-                timeInTimeUnit = sum.longValue
-            case TimeUnit.USEC,
-            case TimeUnit.USECS:
-                timeInTimeUnit = sum.divide(US).longValue
-            case TimeUnit.MSEC,
-            case TimeUnit.MSECS:
-                timeInTimeUnit = sum.divide(MS).longValue
-            case TimeUnit.SEC,
-            case TimeUnit.SECS,
-            case TimeUnit.SECOND,
-            case TimeUnit.SECONDS:
-                timeInTimeUnit = sum.divide(S).longValue
-            case TimeUnit.MIN,
-            case TimeUnit.MINS,
-            case TimeUnit.MINUTE,
-            case TimeUnit.MINUTES:
-                timeInTimeUnit = sum.divide(M).longValue
-            case TimeUnit.HOURS,
-            case TimeUnit.HOUR:
-                timeInTimeUnit = sum.divide(H).longValue
-            case TimeUnit.DAY,
-            case TimeUnit.DAYS:
-                timeInTimeUnit = sum.divide(D).longValue
-            case TimeUnit.WEEK,
-            case TimeUnit.WEEKS:
-                timeInTimeUnit = sum.divide(W).longValue
-                
-        }
-        return new TimeValue(timeInTimeUnit, a.unit)
+           // Since b's unit is not None, use b's unit instead
+           returnUnit = b.unit
+        }        
+        // Find the appropriate divider to bring sumOfNumbers from nanoseconds to returnUnit
+        val unitDivider = new BigInteger(timeUnitsToNs.get(returnUnit).toString)        
+        return new TimeValue(sumOfNumbers.divide(unitDivider).longValue, returnUnit)
     }
     
 }

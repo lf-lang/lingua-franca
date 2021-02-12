@@ -3483,14 +3483,14 @@ class CGenerator extends GeneratorBase {
         // Should be removed/changed fairly soon
         if (federates.length > 1) {
             val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance)
-            var minDelay = new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS);
+            var minDelay = TimeValue.MAX_VALUE;
             for (output : outputDelayMap.keySet) {
                 val outputDelay = outputDelayMap.get(output)
                 if (outputDelay.isEarlierThan(minDelay)) {
                     minDelay = outputDelay
                 }
             }
-            if (minDelay != new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS)) {
+            if (minDelay != TimeValue.MAX_VALUE) {
                 println("Found minimum delay from a physical action to output for reactor " + instance.name + 
                         " to be " + minDelay.toString())
             }

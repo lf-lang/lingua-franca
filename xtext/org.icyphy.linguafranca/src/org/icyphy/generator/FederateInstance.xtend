@@ -251,8 +251,7 @@ class FederateInstance {
          for (output : instance.outputs) {
              for (reaction : output.dependsOnReactions) {
                  var minDelay = findNearestPhysicalActionTrigger(reaction)
-                 // FIXME: Need a better way to represent a maximum TimeValue
-                 if (minDelay != new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS)) {
+                 if (minDelay != TimeValue.MAX_VALUE) {
                     physicalActionToOutputMinDelay.put(output.definition as Output, minDelay)                 
                  }
              }
@@ -275,11 +274,10 @@ class FederateInstance {
      * 
      * @param reaction The reaction to start with
      * @return The minimum delay found to the nearest physical action and
-     *  TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS) otherwise
+     *  TimeValue.MAX_VALUE otherwise
      */
     def TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
-        // FIXME: Need a better way to represent a maximum TimeValue
-        var minDelay = new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS);
+        var minDelay = TimeValue.MAX_VALUE;
         for (trigger : reaction.triggers) {
             if (trigger.definition instanceof Action) {
                 var action = trigger.definition as Action
@@ -294,7 +292,7 @@ class FederateInstance {
                     for (uReaction: actionInstance.dependsOnReactions) {
                         // Avoid a loop
                         if (uReaction != reaction) {
-                            var uMinDelay = TimeValue.operator_plus(actionInstance.minDelay, findNearestPhysicalActionTrigger(uReaction))
+                            var uMinDelay = actionInstance.minDelay.add(findNearestPhysicalActionTrigger(uReaction))
                             if (uMinDelay.isEarlierThan(minDelay)) {
                                 minDelay = uMinDelay;
                             }
