@@ -214,22 +214,24 @@ class TimeValue {
         var sumOfNumbers = this.toNanoSeconds() + b.toNanoSeconds()
         // Unit of the return
         var TimeUnit returnUnit
-        // Compare a's unit against b's unit and use the smallest value
-        returnUnit = (this.unit.compareTo(b.unit) <= 0) ? this.unit : b.unit
-        // In the corner case where returnUnit is NONE
+        // Compare this unit against b's unit and use the smallest value
+        val isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0
+        returnUnit = (isThisUnitSmallerThanBUnit) ? this.unit : b.unit
+        // In the corner case where one of the TimeUnits is NONE
         if (returnUnit == TimeUnit.NONE) {
-            // Check if b's value is also NONE
-            if (b.unit == TimeUnit.NONE) {
+            // Check if both TimeUnits are NONE
+            if (b.unit == TimeUnit.NONE && this.unit == TimeUnit.NONE) {
                 // Since both time units are NONE, the sum should be 0
                 if (sumOfNumbers != 0) {
                     // Double-check to ensure the logic is correct
                     throw new Error("Adding two TimeValues failed: Non-zero time values must have a unit.")
                 }
                 return new TimeValue(0, TimeUnit.NONE)                
-            }
-           // Since b's unit is not None, use b's unit instead
-           returnUnit = b.unit
-        }        
+            } 
+            // Only one of the units is NONE
+            // Use the maximum of the units instead            
+            returnUnit = (!isThisUnitSmallerThanBUnit) ? this.unit : b.unit
+        }
         // Find the appropriate divider to bring sumOfNumbers from nanoseconds to returnUnit
         val unitDivider = new BigInteger(timeUnitsToNs.get(returnUnit).toString)        
         return new TimeValue(sumOfNumbers.divide(unitDivider).longValue, returnUnit)
