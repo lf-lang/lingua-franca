@@ -24,7 +24,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.icyphy.tests
+package org.icyphy.tests.compiler
 
 import com.google.inject.Inject
 import com.google.inject.Provider
@@ -43,11 +43,13 @@ import org.eclipse.xtext.validation.IResourceValidator
 import org.icyphy.Target
 import org.icyphy.generator.StandaloneContext
 import org.icyphy.linguaFranca.Model
+import org.icyphy.tests.LinguaFrancaInjectorProvider
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 
 import static org.junit.Assert.assertTrue
+import org.icyphy.tests.LinguaFrancaTestHelper
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -99,9 +101,7 @@ class LinguaFrancaCoverageTest {
     def void generateCodeForAllIntegrationTests() {
         val set = resourceSetProvider.get
         for (target : Target.values) {
-            val location = new File("").absolutePath.
-                split('''xtext«File.separator»org.icyphy.linguafranca.tests''').
-                get(0) + "test" + File.separator + target
+            val location = LinguaFrancaTestHelper.LF_TEST_PATH + target
             val d = new File(location)
             if (d.exists) {
                 println("Target: " + target)
