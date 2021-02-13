@@ -12,9 +12,15 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
+import java.util.stream.Collectors;
 
 import org.icyphy.Target;
 
@@ -47,7 +53,9 @@ public class TestRegistry {
     /**
      * Registry that maps targets and test categories to a list of paths.
      */
-    protected final static List<List<List<Path>>> registry = new ArrayList<List<List<Path>>>();
+    protected final static List<List<Set<Test>>> registry = new ArrayList<List<Set<Test>>>();
+    
+    protected final static Map<Target, Set<TestCategory>> support = new HashMap<Target, Set<TestCategory>>();
 
     /**
      * Enumeration of test categories, used to map tests to categories. The
@@ -77,16 +85,19 @@ public class TestRegistry {
         // Populate the registry.
         for (Target target : Target.values()) {
             // Initialize the lists.
-            ArrayList<List<Path>> categories = new ArrayList<List<Path>>();
+            ArrayList<Set<Test>> categories = new ArrayList<Set<Test>>();
             for (int i = 0; i < TestCategory.values().length; i++) {
-                categories.add(new LinkedList<Path>());
+                categories.add(new LinkedHashSet<Test>());
             }
             registry.add(target.ordinal(), categories);
-            
+            Set<TestCategory> supported = new HashSet<TestCategory>();
+            support.put(target, supported);
             // Walk the tree.
             try {
                 Path dir = Paths.get(LF_TEST_PATH + target);
                 if (Files.exists(dir)) {
+                    // A test directory exist. Assume support for common tests.
+                    supported.add(TestCategory.COMMON);
                     Files.walkFileTree(dir, new TestFileVisitor(target));
                 } else {
                     System.out.println("WARNING: No test directory target " + target);
@@ -106,14 +117,47 @@ public class TestRegistry {
      * @param included The test categories to include in the returned list.
      * @return
      */
-    public static List<Path> getTestsIncluding(Target target,
+    public static List<Test> getTestsIncluding(Target target,
             List<TestCategory> included) {
-        List<Path> tests = new LinkedList<Path>();
+        List<Test> tests = new LinkedList<Test>();
         for (TestCategory category : included) {
             tests.addAll(
                     registry.get(target.ordinal()).get(category.ordinal()));
         }
         return tests;
+    }
+    
+
+    
+    public static String getCoverageReport(Target target) {
+        StringBuilder s = new StringBuilder();
+        int totalMissing = 0;
+        int totalTests = 0;
+        for (TestCategory category : TestCategory.values()) {
+            s.append("Category: " + category);
+            if (support.get(target).contains(category)) {
+                Set<Test> all = new LinkedHashSet<Test>();
+                Set<Test> own = registry.get(target.ordinal()).get(category.ordinal());
+                for (Target t : Target.values()) {
+                    all.addAll(registry.get(t.ordinal()).get(category.ordinal()));
+                }
+                s.append(" (" + own.size() + "/" + all.size() + ")\n");
+                int missing = all.size() - own.size();
+                totalTests += all.size();
+                if (missing > 0) {
+                    totalMissing += missing;
+                    s.append("Tests not implemented: ");
+                    s.append(all.stream().filter(test -> !own.contains(test))
+                            .map(test -> test.toString())
+                            .collect(Collectors.joining(", ", "[", "]")) + "\n");
+                }
+            } else {
+                s.append(" N/A");
+            }
+        }
+        s.append("Missing " + totalMissing + " out of " + totalTests + " tests in supported categories.");
+        
+        return s.toString();
     }
     
     /**
@@ -124,9 +168,9 @@ public class TestRegistry {
      * @param excluded The test categories to exclude from the returned list.
      * @return
      */
-    public static List<Path> getTestsExcluding(Target target,
+    public static List<Test> getTestsExcluding(Target target,
             List<TestCategory> excluded) {
-        List<Path> tests = new LinkedList<Path>();
+        List<Test> tests = new LinkedList<Test>();
         for (TestCategory category : TestCategory.values()) {
             if (!excluded.contains(category)) {
                 tests.addAll(
@@ -189,6 +233,7 @@ public class TestRegistry {
             for (TestCategory category : TestCategory.values()) {
                 if (dir.getFileName().toString()
                         .equalsIgnoreCase(category.name())) {
+                    support.get(target).add(category);
                     stack.push(category);
                 }
             }
@@ -217,7 +262,7 @@ public class TestRegistry {
         public FileVisitResult visitFile(Path file, BasicFileAttributes attr) {
             if (attr.isRegularFile() && file.toString().endsWith(".lf")) {
                 registry.get(this.target.ordinal())
-                        .get(this.stack.peek().ordinal()).add(file);
+                        .get(this.stack.peek().ordinal()).add(new Test(target, file));
             }
             return CONTINUE;
         }

@@ -25,7 +25,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.icyphy.tests
+package org.icyphy.tests.compiler
 
 import org.junit.jupiter.api.^extension.ExtendWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Assertions
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.StateVar
+import org.icyphy.tests.LinguaFrancaInjectorProvider
 
 /**
  * Collection of unit tests on the ASTutils.

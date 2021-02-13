@@ -24,7 +24,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
-package org.icyphy.tests
+package org.icyphy.tests.compiler
 
 import com.google.inject.Inject
 import java.util.List
@@ -52,6 +52,7 @@ import static org.junit.Assert.assertTrue
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.TargetProperty.UnionType
 import org.icyphy.TargetProperty.ArrayType
+import org.icyphy.tests.LinguaFrancaInjectorProvider
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)

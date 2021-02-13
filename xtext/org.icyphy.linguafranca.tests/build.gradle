@@ -45,6 +45,16 @@ jacocoTestReport {
     //...etc...
     classDirectories.from = files(mainCls)//[javaTree, kotlinTree])
     sourceDirectories.from = files([mainSrc, javaSrc])
+
+    afterEvaluate {
+        getClassDirectories().setFrom(classDirectories.files.collect {
+            fileTree(dir: it,
+                exclude: [
+                    '**/org/icyphy/services/**/*'
+                ] // (2)
+            )
+        })
+    }
 }
 
 test {
