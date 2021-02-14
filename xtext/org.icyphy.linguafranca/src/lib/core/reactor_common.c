@@ -406,7 +406,7 @@ void _lf_enqueue_reaction(reaction_t* reaction);
  * counts between time steps and at the end of execution.
  */
 void __start_time_step() {
-    LOG_PRINT("--------- Start time step.");
+    LOG_PRINT("--------- Start time step at tag (%lld, %u).", current_tag.time - start_time, current_tag.microstep);
     for(int i = 0; i < __tokens_with_ref_count_size; i++) {
         if (*(__tokens_with_ref_count[i].is_present)) {
             if (__tokens_with_ref_count[i].reset_is_present) {
@@ -777,7 +777,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
 
     tag_t current_logical_tag = get_current_tag();
 
-    DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).\n",
+    DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).",
                   tag.time - start_time, tag.microstep,
                   current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {

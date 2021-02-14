@@ -322,8 +322,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////  When any federate calls request_stop(), it will
 ////  send a STOP_REQUEST message to the RTI, which will then forward a STOP_REQUEST message
 ////  to any federate that has not yet provided a stop time to the RTI. The federates will reply
-////  with a STOP_REQUEST_REPLY and a stop time (which shall be their current logical time
-////  at the time they receive the STOP_REQUEST). When the RTI has gathered all the stop times
+////  with a STOP_REQUEST_REPLY and a stop time (which shall be the maximum of their current logical time
+////  at the time they receive the STOP_REQUEST and the time of the stop
+////  request). When the RTI has gathered all the stop times
 ////  from federates (that are still connected), it will decide on a common stop timestamp
 ////  which is the maximum of the seen stop times and answer with a STOP_GRANTED. The federate
 ////  sending the STOP_REQUEST and federates sending the STOP_REQUEST_REPLY will freeze
@@ -510,12 +511,13 @@ typedef struct federate_t {
     struct sockaddr_in UDP_addr;           // The UDP address for the federate.
     bool clock_synchronization_enabled;    // Indicates the status of clock synchronization 
                                            // for this federate. Enabled by default.
-    tag_t completed;        // The largest logical tag completed by the federate (or NEVER).
-    tag_t last_granted;     // The maximum tag that has been granted so far (or NEVER)
-    tag_t next_event;       // Most recent NET received from the federate (or NEVER).
+    tag_t completed;        // The largest logical tag completed by the federate (or NEVER if no LTC has been received).
+    tag_t last_granted;     // The maximum tag that has been granted so far (or NEVER if none granted)
+    tag_t next_event;       // Most recent NET received from the federate (or NEVER if none received).
     fed_state_t state;      // State of the federate.
     int* upstream;          // Array of upstream federate ids.
     interval_t* upstream_delay;    // Minimum delay on connections from upstream federates.
+    							   // Here, NEVER encodes no delay. 0LL is a microstep delay.
     int num_upstream;              // Size of the array of upstream federates and delays.
     int* downstream;        // Array of downstream federate ids.
     int num_downstream;     // Size of the array of downstream federates.

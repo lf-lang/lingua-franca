@@ -414,7 +414,7 @@ class CGenerator extends GeneratorBase {
 
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
-                // This should go first in the start_timers function.
+                // This should go first in the __trigger_startup_reactions function.
                 pr(startTimers, "synchronize_with_other_federates();")
             }
         
@@ -656,11 +656,11 @@ class CGenerator extends GeneratorBase {
                 // if there is only one federate or will notify the RTI,
                 // if necessary, of the next event time.
                 pr('''
-                    tag_t next_event_tag(instant_t time, microstep_t microstep) {
+                    tag_t send_next_event_tag(tag_t tag, bool wait_for_reply) {
                         «IF federates.length > 1»
-                            return __next_event_tag(time, microstep);
+                            return __send_next_event_tag(tag, wait_for_reply);
                         «ELSE»
-                            return («targetTagType») {  .time = time, .microstep = microstep };
+                            return tag;
                         «ENDIF»
                     }
                 ''')
@@ -697,16 +697,22 @@ class CGenerator extends GeneratorBase {
                                     close(_lf_federate_sockets_for_outbound_p2p_connections[i]);
                                     _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
                                 }
+                                // Close inbound connections
+                                if (_lf_federate_sockets_for_inbound_p2p_connections[i] != -1) {
+                                    close(_lf_federate_sockets_for_inbound_p2p_connections[i]);
+                                    _lf_federate_sockets_for_inbound_p2p_connections[i] = -1;
+                                }
                             }
+                            unsigned char message_marker = RESIGN;
+                            write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
+                                    "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
+                            LOG_PRINT("Resigned.");
                             «IF federate.inboundP2PConnections.length > 0»
                                 «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
                                 void* thread_return;
                                 info_print("Waiting for incoming connections to close.");
                                 pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
-                            unsigned char message_marker = RESIGN;
-                            write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
-                                    "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
                         }
                     ''')
                 } else {
@@ -951,6 +957,7 @@ class CGenerator extends GeneratorBase {
                     federates[i].mode = FAST;
                 «ENDIF»
             }
+            interval_t candidate_tmp;
         ''')
         // Initialize the arrays indicating connectivity to upstream and downstream federates.
         for(federate : federates) {
@@ -971,7 +978,6 @@ class CGenerator extends GeneratorBase {
                 for (upstreamFederate : federate.dependsOn.keySet) {
                     pr(rtiCode, '''
                         federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
-                        federates[«federate.id»].upstream_delay[«count»] = 0LL;
                     ''')
                     // The minimum delay calculation needs to be made in the C code because it
                     // may depend on parameter values.
@@ -980,13 +986,29 @@ class CGenerator extends GeneratorBase {
                     // When that is done, they will need to be in scope here.
                     val delays = federate.dependsOn.get(upstreamFederate)
                     if (delays !== null) {
+                        // There is at least one delay, so find the minimum.
+                        // If there is no delay at all, this is encoded as NEVER.
+                        pr(rtiCode, '''
+                            federates[«federate.id»].upstream_delay[«count»] = NEVER;
+                            candidate_tmp = FOREVER;
+                        ''')
                         for (delay : delays) {
                             pr(rtiCode, '''
-                                if (federates[«federate.id»].upstream_delay[«count»] < «delay.getTargetTime») {
-                                    federates[«federate.id»].upstream_delay[«count»] = «delay.getTargetTime»;
+                                if («delay.getTargetTime» < candidate_tmp) {
+                                    candidate_tmp = «delay.getTargetTime»;
                                 }
                             ''')
                         }
+                        pr(rtiCode, '''
+                            if (candidate_tmp < FOREVER) {
+                                federates[«federate.id»].upstream_delay[«count»] = candidate_tmp;
+                            }
+                        ''')
+                    } else {
+                        // Use NEVER to encode no delay at all.
+                        pr(rtiCode, '''
+                            federates[«federate.id»].upstream_delay[«count»] = NEVER;
+                        ''')
                     }
                     count++;
                 }
