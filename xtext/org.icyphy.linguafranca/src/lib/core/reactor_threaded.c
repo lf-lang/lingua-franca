@@ -1162,19 +1162,17 @@ int main(int argc, char* argv[]) {
         // At this time, reactions (startup, etc.) are added to the 
         // reaction queue that will be executed at tag (0,0).
         // Before we could do so, we need to ask the RTI if it is 
-        // okay. This only needs to be done if the reaction queue is not empty.
-        // if (pqueue_size(reaction_q) > 0) {
-            // In a federated execution, request from the RTI to advance time to the start time
-            // and wait for a reply.
-            // In a non-federated execution, this returns immediately.
-            tag_t grant_time = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
-            if (grant_time.time != start_time || grant_time.microstep != 0u) {
-                // This is a critical condition
-                error_print_and_exit("Federate received a grant time earlier than start time "
-                        "or with an incorrect starting microstep (%lld, %u).",
-                        grant_time.time - start_time, grant_time.microstep);
-            }
-        // }
+        // okay.
+        // In a federated execution, request from the RTI to advance time to the start time
+        // and wait for a reply.
+        // In a non-federated execution, this returns immediately.
+        tag_t grant_time = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
+        if (grant_time.time != start_time || grant_time.microstep != 0u) {
+            // This is a critical condition
+            error_print_and_exit("Federate received a grant time earlier than start time "
+                    "or with an incorrect starting microstep (%lld, %u).",
+                    grant_time.time - start_time, grant_time.microstep);
+        }
         
         _lf_execution_started = true;
 
