@@ -20,7 +20,7 @@ reactor Consumer {
         if (compare_tags(current_tag,
                          (tag_t) { .time = MSEC(0) + get_start_time(), .microstep = 0}) > 0) {
         	fprintf(stderr,"ERROR: Tag (%lld, %d) received. Failed to enforce timeout.\n",
-                            current_tag.time, current_tag.microstep);
+                            current_tag.time - start_time, current_tag.microstep);
         	exit(1);
         } else if (compare_tags(current_tag,
                          (tag_t) { .time = MSEC(0) + get_start_time(), .microstep = 0}) == 0) {
@@ -36,7 +36,7 @@ reactor Consumer {
             printf("SUCCESS: successfully enforced timeout.\n");
         } else {
         	fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
-                            current_tag.time, current_tag.microstep);
+                            current_tag.time - start_time, current_tag.microstep);
         	exit(1);
         }
     =}
