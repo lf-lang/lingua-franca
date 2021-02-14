@@ -113,9 +113,12 @@ class TimeValue {
         val bigTime = new BigInteger(this.time.toString)
         
         switch(this.unit) {
-            case TimeUnit.NONE : 
-                if (time != 0)
+            case TimeUnit.NONE : {
+                if (time != 0) {
                     throw new Error("Non-zero time values must have a unit.")
+                }
+                this.nanoSecs = bigTime
+            }
             case TimeUnit.NSEC,
             case TimeUnit.NSECS:
                 this.nanoSecs = bigTime
@@ -173,6 +176,65 @@ class TimeValue {
      */
     override String toString() {
         '''«this.time» «this.unit»'''
+    }
+    
+    /**
+     * Map from time units to an expression that can convert a number in
+     * the specified time unit into nanoseconds. This expression may need
+     * to have a suffix like 'LL' or 'L' appended to it, depending on the
+     * target language, to ensure that the result is a 64-bit long.
+     */
+    public static val timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
+        TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
+        TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
+        TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
+        TimeUnit.SECOND -> 1000000000L, TimeUnit.SECONDS -> 1000000000L,
+        TimeUnit.MIN -> 60000000000L, TimeUnit.MINS -> 60000000000L,
+        TimeUnit.MINUTE -> 60000000000L, TimeUnit.MINUTES -> 60000000000L,
+        TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
+        TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
+        TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
+        
+    public static TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS)
+    public static TimeValue MIN_VALUE = new TimeValue(Long.MIN_VALUE, TimeUnit.WEEKS)
+    
+    /**
+     * Return the result of adding b's time to the calling
+     * object's time.
+     * 
+     * The unit of the returned TimeValue will be the minimum 
+     * of the units of both operands except if only one of the units 
+     * is TimeUnit.NONE. In that case, the unit of the other input is used.
+     * 
+     * @input b The right operand
+     * @return A new TimeValue (the current value will not be affected) 
+     */
+    def TimeValue add(TimeValue b) {
+        // Figure out the actual sum
+        var sumOfNumbers = this.toNanoSeconds() + b.toNanoSeconds()
+        // Unit of the return
+        var TimeUnit returnUnit
+        // Compare this unit against b's unit and use the smallest value
+        val isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0
+        returnUnit = (isThisUnitSmallerThanBUnit) ? this.unit : b.unit
+        // In the corner case where one of the TimeUnits is NONE
+        if (returnUnit == TimeUnit.NONE) {
+            // Check if both TimeUnits are NONE
+            if (b.unit == TimeUnit.NONE && this.unit == TimeUnit.NONE) {
+                // Since both time units are NONE, the sum should be 0
+                if (sumOfNumbers != 0) {
+                    // Double-check to ensure the logic is correct
+                    throw new Error("Adding two TimeValues failed: Non-zero time values must have a unit.")
+                }
+                return new TimeValue(0, TimeUnit.NONE)                
+            } 
+            // Only one of the units is NONE
+            // Use the maximum of the units instead            
+            returnUnit = (!isThisUnitSmallerThanBUnit) ? this.unit : b.unit
+        }
+        // Find the appropriate divider to bring sumOfNumbers from nanoseconds to returnUnit
+        val unitDivider = new BigInteger(timeUnitsToNs.get(returnUnit).toString)        
+        return new TimeValue(sumOfNumbers.divide(unitDivider).longValue, returnUnit)
     }
     
 }

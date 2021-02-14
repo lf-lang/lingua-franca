@@ -14,7 +14,7 @@
  */
 target C {
     coordination: centralized,
-    flags: ["-lncurses", "-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
+    flags: ["-lncurses", "-lasound", "-lm"],
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h",
