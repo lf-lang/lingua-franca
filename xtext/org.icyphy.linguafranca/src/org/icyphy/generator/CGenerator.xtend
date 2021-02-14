@@ -67,7 +67,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.TimeUnit
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -658,7 +657,7 @@ class CGenerator extends GeneratorBase {
                 // if necessary, of the next event time.
                 pr('''
                     tag_t send_next_event_tag(tag_t tag, bool wait_for_reply) {
-                        «IF federates.length > 1»
+                        «IF isFederatedAndCentralized»
                             return __send_next_event_tag(tag, wait_for_reply);
                         «ELSE»
                             return tag;
@@ -5005,6 +5004,14 @@ class CGenerator extends GeneratorBase {
     protected def isFederatedAndDecentralized() {
         if (isFederated &&
             config.coordination === CoordinationType.DECENTRALIZED) {
+            return true
+        }
+        return false
+    }
+    
+    protected def isFederatedAndCentralized() {
+        if (isFederated &&
+            config.coordination === CoordinationType.CENTRALIZED) {
             return true
         }
         return false
