@@ -75,13 +75,13 @@ typedef struct _lf_tag_advancement_barrier {
 
 
 /**
- *  Create a global tag barrier and
- * initialize the barrier's semaphore to 0 and its horizon to (FOREVER, 0).
+ * Create a global tag barrier and
+ * initialize the barrier's semaphore to 0 and its horizon to (FOREVER, UINT_MAX).
  */
 _lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, 
                                                                   (tag_t) {
                                                                     .time = FOREVER,
-                                                                    .microstep = 0 
+                                                                    .microstep = UINT_MAX 
                                                                   }
                                                                  };
 
@@ -140,28 +140,26 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
         future_tag = stop_tag;
     }
     tag_t current_tag = get_current_tag();
-    // Check to see if future_tag is actually in the future (or present).
-    if (compare_tags(current_tag, future_tag) < 0) {
+    // Check to see if future_tag is actually in the future.
+    if (compare_tags(future_tag, current_tag) > 0) {
+        // Future tag is actually in the future.
+        // See whether it is smaller than any pre-existing barrier.
         if (compare_tags(future_tag, _lf_global_tag_advancement_barrier.horizon) < 0) {
             // The future tag is smaller than the current horizon of the barrier.
             // Therefore, we should prevent logical time from reaching the
-            // expected tag.
-            _lf_global_tag_advancement_barrier.horizon.time = future_tag.time;
-            _lf_global_tag_advancement_barrier.horizon.microstep = future_tag.microstep - 1; // Just before the requested tag.
-                                                                                             // Could be -1 if future_tag has 
-                                                                                             // 0 microsteps. In this case,
-                                                                                             // the logical time will not advance
-                                                                                             // to future_tag.time at all
+            // future tag.
+            _lf_global_tag_advancement_barrier.horizon = future_tag;
             DEBUG_PRINT("Raised barrier at elapsed tag (%lld, %u).",
                         _lf_global_tag_advancement_barrier.horizon.time - start_time,
                         _lf_global_tag_advancement_barrier.horizon.microstep);
         } 
     } else {
-            // The future_tag is not in the future (it is tardy).
+            // The future_tag is not in the future (incoming message is tardy).
             // Prevent logical time from advancing further so that the measure of
             // tardiness properly reflects the amount of time (logical or physical)
             // that elapsed after the incoming message would have become tardy.
             _lf_global_tag_advancement_barrier.horizon = current_tag;
+            _lf_global_tag_advancement_barrier.horizon.microstep++;
             DEBUG_PRINT("Raised barrier at elapsed tag (%lld, %u).",
                         _lf_global_tag_advancement_barrier.horizon.time - start_time,
                         _lf_global_tag_advancement_barrier.horizon.microstep);
@@ -227,7 +225,7 @@ void _lf_decrement_global_tag_barrier_already_locked() {
                 " and  _lf_decrement_global_tag_barrier().");
     } else if (_lf_global_tag_advancement_barrier.requestors == 0) {
         // When the semaphore reaches zero, reset the horizon to forever.
-        _lf_global_tag_advancement_barrier.horizon = (tag_t) { .time = FOREVER, .microstep = 0 };
+        _lf_global_tag_advancement_barrier.horizon = (tag_t) { .time = FOREVER, .microstep = UINT_MAX };
         // Notify waiting threads that the semaphore has reached zero.
         pthread_cond_broadcast(&global_tag_barrier_requestors_reached_zero);
     }
@@ -288,10 +286,10 @@ int _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
         return 0;
     }
     int result = 0;
-    // Wait if the global barrier semaphore on logical time is zero
-    // and the proposed_time is larger than the horizon.
+    // Wait until the global barrier semaphore on logical time is zero
+    // and the proposed_time is larger than or equal to the horizon.
     while (_lf_global_tag_advancement_barrier.requestors > 0
-            && compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) > 0
+            && compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) >= 0
     ) {
         result = 1;
         DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time - start_time, proposed_tag.microstep);
@@ -589,8 +587,9 @@ void __next() {
     // again for what the next tag is (e.g., the stop time could have changed).
     next_tag = get_next_event_tag();
 #else  // _LF_COORD_CENTRALIZED
-    if (next_tag.time == FOREVER && !keepalive_specified) {
-        // FIXME FIXME: Do starvation analysis.
+    if (pqueue_peek(event_q) == NULL && !keepalive_specified) {
+        // There is no event on the event queue and keepalive is false.
+        // FIXME FIXME: Do starvation analysis for coordinated execution.
         // No event in the queue
         // keepalive is not set so we should stop.
         // Note that federated programs with decentralized coordination always have
@@ -632,8 +631,9 @@ void __next() {
     }
 #endif // _LF_IS_FEDERATED
 
-    // If the first event in the event queue has a tag greater than the
-    // stop time, then we are done. The above code prevents the next_tag
+    // If the first event in the event queue has a tag greater than or equal to the
+    // stop time, and the current_tag matches the stop tag (meaning that we have already
+    // executed microstep 0 at the timeout time), then we are done. The above code prevents the next_tag
     // from exceeding the stop_tag, so we have to do further checks if
     // they are equal.
     if (compare_tags(next_tag, stop_tag) >= 0 && compare_tags(current_tag, stop_tag) >= 0) {
@@ -899,6 +899,8 @@ void* worker(void* arg) {
             if (pqueue_size(reaction_q) == 0
                     && pqueue_size(executing_q) == 0
                     && !__advancing_time) {
+                // If this is not the very first step, notify that the previous step is complete
+                // and check against the stop tag to see whether this is the last step.
                 if (_lf_logical_tag_completed) {
                     logical_tag_complete(current_tag.time, current_tag.microstep);
                     // If we are at the stop tag, do not call __next()
@@ -906,7 +908,7 @@ void* worker(void* arg) {
                     if (compare_tags(current_tag, stop_tag) >= 0) {
                         // Break out of the while loop and notify other
                         // worker threads potentially waiting to continue.
-                        // Also, notify the RTI that there will be no more events.
+                        // Also, notify the RTI that there will be no more events (if centralized coord).
                         // False argument means don't wait for a reply.
                         send_next_event_tag((tag_t){ .time=FOREVER, .microstep = UINT_MAX }, false);
                         pthread_cond_broadcast(&reaction_q_changed);
