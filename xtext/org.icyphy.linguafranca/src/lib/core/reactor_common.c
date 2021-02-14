@@ -765,6 +765,8 @@ void _lf_replace_token(event_t* event, lf_token_t* token) {
  * where bigger_tag > smaller_tag. This function is primarily
  * used for network communication (which is assumed to be
  * in order).
+ * 
+ * This function assumes the caller holds the mutex lock.
  *
  * @param trigger The trigger to be invoked at a later logical time.
  * @param tag Logical tag of the event
