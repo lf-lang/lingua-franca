@@ -899,14 +899,12 @@ handle_t schedule_message_received_from_network_already_locked(
     lf_token_t* token = create_token(trigger->element_size);
     // Return value of the function
     int return_value = 0;
-    // Current logical time
-    instant_t current_logical_time = get_logical_time();
 
     // Indicates whether or not the intended tag
     // of the message (timestamp, microstep) is
     // in the future relative to the tag of this
     // federate. By default, assume it is not.
-    bool message_tag_is_in_the_future = compare_tags(tag, get_current_tag()) > 0;
+    bool message_tag_is_in_the_future = compare_tags(tag, current_tag) > 0;
 
     // Set up the token
     token->value = value;
@@ -917,7 +915,7 @@ handle_t schedule_message_received_from_network_already_locked(
 
     // Calculate the extra_delay required to be passed
     // to the schedule function.
-    interval_t extra_delay = tag.time - current_logical_time;
+    interval_t extra_delay = tag.time - current_tag.time;
 
     if (!_lf_execution_started && !message_tag_is_in_the_future) {
         // If execution has not started yet,
@@ -948,8 +946,9 @@ handle_t schedule_message_received_from_network_already_locked(
             // would indicate a critical condition, showing that the
             // time advance mechanism is not working correctly.
             error_print_and_exit("Received a message at tag (%lld, %u) that"
-                                 " has a tag (%lld, %u) that is tardy.",
-                                 current_logical_time - start_time, get_microstep(),
+                                 " has a tag (%lld, %u) that is tardy. "
+                                 "Centralized coordination should not have tardy messages.",
+                                 current_tag.time - start_time, get_microstep(),
                                  tag.time - start_time, tag.microstep);
 #else
             // Set the delay back to 0
@@ -959,19 +958,12 @@ handle_t schedule_message_received_from_network_already_locked(
                         trigger->intended_tag.microstep);
             return_value = __schedule(trigger, extra_delay, token);
 #endif
-        } else if (tag.time == current_logical_time) {
-            // In case the message is in the future
-            // in terms of microstep, call
-            // _lf_schedule_at_tag() and pass the tag
-            // of the message.
+        } else {
+            // In case the message is in the future, call
+            // _lf_schedule_at_tag() so that the microstep is respected.
             DEBUG_PRINT("Received a message that is (%lld nanoseconds, %u microsteps) "
                     "in the future.", extra_delay, tag.microstep - get_microstep());
             return_value = _lf_schedule_at_tag(trigger, tag, token);
-        } else {
-            // In case the message is in the future
-            // in terms of logical time, call __schedule().
-            DEBUG_PRINT("Received a message that is %lld nanoseconds in the future.", extra_delay);
-            return_value = __schedule(trigger, extra_delay, token);
         }
         // Notify the main thread in case it is waiting for physical time to elapse.
         DEBUG_PRINT("Broadcasting notification that event queue changed.");
@@ -1052,7 +1044,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 
     if (action->is_physical) {
         // Messages sent on physical connections should be handled via handle_message().
-        error_print_and_exit("Received a timed message on a physical connection.");
+        warning_print("Received a timed message on a physical connection. Time stamp will be lost.");
     }
 
     // Read the tag of the message.
@@ -1067,6 +1059,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
     // suggests that the tag barrier be raised to the tag provided
     // by the message. If this tag is in the past, the function will cause
     // the tag to freeze at the current level.
+    // If something happens, make sure to release the barrier.
     _lf_increment_global_tag_barrier(tag);
 #endif
     LOG_PRINT("Received message with tag: (%lld, %u), Current tag: (%lld, %u).", tag.time - start_time, tag.microstep, get_elapsed_logical_time(), get_microstep());
@@ -1086,12 +1079,8 @@ void handle_timed_message(int socket, unsigned char* buffer) {
         error_print_and_exit("Failed to read timed message body.");
     }
 
-    // If something happens, make sure to release the barrier.
     DEBUG_PRINT("Message received: %s.", message_contents);
 
-    // NOTE: Cannot call schedule_value(), which is what we really want to call,
-    // because pthreads is too incredibly stupid and deadlocks trying to acquire
-    // a lock that the calling thread already holds.
     pthread_mutex_lock(&mutex);
     // Acquire the one mutex lock to prevent logical time from advancing
     // during the call to schedule().
