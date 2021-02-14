@@ -99,23 +99,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
-
-    /**
-     * Map from time units to an expression that can convert a number in
-     * the specified time unit into nanoseconds. This expression may need
-     * to have a suffix like 'LL' or 'L' appended to it, depending on the
-     * target language, to ensure that the result is a 64-bit long.
-     */
-    public static val timeUnitsToNs = #{TimeUnit.NSEC -> 1L,
-        TimeUnit.NSECS -> 1L, TimeUnit.USEC -> 1000L, TimeUnit.USECS -> 1000L,
-        TimeUnit.MSEC -> 1000000L, TimeUnit.MSECS -> 1000000L,
-        TimeUnit.SEC -> 1000000000L, TimeUnit.SECS -> 1000000000L,
-        TimeUnit.SECOND -> 1000000000L, TimeUnit.SECONDS -> 1000000000L,
-        TimeUnit.MIN -> 60000000000L, TimeUnit.MINS -> 60000000000L,
-        TimeUnit.MINUTE -> 60000000000L, TimeUnit.MINUTES -> 60000000000L,
-        TimeUnit.HOUR -> 3600000000000L, TimeUnit.HOURS -> 3600000000000L,
-        TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
-        TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
     
     /**
      * Constant that specifies how to name generated delay reactors.
@@ -2000,6 +1983,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 for (reactorName : federateInstance.containedReactorNames) {
                     federateByReactor.put(reactorName, federateInstance)
                 }
+                
             }
 
             // In a federated execution, we need keepalive to be true,
