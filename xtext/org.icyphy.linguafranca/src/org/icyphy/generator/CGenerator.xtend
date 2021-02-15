@@ -382,7 +382,7 @@ class CGenerator extends GeneratorBase {
         // Also, create two RTI C files, one that launches the federates
         // and one that does not.
         if (federates.length > 1) {
-            coreFiles.addAll("rti.c", "rti.h", "federate.c", "clock-sync.h", "clock-sync.c")
+            coreFiles.addAll("rti.c", "rti.h", "federate.c", "federate.h", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
             createLauncher(coreFiles)
         }
@@ -688,30 +688,30 @@ class CGenerator extends GeneratorBase {
                         void __termination() {
                             stop_trace();
                             // Check for all outgoing physical connections in
-                            // _lf_federate_sockets_for_outbound_p2p_connections and 
+                            // _fed.sockets_for_outbound_p2p_connections and 
                             // if the socket ID is not -1, the connection is still open. 
                             // Send an EOF by closing the socket here.
                             for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
                                 // Close outbound connections
-                                if (_lf_federate_sockets_for_outbound_p2p_connections[i] != -1) {
-                                    close(_lf_federate_sockets_for_outbound_p2p_connections[i]);
-                                    _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
+                                if (_fed.sockets_for_outbound_p2p_connections[i] != -1) {
+                                    close(_fed.sockets_for_outbound_p2p_connections[i]);
+                                    _fed.sockets_for_outbound_p2p_connections[i] = -1;
                                 }
                                 // Close inbound connections
-                                if (_lf_federate_sockets_for_inbound_p2p_connections[i] != -1) {
-                                    close(_lf_federate_sockets_for_inbound_p2p_connections[i]);
-                                    _lf_federate_sockets_for_inbound_p2p_connections[i] = -1;
+                                if (_fed.sockets_for_inbound_p2p_connections[i] != -1) {
+                                    close(_fed.sockets_for_inbound_p2p_connections[i]);
+                                    _fed.sockets_for_inbound_p2p_connections[i] = -1;
                                 }
                             }
                             unsigned char message_marker = RESIGN;
-                            write_to_socket_errexit(_lf_rti_socket_TCP, 1, &message_marker, 
+                            write_to_socket_errexit(_fed.socket_TCP_RTI, 1, &message_marker, 
                                     "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
                             LOG_PRINT("Resigned.");
                             «IF federate.inboundP2PConnections.length > 0»
                                 «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
                                 void* thread_return;
                                 info_print("Waiting for incoming connections to close.");
-                                pthread_join(_lf_inbound_p2p_handling_thread_id, &thread_return);
+                                pthread_join(_fed.inbound_p2p_handling_thread_id, &thread_return);
                             «ENDIF»
                         }
                     ''')
@@ -806,10 +806,10 @@ class CGenerator extends GeneratorBase {
             // Set indicator variables that specify whether the federate has
             // upstream logical connections.
             if (federate.dependsOn.size > 0) {
-                pr('__fed_has_upstream  = true;')
+                pr('_fed.has_upstream  = true;')
             }
             if (federate.sendsTo.size > 0) {
-                pr('__fed_has_downstream = true;')
+                pr('_fed.has_downstream = true;')
             }
             // Set global variable identifying the federate.
             pr('''_lf_my_fed_id = «federate.id»;''');
@@ -820,14 +820,14 @@ class CGenerator extends GeneratorBase {
             val numberOfOutboundConnections  = federate.outboundP2PConnections.length;
             
             pr('''
-                _lf_number_of_inbound_p2p_connections = «numberOfInboundConnections»;
-                _lf_number_of_outbound_p2p_connections = «numberOfOutboundConnections»;
+                _fed.number_of_inbound_p2p_connections = «numberOfInboundConnections»;
+                _fed.number_of_outbound_p2p_connections = «numberOfOutboundConnections»;
             ''')
             if (numberOfInboundConnections > 0) {
                 pr('''
                     // Initialize the array of socket for incoming connections to -1.
                     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                        _lf_federate_sockets_for_inbound_p2p_connections[i] = -1;
+                        _fed.sockets_for_inbound_p2p_connections[i] = -1;
                     }
                 ''')                    
             }
@@ -835,7 +835,7 @@ class CGenerator extends GeneratorBase {
                 pr('''
                     // Initialize the array of socket for outgoing connections to -1.
                     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-                        _lf_federate_sockets_for_outbound_p2p_connections[i] = -1;
+                        _fed.sockets_for_outbound_p2p_connections[i] = -1;
                     }
                 ''')                    
             }
@@ -848,7 +848,7 @@ class CGenerator extends GeneratorBase {
             }
             
             pr('''
-                // Connect to the RTI. This sets _lf_rti_socket_TCP and _lf_rti_socket_UDP.
+                // Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.
                 connect_to_rti("«federationRTIProperties.get('host')»", «federationRTIProperties.get('port')»);
             ''');            
             
@@ -859,7 +859,7 @@ class CGenerator extends GeneratorBase {
                     || config.clockSyncOptions.localFederatesOn)
             ) {
                 pr('''
-                    synchronize_initial_physical_clock_with_rti(_lf_rti_socket_TCP);
+                    synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);
                 ''')
             }
         
@@ -876,7 +876,7 @@ class CGenerator extends GeneratorBase {
                     // connect_to_federate for each outbound physical connection at the same
                     // time that the new thread is listening for such connections for inbound
                     // physical connections. The thread will live until termination.
-                    pthread_create(&_lf_inbound_p2p_handling_thread_id, NULL, handle_p2p_connections_from_federates, NULL);
+                    pthread_create(&_fed.inbound_p2p_handling_thread_id, NULL, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
                             
@@ -4047,15 +4047,15 @@ class CGenerator extends GeneratorBase {
             // FIXME: handle the case where the delay is a parameter.
         }
         if (isPhysical) {
-            socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
+            socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_MESSAGE"
         } else if (config.coordination === CoordinationType.DECENTRALIZED) {
-            socket = '''_lf_federate_sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
+            socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
         } else {
             // Logical connection
             // Send the message via rti
-            socket = '''_lf_rti_socket_TCP'''
+            socket = '''_fed.socket_TCP_RTI'''
             messageType = "TIMED_MESSAGE"
             next_destination_name = '''"the RTI"'''
         }
