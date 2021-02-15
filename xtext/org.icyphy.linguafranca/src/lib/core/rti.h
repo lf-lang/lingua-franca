@@ -497,12 +497,13 @@ typedef enum fed_state_t {
     PENDING         // Waiting for upstream federates.
 } fed_state_t;
 
-/** Information about a federate, including its runtime state,
- *  mode of execution, and connectivity with other federates.
- *  The list of upstream and downstream federates does not include
- *  those that are connected via a "physical" connection (one
- *  denoted with ~>) because those connections do not impose
- *  any scheduling constraints.
+/**
+ * Information about a federate known to the RTI, including its runtime state,
+ * mode of execution, and connectivity with other federates.
+ * The list of upstream and downstream federates does not include
+ * those that are connected via a "physical" connection (one
+ * denoted with ~>) because those connections do not impose
+ * any scheduling constraints.
  */
 typedef struct federate_t {
     int id;                 // ID of this federate.
