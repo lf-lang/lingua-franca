@@ -993,9 +993,14 @@ class CGenerator extends GeneratorBase {
                             candidate_tmp = FOREVER;
                         ''')
                         for (delay : delays) {
+                            var delayTime = delay.getTargetTime
+                            if (delay.parameter !== null) {
+                                // The delay is given as a parameter reference. Find its value.
+                                delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
+                            }
                             pr(rtiCode, '''
-                                if («delay.getTargetTime» < candidate_tmp) {
-                                    candidate_tmp = «delay.getTargetTime»;
+                                if («delayTime» < candidate_tmp) {
+                                    candidate_tmp = «delayTime»;
                                 }
                             ''')
                         }
@@ -3168,7 +3173,7 @@ class CGenerator extends GeneratorBase {
     /** Generate code to instantiate the specified reactor instance and
      *  initialize it.
      *  @param instance A reactor instance.
-     *  @param federate A federate name to conditionally generate code by
+     *  @param federate A federate instance to conditionally generate code by
      *   contained reactors or null if there are no federates.
      */
     def void generateReactorInstance(ReactorInstance instance, FederateInstance federate) {
@@ -3507,20 +3512,31 @@ class CGenerator extends GeneratorBase {
             }
         }
         
-        // FIXME: A demonstration of the usage of findOutputsConnectedToPhysicalActions
-        // Should be removed/changed fairly soon
-        if (federates.length > 1) {
+        // If this program is federated with centralized coordination and this reactor
+        // instance is a federate, then check
+        // for outputs that depend on physical actions so that null messages can be
+        // sent to the RTI.
+        if (isFederatedAndCentralized && instance.definition === federate.instantiation) {
             val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance)
             var minDelay = TimeValue.MAX_VALUE;
+            var outputFound = null as Output;
             for (output : outputDelayMap.keySet) {
                 val outputDelay = outputDelayMap.get(output)
                 if (outputDelay.isEarlierThan(minDelay)) {
                     minDelay = outputDelay
+                    outputFound = output
                 }
             }
             if (minDelay != TimeValue.MAX_VALUE) {
-                println("Found minimum delay from a physical action to output for reactor " + instance.name + 
-                        " to be " + minDelay.toString())
+                reportWarning(outputFound, '''
+                        Found a path from a physical action to output for reactor "«instance.name»". 
+                        The amount of delay is «minDelay.toString()».
+                        With centralized coordination, this can result in a large number of messages to the RTI.
+                        Consider refactoring the code so that the output does not depend on the physical action,
+                        or consider using decentralized coordination.''')
+                pr(initializeTriggerObjects, '''
+                    _fed.min_delay_from_physical_action_to_federate_output = «minDelay.timeInTargetLanguage»;
+                ''')
             }
         }
         
