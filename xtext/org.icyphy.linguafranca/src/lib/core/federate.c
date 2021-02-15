@@ -71,7 +71,8 @@ federate_instance_t _fed = {
 		.has_upstream = false,
 		.has_downstream = false,
 		.sent_a_stop_request_to_rti = false,
-		.last_sent_LTC = (tag_t) {.time = NEVER, .microstep = 0u}
+		.last_sent_LTC = (tag_t) {.time = NEVER, .microstep = 0u},
+		.min_delay_from_physical_action_to_federate_output = NEVER
 };
 
 /** 
@@ -1437,7 +1438,7 @@ tag_t __send_next_event_tag(tag_t tag, bool wait_for_reply) {
         return tag;
     }
 
-    // FIXME: The returned tag from this function is a promise that, absent
+    // FIXME: The tag sent by this function is a promise that, absent
     // inputs from another federate, this federate will not produce events
     // earlier than t. But if there are downstream federates and there is
     // a physical action (not counting receivers from upstream federates),

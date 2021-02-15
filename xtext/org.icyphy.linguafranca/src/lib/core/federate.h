@@ -159,6 +159,14 @@ typedef struct federate_instance_t {
 	 */
 	tag_t last_sent_LTC;
 
+	/**
+	 * For use in federates with centralized coordination, the minimum
+	 * time delay between a physical action within this federate and an
+	 * output from this federate.  This is NEVER if there is causal
+	 * path from a physical action to any output.
+	 */
+	instant_t min_delay_from_physical_action_to_federate_output;
+
 } federate_instance_t;
 
 /** 
