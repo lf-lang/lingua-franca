@@ -1540,14 +1540,19 @@ tag_t __send_next_event_tag(tag_t tag, bool wait_for_reply) {
         return tag;
     }
 
-    // FIXME: The returned value t is a promise that, absent inputs from
+    // FIXME: The returned tag from this function is a promise that, absent inputs from
     // another federate, this federate will not produce events earlier than t.
     // But if there are downstream federates and there is
     // a physical action (not counting receivers from upstream federates),
     // then we can only promise up to current physical time.
-    // This will result in this federate busy waiting, looping through this code
-    // and notifying the RTI with send_next_event_tag(current_physical_time(), false)
-    // repeatedly.
+    // In this case, we should notify the RTI with a NULL message, which is
+    // just like a NET message except that it requires no reply. To avoid
+    // overwhelming the network, this NULL message should be sent periodically
+    // at some specified intervals, perhaps controlled by a target parameter.
+    // The larger the interval, the more downstream federates will lag
+    // behind real time, but the less network traffic. Perhaps we should
+    // issue a warning or some diagnostic message suggesting that a redesign
+    // might be in order so that outputs don't depend on physical actions.
 
     send_net(NEXT_EVENT_TIME, tag.time, tag.microstep);
     LOG_PRINT("Sent next event tag (NET) (%lld, %u) to RTI. Waiting: %d.",
