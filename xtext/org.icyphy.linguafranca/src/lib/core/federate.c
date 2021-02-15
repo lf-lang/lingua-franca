@@ -1072,14 +1072,15 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
         pthread_mutex_lock(&mutex);
         // Decrement the barrier to allow advancement of tag.
-        _lf_decrement_global_tag_barrier_already_locked();
+        _lf_decrement_global_tag_barrier_locked();
         pthread_mutex_unlock(&mutex);
 #endif
         // FIXME: Better error handling?
         error_print_and_exit("Failed to read timed message body.");
     }
 
-    DEBUG_PRINT("Message received: %s.", message_contents);
+    // The following is only valid for string messages.
+    // DEBUG_PRINT("Message received: %s.", message_contents);
 
     pthread_mutex_lock(&mutex);
     // Acquire the one mutex lock to prevent logical time from advancing
@@ -1092,7 +1093,7 @@ void handle_timed_message(int socket, unsigned char* buffer) {
 #ifdef _LF_COORD_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // Finally, decrement the barrier to allow the execution to continue
     // past the raised barrier
-    _lf_decrement_global_tag_barrier_already_locked();
+    _lf_decrement_global_tag_barrier_locked();
 #endif
 
     // The mutex is unlocked here after the barrier on
@@ -1218,7 +1219,7 @@ void handle_stop_granted_message() {
                 stop_tag.time - start_time,
                 stop_tag.microstep);
 
-    _lf_decrement_global_tag_barrier_already_locked();
+    _lf_decrement_global_tag_barrier_locked();
     // In case any thread is waiting on a condition, notify all.
     pthread_cond_broadcast(&reaction_q_changed);
     // We signal instead of broadcast under the assumption that only
