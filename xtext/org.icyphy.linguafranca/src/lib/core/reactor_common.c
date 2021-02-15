@@ -1351,13 +1351,16 @@ void _lf_advance_logical_time(instant_t next_time) {
     // to the ordinary execution of LF programs. Instead, there might
     // be a need for a target property that enables these kinds of logic
     // assertions for development purposes only.
-    // event_t* next_event = (event_t*)pqueue_peek(event_q);
-    // if (next_event != NULL) {
-    //     if (next_time > next_event->time) {
-    //         error_print_and_exit("_lf_advance_logical_time(): Attempted to move tag "
-    //                               "past the head of the event queue.");
-    //     }
-    // }
+    /*
+    event_t* next_event = (event_t*)pqueue_peek(event_q);
+    if (next_event != NULL) {
+        if (next_time > next_event->time) {
+            error_print_and_exit("_lf_advance_logical_time(): Attempted to move time to %lld, which is "
+                    "past the head of the event queue, %lld.", 
+                    next_time - start_time, next_event->time - start_time);
+        }
+    }
+    */
 
     if (current_tag.time < next_time) {
         current_tag.time = next_time;
