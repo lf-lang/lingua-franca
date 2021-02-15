@@ -976,7 +976,7 @@ void* clock_synchronization_thread(void* noargs) {
             if (federates[fed].state == NOT_CONNECTED) {
                 // FIXME: We need better error handling here, but clock sync failure
                 // should not stop execution.
-                error_print("Clock sync failed with federate %d. Not connected.", fed->id);
+                error_print("Clock sync failed with federate %d. Not connected.", federates[fed].id);
                 // _lf_rti_mark_federate_requesting_stop(&federates[fed]);
                 continue;
             } else if (!federates[fed].clock_synchronization_enabled) {
