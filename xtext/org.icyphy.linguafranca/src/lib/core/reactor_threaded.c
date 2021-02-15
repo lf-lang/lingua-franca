@@ -108,8 +108,7 @@ pthread_cond_t global_tag_barrier_requestors_reached_zero = PTHREAD_COND_INITIAL
  * prevent any further advances. This function will increment the
  * total number of pending barrier requests. For each call to this
  * function, there should always be a subsequent call to
- * _lf_decrement_global_tag_barrier() or
- * _lf_decrement_global_tag_barrier_already_locked()
+ * _lf_decrement_global_tag_barrier_locked()
  * to release the barrier.
  * 
  * If there is already a barrier raised at a tag later than future_tag, this
@@ -175,8 +174,7 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
  * prevent any further advances. This function will increment the
  * total number of pending barrier requests. For each call to this
  * function, there should always be a subsequent call to
- * _lf_decrement_global_tag_barrier() or
- * _lf_decrement_global_tag_barrier_already_locked()
+ * _lf_decrement_global_tag_barrier_locked()
  * to release the barrier.
  * 
  * If there is already a barrier raised at a tag later than future_tag, this
@@ -215,14 +213,14 @@ void _lf_increment_global_tag_barrier(tag_t future_tag) {
  *  certain non-blocking functionalities such as receiving timed messages
  *  over the network or handling stop in the federated execution.
  */
-void _lf_decrement_global_tag_barrier_already_locked() {
+void _lf_decrement_global_tag_barrier_locked() {
     // Decrement the number of requestors for the tag barrier.
     _lf_global_tag_advancement_barrier.requestors--;
     // Check to see if the semaphore is negative, which indicates that
     // a mismatched call was placed for this function.
     if (_lf_global_tag_advancement_barrier.requestors < 0) {
         error_print_and_exit("Mismatched use of _lf_increment_global_tag_barrier()"
-                " and  _lf_decrement_global_tag_barrier().");
+                " and  _lf_decrement_global_tag_barrier_locked().");
     } else if (_lf_global_tag_advancement_barrier.requestors == 0) {
         // When the semaphore reaches zero, reset the horizon to forever.
         _lf_global_tag_advancement_barrier.horizon = (tag_t) { .time = FOREVER, .microstep = UINT_MAX };
@@ -232,23 +230,6 @@ void _lf_decrement_global_tag_barrier_already_locked() {
     DEBUG_PRINT("Barrier is at tag (%lld, %u).",
                  _lf_global_tag_advancement_barrier.horizon.time,
                  _lf_global_tag_advancement_barrier.horizon.microstep);
-}
-
-/**
- * @see _lf_decrement_global_tag_barrier_already_locked()
- * A variant of _lf_decrement_global_tag_barrier_already_locked() that
- * assumes the caller does not hold the mutex lock, thus, it will acquire it
- * itself.
- * 
- * @note This function is only useful in threaded applications to facilitate
- *  certain non-blocking functionalities such as receiving timed messages
- *  over the network or handling stop in the federated execution.
- */
-void _lf_decrement_global_tag_barrier() {
-    pthread_mutex_lock(&mutex);
-    // Call the original function
-    _lf_decrement_global_tag_barrier_already_locked();
-    pthread_mutex_unlock(&mutex);
 }
 
 /**
@@ -613,7 +594,15 @@ void __next() {
             return;
         }
     }
-    
+    // A wait occurs even if wait_until() returns true, which means that the
+    // tag on the head of the event queue may have changed.
+    next_tag = get_next_event_tag();
+
+    // If this (possibly new) next tag is past the stop time, return.
+    if (_lf_is_tag_after_stop_tag(next_tag)) {
+        return;
+    }
+
     DEBUG_PRINT("Physical time is ahead of next tag time by %lld. This should be small unless -fast is used.",
                 get_physical_time() - next_tag.time);
     
