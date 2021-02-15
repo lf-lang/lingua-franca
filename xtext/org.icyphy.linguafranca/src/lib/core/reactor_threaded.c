@@ -567,10 +567,18 @@ void __next() {
     // Since send_next_event_tag releases the mutex lock internally, we need to check
     // again for what the next tag is (e.g., the stop time could have changed).
     next_tag = get_next_event_tag();
+    
+    // FIXME: Do starvation analysis for centralized coordination.
+    // Specifically, if the event queue is empty on *all* federates, this
+    // can become known to the RTI which can then stop execution.
+    // Hence, it will no longer be necessary to force keepalive to be true
+    // for all federated execution. With centralized coordination, we could
+    // allow keepalive to be either true or false and could get the same
+    // behavior with centralized coordination as with unfederated execution.
+
 #else  // _LF_COORD_CENTRALIZED
     if (pqueue_peek(event_q) == NULL && !keepalive_specified) {
         // There is no event on the event queue and keepalive is false.
-        // FIXME FIXME: Do starvation analysis for coordinated execution.
         // No event in the queue
         // keepalive is not set so we should stop.
         // Note that federated programs with decentralized coordination always have
@@ -662,9 +670,6 @@ void request_stop() {
     pthread_mutex_lock(&mutex);
 #ifdef _LF_IS_FEDERATED
     _lf_fd_send_stop_request_to_rti();
-    // Notify the RTI that nothing more will happen.
-    // FIXME FIXME This is probably not right.
-    // send_next_event_tag((tag_t){ .time=FOREVER, .microstep = UINT_MAX }, false);
     // Do not set stop_requested
     // since the RTI might grant a
     // later stop tag than the current
