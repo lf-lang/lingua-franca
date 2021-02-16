@@ -49,7 +49,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 
 import static org.junit.Assert.assertTrue
-import org.icyphy.tests.LinguaFrancaTestHelper
+import org.icyphy.tests.TestRegistry
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -101,7 +101,7 @@ class LinguaFrancaCoverageTest {
     def void generateCodeForAllIntegrationTests() {
         val set = resourceSetProvider.get
         for (target : Target.values) {
-            val location = LinguaFrancaTestHelper.LF_TEST_PATH + target
+            val location = TestRegistry.LF_TEST_PATH + target
             val d = new File(location)
             if (d.exists) {
                 println("Target: " + target)
