@@ -410,6 +410,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             if (context.args.containsKey("no-compile")) {
                 config.noCompile = true
             }
+            if (context.args.containsKey("threads")) {
+                config.threads = Integer.parseInt(context.args.getProperty("threads"))
+            }
             if (context.args.containsKey("target-compiler")) {
                 config.compiler = context.args.getProperty("target-compiler")
             }
