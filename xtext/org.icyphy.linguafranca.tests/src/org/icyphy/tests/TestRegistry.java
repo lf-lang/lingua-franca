@@ -94,7 +94,7 @@ public class TestRegistry {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     public enum TestCategory {
-        GENERIC(true), TARGET(false), THREADED(true), FEDERATED(true);
+        GENERIC(true), MULTIPORT(true), TARGET(false), THREADED(true), FEDERATED(true);
         
         public final boolean isCommon;
         
