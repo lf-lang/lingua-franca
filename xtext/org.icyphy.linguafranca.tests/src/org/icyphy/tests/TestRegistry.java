@@ -12,6 +12,8 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -20,9 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.icyphy.Target;
+import org.icyphy.tests.runtime.TestBase;
+
+import com.google.common.collect.Multimap;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -53,9 +59,19 @@ public class TestRegistry {
     /**
      * Registry that maps targets and test categories to a list of paths.
      */
-    protected final static List<List<Set<Test>>> registry = new ArrayList<List<Set<Test>>>();
+    protected final static List<List<Set<LFTest>>> registry = new ArrayList<List<Set<LFTest>>>();
     
+    /**
+     * Maps each target to a set of target categories it supports.
+     */
     protected final static Map<Target, Set<TestCategory>> support = new HashMap<Target, Set<TestCategory>>();
+    
+    /**
+     * Maps each test category to a set of tests that is the union of tests in that category across all targets.
+     */
+    protected final static Map<TestCategory, Set<LFTest>> allTargets = new HashMap<TestCategory, Set<LFTest>>();
+    
+    public static StringBuffer messages = new StringBuffer();
 
     /**
      * Enumeration of test categories, used to map tests to categories. The
@@ -78,16 +94,33 @@ public class TestRegistry {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     public enum TestCategory {
-        COMMON, THREADED, FEDERATED
+        GENERIC(true), TARGET(false), THREADED(true), FEDERATED(true);
+        
+        public final boolean isCommon;
+        
+        private TestCategory(boolean isCommon) {
+            this.isCommon = isCommon;
+        }
+        
+        public String getHeader() {
+            StringBuffer sb = new StringBuffer();
+            sb.append(TestBase.THICK_LINE);
+            sb.append("Category: " + this.name());
+            return sb.toString();
+        }
     }
     
-    static { 
+    static {
+        // Prepare for the collection of tests per category.
+        for (TestCategory t: TestCategory.values()) {
+            allTargets.put(t, new TreeSet<LFTest>());
+        }
         // Populate the registry.
         for (Target target : Target.values()) {
             // Initialize the lists.
-            ArrayList<Set<Test>> categories = new ArrayList<Set<Test>>();
+            ArrayList<Set<LFTest>> categories = new ArrayList<Set<LFTest>>();
             for (int i = 0; i < TestCategory.values().length; i++) {
-                categories.add(new LinkedHashSet<Test>());
+                categories.add(new LinkedHashSet<LFTest>());
             }
             registry.add(target.ordinal(), categories);
             Set<TestCategory> supported = new HashSet<TestCategory>();
@@ -96,11 +129,11 @@ public class TestRegistry {
             try {
                 Path dir = Paths.get(LF_TEST_PATH + target);
                 if (Files.exists(dir)) {
-                    // A test directory exist. Assume support for common tests.
-                    supported.add(TestCategory.COMMON);
+                    // A test directory exist. Assume support for generic tests.
+                    supported.add(TestCategory.GENERIC);
                     Files.walkFileTree(dir, new TestFileVisitor(target));
                 } else {
-                    System.out.println("WARNING: No test directory target " + target);
+                    messages.append("WARNING: No test directory target " + target + "\n");
                 }
                 
             } catch (IOException e) {
@@ -108,7 +141,17 @@ public class TestRegistry {
                         "Error while indexing tests for target " + target);
                 e.printStackTrace();
             }
+            // Record the tests for later use when reporting coverage.
+            Arrays.asList(TestCategory.values()).forEach(
+                    c -> allTargets.get(c).addAll(getTests(target, c)));
         }
+    }
+    
+    public static Set<LFTest> getTests(Target target, TestCategory category) {
+        Set<LFTest> sorted = new TreeSet<LFTest>();
+        registry.get(target.ordinal()).get(category.ordinal()).forEach(
+                test -> sorted.add(new LFTest(test.target, test.path)));
+        return sorted;
     }
     
     /**
@@ -117,48 +160,41 @@ public class TestRegistry {
      * @param included The test categories to include in the returned list.
      * @return
      */
-    public static List<Test> getTestsIncluding(Target target,
+    public static List<LFTest> getTestsIncluding(Target target,
             List<TestCategory> included) {
-        List<Test> tests = new LinkedList<Test>();
+        List<LFTest> tests = new LinkedList<LFTest>();
         for (TestCategory category : included) {
-            tests.addAll(
-                    registry.get(target.ordinal()).get(category.ordinal()));
+            tests.addAll(getTests(target, category));
         }
         return tests;
     }
     
 
-    
-    public static String getCoverageReport(Target target) {
+    public static String getCoverageReport(Target target, TestCategory category) {
         StringBuilder s = new StringBuilder();
-        int totalMissing = 0;
-        int totalTests = 0;
-        for (TestCategory category : TestCategory.values()) {
-            s.append("Category: " + category);
-            if (support.get(target).contains(category)) {
-                Set<Test> all = new LinkedHashSet<Test>();
-                Set<Test> own = registry.get(target.ordinal()).get(category.ordinal());
-                for (Target t : Target.values()) {
-                    all.addAll(registry.get(t.ordinal()).get(category.ordinal()));
-                }
-                s.append(" (" + own.size() + "/" + all.size() + ")\n");
-                int missing = all.size() - own.size();
-                totalTests += all.size();
-                if (missing > 0) {
-                    totalMissing += missing;
-                    s.append("Tests not implemented: ");
-                    s.append(all.stream().filter(test -> !own.contains(test))
-                            .map(test -> test.toString())
-                            .collect(Collectors.joining(", ", "[", "]")) + "\n");
-                }
-            } else {
-                s.append(" N/A");
+        if (support.get(target).contains(category)) {
+            Set<LFTest> all = allTargets.get(category);
+            Set<LFTest> own = getTests(target, category);
+            s.append(TestBase.THIN_LINE);
+            s.append("Covered: " + own.size() + "/" + all.size() + "\n");
+            s.append(TestBase.THIN_LINE);
+            int missing = all.size() - own.size();
+            if (missing > 0) {
+                all.stream().filter(test -> !own.contains(test))
+                        //.map(test -> test.toString())
+                        .forEach(test -> s.append("Missing: " + test.toString() + "\n"));
+                        //.collect(Collectors.joining(", ", "[", "]")) + "\n");
             }
+        } else {
+            s.append("\n" + TestBase.THIN_LINE);
+            s.append("Covered: N/A\n");
+            s.append(TestBase.THIN_LINE);
         }
-        s.append("Missing " + totalMissing + " out of " + totalTests + " tests in supported categories.");
         
         return s.toString();
     }
+    
+    
     
     /**
      * Return all test for the given target minus those that fall in the
@@ -168,15 +204,16 @@ public class TestRegistry {
      * @param excluded The test categories to exclude from the returned list.
      * @return
      */
-    public static List<Test> getTestsExcluding(Target target,
+    public static List<LFTest> getTestsExcluding(Target target,
             List<TestCategory> excluded) {
-        List<Test> tests = new LinkedList<Test>();
+        List<LFTest> tests = new LinkedList<LFTest>();
         for (TestCategory category : TestCategory.values()) {
             if (!excluded.contains(category)) {
                 tests.addAll(
                         registry.get(target.ordinal()).get(category.ordinal()));
             }
         }
+        tests.forEach(test -> test.clear());
         return tests;
     }
     
@@ -213,7 +250,7 @@ public class TestRegistry {
          * @param target The target that all encountered tests belong to.
          */
         public TestFileVisitor(Target target) {
-            stack.push(TestCategory.COMMON);
+            stack.push(TestCategory.GENERIC);
             this.target = target;
         }
         
@@ -262,7 +299,7 @@ public class TestRegistry {
         public FileVisitResult visitFile(Path file, BasicFileAttributes attr) {
             if (attr.isRegularFile() && file.toString().endsWith(".lf")) {
                 registry.get(this.target.ordinal())
-                        .get(this.stack.peek().ordinal()).add(new Test(target, file));
+                        .get(this.stack.peek().ordinal()).add(new LFTest(target, file));
             }
             return CONTINUE;
         }
