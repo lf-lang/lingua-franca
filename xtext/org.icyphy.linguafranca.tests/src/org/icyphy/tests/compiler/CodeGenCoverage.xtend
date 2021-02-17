@@ -39,7 +39,9 @@ import org.icyphy.tests.runtime.TestBase
 class CodeGenCoverage extends TestBase {
 
     new() {
+        // Only generate code.
         this.check = false;
+        this.build = false;
         this.run = false;
     }
 

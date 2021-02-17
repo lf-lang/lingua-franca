@@ -14,15 +14,6 @@ jacoco {
 	reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
 }
 
-// jacocoTestReport {
-// 	dependsOn test // tests are required to run before generating the report
-//     reports {
-//         xml.enabled false
-//         csv.enabled false
-//         html.destination "${buildDir}/reports/jacoco"
-//     }
-// }
-
 apply plugin: 'java'
 apply plugin: 'jacoco'
 
@@ -34,27 +25,19 @@ jacocoTestReport {
         xml.destination file("${buildDir}/reports/xml/jacoco")
         csv.destination file("${buildDir}/reports/csv/jacoco")
     }
-    //def fileFilter = ['*/org/icyphy/services/**/*', '*/org/icyphy/serializer/**/*', '*/org/icyphy/linguaFranca/**/*']
-    //def fileFilter = []
-    def mainCls = fileTree(dir: "$project.buildDir/../../org.icyphy.linguafranca/build/classes/java/main")//, excludes: fileFilter)
-    
+    def fileFilter = [  'org/icyphy/services/**', 
+                        'org/icyphy/linguaFranca/impl/**', 
+                        'org/icyphy/serializer/**', 
+                        'org/icyphy/linguaFranca/util/**', 
+                        'org/icyphy/linguaFranca/**',
+                        'org/icyphy/parser/antlr/**'
+                    ]
+    def mainCls = fileTree(dir: "$project.buildDir/../../org.icyphy.linguafranca/build/classes/java/main", excludes: fileFilter)
     def mainSrc =  "$project.buildDir/../../org.icyphy.linguafranca/xtend-gen"
     def javaSrc = "$project.buildDir/../../org.icyphy.linguafranca/src"
-    //Example: kotlin compiled classes
-    //def kotlinTree = fileTree(dir: "$project.buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
-    //...etc...
-    classDirectories.from = files(mainCls)//[javaTree, kotlinTree])
+    
+    classDirectories.from = files(mainCls)
     sourceDirectories.from = files([mainSrc, javaSrc])
-
-    afterEvaluate {
-        getClassDirectories().setFrom(classDirectories.files.collect {
-            fileTree(dir: it,
-                exclude: [
-                    '**/org/icyphy/services/**/*'
-                ] // (2)
-            )
-        })
-    }
 }
 
 test {
@@ -62,6 +45,7 @@ test {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+    maxParallelForks = Runtime.runtime.availableProcessors()
 	useJUnitPlatform()
     finalizedBy jacocoTestReport
 }

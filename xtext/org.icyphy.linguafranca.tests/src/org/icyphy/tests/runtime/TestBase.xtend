@@ -65,6 +65,8 @@ class TestBase {
     
     protected boolean run = true;
     
+    protected boolean build = true;
+    
     @Test
     def void runGenericTests() {
         printTestHeader("Description: Run generic tests (threads = 0).")
@@ -195,6 +197,10 @@ class TestBase {
         if (!configuration.apply(test)) {
             test.result = Result.CONFIG_FAIL
             return false
+        }
+        
+        if (!this.build) {
+            test.properties.setProperty("no-compile", "")
         }
         
         if (!test.resource.allContents.filter(Reactor).exists[it.isMain || it.isFederated]) {
@@ -333,8 +339,10 @@ class TestBase {
         var marks = 0
         var done = 0
         for (test : tests) {
-            if (this.run && test.parseAndValidate(configuration) && test.generateCode()) {
-                test.execute()
+            if (test.parseAndValidate(configuration) && test.generateCode()) {
+                if (run) {
+                    test.execute()
+                }
             }
             while (Math.floor(done * x) > marks && marks < 78) {
                 print("=")
