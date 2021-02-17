@@ -1,9 +1,10 @@
 /**
  * @file
  * @author Edward A. Lee
+ * @author Ravi Akella
  *
  * @section LICENSE
-Copyright (c) 2020, The University of California at Berkeley
+Copyright (c) 2021, The University of California at Berkeley
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -26,26 +27,85 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
- * FIXME: I was unable to get this to work. InfluxDB documentation is inadequate.
- * I have tried both basic authentication with user/password and token authentication
- * in the HTTP POST header. Neither works.
  * 
  * Standalone program to send a Lingua Franca trace file to InfluxDB.
  * InfluxDB is a database server to which data can be posted using HTTP
  * or sent as a UDP datagram.
  * 
+ * ## Compiling this Program
+ * 
+ * To compile this program, simply do this in this source directory:
+ * ```
+ *    make install
+ * ```
+ * This will place an executable program `trace_to_influxdb` in the directory `lingua-franca/bin`.
+ * I find it convenient to have this directory in my `PATH` (this is also where the
+ * `lfc` command-line Lingua Franca compiler is located).
+ * 
+ * ## Setting up InfluxDB
+ * 
  * To set up InfluxDB, see:
  * 
  * [https://docs.influxdata.com/influxdb/v2.0/get-started/](https://docs.influxdata.com/influxdb/v2.0/get-started/)
  * 
- * To start the server on port 8087, do this:
+ * If you have previously installed InfluxDB and you want a fresh start, do this:
  * ```shell
- *     influxd --http-bind-address localhost:8087 --reporting-disabled
+ *     rm -rf ~/.influxdbv2/
+ *     ps aux | grep nflux
  * ```
- * Then point your browser to [http://localhost:8087](http://localhost:8087).
- * Here, you can create a user, password, and bucket into which to dump data.
+ * The second command will report any InfluxDB processes that are running. Kill them with
+ * ```shell
+ *     kill -9 PID
+ * ```
+ * where 'PID' is replaced with whatever process ID(s) are reported by the `ps` command above.
  * 
- * FIXME: How to use this program.
+ * To start an InfluxDB server on localhost with port 8087:
+ * ```shell
+ *    influxd --http-bind-address :8087 --reporting-disabled
+ * ```
+ * The 'reporting-disabled' option simply disables notifications to the InfluxDB mother ship.
+ * 
+ * You then need to set up at least one user, organization, and bucket. You can do this by pointing your browser to
+ * ```
+ *     http://localhost:8087
+ * ```
+ * The browser will walk you through the process of creating a user, password, organization, and initial bucket. E.g.:
+ * ```
+ *     User: eal superSecretPassword
+ *     Organization: iCyPhy
+ *     Bucket: test
+ * ```
+ * The UI in the browser will then give you the options Quick Start or Advanced, either of which you can select.
+ * If you select "Data" on the left, you can browse Buckets to verify that your test bucket was created.
+ * 
+ * ## Uploading Trace Data to InfluxDB
+ * 
+ * First, generate a trace file by setting a target parameter in a Lingua Franca program:
+ * ```
+ *     target C {
+ *         tracing: true
+ *     };
+ * ```
+ * Then, when you run this program, a binary file with extension `.lft` will be created.
+ * 
+ * In your browser, in the InfluxDB UI, select Data on the left, then select the Tokens tab.
+ * Select a token and copy the token string to clipboard. It will looks something like this:
+ * ```
+ *     N1mK4b7z29YuWrWG_rBRJF3owaXjPA6gBVOgGG3eStS_zbESHTYJgfJWHB2JA_y3-BMYlMPVa05ccLVA1S770A==
+ * ```
+ * Then, invoke the conversion program as follows:
+ * ```shell
+ *     trace_to_influxdb Filename.lft \
+ *         --token N1mK4b7z29YuWrWG_rBRJF3owaXjPA6gBVOgGG3eStS_zbESHTYJgfJWHB2JA_y3-BMYlMPVa05ccLVA1S770A==
+ * ```
+ * where 'Filename' and the token are replaced with your values.
+ * This will upload the trace data to InfluxDB.
+ * 
+ * You can also specify the following command-line options:
+ * * -h, --host: The host name running InfluxDB. If not given, this defaults to "localhost".
+ * * -p, --port: The port for accessing InfluxDB. This defaults to 8086. If you used 8087, as shown above, then you have to give this option.
+ * 
+ * FIXME: How to view the data using the InfluxDB browser and/or Graphana.
  */
 #define LINGUA_FRANCA_TRACE
 #include "reactor.h"
@@ -63,13 +123,19 @@ influx_v2_client_t influx_v2_client;
  * Print a usage message.
  */
 void usage() {
-    printf("\nUsage: trace_to_influxdb [options] trace_file\n\n");
-    /* No options yet:
+    printf("\nUsage: trace_to_influxdb [options] trace_file [options]\n\n");
     printf("\nOptions: \n\n");
-    printf("  -f, --fast [true | false]\n");
-    printf("   Whether to wait for physical time to match logical time.\n\n");
+    printf("   -t, --token TOKEN\n");
+    printf("   The token for access to InfluxDB (required argument).\n\n");
+    printf("   -h, --host HOSTNAME\n");
+    printf("   The host name for access to InfluxDB (default is 'localhost').\n\n");
+    printf("   -p, --port PORT\n");
+    printf("   The port for access to InfluxDB (default is 8086).\n\n");
+    printf("   -o, --ort ORGANIZATION\n");
+    printf("   The organization for access to InfluxDB (default is 'iCyPhy').\n\n");
+    printf("   -b, --bucket BUCKET\n");
+    printf("   The bucket into which to put the data (default is 'test').\n\n");
     printf("\n\n");
-    */
 }
 
 /** Largest timestamp seen. */
@@ -126,23 +192,73 @@ size_t read_and_write_trace() {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
+    if (argc < 2) {
         usage();
         exit(0);
     }
-    // FIXME: Get from command line.
-    // Change these parameters as per your environment
+    // Defaults.
+    influx_v2_client.token = NULL;
     influx_v2_client.host = "localhost";
-    influx_v2_client.port = 8088;
-    influx_v2_client.org = "icyphy"; 
-    influx_v2_client.bucket = "tracing";
-    influx_v2_client.token = "ra0gassNhZoC0V1ABxVHT6-34thskx5HFgMEivd2WFfHuNXyspaYj9SB992YFKTCtne0_pb80OSKundUa7KLGQ==";
-    
-    //influx_client.db = "test";
-    //influx_client.usr = "eal";
-    //influx_client.pwd = "changeme";
+    influx_v2_client.port = 8086;
+    influx_v2_client.org = "iCyPhy"; 
+    influx_v2_client.bucket = "test";
 
-    open_files(argv[1], NULL);
+    char* filename = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp("-t", argv[i]) == 0 || strcmp("--token", argv[i]) == 0) {
+            if (i++ == argc - 1) {
+                usage();
+                fprintf(stderr, "No token specified.\n");
+                exit(1);
+            }
+            influx_v2_client.token = argv[i];
+        } else if (strcmp("-h", argv[i]) == 0 || strcmp("--host", argv[i]) == 0) {
+            if (i++ == argc - 1) {
+                usage();
+                fprintf(stderr, "No host specified.\n");
+                exit(1);
+            }
+            influx_v2_client.host = argv[i];
+        } else if (strcmp("-p", argv[i]) == 0 || strcmp("--port", argv[i]) == 0) {
+            if (i++ == argc - 1) {
+                usage();
+                fprintf(stderr, "No port specified.\n");
+                exit(1);
+            }
+            influx_v2_client.port = atoi(argv[i]);
+            if (influx_v2_client.port == 0) {
+                fprintf(stderr, "Invalid port: %s.\n", argv[i]);
+            }
+        } else if (strcmp("-o", argv[i]) == 0 || strcmp("--org", argv[i]) == 0) {
+            if (i++ == argc - 1) {
+                usage();
+                fprintf(stderr, "No organization specified.\n");
+                exit(1);
+            }
+            influx_v2_client.org = argv[i];
+        } else if (strcmp("-b", argv[i]) == 0 || strcmp("--bucket", argv[i]) == 0) {
+            if (i++ == argc - 1) {
+                usage();
+                fprintf(stderr, "No bucket specified.\n");
+                exit(1);
+            }
+            influx_v2_client.bucket = argv[i];
+        } else {
+            // Must be the filename.
+            filename = argv[i];
+        }
+    }
+    if (influx_v2_client.token == NULL) {
+        fprintf(stderr, "No token specified.\n");
+        exit(1);
+    }
+    if (filename == NULL) {
+        fprintf(stderr, "No trace file specified.\n");
+        exit(1);
+    }
+
+    open_files(filename, NULL);
 
     if (read_header() >= 0) {
         size_t num_records = 0, result;
