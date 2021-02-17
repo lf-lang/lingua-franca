@@ -29,7 +29,6 @@ jobs:
       - name: Run unit tests
         run: |
           cd xtext
-          ./gradlew test --tests org.icyphy.tests.runtime.Coverage
           ./gradlew test --tests org.icyphy.tests.compiler.*
 
   c-tests:

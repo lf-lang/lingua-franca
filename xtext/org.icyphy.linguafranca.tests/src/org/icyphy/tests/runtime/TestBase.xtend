@@ -63,7 +63,7 @@ class TestBase {
     
     protected boolean check = true;
     
-    protected boolean run = false;
+    protected boolean run = true;
     
     @Test
     def void runGenericTests() {
@@ -152,7 +152,7 @@ class TestBase {
             tests.compileAndRun(configuration)
             println(TestRegistry.getCoverageReport(target, category));
             if (check) {
-                tests.reportFailures
+                tests.checkAndReportFailures
             }
         }
     }
@@ -164,16 +164,16 @@ class TestBase {
         println(TestBase.THICK_LINE)
     }
 
-    def void reportFailures(Set<LFTest> tests) { // FIXME: rename to checkAndReportFailures
+    def void checkAndReportFailures(Set<LFTest> tests) {
         var passed = tests.filter[!it.hasFailed].size
         print("\n" + THIN_LINE)
         println("Passing: " + passed + "/" + tests.size)
         print(THIN_LINE)
         
         for (test : tests) {
-            (test.result === Result.TEST_PASS).assertTrue
             print(test.reportErrors)
         }
+        tests.forall[it.result === Result.TEST_PASS].assertTrue
     }
 
     def boolean parseAndValidate(LFTest test, Function1<LFTest, Boolean> configuration) {
