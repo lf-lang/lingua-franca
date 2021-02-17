@@ -24,10 +24,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-package org.icyphy.tests.runtime
+package org.icyphy.tests.compiler
 
 import org.icyphy.Target
 import org.junit.jupiter.api.Test
+import org.icyphy.tests.runtime.TestBase
 
 /**
  * Collection of tests intended to touch as many lines of the code
@@ -35,10 +36,11 @@ import org.junit.jupiter.api.Test
  * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class Coverage extends TestBase {
+class CodeGenCoverage extends TestBase {
 
     new() {
         this.check = false;
+        this.run = false;
     }
 
     @Test
