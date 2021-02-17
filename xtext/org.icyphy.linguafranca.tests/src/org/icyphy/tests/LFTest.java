@@ -22,8 +22,6 @@ public class LFTest implements Comparable<LFTest> {
     
     public ByteArrayOutputStream out = new ByteArrayOutputStream();
     
-    public boolean execute = true;
-    
     public ByteArrayOutputStream err = new ByteArrayOutputStream();
     
     public String compilationIssues = "";
@@ -120,6 +118,7 @@ public class LFTest implements Comparable<LFTest> {
         VALIDATE_FAIL("Unable to successfully validate test."),
         CODE_GEN_FAIL("Unable to successfully generate code for test."),
         BUILD_FAIL("Unable to successfully compile generated code for test."),
+        NO_EXEC_FAIL("Unable to successfully execute test."),
         TEST_FAIL("Test did not pass."),
         TEST_TIMEOUT("Test timed out."),
         TEST_PASS("Test passed.");

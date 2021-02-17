@@ -9,10 +9,10 @@ dependencies {
 	testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:${xtextVersion}"
 }
 
-// jacoco {
-//      toolVersion = "0.8.6"
-// 		reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
-// }
+jacoco {
+    toolVersion = "0.8.7"
+	reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
+}
 
 // jacocoTestReport {
 // 	dependsOn test // tests are required to run before generating the report
