@@ -363,12 +363,16 @@ void logical_tag_complete(instant_t time, microstep_t microstep);
  * the runtime infrastructure (RTI) of the specified tag, which is the tag of
  * the next event on the event queue or, if the queue is empty either
  * (FOREVER, UINT_MAX) or the stop_time (the timeout time), whichever is less.
+ * This function may also modify the tag if there is a physical action that
+ * can trigger an output from the federate so that the tag sent does not
+ * excceed the current physical time.
  * An implementation of this function may block until it is safe for
- * logical time to advance to the specified time or a lesser time.
- * This function returns either the specified time or a lesser time.
- * It will return a lesser time if its blocking was interrupted by
+ * logical time to advance to the returned tag, which may be less than the
+ * specified tag.
+ * This function returns either the specified tag or a lesser tag.
+ * It will return a lesser tag if its blocking was interrupted by
  * either a new event on the event queue (e.g. a physical action) or
- * if the RTI grants advancement to a lesser time.
+ * if the RTI grants advancement to a lesser tag.
  * @param tag The tag to which to advance.
  * @param wait_for_reply If true, wait for the RTI to respond.
  * @return The tag to which it is safe to advance.
@@ -520,7 +524,7 @@ tag_t get_next_event_tag() {
     if (_lf_is_tag_after_stop_tag(next_tag)) {
         next_tag = stop_tag;
     }
-    LOG_PRINT("Next event tag is (%lld, %u). Event queue has size %d.",
+    LOG_PRINT("Earliest event on the event queue (or stop time if empty) is (%lld, %u). Event queue has size %d.",
             next_tag.time - start_time, next_tag.microstep, pqueue_size(event_q));
     return next_tag;
 }
@@ -1160,12 +1164,12 @@ int main(int argc, char* argv[]) {
         // In a federated execution, request from the RTI to advance time to the start time
         // and wait for a reply.
         // In a non-federated execution, this returns immediately.
-        tag_t grant_time = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
-        if (grant_time.time != start_time || grant_time.microstep != 0u) {
+        tag_t grant_tag = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
+        if (grant_tag.time < start_time) {
             // This is a critical condition
-            error_print_and_exit("Federate received a grant time earlier than start time "
-                    "or with an incorrect starting microstep (%lld, %u).",
-                    grant_time.time - start_time, grant_time.microstep);
+            error_print_and_exit("Federate received a grant tag earlier than start time: "
+                    "(%lld, %u).",
+                    grant_tag.time - start_time, grant_tag.microstep);
         }
         
         _lf_execution_started = true;

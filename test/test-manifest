@@ -84,6 +84,7 @@ ImportComposition.lf
 ImportThreaded.lf
 ImportRenamed.lf
 InheritanceAction.lf
+LoopDistributedCentralized.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf

@@ -109,10 +109,10 @@ int socket_descriptor_TCP = -1;
 
 /************* UDP server information *************/
 /** The final port number that the UDP socket server ends up using. */
-ushort final_port_UDP = -1;
+ushort final_port_UDP = USHRT_MAX;
 
 /** The UDP socket descriptor for the socket server. */
-int socket_descriptor_UDP = USHRT_MAX;
+int socket_descriptor_UDP = -1;
 
 #ifdef _LF_CLOCK_SYNC_ON
 pthread_t clock_thread; // Thread performing PTP clock sync sessions periodically.
@@ -485,8 +485,9 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         }
     }
 
-    LOG_PRINT("Minimum upstream LTC is (%lld, %u) and NET (adjusted by after delay) is (%lld, %u).",
-            completed.time, completed.microstep,
+    LOG_PRINT("Minimum upstream LTC for fed %d is (%lld, %u) and earliest message time (adjusted by after delay) is (%lld, %u).",
+            fed->id,
+            completed.time - start_time, completed.microstep,
             t_d.time - start_time, t_d.microstep);
 
     // If the earliest event time of the upstream federates (adjusted by
@@ -1159,6 +1160,7 @@ void connect_to_federates(int socket_descriptor) {
         unsigned char buffer[length];
 
         // Read bytes from the socket. We need 4 bytes.
+        // FIXME: This should not exit with error but rather should just reject the connection.
         read_from_socket_errexit(socket_id, length, buffer, "RTI failed to read from accepted socket.");
         // debug_print("read %d bytes.\n", bytes_read);
 
@@ -1186,6 +1188,7 @@ void connect_to_federates(int socket_descriptor) {
             size_t federation_id_length = (size_t)buffer[sizeof(ushort) + 1];
             char federation_id_received[federation_id_length + 1]; // One extra for null terminator.
             // Next read the actual federation ID.
+            // FIXME: This should not exit on error, but rather just reject the connection.
             read_from_socket_errexit(socket_id, federation_id_length,
                                 (unsigned char*)federation_id_received,
                                 "RTI failed to read federation id from federate %d.", fed_id);
@@ -1223,7 +1226,7 @@ void connect_to_federates(int socket_descriptor) {
             unsigned char response[2];
             response[0] = REJECT;
             response[1] = error_code;
-            // Ignore errors on this response.
+            // FIXME: Ignore errors on this response.
             write_to_socket_errexit(socket_id, 2, response, "RTI failed to write REJECT message on the socket.");
             // Close the socket.
             close(socket_id);

@@ -145,7 +145,7 @@ typedef struct federate_instance_t {
 	bool sent_a_stop_request_to_rti;
 
 	/**
-	 * A record of the most recently sent LTC (logical time complete) message.
+	 * A record of the most recently sent LTC (logical tag complete) message.
 	 * In some situations, federates can send logical_tag_complete for
 	 * the same tag twice or more in-a-row to the RTI. For example, when
 	 * __next() returns without advancing tag. To prevent overwhelming
@@ -158,6 +158,11 @@ typedef struct federate_instance_t {
 	 *  if it is deliverable
 	 */
 	tag_t last_sent_LTC;
+
+	/**
+	 * A record of the most recently sent NET (next event tag) message.
+	 */
+	tag_t last_sent_NET;
 
 	/**
 	 * For use in federates with centralized coordination, the minimum

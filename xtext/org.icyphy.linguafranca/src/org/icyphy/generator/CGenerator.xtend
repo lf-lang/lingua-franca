@@ -658,7 +658,7 @@ class CGenerator extends GeneratorBase {
                 pr('''
                     tag_t send_next_event_tag(tag_t tag, bool wait_for_reply) {
                         «IF isFederatedAndCentralized»
-                            return __send_next_event_tag(tag, wait_for_reply);
+                            return _lf_send_next_event_tag(tag, wait_for_reply);
                         «ELSE»
                             return tag;
                         «ENDIF»

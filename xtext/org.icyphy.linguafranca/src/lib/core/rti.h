@@ -40,12 +40,17 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * from there until it successfully connects. The maximum port number
  * it will try before giving up is STARTING_PORT + PORT_RANGE_LIMIT.
  *
+ * FIXME: What if a port is specified in the "at" of the federated statement?
+ *
  * When it has successfully opened a TCP connection, the first message it sends
  * to the RTI is a FED_ID message, which contains the ID of this federate
  * within the federation, contained in the global variable _lf_my_fed_id
+ * in the federate code
  * (which is initialized by the code generator) and the unique ID of
- * the federation, a GUID that is created at code generation time.
- * The federation ID is a string that is optionally given to the federate
+ * the federation, a GUID that is created at run time by the generated script
+ * that launches the federation.
+ * If you launch the federates and the RTI manually, rather than using the script,
+ * then the federation ID is a string that is optionally given to the federate
  * on the command line when it is launched. The federate will connect
  * successfully only to an RTI that is given the same federation ID on
  * its command line. If no ID is given on the command line, then the
@@ -58,7 +63,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * When the federation IDs match, the RTI will respond with an
  * ACK.
  *
- * The next message to the RTI will a UDP_PORT message, which have
+ * The next message to the RTI will a UDP_PORT message, which has
  * payload USHRT_MAX if clock synchronization is disabled altogether, 0 if
  * only initial clock synchronization is enabled, and a port number for
  * UDP communication if runtime clock synchronization is enabled.
@@ -66,7 +71,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * (either no "at" clause is given for either or they both have exactly
  * the same string), then clock synchronization is disabled.
  * Otherwise, the default is that initial clock synchronization is enabled.
- * Turn turn off clock synchronization altogether, set the clock-sync
+ * To turn turn off clock synchronization altogether, set the clock-sync
  * property of the target to off. To turn on runtime clock synchronization,
  * set it to on. The default value is initial.
  *
@@ -84,8 +89,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The payload of the PHYSICAL_CLOCK_SYNC_MESSAGE_T3 message is the
  * federate ID.  The RTI responds to the T3 message with a message
  * of type PHYSICAL_CLOCK_SYNC_MESSAGE_T4, which has as a payload
- * the time at which that response was sent. This cycles will happen
- * many number of times at startup to account for network delay variations
+ * the physical time at which that response was sent. This cycle will happen
+ * _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL times at startup to account for network delay variations
  * (see below).
  *
  * The times T1 and T4 are taken from the physical clock at the RTI,
@@ -93,10 +98,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * the federate.  The round trip latency on the connection to the RTI
  * is therefore measured as (T4 - T1) - (T3 - T2). Half this quantity
  * is an estimate L of the one-way latency.  The estimated clock error
- * E is therefore L - (T2 - T1). To account for any variations in network
- * delay, this clock synchronization cycle is performed many times (based on
- * _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL). The average value of E after
- * the pre-specified number of synchronization cycles becomes the initial offset for the
+ * E is therefore L - (T2 - T1). Over several cycles, the average value of E
+ * becomes the initial offset for the
  * clock at the federate. Henceforth, when get_physical_time() is
  * called, the offset will be added to whatever the physical clock says.
  *
@@ -119,6 +122,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * and no adjustment is made. The round will also be skipped if
  * any of the expected UDP messages fails to arrive.
  *
+ * FIXME: Citation needed here.
+ *
  * The next step depends on the coordination mode. If the coordination
  * parameter of the target is "decentralized" and the federate has
  * inbound connections from other federates, then it starts a socket
@@ -139,6 +144,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * number and IP address in reply, it will establish a socket connection
  * to that remote federate.
  *
+ * FIXME: Don't physical connections also use the above P2P sockets between
+ * federates? Even if the coordination is centralized...
+ *
+ * FIXME: What happens after this?
+ *
  */
 
 #ifndef RTI_H
@@ -149,73 +159,84 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /**
  * The timeout time in ns for TCP operations.
- * Default value is 1 sec.
+ * Default value is 10 secs.
  */
 #define TCP_TIMEOUT_TIME SEC(10)
 
 /**
  * The timeout time in ns for UDP operations.
- * Default value is 10 msec.
+ * Default value is 1 sec.
  */
 #define UDP_TIMEOUT_TIME SEC(1)
 
 
-/** Size of the buffer used for messages sent between federates.
- *  This is used by both the federates and the rti, so message lengths
- *  should generally match.
+/**
+ * Size of the buffer used for messages sent between federates.
+ * This is used by both the federates and the rti, so message lengths
+ * should generally match.
  */
 #define FED_COM_BUFFER_SIZE 256
 
-/** Number of seconds that elapse between a federate's attempts
- *  to connect to the RTI.
+/**
+ * Number of seconds that elapse between a federate's attempts
+ * to connect to the RTI.
  */
 #define CONNECT_RETRY_INTERVAL 2
 
-/** Bound on the number of retries to connect to the RTI.
- *  A federate will retry every CONNECT_RETRY_INTERVAL seconds
- *  this many times before giving up. E.g., 500 retries every
- *  2 seconds results in retrying for about 16 minutes.
+/**
+ * Bound on the number of retries to connect to the RTI.
+ * A federate will retry every CONNECT_RETRY_INTERVAL seconds
+ * this many times before giving up. E.g., 500 retries every
+ * 2 seconds results in retrying for about 16 minutes.
  */
 #define CONNECT_NUM_RETRIES 500
 
 /**
  * Number of nanoseconds that a federate waits before asking
  * the RTI again for the port and IP address of a federate
- * (an ADDRESS_QUERY message) when the RTI responds that it
+ * (an ADDRESS_QUERY message) after the RTI responds that it
  * does not know.
  */
-#define ADDRESS_QUERY_RETRY_INTERVAL 100000000
+#define ADDRESS_QUERY_RETRY_INTERVAL 100000000LL
 
 /**
  * Number of nanoseconds that a federate waits before trying
  * another port for the RTI. This is to avoid overwhelming
  * the OS and the socket with too many calls.
+ * FIXME: Is this too small?
  */
-#define PORT_KNOCKING_RETRY_INTERVAL 10000
+#define PORT_KNOCKING_RETRY_INTERVAL 10000LL
 
 /**
  * Default starting port number for the RTI and federates' socket server.
- * Unless a specific port has been specified by the LF program,
- * the RTI or the federates, when they starts up, will attempt to open a socket server
+ * Unless a specific port has been specified by the LF program in the "at"
+ * for the RTI, when the federates start up, they will attempt
+ * to open a socket server
  * on this port, and, if this fails, increment the port number and
  * try again. The number of increments is limited by PORT_RANGE_LIMIT.
+ * FIXME: Clarify what happens if a specific port has been given in "at".
  */
 #define STARTING_PORT 15045
 
 /**
  * Number of ports to try to connect to. Unless the LF program specifies
  * a specific port number to use, the RTI or federates will attempt to start
- * a socket server on port 15045. If that port is not available (e.g.,
+ * a socket server on port STARTING_PORT. If that port is not available (e.g.,
  * another RTI is running or has recently exited), then it will try the
- * next port, 15046, and keep incrementing the port number up to this
- * limit. If no port between 15045 and 15045 + PORT_RANGE_LIMIT
+ * next port, STARTING_PORT+1, and keep incrementing the port number up to this
+ * limit. If no port between STARTING_PORT and STARTING_PORT + PORT_RANGE_LIMIT
  * is available, then the RTI or the federate will fail to start. This number, therefore,
  * limits the number of RTIs and federates that can be simultaneously
- * running on any given machine.
+ * running on any given machine without assigning specific port numbers.
  */
 #define PORT_RANGE_LIMIT 1024
 
-/** Delay the start of all federates by this amount. */
+/**
+ * Delay the start of all federates by this amount.
+ * FIXME: More.
+ * FIXME: Should use the latency estimates that were
+ * acquired during initial clock synchronization.
+ */
 #define DELAY_START SEC(1)
 
 ////////////////////////////////////////////
@@ -238,7 +259,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ACK 255
 
 /**
- * Byte identifying an acknowledgment of the previously received message
+ * Byte identifying an acknowledgment of the previously received FED_ID message
+ * sent by the RTI to the federate
  * with a payload indicating the UDP port to use for clock synchronization.
  * The next four bytes will be the port number for the UDP server, or
  * 0 or USHRT_MAX if there is no UDP server.  0 means that initial clock synchronization
@@ -258,13 +280,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  Each federate, when starting up, should send this message
  *  to the RTI. This is its first message to the RTI.
  *  The RTI will respond with either REJECT, ACK, or UDP_PORT.
- *  If the federate is a C target LF program, the generated
+ *  If the federate is a C target LF program, the generated federate
  *  code does this by calling synchronize_with_other_federates(),
  *  passing to it its federate ID.
  */
 #define FED_ID 1
 
-/** Byte identifying a timestamp message, which is 64 bits long. */
+/**
+ * Byte identifying a timestamp message, which is 64 bits long.
+ * FIXME: When is this used?
+ s*/
 #define TIMESTAMP 2
 
 /** Byte identifying a message to forward to another federate.
@@ -288,22 +313,27 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  The next eight bytes will be the timestamp.
  *  The next four bytes will be the microstep of the sender.
  *  The remaining bytes are the message.
+ *
+ *  FIXME: Clarify centralized or decentralized.
+ *  FIXME: Rename TAGGED_MESSAGE
  */
 #define TIMED_MESSAGE 5
 
 /** 
- * Byte identifying a next event tag (NET) message sent from a federate.
- * The next eight bytes will be the timestep.
+ * Byte identifying a next event tag (NET) message sent from a federate
+ * in centralized coordination.
+ * The next eight bytes will be the timestamp.
  * The next four bytes will be the microstep.
  * This message from a federate tells the RTI the tag of the earliest event 
  * on that federate's event queue. In other words, absent any further inputs 
- * from other federates, this will be the logical time of the next set of
+ * from other federates, this will be the least tag of the next set of
  * reactions on that federate.
  */
 #define NEXT_EVENT_TIME 6
 
 /** 
- * Byte identifying a time advance grant (TAG) sent to a federate.
+ * Byte identifying a time advance grant (TAG) sent by the RTI to a federate
+ * in centralized coordination.
  * The next eight bytes will be the timestamp.
  * The next four bytes will be the microstep.
  */
