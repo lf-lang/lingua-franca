@@ -172,9 +172,9 @@ public class TestRegistry {
 
     public static String getCoverageReport(Target target, TestCategory category) {
         StringBuilder s = new StringBuilder();
+        Set<LFTest> own = getTests(target, category);
         if (support.get(target).contains(category)) {
             Set<LFTest> all = allTargets.get(category);
-            Set<LFTest> own = getTests(target, category);
             s.append(TestBase.THIN_LINE);
             s.append("Covered: " + own.size() + "/" + all.size() + "\n");
             s.append(TestBase.THIN_LINE);
@@ -187,7 +187,7 @@ public class TestRegistry {
             }
         } else {
             s.append("\n" + TestBase.THIN_LINE);
-            s.append("Covered: N/A\n");
+            s.append("Covered: " + own.size() + "/" + own.size() + "\n");
             s.append(TestBase.THIN_LINE);
         }
         

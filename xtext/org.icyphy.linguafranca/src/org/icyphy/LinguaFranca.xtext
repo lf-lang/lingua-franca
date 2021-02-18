@@ -364,7 +364,7 @@ terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 @Override
 terminal ML_COMMENT: ('/*' -> '*/') | ('\'\'\'' -> '\'\'\'');
 
-Kebab: ID('-'ID)*;
+Kebab: (ID|"physical")('-'ID)*;
 
 terminal NEGINT:
     '-' ('0'..'9')+;

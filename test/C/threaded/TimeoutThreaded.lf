@@ -9,7 +9,7 @@
     threads: 4
 };
 
-import Sender from "lib/LoopedActionSender.lf"
+import Sender from "../lib/LoopedActionSender.lf"
 
 reactor Consumer {
     input in:int;
