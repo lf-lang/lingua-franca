@@ -45,7 +45,8 @@ test {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
-    maxParallelForks = Runtime.runtime.availableProcessors()
+    // Suggested by Gradle documentation: https://guides.gradle.org/performance/#parallel_test_execution
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 	useJUnitPlatform()
     finalizedBy jacocoTestReport
 }
