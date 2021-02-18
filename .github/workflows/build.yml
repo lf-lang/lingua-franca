@@ -106,7 +106,8 @@ jobs:
         run: |
           #bin/build-lfc;
           #bin/run-lf-tests Cpp;
-          echo "Hello World!"
+          cd xtext
+          ./gradlew test --tests org.icyphy.tests.runtime.CTest.runGenericTests
         
   ts-tests:
     strategy:

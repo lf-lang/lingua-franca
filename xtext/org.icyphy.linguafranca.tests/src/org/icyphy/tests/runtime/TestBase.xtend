@@ -37,7 +37,7 @@ import static extension org.junit.Assert.assertTrue
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
 
-class TestBase {
+abstract class TestBase {
     
     @Inject Provider<ResourceSet> resourceSetProvider
     @Inject IResourceValidator validator

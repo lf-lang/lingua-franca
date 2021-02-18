@@ -3,7 +3,7 @@ target C {
     threads: 4
 };
 
-import TakeTime from "Threaded.lf";
+import TakeTime from "threaded/Threaded.lf";
 
 reactor Print {
     input in:int;
