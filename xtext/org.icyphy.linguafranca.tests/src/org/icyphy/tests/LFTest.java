@@ -45,7 +45,7 @@ public class LFTest implements Comparable<LFTest> {
     }
     
     private static String normalize(Target target, Path path) {
-        return path.toString().replaceFirst(TestRegistry.LF_TEST_PATH + target + Pattern.quote(File.separator), "");
+        return path.toString().replaceFirst(Pattern.quote(TestRegistry.LF_TEST_PATH + target + File.separator), "");
     }
     
     @Override
