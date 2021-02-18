@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.icyphy.Target;
@@ -53,7 +54,7 @@ public class TestRegistry {
      * The location in which to find the tests.
      */
     public static final String LF_TEST_PATH = new File("").getAbsolutePath()
-            .split("xtext" + File.separator + TEST_PACKAGE_NAME)[0] + "test" +
+            .split("xtext" + Pattern.quote(File.separator) + TEST_PACKAGE_NAME)[0] + "test" +
             File.separator;
 
     /**
@@ -136,7 +137,7 @@ public class TestRegistry {
                     messages.append("WARNING: No test directory target " + target + "\n");
                 }
                 
-            } catch (Exception e) {
+            } catch (IOException e) {
                 System.err.println(
                         "Error while indexing tests for target " + target);
                 e.printStackTrace();
