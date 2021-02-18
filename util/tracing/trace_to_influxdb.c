@@ -105,7 +105,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * * -h, --host: The host name running InfluxDB. If not given, this defaults to "localhost".
  * * -p, --port: The port for accessing InfluxDB. This defaults to 8086. If you used 8087, as shown above, then you have to give this option.
  * 
- * FIXME: How to view the data using the InfluxDB browser and/or Graphana.
+ * The data can then be viewed in the InfluxDB browser, or you can configure an external
+ * tool such as Grafana to visualize it (see https://grafana.com/docs/grafana/latest/datasources/influxdb/).
  */
 #define LINGUA_FRANCA_TRACE
 #include "reactor.h"
