@@ -109,9 +109,18 @@ public enum TargetProperty {
             }),
     
     /**
+     * Directive to let the execution engine allow logical time to elapse
+     * faster than physical time.
+     */
+    DOCKER("docker", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+            (config, value) -> {
+                config.docker = ASTUtils.toBoolean(value);
+            }),
+
+    /**
      * Key-value pairs giving options for clock synchronization.
      */
-    DOCKER("docker",
+    DOCKER_OPTIONS("docker-options",
             DictionaryType.DOCKER_DICT, Arrays.asList(Target.C),
             (config, value) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
@@ -119,7 +128,7 @@ public enum TargetProperty {
                             .forName(entry.getName());
                     switch (option) {
                         case FROM:
-                            config.docker.from = ASTUtils.toText(entry.getValue());
+                            config.dockerOptions.from = ASTUtils.toText(entry.getValue());
                             break;
                         default:
                             break;

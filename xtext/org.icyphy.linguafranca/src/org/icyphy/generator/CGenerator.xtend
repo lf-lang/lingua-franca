@@ -67,7 +67,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.TimeUnit
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -717,7 +716,9 @@ class CGenerator extends GeneratorBase {
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             // Create docker file.
-            writeDockerFile(filename)
+            if (config.docker) {
+                writeDockerFile(filename)
+            }
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
@@ -777,7 +778,7 @@ class CGenerator extends GeneratorBase {
         pr(contents, '''
             # Generated docker file for «filename».lf in «directory».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM «config.docker.from»
+            FROM «config.dockerOptions.from»
             WORKDIR /lingua-franca
             COPY src-gen/core src-gen/core
             COPY "src-gen/«filename».c" "src-gen/ctarget.h" "src-gen/"
@@ -1095,7 +1096,9 @@ class CGenerator extends GeneratorBase {
         fOut.close()
         
         // Write a Dockerfile for the RTI.
-        writeDockerFile(filename + '_RTI')
+        if (config.docker) {
+            writeDockerFile(filename + '_RTI')
+        }
     }
     
     /** Create the launcher shell scripts. This will create one or two file
