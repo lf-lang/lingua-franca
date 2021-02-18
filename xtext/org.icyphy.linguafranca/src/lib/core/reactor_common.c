@@ -1051,6 +1051,8 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
     }
 
 #ifdef _LF_COORD_DECENTRALIZED
+    // Event inherits the original intended_tag of the trigger
+    // set by the network stack (or the default, which is (NEVER,0))
     e->intended_tag = trigger->intended_tag;
 #endif
     
@@ -1126,7 +1128,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
                         _lf_recycle_event(e);
                         return(0);
                     }
-                    // If the preceding event _has_ been handled, the adjust
+                    // If the preceding event _has_ been handled, then adjust
                     // the tag to defer the event.
                     intended_time = earliest_time;
                     break;
@@ -1150,6 +1152,17 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
                     break;
             }
         }
+    }
+
+    // Check if the intended time is in the future
+    // This is a sanity check for the logic above
+    // FIXME: This is a development assertion and might
+    // not be necessary for end-user LF programs
+    if (intended_time < current_tag.time) {
+        error_print("Attempting to schedule an event earlier than current time by %lld nsec!"
+                "Revising to the current time %lld.",
+                current_tag.time - intended_time, current_tag.time);
+        intended_time = current_tag.time;
     }
 
     // Set the tag of the event.
@@ -1328,11 +1341,29 @@ trigger_t* _lf_action_to_trigger(void* action) {
  * @param next_time The time step to advance to.
  */ 
 void _lf_advance_logical_time(instant_t next_time) {
-    if (current_tag.time != next_time) {
+    // FIXME: The following checks that _lf_advance_logical_time()
+    // is being called correctly. Namely, check if logical time
+    // is being pushed past the head of the event queue. This should
+    // never happen if _lf_advance_logical_time() is called correctly.
+    // This is commented out because it will add considerable overhead
+    // to the ordinary execution of LF programs. Instead, there might
+    // be a need for a target property that enables these kinds of logic
+    // assertions for development purposes only.
+    // event_t* next_event = (event_t*)pqueue_peek(event_q);
+    // if (next_event != NULL) {
+    //     if (next_time > next_event->time) {
+    //         error_print_and_exit("_lf_advance_logical_time(): Attempted to move tag "
+    //                               "past the head of the event queue.");
+    //     }
+    // }
+
+    if (current_tag.time < next_time) {
         current_tag.time = next_time;
         current_tag.microstep = 0;
-    } else {
+    } else if (current_tag.time == next_time) {
         current_tag.microstep++;
+    } else {
+        error_print_and_exit("_lf_advance_logical_time(): Attempted to move tag back in time.");
     }
     LOG_PRINT("Advanced (elapsed) tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
 }

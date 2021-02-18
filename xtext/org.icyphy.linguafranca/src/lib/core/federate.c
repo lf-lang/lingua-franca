@@ -1013,7 +1013,7 @@ void handle_message(int socket, unsigned char* buffer) {
     }
     LOG_PRINT("Message received by federate: %s. Length: %d.", message_contents, length);
 
-    DEBUG_PRINT("Calling schedule.");
+    DEBUG_PRINT("Calling schedule for message received on a physical connection.");
     _lf_schedule_value(&action, 0, message_contents, length);
 }
 
@@ -1118,13 +1118,16 @@ void handle_timed_message(int socket, unsigned char* buffer) {
  * has been received.
  * This is used to communicate between the listen_to_rti_TCP thread and the
  * main federate thread.
+ * This variable should only be accessed while holding the mutex lock.
  */
-volatile tag_t __tag = {.time = NEVER, .microstep = 0u};
+tag_t _lf_last_tag = {.time = NEVER, .microstep = 0u};
 
-/** Indicator of whether a NET has been sent to the RTI and no TAG
- *  yet received in reply.
+/**
+ * Indicator of whether a NET has been sent to the RTI and no TAG
+ * yet received in reply.
+ * This variable should only be accessed while holding the mutex lock.
  */
-volatile bool __tag_pending = false;
+bool __tag_pending = false;
 
 /** Handle a time advance grant (TAG) message from the RTI.
  *  This function assumes the caller does not hold the mutex lock,
@@ -1137,10 +1140,10 @@ void handle_tag_advance_grant() {
                      "Failed to read the time advance grant from the RTI.");
 
     pthread_mutex_lock(&mutex);
-    __tag.time = extract_ll(buffer);
-    __tag.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+    _lf_last_tag.time = extract_ll(buffer);
+    _lf_last_tag.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     __tag_pending = false;
-    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", __tag.time - start_time, __tag.microstep);
+    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _lf_last_tag.time - start_time, _lf_last_tag.microstep);
     // Notify everything that is blocked.
     pthread_cond_broadcast(&event_q_changed);
     pthread_mutex_unlock(&mutex);
@@ -1149,11 +1152,9 @@ void handle_tag_advance_grant() {
 /**
  * Used to prevent the federate from sending a REQUEST_STOP
  * message multiple times to the RTI.
- * 
- * @note Access to this variable should always be protected by
- *  mutex lock.
+ * This variable should only be accessed while holding the mutex lock.
  */
-volatile bool federate_has_already_sent_a_stop_request_to_rti = false;
+bool federate_has_already_sent_a_stop_request_to_rti = false;
 
 /** 
  * Send a STOP_REQUEST message to the RTI.
@@ -1426,7 +1427,9 @@ void synchronize_with_other_federates() {
     pthread_t thread_id;
     pthread_create(&thread_id, NULL, listen_to_rti_TCP, NULL);
 
-    create_clock_sync_thread(&thread_id);
+    if (create_clock_sync_thread(&thread_id)) {
+        warning_print("Failed to create thread to handle clock synchronization.");
+    }
 
     // If --fast was not specified, wait until physical time matches
     // or exceeds the start time. Microstep is ignored.
@@ -1457,6 +1460,20 @@ bool __fed_has_upstream = false;
  */
 bool __fed_has_downstream = false;
 
+/**
+ * In some situations, federates can send logical_tag_complete for
+ * the same tag twice or more in-a-row to the RTI. For example, when 
+ * __next() returns without advancing tag. To prevent overwhelming 
+ * the RTI with extra messages, record the last sent logical tag 
+ * complete message and check against it in 
+ * _lf_logical_tag_complete().
+ * 
+ * @note Here, the underlying assumption is that the TCP stack will
+ *  deliver the Logical TAG Complete message to the RTI eventually
+ *  if it is deliverable
+ */
+tag_t last_sent_logical_tag_complete = (tag_t) {.time = NEVER, .microstep = 0u};
+
 /** 
  * Send a logical tag complete (LTC) message to the RTI.
  * This function assumes the caller holds the mutex lock.
@@ -1465,22 +1482,44 @@ bool __fed_has_downstream = false;
  * @param microstep The microstep of the tag
  */
 void _lf_logical_tag_complete(instant_t time, microstep_t microstep) {
+    tag_t tag_to_send = (tag_t){.time=time, .microstep=microstep};
+    int compare_with_last_tag = compare_tags(last_sent_logical_tag_complete, tag_to_send);
+    if (compare_with_last_tag == 0) {
+        // Sending this tag more than once can happen if __next() returns without
+        // adding an event to the event queue (and thus not advancing tag).
+        DEBUG_PRINT("Was trying to send logical tag complete (%lld, %u) twice to the RTI.", 
+                           tag_to_send.time - start_time,
+                           tag_to_send.microstep);
+        return;
+    } else if (compare_with_last_tag > 0) {
+        // This is a critical error. The federate is trying to inform the RTI of
+        // the completion of a tag when it has already reported a larger tag as completed.
+        error_print_and_exit("Was trying to send logical tag complete (%lld, %u) out of order to the RTI "
+                    "when it has already sent (%lld, %u).", 
+                    tag_to_send.time - start_time,
+                    tag_to_send.microstep,
+                    last_sent_logical_tag_complete.time - start_time,
+                    last_sent_logical_tag_complete.microstep);
+        return;
+    }
     LOG_PRINT("Handling the completion of logical tag (%lld, %u).", time - start_time, microstep);
     send_tag(LOGICAL_TAG_COMPLETE, time, microstep);
+    last_sent_logical_tag_complete = tag_to_send;
 }
 
-/** If this federate depends on upstream federates or sends data to downstream
- *  federates, then notify the RTI of the next event on the event queue.
- *  If there are upstream federates, then this will block until either the
- *  RTI grants the advance to the requested time or the wait for the response
- *  from the RTI is interrupted by a change in the event queue (e.g., a
- *  physical action triggered).  This returns either the specified time or
- *  a lesser time when it is safe to advance logical time to the returned time.
- *  The returned time may be less than the specified time if there are upstream
- *  federates and either the RTI responds with a lesser time or
- *  the wait for a response from the RTI is interrupted by a
- *  change in the event queue.
- *  This function assumes the caller holds the mutex lock.
+/** 
+ * If this federate depends on upstream federates or sends data to downstream
+ * federates, then notify the RTI of the next event on the event queue.
+ * If there are upstream federates, then this will block until either the
+ * RTI grants the advance to the requested time or the wait for the response
+ * from the RTI is interrupted by a change in the event queue (e.g., a
+ * physical action triggered).  This returns either the specified time or
+ * a lesser time when it is safe to advance logical time to the returned time.
+ * The returned time may be less than the specified time if there are upstream
+ * federates and either the RTI responds with a lesser time or
+ * the wait for a response from the RTI is interrupted by a
+ * change in the event queue.
+ * This function assumes the caller holds the mutex lock.
  */
 tag_t __next_event_tag(instant_t time, microstep_t microstep) {
     if (!__fed_has_downstream && !__fed_has_upstream) {
@@ -1513,12 +1552,12 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
 
     // If time advance has already been granted for this tag or a larger
     // tag, then return immediately.
-    if (compare_tags(convert_volatile_tag_to_nonvolatile(__tag), (tag_t){.time=time, .microstep=microstep}) > 0) {
+    if (compare_tags(_lf_last_tag, (tag_t){.time=time, .microstep=microstep}) >= 0) {
         return (tag_t){.time = time, .microstep = microstep};
     }
 
     send_tag(NEXT_EVENT_TIME, time, microstep);
-    LOG_PRINT("Sent next event tag (%lld, %u) to RTI.", time - start_time, microstep);
+    LOG_PRINT("Sent next event tag (NET) (%lld, %u) to RTI.", time - start_time, microstep);
 
     // If there are no upstream federates, return immediately, without
     // waiting for a reply. This federate does not need to wait for
@@ -1536,11 +1575,10 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
         // the RTI has responded with a TAG.
         DEBUG_PRINT("Waiting for changes on the event queue.");
         if (pthread_cond_wait(&event_q_changed, &mutex) != 0) {
-            error_print("Wait errored.");
+            error_print("Wait error.");
         }
 
         if (__tag_pending) {
-            DEBUG_PRINT("RTI has not replied, but a change was detected on the event queue.");
             // The RTI has not replied, so the wait must have been
             // interrupted by activity on the event queue.
             // If there is now an earlier event on the event queue,
@@ -1552,6 +1590,7 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
                 } else {
                     microstep = 0u;
                 }
+                LOG_PRINT("RTI has not replied to NET, but an earlier event was detected on the event queue.");
 
                 return (tag_t){.time = head_event->time, .microstep = microstep};
             }
@@ -1562,8 +1601,5 @@ tag_t __next_event_tag(instant_t time, microstep_t microstep) {
         }
     }
 
-    // Convert the volatile __tag to a non-volatile variable before returning.
-    // This is relatively safe to do here because of the __tag_pending guard and the conditional wait
-    // that happens prior to this and the fact that the mutex is locked.
-    return convert_volatile_tag_to_nonvolatile(__tag);
+    return _lf_last_tag;
 }

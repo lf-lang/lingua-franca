@@ -182,8 +182,6 @@ ushort setup_clock_synchronization_with_rti() {
         error_print("Failed to set SO_SNDTIMEO option on the socket: %s.", strerror(errno));
     }
 #else // No runtime clock synchronization. Send port -1 or 0 instead.
-    unsigned char UDP_port_number[1 + sizeof(ushort)];
-    UDP_port_number[0] = UDP_PORT;
 #ifdef _LF_CLOCK_SYNC_INITIAL
     port_to_return = 0u;
 #endif
@@ -369,9 +367,9 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // Check against the guard band.
         if (coded_probe_distance >= CLOCK_SYNC_GUARD_BAND) {
             // Discard this clock sync cycle
-            warning_print("Clock sync: Skipping the current clock synchronization cycle "
+            LOG_PRINT("Clock sync: Skipping the current clock synchronization cycle "
                     "due to impure coded probes.");
-            warning_print("Clock sync: Coded probe packet stats: "
+            LOG_PRINT("Clock sync: Coded probe packet stats: "
                     "Distance: %lld. r5 - r4 = %lld. t5 - t4 = %lld.",
                     coded_probe_distance,
                     r5 - r4,
@@ -417,7 +415,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         // Issue a warning if standard deviation is high in data
         if (stats.standard_deviation >= CLOCK_SYNC_GUARD_BAND) {
             // Reset the stats
-            warning_print("Clock sync: Large standard deviation detected in network delays (%lld) for the current period."
+            LOG_PRINT("Clock sync: Large standard deviation detected in network delays (%lld) for the current period."
                         " Clock synchronization offset might not be accurate.",
                         stats.standard_deviation);
             reset_socket_stat(&_lf_rti_socket_stat);
@@ -548,10 +546,11 @@ void* listen_to_rti_UDP_thread(void* args) {
 /**
  * Create the thread responsible for handling clock synchronization
  * with the RTI if (runtime) clock synchronization is on.
+ * Otherwise, do nothing an return 0.
  * 
- * @return On success, returns 0; On error, it returns an error number
+ * @return On success, returns 0; On error, it returns an error number.
  */
-pthread_t create_clock_sync_thread(pthread_t* thread_id) {
+int create_clock_sync_thread(pthread_t* thread_id) {
 #ifdef _LF_CLOCK_SYNC_ON
     // One for UDP messages if clock synchronization is enabled for this federate
     return pthread_create(thread_id, NULL, listen_to_rti_UDP_thread, NULL);

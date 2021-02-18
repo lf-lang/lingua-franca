@@ -12,7 +12,7 @@
  * @author Edward A. Lee
  */
 target C {
-    flags: "-framework AudioToolbox -framework CoreFoundation -lm",
+    flags: ["-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
     coordination: decentralized,
     logging: log,
     timeout: 10 sec,
