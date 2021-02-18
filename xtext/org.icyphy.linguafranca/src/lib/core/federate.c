@@ -1565,7 +1565,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 	        // pthread_cond_timedwait, this is the clock we want to use.
 			// FIXME FIXME: The time offset here should be a target parameter.
 	        instant_t wait_until_time_ns =
-	        		_lf_last_reported_unadjusted_physical_time_ns + MSEC(10);
+	        		_lf_last_reported_unadjusted_physical_time_ns + ADVANCE_MESSAGE_INTERVAL;
 
 	        // Convert the absolute time to a timespec.
 	        // timespec is seconds and nanoseconds.

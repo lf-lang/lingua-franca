@@ -29,6 +29,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Data structures and functions used and defined in federate.c.
  */
 
+#ifndef ADVANCE_MESSAGE_INTERVAL
+#define ADVANCE_MESSAGE_INTERVAL MSEC(10)
+#endif
+
 /**
  * Structure that a federate instance uses to keep track of its own state.
  */
