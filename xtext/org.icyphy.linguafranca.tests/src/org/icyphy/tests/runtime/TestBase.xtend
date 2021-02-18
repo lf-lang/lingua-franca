@@ -189,7 +189,7 @@ class TestBase {
             return false
         }
         
-        if (test.resource === null) {
+        if (test.resource === null || !test.resource.errors.isEmpty) {
             test.result = Result.PARSE_FAIL
             return false
         }
@@ -317,6 +317,7 @@ class TestBase {
                 //println("Executing: " + nameOnly)
                 if(!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
                     p.destroyForcibly();
+                    test.result = Result.TEST_TIMEOUT
                 } else {
                     //println(new String(p.getInputStream().readAllBytes()))
                     if (p.exitValue == 0) {
@@ -327,7 +328,7 @@ class TestBase {
                 }
                 
             } catch(Exception e) {
-                test.result = Result.TEST_TIMEOUT
+                test.result = Result.TEST_FAIL
             }
             
         }
