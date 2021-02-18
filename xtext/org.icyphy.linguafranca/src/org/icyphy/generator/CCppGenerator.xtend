@@ -419,36 +419,7 @@ class CCppGenerator extends CGenerator {
     override copyTargetHeaderFile() {
         val srcGenPath = directory + File.separator + "src-gen"
         copyFileFromClassPath("/lib/CCpp/ccpptarget.h", srcGenPath + File.separator + "ccpptarget.h")
-    }
-    
-    /** Overwrite the generated code after compile with a
-     * clean version.
-     */
-    override writeCleanCode(String baseFilename)
-    {
-        var srcGenPath = directory + File.separator + "src-gen"
-    	//Cleanup the code so that it is more readable
-        for (federate : federates) {
-                
-            // Only clean one file if there is no federation.
-            if (!federate.isSingleton) {                
-                filename = baseFilename + '_' + federate.name               
-            }
-            
-            // Derive target filename from the .lf filename.
-            val cFilename = filename + ".cc";
-            
-            
-            // Write a clean version of the code to the output file
-            var fOut = new FileOutputStream(
-            new File(srcGenPath + File.separator + cFilename), false);
-            fOut.write(this.getCode.removeLineDirectives.getBytes())
-            fOut.close()
-            
-        }
-    	
-    }
-    
+    }    
     
     
     /** FIXME: This function is copied from the CGenerator to enable federated

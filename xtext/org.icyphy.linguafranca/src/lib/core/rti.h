@@ -511,6 +511,7 @@ typedef struct federate_t {
     bool clock_synchronization_enabled;    // Indicates the status of clock synchronization 
                                            // for this federate. Enabled by default.
     tag_t completed;        // The largest logical tag completed by the federate (or NEVER).
+    tag_t last_granted;     // The maximum tag that has been granted so far (or NEVER)
     tag_t next_event;       // Most recent NET received from the federate (or NEVER).
     fed_state_t state;      // State of the federate.
     int* upstream;          // Array of upstream federate ids.

@@ -83,7 +83,14 @@ int num_feds_proposed_start = 0;
 // Number of federates handling stop
 int num_feds_handling_stop = 0;
 
-// Boolean indicating that all federates have exited.
+/**
+ * Boolean indicating that all federates have exited.
+ * This gets set to true exactly once before the program exits.
+ * It is marked volatile because the write is not guarded by a mutex.
+ * The main thread makes this true, then calls shutdown and close on
+ * the socket, which will cause accept() to return with an error code
+ * in respond_to_erroneous_connections().
+ */
 volatile bool all_federates_exited = false;
 
 /**
@@ -326,8 +333,10 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
 }
 
 /** 
- * Send a tag advance grant (TAG) message to the specified socket
- *  with the specified time and microstep.
+ * Send a tag advance grant (TAG) message to the specified federate
+ * with the specified time and microstep.
+ * @param fed The federate.
+ * @param tag The tag.
  */
 void send_tag_advance_grant(federate_t* fed, tag_t tag) {
     int message_length = 1 + sizeof(instant_t) + sizeof(microstep_t);
@@ -403,18 +412,16 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
 
 /** 
  * Determine whether the specified federate is eligible for a tag advance grant,
- * (TAG) and, if so, send it one. This first compares the next event tag (NET) of the
- * federate to the completion tag of all its upstream federates (plus the
- * delay on the connection to those federates). It finds the minimum of all
- * these tags, with a caveat. If the candidate for minimum has a sufficiently
- * large next event tag that we can be sure it will provide no event before
- * the next smallest minimum, then that candidate is ignored and the next
- * smallest minimum determines the tag. If the resulting tag to advance
- * to does not move time forward for the federate, then no tag advance
- * grant message is sent to the federate.
+ * (TAG) and, if so, send it one. If the federate has no upstream federates,
+ * then grant a TAG of FOREVER. There will be no need for that federate
+ * to restrain further tag advances. Otherwise, calculate the minimum over
+ * all upstream federates of the "after" delay plus the maximum of the
+ * most recent LTC and NET reported by that federate.
+ * If that minimum is greater than the most recently granted TAG, then
+ * send it to the federate.
  *
- * This should be called whenever an upstream federate either registers
- * a next event tag or completes a logical tag.
+ * This should be called whenever an upstream federate sends to the RTI
+ * either an LTC (Logical Time Complete) or NET (Next Event Tag) message.
  *
  * This function assumes that the caller holds the mutex lock.
  *
@@ -425,7 +432,23 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     // The first candidate is its next event time. But we may need to advance
     // it to a lesser time.
 
-    tag_t candidate_tag_advance = fed->next_event;
+    tag_t candidate_tag_advance = fed->next_event;  // This could be NEVER.
+
+    // Check if the candidate tag is smaller than an already granted tag
+    // to this federate. Occurrence of this warning might indicate that
+    // the federate in question has fallen behind in processing events received
+    // from upstream federates.
+    if (compare_tags(candidate_tag_advance, fed->last_granted) < 0) {
+        DEBUG_PRINT("RTI was trying to send a TAG (%lld, %u) " 
+                        "to federate %d that was earlier than the "
+                        "previously granted tag (%lld, %u).",
+                        candidate_tag_advance.time - start_time,
+                        candidate_tag_advance.microstep,
+                        fed->id,
+                        fed->last_granted.time - start_time,
+                        fed->last_granted.microstep);
+        return false;
+    }
 
     // Look at its upstream federates (including this one).
     for (int j = 0; j < fed->num_upstream; j++) {
@@ -500,6 +523,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
                 fed->completed.microstep);
         DEBUG_PRINT("Note that 7611933392160328808 should be read as NEVER.");
         send_tag_advance_grant(fed, candidate_tag_advance);
+        fed->last_granted = candidate_tag_advance;
         return true;
     } else {
         DEBUG_PRINT("RTI can only allow fed %d to advance to (%lld, %u), but this is not greater "
@@ -530,7 +554,7 @@ void handle_logical_tag_complete(federate_t* fed) {
     fed->completed.time = extract_ll(buffer);
     fed->completed.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
-    LOG_PRINT("RTI received from federate %d the logical tag complete (%lld, %u).",
+    LOG_PRINT("RTI received from federate %d the Logical Tag Complete (LTC) (%lld, %u).",
                 fed->id, fed->completed.time - start_time, fed->completed.microstep);
 
     // Check downstream federates to see whether they should now be granted a TAG.
@@ -557,7 +581,7 @@ void handle_next_event_time(federate_t* fed) {
     LOG_PRINT("RTI received from federate %d the Next Event Tag (NET) (%lld, %u).",
             fed->id, fed->next_event.time - start_time,
             fed->next_event.microstep);
-
+            
     // Check to see whether we can reply now with a time advance grant.
     // If the federate has no upstream federates, then it does not wait for
     // nor expect a reply. It just proceeds to advance time.
@@ -1189,6 +1213,7 @@ void connect_to_federates(int socket_descriptor) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
+        // The following blocks until a federate connects.
         int socket_id = accept(socket_descriptor_TCP, &client_fd, &client_length);
         if (socket_id < 0) {
             // When running within Docker, at least, accept() seems to timeout every couple of seconds.
@@ -1394,6 +1419,8 @@ void* respond_to_erroneous_connections(void* nothing) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
         uint32_t client_length = sizeof(client_fd);
+        // The following will block until either a federate attempts to connect
+        // or close(socket_descriptor_TCP) is called.
         int socket_id = accept(socket_descriptor_TCP, &client_fd, &client_length);
         if (socket_id < 0) return NULL;
 
@@ -1423,6 +1450,8 @@ void initialize_federate(int id) {
     federates[id].clock_synchronization_enabled = true;
     federates[id].completed.time = NEVER;
     federates[id].completed.microstep = 0u;
+    federates[id].last_granted.time = NEVER;
+    federates[id].last_granted.microstep = 0u;
     federates[id].next_event.time = NEVER;
     federates[id].next_event.microstep = 0u;
     federates[id].state = NOT_CONNECTED;
@@ -1496,10 +1525,10 @@ void wait_for_federates(int socket_descriptor) {
     // All federates have connected.
     info_print("RTI: All expected federates have connected. Starting execution.");
 
-    // Unfortunately, the socket server will continue to accept connections.
+    // The socket server will not continue to accept connections after all the federates
+    // have joined.
     // In case some other federation's federates are trying to join the wrong
     // federation, need to respond. Start a separate thread to do that.
-
     pthread_t responder_thread;
     pthread_create(&responder_thread, NULL, respond_to_erroneous_connections, NULL);
 
@@ -1510,11 +1539,23 @@ void wait_for_federates(int socket_descriptor) {
         info_print("RTI: Federate %d thread exited.", federates[i].id);
     }
 
+    all_federates_exited = true;
+    
+    // Shutdown and close the socket so that the accept() call in
+    // respond_to_erroneous_connections returns. That thread should then
+    // check all_federates_exited and it should exit.
+    if (shutdown(socket_descriptor, SHUT_RDWR)) {
+        LOG_PRINT("On shut down TCP socket, received reply: %s", strerror(errno));
+    }
+    close(socket_descriptor);
+    
+    /************** FIXME: The following is probably not needed.
+    The above shutdown and close should do the job.
+
     // NOTE: Apparently, closing the socket will not necessarily
     // cause the respond_to_erroneous_connections accept() call to return,
     // so instead, we connect here so that it can check the all_federates_exited
     // variable.
-    all_federates_exited = true;
 
     // Create an IPv4 socket for TCP (not UDP) communication over IP (0).
     int tmp_socket = socket(AF_INET , SOCK_STREAM , 0);
@@ -1547,7 +1588,14 @@ void wait_for_federates(int socket_descriptor) {
     // the OS is preventing another program from accidentally receiving
     // duplicated packets intended for this program.
     close(socket_descriptor);
-    close(socket_descriptor_UDP);
+    */
+    
+    if (socket_descriptor_UDP > 0) {
+        if (shutdown(socket_descriptor_UDP, SHUT_RDWR)) {
+            LOG_PRINT("On shut down UDP socket, received reply: %s", strerror(errno));
+        }
+        close(socket_descriptor_UDP);
+    }
 }
 
 /**
