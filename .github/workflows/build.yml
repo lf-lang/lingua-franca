@@ -30,6 +30,17 @@ jobs:
         run: |
           cd xtext
           ./gradlew test --tests org.icyphy.tests.compiler.*
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v1 
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos 
+          files: ./org.icyphy.linguafranca.tests/build/reports/xml/jacoco
+          # optional flags: unittests 
+          # optional name: codecov-umbrella 
+          # optional fail_ci_if_error: true 
+          # optional (default = false) 
+          verbose: true # optional (default = false)
+        if: runner.os == 'Linux'
 
   c-tests:
     strategy:
