@@ -136,7 +136,7 @@ public class TestRegistry {
                     messages.append("WARNING: No test directory target " + target + "\n");
                 }
                 
-            } catch (IOException e) {
+            } catch (Exception e) {
                 System.err.println(
                         "Error while indexing tests for target " + target);
                 e.printStackTrace();
