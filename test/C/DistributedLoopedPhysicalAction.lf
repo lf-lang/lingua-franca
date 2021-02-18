@@ -6,7 +6,8 @@
  */
 
 target C {
-    timeout: 1 sec
+    timeout: 1 sec,
+    coordination-options: {advance-message-interval: 10 msec} // Silences warning.
 };
 
 reactor Sender(take_a_break_after:int(10), break_interval:time(550 msec)) {
