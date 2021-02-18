@@ -4,7 +4,7 @@ target Cpp {
     timeout: 5 sec
 };
 
-import Count from "Count.lf";
+import Count from "lib/Count.lf";
 
 reactor Test {
     input c:int;
