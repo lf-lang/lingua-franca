@@ -5,6 +5,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.icyphy.Target;
@@ -44,7 +45,7 @@ public class LFTest implements Comparable<LFTest> {
     }
     
     private static String normalize(Target target, Path path) {
-        return path.toString().replaceFirst(TestRegistry.LF_TEST_PATH + target + File.separator, "");
+        return path.toString().replaceFirst(TestRegistry.LF_TEST_PATH + target + Pattern.quote(File.separator), "");
     }
     
     @Override
