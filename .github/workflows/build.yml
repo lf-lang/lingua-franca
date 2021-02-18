@@ -107,7 +107,7 @@ jobs:
           #bin/build-lfc;
           #bin/run-lf-tests Cpp;
           cd xtext
-          ./gradlew test --tests org.icyphy.tests.runtime.CTest.runGenericTests
+          ./gradlew test --tests org.icyphy.tests.runtime.CppTest.runGenericTests
         
   ts-tests:
     strategy:
