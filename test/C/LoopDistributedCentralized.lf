@@ -17,7 +17,7 @@ preamble {=
     // Thread to trigger an action once every second.
     void* ping(void* actionref) {
         while(!stop) {
-            printf("Scheduling action.\n");
+            info_print("Scheduling action.");
             schedule(actionref, 0);
             sleep(1);
         }
@@ -25,7 +25,7 @@ preamble {=
     }
 =}
 
-reactor Looper(incr:int(1), delay:time(20 msec)) {
+reactor Looper(incr:int(1), delay:time(0 msec)) {
     input in:int;
     output out:int;
     physical action a(delay);
@@ -41,12 +41,16 @@ reactor Looper(incr:int(1), delay:time(20 msec)) {
         self->count += self->incr;
     =}
     reaction(in) {=
-        info_print("Received %d.", in->value);
+        instant_t time_lag = get_physical_time() - get_logical_time();
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        readable_time(time_buffer, time_lag);
+        info_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
     =}
     reaction(shutdown) {=
+        info_print("******* Shutdown invoked.");
         // Stop the thread that is scheduling actions.
         stop = true;
-        if (self->count == 4 * self->incr) {
+        if (self->count != 5 * self->incr) {
             error_print_and_exit("Failed to receive all five expected inputs.");
         }
     =}
