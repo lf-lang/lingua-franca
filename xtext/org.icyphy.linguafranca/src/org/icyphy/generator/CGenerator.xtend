@@ -3527,14 +3527,17 @@ class CGenerator extends GeneratorBase {
                     outputFound = output
                 }
             }
-            if (minDelay != TimeValue.MAX_VALUE && config.coordinationOptions.advance_message_interval === null) {
-                reportWarning(outputFound, '''
-                        Found a path from a physical action to output for reactor "«instance.name»". 
-                        The amount of delay is «minDelay.toString()».
-                        With centralized coordination, this can result in a large number of messages to the RTI.
-                        Consider refactoring the code so that the output does not depend on the physical action,
-                        or consider using decentralized coordination. To silence this warning, set the target
-                        parameter cooridiation-options with a value like {advance-message-interval: 10 msec}"''')
+            if (minDelay != TimeValue.MAX_VALUE) {
+                // Unless silenced, issue a warning.
+                if (config.coordinationOptions.advance_message_interval === null) {
+                    reportWarning(outputFound, '''
+                            Found a path from a physical action to output for reactor "«instance.name»". 
+                            The amount of delay is «minDelay.toString()».
+                            With centralized coordination, this can result in a large number of messages to the RTI.
+                            Consider refactoring the code so that the output does not depend on the physical action,
+                            or consider using decentralized coordination. To silence this warning, set the target
+                            parameter cooridiation-options with a value like {advance-message-interval: 10 msec}"''')
+                }
                 pr(initializeTriggerObjects, '''
                     _fed.min_delay_from_physical_action_to_federate_output = «minDelay.timeInTargetLanguage»;
                 ''')
