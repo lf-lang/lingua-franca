@@ -1424,6 +1424,9 @@ bool _lf_bounded_NET(tag_t* tag) {
     // behind real time, but the less network traffic. Perhaps we should
     // issue a warning or some diagnostic message suggesting that a redesign
     // might be in order so that outputs don't depend on physical actions.
+	DEBUG_PRINT("Checking NET to see whether it should be bounded by physical time."
+			" Min delay from physical action: %lld.",
+			_fed.min_delay_from_physical_action_to_federate_output);
     if (_fed.min_delay_from_physical_action_to_federate_output >= 0LL
     		&& _fed.has_downstream
 	) {
@@ -1497,12 +1500,16 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
         // messages sent by upstream federates.
         // However, -fast is really incompatible with federated execution with
         // physical connections, so I don't think we need to worry about this.
+    	DEBUG_PRINT("Granted tag (%lld, %u) because the federate has neither upstream nor downstream federates.",
+    			current_tag.time - start_time, current_tag.microstep);
         return tag;
     }
     
     // If time advance has already been granted for this tag or a larger
     // tag, then return immediately.
     if (compare_tags(_fed.last_TAG, tag) >= 0) {
+    	DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG is at least as large.",
+    			current_tag.time - start_time, current_tag.microstep);
         return tag;
     }
 
@@ -1554,7 +1561,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 		while (true) {
 			// Wait until either something changes on the event queue or
 			// the RTI has responded with a TAG.
-			DEBUG_PRINT("Waiting for physical time to elapse, a TAG from the "
+			DEBUG_PRINT("Waiting for physical time to elapse, a TAG to be received from the "
 					"RTI, or an event on the event queue.");
 
 			// The above call to _lf_bounded_NET called get_physical_time
@@ -1563,7 +1570,6 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 			// time obtained using CLOCK_REALTIME before adjustement for
 			// clock synchronization. Since that is the clock used by
 	        // pthread_cond_timedwait, this is the clock we want to use.
-			// FIXME FIXME: The time offset here should be a target parameter.
 	        instant_t wait_until_time_ns =
 	        		_lf_last_reported_unadjusted_physical_time_ns + ADVANCE_MESSAGE_INTERVAL;
 
@@ -1574,7 +1580,9 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 
 	        pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time);
 
-	        // Either the timeout expired or the wait was interrupted by an event being
+	    	DEBUG_PRINT("Wait finished or interrupted.");
+
+	    	// Either the timeout expired or the wait was interrupted by an event being
 	        // put onto the event queue. In either case, check the time of the earliest
 	        // event on the event queue. If it has an event with a timestamp earlier
 	        // than current physical time, then, if there are no upstream federates,
@@ -1586,19 +1594,30 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 	        if (!_fed.has_upstream) {
 	        	instant_t physical_time = get_physical_time();
 	        	if (physical_time >= next_tag.time) {
+	            	DEBUG_PRINT("Granted tag (%lld, %u) because the federate has no "
+	            			"upstream federates and physical time exceeds the tag time.",
+	            			current_tag.time - start_time, current_tag.microstep);
 	        		return next_tag;
 	        	}
 	        	// Else, send another NET (below) and loop around once again to repeat the wait.
 	        } else {
 	        	// There is an upstream federate.
 	        	if (!_fed.waiting_for_TAG) {
+	            	instant_t physical_time = get_physical_time();
 	        		// TAG was granted.
-	        		// If this is earlier than physical time, return.
-		        	instant_t physical_time = get_physical_time();
-		        	if (physical_time >= _fed.last_TAG.time) {
+	        		// If this is earlier than physical time and there is an event to process, return.
+		        	if (physical_time >= _fed.last_TAG.time
+		        			&& compare_tags(_fed.last_TAG, next_tag) >= 0) {
+		            	DEBUG_PRINT("TAG received from RTI (%lld, %u) and physical time exceeds its time.",
+		            			current_tag.time - start_time, current_tag.microstep);
 		        		return _fed.last_TAG;
 		        	}
 		        	// Else, send another NET (below) and loop around once again to repeat the wait.
+		        	// However, to avoid overwhelming ping-ponged messages through the RTI, complete the
+		        	// interrupted wait first, getting interrupted only if there is an incoming message or
+		        	// the physical action triggers.
+			        pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time);
+			        next_tag = get_next_event_tag();
 	        	}
 	        	// Else, send another NET (below) and loop around once again to repeat the wait.
 	        }
@@ -1629,6 +1648,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 
 		_fed.waiting_for_TAG = true;
 		// Wait until a TAG is received from the RTI.
+		// FIXME: What if RTI does not reply? Potential infinite loop?
 		while (_fed.waiting_for_TAG) {
 			// Wait until either something changes on the event queue or
 			// the RTI has responded with a TAG.
