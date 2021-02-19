@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test
  * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class CppTest extends TestBase {
+class CppTest extends ThreadedBase {
         
     new() {
         this.target = Target.CPP

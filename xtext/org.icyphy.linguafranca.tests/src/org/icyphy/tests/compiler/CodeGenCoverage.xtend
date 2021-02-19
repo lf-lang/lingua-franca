@@ -28,7 +28,7 @@ package org.icyphy.tests.compiler
 
 import org.icyphy.Target
 import org.junit.jupiter.api.Test
-import org.icyphy.tests.runtime.TestBase
+import org.icyphy.tests.runtime.ThreadedBase
 
 /**
  * Collection of tests intended to touch as many lines of the code
@@ -36,7 +36,7 @@ import org.icyphy.tests.runtime.TestBase
  * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class CodeGenCoverage extends TestBase {
+class CodeGenCoverage extends ThreadedBase {
 
     new() {
         // Only generate code.

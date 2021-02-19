@@ -97,18 +97,10 @@ abstract class TestBase {
     }
     
     @Test
-    def void runSingleThreadedTestsAsThreaded() {
-        printTestHeader("Description: Run non-threaded and non-federated test (threads = 4).")
-        this.target.runTestsAndPrintResults([
-            it !== TestCategory.THREADED && it !== TestCategory.FEDERATED
-        ], [it.properties.setProperty("threads", "4") return true])
-    }
-
-    @Test
     def void runNonFederatedTestsAsFederated() {
         printTestHeader("Description: Run non-federated tests in federated mode.")
         this.target.runTestsAndPrintResults([
-            it !== TestCategory.THREADED && it !== TestCategory.FEDERATED
+            it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED
         ], [val r = it.resource.allContents.filter(Reactor).findFirst[it.isMain]
             if (r === null) {
                 return false
@@ -122,7 +114,7 @@ abstract class TestBase {
     @Test
     def void runThreadedTests() {
         printTestHeader("Description: Run threaded tests.")
-        Target.C.runTestsAndPrintResults([it === TestCategory.THREADED], [true])
+        Target.C.runTestsAndPrintResults([it === TestCategory.CONCURRENT], [true])
     }
     
     @Test
@@ -352,9 +344,9 @@ abstract class TestBase {
             
             done++
         }
-//        for (var i=0; i< 78-j; i++) {
-//            print("=")
-//        }
+        if (tests.size == 0) {
+            print(THICK_LINE)
+        }
         print("\n")
     }
 }

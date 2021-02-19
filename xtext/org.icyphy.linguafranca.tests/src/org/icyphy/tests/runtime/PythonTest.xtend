@@ -61,11 +61,6 @@ class PythonTest extends TestBase {
     }
     
     @Test
-    override runSingleThreadedTestsAsThreaded() {
-        super.runSingleThreadedTestsAsThreaded()
-    }
-    
-    @Test
     override runNonFederatedTestsAsFederated() {
         super.runNonFederatedTestsAsFederated()
     }
