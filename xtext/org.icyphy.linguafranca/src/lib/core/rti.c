@@ -391,11 +391,18 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
 
     visited[fed->id] = true;
     tag_t result = fed->next_event;
-    
-    // Make sure the result is not greater than the candidate.
-    if (compare_tags(result, candidate) > 0) {
+        
+    // If the candidate is less than this federate's next_event, use the candidate.
+    if (compare_tags(candidate, result) < 0) {
         result = candidate;
     }
+    
+    // The result cannot be earlier than the start time.
+    if (result.time < start_time) {
+        // Earliest next event cannot be before the start time.
+        result = (tag_t){.time = start_time, .microstep = 0u};
+    }
+
     // Check upstream federates to see whether any of them might send
     // an event that would result in an earlier next event.
     for (int i = 0; i < fed->num_upstream; i++) {
@@ -462,6 +469,10 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     // immediately upstream federates.
     tag_t t_d = FOREVER_TAG;
     tag_t completed = FOREVER_TAG;
+    DEBUG_PRINT("NOTE: FOREVER is displayed as (%lld, %u) and NEVER as (%lld, %u)",
+            FOREVER_TAG.time - start_time, FOREVER_TAG.microstep,
+            NEVER - start_time, 0u);
+
     for (int j = 0; j < fed->num_upstream; j++) {
         federate_t* upstream = &federates[fed->upstream[j]];
         
@@ -471,6 +482,11 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         // Find the (transitive) next event tag upstream.
         tag_t upstream_next_event = transitive_next_event(
                 upstream, upstream->next_event, visited);
+                
+        DEBUG_PRINT("Earliest next event upstream of fed %d at fed %d has tag (%lld, %u).",
+                fed->id,
+                upstream->id,
+                upstream_next_event.time - start_time, upstream_next_event.microstep);
                 
         // Adjust by the "after" delay.
         // Note that "no delay" is encoded as NEVER,
@@ -531,7 +547,6 @@ void handle_logical_tag_complete(federate_t* fed) {
 
 /**
  * Handle a next event tag (NET) message.
- * This message implies that the last tag granted has now been completed.
  * @param fed The federate sending a NET message.
  */
 void handle_next_event_time(federate_t* fed) {
@@ -548,10 +563,7 @@ void handle_next_event_time(federate_t* fed) {
     LOG_PRINT("RTI received from federate %d the Next Event Tag (NET) (%lld, %u).",
             fed->id, fed->next_event.time - start_time,
             fed->next_event.microstep);
-            
-    // Assume that now LTC is equal to the last granted TAG.
-    fed->completed = fed->last_granted;
-            
+                        
     // Check to see whether we can reply now with a time advance grant.
     // If the federate has no upstream federates, then it does not wait for
     // nor expect a reply. It just proceeds to advance time.
@@ -1065,10 +1077,19 @@ void handle_federate_resign(federate_t *my_fed) {
     my_fed->state = NOT_CONNECTED;
     // FIXME: The following results in spurious error messages.
     // _lf_rti_mark_federate_requesting_stop(my_fed);
-    my_fed->next_event.time = NEVER;
-    my_fed->next_event.microstep = 0;
+    
+    // Indicate that there will no further events from this federate.
+    my_fed->next_event = FOREVER_TAG;
+    
     close(my_fed->socket); //  from unistd.h
+    
     info_print("Federate %d has resigned.", my_fed->id);
+    
+    // Check downstream federates to see whether they should now be granted a TAG.
+    for (int i = 0; i < my_fed->num_downstream; i++) {
+        federate_t* downstream = &federates[my_fed->downstream[i]];
+        send_tag_advance_if_appropriate(downstream);
+    }
     pthread_mutex_unlock(&rti_mutex);
 }
 
@@ -1381,12 +1402,9 @@ void initialize_federate(int id) {
     federates[id].id = id;
     federates[id].socket = -1;      // No socket.
     federates[id].clock_synchronization_enabled = true;
-    federates[id].completed.time = NEVER;
-    federates[id].completed.microstep = 0u;
-    federates[id].last_granted.time = NEVER;
-    federates[id].last_granted.microstep = 0u;
-    federates[id].next_event.time = NEVER;
-    federates[id].next_event.microstep = 0u;
+    federates[id].completed = NEVER_TAG;
+    federates[id].last_granted = NEVER_TAG;
+    federates[id].next_event = NEVER_TAG;
     federates[id].state = NOT_CONNECTED;
     federates[id].upstream = NULL;
     federates[id].upstream_delay = NULL;
