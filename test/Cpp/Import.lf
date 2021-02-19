@@ -3,7 +3,7 @@
 target Cpp{
     threads: 1
 };
-import Imported from "Imported.lf";
+import Imported from "lib/Imported.lf";
 
 main reactor Import {
      timer t;

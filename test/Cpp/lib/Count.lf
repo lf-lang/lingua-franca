@@ -1,0 +1,10 @@
+target Cpp;
+reactor Count {
+    output c:int;
+    timer t(0, 1 sec);
+    state i:int(0);
+    reaction(t) -> c {=
+        i++;
+        c.set(i);
+    =}
+}
