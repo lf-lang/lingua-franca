@@ -375,6 +375,11 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
  * the completion time of the federate (which may be NEVER,
  * if the federate has not yet completed a logical time).
  *
+ * FIXME: This could be made less conservative by building
+ * at code generation time a causality interface table indicating
+ * which outputs can be triggered by which inputs. For now, we
+ * assume any output can be triggered by any input.
+ *
  * @param fed The federate.
  * @param candidate A candidate tag (for the first invocation,
  *  this should be fed->next_event).
@@ -390,7 +395,11 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
     }
 
     visited[fed->id] = true;
+    // Use the larger of the NET and TAN.
     tag_t result = fed->next_event;
+    if (fed->time_advance > fed->next_event.time) {
+        result = (tag_t){.time = fed->time_advance, .microstep = 0};
+    }
         
     // If the candidate is less than this federate's next_event, use the candidate.
     if (compare_tags(candidate, result) < 0) {
@@ -501,7 +510,8 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         }
     }
 
-    LOG_PRINT("Minimum upstream LTC for fed %d is (%lld, %u) and earliest message time (adjusted by after delay) is (%lld, %u).",
+    LOG_PRINT("Minimum upstream LTC for fed %d is (%lld, %u) and earliest message time "
+            "(adjusted by after delay) is (%lld, %u).",
             fed->id,
             completed.time - start_time, completed.microstep,
             t_d.time - start_time, t_d.microstep);
@@ -549,7 +559,7 @@ void handle_logical_tag_complete(federate_t* fed) {
  * Handle a next event tag (NET) message.
  * @param fed The federate sending a NET message.
  */
-void handle_next_event_time(federate_t* fed) {
+void handle_next_event_tag(federate_t* fed) {
     unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
     read_from_socket_errexit(fed->socket, sizeof(instant_t) + sizeof(microstep_t), buffer, 
             "RTI failed to read the content of the next event tag from federate %d.", fed->id);
@@ -570,6 +580,34 @@ void handle_next_event_time(federate_t* fed) {
     if (fed->num_upstream > 0) {
         send_tag_advance_if_appropriate(fed);
     }
+    // Check downstream federates to see whether they should now be granted a TAG.
+    for (int i = 0; i < fed->num_downstream; i++) {
+        federate_t* downstream = &federates[fed->downstream[i]];
+        send_tag_advance_if_appropriate(downstream);
+    }
+    pthread_mutex_unlock(&rti_mutex);
+}
+
+/**
+ * Handle a time advance notice (TAN) message.
+ * @param fed The federate sending a TAN message.
+ */
+void handle_time_advance_notice(federate_t* fed) {
+    unsigned char buffer[sizeof(instant_t)];
+    read_from_socket_errexit(fed->socket, sizeof(instant_t), buffer, 
+            "RTI failed to read the content of the time advance notice from federate %d.", fed->id);
+
+    // Acquire a mutex lock to ensure that this state does change while a
+    // message is in transport or being used to determine a TAG.
+    pthread_mutex_lock(&rti_mutex);
+
+    fed->time_advance = extract_ll(buffer);
+    LOG_PRINT("RTI received from federate %d the Time Advance Notice (TAN) %lld.",
+            fed->id, fed->time_advance - start_time);
+                        
+    // We do not reply with a time advance grant because the federate has no
+    // events to process.
+
     // Check downstream federates to see whether they should now be granted a TAG.
     for (int i = 0; i < fed->num_downstream; i++) {
         federate_t* downstream = &federates[fed->downstream[i]];
@@ -1080,6 +1118,7 @@ void handle_federate_resign(federate_t *my_fed) {
     
     // Indicate that there will no further events from this federate.
     my_fed->next_event = FOREVER_TAG;
+    my_fed->time_advance = FOREVER;
     
     close(my_fed->socket); //  from unistd.h
     
@@ -1136,8 +1175,11 @@ void* federate_thread_TCP(void* fed) {
                 handle_federate_resign(my_fed);
                 return NULL;
                 break;
-            case NEXT_EVENT_TIME:            
-                handle_next_event_time(my_fed);
+            case NEXT_EVENT_TAG:            
+                handle_next_event_tag(my_fed);
+                break;
+            case TIME_ADVANCE_NOTICE:            
+                handle_time_advance_notice(my_fed);
                 break;
             case LOGICAL_TAG_COMPLETE:
                 handle_logical_tag_complete(my_fed);
@@ -1405,6 +1447,7 @@ void initialize_federate(int id) {
     federates[id].completed = NEVER_TAG;
     federates[id].last_granted = NEVER_TAG;
     federates[id].next_event = NEVER_TAG;
+    federates[id].time_advance = NEVER;
     federates[id].state = NOT_CONNECTED;
     federates[id].upstream = NULL;
     federates[id].upstream_delay = NULL;

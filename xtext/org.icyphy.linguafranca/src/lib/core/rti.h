@@ -243,7 +243,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //// Message types
 
 // These message types will be encoded in an unsigned char,
-// so the magnitude must not exceed 255.
+// so the magnitude must not exceed 255. Note that these are
+// listed in increasing numerical order starting from 0 interleaved
+// with decreasing numerical order starting from 255 (so that they
+// can be listed in a logical order here even as the design evolves).
 
 /**
  * Byte identifying a rejection of the previously received message.
@@ -329,7 +332,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * from other federates, this will be the least tag of the next set of
  * reactions on that federate.
  */
-#define NEXT_EVENT_TIME 6
+#define NEXT_EVENT_TAG 6
+
+/**
+ * Byte identifying a time advance notice (TAN) message sent from
+ * a federate in centralized coordination.  This message is used by
+ * a federate that has outputs that are directly or indirectly
+ * triggered by a physical action to notify the RTI that its physical
+ * time has advanced and that it will produce no outputs with
+ * timestamps less than the specified timestamp.
+ * The next eight bytes will be the timestamp.
+ */
+#define TIME_ADVANCE_NOTICE 253
 
 /** 
  * Byte identifying a time advance grant (TAG) sent by the RTI to a federate
@@ -523,7 +537,7 @@ typedef enum execution_mode_t {
 /** State of a federate during execution. */
 typedef enum fed_state_t {
     NOT_CONNECTED,  // The federate has not connected.
-    GRANTED,        // Most recent NEXT_EVENT_TIME has been granted.
+    GRANTED,        // Most recent NEXT_EVENT_TAG has been granted.
     PENDING         // Waiting for upstream federates.
 } fed_state_t;
 
@@ -545,6 +559,7 @@ typedef struct federate_t {
     tag_t completed;        // The largest logical tag completed by the federate (or NEVER if no LTC has been received).
     tag_t last_granted;     // The maximum tag that has been granted so far (or NEVER if none granted)
     tag_t next_event;       // Most recent NET received from the federate (or NEVER if none received).
+    instant_t time_advance; // Most recent TAN received from the federate (or NEVER if none received).
     fed_state_t state;      // State of the federate.
     int* upstream;          // Array of upstream federate ids.
     interval_t* upstream_delay;    // Minimum delay on connections from upstream federates.
