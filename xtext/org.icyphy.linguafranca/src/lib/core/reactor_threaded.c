@@ -352,10 +352,9 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
  * the runtime infrastructure (RTI) that all reactions at the specified
  * logical tag have completed. This function should be called only while
  * holding the mutex lock.
- * @param time The logical time that has been completed.
- * @param microstep The logical microstep that has been completed.
+ * @param tag_to_send The tag to send.
  */
-void logical_tag_complete(instant_t time, microstep_t microstep);
+void logical_tag_complete(tag_t tag_to_send);
 
 /** 
  * Placeholder for code-generated function that will, in a federated
@@ -900,7 +899,7 @@ void* worker(void* arg) {
                 // If this is not the very first step, notify that the previous step is complete
                 // and check against the stop tag to see whether this is the last step.
                 if (_lf_logical_tag_completed) {
-                    logical_tag_complete(current_tag.time, current_tag.microstep);
+                    logical_tag_complete(current_tag);
                     // If we are at the stop tag, do not call __next()
                     // to prevent advancing the logical time.
                     if (compare_tags(current_tag, stop_tag) >= 0) {
