@@ -292,7 +292,7 @@ abstract class TestBase {
                     pb = pb = new ProcessBuilder("node", file.toString)
                 } else {
                     test.result = Result.NO_EXEC_FAIL
-                    println(">>>>>" + file)
+                    //println(">>>>>" + file)
                     // FIXME: add message
                 }
             }

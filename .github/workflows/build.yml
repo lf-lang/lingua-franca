@@ -26,7 +26,7 @@ jobs:
           java-version: 14
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      - name: Run unit tests
+      - name: Run compiler tests
         run: |
           cd xtext
           ./gradlew test --tests org.icyphy.tests.compiler.*
@@ -159,9 +159,8 @@ jobs:
       #    args: git submodule update --init --recursive
       - name: Run TS tests;
         run: |
-          #bin/build-lfc;
-          #bin/run-lf-tests TS;
-          echo "Hello World!"
+          cd xtext
+          ./gradlew test --tests org.icyphy.tests.runtime.TypeScriptTest.*
         
   python-tests:
     strategy:

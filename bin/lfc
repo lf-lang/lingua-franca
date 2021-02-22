@@ -34,8 +34,8 @@ fi
 if [[ "$_java" ]]; then
     semantic_version=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
     java_version=$(echo "$semantic_version" | awk -F. '{printf("%03d%03d",$1,$2);}')
-    echo version "$semantic_version"
-    echo version "$java_version"
+    #echo version "$semantic_version"
+    #echo version "$java_version"
     if [ $java_version -lt 001008 ]; then
         fatal_error "JRE $semantic_version found but 1.8 or greater is required."     
         error_exit   
