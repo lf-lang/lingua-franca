@@ -33,6 +33,7 @@ import java.nio.file.Paths
 import org.junit.jupiter.api.Test
 
 import static extension org.junit.Assert.assertTrue
+import org.icyphy.ASTUtils
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -101,14 +102,7 @@ abstract class TestBase {
         printTestHeader("Description: Run non-federated tests in federated mode.")
         this.target.runTestsAndPrintResults([
             it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED
-        ], [val r = it.resource.allContents.filter(Reactor).findFirst[it.isMain]
-            if (r === null) {
-                return false
-            }
-            r.main = false
-            r.federated = true
-            return true
-        ])
+        ], [ASTUtils.makeFederated(it.resource)])
     }
     
     @Test
