@@ -1,7 +1,8 @@
 target C {
     tracing: true,
     logging: error,
-    docker: {FROM: "alpine:latest"}
+    docker: true,
+    docker-options: {FROM: "alpine:latest"} 
 };
 reactor HelloWorld {
     state success:bool(false);
