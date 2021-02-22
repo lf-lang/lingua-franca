@@ -70,6 +70,8 @@ public class Main {
     
     private final static String HEADER = bold("lfc: ");
     
+    protected CommandLine cmd;
+    
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
     
@@ -116,6 +118,7 @@ public class Main {
         HELP("h", "help", true, false, "Display this information.", false),
         COMPILE("n", "no-compile", true, false, "Do not invoke target compiler.", true),
         REBUILD("r", "rebuild", false, false, "Rebuild the compiler first.", false),
+        UPDATE("u", "update-deps", false, false, "Update dependencies and rebuild the compiler (requires Internet connection).", false),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         THREADS("t", "threads", false, false, "Specify the default number of threads.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false);
@@ -176,6 +179,20 @@ public class Main {
         
     }
     
+    private boolean mustUpdate() {
+        if (cmd.hasOption(CLIOption.UPDATE.option.getOpt())) {
+            return true;
+        }
+        return false;
+    }
+    
+    private boolean mustRebuild() {
+        if (mustUpdate() || cmd.hasOption(CLIOption.REBUILD.option.getOpt())) {
+            return true;
+        }
+        return false;
+    }
+    
     public static void main(final String[] args) {
         final Injector injector = new LinguaFrancaStandaloneSetup()
                 .createInjectorAndDoEMFRegistration();
@@ -185,24 +202,21 @@ public class Main {
 
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
-        CommandLine cmd = null;
-
+        
         try {
-            cmd = parser.parse(options, args);
-            
-            String rebuild = CLIOption.REBUILD.option.getOpt();
+            main.cmd = parser.parse(options, args);
             
             // If the rebuild flag is not used, or if it is used but the jar
             // is not out of date, continue with the normal flow of execution.
-            if (!cmd.hasOption(rebuild) || (cmd.hasOption(rebuild) && !main.rebuildAndFork(cmd))) {
-                List<String> files = cmd.getArgList();
+            if (!main.mustRebuild() || (main.mustRebuild() && !main.rebuildAndFork())) {
+                List<String> files = main.cmd.getArgList();
                 
                 if (files.size() < 1) {
                     printFatalError("No input files.");
                     System.exit(1);
                 }
                 try {
-                    main.runGenerator(files, cmd);
+                    main.runGenerator(files);
                 } catch (RuntimeException e) {
                     System.err.println(e.getMessage());
                     printFatalError("An unexpected error occurred.");
@@ -227,8 +241,11 @@ public class Main {
         cmdList.add("-jar");
         cmdList.add(jarLocation);
         for (Option o : cmd.getOptions()) {
-            if (!CLIOption.REBUILD.option.equals(o))
+            if (!CLIOption.REBUILD.option.equals(o)
+                    && !CLIOption.UPDATE.option.equals(o)) {
+                // Prevent infinite loop when the source fails to compile.
                 cmdList.add(o.getOpt() + " " + o.getValue());
+            }
         }
         cmdList.addAll(cmd.getArgList()); // Should be fixed with later version
                                           // of commons.cli
@@ -266,10 +283,16 @@ public class Main {
     
     private void rebuildOrExit() {
         String root = jarLocation.replace(pathInTree, "");
-        ProcessBuilder build = new ProcessBuilder("./gradlew",
+        ProcessBuilder build;
+        if (this.mustUpdate())
+            build = new ProcessBuilder("./gradlew",
                 "generateStandaloneCompiler");
+        else {
+            build = new ProcessBuilder("./gradlew",
+                    "generateStandaloneCompiler", "--offline");
+        }
         build.directory(new File(root));
-
+    
         try {
             Process p = build.start();
             String result = new String(p.getInputStream().readAllBytes());
@@ -288,7 +311,7 @@ public class Main {
         }
     }
     
-    private boolean rebuildAndFork(CommandLine cmd) {
+    private boolean rebuildAndFork() {
         // jar:file:<root>org.icyphy.linguafranca/build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
         if (needsUpdate()) {
             // Only rebuild if the jar is out-of-date.
@@ -335,7 +358,7 @@ public class Main {
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
-    protected void runGenerator(List<String> files, CommandLine cmd) {
+    protected void runGenerator(List<String> files) {
         Properties properties = this.getProps(cmd);
         for (String file : files) {
             final File f = new File(file);
