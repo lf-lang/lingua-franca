@@ -554,6 +554,7 @@ class ASTUtils {
                     ofVariableLength
                 clone.arraySpec.length = original.arraySpec.length
             }
+            clone.time = original.time
             
             original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
             
