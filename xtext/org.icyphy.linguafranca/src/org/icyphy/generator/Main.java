@@ -97,71 +97,79 @@ public class Main {
     private final static String HEADER = bold("lfc: ");
     
     /**
-     * Object for interpreting commandline arguments.
+     * Object for interpreting command line arguments.
      */
     protected CommandLine cmd;
     
     /**
-     * 
+     * Injected resource provider. 
      */
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
     
     /**
-     * 
+     * Injected resource validator.
      */
     @Inject
     private IResourceValidator validator;
     
     /**
-     * 
+     * Injected code generator.
      */
     @Inject
     private GeneratorDelegate generator;
     
     /**
-     * 
+     * Injected file access object.
      */
     @Inject
     private JavaIoFileSystemAccess fileAccess;
     
     /**
+     * Print a fatal error message prefixed with a header that indicates the
+     * source and severity.
      * 
-     * @param message
+     * @param message The message to print.
      */
     public static void printFatalError(String message) {
         System.err.println(HEADER + redAndBold("fatal error: ") + message);
     }
     
     /**
+     * Print an error message prefixed with a header that indicates the source 
+     * and severity.
      * 
-     * @param message
+     * @param message The message to print.
      */
     public static void printError(String message) {
         System.err.println(HEADER + redAndBold("error: ") + message);
     }
     
     /**
+     * Print an informational message prefixed with a header that indicates the
+     * source and severity.
      * 
-     * @param message
+     * @param message The message to print.
      */
     public static void printInfo(String message) {
         System.out.println(HEADER + bold("info: ") + message);
     }
     
     /**
+     * Return the given string in bold face.
      * 
-     * @param s
-     * @return
+     * @param s String to type set.
+     * @return a bold face version of the given string.
      */
     public static String bold(String s) {
         return BOLD + s + END_BOLD;
     }
     
     /**
+     * Return the given string in red color and bold face.
      * 
-     * @param s
-     * @return
+     * @param s String to type set.
+     * @return a red and bold face version of the given string.
      */
     public static String redAndBold(String s) {
         return RED_BOLD + s + END_RED_BOLD;
@@ -241,7 +249,11 @@ public class Main {
         }
         
     }
-    
+
+    /**
+     * Indicate whether or not a rebuild and library update must occur.
+     * @return whether or not the update flag is present.
+     */
     private boolean mustUpdate() {
         if (cmd.hasOption(CLIOption.UPDATE.option.getOpt())) {
             return true;
@@ -249,6 +261,10 @@ public class Main {
         return false;
     }
     
+    /**
+     * Indicate whether or not a rebuild must occur.
+     * @return whether or not the rebuild or update flag is present.
+     */
     private boolean mustRebuild() {
         if (mustUpdate() || cmd.hasOption(CLIOption.REBUILD.option.getOpt())) {
             return true;
@@ -256,6 +272,10 @@ public class Main {
         return false;
     }
     
+    /**
+     * 
+     * @param args
+     */
     public static void main(final String[] args) {
         final Injector injector = new LinguaFrancaStandaloneSetup()
                 .createInjectorAndDoEMFRegistration();
@@ -324,6 +344,10 @@ public class Main {
         
     }
     
+    /**
+     * Indicate whether there is any work to do
+     * @return
+     */
     private boolean needsUpdate() {
         File jar = new File(JAR_PATH);
         long mod = jar.lastModified();
