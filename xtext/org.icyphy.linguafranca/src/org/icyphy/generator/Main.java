@@ -46,60 +46,123 @@ import com.google.inject.Provider;
  */
 public class Main {
     
-    private static String pathInJar = String.join(File.separator,
+    /**
+     * The location of the class file of this class inside of the jar.
+     */
+    private static String MAIN_PATH_IN_JAR = String.join(File.separator,
             new String[] { "!", "org", "icyphy", "generator", "Main.class" });
     
-    private static String pathInTree = String.join(File.separator,
+    /**
+     * The location of the the jar relative to the root of the source tree.
+     */
+    private static String JAR_PATH_IN_SRC_TREE = String.join(File.separator,
             new String[] { "org.icyphy.linguafranca", "build", "libs",
                     "org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar" });
+    /**
+     * The location of the jar relative to the root of the file system. 
+     */
+    private static String JAR_PATH = Main.class.getResource("Main.class")
+            .toString().replace("jar:file:", "").replace(MAIN_PATH_IN_JAR, "");
     
-    private static String jarLocation = Main.class.getResource("Main.class")
-            .toString().replace("jar:file:", "").replace(pathInJar, "");
-    
-    private static String srcLocation = jarLocation.replace(
+    /**
+     * The root of the source tree relative to the root of the file system.
+     */
+    private static String SRC_PATH = JAR_PATH.replace(
             "build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar", "")
             + "src/org";
     
+    /**
+     * ANSI sequence color escape sequence for red bold font.
+     */
     private final static String RED_BOLD = "\033[1;31m";
-    
+
+    /**
+     * ANSI sequence color escape sequence for ending red bold font.
+     */
     private final static String END_RED_BOLD = "\033[0m";
     
+    /**
+     * ANSI sequence color escape sequence for bold font.
+     */
     private final static String BOLD = "\u001b[1m";
     
+    /**
+     * ANSI sequence color escape sequence for ending bold font.
+     */
     private final static String END_BOLD = "\u001b[0m";
     
+    /**
+     * Header used when printing messages.
+     */
     private final static String HEADER = bold("lfc: ");
     
+    /**
+     * Object for interpreting commandline arguments.
+     */
     protected CommandLine cmd;
     
+    /**
+     * 
+     */
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
     
+    /**
+     * 
+     */
     @Inject
     private IResourceValidator validator;
     
+    /**
+     * 
+     */
     @Inject
     private GeneratorDelegate generator;
     
+    /**
+     * 
+     */
     @Inject
     private JavaIoFileSystemAccess fileAccess;
     
+    /**
+     * 
+     * @param message
+     */
     public static void printFatalError(String message) {
         System.err.println(HEADER + redAndBold("fatal error: ") + message);
     }
     
+    /**
+     * 
+     * @param message
+     */
     public static void printError(String message) {
         System.err.println(HEADER + redAndBold("error: ") + message);
     }
     
+    /**
+     * 
+     * @param message
+     */
     public static void printInfo(String message) {
         System.out.println(HEADER + bold("info: ") + message);
     }
     
+    /**
+     * 
+     * @param s
+     * @return
+     */
     public static String bold(String s) {
         return BOLD + s + END_BOLD;
     }
     
+    /**
+     * 
+     * @param s
+     * @return
+     */
     public static String redAndBold(String s) {
         return RED_BOLD + s + END_RED_BOLD;
     }
@@ -239,7 +302,7 @@ public class Main {
         LinkedList<String> cmdList = new LinkedList<String>();
         cmdList.add("java");
         cmdList.add("-jar");
-        cmdList.add(jarLocation);
+        cmdList.add(JAR_PATH);
         for (Option o : cmd.getOptions()) {
             if (!CLIOption.REBUILD.option.equals(o)
                     && !CLIOption.UPDATE.option.equals(o)) {
@@ -247,8 +310,7 @@ public class Main {
                 cmdList.add(o.getOpt() + " " + o.getValue());
             }
         }
-        cmdList.addAll(cmd.getArgList()); // Should be fixed with later version
-                                          // of commons.cli
+        cmdList.addAll(cmd.getArgList());
         Process p;
         try {
             p = new ProcessBuilder(cmdList).inheritIO().start();
@@ -263,12 +325,12 @@ public class Main {
     }
     
     private boolean needsUpdate() {
-        File jar = new File(jarLocation);
+        File jar = new File(JAR_PATH);
         long mod = jar.lastModified();
         boolean outOfDate = false;
         try {
             outOfDate = (!jar.exists() || Files
-                    .find(Paths.get(srcLocation), Integer.MAX_VALUE,
+                    .find(Paths.get(SRC_PATH), Integer.MAX_VALUE,
                             (path, attr) -> (attr.lastModifiedTime()
                                     .compareTo(FileTime.fromMillis(mod)) > 0))
                     .count() > 0);
@@ -282,7 +344,7 @@ public class Main {
     }
     
     private void rebuildOrExit() {
-        String root = jarLocation.replace(pathInTree, "");
+        String root = JAR_PATH.replace(JAR_PATH_IN_SRC_TREE, "");
         ProcessBuilder build;
         if (this.mustUpdate())
             build = new ProcessBuilder("./gradlew",
