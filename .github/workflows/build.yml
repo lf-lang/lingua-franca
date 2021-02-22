@@ -198,6 +198,7 @@ jobs:
         run: |
           #bin/build-lfc;
           #bin/run-lf-tests Python;
-          echo "Hello World!"        
+          cd xtext
+          ./gradlew test --tests org.icyphy.tests.runtime.PythonTest.*
 
     
