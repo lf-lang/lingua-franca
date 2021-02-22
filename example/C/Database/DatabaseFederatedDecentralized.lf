@@ -65,15 +65,18 @@ reactor PlatformA {
 }
 
 reactor PlatformB(STP:time(30 msec)) {
-     d = new DatabaseB();
-     w = new ServerB();
-     input update:time;
-     update -> d.update;
-     w.query -> d.query;
-     d.reply -> w.reply;
+    d = new DatabaseB();
+    w = new ServerB();
+    input update:time;
+    update -> d.update;
+    w.query -> d.query;
+    d.reply -> w.reply;
+    reaction(startup) {=
+        set_stp_offset(MSEC(100)); // FIXME: Should be a target property.
+    =}
 }
 
-federated reactor ReservationSystem(STP:time(30 msec)) {
+federated reactor DatabaseFederatedDecentralized(STP:time(30 msec)) {
     a = new PlatformA();
     b = new PlatformB();
     a.update -> b.update;

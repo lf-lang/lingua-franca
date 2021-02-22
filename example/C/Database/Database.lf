@@ -72,7 +72,7 @@ reactor PlatformB(STP:time(30 msec)) {
      d.reply -> w.reply;
 }
 
-main reactor ReservationSystem(STP:time(30 msec)) {
+main reactor Database(STP:time(30 msec)) {
     a = new PlatformA();
     b = new PlatformB();
     a.update -> b.update;
