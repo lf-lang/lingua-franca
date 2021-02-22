@@ -187,7 +187,7 @@ public class Main {
     enum CLIOption {
         COMPILER("c", "target-compiler", true, false, "Target compuler to invoke.", true),
         HELP("h", "help", true, false, "Display this information.", false),
-        COMPILE("n", "no-compile", true, false, "Do not invoke target compiler.", true),
+        NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         REBUILD("r", "rebuild", false, false, "Rebuild the compiler first.", false),
         UPDATE("u", "update-deps", false, false, "Update dependencies and rebuild the compiler (requires Internet connection).", false),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
@@ -301,7 +301,6 @@ public class Main {
                 try {
                     main.runGenerator(files);
                 } catch (RuntimeException e) {
-                    System.err.println(e.getMessage());
                     printFatalError("An unexpected error occurred.");
                     System.exit(1);
                 }
@@ -419,7 +418,11 @@ public class Main {
         List<Option> passOn = CLIOption.getPassedOptions();
         for (Option o : cmd.getOptions()) {
             if (passOn.contains(o)) {
-                props.setProperty(o.getLongOpt(), o.getValue());
+                String value = "";
+                if (o.hasArgs()) {
+                    value = o.getValue();
+                }
+                props.setProperty(o.getLongOpt(), value);
             }
         }
         return props;
