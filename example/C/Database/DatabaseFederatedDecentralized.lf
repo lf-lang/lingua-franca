@@ -74,7 +74,7 @@ reactor PlatformB(STP:time(30 msec)) {
 }
 
 federated reactor ReservationSystem(STP:time(30 msec)) {
-    s = new PlatformA();
-    c = new PlatformB();
-    s.update -> c.update;
+    a = new PlatformA();
+    b = new PlatformB();
+    a.update -> b.update;
 }
