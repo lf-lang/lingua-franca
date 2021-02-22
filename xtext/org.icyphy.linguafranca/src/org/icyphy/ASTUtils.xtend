@@ -149,6 +149,21 @@ class ASTUtils {
     }
     
     /**
+     * Find the main reactor and change it to a federated reactor.
+     * Return true if the transformation was successful (or the given resource
+     * already had a federated reactor); return false otherwise.
+     */
+    static def boolean makeFederated(Resource resource) {
+        val r = resource.allContents.filter(Reactor).findFirst[it.isMain]
+        if (r === null) {
+            return false
+        }
+        r.main = false
+        r.federated = true
+        return true
+    }
+    
+    /**
      * Return true if any port on the left or right of the connection invoves
      * a bank of reactors or a multiport.
      * @param connection The connection.

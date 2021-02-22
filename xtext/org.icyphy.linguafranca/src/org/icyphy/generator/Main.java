@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
@@ -33,6 +32,7 @@ import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
 import org.eclipse.xtext.xbase.lib.ObjectExtensions;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
+import org.icyphy.ASTUtils;
 import org.icyphy.LinguaFrancaStandaloneSetup;
 
 import com.google.inject.Inject;
@@ -316,6 +316,22 @@ public class Main {
         return props;
     }
   
+    private static String joinPaths(String path1, String path2) {
+        if (path1.endsWith(File.separator)) {
+            if (path2.startsWith(File.separator)) {
+                return path1 + path2.substring(1, path2.length());
+            } else {
+                return path1 + path2;
+            }
+        } else {
+            if (path2.startsWith(File.separator)) {
+                return path1 + path2;
+            } else {
+                return path1 + File.separator + path2;
+            }
+        }
+    }
+    
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
@@ -332,7 +348,11 @@ public class Main {
             final Resource resource = set
                     .getResource(URI.createFileURI(f.getAbsolutePath()), true);
             
-            // FIXME: AST transformation if `federated` options is used.
+            if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
+                if (!ASTUtils.makeFederated(resource)) {
+                    printError("Unable to change main reactor to federated reactor.");
+                }
+            }
             
             final List<Issue> issues = this.validator.validate(resource,
                     CheckMode.ALL, CancelIndicator.NullImpl);
@@ -343,7 +363,7 @@ public class Main {
             }
             String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
             if (cmd.hasOption(pathOption)) {
-                this.fileAccess.setOutputPath(cmd.getOptionValue(pathOption) + "src-gen");
+                this.fileAccess.setOutputPath(joinPaths(cmd.getOptionValue(pathOption), "src-gen"));
             } else {
                 this.fileAccess.setOutputPath("src-gen");
             }
