@@ -72,6 +72,7 @@ federate_instance_t _fed = {
 		.has_downstream = false,
 		.sent_a_stop_request_to_rti = false,
 		.last_sent_LTC = (tag_t) {.time = NEVER, .microstep = 0u},
+		.last_sent_NET = (tag_t) {.time = NEVER, .microstep = 0u},
 		.min_delay_from_physical_action_to_federate_output = NEVER
 };
 
