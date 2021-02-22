@@ -112,7 +112,7 @@ public enum TargetProperty {
      * Directive to let the execution engine allow logical time to elapse
      * faster than physical time.
      */
-    DOCKER("docker", PrimitiveType.BOOLEAN, Arrays.asList(Target.ALL),
+    DOCKER("docker", PrimitiveType.BOOLEAN, Arrays.asList(Target.C),
             (config, value) -> {
                 config.docker = ASTUtils.toBoolean(value);
             }),
