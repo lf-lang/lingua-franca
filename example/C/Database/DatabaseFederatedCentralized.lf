@@ -1,6 +1,6 @@
 target C {
     timeout: 1 sec,
-    coordination: decentralized
+    coordination: centralized
 }
 
 reactor ServerA(period:time(100 msec)) {
@@ -64,7 +64,7 @@ reactor PlatformA {
     c.publish -> update;
 }
 
-reactor PlatformB(STP:time(30 msec)) {
+reactor PlatformB(stp:time(0)) {
      d = new DatabaseB();
      w = new ServerB();
      input update:time;
@@ -73,8 +73,8 @@ reactor PlatformB(STP:time(30 msec)) {
      d.reply -> w.reply;
 }
 
-federated reactor DatabaseFederatedCentralized(STP:time(30 msec)) {
+main reactor DatabaseFederatedCentralized {
     a = new PlatformA();
-    b = new PlatformB();
+    b = new PlatformB(stp = 10 msec);
     a.update -> b.update;
 }
