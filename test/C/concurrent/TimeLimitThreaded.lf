@@ -5,6 +5,7 @@
 // See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 target C {
     flags: "-O2",
+    fast: true,
     threads: 8
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {

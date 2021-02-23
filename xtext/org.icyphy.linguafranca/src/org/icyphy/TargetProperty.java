@@ -145,6 +145,26 @@ public enum TargetProperty {
             }),
     
     /**
+     * Key-value pairs giving options for clock synchronization.
+     */
+    COORDINATION_OPTIONS("coordination-options",
+            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C),
+            (config, value) -> {
+                for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                    CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
+                            .forName(entry.getName());
+                    switch (option) {
+                        case ADVANCE_MESSAGE_INTERVAL:
+                            config.coordinationOptions.advance_message_interval = ASTUtils
+                                    .toTimeValue(entry.getValue());
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }),
+    
+    /**
      * Directive to let the execution engine remain active also if there
      * are no more events in the event queue.
      */
@@ -310,7 +330,8 @@ public enum TargetProperty {
      *
      */
     public enum DictionaryType implements TargetPropertyType {
-        CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values()));
+        CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
+        COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values()));
     
         /**
          * The keys and assignable types that are allowed in this dictionary.
@@ -796,7 +817,7 @@ public enum TargetProperty {
     }
 
     /**
-     * 
+     * Clock synchronization options.
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum ClockSyncOption implements DictionaryElement {
@@ -833,6 +854,39 @@ public enum TargetProperty {
         }
     }
     
+    /**
+     * Coordination options.
+     * @author{Edward A. Lee <eal@berkeley.edu>}
+     */
+    public enum CoordinationOption implements DictionaryElement {
+        ADVANCE_MESSAGE_INTERVAL("advance-message-interval", PrimitiveType.TIME_VALUE);
+        
+        public final PrimitiveType type;
+        
+        private final String description;
+        
+        private CoordinationOption(String alias, PrimitiveType type) {
+            this.description = alias;
+            this.type = type;
+        }
+        
+        
+        /**
+         * Return the description of this dictionary element.
+         */
+        @Override
+        public String toString() {
+            return this.description;
+        }
+    
+        /**
+         * Return the type associated with this dictionary element.
+         */
+        public TargetPropertyType getType() {
+            return this.type;
+        }
+    }
+
     /**
      * Log levels in descending order of severity.
      * @author{Marten Lohstroh <marten@berkeley.edu>}

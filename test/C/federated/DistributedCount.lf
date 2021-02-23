@@ -4,8 +4,9 @@
  *  advancement of time (HLA or Ptides) is needed.
  *  @author Edward A. Lee
  */
-target C {
+ target C {
     timeout: 5 sec,
+    logging: log,
     coordination: centralized
 };
 
@@ -16,26 +17,23 @@ reactor Print {
     state c:int(1);
     reaction(in) {=
         interval_t elapsed_time = get_elapsed_logical_time();
-        printf("At time %lld, received %d\n", elapsed_time, in->value);
+        info_print("At time %lld, received %d", elapsed_time, in->value);
         if (in->value != self->c) {
-            printf("Expected to receive %d.\n", self->c);
-            exit(1);
+            error_print_and_exit("Expected to receive %d.", self->c);
         }
         if (elapsed_time != MSEC(200) + SEC(1) * (self->c - 1) ) {
-            printf("Expected received time to be %lld.\n", MSEC(200) * self->c);
-            exit(3);
+            error_print_and_exit("Expected received time to be %lld.", MSEC(200) * self->c);
         }
         self->c++;
     =}
     reaction(shutdown) {=
         if (self->c != 6) {
-            printf("Expected to receive 5 items.\n");
-            exit(2);
+            error_print_and_exit("Expected to receive 5 items.");
         }
     =}
 }
 
-federated reactor DistributedCount {
+federated reactor DistributedCount { 
     c = new Count();
     p = new Print();
     c.out -> p.in after 200 msec;    // Indicating a 'logical' connection.

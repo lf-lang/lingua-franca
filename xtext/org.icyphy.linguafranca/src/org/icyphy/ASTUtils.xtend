@@ -400,7 +400,6 @@ class ASTUtils {
         var type = (connection.rightPorts.get(0).variable as Port).type.copy
         val action = factory.createAction
         val triggerRef = factory.createVarRef
-        val effectRef = factory.createVarRef
         val inRef = factory.createVarRef
         val outRef = factory.createVarRef
         val parent = (connection.eContainer as Reactor)
@@ -450,7 +449,6 @@ class ASTUtils {
 
         // Establish references to the action.
         triggerRef.variable = action
-        effectRef.variable = action
 
         // Establish references to the involved ports.
         // FIXME: This does not support parallel connections yet!!
@@ -467,7 +465,6 @@ class ASTUtils {
         
         // Configure the sending reaction.
         r1.triggers.add(inRef)
-        r1.effects.add(effectRef)
         r1.code = factory.createCode()
         r1.code.body = generator.generateNetworkSenderBody(
             inRef,
@@ -572,6 +569,7 @@ class ASTUtils {
                     ofVariableLength
                 clone.arraySpec.length = original.arraySpec.length
             }
+            clone.time = original.time
             
             original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
             

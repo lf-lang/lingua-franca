@@ -1,0 +1,80 @@
+target C {
+    timeout: 1 sec,
+    coordination: centralized
+}
+
+reactor ServerA(period:time(100 msec)) {
+    timer trigger(0, period);
+    output update:time;
+    
+    reaction(trigger) -> update {=
+        SET(update, get_elapsed_logical_time());
+    =}
+}
+
+reactor DatabaseA(D:time(10 msec)) {
+    input update:time;
+    output publish:time;
+    state latest_update:time(0); // FIXME: Should be NEVER
+    
+    reaction(update) -> publish {=
+        self->latest_update = update->value;
+        SET(publish, update->value);
+    =} deadline(D) {=
+        error_print("Deadline missed. Rejecting update.");
+    =}
+}
+
+reactor ServerB(period:time(150 msec)) {
+    timer trigger(0, period);
+    output query:bool;
+    input reply:time;
+    
+    reaction(trigger) -> query {=
+        SET(query, true);
+    =}
+    reaction(reply) {=
+        info_print("At logical time %lld, received response %lld.",
+            get_elapsed_logical_time(), reply->value
+        );
+    =}
+}
+
+reactor DatabaseB {
+    input update:time;
+    input query:bool;
+    output reply:time;
+    state latest_update:time(0); // FIXME: Should be NEVER
+    
+    reaction(update) {=
+        self->latest_update = update->value;
+    =} tardy {=
+        error_print("Update is tardy. Rejecting update.");
+    =}
+    reaction(query) -> reply {=
+        SET(reply, self->latest_update);
+    =}
+}
+
+reactor PlatformA {
+    w = new ServerA();
+    c = new DatabaseA();
+    output update:time;
+    w.update -> c.update;
+    c.publish -> update;
+}
+
+reactor PlatformB(stp:time(0)) {
+     d = new DatabaseB();
+     w = new ServerB();
+     input update:time;
+     update -> d.update;
+     w.query -> d.query;
+     d.reply -> w.reply;
+}
+
+main reactor DatabaseFederatedCentralized {
+    a = new PlatformA();
+    b = new PlatformB(stp = 10 msec);
+    a.update -> b.update;
+}

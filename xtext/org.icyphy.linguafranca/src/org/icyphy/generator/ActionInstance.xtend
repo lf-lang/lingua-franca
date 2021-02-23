@@ -33,6 +33,7 @@ import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.TimeUnit
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.linguaFranca.ActionOrigin
 
 /**
  * Instance of an action.
@@ -46,6 +47,8 @@ class ActionInstance extends TriggerInstance<Variable> {
     public TimeValue minDelay = new TimeValue(0, TimeUnit.NONE)
     
     public TimeValue minSpacing = null;
+    
+    public boolean isPhysical = false;
     
     new(Action definition, ReactorInstance parent) {
         super(definition, parent)
@@ -73,6 +76,9 @@ class ActionInstance extends TriggerInstance<Variable> {
             } else {
                 this.minSpacing = definition.minSpacing.timeValue
             }
+        }
+        if (definition.origin === ActionOrigin.PHYSICAL) {
+            isPhysical = true
         }
     }
     
