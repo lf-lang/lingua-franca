@@ -4,7 +4,7 @@
 // Correct output for this 1, 2, 3, 4.
 // Failure for this test is failing to halt or getting the wrong data.
 target C {
-    flags: "-O2 -Wall -g -rdynamic",
+    flags: ["-O2", "-Wall", "-g", "-rdynamic"],
     coordination: decentralized,
     timeout: 10 secs,
     clock-sync: on,                // Turn on runtime clock synchronization.

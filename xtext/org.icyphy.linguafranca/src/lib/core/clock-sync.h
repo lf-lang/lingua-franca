@@ -189,8 +189,11 @@ void* listen_to_rti_UDP_thread(void* args);
 
 /**
  * Create the thread responsible for handling clock synchronization
- * with the RTI.
+ * with the RTI if (runtime) clock synchronization is on.
+ * Otherwise, do nothing an return 0.
+ *
+ * @return On success, returns 0; On error, it returns an error number.
  */
-pthread_t create_clock_sync_thread(pthread_t* thread_id);
+int create_clock_sync_thread(pthread_t* thread_id);
 
 #endif // CLOCK_SYNC_H
