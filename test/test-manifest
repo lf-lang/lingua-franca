@@ -114,6 +114,7 @@ MultiportToMultiportArray.lf
 MultiportToPort.lf
 MultiportToReaction.lf
 NativeListsAndTimes.lf
+ParameterHierarchy.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
 PhysicalConnection.lf
