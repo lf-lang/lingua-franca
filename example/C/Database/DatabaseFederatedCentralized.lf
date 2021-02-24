@@ -56,7 +56,7 @@ reactor DatabaseB {
     =}
 }
 
-reactor PlatformA {
+reactor A {
     w = new ServerA();
     c = new DatabaseA();
     output update:time;
@@ -64,7 +64,7 @@ reactor PlatformA {
     c.publish -> update;
 }
 
-reactor PlatformB(stp:time(0)) {
+reactor  B(stp:time(0)) {
      d = new DatabaseB();
      w = new ServerB();
      input update:time;
@@ -73,8 +73,8 @@ reactor PlatformB(stp:time(0)) {
      d.reply -> w.reply;
 }
 
-main reactor DatabaseFederatedCentralized {
-    a = new PlatformA();
-    b = new PlatformB(stp = 10 msec);
+federated reactor DatabaseFederatedCentralized {
+    a = new A();
+    b = new B(stp = 10 msec);
     a.update -> b.update;
 }
