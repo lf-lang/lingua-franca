@@ -1,0 +1,16 @@
+target C {
+    timeout: 1 sec,
+    coordination: decentralized
+}
+
+import Platform from "ReplicatedDatabase.lf"
+
+federated reactor ReplicatedDatabase { 
+    a = new Platform();
+    b = new Platform(update_period = 50 msec, start = 100, STP = 50 msec);
+    a.publish -> b.update;
+    // The 'after' delay below has to be larger than twice
+    // the network delay bound plus the clock synchronization error
+    // plus the STP of federate b.
+    b.publish -> a.update after 100 msec;
+}
