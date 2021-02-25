@@ -414,8 +414,6 @@ class CGenerator extends GeneratorBase {
 
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
-                // This should go first in the __trigger_startup_reactions function.
-                pr(startTimers, "synchronize_with_other_federates();")
             }
         
             // Build the instantiation tree if a main reactor is present.

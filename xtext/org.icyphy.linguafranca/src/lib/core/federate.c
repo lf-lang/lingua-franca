@@ -1333,6 +1333,8 @@ void* listen_to_rti_TCP(void* args) {
  * and then returns. If --fast was specified, then this does
  * not wait for physical time to match the logical start time
  * returned by the RTI.
+ * 
+ * FIXME: Possibly should be renamed
  */
 void synchronize_with_other_federates() {
 
@@ -1359,26 +1361,6 @@ void synchronize_with_other_federates() {
     if (create_clock_sync_thread(&thread_id)) {
         warning_print("Failed to create thread to handle clock synchronization.");
     }
-
-    // If --fast was not specified, wait until physical time matches
-    // or exceeds the start time. Microstep is ignored.
-    // Need to hold the mutex lock to call wait_until().
-    pthread_mutex_lock(&mutex);
-    LOG_PRINT("Waiting for start time %lld plus STP offset %lld.",
-    		start_time, _lf_global_time_STP_offset);
-    // Ignore interrupts to this wait. We don't want to start executing until
-    // physical time matches or exceeds the logical start time.
-    // The STP offset, if there is one, is added in wait_until.
-    while (!wait_until(start_time)) {}
-    DEBUG_PRINT("Done waiting for start time %lld.", start_time);
-    DEBUG_PRINT("Physical time is ahead of current time by %lld. This should be small.",
-            get_physical_time() - start_time);
-    pthread_mutex_unlock(&mutex);
-
-    // Reinitialize the physical start time to match the current physical time.
-    // This will be different on each federate. If --fast was given, it could
-    // be very different.
-    physical_start_time = get_physical_time();
 }
 
 /** 
