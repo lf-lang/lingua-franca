@@ -1196,6 +1196,7 @@ class ASTUtils {
                 return new TimeValue(0, TimeUnit.NONE)
             }
         }
+        return null
     }
     
     /**
