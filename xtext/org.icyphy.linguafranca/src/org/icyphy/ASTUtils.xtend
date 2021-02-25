@@ -554,6 +554,7 @@ class ASTUtils {
                     ofVariableLength
                 clone.arraySpec.length = original.arraySpec.length
             }
+            clone.time = original.time
             
             original.typeParms?.forEach[parm | clone.typeParms.add(parm.copy)]
             
@@ -1195,6 +1196,7 @@ class ASTUtils {
                 return new TimeValue(0, TimeUnit.NONE)
             }
         }
+        return null
     }
     
     /**

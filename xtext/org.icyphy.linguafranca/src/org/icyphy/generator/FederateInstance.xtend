@@ -43,7 +43,6 @@ import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.TimeValue
-import org.icyphy.linguaFranca.TimeUnit
 
 /** Instance of a federate, or marker that no federation has been defined
  *  (if isSingleton() returns true). Every top-level reactor (contained

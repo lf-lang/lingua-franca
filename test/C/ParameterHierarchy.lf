@@ -1,0 +1,20 @@
+// Test that parameter values pass down a deep hierarchy.
+target C;
+reactor Deep(p:int(0)) {
+    reaction(startup) {=
+        if (self->p != 42) {
+            error_print_and_exit("Parameter value is %d. Should have been 42.");
+        } else {
+            info_print("Success.");
+        }
+    =}
+}
+reactor Intermediate(p:int(10)) {
+    a = new Deep(p = p);
+}
+reactor Another(p:int(20)) {
+    a = new Intermediate(p = p);
+}
+main reactor ParameterHierarchy {
+    a = new Intermediate(p = 42);
+}
