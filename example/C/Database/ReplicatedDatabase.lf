@@ -129,14 +129,14 @@ reactor Database(update_deadline:time(200 msec), database_name:char*("database")
         if (local_update->is_present) {
             self->record = local_update->value;
             SET(publish, self->record);
-            info_print("At tag (%lld, %u), %s locally updated to %d.",
+            info_print("At tag (%lld, %u), database \"%s\" locally updated to %d.",
                 get_logical_time() - start_time, get_microstep(), self->database_name, self->record
             );
         }
         if (remote_update->is_present && remote_update->value != self->record) {
             self->record = remote_update->value;            
             SET(publish, self->record); // May overwrite the SET above.
-            info_print("At tag (%lld, %u), %s updated to %d to match upstream remote update.",
+            info_print("At tag (%lld, %u), database \"%s\" updated to %d to match upstream remote update.",
                 get_logical_time() - start_time, get_microstep(), self->database_name, self->record
             );
         }
