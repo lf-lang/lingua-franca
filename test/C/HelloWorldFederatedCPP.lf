@@ -6,7 +6,7 @@ target C {
     tracing: true,
     compiler: "g++",
     flags: "-Wno-write-strings", // Suppress a ridiculous number of warnings.
-    logging: DEBUG,
+    logging: DEBUG, 
     coordination: centralized,
     timeout: 1 sec
 };

@@ -55,6 +55,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NEVER LLONG_MIN
 #define FOREVER LLONG_MAX
 
+#define NEVER_TAG (tag_t){ .time = LLONG_MIN, .microstep = 0 }
+#define FOREVER_TAG (tag_t){ .time = LLONG_MAX, .microstep = UINT_MAX }
+
 // Convenience for converting times
 #define BILLION 1000000000LL
 
@@ -104,6 +107,24 @@ typedef tag_t tag_interval_t;
  * @return -1, 0, or 1 depending on the relation.
  */
 int compare_tags(tag_t tag1, tag_t tag2);
+
+/**
+ * Delay a tag by the specified time interval to realize the "after" keyword.
+ * If either the time interval or the time field of the tag is NEVER,
+ * return the unmodified tag.
+ * If the time interval is 0LL, add one to the microstep, leave
+ * the time field alone, and return the result.
+ * Otherwise, add the interval to the time field of the tag and reset
+ * the microstep to 0.
+ * If the sum overflows, saturate the time value at FOREVER.
+ *
+ * Note that normally it makes no sense to call this with a negative
+ * interval (except NEVER), but this is not checked.
+ *
+ * @param tag The tag to increment.
+ * @param interval The time interval.
+ */
+tag_t delay_tag(tag_t tag, interval_t interval);
 
 /**
  * Return the elapsed logical time in nanoseconds

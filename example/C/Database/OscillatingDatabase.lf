@@ -1,0 +1,22 @@
+/**
+ * This version of the distributed database exhibits oscillation.
+ * Platform b sets the value in the database to 100 at 0 msec.
+ * Platform a sets the value in the database to 0 at 25 msec.
+ * The two then oscillate, failing to reach an agreement on what the final value is.
+ */
+target C {
+    timeout: 1 sec,
+    coordination: centralized
+}
+
+import Platform from "ReplicatedDatabase.lf"
+
+main reactor OscillatingDatabase {
+    // Perform just one local update at time 25 msec on platform a:
+    a = new Platform(query_offset = 10 sec, update_offset = 25 msec, update_period = 10 sec, database_name = "a");
+    // Perform just one local update at time 0 sec on platform b;
+    b = new Platform(query_offset = 10 sec, update_period = 10 sec, start = 100, database_name = "b");
+    a.publish -> b.update;
+    // Add a delay of 50 msec.
+    b.publish -> a.update after 50 msec;
+}

@@ -406,7 +406,7 @@ void _lf_enqueue_reaction(reaction_t* reaction);
  * counts between time steps and at the end of execution.
  */
 void __start_time_step() {
-    LOG_PRINT("--------- Start time step.");
+    LOG_PRINT("--------- Start time step at tag (%lld, %u).", current_tag.time - start_time, current_tag.microstep);
     for(int i = 0; i < __tokens_with_ref_count_size; i++) {
         if (*(__tokens_with_ref_count[i].is_present)) {
             if (__tokens_with_ref_count[i].reset_is_present) {
@@ -765,6 +765,8 @@ void _lf_replace_token(event_t* event, lf_token_t* token) {
  * where bigger_tag > smaller_tag. This function is primarily
  * used for network communication (which is assumed to be
  * in order).
+ * 
+ * This function assumes the caller holds the mutex lock.
  *
  * @param trigger The trigger to be invoked at a later logical time.
  * @param tag Logical tag of the event
@@ -777,7 +779,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
 
     tag_t current_logical_tag = get_current_tag();
 
-    DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).\n",
+    DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).",
                   tag.time - start_time, tag.microstep,
                   current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {
@@ -1349,13 +1351,16 @@ void _lf_advance_logical_time(instant_t next_time) {
     // to the ordinary execution of LF programs. Instead, there might
     // be a need for a target property that enables these kinds of logic
     // assertions for development purposes only.
-    // event_t* next_event = (event_t*)pqueue_peek(event_q);
-    // if (next_event != NULL) {
-    //     if (next_time > next_event->time) {
-    //         error_print_and_exit("_lf_advance_logical_time(): Attempted to move tag "
-    //                               "past the head of the event queue.");
-    //     }
-    // }
+    /*
+    event_t* next_event = (event_t*)pqueue_peek(event_q);
+    if (next_event != NULL) {
+        if (next_time > next_event->time) {
+            error_print_and_exit("_lf_advance_logical_time(): Attempted to move time to %lld, which is "
+                    "past the head of the event queue, %lld.", 
+                    next_time - start_time, next_event->time - start_time);
+        }
+    }
+    */
 
     if (current_tag.time < next_time) {
         current_tag.time = next_time;
