@@ -803,6 +803,21 @@ class CGenerator extends GeneratorBase {
             pr('''
                 // ***** Start initializing the federated execution. */
             ''')
+            
+            if (isFederatedAndDecentralized) {
+                val reactorInstance = main.getChildReactorInstance(federate.instantiation)
+                for (param : reactorInstance.parameters) {
+                    if (param.name.equalsIgnoreCase("STP") && param.type.isTime) {
+                        val stp = param.init.get(0).getTimeValue
+                        if (stp !== null) {                        
+                            pr('''
+                                set_stp_offset(«stp.timeInTargetLanguage»);
+                            ''')
+                        }
+                    }
+                }
+            }
+            
             // Set indicator variables that specify whether the federate has
             // upstream logical connections.
             if (federate.dependsOn.size > 0) {
