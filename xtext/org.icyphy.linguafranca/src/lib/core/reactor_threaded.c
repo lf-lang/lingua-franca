@@ -1158,11 +1158,9 @@ int main(int argc, char* argv[]) {
 
         // At this time, reactions (startup, etc.) are added to the 
         // reaction queue that will be executed at tag (0,0).
-        // Before we could do so, we need to ask the RTI if it is 
-        // okay.
-        // In a federated execution, request from the RTI to advance time to the start time
-        // and wait for a reply.
-        // In a non-federated execution, this returns immediately.
+        // Before we can execute those, if using centralized coordination,
+        // we need to ask the RTI if it is okay.  The following function is
+        // empty if this program is not federated or is using decentralized coordination.
         tag_t grant_tag = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
         if (grant_tag.time < start_time) {
             // This is a critical condition
