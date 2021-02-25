@@ -1245,7 +1245,7 @@ void* listen_to_federates(void* fed_id_ptr) {
         DEBUG_PRINT("Received a P2P message of type %d.", buffer[0]);
         if (bytes_read == 0) {
             // EOF occurred. This breaks the connection.
-            warning_print("Received EOF from peer federate %d. Closing the socket.", fed_id);
+            info_print("Received EOF from peer federate %d. Closing the socket.", fed_id);
             close(socket_id);
             _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
             break;
