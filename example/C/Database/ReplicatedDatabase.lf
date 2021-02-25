@@ -149,8 +149,8 @@ reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
         if (remote_update->is_present) {
             error_print("At tag (%lld, %u), database \"%s\" "
                 "received remote update (%d) that is tardy by (%lld, %u). Rejecting update.",
-                remote_update->intended_tag.time - start_time,
-                remote_update->intended_tag.microstep,
+                current_tag.time - start_time,
+                current_tag.microstep,
                 self->database_name,
                 remote_update->value,
                 current_tag.time - remote_update->intended_tag.time,
