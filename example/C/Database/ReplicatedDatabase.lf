@@ -43,7 +43,8 @@ reactor Server(
     query_period:time(150 msec),
     update_offset:time(0),
     update_period:time(100 msec),
-    start:int(0)
+    start:int(0),
+    server_name:char*("")
 ) {
     timer query_trigger(query_offset, query_period);
     timer update_trigger(update_offset, update_period);
@@ -62,15 +63,18 @@ reactor Server(
     =}
     
     reaction(reply) {=
-        info_print("At tag (%lld, %u), server received reply to query: %d.",
-            get_elapsed_logical_time(), get_microstep(), reply->value
+        info_print("At tag (%lld, %u), server \"%s\" received reply to query: %d.",
+            get_elapsed_logical_time(), get_microstep(), self->server_name, reply->value
         );
         self->queries_outstanding--;
     =}
     
     reaction(shutdown) {=
         if (self->queries_outstanding != 0) {
-            error_print("Number of queries with no reply: %d.", self->queries_outstanding);
+            error_print("Server \"%s\": Number of queries with no reply: %d.", 
+                self->server_name,
+                self->queries_outstanding
+            );
         }
     =}
 }
@@ -117,7 +121,7 @@ reactor Server(
  * @input query A trigger to read the current value of the record.
  * @output reply The time value of the record.
  */
-reactor Database(update_deadline:time(200 msec), database_name:char*("database")) {
+reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
     input local_update:int;
     input remote_update:int;
     input query:bool;
@@ -142,7 +146,8 @@ reactor Database(update_deadline:time(200 msec), database_name:char*("database")
         }
     =} tardy {=
 #ifdef _LF_COORD_DECENTRALIZED
-        error_print("Update is tardy by (%lld, %u). Rejecting update.",
+        error_print("Database \"%s\": Update is tardy by (%lld, %u). Rejecting update.",
+            self->database_name,
             current_tag.time - remote_update->intended_tag.time,
             current_tag.microstep - remote_update->intended_tag.microstep
         );
@@ -178,8 +183,8 @@ reactor Platform(
     update_offset:time(0),
     update_period:time(100 msec),
     start:int(0),
-    STP:time(0),     				 // Used for decentralized coordination of federation only.
-    database_name:char*("database")  // Used for more visible logging
+    STP:time(0),			// Used for decentralized coordination of federation only.
+    database_name:char*("") // Used for more visible logging
 ) {
     input update:int;
     output publish:int;
@@ -188,7 +193,8 @@ reactor Platform(
         query_period = query_period,
         update_offset = update_offset,
         update_period = update_period,
-        start = start
+        start = start,
+        server_name = database_name
     );
     database = new Database(database_name = database_name);
     server.query -> database.query;
