@@ -278,6 +278,9 @@ void send_timed_message(interval_t additional_delay,
                         unsigned char* message) {
     assert(port < 65536);
     assert(federate < 65536);
+    if (socket < 0) {
+        return;
+    }
     unsigned char header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t)];
     // First byte identifies this as a timed message.
     header_buffer[0] = message_type;
@@ -336,6 +339,7 @@ void send_timed_message(interval_t additional_delay,
         // not be sent.
         return;
     }
+
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     pthread_mutex_lock(&socket_mutex);
     write_to_socket_errexit(socket, header_length, header_buffer,
@@ -1246,13 +1250,17 @@ void* listen_to_federates(void* fed_id_ptr) {
         if (bytes_read == 0) {
             // EOF occurred. This breaks the connection.
             info_print("Received EOF from peer federate %d. Closing the socket.", fed_id);
+            pthread_mutex_lock(&socket_mutex);
             close(socket_id);
             _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
+            pthread_mutex_unlock(&socket_mutex);
             break;
         } else if (bytes_read < 0) {
             error_print("P2P socket to federate %d is broken.", fed_id);
+            pthread_mutex_lock(&socket_mutex);
             close(socket_id);
             _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
+            pthread_mutex_unlock(&socket_mutex);
             break;
         }
         switch (buffer[0]) {

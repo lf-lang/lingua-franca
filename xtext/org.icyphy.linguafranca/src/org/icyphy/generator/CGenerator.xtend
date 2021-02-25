@@ -692,11 +692,21 @@ class CGenerator extends GeneratorBase {
                             for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
                                 // Close outbound connections
                                 if (_fed.sockets_for_outbound_p2p_connections[i] != -1) {
+                                    shutdown(_fed.sockets_for_outbound_p2p_connections[i], SHUT_RDWR);
                                     close(_fed.sockets_for_outbound_p2p_connections[i]);
                                     _fed.sockets_for_outbound_p2p_connections[i] = -1;
                                 }
+                            }
+                            «IF federate.inboundP2PConnections.length > 0»
+                                «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
+                                void* thread_return;
+                                info_print("Waiting for incoming connections to close.");
+                                pthread_join(_fed.inbound_p2p_handling_thread_id, &thread_return);
+                            «ENDIF»
+                            for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
                                 // Close inbound connections
                                 if (_fed.sockets_for_inbound_p2p_connections[i] != -1) {
+                                    shutdown(_fed.sockets_for_inbound_p2p_connections[i], SHUT_RDWR);
                                     close(_fed.sockets_for_inbound_p2p_connections[i]);
                                     _fed.sockets_for_inbound_p2p_connections[i] = -1;
                                 }
@@ -705,12 +715,6 @@ class CGenerator extends GeneratorBase {
                             write_to_socket_errexit(_fed.socket_TCP_RTI, 1, &message_marker, 
                                     "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
                             LOG_PRINT("Resigned.");
-                            «IF federate.inboundP2PConnections.length > 0»
-                                «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
-                                void* thread_return;
-                                info_print("Waiting for incoming connections to close.");
-                                pthread_join(_fed.inbound_p2p_handling_thread_id, &thread_return);
-                            «ENDIF»
                         }
                     ''')
                 } else {
@@ -4082,9 +4086,21 @@ class CGenerator extends GeneratorBase {
         if (isPhysical) {
             socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_MESSAGE"
+            // Check if the socket is still valid first
+            result.append('''
+                if (_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»] == -1) {
+                    return;
+                }
+            ''')
         } else if (config.coordination === CoordinationType.DECENTRALIZED) {
             socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
+            // Check if the socket is still valid first
+            result.append('''
+                if (_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»] == -1) {
+                    return;
+                }
+            ''')
         } else {
             // Logical connection
             // Send the message via rti
