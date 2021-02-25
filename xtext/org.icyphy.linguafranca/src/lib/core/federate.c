@@ -1368,9 +1368,7 @@ void synchronize_with_other_federates() {
     		start_time, _lf_global_time_STP_offset);
     // Ignore interrupts to this wait. We don't want to start executing until
     // physical time matches or exceeds the logical start time.
-    // Add the STP offset, if there is one, so that it is respected even at
-    // the start.
-    while (!wait_until(start_time + _lf_global_time_STP_offset)) {}
+    while (!wait_until(start_time)) {}
     DEBUG_PRINT("Done waiting for start time %lld.", start_time);
     DEBUG_PRINT("Physical time is ahead of current time by %lld. This should be small.",
             get_physical_time() - start_time);

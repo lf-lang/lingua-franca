@@ -146,11 +146,24 @@ reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
         }
     =} tardy {=
 #ifdef _LF_COORD_DECENTRALIZED
-        error_print("Database \"%s\": Update is tardy by (%lld, %u). Rejecting update.",
-            self->database_name,
-            current_tag.time - remote_update->intended_tag.time,
-            current_tag.microstep - remote_update->intended_tag.microstep
-        );
+        if (remote_update->is_present) {
+            error_print("At tag (%lld, %u), database \"%s\" "
+                "received remote update (%d) that is tardy by (%lld, %u). Rejecting update.",
+                remote_update->intended_tag.time - start_time,
+                remote_update->intended_tag.microstep,
+                self->database_name,
+                remote_update->value,
+                current_tag.time - remote_update->intended_tag.time,
+                current_tag.microstep - remote_update->intended_tag.microstep
+            );
+        } else if (local_update->is_present) {            
+            error_print_and_exit("FATAL: Database \"%s\": Local update (%d) is tardy by (%lld, %u). Rejecting update.",
+                self->database_name,
+                local_update->value,
+                current_tag.time - remote_update->intended_tag.time,
+                current_tag.microstep - remote_update->intended_tag.microstep
+            );
+        }
 #else
         // The tardy handler should not be invoked
         error_print_and_exit("FATAL: Update is tardy when coordination is not decentralized.");
