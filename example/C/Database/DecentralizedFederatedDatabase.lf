@@ -6,8 +6,8 @@ target C {
 import Platform from "ReplicatedDatabase.lf"
 
 federated reactor ReplicatedDatabase { 
-    a = new Platform();
-    b = new Platform(update_period = 50 msec, start = 100, STP = 50 msec);
+    a = new Platform(database_name = "a");
+    b = new Platform(update_period = 50 msec, start = 100, STP = 50 msec, database_name = "b");
     a.publish -> b.update;
     // The 'after' delay below has to be larger than twice
     // the network delay bound plus the clock synchronization error
