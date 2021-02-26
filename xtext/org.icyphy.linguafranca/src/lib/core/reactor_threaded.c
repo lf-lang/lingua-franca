@@ -428,7 +428,7 @@ bool wait_until(instant_t logical_time_ns) {
         return_value = false;
     }
     interval_t wait_until_time_ns = logical_time_ns;
-#ifdef _LF_COORD_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
+#ifdef FEDERATED_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
     // Apply the STP offset to the logical time
     // Prevent an overflow
     if (wait_until_time_ns < FOREVER - _lf_global_time_STP_offset) {
@@ -565,7 +565,7 @@ void __next() {
     // Previous logical time is complete.
     tag_t next_tag = get_next_event_tag();
 
-#ifdef _LF_COORD_CENTRALIZED
+#ifdef FEDERATED_CENTRALIZED
     // In case this is in a federation with centralized coordination, notify 
     // the RTI of the next earliest tag at which this federate might produce 
     // an event. This function may block until it is safe to advance the current 
@@ -593,7 +593,7 @@ void __next() {
     // allow keepalive to be either true or false and could get the same
     // behavior with centralized coordination as with unfederated execution.
 
-#else  // _LF_COORD_CENTRALIZED
+#else  // FEDERATED_CENTRALIZED
     if (pqueue_peek(event_q) == NULL && !keepalive_specified) {
         // There is no event on the event queue and keepalive is false.
         // No event in the queue
@@ -602,7 +602,7 @@ void __next() {
         // keepalive = true
         _lf_set_stop_tag((tag_t){.time=current_tag.time,.microstep=current_tag.microstep+1});
     }
-#endif // _LF_COORD_CENTRALIZED
+#endif // FEDERATED_CENTRALIZED
 
     // Wait for physical time to advance to the next event time (or stop time).
     // This can be interrupted if a physical action triggers (e.g., a message
@@ -631,7 +631,7 @@ void __next() {
     DEBUG_PRINT("Physical time is ahead of next tag time by %lld. This should be small unless -fast is used.",
                 get_physical_time() - next_tag.time);
     
-#ifdef _LF_IS_FEDERATED
+#ifdef FEDERATED
     // In federated execution (at least under decentralized coordination),
     // it is possible that an incoming message has been partially read,
     // enough to see its tag. To prevent it from becoming tardy, the thread
@@ -643,7 +643,7 @@ void __next() {
         // A wait actually occurred, so the next_tag may have changed again.
         next_tag = get_next_event_tag();
     }
-#endif // _LF_IS_FEDERATED
+#endif // FEDERATED
 
     // If the first event in the event queue has a tag greater than or equal to the
     // stop time, and the current_tag matches the stop tag (meaning that we have already
@@ -685,7 +685,7 @@ void __next() {
  */
 void request_stop() {
     pthread_mutex_lock(&mutex);
-#ifdef _LF_IS_FEDERATED
+#ifdef FEDERATED
     _lf_fd_send_stop_request_to_rti();
     // Do not set stop_requested
     // since the RTI might grant a
@@ -881,7 +881,7 @@ void _lf_initialize_start_tag() {
     // Add reactions invoked at tag (0,0) (including startup reactions) to the reaction queue
     __trigger_startup_reactions(); 
 
-#ifdef _LF_IS_FEDERATED
+#ifdef FEDERATED
     // Get a start_time from the RTI
     synchronize_with_other_federates(); // Resets start_time in federated execution according to the RTI.
     current_tag = (tag_t){.time = start_time, .microstep = 0u};
@@ -896,7 +896,7 @@ void _lf_initialize_start_tag() {
         __trigger_shutdown_reactions();
     }
 
-#ifdef _LF_IS_FEDERATED
+#ifdef FEDERATED
     // Call wait_until if federated. This is required because the startup procedure
     // in synchronize_with_other_federates() can decide on a new start_time that is 
     // larger than the current physical time.
@@ -938,7 +938,7 @@ void _lf_initialize_start_tag() {
     }
 #endif
 
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
     // In federated execution (at least under decentralized coordination),
     // it is possible that an incoming message has been partially read at (0,0),
     // enough to see its tag. To prevent it from becoming tardy, the thread
@@ -947,7 +947,7 @@ void _lf_initialize_start_tag() {
     // once the complete message has been read. Here, we wait for that barrier
     // to be removed, if appropriate before proceeding to executing tag (0,0).
     _lf_wait_on_global_tag_barrier((tag_t){.time=start_time,.microstep=0});
-#endif // _LF_COORD_DECENTRALIZED
+#endif // FEDERATED_DECENTRALIZED
     
     // Set the following boolean so that other thread(s), including federated threads,
     // know that the execution has started
