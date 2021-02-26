@@ -4167,21 +4167,21 @@ class CGenerator extends GeneratorBase {
         
         if (isFederated) {
             // FIXME: Instead of checking
-            // #ifdef _LF_IS_FEDERATED, we could
+            // #ifdef FEDERATED, we could
             // use #if (NUMBER_OF_FEDERATES > 1)
             // To me, the former is more accurate.
             pr('''
-                #define _LF_IS_FEDERATED
+                #define FEDERATED
             ''')
             if (config.coordination === CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
                 pr('''
-                    #define _LF_COORD_CENTRALIZED
+                    #define FEDERATED_CENTRALIZED
                 ''')                
             } else if (config.coordination === CoordinationType.DECENTRALIZED) {
                 // The coordination is decentralized
                 pr('''
-                    #define _LF_COORD_DECENTRALIZED
+                    #define FEDERATED_DECENTRALIZED
                 ''')
             }
         }

@@ -153,7 +153,7 @@ reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
             );
         }
     =} tardy {=
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
         if (remote_update->is_present) {
             error_print("At tag (%lld, %u), database \"%s\" "
                 "received remote update (%d) that is tardy by (%lld, %u). Rejecting update.",
