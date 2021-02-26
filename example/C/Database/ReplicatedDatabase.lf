@@ -1,14 +1,22 @@
 /**
  * Test program illustrating the architecture of a replicated distributed
  * database. It models a web server in each of two platforms that accepts
- * queries and updates to the database and passes them on the database
+ * queries and updates to the database and passes them on to the database
  * reactor.
  * 
  * If the two servers attempt to simultaneously update the database,
  * then platform a will force b to discard its update and go instead
- * with the one provided by a.  On the other 
+ * with the one provided by a. When platform b updates its record locally,
+ * the update gets sent to platform a with one microstep delay.
+ * If platform a performs a local update at that microstep-delayed tag,
+ * then its local update will be rejected in favor of the remote update.
+ * As written, this program has no mechanism for platform a to perform
+ * such a microstep-delayed update, so updates at a will always prevail
+ * over updates at b, and updates at b will only be rejected if their
+ * tag matches an update at a.
  * 
  * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
     timeout: 1 sec
