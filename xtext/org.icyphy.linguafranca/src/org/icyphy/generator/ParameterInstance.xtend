@@ -61,9 +61,9 @@ class ParameterInstance extends NamedInstance<Parameter> {
         this.init = definition.init
         
         // Check for an override.
-        val assignment = parent.definition.parameters.findFirst[it.lhs === definition]
+        var assignment = parent.definition.parameters.findFirst[it.lhs === definition]
         
-        if (assignment !== null) {
+        while (assignment !== null) {
             // NOTE: we only allow a reference to single a parameter or 
             // a list of ordinary values.
             val ref = assignment.rhs.get(0).parameter
@@ -71,6 +71,11 @@ class ParameterInstance extends NamedInstance<Parameter> {
                 this.init = ref.init
             } else {
                 this.init = assignment.rhs    
+            }
+            if (parent.parent !== null) {
+                assignment = parent.parent.definition.parameters.findFirst[it.lhs === ref]
+            } else {
+                assignment = null
             }
         }
     }

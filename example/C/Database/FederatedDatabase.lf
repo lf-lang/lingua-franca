@@ -1,0 +1,13 @@
+target C {
+    timeout: 1 sec,
+    coordination: centralized
+}
+
+import Platform from "ReplicatedDatabase.lf"
+
+federated reactor ReplicatedDatabase {
+    a = new Platform(database_name = "a");
+    b = new Platform(update_period = 50 msec, start = 100, database_name = "b");
+    a.publish -> b.update;
+    b.publish -> a.update after 0;
+}

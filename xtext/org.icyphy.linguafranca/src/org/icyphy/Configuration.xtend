@@ -106,6 +106,11 @@ class Configuration {
     public DockerOptions dockerOptions = new DockerOptions();
     
     /**
+     * Coordination options.
+     */
+    public CoordinationOptions coordinationOptions = new CoordinationOptions();
+
+    /**
      * If true, configure the execution environment such that it does not
      * wait for physical time to match logical time. The default is false.
      */
@@ -303,6 +308,23 @@ class ClockSyncOptions {
      * The default is null.
      */
     public TimeValue testOffset;
+}
+
+/**
+ * Settings related to coordination of federated execution.
+ */
+class CoordinationOptions {
+    
+    /**
+     * For centralized coordination, if a federate has a physical action that can trigger
+     * an output, directly or indirectly, then it will send NET (next event tag) messages
+     * to the RTI periodically as its physical clock advances. This option sets the amount
+     * of time to wait between sending such messages. Increasing this value results in
+     * downstream federates that lag further behind physical time (if the "after" delays
+     * are insufficient).
+     * The default is null, which means it is up the implementation to choose an interval.
+     */
+    public TimeValue advance_message_interval = null;
 }
 
 /**
