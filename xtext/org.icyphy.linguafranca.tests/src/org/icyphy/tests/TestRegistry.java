@@ -13,7 +13,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -24,12 +23,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.icyphy.Target;
 import org.icyphy.tests.runtime.TestBase;
-
-import com.google.common.collect.Multimap;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -197,26 +193,26 @@ public class TestRegistry {
     
     
     
-    /**
-     * Return all test for the given target minus those that fall in the
-     * excluded categories.
-     * 
-     * @param target The target for which to look up the tests.
-     * @param excluded The test categories to exclude from the returned list.
-     * @return
-     */
-    public static List<LFTest> getTestsExcluding(Target target,
-            List<TestCategory> excluded) {
-        List<LFTest> tests = new LinkedList<LFTest>();
-        for (TestCategory category : TestCategory.values()) {
-            if (!excluded.contains(category)) {
-                tests.addAll(
-                        registry.get(target.ordinal()).get(category.ordinal()));
-            }
-        }
-        tests.forEach(test -> test.clear());
-        return tests;
-    }
+//    /**
+//     * Return all test for the given target minus those that fall in the
+//     * excluded categories.
+//     * 
+//     * @param target The target for which to look up the tests.
+//     * @param excluded The test categories to exclude from the returned list.
+//     * @return
+//     */
+//    public static List<LFTest> getTestsExcluding(Target target,
+//            List<TestCategory> excluded) {
+//        List<LFTest> tests = new LinkedList<LFTest>();
+//        for (TestCategory category : TestCategory.values()) {
+//            if (!excluded.contains(category)) {
+//                tests.addAll(
+//                        registry.get(target.ordinal()).get(category.ordinal()));
+//            }
+//        }
+//        tests.forEach(test -> test.clear());
+//        return tests;
+//    }
     
     /**
      * FileVisitor implementation that maintains a stack to map found tests to

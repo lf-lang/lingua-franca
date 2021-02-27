@@ -369,7 +369,7 @@ public class Main {
     private void rebuildOrExit() {
         String root = JAR_PATH.replace(JAR_PATH_IN_SRC_TREE, "");
         ProcessBuilder build;
-        if (this.mustUpdate())
+        if (this.mustUpdate()) // FIXME: Use .bat for Windows?
             build = new ProcessBuilder("./gradlew",
                 "generateStandaloneCompiler");
         else {
