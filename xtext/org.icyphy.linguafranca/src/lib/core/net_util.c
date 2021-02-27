@@ -92,7 +92,7 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
             DEBUG_PRINT("Reading from socket was blocked. Will try again.");
             continue;
         } else if (more < 0) {
-            error_print("Socket read failed: %s:", strerror(errno));
+            error_print("Socket read failed on socket %d: %s:", socket, strerror(errno));
             if (format != NULL) {
                 error_print_and_exit(format, args);
             }
