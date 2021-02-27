@@ -433,6 +433,9 @@ bool wait_until(instant_t logical_time_ns) {
     // Prevent an overflow
     if (wait_until_time_ns < FOREVER - _lf_global_time_STP_offset) {
         // If wait_time is not forever
+        DEBUG_PRINT("Adding STP offset %lld to wait until time %lld.",
+                _lf_global_time_STP_offset,
+                wait_until_time_ns - start_time);
         wait_until_time_ns += _lf_global_time_STP_offset;
     }
 #endif
@@ -444,6 +447,8 @@ bool wait_until(instant_t logical_time_ns) {
         // We should not wait if that adjusted time is already ahead
         // of logical time.
         if (ns_to_wait < MIN_WAIT_TIME) {
+            DEBUG_PRINT("Wait time %lld is less than MIN_WAIT_TIME %lld. Skipping wait.",
+                ns_to_wait, MIN_WAIT_TIME);
             return return_value;
         }
 
@@ -469,8 +474,8 @@ bool wait_until(instant_t logical_time_ns) {
         struct timespec unadjusted_wait_until_time
                 = {(time_t)unadjusted_wait_until_time_ns / BILLION, (long)unadjusted_wait_until_time_ns % BILLION};
 
-        DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
-        DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&unadjusted_wait_until_time.tv_sec), unadjusted_wait_until_time.tv_nsec);
+        DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, 
+                logical_time_ns - start_time);
 
         // pthread_cond_timedwait returns 0 if it is awakened before the timeout.
         // Hence, we want to run it repeatedly until either it returns non-zero or the
@@ -919,10 +924,10 @@ void _lf_initialize_start_tag() {
     DEBUG_PRINT("Physical time is ahead of current time by %lld. This should be small.",
             get_physical_time() - start_time);
 
-    // Reinitialize the physical start time to match the current physical time.
-    // This will be different on each federate. If --fast was given, it could
-    // be very different.
-    physical_start_time = get_physical_time();
+    // Reinitialize the physical start time to match the start_time.
+    // Otherwise, reports of get_elapsed_physical_time are not very meaningful
+    // w.r.t. logical time.
+    physical_start_time = start_time;
 
     // At this time, reactions (startup, etc.) are added to the 
     // reaction queue that will be executed at tag (0,0).
