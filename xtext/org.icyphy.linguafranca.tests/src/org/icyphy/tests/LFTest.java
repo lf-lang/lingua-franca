@@ -1,7 +1,10 @@
 package org.icyphy.tests;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -9,8 +12,40 @@ import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.icyphy.Target;
+import org.icyphy.tests.runtime.TestBase;
 
 public class LFTest implements Comparable<LFTest> {
+    
+    public class TestPhase {
+        StringBuilder std = new StringBuilder("");
+        StringBuilder err = new StringBuilder("");
+        
+        public Thread recordStdOut(InputStream stream) {
+            return recordStream(std, stream);
+        }
+        
+        public Thread recordStdErr(InputStream stream) {
+            return recordStream(err, stream);
+        }
+        
+        private Thread recordStream(StringBuilder builder, InputStream inputStream) {
+            Thread t = new Thread(() -> {
+                try {
+                    char[] buf = new char[1024];
+                    int len;
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                    while ((len = reader.read(buf)) > 0) {
+                        builder.append(buf, 0, len);
+                    }
+                    reader.close();
+                } catch (Exception e) {
+                    builder.append("[truncated...]\n");
+                }
+            });
+            t.start();
+            return t;
+        }
+    }
     
     public final Path path;
     public final String name;
@@ -25,9 +60,11 @@ public class LFTest implements Comparable<LFTest> {
     
     public ByteArrayOutputStream err = new ByteArrayOutputStream();
     
-    public String compilationIssues = "";
+    public TestPhase exec = new TestPhase();
     
-    public String executionErrors = "";
+    public TestPhase compile = new TestPhase();
+    
+    public StringBuilder issues = new StringBuilder();
     
     public Properties properties = new Properties();
     
@@ -66,11 +103,10 @@ public class LFTest implements Comparable<LFTest> {
         return this.name.hashCode();
     }
     
-    public void clear() {
-        this.compilationIssues = "";
-        this.executionErrors = "";
-        this.properties.clear();
-    }
+//    public void clear() {
+//        this.exe = new StringBuilder("");
+//        this.properties.clear();
+//    }
     
     public boolean hasFailed() {
         if (result == Result.TEST_PASS) {
@@ -85,13 +121,12 @@ public class LFTest implements Comparable<LFTest> {
             sb.append("\n+---------------------------------------------------------------------------+\n");
             sb.append("Failed: " + this.name + "\n");
             sb.append("-----------------------------------------------------------------------------\n");
-            sb.append("Reason: " + this.result.reason + "\n"); // FIXME: Use System.getProperty("line.separator") or StringFormat to be platform-independent
-            if (this.result.compareTo(Result.VALIDATE_FAIL) >= 0) { // FIXME: Just print stuff when the strings are not empty.
-                sb.append("Std Err:\n");
-                sb.append(this.err.toString());
-                sb.append("Std Out:\n");
-                sb.append(this.out.toString());
-            }
+            sb.append("Reason: " + this.result.reason + TestBase.NEW_LINE);
+            appendIfNotEmpty("Compilation issues", this.issues.toString(), sb);
+            appendIfNotEmpty("Compilation error output", this.err.toString(), sb);
+            appendIfNotEmpty("Compilation standard output", this.out.toString(), sb);
+            appendIfNotEmpty("Execution error output", this.exec.err.toString(), sb);
+            appendIfNotEmpty("Execution standard output", this.exec.std.toString(), sb);
             sb.append("+---------------------------------------------------------------------------+\n");
         return sb.toString();
         } else {
@@ -99,17 +134,12 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-//    public String getExplanation() {
-//        StringBuilder sb = new StringBuilder()
-//        if (this.hasFailed()) {
-//            sb.append("\n" + TestBase.DIVIDER)
-//            println("Failed: " + test.name)
-//            print(THIN_LINE)
-//            println("Reason: " + test.result.message)
-//            print(DIVIDER)
-//        }
-//    }
-//    
+    public void appendIfNotEmpty(String description, String log, StringBuffer buffer) {
+        if (!log.isEmpty()) {
+            buffer.append(description + ":" + TestBase.NEW_LINE);
+            buffer.append(log);
+        }
+    }
     
     public enum Result {
         UNKNOWN("No information available."),
@@ -129,6 +159,5 @@ public class LFTest implements Comparable<LFTest> {
         private Result(String message) {
             this.reason = message;
         }
-
     }
 }

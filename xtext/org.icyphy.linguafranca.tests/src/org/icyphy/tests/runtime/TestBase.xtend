@@ -2,12 +2,12 @@ package org.icyphy.tests.runtime
 
 import com.google.inject.Inject
 import com.google.inject.Provider
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.Set
+import java.util.concurrent.TimeUnit
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.resource.ResourceSet
 import org.eclipse.xtext.diagnostics.Severity
@@ -19,21 +19,19 @@ import org.eclipse.xtext.util.CancelIndicator
 import org.eclipse.xtext.validation.CheckMode
 import org.eclipse.xtext.validation.IResourceValidator
 import org.eclipse.xtext.xbase.lib.Functions.Function1
+import org.icyphy.ASTUtils
 import org.icyphy.Target
 import org.icyphy.generator.StandaloneContext
+import org.icyphy.linguaFranca.Reactor
 import org.icyphy.tests.LFTest
+import org.icyphy.tests.LFTest.Result
 import org.icyphy.tests.LinguaFrancaInjectorProvider
 import org.icyphy.tests.TestRegistry
 import org.icyphy.tests.TestRegistry.TestCategory
-import org.junit.jupiter.api.^extension.ExtendWith
-import java.util.concurrent.TimeUnit
-import org.icyphy.tests.LFTest.Result
-import org.icyphy.linguaFranca.Reactor
-import java.nio.file.Paths
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.^extension.ExtendWith
 
 import static extension org.junit.Assert.assertTrue
-import org.icyphy.ASTUtils
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -48,17 +46,17 @@ abstract class TestBase {
     static val out = System.out;
     static val err = System.err;
     
-    final static long MAX_EXECUTION_TIME_SECONDS = 30
+    final static long MAX_EXECUTION_TIME_SECONDS = 60
     
-    final static val SHOW_OUTPUT_PASSING_TESTS = false
+    public final static String NEW_LINE = System.getProperty("line.separator");
     
-    public final static String DIVIDER = "+---------------------------------------------------------------------------+\n";
+    public final static String DIVIDER = "+---------------------------------------------------------------------------+" + NEW_LINE;
     
-    public final static String THIN_LINE = "-----------------------------------------------------------------------------\n";
+    public final static String THIN_LINE = "-----------------------------------------------------------------------------" + NEW_LINE;
     
-    public final static String THICK_LINE = "=============================================================================\n";
+    public final static String THICK_LINE = "=============================================================================" + NEW_LINE;
     
-    public final static String EDGE_LINE = "+---------------------------------------------------------------------------+\n";
+    public final static String EDGE_LINE = "+---------------------------------------------------------------------------+" + NEW_LINE;
     
     protected Target target;
     
@@ -154,7 +152,7 @@ abstract class TestBase {
 
     def void checkAndReportFailures(Set<LFTest> tests) {
         var passed = tests.filter[!it.hasFailed].size
-        print("\n" + THIN_LINE)
+        print(NEW_LINE + THIN_LINE)
         println("Passing: " + passed + "/" + tests.size)
         print(THIN_LINE)
         
@@ -199,7 +197,7 @@ abstract class TestBase {
             redirectOutputs(test)
             val issues = validator.validate(test.resource, CheckMode.ALL, CancelIndicator.NullImpl)
             if (!issues.isNullOrEmpty) {
-                test.compilationIssues = issues.join("\n")
+                test.issues.append(issues.join(NEW_LINE))
                 if (issues.exists [
                     it.severity == Severity.ERROR
                 ]) {
@@ -231,7 +229,7 @@ abstract class TestBase {
                 // FIXME: if the target compiler reports errors, we should receive an exception.
                 // This is currently not the case.
             } catch (Exception e) {
-                test.compilationIssues += e.toString() + "\n"
+                //test.compileOut.append(e.toString() + NEW_LINE)
                 // FIXME: Weed out kinds of exceptions and set result accordingly.
                 return false
             }
@@ -300,9 +298,13 @@ abstract class TestBase {
         if (pb !== null) {
             try {
                 val p = pb.start()
+                val stdout = test.exec.recordStdOut(p.inputStream)
+                val stderr = test.exec.recordStdErr(p.errorStream)
                 //println("Executing: " + nameOnly)
                 if(!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-                    p.destroyForcibly();
+                    stdout.interrupt()
+                    stderr.interrupt()
+                    p.destroyForcibly()
                     test.result = Result.TEST_TIMEOUT
                 } else {
                     //println(new String(p.getInputStream().readAllBytes()))
@@ -341,6 +343,6 @@ abstract class TestBase {
         if (tests.size == 0) {
             print(THICK_LINE)
         }
-        print("\n")
+        print(NEW_LINE)
     }
 }
