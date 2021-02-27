@@ -84,6 +84,7 @@ ImportComposition.lf
 ImportThreaded.lf
 ImportRenamed.lf
 InheritanceAction.lf
+LoopDistributedCentralized.lf
 Microsteps.lf
 Minimal.lf
 MinimalThreaded.lf
@@ -113,6 +114,7 @@ MultiportToMultiportArray.lf
 MultiportToPort.lf
 MultiportToReaction.lf
 NativeListsAndTimes.lf
+ParameterHierarchy.lf
 ParameterizedState.lf
 PeriodicDesugared.lf
 PhysicalConnection.lf

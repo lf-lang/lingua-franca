@@ -315,7 +315,8 @@ int main(int argc, char* argv[]) {
         // and cause it to call exit.
         signal(SIGINT, exit);
 
-        initialize();
+        initialize(); // Sets start_time.
+        current_tag = (tag_t){.time = start_time, .microstep = 0u};
         _lf_execution_started = true;
         __trigger_startup_reactions();
         __initialize_timers(); 
