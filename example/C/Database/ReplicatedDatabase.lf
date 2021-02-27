@@ -148,24 +148,31 @@ reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
         if (remote_update->is_present && remote_update->value != self->record) {
             self->record = remote_update->value;            
             SET(publish, self->record); // May overwrite the SET above.
-            info_print("At tag (%lld, %u), database \"%s\" updated to %d to match upstream remote update.",
-                get_logical_time() - start_time, get_microstep(), self->database_name, self->record
+            info_print("At tag (%lld, %u), database \"%s\" updated to %d to match upstream remote update.\n"
+                "     Elapsed physical time is %lld.",
+                get_logical_time() - start_time, get_microstep(),
+                self->database_name,
+                self->record,
+                get_elapsed_physical_time()
             );
         }
     =} tardy {=
 #ifdef FEDERATED_DECENTRALIZED
         if (remote_update->is_present) {
             error_print("At tag (%lld, %u), database \"%s\" "
-                "received remote update (%d) that is tardy by (%lld, %u). Rejecting update.",
+                "received remote update (%d) with intended tag (%lld, %u). Rejecting update.\n"
+                "     Elapsed physical time is %lld.",
                 current_tag.time - start_time,
                 current_tag.microstep,
                 self->database_name,
                 remote_update->value,
-                current_tag.time - remote_update->intended_tag.time,
-                current_tag.microstep - remote_update->intended_tag.microstep
+                remote_update->intended_tag.time - start_time,
+                remote_update->intended_tag.microstep,
+                get_elapsed_physical_time()
             );
         } else if (local_update->is_present) {            
-            error_print_and_exit("FATAL: Database \"%s\": Local update (%d) is tardy by (%lld, %u). Rejecting update.",
+            error_print_and_exit("FATAL: Database \"%s\": Local update (%d) is tardy by (%lld, %u). "
+                "Local update should never be tardy.",
                 self->database_name,
                 local_update->value,
                 current_tag.time - remote_update->intended_tag.time,
@@ -174,7 +181,7 @@ reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
         }
 #else
         // The tardy handler should not be invoked
-        error_print_and_exit("FATAL: Update is tardy when coordination is not decentralized.");
+        error_print_and_exit("FATAL: Update is tardy t coordination is not decentralized.");
 #endif
     =} deadline(update_deadline) {=
         error_print("Deadline missed. Rejecting update.");
