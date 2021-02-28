@@ -1830,7 +1830,10 @@ void initialize() {
  */
 void termination() {
     // Invoke the code generated termination function.
-    __termination();
+    terminate_execution();
+
+    // Stop any tracing, if it is running.
+    stop_trace();
 
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {

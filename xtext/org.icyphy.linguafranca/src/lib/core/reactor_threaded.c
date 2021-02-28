@@ -481,7 +481,7 @@ bool wait_until(instant_t logical_time_ns) {
         // Hence, we want to run it repeatedly until either it returns non-zero or the
         // current physical time matches or exceeds the logical time.
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &unadjusted_wait_until_time) != ETIMEDOUT) {
-            DEBUG_PRINT("-------- Wait interrupted.");
+            DEBUG_PRINT("-------- Wait on event queue interrupted before timeout.");
 
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule().
