@@ -572,7 +572,7 @@ void __trigger_startup_reactions();
  * Function (to be code generated) to terminate execution.
  * This will be invoked after all shutdown actions have completed.
  */
-void __termination();
+void terminate_execution();
 
 /**
  * Function (to be code generated) to trigger shutdown reactions.
