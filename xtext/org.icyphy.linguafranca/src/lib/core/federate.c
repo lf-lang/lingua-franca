@@ -1314,12 +1314,23 @@ void terminate_execution() {
     // functions should NEVER be called while holding any mutex lock.
     for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
         // Close outbound connections, in case they have not closed themselves.
+        // This will result in EOF being sent to the remote federate, I think.
         _lf_close_outbound_socket(i);
     }
+    /* NOTE: The following attempts to close the incoming P2P sockets
+     * result in a race condition that intermittently gives
+     * spurious errors on shutdown. The mutex locks used in
+     * the function _lf_close_inbound_socket() should, in theory, prevent
+     * this, but for some reason, it does not. Since this federate is exiting,
+     * however, any upstream federate that attempts to send data to this
+     * federate will discover that the socket is broken and can react
+     * accordingly, presumably by exiting. So I don't think it is necessary
+     * to close these sockets here.
     for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
         // Close inbound connections, in case they have not closed themselves.
         _lf_close_inbound_socket(i);
     }
+     */
     unsigned char message_marker = RESIGN;
     write_to_socket_errexit(_fed.socket_TCP_RTI, 1, &message_marker,
             "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
