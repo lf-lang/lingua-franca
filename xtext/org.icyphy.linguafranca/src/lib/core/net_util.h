@@ -28,6 +28,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
  * Header file for network utility functions for Lingua Franca programs.
+ * Note that these functions do not acquire any mutexes. To use them,
+ * you must ensure either that only one thread ever sends on each socket
+ * and one thread receives on each socket (these two can be the same thread)
+ * or that the caller handles mutual exclusion to prevent more than one thread
+ * from accessing the socket at a time.
  */
 
 #ifndef NET_UTIL_H
