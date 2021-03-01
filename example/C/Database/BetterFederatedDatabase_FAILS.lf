@@ -1,0 +1,30 @@
+/**
+ * FIXME: Centralized coordination does not tolerate zero-delay loops between federates.
+ * These are required for this database application to work.
+ */
+target C {
+    timeout: 1 sec,
+    coordination: centralized
+}
+
+import Platform from "BetterReplicatedDatabase.lf"
+
+federated reactor ReplicatedDatabase(
+    query_period:time(1 sec),
+    num_remote_inputs:int(1)
+) {
+    a = new Platform(
+            query_period = query_period,
+            update_period = 5 sec,
+            update_amount = 100,
+            name = "San Francisco",
+            num_remote_inputs = num_remote_inputs);
+    b = new Platform(
+            query_period = query_period,
+            update_period = 1 sec,
+            update_amount = -20,
+            name = "Berkeley",
+            num_remote_inputs = num_remote_inputs);
+    b.publish -> a.update;
+    a.publish -> b.update;
+}
