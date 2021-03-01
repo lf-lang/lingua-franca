@@ -1,0 +1,46 @@
+/**
+ * Test a source-destination scenario where the source falls behind real-time, and reaches the
+ * timeout much later than the destination. In this test, the destination closes the connection
+ * early, causing the transmission to fail.
+ * 
+ * The test fails if the federation does not exit amenably.
+ * This variant has a physical connection between source and destination. 
+ */
+target C {
+    timeout: 30 msec,
+    coordination: decentralized
+}
+
+reactor Clock(offset:time(0), period:time(1 sec)) {
+    output y:int;
+    timer t(offset, period);
+    state count:int(0);
+    reaction(t) -> y {=
+        (self->count)++;
+        //printf("Reacting at time %ld.\n", get_elapsed_logical_time());
+        SET(y, self->count);
+    =}
+    reaction(shutdown) {=
+        info_print("SUCCESS: the source exited successfully.");
+    =}
+}
+reactor Destination {
+    input x:int;
+    state s:int(1);
+    reaction(x) {=
+        // printf("%d\n", x->value);
+        if (x->value != self->s) {
+            error_print_and_exit("Expected %d and got %d.", self->s, x->value);
+        }
+        self->s++;
+    =}
+    reaction(shutdown) {=
+        info_print("**** shutdown reaction invoked.");
+        info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
+    =}
+}
+federated reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
+    c = new Clock(period = period);
+    d = new Destination();
+    c.y ~> d.x;
+}
