@@ -96,14 +96,9 @@ class Configuration {
     public CoordinationType coordination = CoordinationType.CENTRALIZED
 
     /**
-     * Docker true or false determines whether a Dockerfile is generated.
-     */
-    public boolean docker = false;
-
-    /**
      * Docker options.
      */
-    public DockerOptions dockerOptions = new DockerOptions();
+    public DockerOptions dockerOptions = null;
     
     /**
      * Coordination options.

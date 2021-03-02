@@ -109,33 +109,33 @@ public enum TargetProperty {
             }),
     
     /**
-     * Directive to let the execution engine allow logical time to elapse
-     * faster than physical time.
+     * Directive to generate a Dockerfile. This is either a boolean,
+     * true or false, or a dictionary of options.
      */
-    DOCKER("docker", PrimitiveType.BOOLEAN, Arrays.asList(Target.C),
-            (config, value) -> {
-                config.docker = ASTUtils.toBoolean(value);
-            }),
-
-    /**
-     * Key-value pairs giving options for clock synchronization.
-     */
-    DOCKER_OPTIONS("docker-options",
-            DictionaryType.DOCKER_DICT, Arrays.asList(Target.C),
-            (config, value) -> {
-                for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                    Docker option = (Docker) DictionaryType.DOCKER_DICT
-                            .forName(entry.getName());
-                    switch (option) {
-                        case FROM:
-                            config.dockerOptions.from = ASTUtils.toText(entry.getValue());
-                            break;
-                        default:
-                            break;
+    DOCKER("docker", UnionType.DOCKER_UNION,
+            Arrays.asList(Target.C), (config, value) -> {
+                if (value.getLiteral() != null) {
+                    if (ASTUtils.toBoolean(value)) {
+                        config.dockerOptions = new DockerOptions();
+                    } else {
+                        config.dockerOptions = null;
+                    }
+                } else {
+                    config.dockerOptions = new DockerOptions();
+                    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                        DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT
+                                .forName(entry.getName());
+                        switch (option) {
+                            case FROM:
+                                config.dockerOptions.from = ASTUtils.toText(entry.getValue());
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
             }),
-    
+
     /**
      * Directive to let the execution engine allow logical time to elapse
      * faster than physical time.
@@ -359,7 +359,7 @@ public enum TargetProperty {
      */
     public enum DictionaryType implements TargetPropertyType {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
-        DOCKER_DICT(Arrays.asList(Docker.values())),
+        DOCKER_DICT(Arrays.asList(DockerOption.values())),
         COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values()));    
         /**
          * The keys and assignable types that are allowed in this dictionary.
@@ -454,7 +454,9 @@ public enum TargetProperty {
                 CoordinationType.CENTRALIZED),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
-                ClockSyncMode.INITIAL);
+                ClockSyncMode.INITIAL),
+        DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
+                null);
     
         /**
          * The constituents of this type union.
@@ -886,14 +888,14 @@ public enum TargetProperty {
      * Docker options.
      * @author{Edward A. Lee <eal@berkeley.edu>}
      */
-    public enum Docker implements DictionaryElement {
+    public enum DockerOption implements DictionaryElement {
         FROM("FROM", PrimitiveType.STRING);
         
         public final PrimitiveType type;
         
         private final String description;
         
-        private Docker(String alias, PrimitiveType type) {
+        private DockerOption(String alias, PrimitiveType type) {
             this.description = alias;
             this.type = type;
         }
