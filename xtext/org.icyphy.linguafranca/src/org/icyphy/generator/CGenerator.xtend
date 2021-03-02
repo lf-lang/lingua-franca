@@ -676,48 +676,12 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')
                 
-                // Generate the termination function.
-                // If there are federates, this will resign from the federation.
-                if (federates.length > 1) {
-                    // FIXME: Send EOF on any open P2P sockets.
-                    // FIXME: Check return values.
-                    pr('''
-                        void __termination() {
-                            stop_trace();
-                            // Check for all outgoing physical connections in
-                            // _fed.sockets_for_outbound_p2p_connections and 
-                            // if the socket ID is not -1, the connection is still open. 
-                            // Send an EOF by closing the socket here.
-                            for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
-                                // Close outbound connections
-                                if (_fed.sockets_for_outbound_p2p_connections[i] != -1) {
-                                    shutdown(_fed.sockets_for_outbound_p2p_connections[i], SHUT_RDWR);
-                                    close(_fed.sockets_for_outbound_p2p_connections[i]);
-                                    _fed.sockets_for_outbound_p2p_connections[i] = -1;
-                                }
-                            }
-                            «IF federate.inboundP2PConnections.length > 0»
-                                «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
-                                void* thread_return;
-                                info_print("Waiting for incoming connections to close.");
-                                pthread_join(_fed.inbound_p2p_handling_thread_id, &thread_return);
-                            «ENDIF»
-                            for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
-                                // Close inbound connections
-                                if (_fed.sockets_for_inbound_p2p_connections[i] != -1) {
-                                    shutdown(_fed.sockets_for_inbound_p2p_connections[i], SHUT_RDWR);
-                                    close(_fed.sockets_for_inbound_p2p_connections[i]);
-                                    _fed.sockets_for_inbound_p2p_connections[i] = -1;
-                                }
-                            }
-                            unsigned char message_marker = RESIGN;
-                            write_to_socket_errexit(_fed.socket_TCP_RTI, 1, &message_marker, 
-                                    "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
-                            LOG_PRINT("Resigned.");
-                        }
-                    ''')
-                } else {
-                    pr("void __termination() {stop_trace();}");
+                // Generate an empty termination function for non-federated
+                // execution. For federated execution, an implementation is
+                // provided in federate.c.  That implementation will resign
+                // from the federation and close any open sockets.
+                if (federates.length <= 1) {
+                    pr("void terminate_execution() {}");
                 }
             }
             val targetFile = srcGenPath + File.separator + cFilename
@@ -4060,16 +4024,12 @@ class CGenerator extends GeneratorBase {
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
         val result = new StringBuilder()
-        result.append('''
-            // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-            «IF isFederatedAndDecentralized»
-                DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
-            «ENDIF»
-        ''')
         if (isFederatedAndDecentralized) {
             result.append('''
+                // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
                 // Transfer the intended tag from the action to the port
                 «receiveRef»->intended_tag = «action.name»->trigger->intended_tag;
+                DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
             ''')
         }
         if (isTokenType(type)) {
@@ -4136,9 +4096,6 @@ class CGenerator extends GeneratorBase {
         // the current timestamp. If after delay is 0,
         // send_timed_message will use the current tag +
         // a microstep as the timestamp of the outgoing message.
-        // FIXME: implementation of tag is currently incomplete
-        // in the C target. Therefore, the nuances regarding
-        // the microstep delay are currently not implemented.
         var String additionalDelayString = '-1';
         // Name of the next immediate destination of this message
         var String next_destination_name = '''"federate «receivingFed.id»"'''

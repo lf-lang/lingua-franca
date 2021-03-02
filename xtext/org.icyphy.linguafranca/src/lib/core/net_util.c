@@ -1,6 +1,7 @@
 /**
  * @file
  * @author Edward A. Lee (eal@berkeley.edu)
+ * @author Soroush Bateni (soroush@utdallas.edu)
  *
  * @section LICENSE
 Copyright (c) 2020, The University of California at Berkeley.
@@ -67,12 +68,16 @@ int host_is_big_endian() {
 
 /** 
  * Read the specified number of bytes from the specified socket into the
- * specified buffer. If a disconnect or an EOF occurs during this
- * reading, then if format is non-null, report an error and exit.
- * If format is null, then report the error, but do not exit.
+ * specified buffer. If an error or an EOF occurs during this
+ * reading, then if format is non-null, close the socket,
+ * report an error and exit.
+ * If format is null, then report the error, but do not exit or close
+ * the socket.
+ *
  * This function takes a formatted
  * string and additional optional arguments similar to printf(format, ...)
  * that is appended to the error messages.
+ *
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to read.
  * @param buffer The buffer into which to put the bytes.
@@ -92,15 +97,16 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
             DEBUG_PRINT("Reading from socket was blocked. Will try again.");
             continue;
         } else if (more < 0) {
-            error_print("Socket read failed: %s:", strerror(errno));
+            error_print("Socket read failed on socket %d: %s:", socket, strerror(errno));
             if (format != NULL) {
+                close(socket);
                 error_print_and_exit(format, args);
             }
             return more;
         } else if (more == 0) {
-            info_print("Peer sent EOF.");
-            close(socket);
+            info_print("Peer sent EOF on socket %d.", socket);
             if (format != NULL) {
+                close(socket);
                 error_print_and_exit(format, args);
             }
             return more;
@@ -115,7 +121,9 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
  * specified buffer. If a disconnect occurs during this
  * reading, return a negative number. If an EOF occurs during this
  * reading, return 0. Otherwise, return the number of bytes read.
- * This is a version of read_from_socket_errexit() that does not error out.
+ * This is a version of read_from_socket_errexit() that neither
+ * closes the socket nor errors out.
+ *
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to read.
  * @param buffer The buffer into which to put the bytes.
@@ -127,11 +135,15 @@ int read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
 
 /**
  * Write the specified number of bytes to the specified socket from the
- * specified buffer. If a disconnect or an EOF occurs during this
- * reading, report an error and exit, unless the format string is NULL,
- * in which case, report an error and return. This function takes a formatted
+ * specified buffer. If an error or an EOF occurs during this
+ * reading, then if the format string is non-null, close the socket,
+ * report an error, and exit. If the format string is null,
+ * report an error or EOF and return.
+ *
+ * This function takes a formatted
  * string and additional optional arguments similar to printf(format, ...)
  * that is appended to the error messages.
+ *
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to write.
  * @param buffer The buffer from which to get the bytes.
@@ -154,13 +166,14 @@ int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, ch
         } else if (more < 0) {
             error_print("Socket write failed: %s:", strerror(errno));
             if (format != NULL) {
+            	close(socket);
                 error_print_and_exit(format, args);
             }
             return more;
         } else if (more == 0) {
             error_print("Peer sent EOF. ");
-            close(socket);
             if (format != NULL) {
+                close(socket);
                 error_print_and_exit(format, args);
             }
             return more;
@@ -175,7 +188,9 @@ int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, ch
  * specified buffer. If a disconnect or an EOF occurs during this
  * reading, return a negative number or 0 respectively. Otherwise,
  * return the number of bytes written.
- * This is a version of write_to_socket_errexit() that does not error out.
+ * This is a version of write_to_socket_errexit() that neither closes
+ * the socket nor errors out.
+ *
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to write.
  * @param buffer The buffer from which to get the bytes.
