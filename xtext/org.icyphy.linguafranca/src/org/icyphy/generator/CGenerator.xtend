@@ -688,7 +688,7 @@ class CGenerator extends GeneratorBase {
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             // Create docker file.
-            if (config.docker) {
+            if (config.dockerOptions !== null) {
                 writeDockerFile(filename)
             }
 
@@ -1104,7 +1104,7 @@ class CGenerator extends GeneratorBase {
         fOut.close()
         
         // Write a Dockerfile for the RTI.
-        if (config.docker) {
+        if (config.dockerOptions !== null) {
             writeDockerFile(filename + '_RTI')
         }
     }
