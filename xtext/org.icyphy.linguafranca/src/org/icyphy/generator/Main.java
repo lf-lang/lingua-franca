@@ -6,6 +6,7 @@ package org.icyphy.generator;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.Arrays;
@@ -153,6 +154,16 @@ public class Main {
      */
     public static void printInfo(String message) {
         System.out.println(HEADER + bold("info: ") + message);
+    }
+    
+    /**
+     * Print a warning message prefixed with a header that indicates the
+     * source and severity.
+     * 
+     * @param message The message to print.
+     */
+    public static void printWarning(String message) {
+        System.out.println(HEADER + bold("warning: ") + message);
     }
     
     /**
@@ -429,6 +440,12 @@ public class Main {
     }
   
     private static String joinPaths(String path1, String path2) {
+        if (path1.isEmpty()) {
+            return path2;
+        }
+        if (path2.isEmpty()) {
+            return path1;
+        }
         if (path1.endsWith(File.separator)) {
             if (path2.startsWith(File.separator)) {
                 return path1 + path2.substring(1, path2.length());
@@ -444,11 +461,46 @@ public class Main {
         }
     }
     
+    private static String packageRoot(String file) {
+        File f = new File(file).getAbsoluteFile(); 
+        String p;
+        do {
+            p = f.getParent();
+            if (p == null) {
+                printWarning("File '" + file + "' is not located in an 'src' directory.");
+                printInfo("Using the current working directory as output directory.");
+                return new File("").getAbsolutePath();
+            } else {
+                f = new File(p);
+            }
+        } while (!f.getName().equals("src"));
+        return new File(f.getParent()).getAbsolutePath();
+    }
+    
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
     protected void runGenerator(List<String> files) {
         Properties properties = this.getProps(cmd);
+        String rootPath = "";
+        String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
+        if (cmd.hasOption(pathOption)) {
+            File root = new File(cmd.getOptionValue(pathOption));
+            if (!root.exists()) {
+                printFatalError("Output location '" + root + "' does not exist.");
+                System.exit(1);
+            }
+            if (!root.isDirectory()) {
+                printFatalError("Output location '" + root + "' is not a directory.");
+                System.exit(1);
+            }
+            try {
+                rootPath = root.getCanonicalPath();
+            } catch (IOException e) {
+                printFatalError("Could not access '" + root + "'.");
+            }
+        }
+        
         for (String file : files) {
             final File f = new File(file);
             if (!f.exists()) {
@@ -456,6 +508,15 @@ public class Main {
                         file.toString() + ": No such file or directory");
                 System.exit(1);
             }
+        }
+        for (String file : files) {
+            final File f = new File(file);
+            if (!rootPath.isEmpty()) {
+                this.fileAccess.setOutputPath(joinPaths(rootPath, "src-gen"));
+            } else {
+                this.fileAccess.setOutputPath(joinPaths(packageRoot(file), "src-gen"));
+            }
+            
             final ResourceSet set = this.resourceSetProvider.get();
             final Resource resource = set
                     .getResource(URI.createFileURI(f.getAbsolutePath()), true);
@@ -472,12 +533,6 @@ public class Main {
                 printFatalError("Unable to validate resource. Reason:");
                 issues.forEach(issue -> System.err.println(issue));
                 System.exit(1);
-            }
-            String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
-            if (cmd.hasOption(pathOption)) {
-                this.fileAccess.setOutputPath(joinPaths(cmd.getOptionValue(pathOption), "src-gen"));
-            } else {
-                this.fileAccess.setOutputPath("src-gen");
             }
             
             StandaloneContext _standaloneContext = new StandaloneContext();

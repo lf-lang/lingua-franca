@@ -54,6 +54,7 @@ import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.Target
+import org.icyphy.Configuration
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -652,7 +653,7 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonFiles(IFileSystemAccess2 fsa, FederateInstance federate)
     {
-        var srcGenPath = getSrcGenPath()
+        var srcGenPath = Configuration.toPath(getSrcGenRoot())
         
         var file = new File(srcGenPath + File.separator + filename + ".py")
         if (file.exists) {
@@ -686,8 +687,8 @@ class PythonGenerator extends CGenerator {
         val installCmd = createCommand('''python3''',
             #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."])
 
-        compileCmd.directory(new File(getSrcGenPath))
-        installCmd.directory(new File(getSrcGenPath))
+        compileCmd.directory(new File("")) // FIXME
+        installCmd.directory(new File("")) // FIXME
 
         // Set compile time environment variables
         val compileEnv = compileCmd.environment
@@ -724,20 +725,6 @@ class PythonGenerator extends CGenerator {
         {
             return ''''''
         }
-    }
-    
-    /**
-     * Returns the desired source gen. path
-     */
-    override getSrcGenPath() {
-          directory + File.separator + "src-gen" + File.separator + filename
-    }
-     
-    /**
-     * Returns the desired output path
-     */
-    override getBinGenPath() {
-          directory + File.separator + "src-gen" + File.separator + filename
     }
     
     /**
@@ -984,10 +971,9 @@ class PythonGenerator extends CGenerator {
     /**
      * Copy Python specific target code to the src-gen directory
      */        
-    override copyUserFiles(String srcGenPath) {    	
-        super.copyUserFiles(srcGenPath)
-
-    	// Copy the required target language files into the target file system.
+    override copyUserFiles() {    	
+        val srcGenPath = Configuration.toPath(srcGenRoot)
+        // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
         for (file : targetFiles) {

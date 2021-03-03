@@ -59,6 +59,7 @@ import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 import com.google.inject.Inject
 import org.icyphy.Target
 import org.icyphy.TargetProperty.LogLevel
+import org.icyphy.Configuration
 
 /** Generator for C++ target.
  * 
@@ -107,6 +108,11 @@ class CppGenerator extends GeneratorBase {
 
     def toDir(Resource r) {
         r.toPath.getFilename
+    }
+
+    override printInfo() {
+        super.printInfo()
+        println('******** generated binaries: ' + Configuration.toPath(binGenRoot))
     }
 
     def preambleHeaderFile(Resource r) '''«r.toDir»/preamble.hh'''
@@ -996,6 +1002,10 @@ class CppGenerator extends GeneratorBase {
             include("«directory»/«config.cmakeInclude»")
         «ENDIF»
     '''
+
+    override getCopyPath() {
+        return fsa.getAbsolutePath('''«filename»/''')
+    }
 
     def void doCompile(IFileSystemAccess2 fsa) {
         // Cmake can only handle unix-style paths. Therefore, we replace `\' by '/' in the
