@@ -68,6 +68,7 @@ import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.FileConfig
+import org.icyphy.linguaFranca.Value
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -518,6 +519,7 @@ class CGenerator extends GeneratorBase {
                 pr('''
                     int __timer_triggers_size = «timerCount»;
                 ''')
+                
                 // If there are startup reactions, store them in an array.
                 if (startupReactionCount > 0) {
                     pr('''
@@ -621,6 +623,19 @@ class CGenerator extends GeneratorBase {
                         __intended_tag_fields_size = «startTimeStepIsPresentCount»;
                         __intended_tag_fields = (tag_t**)malloc(«startTimeStepIsPresentCount» * sizeof(tag_t*));
                     ''')
+                }
+                
+                if (isFederated) {
+                    if (federate.networkInputPorts.size > 0) {
+                        // Proliferate the network input port array
+                        pr('''
+                            // Initialize the array of pointers to network input port triggers
+                            _fed.network_input_port_triggers_size = «federate.networkInputPorts.size»;
+                            _fed.network_input_port_triggers = (trigger_t**)malloc(
+                                    _fed.network_input_port_triggers_size * sizeof(trigger_t*)
+                                );
+                        ''')
+                    }
                 }
                 
                 pr(initializeTriggerObjects.toString)
@@ -2103,12 +2118,12 @@ class CGenerator extends GeneratorBase {
                     deadlineFunctionPointer = "&" + deadlineFunctionName
                 }
                 
-                // Assign the tardiness handler
-                var tardyFunctionPointer = "NULL"
-                if (reaction.tardy !== null) {
+                // Assign the STP handler
+                var STPFunctionPointer = "NULL"
+                if (reaction.stp !== null) {
                     // The following has to match the name chosen in generateReactions
-                    val tardyFunctionName = decl.name.toLowerCase + '_tardy_function' + reactionCount
-                    tardyFunctionPointer = "&" + tardyFunctionName
+                    val STPFunctionName = decl.name.toLowerCase + '_STP_function' + reactionCount
+                    STPFunctionPointer = "&" + STPFunctionName
                 }
 
                 // Set the defaults of the reaction_t struct in the constructor.
@@ -2118,13 +2133,13 @@ class CGenerator extends GeneratorBase {
                 // self->___reaction_«reactionCount».pos = 0;
                 // self->___reaction_«reactionCount».running = false;
                 // self->___reaction_«reactionCount».deadline = 0LL;
-                // self->___reaction_«reactionCount».is_tardy = false;
+                // self->___reaction_«reactionCount».is_STP_violated = false;
                 pr(reaction, constructorCode, '''
                     self->___reaction_«reactionCount».number = «reactionCount»;
                     self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
-                    self->___reaction_«reactionCount».tardy_handler = «tardyFunctionPointer»;
+                    self->___reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
                 ''')
 
             }
@@ -2345,15 +2360,15 @@ class CGenerator extends GeneratorBase {
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
-        if (reaction.tardy !== null) {
-            val lateFunctionName = decl.name.toLowerCase + '_tardy_function' + reactionIndex
+        if (reaction.stp !== null) {
+            val lateFunctionName = decl.name.toLowerCase + '_STP_function' + reactionIndex
 
             pr('void ' + lateFunctionName + '(void* instance_args) {')
             indent();
             generateInitializationForReaction(body, reaction, decl, reactionIndex)
             // Code verbatim from 'late'
-            prSourceLineNumber(reaction.tardy.code)
-            pr(reaction.tardy.code.toText)
+            prSourceLineNumber(reaction.stp.code)
+            pr(reaction.stp.code.toText)
             unindent()
             pr("}")
         }
@@ -2388,15 +2403,15 @@ class CGenerator extends GeneratorBase {
         // Construct the intended_tag inheritance code to go into
         // the body of the function.
         var StringBuilder intendedTagInheritenceCode = new StringBuilder()
-        // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the tardiness
+        // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the STP violation
         if (isFederatedAndDecentralized && !reaction.effects.nullOrEmpty) {
             pr(intendedTagInheritenceCode, '''
-                if (self->___reaction_«reactionIndex».is_tardy == true) {
+                if (self->___reaction_«reactionIndex».is_STP_violated == true) {
             ''')
             indent(intendedTagInheritenceCode);            
             pr(intendedTagInheritenceCode, '''            
                 // The operations inside this if clause (if any exists) are expensive 
-                // and must only be done if the reaction has unhandled tardiness.
+                // and must only be done if the reaction has unhandled STP violation.
                 // Otherwise, all intended_tag values are (NEVER, 0) by default.
                 
                 // Inherited intended tag. This will take the minimum
@@ -2631,9 +2646,9 @@ class CGenerator extends GeneratorBase {
             #pragma GCC diagnostic pop
         ''')
 
-        if (reaction.tardy === null) {
+        if (reaction.stp === null) {
             // Pass down the intended_tag to all input and output effects
-            // downstream if the current reaction does not have a tardy
+            // downstream if the current reaction does not have a STP
             // handler.
             generateIntendedTagInheritence(body, reaction, decl, reactionIndex)
         }
@@ -3403,6 +3418,7 @@ class CGenerator extends GeneratorBase {
                 «nameOfSelfStruct»->«targetBankIndex» = 0;
             ''')
         }
+        
         generateTraceTableEntries(instance, initializeTriggerObjects)
               
         generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
@@ -3547,7 +3563,7 @@ class CGenerator extends GeneratorBase {
             reactionCount++
         }
         
-        // Next, allocate memory for input multiports. 
+        // Next, allocate memory for input. 
         for (input : reactorClass.toDefinition.inputs) {
             // If the port is a multiport, create an array.
             if (input.isMultiport) {
@@ -3564,6 +3580,14 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects, '''
                     // width of -2 indicates that it is not a multiport.
                     «nameOfSelfStruct»->__«input.name»__width = -2;
+                ''')
+            }
+            
+            // Initialize the network_input_port_trigger for the input, if any exists
+            if (federate.networkInputPorts?.contains(input)) {
+                pr(initializeTriggerObjectsEnd, '''
+                    _fed.network_input_port_triggers[«federate.networkInputPorts.toList.indexOf(input)»]= 
+                                                                                &«nameOfSelfStruct»->___«input.name»;
                 ''')
             }
         }
@@ -4340,6 +4364,74 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         return result.toString
+    }
+    
+    /**
+     * 
+     */
+    override generateNetworkDependantReactionBody(
+        Port port,
+        Set<Value> STPList
+    ) {
+        // Store the code
+        val result = new StringBuilder()
+        
+        result.append('''
+            // Check if the port is triggered
+            if («port.name»->is_present) {
+                // Don't wait
+                return;
+            }
+        ''')
+        
+        result.append('''
+            #ifdef FEDERATED_DECENTRALIZED
+                interval_t max_STP = 0LL;
+        ''')
+        
+        // First find the maximum value
+        // The maximum STP is found this way because
+        // the STP offset could be a variable that could
+        // possibly be overridden on the command line with
+        // unknown values during code generation.
+        for (stp : STPList ?: emptyList) {
+            result.append('''
+                if («stp.targetValue» > max_STP) {
+                    max_STP = «stp.targetValue»;
+                }
+            ''')
+        }
+        
+        result.append('''
+                while(max_STP != 0LL) {
+                    if(!wait_until(current_tag.time + max_STP, reaction_q_changed)) {
+                        // Interrupted
+                        if («port.name»->is_present) {
+                            // Don't wait any longer
+                            return;
+                        }
+                    } else {
+                        // Done waiting
+                        // Need to lock the mutex to prevent
+                        // a race condition with the network
+                        // receiver logic.
+                        pthread_mutex_lock(&mutex);
+                        if (!«port.name»->is_present) {
+                            // Port will not be triggered at
+                            // current logical time. Set the absent
+                            // value of the trigger accordingly
+                            // so that the receiving logic cannot
+                            // insert any further reaction
+                            self->___«port.name».is_absent = true;
+                        }
+                        pthread_mutex_unlock(&mutex);
+                        return;
+                    }
+                }
+                #endif
+        ''')
+        
+        return result.toString        
     }
 
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
@@ -5250,22 +5342,6 @@ class CGenerator extends GeneratorBase {
         = '// **** Do not include initialization code in this reaction.'
         
     public static var UNDEFINED_MIN_SPACING = -1
-    
-    protected def isFederatedAndDecentralized() {
-        if (isFederated &&
-            targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-            return true
-        }
-        return false
-    }
-    
-    protected def isFederatedAndCentralized() {
-        if (isFederated &&
-            targetConfig.coordination === CoordinationType.CENTRALIZED) {
-            return true
-        }
-        return false
-    }
     
        
     /** Returns the Target enum for this generator */
