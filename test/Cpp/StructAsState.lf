@@ -3,7 +3,7 @@ target Cpp {
     files: include/hello.h
 };
 public preamble {=
-    #include "include/hello.h"
+    #include "hello.h"
 =}
 
 main reactor StructAsState {
