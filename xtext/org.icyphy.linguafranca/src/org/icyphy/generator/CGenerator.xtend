@@ -2081,7 +2081,7 @@ class CGenerator extends GeneratorBase {
         }
 
         // Next handle inputs.
-        for (input : reactor.inputs) {            
+        for (input : reactor.allInputs) {            
             createTriggerT(body, input, triggerMap, constructorCode, destructorCode)
         }
     }
