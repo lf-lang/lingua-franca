@@ -426,15 +426,15 @@ struct reaction_t {
     int* triggered_sizes;     // Pointer to array of ints with number of triggers per output. INSTANCE.
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
-    interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
-    bool is_tardy;           // Indicator of tardiness in one of the input triggers to this reaction. default = false.
+    interval_t deadline;      // Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
+    bool is_STP_violated;     // Indicator of STP violation in one of the input triggers to this reaction. default = false.
                               // Value of True indicates to the runtime that this reaction contains trigger(s)
                               // that are triggered at a later logical time that was originally anticipated.
                               // Currently, this is only possible if logical
                               // connections are used in a decentralized federated
                               // execution. COMMON.
     reaction_function_t deadline_violation_handler; // Deadline violation handler. COMMON.
-    reaction_function_t tardy_handler; // Tardiness handler. Invoked when a trigger to this reaction
+    reaction_function_t STP_handler;   // STP handler. Invoked when a trigger to this reaction
                                        // was triggered at a later logical time than originally
                                        // intended. Currently, this is only possible if logical
                                        // connections are used in a decentralized federated
@@ -475,7 +475,17 @@ struct trigger_t {
                               // If the payload is an array, then this is the size of an element of the array.
     bool is_present;          // Indicator at any given logical time of whether the trigger is present.
 #ifdef FEDERATED
-    tag_t intended_tag;          // The amount of discrepency in logical time between the original intended
+    bool is_absent;           // Indicator at any given logical time of whether the rigger is absent. This is needed because the 
+                              // receiver logic will need to know what it should do if it receives
+                              // a message with intended tag = current tag from another federate. If both is_present and is_absent
+                              // are false, it means that the federate has no idea what the status of the port is and thus has to
+                              // refrain from executing any reaction that has that port as its input. Therefore, it should
+                              // be safe to inject the corresponding reaction directly into the reaction queue. If is_present = false
+                              // and is_absent = true, it means that the federate has assumed that the port is absent for the current
+                              // logical time. This would be a violation of the STP offset in the decentralized coordination for example.
+                              // Finally, if is_present = true and is_absent = false, then this is a fatal error since multiple downstream
+                              // messages have been produced for the same logical time.
+    tag_t intended_tag;       // The amount of discrepency in logical time between the original intended
                               // trigger time of this trigger and the actual trigger time. This currently
                               // can only happen when logical connections are used using a decentralized coordination
                               // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).

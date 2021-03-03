@@ -74,7 +74,9 @@ federate_instance_t _fed = {
         .sent_a_stop_request_to_rti = false,
         .last_sent_LTC = (tag_t) {.time = NEVER, .microstep = 0u},
         .last_sent_NET = (tag_t) {.time = NEVER, .microstep = 0u},
-        .min_delay_from_physical_action_to_federate_output = NEVER
+        .min_delay_from_physical_action_to_federate_output = NEVER,
+        .network_input_port_triggers = NULL,
+        .network_input_port_triggers_size = 0
 };
 
 /** 
@@ -873,10 +875,7 @@ trigger_t* __action_for_port(int port_id);
 handle_t schedule_message_received_from_network_already_locked(
         trigger_t* trigger,
         tag_t tag,
-        void* value,
-        int length) {
-
-    lf_token_t* token = create_token(trigger->element_size);
+        lf_token_t* token) {
     // Return value of the function
     int return_value = 0;
 
@@ -886,69 +885,41 @@ handle_t schedule_message_received_from_network_already_locked(
     // federate. By default, assume it is not.
     bool message_tag_is_in_the_future = compare_tags(tag, current_tag) > 0;
 
-    // Set up the token
-    token->value = value;
-    token->length = length;
-
     // Assign the intended tag
     trigger->intended_tag = tag;
 
     // Calculate the extra_delay required to be passed
     // to the schedule function.
     interval_t extra_delay = tag.time - current_tag.time;
-
-    if (!_lf_execution_started && !message_tag_is_in_the_future) {
-        // If execution has not started yet,
-        // there could be a special case where a message has
-        // arrived on a logical connection with a tag
-        // (0, 0) when this federate
-        // is at tag (0, 0).
-        // In this case, the schedule
-        // function cannot be called since it will
-        // incur a microstep (i.e., it will insert an
-        // event with tag (0,1)). To check, we call
-        // _lf_schedule_init_reactions, which is a special kind
-        // of schedule that does not incur a microstep. This function will first
-        // check the appropriate conditions and if the above-mentioned
-        // conditions are not met, the return value will be 0.
-        return_value = _lf_schedule_init_reactions(trigger, extra_delay, token);
-        DEBUG_PRINT("Startup schedule returned %d.", return_value);
-    }
-
-    // If return_value remains 0, it means that the special startup procedure
-    // does not apply or the call to _lf_schedule_init_reactions() has failed.
-    // Thus, call __schedule() instead.
-    if (return_value == 0) {
-        if (!message_tag_is_in_the_future) {
+    if (!message_tag_is_in_the_future) {
 #ifdef FEDERATED_CENTRALIZED
-            // If the coordination is centralized, receiving a message
-            // that does not carry a timestamp that is in the future
-            // would indicate a critical condition, showing that the
-            // time advance mechanism is not working correctly.
-            error_print_and_exit("Received a message at tag (%lld, %u) that"
-                                 " has a tag (%lld, %u) that is tardy. "
-                                 "Centralized coordination should not have tardy messages.",
-                                 current_tag.time - start_time, get_microstep(),
-                                 tag.time - start_time, tag.microstep);
+        // If the coordination is centralized, receiving a message
+        // that does not carry a timestamp that is in the future
+        // would indicate a critical condition, showing that the
+        // time advance mechanism is not working correctly.
+        error_print_and_exit("Received a message at tag (%lld, %u) that"
+                                " has a tag (%lld, %u) that has violated the STP offset. "
+                                "Centralized coordination should not have these types of messages.",
+                                current_tag.time - start_time, get_microstep(),
+                                tag.time - start_time, tag.microstep);
 #else
-            // Set the delay back to 0
-            extra_delay = 0LL;
-            DEBUG_PRINT("Calling schedule with 0 delay and intended tag (%lld, %u).",
-                        trigger->intended_tag.time - start_time,
-                        trigger->intended_tag.microstep);
-            return_value = __schedule(trigger, extra_delay, token);
+        // Set the delay back to 0
+        extra_delay = 0LL;
+        DEBUG_PRINT("Calling schedule with 0 delay and intended tag (%lld, %u).",
+                    trigger->intended_tag.time - start_time,
+                    trigger->intended_tag.microstep);
+        return_value = __schedule(trigger, extra_delay, token);
 #endif
-        } else {
-            // In case the message is in the future, call
-            // _lf_schedule_at_tag() so that the microstep is respected.
-            DEBUG_PRINT("Received a message that is (%lld nanoseconds, %u microsteps) "
-                    "in the future.", extra_delay, tag.microstep - get_microstep());
-            return_value = _lf_schedule_at_tag(trigger, tag, token);
-        }
-        // Notify the main thread in case it is waiting for physical time to elapse.
-        DEBUG_PRINT("Broadcasting notification that event queue changed.");
-        lf_cond_broadcast(&event_q_changed);
+    } else {
+        // In case the message is in the future, call
+        // _lf_schedule_at_tag() so that the microstep is respected.
+        DEBUG_PRINT("Received a message that is (%lld nanoseconds, %u microsteps) "
+                "in the future.", extra_delay, tag.microstep - get_microstep());
+        return_value = _lf_schedule_at_tag(trigger, tag, token);
     }
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    DEBUG_PRINT("Broadcasting notification that event queue changed.");
+    lf_cond_broadcast(&event_q_changed);
     return return_value;
 }
 
@@ -1126,12 +1097,29 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     // DEBUG_PRINT("Message received: %s.", message_contents);
 
     lf_mutex_lock(&mutex);
-    // Acquire the one mutex lock to prevent logical time from advancing
-    // during the call to schedule().
+    // Create a token for the message
+    lf_token_t* message_token = create_token(action->element_size);
+    // Set up the token
+    message_token->value = message_contents;
+    message_token->length = length;
 
-    DEBUG_PRINT("Calling schedule with tag (%lld, %u).", tag.time - start_time, tag.microstep);
-    schedule_message_received_from_network_already_locked(action, tag, message_contents,
-                                                          length);
+    // Check if reactions need to be inserted directly into the reaction
+    // queue or a call to schedule is needed
+    if (compare_tags(tag, get_current_tag()) == 0 &&
+        _fed.network_input_port_triggers[port_id]->is_absent == false) {
+
+        DEBUG_PRINT("Inserting reactions directly at tag (%lld, %u).", tag.time - start_time, tag.microstep);
+        _lf_insert_reactions_for_trigger(action, message_token);
+        // Notify the main thread in case it is waiting for reactions.
+        DEBUG_PRINT("Broadcasting notification that reaction queue changed.");
+        lf_cond_broadcast(&reaction_q_changed);
+    } else {
+        // Acquire the one mutex lock to prevent logical time from advancing
+        // during the call to schedule().
+
+        DEBUG_PRINT("Calling schedule with tag (%lld, %u).", tag.time - start_time, tag.microstep);
+        schedule_message_received_from_network_already_locked(action, tag, message_token);
+    }
 
 #ifdef FEDERATED_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // Finally, decrement the barrier to allow the execution to continue
@@ -1759,5 +1747,27 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
         // The next iteration will determine whether another
         // TAN should be sent or a NET.
         tag = get_next_event_tag();
+    }
+}
+
+/**
+ * Reset absent fields on network input ports.
+ */
+void reset_absent_fields_on_input_ports() {
+    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
+        _fed.network_input_port_triggers[i]->is_absent = false;
+    }
+}
+
+
+/**
+ * 
+ */
+void enqueue_network_dependent_reactions(pqueue_t* reaction_q){
+    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
+       reaction_t* reaction = _fed.network_input_port_triggers[i]->reactions[0];
+       if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+           pqueue_insert(reaction_q, reaction);
+       }
     }
 }

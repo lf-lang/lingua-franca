@@ -11,8 +11,8 @@
  * zero) to wait long enough for messages to arrive 
  * before advancing its tag. In this test,
  * the STP offset is initially zero and gradually 
- * raised every time a tardiness is perceived until 
- * no tardiness is observed. Therefore, the exact 
+ * raised every time an STP violation is perceived until 
+ * no STP violation is observed. Therefore, the exact 
  * outcome of the test will depend on actual runtime
  * timing.
  *
@@ -34,7 +34,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     state breaks:int(0);
     reaction(in) {=
         tag_t current_tag = get_current_tag();
-        printf("At tag (%lld, %u) received value %d with tardiness (%lld, %u).\n",
+        printf("At tag (%lld, %u) received value %d with STP violation (%lld, %u).\n",
             current_tag.time - get_start_time(),
             current_tag.microstep,
             in->value,
@@ -83,7 +83,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     =}
 }
 
-reactor TardyReceiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
+reactor STPReceiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     input in:int;
     state last_time_updated_stp:time(0);
     receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec);
@@ -91,9 +91,9 @@ reactor TardyReceiver(take_a_break_after:int(10), break_interval:time(400 msec))
     
     reaction (in) -> receiver.in {=
         SET(receiver.in, in->value);
-    =} tardy {=
+    =} STP (0) {=
         tag_t current_tag = get_current_tag();
-        printf("Tardiness (%lld, %u) perceived on the input.\n",              
+        printf("STP violation of (%lld, %u) perceived on the input.\n",              
                current_tag.time - in->intended_tag.time,
                current_tag.microstep - in->intended_tag.microstep);
         SET(receiver.in, in->value);
@@ -115,7 +115,7 @@ reactor TardyReceiver(take_a_break_after:int(10), break_interval:time(400 msec))
 
 federated reactor DistributedLoopedActionDecentralized {    
     sender = new Sender(take_a_break_after = 10, break_interval = 400 msec);
-    tardyReceiver = new TardyReceiver(take_a_break_after = 10, break_interval = 400 msec);
+    stpReceiver = new STPReceiver(take_a_break_after = 10, break_interval = 400 msec);
     
-    sender.out -> tardyReceiver.in;
+    sender.out -> stpReceiver.in;
 }

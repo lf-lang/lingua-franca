@@ -70,6 +70,8 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
+import org.icyphy.TargetProperty.CoordinationType
+import java.util.Set
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -502,7 +504,90 @@ class ASTUtils {
 
         // Add the reactions to the parent.
         parent.reactions.add(r1)
-        parent.reactions.add(r2)
+        parent.reactions.add(r2)       
+        
+        if (!connection.physical) {
+            // Add the network dependent reaction for the right port
+            // Only for logical connections
+            addNetworkDependantReaction(
+                connection.rightPorts.get(0), 
+                rightFederate,
+                generator
+            );
+        }
+    }
+    
+    /**
+     * 
+     */
+    static def addNetworkDependantReaction(VarRef portRef, FederateInstance instance, GeneratorBase generator) {
+        // Add the port to network input ports
+        instance.networkInputPorts.add(portRef.variable as Input)
+        
+        val factory = LinguaFrancaFactory.eINSTANCE        
+        val reaction = factory.createReaction
+        val reactor = portRef.variable.eContainer as Reactor
+        val newPortRef = factory.createVarRef
+        
+        newPortRef.container = null
+        newPortRef.variable = portRef.variable as Input
+        
+        
+        // Find the list of reactions that have the port as trigger or source (could be a variable name)
+        val reactionsWithPort = reactor.allReactions.filter[
+            r | (r.triggers.exists[
+                        t | 
+                            if (t instanceof VarRef) {
+                                // Check if the variables match
+                                t.variable == portRef.variable
+                            } else {
+                                // Not a network port (startup or shutdown)
+                                false
+                            }
+                    ] || 
+                r.sources.exists[
+                        s | s == portRef
+                    ]
+                )
+        ]
+                
+        if (reactionsWithPort.isEmpty) {
+            // Nothing to do here
+            return;
+        }       
+        
+        // Find a list of STP offsets (if any exists)
+        var Set<Value> STPList = newLinkedHashSet
+        if (generator.federatedAndDecentralized) {            
+            for (r : reactionsWithPort) {
+                // If STP offset is determined, add it
+                // If not, assume it is zero
+                if (r.stp !== null) {
+                    if (r.stp.offset !== null) {
+                        STPList.add(r.stp.offset)
+                    }
+                }
+            }        
+        }
+        
+        // FIXME: Ideally, we would like to add this port to the
+        // sources and not the triggers to avoid cluttering
+        // the trigger table, but a reaction with no triggers
+        // will have all the sources as triggers.
+        reaction.triggers.add(newPortRef)
+        reaction.code = factory.createCode()
+        
+        reaction.code.body = generator.generateNetworkDependantReactionBody(
+            portRef.variable as Port,
+            STPList
+        )
+                
+        // Find the index of the first reaction that has portRef as its trigger or source
+        val firstIndex = reactor.allReactions.indexOf(reactionsWithPort.get(0))
+        
+        // Insert the newly generated reaction before the first reaction
+        /// that has the port as its trigger or source
+        reactor.reactions.add(firstIndex, reaction)
     }
     
     /**

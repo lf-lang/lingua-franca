@@ -184,7 +184,7 @@ Reaction:
     (sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRef (',' effects+=VarRef)*)?
     code=Code
-    (tardy=Tardy)?
+    (stp=STP)?
     (deadline=Deadline)?;
 
 TriggerRef:
@@ -193,8 +193,8 @@ TriggerRef:
 Deadline:
     'deadline' '(' delay=Value ')' code=Code;
     
-Tardy:
-    'tardy' code=Code;
+STP:
+    'STP' '(' offset=Value ')' code=Code;
 
 Mutation:
     ('mutation')

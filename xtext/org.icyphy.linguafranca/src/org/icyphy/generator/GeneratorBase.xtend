@@ -211,6 +211,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
+    
 
     /**
      * Indicates whether or not the current Lingua Franca program
@@ -569,7 +570,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
         unorderedReactions.add(reaction)
     }
-
+    
     /**
      * Given a representation of time that may possibly include units, return
      * a string that the target language can recognize as a value. In this base
@@ -1164,6 +1165,38 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         Delay delay
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+    }
+    
+    /**
+     * 
+     */
+    def String generateNetworkDependantReactionBody(
+        Port port,
+        Set<Value> STPList
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }    
+    
+    /**
+     * 
+     */
+    def isFederatedAndDecentralized() {
+        if (isFederated &&
+            config.coordination === CoordinationType.DECENTRALIZED) {
+            return true
+        }
+        return false
+    }
+    
+    /**
+     * 
+     */
+    def isFederatedAndCentralized() {
+        if (isFederated &&
+            config.coordination === CoordinationType.CENTRALIZED) {
+            return true
+        }
+        return false
     }
 
     /**
@@ -2046,20 +2079,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                                     if (connection.delay !== null) {
                                         sendsTo.add(connection.delay)
                                     }
-                                    // Check for causality loops between federates.
-                                    // FIXME: This does not detect cycles involving more than one federate.
-                                    var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                                    if (reverseDependency !== null) {
-                                        // Check that at least one direction has a delay.
-                                        if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                            // Found a causality loop.
-                                            val message = "Causality loop found between federates " +
-                                                leftFederate.name + " and " + rightFederate.name
-                                            reportError(connection, message)
-                                            // This is a fatal error, so throw an exception.
-                                            throw new Exception(message)
-                                        }
-                                    }
                                 }
                                                                 
                                 ASTUtils.makeCommunication(
@@ -2090,7 +2109,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                                     }
                                 }
                             }
-                        }
+                        } */
                     }
 //>>>>>>> master
                 }

@@ -176,6 +176,11 @@ typedef struct federate_instance_t {
 	 */
 	instant_t min_delay_from_physical_action_to_federate_output;
 
+
+	// Define the array of pointers to triggers of network input ports
+	trigger_t** network_input_port_triggers;
+	int network_input_port_triggers_size;
+
 } federate_instance_t;
 
 /** 

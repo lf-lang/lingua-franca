@@ -43,6 +43,7 @@ import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.TimeValue
+import org.icyphy.linguaFranca.Port
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -158,6 +159,12 @@ class FederateInstance {
      * scheduling the appropriate action.
      */
     public var outboundP2PConnections = new LinkedHashSet<FederateInstance>()
+    
+    
+    /**
+     * The set of network input ports for this federate instance...
+     */
+    public var networkInputPorts = new LinkedHashSet<Port>()
 
     /////////////////////////////////////////////
     //// Public Methods
