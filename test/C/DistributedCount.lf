@@ -2,11 +2,10 @@
  *  where a federation that receives timestamped messages has only those
  *  messages as triggers. Therefore, no additional coordination of the
  *  advancement of time (HLA or Ptides) is needed.
- *  @author Edward A. Lee
+ *  @author Edward A. Lee 
  */
  target C {
     timeout: 5 sec,
-    logging: log,
     coordination: centralized
 };
 
@@ -33,8 +32,8 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount { 
+federated reactor DistributedCount(offset:time(200 msec))  { 
     c = new Count();
     p = new Print();
-    c.out -> p.in after 200 msec;    // Indicating a 'logical' connection.
+    c.out -> p.in after offset;
 }
