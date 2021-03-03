@@ -43,7 +43,6 @@ import org.eclipse.elk.core.options.Direction
 import org.eclipse.elk.core.options.PortConstraints
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
-import org.eclipse.elk.core.util.IndividualSpacings
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.emf.ecore.EObject
 import org.icyphy.ASTUtils
@@ -535,7 +534,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		var shutdownUsed = false
 
 		// Transform instances
-		for (entry : reactor.instantiations.reverseView.indexed) {
+		for (entry : reactor.allInstantiations.reverseView.indexed) {
 			val instance = entry.value
 			val rNodes = instance.reactorClass.toDefinition.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors, allReactorNodes)
 			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
@@ -543,7 +542,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		
 		// Create timers
-		for (Timer timer : reactor.timers?:emptyList) {
+		for (Timer timer : reactor.allTimers?:emptyList) {
 			val node = createNode().associateWith(timer)
 			nodes += node
 			nodes += timer.createUserComments(node)
@@ -692,7 +691,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Transform connections
-		for (Connection connection : reactor.connections?:emptyList) {
+		for (Connection connection : reactor.allConnections?:emptyList) {
 		    for (leftPort : connection.leftPorts) {
 		        for (rightPort : connection.rightPorts) {
                     val source = if (leftPort?.container !== null) {
