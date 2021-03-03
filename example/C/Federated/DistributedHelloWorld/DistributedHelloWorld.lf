@@ -1,0 +1,80 @@
+/**
+ * Distributed LF program where a MessageGenerator creates a string
+ * message that is sent via the RTI (runtime infrastructure) to a
+ * receiver that prints the message.
+ * 
+ * The code generator generates four programs:
+ * 
+ * * bin/DistributedHelloWorld: A script that launches the other three
+ *   programs on localhost.  Run this program.
+ * 
+ * * bin/DistributedHelloWorld_RTI: The runtime infrastructure.
+ * 
+ * * bin/DistrubtedHelloWorld_source: The program that produces the sequence
+ *   of messages.
+ * 
+ * * bin/DistrubtedHelloWorld_print: The program that produces the sequence
+ *   of messages.
+ * 
+ * To run this manually, you can start each of the last three programs in
+ * any order. They will synchronize the start time and run for 10 seconds.
+ * 
+ * @author Edward A. Lee
+ */
+target C {
+    timeout: 10 secs
+};
+
+/**
+ * Reactor that generates a sequence of messages, one per second.
+ * The message will be a string consisting of a root string followed
+ * by a count.
+ * @param root The root string.
+ * @output message The message.
+ */
+reactor MessageGenerator(root:string("")) {
+    // Output type char* instead of string is used for dynamically
+    // allocated character arrays (as opposed to static constant strings).
+    output message:char*;
+    state count:int(1);
+    // Send first message after 1 sec so that the startup reactions
+    // do not factor into the transport time measurement on the first message.
+    timer t(1 sec, 1 sec);
+    reaction(t) -> message {=
+        // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
+        // Add one for the null terminator.
+        int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
+        // Dynamically allocate memory for the output.
+        SET_NEW_ARRAY(message, length);
+        // Populate the output string and increment the count.
+        snprintf(message->value, length, "%s %d", self->root, self->count++);
+
+        tag_t tag = get_current_tag();
+        info_print("At (elapsed) logical tag (%lld, %u), source sends message: %s",
+            tag.time - start_time, tag.microstep,
+            message->value
+        );
+    =}
+}
+
+/**
+ * Reactor that prints the current tag and an incoming string.
+ *
+ * @input message The message.
+ */
+reactor PrintMessage {
+    input message:char*;
+    reaction(message) {=
+        tag_t tag = get_current_tag();
+        info_print("At (elapsed) logical tag (%lld, %u), print receives: %s",
+            tag.time - start_time, tag.microstep,
+            message->value
+        );
+    =}
+}
+
+federated reactor DistributedHelloWorld {
+    source = new MessageGenerator(root = "Hello World");
+    print = new PrintMessage();
+    source.message -> print.message;
+}

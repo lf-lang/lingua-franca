@@ -1,0 +1,18 @@
+/**
+ * Version of DistributedHelloWorld with an `after` on the connection.
+ * The after value on the connection gives a logical time offset
+ * between the sender and the receiver.
+ * 
+ * @author Edward A. Lee
+ */
+target C {
+    timeout: 10 secs
+};
+import MessageGenerator from "DistributedHelloWorld.lf"
+import PrintMessage from "DistributedHelloWorld.lf"
+
+federated reactor DistributedHelloWorldAfter {
+    source = new MessageGenerator(root = "Hello World");
+    print = new PrintMessage();
+    source.message -> print.message after 10 msec;
+}
