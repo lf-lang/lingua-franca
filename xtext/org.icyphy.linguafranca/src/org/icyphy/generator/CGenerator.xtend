@@ -67,6 +67,7 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.Configuration
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -332,6 +333,11 @@ class CGenerator extends GeneratorBase {
     ////////////////////////////////////////////
     //// Public methods
 
+    override printInfo() {
+        super.printInfo()
+        println('******** generated binaries: ' + Configuration.toPath(binGenRoot))
+    }
+
     /**
      * Generate C code from the Lingua Franca model contained by the
      * specified resource. This is the main entry point for code
@@ -359,8 +365,8 @@ class CGenerator extends GeneratorBase {
         }
         
         // Create the output directories if they don't yet exist.
-        var srcGenPath = getSrcGenPath()
-        var outPath = getBinGenPath
+        var srcGenPath = Configuration.toPath(getSrcGenRoot)
+        var outPath = Configuration.toPath(getBinGenRoot)
         var dir = new File(srcGenPath)
         if (!dir.exists()) dir.mkdirs()
         dir = new File(outPath)
@@ -890,8 +896,7 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        val srcGenPath = directory + File.separator + "src-gen"
-        copyFileFromClassPath("/lib/C/ctarget.h", srcGenPath + File.separator + "ctarget.h")
+        copyFileFromClassPath("/lib/C/ctarget.h", Configuration.toPath(srcGenRoot) + File.separator + "ctarget.h")
     }
 
     ////////////////////////////////////////////
@@ -903,8 +908,8 @@ class CGenerator extends GeneratorBase {
         // Derive target filename from the .lf filename.
         var cFilename = getTargetFileName(filename + "_RTI")
         
-        var srcGenPath = getSrcGenPath()
-        var outPath = getBinGenPath()
+        var srcGenPath = Configuration.toPath(getSrcGenRoot())
+        var outPath = Configuration.toPath(getBinGenRoot())
 
         // Delete source previously produced by the LF compiler.
         var file = new File(srcGenPath + File.separator + cFilename)
@@ -1114,7 +1119,7 @@ class CGenerator extends GeneratorBase {
         // to get screen to work looks like this:
         // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
         
-        var outPath = getBinGenPath()
+        var outPath = Configuration.toPath(getBinGenRoot())
 
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()
@@ -2880,7 +2885,7 @@ class CGenerator extends GeneratorBase {
         val returnCode = protoc.executeCommand()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
-            config.compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
+            config.compileAdditionalSources.add(SRC_GEN_DIR + File.separator + nameSansProto +
                 ".pb-c.c")
 
             config.compileLibraries.add('-l')
@@ -4180,7 +4185,7 @@ class CGenerator extends GeneratorBase {
         parseTargetParameters()
         
         // Make sure src-gen directory exists.
-        val srcGenDir = new File(srcGenPath + File.separator)
+        val srcGenDir = new File(Configuration.toPath(getSrcGenRoot))
         srcGenDir.mkdirs
         
         // Handle .proto files.

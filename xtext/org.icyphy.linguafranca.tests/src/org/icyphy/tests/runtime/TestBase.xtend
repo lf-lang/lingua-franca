@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 
 import static extension org.junit.Assert.assertTrue
+import org.icyphy.generator.GeneratorBase
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -65,6 +66,10 @@ abstract class TestBase {
     protected boolean run = true;
     
     protected boolean build = true;
+    
+    def getRoot() {
+        return TestRegistry.LF_TEST_PATH + target
+    }
     
     @Test
     def void runGenericTests() {
@@ -170,16 +175,19 @@ abstract class TestBase {
             restoreOutputs()
         } catch (Exception e) {
             test.result = Result.PARSE_FAIL
+            restoreOutputs()
             return false
         }
         
         if (test.resource === null || !test.resource.errors.isEmpty) {
             test.result = Result.PARSE_FAIL
+            restoreOutputs()
             return false
         }
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (!configuration.apply(test)) {
             test.result = Result.CONFIG_FAIL
+            restoreOutputs()
             return false
         }
         
@@ -189,6 +197,7 @@ abstract class TestBase {
         
         if (!test.resource.allContents.filter(Reactor).exists[it.isMain || it.isFederated]) {
             test.result = Result.NO_MAIN_FAIL
+            restoreOutputs()
             return false
         }
         
@@ -218,7 +227,9 @@ abstract class TestBase {
 
     def boolean generateCode(LFTest test) {
         if (test.resource !== null) {
-            fileAccess.outputPath = 'src-gen'
+            // Specify where to put the generated files. 
+            // This implicitly also specifies the root.
+            fileAccess.outputPath = getRoot() + File.separator + GeneratorBase.SRC_GEN_DIR
             val context = new StandaloneContext => [
                 cancelIndicator = CancelIndicator.NullImpl
                 args = test.properties;
@@ -231,6 +242,9 @@ abstract class TestBase {
             } catch (Exception e) {
                 //test.compileOut.append(e.toString() + NEW_LINE)
                 // FIXME: Weed out kinds of exceptions and set result accordingly.
+                // FIXME Catch FileNotFoundException and print it 
+                test.result = Result.CODE_GEN_FAIL
+                restoreOutputs()
                 return false
             }
             
@@ -251,27 +265,18 @@ abstract class TestBase {
         
         switch(test.target) {
             case C,
+            case CPP,
             case CCPP: {
-                val bin = test.path.getParent.resolve("bin") // Relative to source
+                val bin = Paths.get(root + File.separator + GeneratorBase.BIN_DIR)
                 val file = bin.resolve(nameOnly)
                 if (Files.exists(file)) {
-                    pb = new ProcessBuilder(file.toString)
+                    pb = new ProcessBuilder(GeneratorBase.BIN_DIR + File.separator + nameOnly)
+                    pb.directory(new File(root))
                 } else {
+                    test.issues.append(file + ": No such file or directory." + NEW_LINE)
                     test.result = Result.NO_EXEC_FAIL
                 }
             }
-            case CPP: {
-                val bin = Paths.get(Paths.get("").toAbsolutePath() + File.separator + "bin") // CWD 
-                val file = bin.resolve(nameOnly)
-                if (Files.exists(file)) {
-                    pb = new ProcessBuilder(file.toString)
-                } else {
-                    test.result = Result.NO_EXEC_FAIL
-                    //println(">>>>>" + file)
-                    // FIXME: add message
-                }
-            }
-            
             case Python: {
                 val bin = test.path.getParent.resolve("src-gen") // Relative to source
                 val file = bin.resolve(nameOnly + ".py")

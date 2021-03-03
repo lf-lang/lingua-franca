@@ -35,7 +35,6 @@ reactor SinkProto {
         printf("Received: name=\"%s\", number=%d.\n", in->value.name, in->value.number);
     =}
 }
-
 main reactor ProtoNoPacking {
 	s = new SourceProto();
 	d = new SinkProto();

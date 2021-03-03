@@ -31,7 +31,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
-import java.net.URI
+import org.eclipse.emf.common.util.URI;
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
@@ -48,8 +48,10 @@ import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.generator.IFileSystemAccess
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.generator.JavaIoFileSystemAccess
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
@@ -84,6 +86,7 @@ import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
 import static extension org.icyphy.Configuration.*
+import org.eclipse.xtext.generator.AbstractFileSystemAccess
 
 /**
  * Generator base class for shared code between code generators.
@@ -104,6 +107,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Constant that specifies how to name generated delay reactors.
      */
     public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
+    
+    public static val BIN_DIR = "bin"
+    
+    public static val SRC_GEN_DIR = "src-gen"
         
     ////////////////////////////////////////////
     //// Protected fields.
@@ -132,6 +139,37 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Path to the directory containing the .lf file.
      */
     protected var String directory
+    
+    /**
+     * Object for abstract file system access.
+     */
+    protected var IFileSystemAccess2 fsa
+    
+    /**
+     * Return the directory one level up from the specified output directory
+     * for generated sources.
+     */
+    def URI getOutputRoot() {
+        return URI.createURI(".").resolve(this.srcGenRoot)
+    }
+    
+    /**
+     * Return the specified output directory for the generated sources.
+     */
+    def URI getSrcGenRoot() {
+        val uri = this.fsa.getURI("")
+        if (uri.hasTrailingPathSeparator) {
+            return uri.trimSegments(1)
+        }
+        return uri
+    }
+
+    /**
+     * Return the output directory for generated binary files.
+     */
+    def getBinGenRoot() {
+        return URI.createURI(BIN_DIR).resolve(this.srcGenRoot)
+    }
 
     /**
      * The root filename for the main file containing the source code,
@@ -201,7 +239,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * RTI C code. This can be overridden in a target
      * generator to change the directory.
      */
-    protected var rtiSrcPath = File.separator + "src-gen";
+    protected var rtiSrcPath = File.separator + SRC_GEN_DIR; // FIXME
 
     /** 
      * The path from the LF file directory
@@ -209,7 +247,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * RTI binary. This can be overridden in a target
      * generator to change the directory.
      */
-    protected var rtiBinPath = File.separator + "bin"
+    protected var rtiBinPath = File.separator + BIN_DIR // FIXME
 
     /**
      * The full path to the file containing the .lf file including the
@@ -315,19 +353,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     // //////////////////////////////////////////
     // // Code generation functions to override for a concrete code generator.
-    /**
-     * Returns the desired source gen. path
-     */
-    def getSrcGenPath() {
-        directory + File.separator + "src-gen"
-    }
-
-    /**
-     * Returns the desired output path
-     */
-    def getBinGenPath() {
-        directory + File.separator + "bin"
-    }
 
     /**
      * Store the given reactor in the collection of generated delay classes
@@ -437,14 +462,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * In stand alone mode, this object is also used to relay CLI arguments.
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-
+        this.fsa = fsa;
+        
         // The following "analysis" has hidden in it AST transformations.
         // FIXME: We should factor them out and rename the following method
         // parseTargetProperties or something along those lines. 
         analyzeModel(resource, fsa, context)
 
         // Process target files. Copy each of them into the src-gen dir.
-        copyUserFiles(getSrcGenPath())
+        copyUserFiles()
 
         // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
@@ -492,19 +518,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         generatePreamble() // FIXME: Move this elsewhere.
     }
 
+    protected def String getCopyPath() {
+        return srcGenRoot.toPath
+    }
+
     /**
      * Copy all files listed in the target property `files` into the
      * specified directory.
      */
-    protected def copyUserFiles(String targetDirectory) {
+    protected def copyUserFiles() {
         // Make sure the target directory exists.
-        val srcGenDir = new File(targetDirectory + File.separator)
-        srcGenDir.mkdirs
+        val targetDir = getCopyPath()
+        new File(targetDir).mkdirs
 
         for (filename : config.fileNames) {
             val file = filename.findFile(this.directory)
             if (file !== null) {
-                val target = new File(targetDirectory + File.separator + file.name)
+                val target = new File(targetDir + File.separator + file.name)
                 if (target.exists) {
                     target.delete
                 }
@@ -519,7 +549,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     if (lastSeparator > 0) {
                         filenameWithoutPath = filename.substring(lastSeparator + 1)
                     }
-                    copyFileFromClassPath(filename, targetDirectory + File.separator + filenameWithoutPath)
+                    copyFileFromClassPath(filename, targetDir + File.separator + filenameWithoutPath)
                     config.filesNamesWithoutPath.add(filenameWithoutPath);
                 } catch (IOException ex) {
                     // Ignore. Previously reported as a warning.
@@ -846,8 +876,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
         val env = findCommandEnv(config.compiler)
         val cFilename = getTargetFileName(fileToCompile);
-        var relativeSrcFilename = "src-gen" + File.separator + cFilename;
-        var relativeBinFilename = "bin" + File.separator + fileToCompile;
+        var relativeSrcFilename = SRC_GEN_DIR + File.separator + cFilename;
+        var relativeBinFilename = BIN_DIR + File.separator + fileToCompile;
         if (env == ExecutionEnvironment.BASH) {
             relativeSrcFilename = "src-gen/" + cFilename;
             relativeBinFilename = "bin/" + fileToCompile;
@@ -1439,7 +1469,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
-                val uri = new URI(parsed.filepath)
+                val uri = new java.net.URI(parsed.filepath)
                 val files = workspaceRoot.findFilesForLocationURI(uri)
                 // No idea why there might be more than one file matching the URI,
                 // but Eclipse seems to think there might be. We will just use the
@@ -1606,7 +1636,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = new URI("file:/" + eResource.toPath)
+                    val uri = new java.net.URI("file:/" + eResource.toPath)
                     val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                     val files = workspaceRoot.findFilesForLocationURI(uri)
                     if (files !== null && files.length > 0 && files.get(0) !== null) {
@@ -2122,7 +2152,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Strip the filename of the extension.
         var File f = new File(sourceFile);
         filename = f.getName();
-        directory = f.getParent();
+        directory = outputRoot.toPath // FIXME: eliminate
 
         if (filename.endsWith('.lf')) {
             filename = filename.substring(0, filename.length - 3)
@@ -2136,10 +2166,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             System.err.println("ERROR: Source file protocol is not recognized: " + resource.URI);
         }
 
-        println('******** filename: ' + filename)
-        println('******** sourceFile: ' + sourceFile)
-        println('******** directory: ' + directory)
+        printInfo()
+    }
+
+    def printInfo() {
         println('******** mode: ' + mode)
+        println('******** source file: ' + sourceFile) // FIXME: redundant
+        println('******** generated sources: ' + srcGenRoot.toPath)
     }
 
     /**
