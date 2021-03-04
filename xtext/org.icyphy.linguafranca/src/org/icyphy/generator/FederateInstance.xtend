@@ -162,7 +162,10 @@ class FederateInstance {
     
     
     /**
-     * The set of network input ports for this federate instance...
+     * A list of network input ports for the federate. This list is kept because the
+     * receiver logic in a separate thread (e.g., in federate.c) needs to know if the trigger
+     * for a given port is going to be present or absent for a given logical time. The indexes
+     * for this list should correspond to the portID of the receiver...
      */
     public var networkInputPorts = new LinkedHashSet<Port>()
 

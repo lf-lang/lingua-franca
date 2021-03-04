@@ -1762,9 +1762,11 @@ void reset_absent_fields_on_input_ports() {
 
 
 /**
- * 
+ * Enqueue network input control reactions that determine if the trigger for a
+ * given network input port is going to be present at the current logical time
+ * or absent.
  */
-void enqueue_network_dependent_reactions(pqueue_t* reaction_q){
+void enqueue_network_input_control_reactions(pqueue_t* reaction_q){
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
        reaction_t* reaction = _fed.network_input_port_triggers[i]->reactions[0];
        if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
@@ -1774,7 +1776,8 @@ void enqueue_network_dependent_reactions(pqueue_t* reaction_q){
 }
 
 /**
- * ...
+ * Check that all network input ports are either present or absent. In other
+ * words, check if all network input ports are accounted for.
  */
 bool all_network_inputs_are_accounted_for() {
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {

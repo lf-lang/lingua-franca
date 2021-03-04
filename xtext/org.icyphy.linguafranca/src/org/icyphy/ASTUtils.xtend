@@ -509,7 +509,7 @@ class ASTUtils {
         if (!connection.physical) {
             // Add the network dependent reaction for the right port
             // Only for logical connections
-            addNetworkDependantReaction(
+            org.icyphy.ASTUtils.addNetworkInputControlReaction(
                 connection.rightPorts.get(0), 
                 rightFederate,
                 generator
@@ -518,9 +518,18 @@ class ASTUtils {
     }
     
     /**
+     * Add a network control reaction for a given input port "portRef" to the reaction queue of its
+     * containing reactor. This reaction will decide for any valid logical time whether or not
+     * the trigger of that given port is going to be present or absent. 
      * 
+     * Note that the port trigger is a separate entity from the port itself and the is_present 
+     * and is_absent fields of these triggers are currently only used for this purpose.
+     * 
+     * @input portRef The input port
+     * @input instance The federate instance is used to keep track of all network input ports globally
+     * @input generator The GeneratorBase instance used to indentify certain target properties
      */
-    static def void addNetworkDependantReaction(VarRef portRef, FederateInstance instance, GeneratorBase generator) {        
+    static def void addNetworkInputControlReaction(VarRef portRef, FederateInstance instance, GeneratorBase generator) {        
         val factory = LinguaFrancaFactory.eINSTANCE        
         val reaction = factory.createReaction
         val reactor = portRef.variable.eContainer as Reactor
@@ -583,7 +592,7 @@ class ASTUtils {
         reaction.triggers.add(newPortRef)
         reaction.code = factory.createCode()
         
-        reaction.code.body = generator.generateNetworkDependantReactionBody(
+        reaction.code.body = generator.generateNetworkInputControlReactionBody(
             portRef.variable as Port,
             STPList
         )
