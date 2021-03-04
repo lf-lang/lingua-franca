@@ -424,26 +424,7 @@ void synchronize_with_other_federates();
 bool wait_until(instant_t logical_time_ns, pthread_cond_t* condition) {
     DEBUG_PRINT("-------- Waiting until physical time matches logical time %lld", logical_time_ns);
     bool return_value = true;
-    if (logical_time_ns > stop_tag.time) {
-        DEBUG_PRINT("-------- Waiting until the stop time instead: %lld", stop_tag.time);
-        // Modify the time to wait until to be the timeout time.
-        logical_time_ns = stop_tag.time;
-        // Indicate on return that the time of the event was not reached.
-        // We still wait for time to elapse in case asynchronous events come in.
-        return_value = false;
-    }
     interval_t wait_until_time_ns = logical_time_ns;
-#ifdef FEDERATED_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
-    // Apply the STP offset to the logical time
-    // Prevent an overflow
-    if (wait_until_time_ns < FOREVER - _lf_global_time_STP_offset) {
-        // If wait_time is not forever
-        DEBUG_PRINT("Adding STP offset %lld to wait until time %lld.",
-                _lf_global_time_STP_offset,
-                wait_until_time_ns - start_time);
-        wait_until_time_ns += _lf_global_time_STP_offset;
-    }
-#endif
     if (!fast) {
         // Get physical time as adjusted by clock synchronization offset.
         instant_t current_physical_time = get_physical_time();
@@ -606,6 +587,9 @@ void __next() {
         // Note that federated programs with decentralized coordination always have
         // keepalive = true
         _lf_set_stop_tag((tag_t){.time=current_tag.time,.microstep=current_tag.microstep+1});
+
+        // Stop tag has changed. Need to check next_tag again.
+        next_tag = get_next_event_tag();
     }
 #endif // FEDERATED_CENTRALIZED
 
@@ -954,6 +938,12 @@ void _lf_initialize_start_tag() {
     // to be removed, if appropriate before proceeding to executing tag (0,0).
     _lf_wait_on_global_tag_barrier((tag_t){.time=start_time,.microstep=0});
 #endif // FEDERATED_DECENTRALIZED
+
+#ifdef FEDERATED
+    // Insert network dependant reactions for network input ports into
+    // the reaction queue
+    enqueue_network_dependent_reactions(reaction_q);
+#endif
     
     // Set the following boolean so that other thread(s), including federated threads,
     // know that the execution has started

@@ -4201,7 +4201,9 @@ class CGenerator extends GeneratorBase {
                 // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
                 // Transfer the intended tag from the action to the port
                 «receiveRef»->intended_tag = «action.name»->trigger->intended_tag;
-                info_print("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
+                LOG_PRINT("Received a message with intended tag of (%lld, %u).",
+                    «receiveRef»->intended_tag.time - start_time,
+                    «receiveRef»->intended_tag.microstep);
             ''')
         }
         if (isTokenType(type)) {
@@ -4385,13 +4387,20 @@ class CGenerator extends GeneratorBase {
             // Check if the port is triggered
             if («port.name»->is_present) {
                 // Don't wait
+                LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
+                          "because it is already present.");
+                // Set the is_present value of the trigger so that we know the status
+                // of this trigger for the current logical time.
+                // The is_present field for triggers of ports appears
+                // to be unused for any other meaningful purpose
+                self->___«port.name».is_present = true;
                 return;
             }
         ''')
         
         result.append('''
             #ifdef FEDERATED_DECENTRALIZED
-                interval_t max_STP = 0LL;
+            interval_t max_STP = 0LL;
         ''')
         
         // First find the maximum value
@@ -4400,21 +4409,34 @@ class CGenerator extends GeneratorBase {
         // possibly be overridden on the command line with
         // unknown values during code generation.
         for (stp : STPList ?: emptyList) {
+            var String stpString = stp.targetValue
+            if (stp.parameter !== null) {
+                stpString = '''self->«stp.targetValue»'''
+            }
             result.append('''
-                if («stp.targetValue» > max_STP) {
-                    max_STP = «stp.targetValue»;
+                if («stpString» > max_STP) {
+                    max_STP = «stpString»;
                 }
             ''')
         }
         
         result.append('''
-                info_print("Waiting");
                 while(max_STP != 0LL) {
+                    LOG_PRINT("------ Waiting for %lldns for network input port \"in\" at tag (%llu, %d).",
+                            max_STP,
+                            current_tag.time - start_time,
+                            current_tag.microstep);
                     if(!wait_until(current_tag.time + max_STP, &reaction_q_changed)) {
                         // Interrupted
-                        info_print("Wait interrupted");
+                        LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
                         if («port.name»->is_present) {
                             // Don't wait any longer
+                            LOG_PRINT("------ Done waiting for network input port \"«port.name»\".");
+                            // Set the is_present value of the trigger so that we know the status
+                            // of this trigger for the current logical time
+                            // The is_present field for triggers of ports appears
+                            // to be unused for any other meaningful purpose
+                            self->___«port.name».is_present = true;
                             return;
                         }
                     } else {
@@ -4439,6 +4461,7 @@ class CGenerator extends GeneratorBase {
                     self->___«port.name».is_absent = true;
                 }
                 pthread_mutex_unlock(&mutex);
+                LOG_PRINT("------ Done waiting for network input port \"«port.name»\".");
         ''')
         
         return result.toString        

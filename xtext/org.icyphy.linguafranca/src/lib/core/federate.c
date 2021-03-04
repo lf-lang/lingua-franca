@@ -1780,6 +1780,10 @@ bool all_network_inputs_are_accounted_for() {
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
         if (_fed.network_input_port_triggers[i]->is_absent == false &&
             _fed.network_input_port_triggers[i]->is_present == false) {
+                LOG_PRINT("Not all network input ports are accounted for at tag (%lld, %u). "
+                            "Will not advance time.",
+                            current_tag.time - start_time,
+                            current_tag.microstep);
                 return false;
             }
     }

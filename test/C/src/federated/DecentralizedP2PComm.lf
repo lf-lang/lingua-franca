@@ -5,7 +5,7 @@ target C {
     coordination: decentralized
 }
 
-reactor Platform(start:int(0), expected_start:int(0), STP:time(0)) {
+reactor Platform(start:int(0), expected_start:int(0), stp_offset:time(0)) {
     input in:int;
     output out:int;
     timer t(0, 100 msec);
@@ -19,6 +19,12 @@ reactor Platform(start:int(0), expected_start:int(0), STP:time(0)) {
         if (in->value != self->expected_start++) {
             error_print_and_exit("Expected %d.", self->expected_start - 1);
         }
+    =} STP (stp_offset) {=
+        tag_t current_tag = get_current_tag();
+        self->expected_start++;
+        error_print_and_exit("STP offset was violated by (%lld, %u).",
+            current_tag.time - in->intended_tag.time
+        );
     =}
     reaction(shutdown) {=
         info_print("Shutdown invoked.");
@@ -28,8 +34,8 @@ reactor Platform(start:int(0), expected_start:int(0), STP:time(0)) {
     =}
 }
 federated reactor DecentralizedP2PComm {
-    a = new Platform(expected_start = 100);
-    b = new Platform(start = 100, STP = 10 msec);
+    a = new Platform(expected_start = 100, stp_offset = 10 msec);
+    b = new Platform(start = 100, stp_offset = 5 msec);
     a.out -> b.in;
-    b.out -> a.in after 100 msec;
+    b.out -> a.in;
 }
