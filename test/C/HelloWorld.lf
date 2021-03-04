@@ -1,6 +1,7 @@
 target C {
     tracing: true,
-    logging: error
+    logging: error,
+    docker: true 
 };
 reactor HelloWorld {
     state success:bool(false);
