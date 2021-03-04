@@ -839,7 +839,9 @@ class LinguaFrancaValidationTest {
             #["{bar: baz}", "", UnionType.FILE_OR_FILE_ARRAY]
         ],
         UnionType.DOCKER_UNION -> #[
-            #["foo", "", PrimitiveType.BOOLEAN]  // FIXME: This is incomplete.
+            #["foo", "", UnionType.DOCKER_UNION],
+            #["[1]", "", UnionType.DOCKER_UNION],
+            #["{bar: baz}", "", DictionaryType.DOCKER_DICT]
         ]
     }
     
