@@ -687,8 +687,8 @@ class PythonGenerator extends CGenerator {
         val installCmd = createCommand('''python3''',
             #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."])
 
-        compileCmd.directory(new File("")) // FIXME
-        installCmd.directory(new File("")) // FIXME
+        compileCmd.directory(new File(Configuration.toPath(getSrcGenRoot)))
+        installCmd.directory(new File(Configuration.toPath(getSrcGenRoot)))
 
         // Set compile time environment variables
         val compileEnv = compileCmd.environment
