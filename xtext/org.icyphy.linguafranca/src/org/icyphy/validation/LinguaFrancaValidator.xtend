@@ -650,7 +650,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 warning(it, Literals.KEY_VALUE_PAIR__VALUE)
             ]
             targetPropertyWarnings.clear()
-            
         }
     }
 

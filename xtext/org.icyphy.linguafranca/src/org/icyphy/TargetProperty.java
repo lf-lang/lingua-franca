@@ -109,6 +109,34 @@ public enum TargetProperty {
             }),
     
     /**
+     * Directive to generate a Dockerfile. This is either a boolean,
+     * true or false, or a dictionary of options.
+     */
+    DOCKER("docker", UnionType.DOCKER_UNION,
+            Arrays.asList(Target.C), (config, value) -> {
+                if (value.getLiteral() != null) {
+                    if (ASTUtils.toBoolean(value)) {
+                        config.dockerOptions = new DockerOptions();
+                    } else {
+                        config.dockerOptions = null;
+                    }
+                } else {
+                    config.dockerOptions = new DockerOptions();
+                    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                        DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT
+                                .forName(entry.getName());
+                        switch (option) {
+                            case FROM:
+                                config.dockerOptions.from = ASTUtils.toText(entry.getValue());
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }),
+
+    /**
      * Directive to let the execution engine allow logical time to elapse
      * faster than physical time.
      */
@@ -331,8 +359,8 @@ public enum TargetProperty {
      */
     public enum DictionaryType implements TargetPropertyType {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
-        COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values()));
-    
+        DOCKER_DICT(Arrays.asList(DockerOption.values())),
+        COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values()));    
         /**
          * The keys and assignable types that are allowed in this dictionary.
          */
@@ -426,7 +454,9 @@ public enum TargetProperty {
                 CoordinationType.CENTRALIZED),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
-                ClockSyncMode.INITIAL);
+                ClockSyncMode.INITIAL),
+        DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
+                null);
     
         /**
          * The constituents of this type union.
@@ -853,7 +883,39 @@ public enum TargetProperty {
             return this.type;
         }
     }
+
+    /**
+     * Docker options.
+     * @author{Edward A. Lee <eal@berkeley.edu>}
+     */
+    public enum DockerOption implements DictionaryElement {
+        FROM("FROM", PrimitiveType.STRING);
+        
+        public final PrimitiveType type;
+        
+        private final String description;
+        
+        private DockerOption(String alias, PrimitiveType type) {
+            this.description = alias;
+            this.type = type;
+        }
+        
+        /**
+         * Return the description of this dictionary element.
+         */
+        @Override
+        public String toString() {
+            return this.description;
+        }
     
+        /**
+         * Return the type associated with this dictionary element.
+         */
+        public TargetPropertyType getType() {
+            return this.type;
+        }
+    }
+
     /**
      * Coordination options.
      * @author{Edward A. Lee <eal@berkeley.edu>}
