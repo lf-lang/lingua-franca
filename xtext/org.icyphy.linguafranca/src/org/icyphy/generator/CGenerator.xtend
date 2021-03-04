@@ -736,7 +736,7 @@ class CGenerator extends GeneratorBase {
             return
         }
         
-        var srcGenPath = getSrcGenPath()
+        var srcGenPath = Configuration.toPath(getSrcGenRoot())
         val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
         val contents = new StringBuilder()
         

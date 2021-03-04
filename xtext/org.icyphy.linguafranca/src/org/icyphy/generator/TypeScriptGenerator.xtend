@@ -55,6 +55,7 @@ import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.TargetProperty.LogLevel
+import org.icyphy.Configuration
 
 /** Generator for TypeScript target.
  *
@@ -1274,7 +1275,7 @@ class TypeScriptGenerator extends GeneratorBase {
     
     private def analyzePaths() {
         // Important files and directories
-        projectPath = directory + File.separator + filename
+        projectPath = Configuration.toPath(getSrcGenRoot) + File.separator + filename
         reactorTSPath = File.separator + "lib" + File.separator +
             "TS" + File.separator + "reactor-ts"
         srcGenPath = projectPath + File.separator + "src"
