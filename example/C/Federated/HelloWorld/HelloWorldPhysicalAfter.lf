@@ -1,5 +1,5 @@
 /**
- * Version of DistributedHelloWorldPhysical that uses a physical connection,
+ * Version of HelloWorldPhysical that uses a physical connection,
  * indicated by ~>, with an `after` on the connection.
  * 
  * The after value on the connection gives a logical time offset
@@ -13,11 +13,11 @@
 target C {
     timeout: 10 secs
 };
-import MessageGenerator from "DistributedHelloWorld.lf"
-import PrintMessage from "DistributedHelloWorld.lf"
+import MessageGenerator from "HelloWorld.lf"
+import PrintMessage from "HelloWorld.lf"
 
-federated reactor DistributedHelloWorldPhysicalAfter {
+federated reactor HelloWorldPhysicalAfter {
     source = new MessageGenerator(root = "Hello World");
-    print = new PrintMessage();
+    print = new PrintMessage() at localhost;
     source.message ~> print.message after 10 msec;
 }

@@ -1,5 +1,5 @@
 /**
- * Version of DistributedHelloWorldDecentralized that uses decentralized
+ * Version of HelloWorldDecentralized that uses decentralized
  * coordination with an STP (safe to process) offset instead of an `after`
  * delay. In this version, the timestamps at the receiving federate `print`
  * are the same as the timestamps at the sender `source`.
@@ -27,8 +27,8 @@ target C {
     timeout: 10 secs,
     coordination: decentralized
 };
-import MessageGenerator from "DistributedHelloWorld.lf"
-import PrintMessageWithDetector from "DistributedHelloWorldDecentralized.lf"
+import MessageGenerator from "HelloWorld.lf"
+import PrintMessageWithDetector from "HelloWorldDecentralized.lf"
 
 /**
  * Subclass that simply adds an `STP` parameter, nothing more.
@@ -37,7 +37,7 @@ reactor PrintMessageWithSTP(STP:time(10 msec)) extends PrintMessageWithDetector 
     
 }
 
-federated reactor DistributedHelloWorldDecentralized {
+federated reactor HelloWorldDecentralized {
     source = new MessageGenerator(root = "Hello World");
     print = new PrintMessageWithSTP(
         offset = 0,

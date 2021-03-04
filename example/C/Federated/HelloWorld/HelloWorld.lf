@@ -73,7 +73,7 @@ reactor PrintMessage {
     =}
 }
 
-federated reactor DistributedHelloWorld {
+federated reactor HelloWorld {
     source = new MessageGenerator(root = "Hello World");
     print = new PrintMessage();
     source.message -> print.message;

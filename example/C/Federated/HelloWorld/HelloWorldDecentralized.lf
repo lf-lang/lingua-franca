@@ -1,5 +1,5 @@
 /**
- * Version of DistributedHelloWorld that uses decentralized coordination.
+ * Version of HelloWorld that uses decentralized coordination.
  * The `offset` parameter at the top level specifies an `after` delay to
  * use on the connection.  If this delay is too small, then the `print`
  * receiving federate will report tardy messages, which are messages where
@@ -19,8 +19,8 @@ target C {
     timeout: 10 secs,
     coordination: decentralized
 };
-import MessageGenerator from "DistributedHelloWorld.lf"
-import PrintMessage from "DistributedHelloWorld.lf"
+import MessageGenerator from "HelloWorld.lf"
+import PrintMessage from "HelloWorld.lf"
 
 reactor PrintMessageWithDetector(offset:time(10 msec)) extends PrintMessage {
     // The timer here creates a worst-case scenario where the receiving
@@ -44,7 +44,7 @@ reactor PrintMessageWithDetector(offset:time(10 msec)) extends PrintMessage {
     =}
 }
 
-federated reactor DistributedHelloWorldDecentralized(offset:time(10 msec)) {
+federated reactor HelloWorldDecentralized(offset:time(10 msec)) {
     source = new MessageGenerator(root = "Hello World");
     print = new PrintMessageWithDetector(
         offset = offset
