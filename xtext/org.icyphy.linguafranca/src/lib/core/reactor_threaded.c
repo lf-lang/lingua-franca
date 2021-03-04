@@ -416,7 +416,7 @@ void synchronize_with_other_federates();
  *  the stop time, if one was specified. Return true if the full wait time
  *  was reached.
  */
-bool wait_until(instant_t logical_time_ns, pthread_cond_t condition) {
+bool wait_until(instant_t logical_time_ns, pthread_cond_t* condition) {
     DEBUG_PRINT("-------- Waiting until physical time matches logical time %lld", logical_time_ns);
     bool return_value = true;
     if (logical_time_ns > stop_tag.time) {
@@ -474,7 +474,7 @@ bool wait_until(instant_t logical_time_ns, pthread_cond_t condition) {
         // lf_cond_timedwait returns 0 if it is awakened before the timeout.
         // Hence, we want to run it repeatedly until either it returns non-zero or the
         // current physical time matches or exceeds the logical time.
-        if (lf_cond_timedwait(&condition, &mutex, unadjusted_wait_until_time_ns) != LF_TIMEOUT) {
+        if (lf_cond_timedwait(condition, &mutex, unadjusted_wait_until_time_ns) != LF_TIMEOUT) {
             DEBUG_PRINT("-------- Wait on event queue interrupted before timeout.");
 
             // Wait did not time out, which means that there
@@ -608,7 +608,7 @@ void __next() {
     // This can be interrupted if a physical action triggers (e.g., a message
     // arrives from an upstream federate or a local physical action triggers).
     LOG_PRINT("Waiting until elapsed time %lld.", (next_tag.time - start_time));
-    while (!wait_until(next_tag.time, event_q_changed)) {
+    while (!wait_until(next_tag.time, &event_q_changed)) {
         DEBUG_PRINT("__next(): Wait until time interrupted.");
         // Sleep was interrupted.  Check for a new next_event.
         // The interruption could also have been due to a call to request_stop().
@@ -915,7 +915,7 @@ void _lf_initialize_start_tag() {
             start_time, _lf_global_time_STP_offset);
     // Ignore interrupts to this wait. We don't want to start executing until
     // physical time matches or exceeds the logical start time.
-    while (!wait_until(start_time, event_q_changed)) {}
+    while (!wait_until(start_time, &event_q_changed)) {}
     DEBUG_PRINT("Done waiting for start time %lld.", start_time);
     DEBUG_PRINT("Physical time is ahead of current time by %lld. This should be small.",
             get_physical_time() - start_time);

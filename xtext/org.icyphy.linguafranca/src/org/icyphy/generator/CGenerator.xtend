@@ -3586,6 +3586,8 @@ class CGenerator extends GeneratorBase {
             // Initialize the network_input_port_trigger for the input, if any exists
             if (federate.networkInputPorts?.contains(input)) {
                 pr(initializeTriggerObjectsEnd, '''
+                    // Add trigger «nameOfSelfStruct»->___«input.name» to the global list of network input
+                    // ports 
                     _fed.network_input_port_triggers[«federate.networkInputPorts.toList.indexOf(input)»]= 
                                                                                 &«nameOfSelfStruct»->___«input.name»;
                 ''')
@@ -4404,7 +4406,7 @@ class CGenerator extends GeneratorBase {
         
         result.append('''
                 while(max_STP != 0LL) {
-                    if(!wait_until(current_tag.time + max_STP, reaction_q_changed)) {
+                    if(!wait_until(current_tag.time + max_STP, &reaction_q_changed)) {
                         // Interrupted
                         if («port.name»->is_present) {
                             // Don't wait any longer
