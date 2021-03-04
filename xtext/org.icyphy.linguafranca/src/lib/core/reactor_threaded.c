@@ -942,7 +942,7 @@ void _lf_initialize_start_tag() {
 #ifdef FEDERATED
     // Insert network dependant reactions for network input ports into
     // the reaction queue
-    enqueue_network_dependent_reactions(reaction_q);
+    enqueue_network_input_control_reactions(reaction_q);
 #endif
     
     // Set the following boolean so that other thread(s), including federated threads,

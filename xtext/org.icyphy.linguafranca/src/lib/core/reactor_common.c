@@ -125,7 +125,7 @@ void reset_absent_fields_on_input_ports();
 /**
  * 
  */
-void enqueue_network_dependent_reactions(pqueue_t* reaction_q);
+void enqueue_network_input_control_reactions(pqueue_t* reaction_q);
 #endif
 
 /**
@@ -577,7 +577,7 @@ void __pop_events() {
 #ifdef FEDERATED
         // Insert network dependant reactions for network input ports into
         // the reaction queue
-        enqueue_network_dependent_reactions(reaction_q);
+        enqueue_network_input_control_reactions(reaction_q);
 #endif
 
         lf_token_t *token = event->token;
