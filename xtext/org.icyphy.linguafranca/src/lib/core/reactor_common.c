@@ -1291,7 +1291,7 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
         // Do not enqueue this reaction twice.
         if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
             pqueue_insert(reaction_q, reaction);
-            DEBUG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
+            LOG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
         }
     }
 

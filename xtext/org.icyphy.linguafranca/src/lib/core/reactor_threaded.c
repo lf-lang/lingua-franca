@@ -102,6 +102,11 @@ lf_cond_t executing_q_emptied;
 lf_cond_t global_tag_barrier_requestors_reached_zero;
 
 /**
+ * ...
+ */
+bool all_network_inputs_are_accounted_for();
+
+/**
  * Raise a barrier to prevent the current tag from advancing to or
  * beyond the value of the future_tag argument, if possible.
  * If the current tag is already at or beyond future_tag, then
@@ -988,12 +993,19 @@ void* worker(void* arg) {
                 have_been_busy = false;
             }
 
+            bool all_ports_are_accounted_for = true;
+            
+#ifdef FEDERATED           
+            all_ports_are_accounted_for = all_network_inputs_are_accounted_for();
+#endif
+
             // If there are no reactions in progress and no reactions on
             // the reaction queue, then advance time,
             // unless some other worker thread is already advancing time.
             if (pqueue_size(reaction_q) == 0
                     && pqueue_size(executing_q) == 0
-                    && !__advancing_time) {
+                    && !__advancing_time
+                    && all_ports_are_accounted_for) {
                 // If this is not the very first step, notify that the previous step is complete
                 // and check against the stop tag to see whether this is the last step.
                 if (_lf_logical_tag_completed) {

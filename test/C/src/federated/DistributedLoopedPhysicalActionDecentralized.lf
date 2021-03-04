@@ -7,6 +7,7 @@
 
 target C {
     timeout: 1 sec,
+    logging: LOG,
     coordination: decentralized
 };
 
