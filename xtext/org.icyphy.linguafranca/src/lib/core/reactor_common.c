@@ -423,7 +423,7 @@ void __start_time_step() {
     }
     for(int i = 0; i < __is_present_fields_size; i++) {
         *__is_present_fields[i] = false;
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
         // FIXME: For now, an intended tag of (NEVER, 0)
         // indicates that it has never been set.
         *__intended_tag_fields[i] = (tag_t) {NEVER, 0};
@@ -564,7 +564,7 @@ void __pop_events() {
             reaction_t *reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
                 // In federated execution, an intended tag that is not (NEVER, 0)
                 // indicates that this particular event is triggered by a network message.
                 // The intended tag is set in handle_timed_message in federate.c whenever
@@ -684,7 +684,7 @@ event_t* _lf_get_new_event() {
     event_t* e = (event_t*)pqueue_pop(recycle_q);
     if (e == NULL) {
         e = (event_t*)calloc(1, sizeof(struct event_t));
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
         e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
 #endif
     }
@@ -701,7 +701,7 @@ void _lf_recycle_event(event_t* e) {
     e->pos = 0;
     e->token = NULL;
     e->is_dummy = false;
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
     e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
 #endif
     e->next = NULL;
@@ -812,7 +812,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
     // Set the payload.
     e->token = token;
 
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
     // Set the intended tag
     e->intended_tag = trigger->intended_tag;
 #endif
@@ -1052,7 +1052,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
         }
     }
 
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
     // Event inherits the original intended_tag of the trigger
     // set by the network stack (or the default, which is (NEVER,0))
     e->intended_tag = trigger->intended_tag;
@@ -1270,7 +1270,7 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
         return 0;
     }
 
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
     // Set the intended tag which is (0,0)
     trigger->intended_tag = (tag_t) { .time = start_time, .microstep = 0 };
 #endif
@@ -1431,7 +1431,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     // without going through the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
     int num_downstream_reactions = 0;
-#ifdef _LF_COORD_DECENTRALIZED // Only pass down tardiness for federated programs that use decentralized coordination.
+#ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated programs that use decentralized coordination.
     // Extract the inherited tardiness
     bool inherited_tardiness = reaction->is_tardy;
 #endif
@@ -1447,7 +1447,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                     DEBUG_PRINT("Trigger %p lists %d reactions.", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
-#ifdef _LF_COORD_DECENTRALIZED // Only pass down tardiness for federated LF programs
+#ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated LF programs
                         // Set the tardiness for the downstream reaction
                         downstream_reaction->is_tardy = inherited_tardiness;
                         DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->is_tardy);
@@ -1488,7 +1488,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     if (downstream_to_execute_now != NULL) {
         LOG_PRINT("Worker %d: Optimizing and executing downstream reaction now.", worker);
         bool violation = false;
-#ifdef _LF_COORD_DECENTRALIZED // Only use the Tardy handler for federated programs that use decentralized coordination
+#ifdef FEDERATED_DECENTRALIZED // Only use the Tardy handler for federated programs that use decentralized coordination
         // If the is_tardy for the reaction is true,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
@@ -1830,7 +1830,10 @@ void initialize() {
  */
 void termination() {
     // Invoke the code generated termination function.
-    __termination();
+    terminate_execution();
+
+    // Stop any tracing, if it is running.
+    stop_trace();
 
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {
@@ -1849,15 +1852,19 @@ void termination() {
         warning_print("Number of unfreed tokens: %d.", __count_token_allocations);
     }
     // Print elapsed times.
-    char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
-    readable_time(time_buffer, get_elapsed_logical_time());
-    info_print("---- Elapsed logical time (in nsec): %s", time_buffer);
+    // If these are negative, then the program failed to start up.
+    interval_t elapsed_time = get_elapsed_logical_time();
+    if (elapsed_time >= 0LL) {
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        readable_time(time_buffer, elapsed_time);
+        info_print("---- Elapsed logical time (in nsec): %s", time_buffer);
 
-    // If physical_start_time is 0, then execution didn't get far enough along
-    // to initialize this.
-    if (physical_start_time > 0LL) {
-        readable_time(time_buffer, get_elapsed_physical_time());
-        info_print("---- Elapsed physical time (in nsec): %s", time_buffer);
+        // If physical_start_time is 0, then execution didn't get far enough along
+        // to initialize this.
+        if (physical_start_time > 0LL) {
+            readable_time(time_buffer, get_elapsed_physical_time());
+            info_print("---- Elapsed physical time (in nsec): %s", time_buffer);
+        }
     }
 }
 

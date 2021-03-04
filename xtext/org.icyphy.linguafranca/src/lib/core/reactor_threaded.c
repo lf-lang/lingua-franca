@@ -273,7 +273,7 @@ int _lf_wait_on_global_tag_barrier(tag_t proposed_tag) {
             && compare_tags(proposed_tag, _lf_global_tag_advancement_barrier.horizon) >= 0
     ) {
         result = 1;
-        DEBUG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time - start_time, proposed_tag.microstep);
+        LOG_PRINT("Waiting on barrier for tag (%lld, %u).", proposed_tag.time - start_time, proposed_tag.microstep);
         // Wait until no requestor remains for the barrier on logical time
         pthread_cond_wait(&global_tag_barrier_requestors_reached_zero, &mutex);
         
@@ -378,6 +378,20 @@ void logical_tag_complete(tag_t tag_to_send);
  */
 tag_t send_next_event_tag(tag_t tag, bool wait_for_reply);
 
+/** 
+ * Synchronize the start with other federates via the RTI.
+ * This assumes that a connection to the RTI is already made 
+ * and _fed.socket_TCP_RTI is valid. It then sends the current logical
+ * time to the RTI and waits for the RTI to respond with a specified
+ * time. It starts a thread to listen for messages from the RTI.
+ * It then waits for physical time to match the specified time,
+ * sets current logical time to the time returned by the RTI,
+ * and then returns. If --fast was specified, then this does
+ * not wait for physical time to match the logical start time
+ * returned by the RTI.
+ */
+void synchronize_with_other_federates();
+
 /**
  * Wait until physical time matches or exceeds the specified logical time,
  * unless -fast is given.
@@ -414,11 +428,14 @@ bool wait_until(instant_t logical_time_ns) {
         return_value = false;
     }
     interval_t wait_until_time_ns = logical_time_ns;
-#ifdef _LF_COORD_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
+#ifdef FEDERATED_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
     // Apply the STP offset to the logical time
     // Prevent an overflow
     if (wait_until_time_ns < FOREVER - _lf_global_time_STP_offset) {
         // If wait_time is not forever
+        DEBUG_PRINT("Adding STP offset %lld to wait until time %lld.",
+                _lf_global_time_STP_offset,
+                wait_until_time_ns - start_time);
         wait_until_time_ns += _lf_global_time_STP_offset;
     }
 #endif
@@ -430,6 +447,8 @@ bool wait_until(instant_t logical_time_ns) {
         // We should not wait if that adjusted time is already ahead
         // of logical time.
         if (ns_to_wait < MIN_WAIT_TIME) {
+            DEBUG_PRINT("Wait time %lld is less than MIN_WAIT_TIME %lld. Skipping wait.",
+                ns_to_wait, MIN_WAIT_TIME);
             return return_value;
         }
 
@@ -455,14 +474,14 @@ bool wait_until(instant_t logical_time_ns) {
         struct timespec unadjusted_wait_until_time
                 = {(time_t)unadjusted_wait_until_time_ns / BILLION, (long)unadjusted_wait_until_time_ns % BILLION};
 
-        DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, logical_time_ns);
-        DEBUG_PRINT("-------- which is %splus %ld nanoseconds.", ctime(&unadjusted_wait_until_time.tv_sec), unadjusted_wait_until_time.tv_nsec);
+        DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, 
+                logical_time_ns - start_time);
 
         // pthread_cond_timedwait returns 0 if it is awakened before the timeout.
         // Hence, we want to run it repeatedly until either it returns non-zero or the
         // current physical time matches or exceeds the logical time.
         if (pthread_cond_timedwait(&event_q_changed, &mutex, &unadjusted_wait_until_time) != ETIMEDOUT) {
-            DEBUG_PRINT("-------- Wait interrupted.");
+            DEBUG_PRINT("-------- Wait on event queue interrupted before timeout.");
 
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule().
@@ -551,7 +570,7 @@ void __next() {
     // Previous logical time is complete.
     tag_t next_tag = get_next_event_tag();
 
-#ifdef _LF_COORD_CENTRALIZED
+#ifdef FEDERATED_CENTRALIZED
     // In case this is in a federation with centralized coordination, notify 
     // the RTI of the next earliest tag at which this federate might produce 
     // an event. This function may block until it is safe to advance the current 
@@ -579,7 +598,7 @@ void __next() {
     // allow keepalive to be either true or false and could get the same
     // behavior with centralized coordination as with unfederated execution.
 
-#else  // _LF_COORD_CENTRALIZED
+#else  // FEDERATED_CENTRALIZED
     if (pqueue_peek(event_q) == NULL && !keepalive_specified) {
         // There is no event on the event queue and keepalive is false.
         // No event in the queue
@@ -588,7 +607,7 @@ void __next() {
         // keepalive = true
         _lf_set_stop_tag((tag_t){.time=current_tag.time,.microstep=current_tag.microstep+1});
     }
-#endif // _LF_COORD_CENTRALIZED
+#endif // FEDERATED_CENTRALIZED
 
     // Wait for physical time to advance to the next event time (or stop time).
     // This can be interrupted if a physical action triggers (e.g., a message
@@ -617,7 +636,7 @@ void __next() {
     DEBUG_PRINT("Physical time is ahead of next tag time by %lld. This should be small unless -fast is used.",
                 get_physical_time() - next_tag.time);
     
-#ifdef _LF_IS_FEDERATED
+#ifdef FEDERATED
     // In federated execution (at least under decentralized coordination),
     // it is possible that an incoming message has been partially read,
     // enough to see its tag. To prevent it from becoming tardy, the thread
@@ -629,7 +648,7 @@ void __next() {
         // A wait actually occurred, so the next_tag may have changed again.
         next_tag = get_next_event_tag();
     }
-#endif // _LF_IS_FEDERATED
+#endif // FEDERATED
 
     // If the first event in the event queue has a tag greater than or equal to the
     // stop time, and the current_tag matches the stop tag (meaning that we have already
@@ -671,7 +690,7 @@ void __next() {
  */
 void request_stop() {
     pthread_mutex_lock(&mutex);
-#ifdef _LF_IS_FEDERATED
+#ifdef FEDERATED
     _lf_fd_send_stop_request_to_rti();
     // Do not set stop_requested
     // since the RTI might grant a
@@ -855,6 +874,89 @@ void _lf_notify_workers() {
     pthread_mutex_lock(&mutex);
     _lf_notify_workers_locked();
     pthread_mutex_unlock(&mutex);
+}
+
+/**
+ * Perform the necessary operations before tag (0,0) can be processed.
+ * 
+ * This includes injecting any reactions triggered at (0,0), initializing timers,
+ * and for the federated execution, waiting for a proper coordinated start.
+ */
+void _lf_initialize_start_tag() {
+    // Add reactions invoked at tag (0,0) (including startup reactions) to the reaction queue
+    __trigger_startup_reactions(); 
+
+#ifdef FEDERATED
+    // Get a start_time from the RTI
+    synchronize_with_other_federates(); // Resets start_time in federated execution according to the RTI.
+    current_tag = (tag_t){.time = start_time, .microstep = 0u};
+#endif
+
+    __initialize_timers();
+
+    // If the stop_tag is (0,0), also insert the shutdown
+    // reactions. This can only happen if the timeout time
+    // was set to 0.
+    if (compare_tags(current_tag, stop_tag) >= 0) {
+        __trigger_shutdown_reactions();
+    }
+
+#ifdef FEDERATED
+    // Call wait_until if federated. This is required because the startup procedure
+    // in synchronize_with_other_federates() can decide on a new start_time that is 
+    // larger than the current physical time.
+    // Therefore, if --fast was not specified, wait until physical time matches
+    // or exceeds the start time. Microstep is ignored.  
+    // This wait_until() is deliberately called after most precursor operations
+    // for tag (0,0) are performed (e.g., injecting startup reactions, etc.).
+    // This has two benefits: First, the startup overheads will reduce 
+    // the required waiting time. Second, this call releases the mutex lock and allows
+    // other threads (specifically, federate threads that handle incoming p2p messages 
+    // from other federates) to hold the lock and possibly raise a tag barrier. This is 
+    // especially useful if an STP offset is set properly because the federate will get
+    // a chance to process incoming messages while utilizing the STP offset.
+    LOG_PRINT("Waiting for start time %lld plus STP offset %lld.",
+            start_time, _lf_global_time_STP_offset);
+    // Ignore interrupts to this wait. We don't want to start executing until
+    // physical time matches or exceeds the logical start time.
+    while (!wait_until(start_time)) {}
+    DEBUG_PRINT("Done waiting for start time %lld.", start_time);
+    DEBUG_PRINT("Physical time is ahead of current time by %lld. This should be small.",
+            get_physical_time() - start_time);
+
+    // Reinitialize the physical start time to match the start_time.
+    // Otherwise, reports of get_elapsed_physical_time are not very meaningful
+    // w.r.t. logical time.
+    physical_start_time = start_time;
+
+    // At this time, reactions (startup, etc.) are added to the 
+    // reaction queue that will be executed at tag (0,0).
+    // Before we can execute those, if using centralized coordination,
+    // we need to ask the RTI if it is okay.  The following function is
+    // empty if this program is not federated or is using decentralized coordination.
+    tag_t grant_tag = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
+    if (grant_tag.time < start_time) {
+        // This is a critical condition
+        error_print_and_exit("Federate received a grant tag earlier than start time: "
+                "(%lld, %u).",
+                grant_tag.time - start_time, grant_tag.microstep);
+    }
+#endif
+
+#ifdef FEDERATED_DECENTRALIZED
+    // In federated execution (at least under decentralized coordination),
+    // it is possible that an incoming message has been partially read at (0,0),
+    // enough to see its tag. To prevent it from becoming tardy, the thread
+    // that is reading the message has set a barrier to prevent logical time
+    // from exceeding the timestamp of the message. It will remove that barrier
+    // once the complete message has been read. Here, we wait for that barrier
+    // to be removed, if appropriate before proceeding to executing tag (0,0).
+    _lf_wait_on_global_tag_barrier((tag_t){.time=start_time,.microstep=0});
+#endif // FEDERATED_DECENTRALIZED
+    
+    // Set the following boolean so that other thread(s), including federated threads,
+    // know that the execution has started
+    _lf_execution_started = true;
 }
 
 /** For logging and debugging, each worker thread is numbered. */
@@ -1134,7 +1236,7 @@ int main(int argc, char* argv[]) {
 
     if (process_args(default_argc, default_argv)
             && process_args(argc, argv)) {
-        pthread_mutex_lock(&mutex);
+        pthread_mutex_lock(&mutex); // Sets start_time
         initialize();
 
         transfer_q = pqueue_init(INITIAL_REACT_QUEUE_SIZE, in_reverse_order, get_reaction_index,
@@ -1144,34 +1246,9 @@ int main(int argc, char* argv[]) {
         executing_q = pqueue_init(_lf_number_of_threads, in_reverse_order, get_reaction_index,
             get_reaction_position, set_reaction_position, reaction_matches, print_reaction);
 
-        __trigger_startup_reactions(); // Sets start_time.
-        current_tag = (tag_t){.time = start_time, .microstep = 0u};
-
-        __initialize_timers();
-
-        // If the stop_tag is (0,0), also insert the shutdown
-        // reactions. This can only happen if the timeout time
-        // was set to 0.
-        if (compare_tags(current_tag, stop_tag) >= 0) {
-            __trigger_shutdown_reactions();
-        }
-
-        // At this time, reactions (startup, etc.) are added to the 
-        // reaction queue that will be executed at tag (0,0).
-        // Before we could do so, we need to ask the RTI if it is 
-        // okay.
-        // In a federated execution, request from the RTI to advance time to the start time
-        // and wait for a reply.
-        // In a non-federated execution, this returns immediately.
-        tag_t grant_tag = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
-        if (grant_tag.time < start_time) {
-            // This is a critical condition
-            error_print_and_exit("Federate received a grant tag earlier than start time: "
-                    "(%lld, %u).",
-                    grant_tag.time - start_time, grant_tag.microstep);
-        }
-        
-        _lf_execution_started = true;
+        // Call the following function only once, rather than per worker thread (although 
+        // it can be probably called in that manner as well).
+        _lf_initialize_start_tag();
 
         start_threads();
         pthread_mutex_unlock(&mutex);

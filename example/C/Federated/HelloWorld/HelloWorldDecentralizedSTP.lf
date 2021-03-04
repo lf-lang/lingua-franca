@@ -1,0 +1,47 @@
+/**
+ * Version of HelloWorldDecentralized that uses decentralized
+ * coordination with an STP (safe to process) offset instead of an `after`
+ * delay. In this version, the timestamps at the receiving federate `print`
+ * are the same as the timestamps at the sender `source`.
+ * 
+ * The `STP` parameter on the `print` federate tells the runtime
+ * system to wait the amount of time specified before processing events.
+ * That is, before processing an event with timestamp *t*, the federate
+ * waits until physical time *T* exceeds *t* + `STP`.
+ * 
+ * If the `STP` is too small, then the `print`
+ * receiving federate will report tardy messages, which are messages where
+ * the intended timestamp cannot be assigned because the message arrived
+ * too late.
+ * 
+ * If the sender and receiver are running in the same machine
+ * then there is no clock synchronization error and the communication latency
+ * should be well less than 10msec, so an `offset` of 10 msec should be plenty
+ * adequate to avoid any tardy messages.  If you change the offset to
+ * 10 usec, then tardy messages will likely occur, unless, on your machine,
+ * communication between two processes can reliably occur within 10 microseconds.
+ *
+ * @author Edward A. Lee
+ */
+target C {
+    timeout: 10 secs,
+    coordination: decentralized
+};
+import MessageGenerator from "HelloWorld.lf"
+import PrintMessageWithDetector from "HelloWorldDecentralized.lf"
+
+/**
+ * Subclass that simply adds an `STP` parameter, nothing more.
+ */
+reactor PrintMessageWithSTP(STP:time(10 msec)) extends PrintMessageWithDetector {
+    
+}
+
+federated reactor HelloWorldDecentralized {
+    source = new MessageGenerator(root = "Hello World");
+    print = new PrintMessageWithSTP(
+        offset = 0,
+        STP = 10 msec 
+    );
+    source.message -> print.message;
+}

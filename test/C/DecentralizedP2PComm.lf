@@ -1,0 +1,35 @@
+target C {
+    timeout: 1 sec,
+    tracing: true,
+    clock-sync: off,
+    coordination: decentralized
+}
+
+reactor Platform(start:int(0), expected_start:int(0), STP:time(0)) {
+    input in:int;
+    output out:int;
+    timer t(0, 100 msec);
+    state count:int(start);
+    state expected:int(expected_start);
+    reaction(t) -> out {=
+        SET(out, self->count++);
+    =}
+    reaction(in) {=
+        info_print("Received %d.", in->value);
+        if (in->value != self->expected_start++) {
+            error_print_and_exit("Expected %d.", self->expected_start - 1);
+        }
+    =}
+    reaction(shutdown) {=
+        info_print("Shutdown invoked.");
+        if (self->expected == self->expected_start) {
+            error_print_and_exit("Did not receive anything.");
+        }
+    =}
+}
+federated reactor DecentralizedP2PComm {
+    a = new Platform(expected_start = 100);
+    b = new Platform(start = 100, STP = 10 msec);
+    a.out -> b.in;
+    b.out -> a.in after 100 msec;
+}

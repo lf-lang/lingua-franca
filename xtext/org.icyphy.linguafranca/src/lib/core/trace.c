@@ -59,16 +59,16 @@ pthread_t _lf_flush_trace_thread;
  * tracing continues in a new buffer while a separate thread writes
  * the old buffer to the file.
  */
-trace_record_t** _lf_trace_buffer;
-int* _lf_trace_buffer_size;
+trace_record_t** _lf_trace_buffer = NULL;
+int* _lf_trace_buffer_size = NULL;
 trace_record_t** _lf_trace_buffer_to_flush = NULL;
-int* _lf_trace_buffer_size_to_flush;
+int* _lf_trace_buffer_size_to_flush = NULL;
 
 /** The number of trace buffers allocated when tracing starts. */
 int _lf_number_of_trace_buffers;
 
-/** Marker that tracing is stopping. */
-int _lf_trace_stop = 0;
+/** Marker that tracing is stopping or has stopped. */
+int _lf_trace_stop = 1;
 
 /** The file into which traces are written. */
 FILE* _lf_trace_file;
@@ -201,7 +201,7 @@ void* flush_trace(void* args) {
         // Look for a buffer to flush.
         int worker = -1;
         for (int i = 0; i < _lf_number_of_trace_buffers; i++) {
-            if (_lf_trace_buffer_size_to_flush[i] > 0) {
+            if (_lf_trace_buffer_size_to_flush && _lf_trace_buffer_size_to_flush[i] > 0) {
                 // Found one.
                 worker = i;
                 break;
@@ -339,11 +339,12 @@ void start_trace(char* filename) {
     // Array of counters that track the size of each trace record (per thread).
     _lf_trace_buffer_size_to_flush = (int*)calloc(sizeof(int), _lf_number_of_trace_buffers);
 
+    _lf_trace_stop = 0;
+
     // In case the user forgets to stop to the trace in wrapup.
     if (atexit(stop_trace) != 0) {
         warning_print("Failed to register stop_trace function for execution upon termination.");
     }
-    _lf_trace_stop = 0;
 
     pthread_create(&_lf_flush_trace_thread, NULL, flush_trace, NULL);
 
@@ -514,11 +515,11 @@ void stop_trace() {
     for (int i = 1; i < _lf_number_of_trace_buffers; i++) {
         // Flush the buffer if it has data.
         // printf("DEBUG: Trace buffer %d has %d records.\n", i, _lf_trace_buffer_size[i]);
-        if (_lf_trace_buffer_size[i] > 0) {
+        if (_lf_trace_buffer_size && _lf_trace_buffer_size[i] > 0) {
             flush_trace_to_file_locked(i);
         }
     }
-    if (_lf_trace_buffer_size[0] > 0) {
+    if (_lf_trace_buffer_size && _lf_trace_buffer_size[0] > 0) {
         flush_trace_to_file_locked(0);
     }
     _lf_trace_stop = 1;

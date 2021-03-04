@@ -370,22 +370,30 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (this.target == Target.C) {
             var type = null as Type
             for (port : connection.leftPorts) {
-                if (type === null) {
-                    type = (port.variable as Port).type
-                } else {
-                    // Unfortunately, xtext does not generate a suitable equals()
-                    // method for AST types, so we have to manually check the types.
-                    if (!sameType(type, (port.variable as Port).type)) {
-                        error("Types do not match.", Literals.CONNECTION__LEFT_PORTS)
+                // If the variable is not a port, then there is some other
+                // error. Avoid a class cast exception.
+                if (port.variable instanceof Port) {
+                    if (type === null) {
+                        type = (port.variable as Port).type
+                    } else {
+                        // Unfortunately, xtext does not generate a suitable equals()
+                        // method for AST types, so we have to manually check the types.
+                        if (!sameType(type, (port.variable as Port).type)) {
+                            error("Types do not match.", Literals.CONNECTION__LEFT_PORTS)
+                        }
                     }
                 }
             }
             for (port : connection.rightPorts) {
-                if (type === null) {
-                    type = (port.variable as Port).type
-                } else {
-                    if (!sameType(type, (port.variable as Port).type)) {
-                        error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS)
+                // If the variable is not a port, then there is some other
+                // error. Avoid a class cast exception.
+                if (port.variable instanceof Port) {
+                    if (type === null) {
+                        type = (port.variable as Port).type
+                    } else {
+                        if (!sameType(type, (port.variable as Port).type)) {
+                            error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS)
+                        }
                     }
                 }
             }
@@ -642,7 +650,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 warning(it, Literals.KEY_VALUE_PAIR__VALUE)
             ]
             targetPropertyWarnings.clear()
-            
         }
     }
 

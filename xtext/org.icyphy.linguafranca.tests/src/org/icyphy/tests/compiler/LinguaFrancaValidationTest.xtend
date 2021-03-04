@@ -838,6 +838,11 @@ class LinguaFrancaValidationTest {
             #["[1 msec]", "[0]", PrimitiveType.FILE],
             #["[foo, {bar: baz}]", "[1]", PrimitiveType.FILE],
             #["{bar: baz}", "", UnionType.FILE_OR_FILE_ARRAY]
+        ],
+        UnionType.DOCKER_UNION -> #[
+            #["foo", "", UnionType.DOCKER_UNION],
+            #["[1]", "", UnionType.DOCKER_UNION],
+            #["{bar: baz}", "", DictionaryType.DOCKER_DICT]
         ]
     }
     
@@ -911,10 +916,13 @@ class LinguaFrancaValidationTest {
      * Not all cases are covered by this function. Currently, the only cases not
      * covered are known bad examples for composite types, which should be added
      * to the compositeTypeToKnownBad map.
-     **/
+     * 
+     * @param correct True to synthesize correct examples automatically, otherwise
+     *  synthesize incorrect examples.
+     */
     def List<String> synthesizeExamples(TargetPropertyType type, boolean correct) {
-        val values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad
         if (type instanceof PrimitiveType) {
+            val values = correct ? primitiveTypeToKnownGood : primitiveTypeToKnownBad
             val examples = values.get(type).toList
             assertNotNull(examples)
             return examples
