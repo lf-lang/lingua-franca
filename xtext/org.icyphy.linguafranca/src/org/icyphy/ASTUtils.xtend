@@ -520,10 +520,7 @@ class ASTUtils {
     /**
      * 
      */
-    static def addNetworkDependantReaction(VarRef portRef, FederateInstance instance, GeneratorBase generator) {
-        // Add the port to network input ports
-        instance.networkInputPorts.add(portRef.variable as Input)
-        
+    static def void addNetworkDependantReaction(VarRef portRef, FederateInstance instance, GeneratorBase generator) {        
         val factory = LinguaFrancaFactory.eINSTANCE        
         val reaction = factory.createReaction
         val reactor = portRef.variable.eContainer as Reactor
@@ -532,6 +529,12 @@ class ASTUtils {
         newPortRef.container = null
         newPortRef.variable = portRef.variable as Input
         
+        // First, check if there are any connections to contained reactors that need to be handled
+        val connectionsWithPort = reactor.allConnections.filter[
+            c | c.leftPorts.exists[
+                v | v.variable.equals(portRef.variable)
+            ]
+        ]
         
         // Find the list of reactions that have the port as trigger or source (could be a variable name)
         val reactionsWithPort = reactor.allReactions.filter[
@@ -551,10 +554,13 @@ class ASTUtils {
                 )
         ]
                 
-        if (reactionsWithPort.isEmpty) {
+        if (reactionsWithPort.isEmpty && connectionsWithPort.isEmpty) {
             // Nothing to do here
             return;
-        }       
+        }        
+        
+        // Add the port to network input ports
+        instance.networkInputPorts.add(portRef.variable as Input)
         
         // Find a list of STP offsets (if any exists)
         var Set<Value> STPList = newLinkedHashSet
@@ -581,9 +587,16 @@ class ASTUtils {
             portRef.variable as Port,
             STPList
         )
-                
-        // Find the index of the first reaction that has portRef as its trigger or source
-        val firstIndex = reactor.allReactions.indexOf(reactionsWithPort.get(0))
+        
+        // If there are no top-level reactions in this federate that has this port
+        // as its trigger or source, there must be a connection to a contained reactor
+        // We still take care of the network dependency at this level by injecting
+        // a reaction even if there are no other reactions
+        var firstIndex = 0
+        if (!reactionsWithPort.isEmpty) {
+            // Find the index of the first reaction that has portRef as its trigger or source
+            firstIndex = reactor.allReactions.indexOf(reactionsWithPort.get(0))
+        }
         
         // Insert the newly generated reaction before the first reaction
         /// that has the port as its trigger or source
