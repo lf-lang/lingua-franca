@@ -26,11 +26,11 @@ import java.util.List
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.URI
-import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.TargetProperty.BuildType
 import org.icyphy.TargetProperty.ClockSyncMode
 import org.icyphy.TargetProperty.CoordinationType
 import org.icyphy.TargetProperty.LogLevel
+import org.icyphy.linguaFranca.TimeUnit
 
 /** 
  * A class for keeping the current target configuration.
@@ -95,6 +95,11 @@ class Configuration {
      */
     public CoordinationType coordination = CoordinationType.CENTRALIZED
 
+    /**
+     * Docker options.
+     */
+    public DockerOptions dockerOptions = null;
+    
     /**
      * Coordination options.
      */
@@ -300,7 +305,6 @@ class ClockSyncOptions {
     public TimeValue testOffset;
 }
 
-
 /**
  * Settings related to coordination of federated execution.
  */
@@ -316,4 +320,14 @@ class CoordinationOptions {
      * The default is null, which means it is up the implementation to choose an interval.
      */
     public TimeValue advance_message_interval = null;
+}
+
+/**
+ * Settings related to Docker options.
+ */
+class DockerOptions {
+    /**
+     * The base image and tag from which to build the Docker image. The default is "alpine:latest".
+     */
+    public String from = "alpine:latest"
 }

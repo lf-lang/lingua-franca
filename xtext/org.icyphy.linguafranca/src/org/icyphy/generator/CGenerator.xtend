@@ -60,6 +60,7 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.ReactorDecl
 import org.icyphy.linguaFranca.StateVar
+import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.TypedVariable
@@ -385,8 +386,7 @@ class CGenerator extends GeneratorBase {
         }
         
         // If there are federates, copy the required files for that.
-        // Also, create two RTI C files, one that launches the federates
-        // and one that does not.
+        // Also, create the RTI C file and the launcher script.
         if (federates.length > 1) {
             coreFiles.addAll("rti.c", "rti.h", "federate.c", "federate.h", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
@@ -420,8 +420,6 @@ class CGenerator extends GeneratorBase {
 
                 startTimeStep = new StringBuilder()
                 startTimers = new StringBuilder(commonStartTimers)
-                // This should go first in the __trigger_startup_reactions function.
-                pr(startTimers, "synchronize_with_other_federates();")
             }
         
             // Build the instantiation tree if a main reactor is present.
@@ -685,49 +683,22 @@ class CGenerator extends GeneratorBase {
                     }
                 ''')
                 
-                // Generate the termination function.
-                // If there are federates, this will resign from the federation.
-                if (federates.length > 1) {
-                    // FIXME: Send EOF on any open P2P sockets.
-                    // FIXME: Check return values.
-                    pr('''
-                        void __termination() {
-                            stop_trace();
-                            // Check for all outgoing physical connections in
-                            // _fed.sockets_for_outbound_p2p_connections and 
-                            // if the socket ID is not -1, the connection is still open. 
-                            // Send an EOF by closing the socket here.
-                            for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
-                                // Close outbound connections
-                                if (_fed.sockets_for_outbound_p2p_connections[i] != -1) {
-                                    close(_fed.sockets_for_outbound_p2p_connections[i]);
-                                    _fed.sockets_for_outbound_p2p_connections[i] = -1;
-                                }
-                                // Close inbound connections
-                                if (_fed.sockets_for_inbound_p2p_connections[i] != -1) {
-                                    close(_fed.sockets_for_inbound_p2p_connections[i]);
-                                    _fed.sockets_for_inbound_p2p_connections[i] = -1;
-                                }
-                            }
-                            unsigned char message_marker = RESIGN;
-                            write_to_socket_errexit(_fed.socket_TCP_RTI, 1, &message_marker, 
-                                    "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
-                            LOG_PRINT("Resigned.");
-                            «IF federate.inboundP2PConnections.length > 0»
-                                «/* FIXME: This pthread_join causes the program to freeze indefinitely on MacOS. */»
-                                void* thread_return;
-                                info_print("Waiting for incoming connections to close.");
-                                pthread_join(_fed.inbound_p2p_handling_thread_id, &thread_return);
-                            «ENDIF»
-                        }
-                    ''')
-                } else {
-                    pr("void __termination() {stop_trace();}");
+                // Generate an empty termination function for non-federated
+                // execution. For federated execution, an implementation is
+                // provided in federate.c.  That implementation will resign
+                // from the federation and close any open sockets.
+                if (federates.length <= 1) {
+                    pr("void terminate_execution() {}");
                 }
             }
             val targetFile = srcGenPath + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
+            // Create docker file.
+            if (config.dockerOptions !== null) {
+                writeDockerFile(filename)
+            }
+
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (!config.noCompile && config.buildCommands.nullOrEmpty) {
@@ -751,6 +722,57 @@ class CGenerator extends GeneratorBase {
                 
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
+    }
+    
+    /**
+     * Write a Dockerfile for the current federate as given by filename.
+     * The file will go into src-gen/filename.Dockerfile.
+     * If there is no main reactor, then no Dockerfile will be generated
+     * (it wouldn't be very useful).
+     * @param The root filename (without any extension).
+     */
+    def writeDockerFile(String filename) {
+        if (this.mainDef === null) {
+            return
+        }
+        
+        var srcGenPath = getSrcGenPath()
+        val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
+        val contents = new StringBuilder()
+        
+        // If a dockerfile exists, remove it.
+        var file = new File(dockerFile)
+        if (file.exists) {
+            file.delete
+        }
+        // The Docker configuration uses gcc, so config.compiler is ignored here.
+        var compileCommand = '''gcc «config.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
+        if (!config.buildCommands.nullOrEmpty) {
+            compileCommand = config.buildCommands.join(' ')
+        }
+        var additionalFiles = ''
+        if (!config.fileNames.nullOrEmpty) {
+            additionalFiles = '''COPY "«config.fileNames.join('" "')»" "src-gen/"'''
+        }
+        pr(contents, '''
+            # Generated docker file for «filename».lf in «directory».
+            # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
+            FROM «config.dockerOptions.from»
+            WORKDIR /lingua-franca
+            COPY src-gen/core src-gen/core
+            COPY "src-gen/«filename».c" "src-gen/ctarget.h" "src-gen/"
+            «additionalFiles»
+            RUN set -ex && \
+                apk add --no-cache gcc musl-dev && \
+                mkdir bin && \
+                «compileCommand» && \
+                apk del gcc musl-dev && \
+                rm -rf src-gen
+            # Use ENTRYPOINT not CMD so that command-line arguments go through
+            ENTRYPOINT ["./bin/«filename»"]
+        ''')
+        writeSourceCodeToFile(contents.toString.getBytes, dockerFile)
+        println("Dockerfile written to " + dockerFile)
     }
     
     /**
@@ -809,6 +831,21 @@ class CGenerator extends GeneratorBase {
             pr('''
                 // ***** Start initializing the federated execution. */
             ''')
+            
+            if (isFederatedAndDecentralized) {
+                val reactorInstance = main.getChildReactorInstance(federate.instantiation)
+                for (param : reactorInstance.parameters) {
+                    if (param.name.equalsIgnoreCase("STP") && param.type.isTime) {
+                        val stp = param.init.get(0).getTimeValue
+                        if (stp !== null) {                        
+                            pr('''
+                                set_stp_offset(«stp.timeInTargetLanguage»);
+                            ''')
+                        }
+                    }
+                }
+            }
+            
             // Set indicator variables that specify whether the federate has
             // upstream logical connections.
             if (federate.dependsOn.size > 0) {
@@ -954,7 +991,10 @@ class CGenerator extends GeneratorBase {
         // federates.
         // FIXME: No support below for some federates to be FAST and some REALTIME.
         pr(rtiCode, '''
-            process_args(argc, argv);
+            if (!process_args(argc, argv)) {
+                // Processing command-line arguments failed.
+                return -1;
+            }
             printf("Starting RTI for %d federates in federation ID %s\n", NUMBER_OF_FEDERATES, federation_id);
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
@@ -1068,6 +1108,11 @@ class CGenerator extends GeneratorBase {
                 new File(srcGenPath + File.separator + cFilename));
         fOut.write(rtiCode.toString().getBytes())
         fOut.close()
+        
+        // Write a Dockerfile for the RTI.
+        if (config.dockerOptions !== null) {
+            writeDockerFile(filename + '_RTI')
+        }
     }
     
     /** Create the launcher shell scripts. This will create one or two file
@@ -2105,7 +2150,7 @@ class CGenerator extends GeneratorBase {
         }
 
         // Next handle inputs.
-        for (input : reactor.inputs) {            
+        for (input : reactor.allInputs) {            
             createTriggerT(body, input, triggerMap, constructorCode, destructorCode)
         }
     }
@@ -3985,16 +4030,12 @@ class CGenerator extends GeneratorBase {
         val sendRef = generateVarRef(sendingPort)
         val receiveRef = generateVarRef(receivingPort)
         val result = new StringBuilder()
-        result.append('''
-            // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-            «IF isFederatedAndDecentralized»
-                DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
-            «ENDIF»
-        ''')
         if (isFederatedAndDecentralized) {
             result.append('''
+                // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
                 // Transfer the intended tag from the action to the port
                 «receiveRef»->intended_tag = «action.name»->trigger->intended_tag;
+                DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
             ''')
         }
         if (isTokenType(type)) {
@@ -4061,22 +4102,43 @@ class CGenerator extends GeneratorBase {
         // the current timestamp. If after delay is 0,
         // send_timed_message will use the current tag +
         // a microstep as the timestamp of the outgoing message.
-        // FIXME: implementation of tag is currently incomplete
-        // in the C target. Therefore, the nuances regarding
-        // the microstep delay are currently not implemented.
         var String additionalDelayString = '-1';
         // Name of the next immediate destination of this message
         var String next_destination_name = '''"federate «receivingFed.id»"'''
         if (delay !== null) {
-            additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
-            // FIXME: handle the case where the delay is a parameter.
+            if (delay.parameter !== null) {
+                // The parameter has to be parameter of the main reactor.
+                // And that value has to be a Time.
+                val value = delay.parameter.init.get(0)
+                if (value.time !== null) {
+                    additionalDelayString = (new TimeValue(value.time.interval, value.time.unit))
+                            .toNanoSeconds.toString;
+                } else {
+                    // This should have been caught by the validator.
+                    reportError(delay.parameter, "Parameter is required to be a time to be used in an after clause.")
+                }
+            } else {
+                additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
+            }
         }
         if (isPhysical) {
             socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_MESSAGE"
+            // Check if the socket is still valid first
+            result.append('''
+                if (_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»] == -1) {
+                    return;
+                }
+            ''')
         } else if (config.coordination === CoordinationType.DECENTRALIZED) {
             socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
+            // Check if the socket is still valid first
+            result.append('''
+                if (_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»] == -1) {
+                    return;
+                }
+            ''')
         } else {
             // Logical connection
             // Send the message via rti
@@ -4143,21 +4205,21 @@ class CGenerator extends GeneratorBase {
         
         if (isFederated) {
             // FIXME: Instead of checking
-            // #ifdef _LF_IS_FEDERATED, we could
+            // #ifdef FEDERATED, we could
             // use #if (NUMBER_OF_FEDERATES > 1)
             // To me, the former is more accurate.
             pr('''
-                #define _LF_IS_FEDERATED
+                #define FEDERATED
             ''')
             if (config.coordination === CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
                 pr('''
-                    #define _LF_COORD_CENTRALIZED
+                    #define FEDERATED_CENTRALIZED
                 ''')                
             } else if (config.coordination === CoordinationType.DECENTRALIZED) {
                 // The coordination is decentralized
                 pr('''
-                    #define _LF_COORD_DECENTRALIZED
+                    #define FEDERATED_DECENTRALIZED
                 ''')
             }
         }

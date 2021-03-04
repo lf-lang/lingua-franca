@@ -187,9 +187,19 @@
     <description>Install the tools needed in the IDE to work with the source code for ${scope.project.label}</description>
   </setupTask>
   <setupTask
+      xsi:type="setup:VariableTask"
+      name="git.clone.lingua.franca.branch"
+      value="master"
+      defaultValue="master"
+      storageURI="scope://Workspace"
+      label="">
+    <description></description>
+  </setupTask>
+  <setupTask
       xsi:type="git:GitCloneTask"
       id="git.clone.lingua.franca"
       remoteURI="icyphy/lingua-franca"
+      checkoutBranch="${git.clone.lingua.franca.branch}"
       recursive="true">
     <annotation
         source="http://www.eclipse.org/oomph/setup/InducedChoices">
@@ -287,106 +297,6 @@
     </workingSet>
     <description>The dynamic working sets for ${scope.project.label}</description>
   </setupTask>
-  <setupTask
-      xsi:type="setup.targlets:TargletTask"
-      targetName="Default">
-    <targlet
-        name="${scope.project.label}"
-        activeRepositoryList="DefaultRepositories"
-        includeSources="false">
-      <annotation
-          source="http:/www.eclipse.org/oomph/targlets/TargetDefinitionGenerator_DISABLED">
-        <detail
-            key="preferredRepositories">
-          <value>http://download.eclipse.org/eclipse/updates/</value>
-        </detail>
-        <detail
-            key="includeAllPlatforms">
-          <value>false</value>
-        </detail>
-        <detail
-            key="includeSource">
-          <value>false</value>
-        </detail>
-        <detail
-            key="location">
-          <value>${git.clone.lingua.franca.location}/targetplatform/lingua-franca.target</value>
-        </detail>
-      </annotation>
-      <requirement
-          name="org.eclipse.equinox.executable.feature.group"/>
-      <requirement
-          name="org.eclipse.epp.mpc.feature.group"/>
-      <requirement
-          name="org.eclipse.egit.feature.group"/>
-      <requirement
-          name="org.eclipse.jdt.feature.group"/>
-      <requirement
-          name="org.eclipse.cdt.feature.group"/>
-      <requirement
-          name="com.google.inject"/>
-      <requirement
-          name="com.google.guava"
-          versionRange="27.0.0"/>
-      <requirement
-          name="org.eclipse.xtext.runtime.feature.group"
-          versionRange="2.23.0"/>
-      <requirement
-          name="org.eclipse.xtext.sdk.feature.group"
-          versionRange="2.23.0"/>
-      <requirement
-          name="org.eclipse.emf.mwe2.launcher.feature.group"/>
-      <requirement
-          name="org.eclipse.elk.sdk.feature.feature.group"/>
-      <requirement
-          name="org.eclipse.elk.sdk.feature.source.feature.group"/>
-      <requirement
-          name="org.eclipse.elk.feature.feature.group"/>
-      <requirement
-          name="org.eclipse.elk.feature.source.feature.group"/>
-      <requirement
-          name="org.eclipse.elk.ui.feature.feature.group"/>
-      <requirement
-          name="org.eclipse.elk.ui.feature.source.feature.group"/>
-      <requirement
-          name="org.eclipse.elk.graphviz.feature.feature.group"/>
-      <requirement
-          name="de.cau.cs.kieler.klighd.feature.feature.group"/>
-      <requirement
-          name="de.cau.cs.kieler.klighd.feature.source.feature.group"/>
-      <requirement
-          name="de.cau.cs.kieler.klighd.freehep.feature.feature.group"/>
-      <requirement
-          name="de.cau.cs.kieler.klighd.freehep.feature.source.feature.group"/>
-      <requirement
-          name="de.cau.cs.kieler.klighd.view.feature.feature.group"/>
-      <requirement
-          name="de.cau.cs.kieler.klighd.view.feature.source.feature.group"/>
-      <requirement
-          name="de.cau.cs.kieler.klighd.ui.contrib3x"/>
-      <repositoryList
-          name="DefaultRepositories">
-        <repository
-            url="http://download.eclipse.org/releases/2020-12"/>
-        <repository
-            url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
-        <repository
-            url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.24.0/"/>
-        <repository
-            url="http://download.eclipse.org/elk/updates/releases/0.7.0/"/>
-        <repository
-            url="https://kieler.github.io/KLighD/v2.0.0/"/>
-      </repositoryList>
-    </targlet>
-  </setupTask>
-  <setupTask
-      xsi:type="projects:ProjectsBuildTask"
-      onlyNewProjects="true"/>
-  <setupTask
-      xsi:type="launching:LaunchTask"
-      launcher="Generate LinguaFranca (lf) Language Infrastructure">
-    <description>Build Xtext grammar</description>
-  </setupTask>
   <stream name="master"
       label="Master">
     <setupTask
@@ -395,6 +305,188 @@
         value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
         vm="true">
       <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
+    </setupTask>
+    <setupTask
+        xsi:type="setup.targlets:TargletTask"
+        targetName="Default">
+      <targlet
+          name="${scope.project.label}"
+          activeRepositoryList="DefaultRepositories"
+          includeSources="false">
+        <annotation
+            source="http:/www.eclipse.org/oomph/targlets/TargetDefinitionGenerator_DISABLED">
+          <detail
+              key="preferredRepositories">
+            <value>http://download.eclipse.org/eclipse/updates/</value>
+          </detail>
+          <detail
+              key="includeAllPlatforms">
+            <value>false</value>
+          </detail>
+          <detail
+              key="includeSource">
+            <value>false</value>
+          </detail>
+          <detail
+              key="location">
+            <value>${git.clone.lingua.franca.location}/targetplatform/lingua-franca.target</value>
+          </detail>
+        </annotation>
+        <requirement
+            name="org.eclipse.equinox.executable.feature.group"/>
+        <requirement
+            name="org.eclipse.epp.mpc.feature.group"/>
+        <requirement
+            name="org.eclipse.egit.feature.group"/>
+        <requirement
+            name="org.eclipse.jdt.feature.group"/>
+        <requirement
+            name="org.eclipse.cdt.feature.group"/>
+        <requirement
+            name="com.google.inject"/>
+        <requirement
+            name="com.google.guava"
+            versionRange="27.0.0"/>
+        <requirement
+            name="org.eclipse.xtext.runtime.feature.group"
+            versionRange="2.23.0"/>
+        <requirement
+            name="org.eclipse.xtext.sdk.feature.group"
+            versionRange="2.23.0"/>
+        <requirement
+            name="org.eclipse.emf.mwe2.launcher.feature.group"/>
+        <requirement
+            name="org.eclipse.elk.sdk.feature.feature.group"/>
+        <requirement
+            name="org.eclipse.elk.sdk.feature.source.feature.group"/>
+        <requirement
+            name="org.eclipse.elk.feature.feature.group"/>
+        <requirement
+            name="org.eclipse.elk.feature.source.feature.group"/>
+        <requirement
+            name="org.eclipse.elk.ui.feature.feature.group"/>
+        <requirement
+            name="org.eclipse.elk.ui.feature.source.feature.group"/>
+        <requirement
+            name="org.eclipse.elk.graphviz.feature.feature.group"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.feature.feature.group"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.feature.source.feature.group"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.freehep.feature.feature.group"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.freehep.feature.source.feature.group"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.view.feature.feature.group"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.view.feature.source.feature.group"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.ui.contrib3x"/>
+        <repositoryList
+            name="DefaultRepositories">
+          <repository
+              url="http://download.eclipse.org/releases/2020-12"/>
+          <repository
+              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
+          <repository
+              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.24.0/"/>
+          <repository
+              url="http://download.eclipse.org/elk/updates/releases/0.7.0/"/>
+          <repository
+              url="https://kieler.github.io/KLighD/v2.0.0/"/>
+        </repositoryList>
+      </targlet>
+    </setupTask>
+    <setupTask
+        xsi:type="projects:ProjectsBuildTask"
+        onlyNewProjects="true"/>
+    <setupTask
+        xsi:type="launching:LaunchTask"
+        launcher="Generate LinguaFranca (lf) Language Infrastructure">
+      <description>Build Xtext grammar</description>
+    </setupTask>
+  </stream>
+  <stream name="no-diagrams"
+      label="No Diagrams">
+    <setupTask
+        xsi:type="setup:EclipseIniTask"
+        option="-Doomph.redirection.lingua.franca"
+        value="=https://raw.githubusercontent.com/icyphy/lingua-franca/master/oomph/LinguaFranca.setup->${git.clone.lingua.franca.location|uri}/oomph/LinguaFranca.setup"
+        vm="true">
+      <description>Set an Oomph redirection system property to redirect the logical location of this setup to its physical location in the Git clone.</description>
+    </setupTask>
+    <setupTask
+        xsi:type="setup.targlets:TargletTask"
+        targetName="NoDiagrams">
+      <targlet
+          name="${scope.project.label}"
+          activeRepositoryList="DefaultRepositories"
+          includeSources="false">
+        <annotation
+            source="http:/www.eclipse.org/oomph/targlets/TargetDefinitionGenerator_DISABLED">
+          <detail
+              key="preferredRepositories">
+            <value>http://download.eclipse.org/eclipse/updates/</value>
+          </detail>
+          <detail
+              key="includeAllPlatforms">
+            <value>false</value>
+          </detail>
+          <detail
+              key="includeSource">
+            <value>false</value>
+          </detail>
+          <detail
+              key="location">
+            <value>${git.clone.lingua.franca.location}/targetplatform/lingua-franca.target</value>
+          </detail>
+        </annotation>
+        <requirement
+            name="org.eclipse.sdk.feature.group"/>
+        <requirement
+            name="org.eclipse.rcp.feature.group"/>
+        <requirement
+            name="org.eclipse.equinox.executable.feature.group"/>
+        <requirement
+            name="org.eclipse.epp.mpc.feature.group"/>
+        <requirement
+            name="org.eclipse.egit.feature.group"/>
+        <requirement
+            name="org.eclipse.jdt.feature.group"/>
+        <requirement
+            name="org.eclipse.cdt.feature.group"/>
+        <requirement
+            name="com.google.inject"/>
+        <requirement
+            name="com.google.guava"
+            versionRange="27.0.0"/>
+        <requirement
+            name="org.eclipse.xtext.runtime.feature.group"
+            versionRange="2.23.0"/>
+        <requirement
+            name="org.eclipse.xtext.sdk.feature.group"
+            versionRange="2.23.0"/>
+        <requirement
+            name="org.eclipse.emf.mwe2.launcher.feature.group"/>
+        <repositoryList
+            name="DefaultRepositories">
+          <repository
+              url="http://download.eclipse.org/releases/2020-12"/>
+          <repository
+              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
+          <repository
+              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.24.0/"/>
+        </repositoryList>
+      </targlet>
+    </setupTask>
+    <setupTask
+        xsi:type="projects:ProjectsBuildTask"
+        onlyNewProjects="true"/>
+    <setupTask
+        xsi:type="launching:LaunchTask"
+        launcher="Generate LinguaFranca (lf) Language Infrastructure">
+      <description>Build Xtext grammar</description>
     </setupTask>
   </stream>
   <logicalProjectContainer

@@ -1,0 +1,240 @@
+/**
+ * Test program illustrating the architecture of a replicated distributed
+ * database. It models a web server in each of two platforms that accepts
+ * queries and updates to the database and passes them on to the database
+ * reactor.
+ * 
+ * If the two servers attempt to simultaneously update the database,
+ * then platform a will force b to discard its update and go instead
+ * with the one provided by a. When platform b updates its record locally,
+ * the update gets sent to platform a with one microstep delay.
+ * If platform a performs a local update at that microstep-delayed tag,
+ * then its local update will be rejected in favor of the remote update.
+ * As written, this program has no mechanism for platform a to perform
+ * such a microstep-delayed update, so updates at a will always prevail
+ * over updates at b, and updates at b will only be rejected if their
+ * tag matches an update at a.
+ * 
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ */
+target C {
+    timeout: 1 sec
+}
+
+/**
+ * Mockup for a web server. This reactor simply produces a
+ * query output periodically with period query_period, and
+ * an update output periodically with period update_period.
+ * In a real server, these outputs would not be periodic, but
+ * rather would be triggered by external events, such as incoming
+ * HTTP requests.
+ * 
+ * The value of the update output is a counting sequence starting
+ * at the value given by the parameter start.
+ * 
+ * This reactor expects a reply to each query. It prints those
+ * replies. It produces an error in its shutdown reaction if
+ * the number of replies does not match the number of queries.
+ * 
+ * @param query_offset The offset of query outputs.
+ * @param query_period The period of query outputs.
+ * @param update_offset The offset of update outputs.
+ * @param update_period The period of update outputs.
+ * @param start The starting value of the counting sequence.
+ * @input reply Accepts the reply.
+ * @output query Issue a query, expecting a reply.
+ * @output update Issue an update.
+ */
+reactor Server(
+    query_offset:time(0),
+    query_period:time(150 msec),
+    update_offset:time(0),
+    update_period:time(100 msec),
+    start:int(0),
+    server_name:char*("")
+) {
+    timer query_trigger(query_offset, query_period);
+    timer update_trigger(update_offset, update_period);
+    input reply:int;
+    output query:bool;
+    output update:int;
+    state queries_outstanding:int(0);
+    state count:int(start);
+    reaction(query_trigger) -> query {=
+        SET(query, true);
+        self->queries_outstanding++;
+    =}
+    
+    reaction(update_trigger) -> update {=
+        SET(update, self->count++);
+    =}
+    
+    reaction(reply) {=
+        info_print("At tag (%lld, %u), server \"%s\" received reply to query: %d.",
+            get_elapsed_logical_time(), get_microstep(), self->server_name, reply->value
+        );
+        self->queries_outstanding--;
+    =}
+    
+    reaction(shutdown) {=
+        if (self->queries_outstanding != 0) {
+            error_print("Server \"%s\": Number of queries with no reply: %d.", 
+                self->server_name,
+                self->queries_outstanding
+            );
+        }
+    =}
+}
+
+/**
+ * A mockup for a database. This simple database contains only one
+ * record, and the value of that record is an integer.
+ * The `query` input is used to retrieve the record. The most recently
+ * stored value will be sent to the `reply` output in response.
+ * If a `query` and an update arrive simultaneously, the reply
+ * will match the update.
+ * 
+ * This reactor has two update inputs, `local_update` and `remote_update`.
+ * The first is intended to be used for updates to the database that are
+ * generated on the local platform. The second receives notifications
+ * of updates on a remote platform. When a `local_update` is received,
+ * the updated value will be sent to the `publish` output.
+ * When a `remote_update` input arrives, its value will be recorded,
+ * overwriting any simultaneously received `local_update` input.
+ * If the `remote_update` input results in a change of value, then
+ * the new value will be sent to the `publish` output.
+ * 
+ * Instances of these `Database` reactors can be arranged in ring.
+ * An `after` delay will be needed somewhere in the ring to break the resulting
+ * causality loop. The position of that delay will establish the
+ * priorities assigned to simultaneous updates. The first `Database`
+ * after the delay has the highest priority. If more than one of
+ * databases in the ring has a simultaneous `local_update`, the value
+ * of the first one after the delay will overwrite any simultaneous
+ * local updates downstream in the ring. If that first reactor is not
+ * immediately after the delay, then any upstream databases will be
+ * updated after the amount of the delay.
+ * 
+ * Note that if the delay is larger than 0, then some odd effects
+ * become possible.  In particular, the database values can
+ * oscillate if an update occurs in an upstream database before
+ * it receives notice of an update in a downstream federate.
+ * Here "upstream" and "downstream" are referring the chain that
+ * results from breaking the ring at the point of the delay.
+ * 
+ * @param update_deadline A deadline imposed on the reaction to update inputs.
+ * @input update A time-valued update to the record.
+ * @output publish This is just the update passed through.
+ * @input query A trigger to read the current value of the record.
+ * @output reply The time value of the record.
+ */
+reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
+    input local_update:int;
+    input remote_update:int;
+    input query:bool;
+    output publish:int;
+    output reply:int;
+    state record:int(0);
+    
+    reaction(local_update, remote_update) -> publish {=
+        if (local_update->is_present) {
+            self->record = local_update->value;
+            SET(publish, self->record);
+            info_print("At tag (%lld, %u), database \"%s\" locally updated to %d.",
+                get_logical_time() - start_time, get_microstep(), self->database_name, self->record
+            );
+        }
+        if (remote_update->is_present && remote_update->value != self->record) {
+            self->record = remote_update->value;            
+            SET(publish, self->record); // May overwrite the SET above.
+            info_print("At tag (%lld, %u), database \"%s\" updated to %d to match upstream remote update.\n"
+                "     Elapsed physical time is %lld.",
+                get_logical_time() - start_time, get_microstep(),
+                self->database_name,
+                self->record,
+                get_elapsed_physical_time()
+            );
+        }
+    =} tardy {=
+#ifdef FEDERATED_DECENTRALIZED
+        if (remote_update->is_present) {
+            error_print("At tag (%lld, %u), database \"%s\" "
+                "received remote update (%d) with intended tag (%lld, %u). Rejecting update.\n"
+                "     Elapsed physical time is %lld.",
+                current_tag.time - start_time,
+                current_tag.microstep,
+                self->database_name,
+                remote_update->value,
+                remote_update->intended_tag.time - start_time,
+                remote_update->intended_tag.microstep,
+                get_elapsed_physical_time()
+            );
+        } else if (local_update->is_present) {            
+            error_print_and_exit("FATAL: Database \"%s\": Local update (%d) is tardy by (%lld, %u). "
+                "Local update should never be tardy.",
+                self->database_name,
+                local_update->value,
+                current_tag.time - remote_update->intended_tag.time,
+                current_tag.microstep - remote_update->intended_tag.microstep
+            );
+        }
+#else
+        // The tardy handler should not be invoked
+        error_print_and_exit("FATAL: Update is tardy t coordination is not decentralized.");
+#endif
+    =} deadline(update_deadline) {=
+        error_print("Deadline missed. Rejecting update.");
+    =}
+    
+    reaction(query) -> reply {=
+        SET(reply, self->record);
+    =}
+}
+
+/**
+ * A mockup of a platform (e.g. a pod, a virtual machine, a physical
+ * machine, etc.) that hosts a replicated database and a web server.
+ * When the platform receives an update input, it publishes that
+ * update on its publish output.
+ * 
+ * @param query_offset The offset of query outputs.
+ * @param query_period The period of query outputs.
+ * @param update_offset The offset of update outputs.
+ * @param update_period The period of update outputs.
+ * @input update An update notification from another replica.
+ * @output publish A copy of the update just received.
+ */
+reactor Platform(
+    query_offset:time(0),
+    query_period:time(150 msec),
+    update_offset:time(0),
+    update_period:time(100 msec),
+    start:int(0),
+    STP:time(0),			// Used for decentralized coordination of federation only.
+    database_name:char*("") // Used for more visible logging
+) {
+    input update:int;
+    output publish:int;
+    server = new Server(
+        query_offset = query_offset,
+        query_period = query_period,
+        update_offset = update_offset,
+        update_period = update_period,
+        start = start,
+        server_name = database_name
+    );
+    database = new Database(database_name = database_name);
+    server.query -> database.query;
+    server.update -> database.local_update;
+    database.reply -> server.reply;
+    database.publish -> publish;
+    update -> database.remote_update;
+}
+
+main reactor ReplicatedDatabase {
+    a = new Platform(query_offset = 10 sec, database_name = "a");
+    b = new Platform(query_offset = 10 sec, update_period = 50 msec, start = 100, database_name = "b");
+    a.publish -> b.update;
+    b.publish -> a.update after 0;
+}
