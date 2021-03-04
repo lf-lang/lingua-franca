@@ -1168,9 +1168,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     /**
+     * Generate code for the body of a reaction that decides whether the trigger for the given
+     * port is going to be present or absent for the current logical time.
+     * This reaction is put just before the first reaction that is triggered by the network
+     * input port "port" or has it in its sources. If there are only connections to contained 
+     * reactors, in the top-level reactor.
      * 
+     * @param port The port to generate the control reaction for
+     * @param STPList The list of STP values/parameters that are assigned to reactions (if any)
+     *  that have port as their trigger or source
      */
-    def String generateNetworkDependantReactionBody(
+    def String generateNetworkInputControlReactionBody(
         Port port,
         Set<Value> STPList
     ) {
