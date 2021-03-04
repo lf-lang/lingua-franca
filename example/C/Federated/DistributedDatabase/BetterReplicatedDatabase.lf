@@ -164,7 +164,7 @@ reactor Database(
                 self->record,
                 get_elapsed_physical_time()
         );
-    =} tardy {=
+    =} STP (4 msec) {=
 #ifdef FEDERATED_DECENTRALIZED
         for (int i = 0; i < remote_update_width; i++) {
             if (remote_update[i]->is_present) {
@@ -218,7 +218,6 @@ reactor Platform(
     update_period:time(100 msec),
     update_amount:int(0),
     num_remote_inputs:int(1),
-    STP:time(0),                    // Used for decentralized coordination of federation only.
     name:char*("unnamed platform")  // Used for more visible logging
 ) {
     input[num_remote_inputs] update:int;
