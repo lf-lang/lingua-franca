@@ -4201,7 +4201,7 @@ class CGenerator extends GeneratorBase {
                 // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
                 // Transfer the intended tag from the action to the port
                 «receiveRef»->intended_tag = «action.name»->trigger->intended_tag;
-                DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
+                info_print("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
             ''')
         }
         if (isTokenType(type)) {
@@ -4381,6 +4381,7 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         
         result.append('''
+            DEBUG_PRINT("Invoked network dependant reaction.");
             // Check if the port is triggered
             if («port.name»->is_present) {
                 // Don't wait
@@ -4407,32 +4408,37 @@ class CGenerator extends GeneratorBase {
         }
         
         result.append('''
+                info_print("Waiting");
                 while(max_STP != 0LL) {
                     if(!wait_until(current_tag.time + max_STP, &reaction_q_changed)) {
                         // Interrupted
+                        info_print("Wait interrupted");
                         if («port.name»->is_present) {
                             // Don't wait any longer
                             return;
                         }
                     } else {
                         // Done waiting
-                        // Need to lock the mutex to prevent
-                        // a race condition with the network
-                        // receiver logic.
-                        pthread_mutex_lock(&mutex);
-                        if (!«port.name»->is_present) {
-                            // Port will not be triggered at
-                            // current logical time. Set the absent
-                            // value of the trigger accordingly
-                            // so that the receiving logic cannot
-                            // insert any further reaction
-                            self->___«port.name».is_absent = true;
-                        }
-                        pthread_mutex_unlock(&mutex);
-                        return;
+                        break;
                     }
                 }
                 #endif
+        ''')
+        
+        result.append('''            
+                // Need to lock the mutex to prevent
+                // a race condition with the network
+                // receiver logic.
+                pthread_mutex_lock(&mutex);
+                if (!«port.name»->is_present) {
+                    // Port will not be triggered at
+                    // current logical time. Set the absent
+                    // value of the trigger accordingly
+                    // so that the receiving logic cannot
+                    // insert any further reaction
+                    self->___«port.name».is_absent = true;
+                }
+                pthread_mutex_unlock(&mutex);
         ''')
         
         return result.toString        
