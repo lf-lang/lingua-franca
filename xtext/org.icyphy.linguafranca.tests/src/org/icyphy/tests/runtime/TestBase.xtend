@@ -172,7 +172,6 @@ abstract class TestBase {
         try {
             redirectOutputs(test)
             test.resource = resourceSetProvider.get.getResource(URI.createFileURI(test.path.toString()),true)
-            restoreOutputs()
         } catch (Exception e) {
             test.result = Result.PARSE_FAIL
             restoreOutputs()
@@ -289,8 +288,9 @@ abstract class TestBase {
                 }
             }
             case TS: {
-                val bin = test.path.getParent.resolve(nameOnly + File.separator + "dist") // Relative to source
-                val file = bin.resolve(nameOnly + ".js")
+                val dist = Paths.get(root + File.separator + GeneratorBase.SRC_GEN_DIR + File.separator + nameOnly + File.separator + "dist")
+                val file = dist.resolve(nameOnly + ".js")
+                println(file.toString)
                 if (Files.exists(file)) {
                     pb = pb = new ProcessBuilder("node", file.toString)
                 } else {

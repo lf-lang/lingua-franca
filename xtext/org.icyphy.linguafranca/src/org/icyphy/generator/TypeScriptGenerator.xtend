@@ -216,6 +216,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Only run npm install if we had to copy over the default package.json.
         var boolean runNpmInstall
         var File packageJSONFile = new File(directory + File.separator + "package.json")
+        println(">>>>>> " + packageJSONFile)
         if (packageJSONFile.exists()) {
             runNpmInstall = false
         } else {
