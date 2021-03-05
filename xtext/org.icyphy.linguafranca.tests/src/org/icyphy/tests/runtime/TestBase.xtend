@@ -236,6 +236,8 @@ abstract class TestBase {
             redirectOutputs(test)
             try {
                 generator.generate(test.resource, fileAccess, context)
+                // FIXME: retrieve from the code generator where the files have been put
+                // Use a static function that takes in a fileAccess
                 // FIXME: if the target compiler reports errors, we should receive an exception.
                 // This is currently not the case.
             } catch (Exception e) {
@@ -266,7 +268,7 @@ abstract class TestBase {
             case C,
             case CPP,
             case CCPP: {
-                val bin = Paths.get(root + File.separator + GeneratorBase.BIN_DIR)
+                val bin = Paths.get(root + File.separator + GeneratorBase.BIN_DIR) // FIXME: don't derive this
                 val file = bin.resolve(nameOnly)
                 if (Files.exists(file)) {
                     pb = new ProcessBuilder(GeneratorBase.BIN_DIR + File.separator + nameOnly)
@@ -283,8 +285,8 @@ abstract class TestBase {
                     pb = pb = new ProcessBuilder("python3", file.toString)
                 } else {
                     test.result = Result.NO_EXEC_FAIL
-                    //println(">>>>>" + file)
-                    // FIXME: add message
+                    test.issues.append("Process builder: " + pb.toString + NEW_LINE)
+                    test.issues.append("File: " + file + NEW_LINE)
                 }
             }
             case TS: {
@@ -292,11 +294,11 @@ abstract class TestBase {
                 val file = dist.resolve(nameOnly + ".js")
                 println(file.toString)
                 if (Files.exists(file)) {
-                    pb = pb = new ProcessBuilder("node", file.toString)
+                    pb = new ProcessBuilder("node", file.toString)
                 } else {
                     test.result = Result.NO_EXEC_FAIL
-                    //println(">>>>>" + file)
-                    // FIXME: add message
+                    test.issues.append("Process builder: " + pb.toString + NEW_LINE)
+                    test.issues.append("File: " + file + NEW_LINE)
                 }
             }
         }
