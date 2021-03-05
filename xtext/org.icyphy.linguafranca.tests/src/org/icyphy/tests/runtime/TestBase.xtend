@@ -277,10 +277,10 @@ abstract class TestBase {
                 }
             }
             case Python: {
-                val bin = test.path.getParent.resolve("src-gen") // Relative to source
-                val file = bin.resolve(nameOnly + ".py")
+                val pyRoot = Paths.get(root + File.separator + GeneratorBase.SRC_GEN_DIR + File.separator + nameOnly)
+                val file = pyRoot.resolve(nameOnly + ".py")
                 if (Files.exists(file)) {
-                    pb = pb = new ProcessBuilder("python", file.toString)
+                    pb = pb = new ProcessBuilder("python3", file.toString)
                 } else {
                     test.result = Result.NO_EXEC_FAIL
                     //println(">>>>>" + file)
