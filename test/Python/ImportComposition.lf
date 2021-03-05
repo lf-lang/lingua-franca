@@ -1,7 +1,7 @@
 // This tests the ability to import a reactor definition
 // that itself imports a reactor definition.
 target Python;
-import ImportedComposition from "ImportedComposition.lf";
+import ImportedComposition from "lib/ImportedComposition.lf";
 
 main reactor ImportComposition {
     a = new ImportedComposition();
