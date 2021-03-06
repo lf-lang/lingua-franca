@@ -282,11 +282,15 @@ abstract class TestBase {
                 val pyRoot = Paths.get(root + File.separator + GeneratorBase.SRC_GEN_DIR + File.separator + nameOnly)
                 val file = pyRoot.resolve(nameOnly + ".py")
                 if (Files.exists(file)) {
-                    pb = pb = new ProcessBuilder("python3", file.toString)
+                    pb = new ProcessBuilder("python3", file.toString)
                 } else {
                     test.result = Result.NO_EXEC_FAIL
-                    test.issues.append("Process builder: " + pb.toString + NEW_LINE)
-                    test.issues.append("File: " + file + NEW_LINE)
+                    if (pb !== null) {
+                        test.issues.append("Process builder: " + pb.toString + NEW_LINE)
+                    }
+                    if (file !== null) {
+                        test.issues.append("File: " + file + NEW_LINE)
+                    }
                 }
             }
             case TS: {
@@ -297,8 +301,12 @@ abstract class TestBase {
                     pb = new ProcessBuilder("node", file.toString)
                 } else {
                     test.result = Result.NO_EXEC_FAIL
-                    test.issues.append("Process builder: " + pb.toString + NEW_LINE)
-                    test.issues.append("File: " + file + NEW_LINE)
+                    if (pb !== null) {
+                        test.issues.append("Process builder: " + pb.toString + NEW_LINE)
+                    }
+                    if (file !== null) {
+                        test.issues.append("File: " + file + NEW_LINE)
+                    }
                 }
             }
         }
@@ -326,6 +334,8 @@ abstract class TestBase {
                 test.result = Result.TEST_FAIL
             }
             
+        } else {
+            test.result = Result.NO_EXEC_FAIL
         }
 
     }
