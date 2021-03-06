@@ -4108,6 +4108,9 @@ class CGenerator extends GeneratorBase {
                 if (value.time !== null) {
                     additionalDelayString = (new TimeValue(value.time.interval, value.time.unit))
                             .toNanoSeconds.toString;
+                } else if (value.literal !== null) {
+                    // If no units are given, e.g. "0", then use the literal.
+                    additionalDelayString = value.literal;
                 } else {
                     // This should have been caught by the validator.
                     reportError(delay.parameter, "Parameter is required to be a time to be used in an after clause.")
