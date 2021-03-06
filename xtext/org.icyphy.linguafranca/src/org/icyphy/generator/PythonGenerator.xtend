@@ -653,7 +653,7 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonFiles(IFileSystemAccess2 fsa, FederateInstance federate)
     {
-        var srcGenPath = Configuration.toPath(getSrcGenRoot())
+        var srcGenPath = Configuration.toPath(getSrcGenRoot()) + File.separator + filename
         
         var file = new File(srcGenPath + File.separator + filename + ".py")
         if (file.exists) {
@@ -687,8 +687,8 @@ class PythonGenerator extends CGenerator {
         val installCmd = createCommand('''python3''',
             #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."])
 
-        compileCmd.directory(new File(Configuration.toPath(getSrcGenRoot)))
-        installCmd.directory(new File(Configuration.toPath(getSrcGenRoot)))
+        compileCmd.directory(new File(Configuration.toPath(getSrcGenRoot) + File.separator + filename))
+        installCmd.directory(new File(Configuration.toPath(getSrcGenRoot) + File.separator + filename))
 
         // Set compile time environment variables
         val compileEnv = compileCmd.environment
@@ -972,7 +972,7 @@ class PythonGenerator extends CGenerator {
      * Copy Python specific target code to the src-gen directory
      */        
     override copyUserFiles() {    	
-        val srcGenPath = Configuration.toPath(srcGenRoot)
+        val srcGenPath = Configuration.toPath(srcGenRoot) + File.separator + filename
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
