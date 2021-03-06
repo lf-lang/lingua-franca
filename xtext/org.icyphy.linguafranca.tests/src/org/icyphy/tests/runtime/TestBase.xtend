@@ -111,13 +111,13 @@ abstract class TestBase {
     @Test
     def void runThreadedTests() {
         printTestHeader("Description: Run threaded tests.")
-        Target.C.runTestsAndPrintResults([it === TestCategory.CONCURRENT], [true])
+        this.target.runTestsAndPrintResults([it === TestCategory.CONCURRENT], [true])
     }
     
     @Test
     def void runFederatedTests() {
         printTestHeader("Description: Run federated tests.")
-        Target.C.runTestsAndPrintResults([it === TestCategory.FEDERATED], [true])
+        this.target.runTestsAndPrintResults([it === TestCategory.FEDERATED], [true])
     }
 
     static def void restoreOutputs() {
