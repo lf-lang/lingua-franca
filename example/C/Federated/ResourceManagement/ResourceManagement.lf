@@ -141,92 +141,6 @@ reactor ResourceManager(
     id:int(0),
     num_other_resource_managers:int(1)
 ) {
-    preamble {=
-        #define QUEUE_SIZE 2 // FIXME: NUMBER_OF_FEDERATES
-        // Queue is a circular buffer. The tail variable points to the
-        // position to write to.
-        // NOTE: If more than one ResourceManager runs on a threaded platform,
-        // then a mutex is required for access to these global variables.
-        
-        // FIXME: Here we have multiple queues, one per manager ID.
-        // In a federated execution, only one is needed.
-        // Change this so each ResourceManager has its own queue as a state variable.
-        int queue[QUEUE_SIZE][QUEUE_SIZE]; 
-        int head[QUEUE_SIZE] = { 0 };
-        int tail[QUEUE_SIZE] = { 0 };
-        int size[QUEUE_SIZE] = { 0 };
-        
-        // Return the index of the next entry on the queue if there is one,
-        // and otherwise return -1.  If the argument is negative, then this
-        // returns the first entry on the queue or -1 if the queue is empty.
-        // Otherwise, if the argument specifies the index of entry on the queue,
-        // return the index of the next entry or -1 if there is none.
-        // Otherwise, return -1.
-        // If the entry is non-negative by not on the queue at all, return -2.
-        int next_index(int id, int index) {
-            if (size[id] == 0) return -1; // Queue is empty.
-            if (index < 0) return head[id];
-            index++;
-            if (index >= QUEUE_SIZE) {
-                index = 0;
-            }
-            if (index == tail[id]) return -1; // Reached the tail.
-            return index;
-        }
-        
-        // Push a value to the end of the queue unless the queue is full.
-        // Return -1 if the queue is full and 0 otherwise.
-        int push(int id, int entry) {
-            int next_tail = tail[id] + 1;
-            if (next_tail >= QUEUE_SIZE) {
-                next_tail = 0;
-            }
-            if (size[id] >= QUEUE_SIZE) {
-                // Queue is full.
-                warning_print("Queue is full. "
-                    "Resource request from ID %d will be dropped.",
-                    entry
-                );
-                return -1;
-            }
-            queue[id][tail[id]] = entry;
-            tail[id] = next_tail;
-            size[id]++;
-            return 0;
-        }
-        
-        // Pop a value from the head of the queue unless the queue is empty.
-        // Return the value in the argument, or if the argument is NULL,
-        // discard the value.  Return 0 for success and -1
-        // for failure (the queue is empty).
-        int pop(int id, int* result) {
-            if (size[id] == 0) return -1; // Queue is empty.
-            if (result != NULL) {
-                *result = queue[id][head[id]];
-            }
-            head[id]++;
-            if (head[id] >= QUEUE_SIZE) {
-                head[id] = 0;
-            }
-            size[id]--;
-            return 0;
-        }
-        
-        // Return 1 if the specified entry is on the specified queue
-        // and 0 otherwise.
-        int on_queue(int id, int entry) {
-            // Iterate over the queue to check.
-            int j = next_index(id, -1); // Head of the queue or -1 if empty.
-            while (j >= 0) {
-                if (queue[id][j] == entry) {
-                    // The entry is on the queue.
-                    return 1;
-                }
-                j = next_index(id, j);
-            }
-            return 0;
-        }
-    =}
     input local_request:bool;
     input local_release:bool;
     input[num_other_resource_managers] remote_request:int;
@@ -235,6 +149,99 @@ reactor ResourceManager(
     output request:int;
     output release:int;
     output local_grant:bool;
+    
+    state queue:request_q_t;
+
+    preamble {=
+        // Queue is a circular buffer. The tail variable points to the
+        // position to write to.        
+        typedef struct request_q_t {
+            int* queue;
+            int head;
+            int tail;
+            int size;
+            int capacity;
+        } request_q_t;
+        
+        // Return the index of the next entry on the queue if there is one,
+        // and otherwise return -1.  If the argument is negative, then this
+        // returns the first entry on the queue or -1 if the queue is empty.
+        // Otherwise, if the argument specifies the index of entry on the queue,
+        // return the index of the next entry or -1 if there is none.
+        // Otherwise, return -1.
+        // If the entry is non-negative by not on the queue at all, return -2.
+        int next_index(request_q_t* queue, int index) {
+            if (queue->size == 0) return -1; // Queue is empty.
+            if (index < 0) return queue->head;
+            index++;
+            if (index >= queue->capacity) {
+                index = 0;
+            }
+            if (index == queue->tail) return -1; // Reached the tail.
+            return index;
+        }
+        
+        // Push a value to the end of the queue unless the queue is full.
+        // Return -1 if the queue is full and 0 otherwise.
+        int push(request_q_t* queue, int entry) {
+            int next_tail = queue->tail + 1;
+            if (next_tail >= queue->capacity) {
+                next_tail = 0;
+            }
+            if (queue->size >= queue->capacity) {
+                // Queue is full.
+                warning_print("Queue is full. "
+                    "Resource request from ID %d will be dropped.",
+                    entry
+                );
+                return -1;
+            }
+            queue->queue[queue->tail] = entry;
+            queue->tail = next_tail;
+            queue->size++;
+            return 0;
+        }
+        
+        // Pop a value from the head of the queue unless the queue is empty.
+        // Return the value in the argument, or if the argument is NULL,
+        // discard the value.  Return 0 for success and -1
+        // for failure (the queue is empty).
+        int pop(request_q_t* queue, int* result) {
+            if (queue->size == 0) return -1; // Queue is empty.
+            if (result != NULL) {
+                *result = queue->queue[queue->head];
+            }
+            queue->head++;
+            if (queue->head >= queue->capacity) {
+                queue->head = 0;
+            }
+            queue->size--;
+            return 0;
+        }
+        
+        // Return 1 if the specified entry is on the specified queue
+        // and 0 otherwise.
+        int on_queue(request_q_t* queue, int entry) {
+            // Iterate over the queue to check.
+            int j = next_index(queue, -1); // Head of the queue or -1 if empty.
+            while (j >= 0) {
+                if (queue->queue[j] == entry) {
+                    // The entry is on the queue.
+                    return 1;
+                }
+                j = next_index(queue, j);
+            }
+            return 0;
+        }
+    =}
+    
+    reaction(startup) {=
+        self->queue.capacity = self->num_other_resource_managers + 1;
+        self->queue.queue = malloc(sizeof(int) * self->queue.capacity);
+        self->queue.head = 0;
+        self->queue.tail = 0;
+        self->queue.size = 0;
+    =}
         
     reaction(local_request) -> request {=
         // Just forward the request. The determination of whether
@@ -244,14 +251,14 @@ reactor ResourceManager(
     =}
     
     reaction(local_release) -> release {=
-        if (queue[self->id][head[self->id]] != self->id) {
+        if (self->queue.queue[self->queue.head] != self->id) {
             warning_print("%s (ID %d): attempting to release the resource but "
                 "does not hold it.",
                 self->name,
                 self->id
             );
         } else {
-            pop(self->id, NULL);
+            pop(&self->queue, NULL);
             SET(release, self->id);
         }
     =}
@@ -261,16 +268,16 @@ reactor ResourceManager(
             if (remote_release[i]->is_present) {
                 // NOTE: There should not be more than one resource release
                 // at any logical tag.
-                if (remote_release[i]->value != queue[self->id][head[self->id]]) {
+                if (remote_release[i]->value != self->queue.queue[self->queue.head]) {
                     warning_print("%s: Received release from manager %d, but that "
                         "manager does not hold the resource. Ignoring the release.",
                         self->name,
                         remote_release[i]->value
                     );
                 } else {
-                    pop(self->id, NULL);
-                    if (head[self->id] != tail[self->id] 
-                        && queue[self->id][head[self->id]] == self->id
+                    pop(&self->queue, NULL);
+                    if (self->queue.head != self->queue.tail 
+                        && self->queue.queue[self->queue.head] == self->id
                     ) {
                         // Next request on the queue is me!
                         SET(local_grant, true);
@@ -286,7 +293,7 @@ reactor ResourceManager(
         int local = -1; // -1 indicates there is no local request.
         if (local_request->is_present) {
             // If the local node is already on the request queue, ignore the request.
-            if (on_queue(self->id, self->id)) {
+            if (on_queue(&self->queue, self->id)) {
                 // (this should not happen).
                 warning_print("%s: Redundant resource request. "
                     "My manager ID %d is already on the queue.",
@@ -305,7 +312,7 @@ reactor ResourceManager(
             if (remote_request[i]->is_present) {
                 int id = remote_request[i]->value;
                 // Check that the ID is not already on the queue.
-                if (on_queue(self->id, id)) {
+                if (on_queue(&self->queue, id)) {
                     // The ID is already on the queue
                     // (this should not happen).
                     warning_print("%s (ID %d): received redundant resource request. "
@@ -318,7 +325,7 @@ reactor ResourceManager(
                     // If there is a local request and the local ID has higher priority,
                     // push the local ID first.
                     if (local >= 0 && local < id) {
-                        if (push(self->id, local) != 0) {
+                        if (push(&self->queue, local) != 0) {
                             warning_print("%s: (ID %d) queue is full. Ignoring local request.",
                                 self->name,
                                 self->id
@@ -328,7 +335,7 @@ reactor ResourceManager(
                         local = -1;
                     }
                     // Now push the remote request.
-                    if (push(self->id, id) != 0) {
+                    if (push(&self->queue, id) != 0) {
                         warning_print("%s (ID %d): Queue is full. Ignoring request.",
                             self->name,
                             self->id
@@ -340,7 +347,7 @@ reactor ResourceManager(
         // If there is a local request and it has not yet gotten pushed to the queue,
         // push it now.
         if (local >= 0) {
-            if (push(self->id, local) != 0) {
+            if (push(&self->queue, local) != 0) {
                 warning_print("%s: (ID %d) queue is full. Ignoring local request.",
                     self->name,
                     self->id
@@ -349,31 +356,33 @@ reactor ResourceManager(
         }
         // Finally, if there was a local request and the head of the queue
         // matches the local ID, grant the request.
-        if (local_request->is_present && queue[self->id][head[self->id]] == self->id) {
+        if (local_request->is_present && self->queue.queue[self->queue.head] == self->id) {
             // Grant request.
             SET(local_grant, true);
         }
+    =}
+    
+    reaction(shutdown) {=
+        free(self->queue.queue);
     =}
 }
 
 /**
  * A mockup of a platform (e.g. a pod, a virtual machine, a physical
- * machine, etc.) that hosts a replicated database and a web server.
- * The platform performs local updates and accepts remote updates.
- * Instances of this platform can be arranged in a ring or in a
- * broadcast configuration, where each platform broadcasts updates
- * to all other platforms.
+ * machine, etc.) that hosts a client that needs exclusive access to
+ * some resource managed by a ResourceManager.
  * 
- * @param query_period The period at which the balance is queried.
- * @param update_period The period at which local updates are generated.
- * @param update_amount The amount of each local update.
- * @param num_other_resource_managers The number of remote inputs from other replicas.
- * @param STP The safe-to-process offset (used only in decentralized coordination).
- * @param name The name assigned to this platform (for reporting).
+ * @param idle_time The amount of time the client is idle before requesting the resource.
+ * @param use_time The amount of time the client holds on to the resource.
+ * @param num_other_resource_managers The number of other resource managers requiring access.
+ * @param id A unique ID between 0 and num_other_resource_managers.
+ * @param name A name (for reporting).
  * 
- * @input update An update notification from another replica.
+ * @input remote_request A multiport input accepting remote requests for the resource.
+ * @input remote_release A multiport input accepting remote releases of the resource.
  * 
- * @output publish A copy of any local updates.
+ * @output request An output to broadcast a local request for the resource.
+ * @output release An output to broadcast a local release of the resource.
  */
 reactor Platform(
     idle_time:time(150 msec),
@@ -384,19 +393,23 @@ reactor Platform(
 ) {
     input[num_other_resource_managers] remote_request:int;
     input[num_other_resource_managers] remote_release:int;
+    
     output request:int;
     output release:int;
+    
     client = new Client(
         name = name,
         id = id,
         idle_time = idle_time,
         use_time = use_time
     );
+    
     manager = new ResourceManager(
         name = name,
         id = id,
         num_other_resource_managers = num_other_resource_managers
     );
+    
     client.request -> manager.local_request;
     client.release -> manager.local_release;
     manager.request -> request;
