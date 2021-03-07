@@ -558,7 +558,7 @@ class ASTUtils {
                             }
                     ] || 
                 r.sources.exists[
-                        s | s == portRef
+                        s | s.variable == portRef.variable
                     ]
                 )
         ]
@@ -573,8 +573,8 @@ class ASTUtils {
         
         // Find a list of STP offsets (if any exists)
         var Set<Value> STPList = newLinkedHashSet
-        if (generator.federatedAndDecentralized) {            
-            for (r : reactionsWithPort) {
+        if (generator.federatedAndDecentralized) {
+            for (r : reactionsWithPort ?: emptyList) {
                 // If STP offset is determined, add it
                 // If not, assume it is zero
                 if (r.stp !== null) {
@@ -582,7 +582,38 @@ class ASTUtils {
                         STPList.add(r.stp.offset)
                     }
                 }
-            }        
+            }
+
+            // Check the children for STPs as well
+            for (c : connectionsWithPort ?: emptyList) {
+                val childPort = c.rightPorts.get(0);
+                val childReactor = childPort.variable.eContainer as Reactor
+                // Find the list of reactions that have the port as trigger or source (could be a variable name)
+                val childReactionsWithPort = childReactor.allReactions.filter [ r |
+                    (r.triggers.exists [ t |
+                        if (t instanceof VarRef) {
+                            // Check if the variables match
+                            t.variable == childPort.variable
+                        } else {
+                            // Not a network port (startup or shutdown)
+                            false
+                        }
+                    ] || r.sources.exists [ s |
+                        s.variable == childPort.variable
+                    ]
+                    )
+                ]
+
+                for (r : childReactionsWithPort ?: emptyList) {
+                    // If STP offset is determined, add it
+                    // If not, assume it is zero
+                    if (r.stp !== null) {
+                        if (r.stp.offset !== null) {
+                            STPList.add(r.stp.offset)
+                        }
+                    }
+                }
+            }
         }
         
         // FIXME: Ideally, we would like to add this port to the
