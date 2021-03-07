@@ -83,7 +83,7 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     =}
 }
 
-reactor STPReceiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
+reactor STPReceiver(take_a_break_after:int(10), break_interval:time(400 msec), stp_offset:time(0)) {
     input in:int;
     state last_time_updated_stp:time(0);
     receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec);
@@ -91,7 +91,7 @@ reactor STPReceiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
     
     reaction (in) -> receiver.in {=
         SET(receiver.in, in->value);
-    =} STP (0) {=
+    =} STP (stp_offset) {=
         tag_t current_tag = get_current_tag();
         printf("STP violation of (%lld, %u) perceived on the input.\n",              
                current_tag.time - in->intended_tag.time,
@@ -100,9 +100,8 @@ reactor STPReceiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
         // Only update the STP offset once per
         // time step.
         if (current_tag.time != self->last_time_updated_stp) {
-            printf("Raising the STP offset by %lld.\n", MSEC(1));
-	        interval_t current_stp_offset = get_stp_offset();
-	        set_stp_offset(current_stp_offset + MSEC(1));
+            printf("Raising the STP offset by %lld.\n", MSEC(5));
+	        self->stp_offset += MSEC(50);
 	        self->last_time_updated_stp = current_tag.time;
         }
     =}
