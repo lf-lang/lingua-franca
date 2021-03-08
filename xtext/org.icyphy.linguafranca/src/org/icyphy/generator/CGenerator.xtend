@@ -997,7 +997,10 @@ class CGenerator extends GeneratorBase {
                     federates[i].mode = FAST;
                 «ENDIF»
             }
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wunused-variable"
             interval_t candidate_tmp;
+            #pragma GCC diagnostic pop
         ''')
         // Initialize the arrays indicating connectivity to upstream and downstream federates.
         for(federate : federates) {
@@ -4688,6 +4691,14 @@ class CGenerator extends GeneratorBase {
     ) {
         val structType = variableStructType(input, decl)
         val inputType = input.inferredType
+        
+        // We define various local variables that may or may not be used by a reaction.
+        // To suppress "unused variable" warnings, we use a pragma.
+        pr(builder, '''
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wunused-variable"
+        ''')
+        
         // Create the local variable whose name matches the input name.
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
@@ -4795,8 +4806,6 @@ class CGenerator extends GeneratorBase {
         // for a variable-width multiport, which is not currently supported.
         // It will be -2 if it is not multiport.
         pr(builder, '''
-            #pragma GCC diagnostic push
-            #pragma GCC diagnostic ignored "-Wunused-variable"
             int «input.name»_width = self->__«input.name»__width;
             #pragma GCC diagnostic pop
         ''')
