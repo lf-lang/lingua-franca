@@ -396,6 +396,7 @@ class CGenerator extends GeneratorBase {
         
         var commonCode = code;
         var commonStartTimers = startTimers;
+        var compilationSucceeded = true
         for (federate : federates) {
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
@@ -696,7 +697,9 @@ class CGenerator extends GeneratorBase {
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
             if (!config.noCompile && config.buildCommands.nullOrEmpty) {
-                runCCompiler(directory, filename, true)
+                if (!runCCompiler(directory, filename, true)) {
+                    compilationSucceeded = false
+                }
                 writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
             }
         }
@@ -713,7 +716,11 @@ class CGenerator extends GeneratorBase {
                 compileRTI()
             }
         }
-                
+        
+        // If compilation failed, remove any bin files that may have been created.
+        if (!compilationSucceeded) {
+            removeBinFiles()
+        }
         // In case we are in Eclipse, make sure the generated code is visible.
         refreshProject()
     }
@@ -1113,41 +1120,43 @@ class CGenerator extends GeneratorBase {
         }
     }
     
-    /** Create the launcher shell scripts. This will create one or two file
-     *  in the output path (bin directory). The first has name equal to
-     *  the filename of the source file without the ".lf" extension.
-     *  This will be a shell script that launches the
-     *  RTI and the federates.  If, in addition, either the RTI or any
-     *  federate is mapped to a particular machine (anything other than
-     *  the default "localhost" or "0.0.0.0"), then this will generate
-     *  a shell script in the bin  with name filename_distribute.sh
-     *  that copies the relevant source files to the remote host and compiles
-     *  them so that they are ready to execute using the launcher.
+    /**
+     * Create the launcher shell scripts. This will create one or two files
+     * in the output path (bin directory). The first has name equal to
+     * the filename of the source file without the ".lf" extension.
+     * This will be a shell script that launches the
+     * RTI and the federates.  If, in addition, either the RTI or any
+     * federate is mapped to a particular machine (anything other than
+     * the default "localhost" or "0.0.0.0"), then this will generate
+     * a shell script in the bin directory with name filename_distribute.sh
+     * that copies the relevant source files to the remote host and compiles
+     * them so that they are ready to execute using the launcher.
      * 
-     *  A precondition for this to work is that the user invoking this
-     *  code generator can log into the remote host without supplying
-     *  a password. Specifically, you have to have installed your
-     *  public key (typically found in ~/.ssh/id_rsa.pub) in
-     *  ~/.ssh/authorized_keys on the remote host. In addition, the
-     *  remote host must be running an ssh service.
-     *  On an Arch Linux system using systemd, for example, this means
-     *  running:
+     * A precondition for this to work is that the user invoking this
+     * code generator can log into the remote host without supplying
+     * a password. Specifically, you have to have installed your
+     * public key (typically found in ~/.ssh/id_rsa.pub) in
+     * ~/.ssh/authorized_keys on the remote host. In addition, the
+     * remote host must be running an ssh service.
+     * On an Arch Linux system using systemd, for example, this means
+     * running:
      * 
-     *      sudo systemctl <start|enable> ssh.service
+     *     sudo systemctl <start|enable> ssh.service
      * 
-     *  Enable means to always start the service at startup, whereas
-     *  start means to just start it this once.
-     *  On MacOS, open System Preferences from the Apple menu and 
-     *  click on the "Sharing" preference panel. Select the checkbox
-     *  next to "Remote Login" to enable it.
+     * Enable means to always start the service at startup, whereas
+     * start means to just start it this once.
      * 
-     *  In addition, every host must have OpenSSL installed, with at least
-     *  version 1.1.1a.  You can check the version with
+     * On MacOS, open System Preferences from the Apple menu and 
+     * click on the "Sharing" preference panel. Select the checkbox
+     * next to "Remote Login" to enable it.
      * 
-     *      openssl version
+     * In addition, every host must have OpenSSL installed, with at least
+     * version 1.1.1a.  You can check the version with
      * 
-     *  @param coreFiles The files from the core directory that must be
-     *   copied to the remote machines.
+     *     openssl version
+     * 
+     * @param coreFiles The files from the core directory that must be
+     *  copied to the remote machines.
      */
     def createLauncher(ArrayList<String> coreFiles) {
         // NOTE: It might be good to use screen when invoking the RTI
@@ -1398,6 +1407,37 @@ class CGenerator extends GeneratorBase {
         }
     }
     
+    /**
+     * Remove files in the bin directory that may have been created.
+     * Call this if a compilation occurs so that files from a previous
+     * version do not accidentally get executed.
+     */
+    def removeBinFiles() {
+        var outPath = getBinGenPath()
+        // Delete executable file or launcher script, if any.
+        var file = new File(outPath + File.separator + filename)
+        if (file.exists) file.delete
+
+        // Deleted distribution file, if any.
+        file = new File(outPath + File.separator + filename + '_distribute.sh')
+        if (file.exists) file.delete
+
+        // Deleted RTI file, if any.
+        file = new File(outPath + File.separator + filename + '_RTI')
+        if (file.exists) file.delete
+        
+        for (federate : federates) {
+            startTimeStepIsPresentCount = 0
+            startTimeStepTokens = 0
+            
+            // Only generate one output if there is no federation.
+            if (!federate.isSingleton) {                
+                file = new File(outPath + File.separator + filename + '_' + federate.name)
+                if (file.exists) file.delete
+            }
+        }
+    }
+
     /** 
      * Generate a reactor class definition for the specified federate.
      * A class definition has four parts:
