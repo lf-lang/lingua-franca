@@ -771,14 +771,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * 
      * @param directory The directory to run the compiler in.
      * @param file The source file to compile without the .c extension.
-     * param doNotLinkIfNoMain If true, the compile command will have a
+     * @param doNotLinkIfNoMain If true, the compile command will have a
      *  `-c` flag when there is no main reactor. If false, the compile command
      *  will never have a `-c` flag.
+     * 
+     * @return true if compilation succeeds, false otherwise. 
      */
     def runCCompiler(String directory, String file, boolean doNotLinkIfNoMain) {
         val compile = compileCCommand(file, doNotLinkIfNoMain)
         if (compile === null) {
-            return
+            return false
         }
 
         val stderr = new ByteArrayOutputStream()
@@ -792,6 +794,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
             reportCommandErrors(stderr.toString())
         }
+        return (returnCode == 0)
     }
 
     /**
