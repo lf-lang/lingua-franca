@@ -747,6 +747,7 @@ class PythonGenerator extends CGenerator {
         // Note that this function is deliberately left empty to prevent the CGenerator from
         // compiling this code. The Python generator will create a setup.py and compile generated
         // C code appropriately.
+        return true
     }
     
     /** 
