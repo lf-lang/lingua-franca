@@ -817,8 +817,9 @@ class PythonGenerator extends CGenerator {
      * the required .h and .c files.
      * @param filename Name of the file to process.
      */
-     override processProtoFile(String filename) {
-        val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
+    override processProtoFile(String filename) {
+         val protoc = createCommand("protoc", #['''--python_out=«this.codeGenConfig.srcGenPath»''', filename], codeGenConfig.srcPath)
+         //val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
         if (protoc === null) {
             return
         }
