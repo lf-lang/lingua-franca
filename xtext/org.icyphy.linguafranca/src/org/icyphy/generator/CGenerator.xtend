@@ -2921,7 +2921,7 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protoc = createCommand("protoc-c", #['''--c_out=«this.codeGenConfig.srcGenPath»''', filename], Paths.get(codeGenConfig.sourceFile.parent))
+        val protoc = createCommand("protoc-c", #['''--c_out=«this.codeGenConfig.srcGenPath»''', filename], Paths.get(codeGenConfig.srcFile.parent))
         if (protoc === null) {
             return
         }
@@ -5008,7 +5008,7 @@ class CGenerator extends GeneratorBase {
             if (System.getProperty("os.name").toLowerCase.contains("windows")) {
                 pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + codeGenConfig.windowsSourceFile + '"')
             } else {
-                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + codeGenConfig.sourceFile + '"')
+                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + codeGenConfig.srcFile + '"')
             }
         }
     }

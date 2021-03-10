@@ -474,7 +474,7 @@ class CCppGenerator extends CGenerator {
         val distCode = new StringBuilder()
         pr(shCode, '''
             #!/bin/bash
-            # Launcher for federated «codeGenConfig.sourceFile.name» Lingua Franca program.
+            # Launcher for federated «codeGenConfig.srcFile.name» Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
             # Set a trap to kill all background jobs on error.
@@ -483,7 +483,7 @@ class CCppGenerator extends CGenerator {
         ''')
         val distHeader = '''
             #!/bin/bash
-            # Distributor for federated «codeGenConfig.sourceFile.name» Lingua Franca program.
+            # Distributor for federated «codeGenConfig.srcFile.name» Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
         '''
