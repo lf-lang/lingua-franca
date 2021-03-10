@@ -1007,17 +1007,13 @@ class CppGenerator extends GeneratorBase {
         «ENDIF»
     '''
 
-//    override getCopyPath() {
-//        return Paths.get(config.fsa.getAbsolutePath('''«topLevelName»/'''))
-//    }
-
     def void doCompile(IFileSystemAccess2 fsa) {
-        // Cmake can only handle unix-style paths. Therefore, we replace `\' by '/' in the
+        // FIXME: Cmake can only handle unix-style paths. Therefore, we should replace `\' by '/' in the
         // absolute path in case we are running on Windows. All other platforms should not
         // be affected.
-        //val srcGenPath = fsa.getAbsolutePath('/').replace('\\', '/')
+        // There is a utility function for this in CodeGenConfig
 
-        val rootPath = this.codeGenConfig.outPath //srcGenPath.substring(0, srcGenPath.length() - "/src-gen".length())
+        val rootPath = this.codeGenConfig.outPath
 
         val installPath = this.codeGenConfig.outPath.toString
         val buildPath = '''«rootPath»/build/«topLevelName»'''

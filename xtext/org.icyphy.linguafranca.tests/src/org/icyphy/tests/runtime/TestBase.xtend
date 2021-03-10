@@ -53,13 +53,13 @@ abstract class TestBase {
     
     public final static String NEW_LINE = System.getProperty("line.separator");
     
-    public final static String DIVIDER = "+---------------------------------------------------------------------------+" + NEW_LINE;
+    public final static String DIVIDER = "+----------------------------------------------------------------------------+" + NEW_LINE;
     
-    public final static String THIN_LINE = "-----------------------------------------------------------------------------" + NEW_LINE;
+    public final static String THIN_LINE = "------------------------------------------------------------------------------" + NEW_LINE;
     
-    public final static String THICK_LINE = "=============================================================================" + NEW_LINE;
+    public final static String THICK_LINE = "==============================================================================" + NEW_LINE;
     
-    public final static String EDGE_LINE = "+---------------------------------------------------------------------------+" + NEW_LINE;
+    public final static String EDGE_LINE = "+--------------------------------------------------------------------=-------+" + NEW_LINE;
     
     protected Target target;
     
@@ -357,14 +357,14 @@ abstract class TestBase {
                 }
             }
             done++
-            while (Math.floor(done * x) > marks && marks <= 78) {
+            while (Math.floor(done * x) >= marks && marks < 78) {
                 print("=")
                 marks++
             }
-            
         }
-        if (tests.size == 0) {
-            print(THICK_LINE)
+        while(marks < 78) {
+            print("=")
+            marks++
         }
         print(NEW_LINE)
     }

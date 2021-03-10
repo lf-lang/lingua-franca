@@ -17,7 +17,8 @@ import org.icyphy.generator.StandaloneContext;
 
 public class CodeGenConfig {
 
-
+    // Public static fields.
+    
     /**
      * Default name of the directory to store binaries in.
      */
@@ -28,19 +29,35 @@ public class CodeGenConfig {
      */
     public static String DEFAULT_SRC_GEN_DIR = "src-gen";
 
+    // Public fields.
     
     /**
-     * The full path to the file containing the .lf file including the
-     * full filename with the .lf extension.
+     * The directory in which to put binaries, if the code generator produces any.
      */
-    public final File sourceFile;
-
+    public final Path binPath;
+    
     /**
-     * Variant of {@link #GeneratorBase.sourceFile GeneratorBase.sourceFile}
-     * used on the Windows platform. FIXME: not clear that we need this any longer.
+     * Object for abstract file system access.
      */
-    public final File windowsSourceFile;
-
+    public final IFileSystemAccess2 fsa;
+    
+    /**
+     * Object used for communication between the IDE or stand-alone compiler
+     * and the code generator.
+     */
+    public final IGeneratorContext context;
+    
+    /**
+     * The parent of the specified directory for generated sources. Additional
+     * directories created during the build process should be created relative
+     * to this path.
+     */
+    public final Path outPath;
+    
+    /**
+     * The directory that is the root of the package.
+     */
+    public final Path pkgPath;
     
     /**
      * The file containing the main source code.
@@ -48,48 +65,69 @@ public class CodeGenConfig {
      * from the XText view of the file and the OS view of the file.
      */
     public final Resource resource;
+    
+    /**
+     * The full path to the file containing the .lf file including the
+     * full filename with the .lf extension.
+     */
+    public final File srcFile;
 
-    protected final URI srcGenRoot;
-    
-    protected final URI outputRoot;
-    
+    /**
+     * Path representation of srcGenRoot, the root directory for generated
+     * sources.
+     */
     public final Path srcGenBasePath;
     
     /**
-     * Object for abstract file system access.
-     */
-    public final IFileSystemAccess2 fsa;
-    
-    public final IGeneratorContext context; // FIXME: remove
-    
-    public final Path srcPath;
-    
-    /**
      * The directory in which to put the generated sources.
+     * This takes into account the location of the source file relative to the
+     * package root. Specifically, if the source file is x/y/Z.lf relative
+     * to the package root, then the generated sources will be put in x/y/Z
+     * relative to srcGenBasePath.
      */
     public final Path srcGenPath;
     
     /**
-     * The directory that is the root of the package.
+     * The directory in which the source file was found.
      */
-    public final Path pkgPath;
-
-    /**
-     * The directory in which to put the binaries.
-     */
-    public final Path binPath;
+    public final Path srcPath;
     
-    public final Path outPath;
+    // Protected fields.
+    
+    /**
+     * URI representation of the directory that is the parent of the specified
+     * directory in which to store generated sources.
+     */
+    protected final URI outputRoot;
+
+    
+    /**
+     * URI representation of the directory in which to store generated sources.
+     * This is the root, meaning that if the source file is x/y/Z.lf relative
+     * to the package root, then the generated sources will be put in x/y/Z
+     * relative to this URI.
+     */
+    protected final URI srcGenRoot;
+
+    // Deprecated fields.
+    
+    /**
+     * Variant of {@link #GeneratorBase.sourceFile GeneratorBase.sourceFile}
+     * used on the Windows platform. FIXME: not clear that we need this any longer.
+     * @deprecated
+     */
+    public final File windowsSourceFile;
+    
     
     public CodeGenConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) throws IOException {
         this.resource = resource;
         this.fsa = fsa;
         this.context = context;
         
-        this.sourceFile = toPath(this.resource.getURI()).toFile();
+        this.srcFile = toPath(this.resource.getURI()).toFile();
         this.windowsSourceFile = new File(toIPath(this.resource.getURI()).toOSString());
         
-        this.srcPath = sourceFile.toPath().getParent();
+        this.srcPath = srcFile.toPath().getParent();
         this.pkgPath = getPkgPath(resource, context);
         
         this.srcGenRoot = getSrcGenRoot(fsa);
@@ -97,7 +135,7 @@ public class CodeGenConfig {
         this.outputRoot = getOutputRoot(this.srcGenRoot);
         
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.pkgPath,
-                this.srcPath, nameWithoutExtension(this.sourceFile));
+                this.srcPath, nameWithoutExtension(this.srcFile));
         this.outPath = toPath(this.outputRoot);
         this.binPath = getBinPath(this.pkgPath, this.srcPath, this.outPath, context);
     }

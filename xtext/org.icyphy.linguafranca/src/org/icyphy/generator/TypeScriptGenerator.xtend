@@ -1086,14 +1086,14 @@ class TypeScriptGenerator extends GeneratorBase {
                     { name: '«parameter.name»',
                         type: «customArgType»,
                         typeLabel: "{underline «customTypeLabel»}",
-                        description: 'Custom argument. Refer to «codeGenConfig.sourceFile» for documentation.'
+                        description: 'Custom argument. Refer to «codeGenConfig.srcFile» for documentation.'
                     }
                     ''')
                 } else {
                     customArgs.add('''
                         { name: '«parameter.name»',
                             type: «customArgType»,
-                            description: 'Custom argument. Refer to «codeGenConfig.sourceFile» for documentation.'
+                            description: 'Custom argument. Refer to «codeGenConfig.srcFile» for documentation.'
                         }
                     ''')  
                 }
