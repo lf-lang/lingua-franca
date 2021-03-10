@@ -20,12 +20,7 @@
  */
 package org.icyphy
 
-import java.io.File
-import java.io.IOException
 import java.util.List
-import org.eclipse.core.resources.ResourcesPlugin
-import org.eclipse.core.runtime.Path
-import org.eclipse.emf.common.util.URI
 import org.icyphy.TargetProperty.BuildType
 import org.icyphy.TargetProperty.ClockSyncMode
 import org.icyphy.TargetProperty.CoordinationType
@@ -39,7 +34,7 @@ import org.icyphy.linguaFranca.TimeUnit
  * unless otherwise stated.
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class Configuration {
+class TargetConfig {
 
     /**
      * A list of custom build commands that replace the default build process of
@@ -172,94 +167,6 @@ class Configuration {
      */
     public boolean tracing = false
     
-    // Static methods.
-    
-    /**
-     * Check whether a given file (i.e., a relative path) exists in the given
-     *directory.
-     * @param filename String representation of the filename to search for.
-     * @param directory String representation of the director to search in.
-     */
-    static def boolean fileExists(String filename, String directory) {
-        // Make sure the file exists and issue a warning if not.
-        val file = filename.findFile(directory)
-        if (file === null) {
-            // See if it can be found as a resource.
-            val stream = Configuration.getResourceAsStream(filename)
-            if (stream === null) {
-                return false
-            } else {
-                // Sadly, even with this not null, the file may not exist.
-                try {
-                    stream.read()
-                } catch (IOException ex) {
-                    return false;
-                }
-                stream.close()
-            }
-        }
-        return true
-    }
-
-    /**
-     * Search for a given file name in the current directory.
-     * If not found, search in directories in LF_CLASSPATH.
-     * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
-     * if it is defined.
-     * The first file found will be returned.
-     * 
-     * @param fileName The file name or relative path + file name
-     * in plain string format
-     * @param directory String representation of the director to search in.
-     * @return A Java file or null if not found
-     */
-     static def File findFile(String fileName, String directory) {
-
-        var File foundFile;
-
-        // Check in local directory
-        foundFile = new File(directory + '/' + fileName);
-        if (foundFile.exists && foundFile.isFile) {
-            return foundFile;
-        }
-
-        // Check in LF_CLASSPATH
-        // Load all the resources in LF_CLASSPATH if it is set.
-        var classpathLF = System.getenv("LF_CLASSPATH");
-        if (classpathLF === null) {
-            classpathLF = System.getenv("CLASSPATH")
-        }
-        if (classpathLF !== null) {
-            var String[] paths = classpathLF.split(
-                System.getProperty("path.separator"));
-            for (String path : paths) {
-                foundFile = new File(path + '/' + fileName);
-                if (foundFile.exists && foundFile.isFile) {
-                    return foundFile;
-                }
-            }
-        }
-        // Not found.
-        return null;
-    }
-
-    /**
-     * Create a string representing the absolute file path of a URI.
-     */
-    static def toPath(URI uri) {
-        if (uri.isPlatform) {
-            val file = ResourcesPlugin.workspace.root.getFile(
-                new Path(uri.toPlatformString(true)))
-            return file.rawLocation.toFile.absolutePath
-        } else if (uri.isFile) {
-            val file = new File(uri.toFileString)
-            return file.absolutePath
-        } else {
-            throw new IOException("Unrecognized file protocol in URI " +
-                uri.toString)
-        }
-    }
-    
 }
 
 /**
@@ -331,3 +238,9 @@ class DockerOptions {
      */
     public String from = "alpine:latest"
 }
+
+    enum Mode {
+        STANDALONE,
+        INTEGRATED,
+        UNDEFINED
+    }

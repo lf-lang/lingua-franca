@@ -284,7 +284,7 @@ public enum TargetProperty {
      * updates the configuration. It is assumed that validation already
      * occurred, so this code should be straightforward.
      */
-    public final BiConsumer<Configuration, Element> setter;
+    public final BiConsumer<TargetConfig, Element> setter;
     
     /**
      * Private constructor for target properties.
@@ -297,7 +297,7 @@ public enum TargetProperty {
      */
     private TargetProperty(String description, TargetPropertyType type,
             List<Target> supportedBy,
-            BiConsumer<Configuration, Element> setter) {
+            BiConsumer<TargetConfig, Element> setter) {
         this.description = description;
         this.type = type;
         this.supportedBy = supportedBy;
@@ -310,7 +310,7 @@ public enum TargetProperty {
      * @param config     The configuration object to update.
      * @param properties AST node that holds all the target properties.
      */
-    public static void update(Configuration config,
+    public static void update(TargetConfig config,
             List<KeyValuePair> properties) {
         properties.forEach(property -> forName(property.getName()).setter
                 .accept(config, property.getValue()));
@@ -830,7 +830,7 @@ public enum TargetProperty {
             // the file actually exists.
             if (this == FILE) {
                 String file = ASTUtils.toText(e);
-                if (!Configuration.fileExists(file, v.info.directory)) {
+                if (!CodeGenConfig.fileExists(file, v.info.directory)) {
                     v.targetPropertyWarnings
                             .add("Could not find file: '" + file + "'.");
                 }
