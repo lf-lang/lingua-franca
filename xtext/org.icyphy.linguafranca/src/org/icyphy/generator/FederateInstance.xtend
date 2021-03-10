@@ -335,7 +335,7 @@ class FederateInstance {
                     if (actionInstance.minDelay.isEarlierThan(minDelay)) {
                         minDelay = actionInstance.minDelay;
                     }
-                } else {
+                } else if (action.origin === ActionOrigin.LOGICAL) {
                     // Logical action
                     // Follow it upstream inside the reactor
                     for (uReaction: actionInstance.dependsOnReactions) {
@@ -353,7 +353,6 @@ class FederateInstance {
                 // Outputs of contained reactions
                 var outputInstance = trigger as PortInstance
                 for (uReaction: outputInstance.dependsOnReactions) {
-                    println("Found reaction " + uReaction.name + " upstream in contained reactors")
                     var uMinDelay = findNearestPhysicalActionTrigger(uReaction)
                     if (uMinDelay.isEarlierThan(minDelay)) {
                         minDelay = uMinDelay;
