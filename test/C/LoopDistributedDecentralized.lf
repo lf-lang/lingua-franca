@@ -1,0 +1,72 @@
+/**
+ * This tests a feedback loop with physical actions and
+ * decentralized coordination.
+ * 
+ * @author Edward A. Lee
+ */
+target C { 
+    flags: "-Wall",
+    coordination: decentralized,
+    threads: 2,
+    timeout: 5 sec
+}
+preamble {=
+    #include <unistd.h> // Defines sleep()
+    bool stop = false;
+    // Thread to trigger an action once every second.
+    void* ping(void* actionref) {
+        while(!stop) {
+            info_print("Scheduling action.");
+            schedule(actionref, 0);
+            sleep(1);
+        }
+        return NULL;
+    }
+=}
+
+reactor Looper(incr:int(1), delay:time(0 msec), stp_offset:time(0)) {
+    input in:int;
+    output out:int;
+    physical action a(delay);
+    state count:int(0);
+    reaction(startup) -> a {=
+        // Start the thread that listens for Enter or Return.
+        pthread_t thread_id;
+        info_print("Starting thread.");
+        pthread_create(&thread_id, NULL, &ping, a);        
+    =}
+    reaction(a) -> out {=
+        SET(out, self->count);
+        self->count += self->incr;
+    =}
+    reaction(in) {=
+        instant_t time_lag = get_physical_time() - get_logical_time();
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        readable_time(time_buffer, time_lag);
+        info_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+    =} STP (stp_offset) {=
+        instant_t time_lag = get_physical_time() - get_logical_time();
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        readable_time(time_buffer, time_lag);
+        info_print("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);        
+    =} deadline (stp_offset) {=
+        instant_t time_lag = get_physical_time() - get_logical_time();
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        readable_time(time_buffer, time_lag);
+        info_print("Deadline miss. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+    =}
+    reaction(shutdown) {=
+        info_print("******* Shutdown invoked.");
+        // Stop the thread that is scheduling actions.
+        stop = true;
+        if (self->count != 5 * self->incr) {
+            error_print_and_exit("Failed to receive all five expected inputs.");
+        }
+    =}
+}
+federated reactor LoopDistributedDecentralized(delay:time(0)) {
+    left = new Looper(stp_offset = 3 msec);
+    right = new Looper(incr = -1, stp_offset = 7 msec);
+    left.out -> right.in;
+    right.out -> left.in;
+}

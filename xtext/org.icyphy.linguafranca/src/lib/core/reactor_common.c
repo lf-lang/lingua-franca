@@ -120,7 +120,7 @@ interval_t _lf_global_time_STP_offset = 0LL;
  * Reset absent fields on network input ports.
  * @note Defined in federate.c
  */
-void reset_absent_fields_on_input_ports();
+void reset_absent_present_fields_on_input_port_triggers();
 
 /**
  * 
@@ -445,7 +445,7 @@ void __start_time_step() {
 #ifdef FEDERATED
     // Reset absent fields on network ports because
     // their status is unknown
-    reset_absent_fields_on_input_ports();
+    reset_absent_present_fields_on_input_port_triggers();
 #endif
 }
 

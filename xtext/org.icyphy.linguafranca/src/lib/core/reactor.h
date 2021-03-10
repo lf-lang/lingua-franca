@@ -473,7 +473,8 @@ struct trigger_t {
     lf_spacing_policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
-    bool is_present;          // Indicator at any given logical time of whether the trigger is present.
+    bool is_present;          // If it is true, it is an indicator that the trigger is present at any given logical time.
+                              // If it is false, it could be unknown whether it is present or absent (e.g., in a distributed application).
 #ifdef FEDERATED
     bool is_absent;           // Indicator at any given logical time of whether the rigger is absent. This is needed because the 
                               // receiver logic will need to know what it should do if it receives

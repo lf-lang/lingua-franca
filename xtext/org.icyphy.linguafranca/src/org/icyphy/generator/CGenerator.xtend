@@ -2406,6 +2406,8 @@ class CGenerator extends GeneratorBase {
         // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the STP violation
         if (isFederatedAndDecentralized && !reaction.effects.nullOrEmpty) {
             pr(intendedTagInheritenceCode, '''
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wunused-variable"
                 if (self->___reaction_«reactionIndex».is_STP_violated == true) {
             ''')
             indent(intendedTagInheritenceCode);            
@@ -2484,6 +2486,7 @@ class CGenerator extends GeneratorBase {
             unindent(intendedTagInheritenceCode);
             pr(intendedTagInheritenceCode,'''
             }
+            #pragma GCC diagnostic pop
             ''')
             
             // Write the the intended tag inheritance initialization
@@ -4406,60 +4409,66 @@ class CGenerator extends GeneratorBase {
             }
         ''')
         
-        result.append('''
-            #ifdef FEDERATED_DECENTRALIZED
-            interval_t max_STP = 0LL;
-        ''')
-        
-        // First find the maximum value
-        // The maximum STP is found this way because
-        // the STP offset could be a variable that could
-        // possibly be overridden on the command line with
-        // unknown values during code generation.
-        for (stp : STPList ?: emptyList) {
-            var String stpString = stp.targetValue
-            if (stp.parameter !== null) {
-                stpString = '''self->«stp.targetValue»'''
-            }
+        // Find the maximum STP for decentralized coordination
+        if(isFederatedAndDecentralized) {
             result.append('''
-                if («stpString» > max_STP) {
-                    max_STP = «stpString»;
-                }
+                interval_t max_STP = 0LL;
             ''')
-        }
-        
-        result.append('''
-                while(max_STP != 0LL) {
-                    LOG_PRINT("------ Waiting for %lldns for network input port \"in\" at tag (%llu, %d).",
-                            max_STP,
-                            current_tag.time - start_time,
-                            current_tag.microstep);
-                    if(!wait_until(current_tag.time + max_STP, &reaction_q_changed)) {
-                        // Interrupted
-                        LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
-                        if («port.name»->is_present) {
-                            // Don't wait any longer
-                            LOG_PRINT("------ Done waiting for network input port \"«port.name»\".");
-                            // Set the is_present value of the trigger so that we know the status
-                            // of this trigger for the current logical time
-                            // The is_present field for triggers of ports appears
-                            // to be unused for any other meaningful purpose
-                            self->___«port.name».is_present = true;
-                            return;
-                        }
-                    } else {
-                        // Done waiting
-                        break;
-                    }
+            
+            // First find the maximum value
+            // The maximum STP is found this way because
+            // the STP offset could be a variable that could
+            // possibly be overridden on the command line with
+            // unknown values during code generation.
+            for (stp : STPList ?: emptyList) {
+                var String stpString = stp.targetValue
+                if (stp.parameter !== null) {
+                    stpString = '''self->«stp.targetValue»'''
                 }
-                #endif
-        ''')
+                result.append('''
+                    if («stpString» > max_STP) {
+                        max_STP = «stpString»;
+                    }
+                ''')
+            }   
+        }
         
         result.append('''            
                 // Need to lock the mutex to prevent
                 // a race condition with the network
                 // receiver logic.
                 pthread_mutex_lock(&mutex);
+        ''')
+        
+        if(isFederatedAndDecentralized) {
+            result.append('''
+                    if(max_STP != 0LL) {
+                        LOG_PRINT("------ Waiting for %lldns for network input port \"in\" at tag (%llu, %d).",
+                                max_STP,
+                                current_tag.time - start_time,
+                                current_tag.microstep);
+                        while(!wait_until(current_tag.time + max_STP, &reaction_q_changed)) {
+                            // Interrupted
+                            LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
+                            if («port.name»->is_present) {
+                                // Don't wait any longer
+                                LOG_PRINT("------ Done waiting for network input port \"«port.name»\".");
+                                // Set the is_present value of the trigger so that we know the status
+                                // of this trigger for the current logical time
+                                // The is_present field for triggers of ports appears
+                                // to be unused for any other meaningful purpose
+                                self->___«port.name».is_present = true;
+                                // Unlock the mutex
+                                pthread_mutex_unlock(&mutex);
+                                return;
+                            }
+                        }
+                        // Done waiting
+                    }
+            ''')        
+        }
+        
+        result.append('''
                 if (!«port.name»->is_present) {
                     // Port will not be triggered at
                     // current logical time. Set the absent

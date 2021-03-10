@@ -1107,6 +1107,13 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     // queue or a call to schedule is needed
     if (compare_tags(tag, get_current_tag()) == 0 &&
         _fed.network_input_port_triggers[port_id]->is_absent == false) {
+        
+        if (_fed.network_input_port_triggers[port_id]->is_present == true) {
+            error_print_and_exit("Received two values on port %d at tag (%lld, %u).",
+            port_id,
+            tag.time - start_time,
+            tag.microstep);
+        }
 
         LOG_PRINT("Inserting reactions directly at tag (%lld, %u).", tag.time - start_time, tag.microstep);
         action->intended_tag = tag;
@@ -1753,10 +1760,13 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 
 /**
  * Reset absent fields on network input ports.
+ * 
+ * FIXME: change the name
  */
-void reset_absent_fields_on_input_ports() {
+void reset_absent_present_fields_on_input_port_triggers() {
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
         _fed.network_input_port_triggers[i]->is_absent = false;
+        _fed.network_input_port_triggers[i]->is_present = false;
     }
 }
 
