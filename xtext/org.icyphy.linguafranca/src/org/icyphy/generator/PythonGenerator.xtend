@@ -942,23 +942,22 @@ class PythonGenerator extends CGenerator {
                 // However, we need to create a setup.py for each federate and run
                 // "pip install ." individually to compile and install each module
                 // Here, we move the necessary C files into each federate's folder
-//                if (!federate.isSingleton) {
+                if (!federate.isSingleton) {
 //                    val srcDir = directory + File.separator + "src-gen" + File.separator + baseFileName
 //                    val dstDir = directory + File.separator + "src-gen" + File.separator + filename
-//                    var filesToCopy = newArrayList('''«topLevelName».c''', "pythontarget.c", "pythontarget.h",
-//                        "ctarget.h", "core")
-//                    
-//                    copyFilesFromClassPath(srcDir, dstDir, filesToCopy);
-//                    
-//                    // Do not compile the Python code here. They will be compiled on remote machines
-//                }
-//                else
-//                {
+                    var filesToCopy = newArrayList('''«topLevelName».c''', "pythontarget.c", "pythontarget.h",
+                        "ctarget.h", "core")
+                    
+                    copyFilesFromClassPath(codeGenConfig.srcPath.toString, codeGenConfig.srcGenPath.toString, filesToCopy);
+                    
+                    // Do not compile the Python code here. They will be compiled on remote machines
+                }
+                else {
                     if (targetConfig.noCompile !== true) {
                         // If there are no federates, compile and install the generated code
                         pythonCompileCode
                     }
-                //}
+                }
             }
 
         }
@@ -971,7 +970,8 @@ class PythonGenerator extends CGenerator {
     /**
      * Copy Python specific target code to the src-gen directory
      */        
-    override copyUserFiles() {    	
+    override copyUserFiles() {
+        super.copyUserFiles()
         // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
