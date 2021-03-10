@@ -1104,16 +1104,11 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     message_token->length = length;
 
     // Check if reactions need to be inserted directly into the reaction
-    // queue or a call to schedule is needed
+    // queue or a call to schedule is needed. This checks whether the status
+    // of the port is unkown for the current tag.
     if (compare_tags(tag, get_current_tag()) == 0 &&
-        _fed.network_input_port_triggers[port_id]->is_absent == false) {
-        
-        if (_fed.network_input_port_triggers[port_id]->is_present == true) {
-            error_print_and_exit("Received two values on port %d at tag (%lld, %u).",
-            port_id,
-            tag.time - start_time,
-            tag.microstep);
-        }
+        _fed.network_input_port_triggers[port_id]->is_absent == false &&
+        _fed.network_input_port_triggers[port_id]->is_present == false) {
 
         LOG_PRINT("Inserting reactions directly at tag (%lld, %u).", tag.time - start_time, tag.microstep);
         action->intended_tag = tag;
