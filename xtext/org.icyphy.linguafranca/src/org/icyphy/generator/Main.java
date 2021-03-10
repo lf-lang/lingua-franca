@@ -394,7 +394,7 @@ public class Main {
             String result = new String(p.getInputStream().readAllBytes());
             p.waitFor();
             if (p.exitValue() == 0) {
-                printInfo("Rebuild successful; forking off updated version.");
+                printInfo("Rebuild successful; forking off updated version of lfc.");
             } else {
                 printFatalError("Rebuild failed. Reason:");
                 System.err.print(result);
@@ -461,20 +461,20 @@ public class Main {
         }
     }
     
-    private static String packageRoot(String file) {
+    private static Path packageRoot(String file) {
         File f = new File(file).getAbsoluteFile(); 
         String p;
         do {
             p = f.getParent();
             if (p == null) {
                 printWarning("File '" + file + "' is not located in an 'src' directory.");
-                printInfo("Using the current working directory as output directory.");
-                return new File("").getAbsolutePath();
+                printWarning("Adopting the current working directory as the package root.");
+                return Paths.get(new File("").getAbsolutePath());
             } else {
                 f = new File(p);
             }
         } while (!f.getName().equals("src"));
-        return new File(f.getParent()).getAbsolutePath();
+        return Paths.get(new File(f.getParent()).getAbsolutePath());
     }
     
     /**
@@ -510,11 +510,13 @@ public class Main {
             }
         }
         for (String file : files) {
+            Path pkgRoot = packageRoot(file);
             final File f = new File(file);
             if (!rootPath.isEmpty()) {
                 this.fileAccess.setOutputPath(joinPaths(rootPath, "src-gen"));
             } else {
-                this.fileAccess.setOutputPath(joinPaths(packageRoot(file), "src-gen"));
+                this.fileAccess.setOutputPath(joinPaths(pkgRoot.toString(), "src-gen"));
+                
             }
             
             final ResourceSet set = this.resourceSetProvider.get();
@@ -540,6 +542,7 @@ public class Main {
                     StandaloneContext it) -> {
                 it.setCancelIndicator(CancelIndicator.NullImpl);
                 it.setArgs(properties);
+                it.setPackageRoot(pkgRoot);
             };
             final StandaloneContext context = ObjectExtensions
                     .<StandaloneContext>operator_doubleArrow(_standaloneContext,

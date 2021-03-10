@@ -38,6 +38,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.InferredType
 import org.icyphy.Target
+import org.icyphy.TargetProperty.LogLevel
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Delay
@@ -54,8 +55,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TargetProperty.LogLevel
-import org.icyphy.Configuration
 
 /** Generator for TypeScript target.
  *
@@ -72,8 +71,8 @@ class TypeScriptGenerator extends GeneratorBase {
     new () {
         super()
         // set defaults for federate compilation
-        config.compiler = "gcc"
-        config.compilerFlags.add("-O2")
+        targetConfig.compiler = "gcc"
+        targetConfig.compilerFlags.add("-O2")
     }
     
     // Path to the generated project directory
@@ -152,7 +151,7 @@ class TypeScriptGenerator extends GeneratorBase {
         if (!dir.exists()) dir.mkdirs()
 
         // Perform distinct code generation into distinct files for each federate.
-        val baseFilename = filename
+        val baseFilename = topLevelName
         var commonCode = code
         var String federateFilename
 
@@ -215,7 +214,7 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Only run npm install if we had to copy over the default package.json.
         var boolean runNpmInstall
-        var File packageJSONFile = new File(directory + File.separator + "package.json")
+        var File packageJSONFile = new File(topLevelName + File.separator + "package.json")
         println(">>>>>> " + packageJSONFile)
         if (packageJSONFile.exists()) {
             runNpmInstall = false
@@ -225,7 +224,7 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Copy default versions of config files into project if
         // they don't exist.       
-        createDefaultConfigFile(directory, "package.json")
+        createDefaultConfigFile(topLevelName, "package.json")
         createDefaultConfigFile(projectPath, "tsconfig.json")
         createDefaultConfigFile(projectPath, "babel.config.js")
         
@@ -240,7 +239,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Install npm modules only if the default package.json was copied over.
         
         if (runNpmInstall) {
-            val npmInstall = createCommand("npm", #["install"])
+            val npmInstall = createCommand("npm", #["install"], codeGenConfig.outPath)
             if (npmInstall === null || npmInstall.executeCommand() !== 0) {
                 reportError(resource.findTarget, "ERROR: npm install command failed."
                     + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
@@ -254,7 +253,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // Assumes protoc compiler has been installed on this machine
         
         // First test if the project directory contains any .proto files
-        if (config.protoFiles.size != 0) {
+        if (targetConfig.protoFiles.size != 0) {
             // Working example: protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --js_out=import_style=commonjs,binary:./generated --ts_out=./generated *.proto
             
             // FIXME: Should we include protoc as a submodule? If so, how to invoke it?
@@ -265,8 +264,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts",
                 "--js_out=import_style=commonjs,binary:" + outPath,
                 "--ts_out=" + srcGenPath)
-            protocArgs.addAll(config.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
-            val protoc = createCommand("protoc", protocArgs)
+            protocArgs.addAll(targetConfig.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
+            val protoc = createCommand("protoc", protocArgs, codeGenConfig.outPath)
                 
             if (protoc === null) {
                 return
@@ -274,12 +273,12 @@ class TypeScriptGenerator extends GeneratorBase {
 
             val returnCode = protoc.executeCommand()
             if (returnCode == 0) {
-                val nameSansProto = filename.substring(0, filename.length - 6)
-                config.compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
+                val nameSansProto = topLevelName.substring(0, topLevelName.length - 6)
+                targetConfig.compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
                     ".pb-c.c")
 
-                config.compileLibraries.add('-l')
-                config.compileLibraries.add('protobuf-c')
+                targetConfig.compileLibraries.add('-l')
+                targetConfig.compileLibraries.add('protobuf-c')
             } else {
                 reportError("protoc returns error code " + returnCode)    
             }
@@ -310,10 +309,10 @@ class TypeScriptGenerator extends GeneratorBase {
             if (tsc.executeCommand() == 0) {
                 // Babel will compile TypeScript to JS even if there are type errors
                 // so only run compilation if tsc found no problems.
-                val babelPath = directory + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
+                val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
                 // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
                 println("Compiling")
-                val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"])
+                val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], codeGenConfig.outPath)
                 if (babel !== null) {
                     babel.directory(new File(projectPath))
                     if (babel.executeCommand() == 0) {
@@ -1042,7 +1041,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // command line arguments
         var Reactor mainReactor
         
-        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+        for (reactor : codeGenConfig.resource.allContents.toIterable.filter(Reactor)) {
             if (reactor.isMain || reactor.isFederated) {
                 mainReactor = reactor
             }
@@ -1087,14 +1086,14 @@ class TypeScriptGenerator extends GeneratorBase {
                     { name: '«parameter.name»',
                         type: «customArgType»,
                         typeLabel: "{underline «customTypeLabel»}",
-                        description: 'Custom argument. Refer to «sourceFile» for documentation.'
+                        description: 'Custom argument. Refer to «codeGenConfig.sourceFile» for documentation.'
                     }
                     ''')
                 } else {
                     customArgs.add('''
                         { name: '«parameter.name»',
                             type: «customArgType»,
-                            description: 'Custom argument. Refer to «sourceFile» for documentation.'
+                            description: 'Custom argument. Refer to «codeGenConfig.sourceFile» for documentation.'
                         }
                     ''')  
                 }
@@ -1106,8 +1105,8 @@ class TypeScriptGenerator extends GeneratorBase {
         val setParameters = '''
             // ************* App Parameters
             let __timeout: TimeValue | undefined = «getTimeoutTimeValue»;
-            let __keepAlive: boolean = «config.keepalive»;
-            let __fast: boolean = «config.fastMode»;
+            let __keepAlive: boolean = «targetConfig.keepalive»;
+            let __fast: boolean = «targetConfig.fastMode»;
             
             let __noStart = false; // If set to true, don't start the app.
             
@@ -1276,7 +1275,7 @@ class TypeScriptGenerator extends GeneratorBase {
     
     private def analyzePaths() {
         // Important files and directories
-        projectPath = Configuration.toPath(getSrcGenRoot) + File.separator + filename
+        projectPath = srcGenPath + File.separator + topLevelName
         reactorTSPath = File.separator + "lib" + File.separator +
             "TS" + File.separator + "reactor-ts"
         srcGenPath = projectPath + File.separator + "src"
@@ -1288,11 +1287,11 @@ class TypeScriptGenerator extends GeneratorBase {
         // so for now I just left it that way. A different
         // directory structure for RTI and TS code may be
         // preferable.
-        cSrcGenPath = directory + File.separator + "src-gen"
-        cOutPath = directory + File.separator + "bin"
+        cSrcGenPath = codeGenConfig.srcGenPath.toString
+        cOutPath = codeGenConfig.binPath.toString
         reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
             + "core" + File.separator
-        tscPath = directory + File.separator + "node_modules" +  File.separator 
+        tscPath = codeGenConfig.outPath + File.separator + "node_modules" +  File.separator 
         + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
     }
     
@@ -1303,7 +1302,7 @@ class TypeScriptGenerator extends GeneratorBase {
      private def generateProtoPreamble() {
         pr("// Imports for protocol buffers")
         // Generate imports for .proto files
-        for (file : config.protoFiles) {
+        for (file : targetConfig.protoFiles) {
             var name = file
             // Remove any extension the file name may have.
             val dot = name.lastIndexOf('.')
@@ -1333,10 +1332,10 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @return The logging target property's value in all caps.
      */
     private def getLoggingLevel() {
-        if (config.logLevel === null) {
+        if (targetConfig.logLevel === null) {
             LogLevel.ERROR.name
         } else {
-            config.logLevel.name
+            targetConfig.logLevel.name
         }
     }
     
@@ -1453,8 +1452,8 @@ class TypeScriptGenerator extends GeneratorBase {
     }
     
     private def getTimeoutTimeValue() {
-        if (config.timeout !== null) {
-            return timeInTargetLanguage(config.timeout)
+        if (targetConfig.timeout !== null) {
+            return timeInTargetLanguage(targetConfig.timeout)
         } else {
             return "undefined"
         }

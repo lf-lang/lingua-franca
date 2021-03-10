@@ -3,7 +3,7 @@ target C {
     timeout: 2 sec,
     fast: true,
     threads: 4
-}; 
+};
 reactor Source {
 	timer t(0, 200 msec);
 	output out:int;

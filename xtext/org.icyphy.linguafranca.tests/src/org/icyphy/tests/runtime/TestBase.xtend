@@ -33,6 +33,8 @@ import org.junit.jupiter.api.^extension.ExtendWith
 
 import static extension org.junit.Assert.assertTrue
 import org.icyphy.generator.GeneratorBase
+import org.icyphy.CodeGenConfig
+import org.icyphy.TargetConfig
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -105,7 +107,7 @@ abstract class TestBase {
         printTestHeader("Description: Run non-federated tests in federated mode.")
         this.target.runTestsAndPrintResults([
             it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED
-        ], [ASTUtils.makeFederated(it.resource)])
+        ], [ASTUtils.makeFederated(it.codeGenConfig.resource)])
     }
     
     @Test
@@ -171,18 +173,26 @@ abstract class TestBase {
         // Obtain the resource (i.e., the AST).
         try {
             redirectOutputs(test)
-            test.resource = resourceSetProvider.get.getResource(URI.createFileURI(test.path.toString()),true)
+            val resource = resourceSetProvider.get.getResource(URI.createFileURI(test.path.toString()),true)
+            val context = new StandaloneContext => [
+                cancelIndicator = CancelIndicator.NullImpl
+                args = test.properties; // FIXME change this
+                packageRoot = Paths.get(getRoot()); // FIXME: improve
+                hierarchicalBin = true;
+            ]
+            test.codeGenConfig = new CodeGenConfig(resource, fileAccess, context);
         } catch (Exception e) {
             test.result = Result.PARSE_FAIL
             restoreOutputs()
             return false
         }
         
-        if (test.resource === null || !test.resource.errors.isEmpty) {
+        if (test.codeGenConfig === null || test.codeGenConfig.resource === null || !test.codeGenConfig.resource.errors.isEmpty) {
             test.result = Result.PARSE_FAIL
             restoreOutputs()
             return false
         }
+        
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (!configuration.apply(test)) {
             test.result = Result.CONFIG_FAIL
@@ -194,7 +204,7 @@ abstract class TestBase {
             test.properties.setProperty("no-compile", "")
         }
         
-        if (!test.resource.allContents.filter(Reactor).exists[it.isMain || it.isFederated]) {
+        if (!test.codeGenConfig.resource.allContents.filter(Reactor).exists[it.isMain || it.isFederated]) {
             test.result = Result.NO_MAIN_FAIL
             restoreOutputs()
             return false
@@ -203,7 +213,7 @@ abstract class TestBase {
         // Validate the resource and store issues in the test object.
         try {
             redirectOutputs(test)
-            val issues = validator.validate(test.resource, CheckMode.ALL, CancelIndicator.NullImpl)
+            val issues = validator.validate(test.codeGenConfig.resource, CheckMode.ALL, CancelIndicator.NullImpl)
             if (!issues.isNullOrEmpty) {
                 test.issues.append(issues.join(NEW_LINE))
                 if (issues.exists [
@@ -225,17 +235,12 @@ abstract class TestBase {
     }
 
     def boolean generateCode(LFTest test) {
-        if (test.resource !== null) {
+        if (test.codeGenConfig.resource !== null) {
             // Specify where to put the generated files. 
             // This implicitly also specifies the root.
-            fileAccess.outputPath = getRoot() + File.separator + GeneratorBase.SRC_GEN_DIR
-            val context = new StandaloneContext => [
-                cancelIndicator = CancelIndicator.NullImpl
-                args = test.properties;
-            ]
             redirectOutputs(test)
             try {
-                generator.generate(test.resource, fileAccess, context)
+                generator.generate(test.codeGenConfig.resource, fileAccess, test.codeGenConfig.context)
                 // FIXME: retrieve from the code generator where the files have been put
                 // Use a static function that takes in a fileAccess
                 // FIXME: if the target compiler reports errors, we should receive an exception.
@@ -263,40 +268,40 @@ abstract class TestBase {
         
         // FIXME: we probably want to use the createCommand utility from GeneratorBase here.
         // Should it be made static? Factored out?
-        
         switch(test.target) {
             case C,
             case CPP,
             case CCPP: {
-                val bin = Paths.get(root + File.separator + GeneratorBase.BIN_DIR) // FIXME: don't derive this
-                val file = bin.resolve(nameOnly)
-                if (Files.exists(file)) {
-                    pb = new ProcessBuilder(GeneratorBase.BIN_DIR + File.separator + nameOnly)
-                    pb.directory(new File(root))
+                val bin = test.codeGenConfig.binPath
+                val fullPath = bin.resolve(nameOnly)
+                if (Files.exists(fullPath)) {
+                    pb = new ProcessBuilder("." + File.separator + nameOnly)
+                    pb.directory(bin.toFile)
                 } else {
-                    test.issues.append(file + ": No such file or directory." + NEW_LINE)
+                    test.issues.append(fullPath + ": No such file or directory." + NEW_LINE)
                     test.result = Result.NO_EXEC_FAIL
                 }
             }
             case Python: {
-                val pyRoot = Paths.get(root + File.separator + GeneratorBase.SRC_GEN_DIR + File.separator + nameOnly)
-                val file = pyRoot.resolve(nameOnly + ".py")
-                if (Files.exists(file)) {
-                    pb = new ProcessBuilder("python3", file.toString)
+                val srcGen = test.codeGenConfig.srcGenPath
+                val fullPath = srcGen.resolve(nameOnly + ".py")
+                if (Files.exists(fullPath)) {
+                    pb = new ProcessBuilder("python3", fullPath.toFile.name)
+                    pb.directory(srcGen.toFile)
                 } else {
                     test.result = Result.NO_EXEC_FAIL
                     if (pb !== null) {
                         test.issues.append("Process builder: " + pb.toString + NEW_LINE)
                     }
-                    if (file !== null) {
-                        test.issues.append("File: " + file + NEW_LINE)
+                    if (fullPath !== null) {
+                        test.issues.append("File: " + fullPath + NEW_LINE)
                     }
                 }
             }
             case TS: {
-                val dist = Paths.get(root + File.separator + GeneratorBase.SRC_GEN_DIR + File.separator + nameOnly + File.separator + "dist")
+                val dist = Paths.get(root + File.separator + CodeGenConfig.DEFAULT_SRC_GEN_DIR + File.separator + nameOnly + File.separator + "dist")
                 val file = dist.resolve(nameOnly + ".js")
-                println(file.toString)
+                //println(file.toString)
                 if (Files.exists(file)) {
                     pb = new ProcessBuilder("node", file.toString)
                 } else {
@@ -344,18 +349,19 @@ abstract class TestBase {
         val x = 78f / tests.size()
         var marks = 0
         var done = 0
+        fileAccess.outputPath = getRoot() + File.separator + CodeGenConfig.DEFAULT_SRC_GEN_DIR
         for (test : tests) {
             if (test.parseAndValidate(configuration) && test.generateCode()) {
                 if (run) {
                     test.execute()
                 }
             }
-            while (Math.floor(done * x) > marks && marks < 78) {
+            done++
+            while (Math.floor(done * x) > marks && marks <= 78) {
                 print("=")
                 marks++
             }
             
-            done++
         }
         if (tests.size == 0) {
             print(THICK_LINE)

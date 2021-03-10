@@ -11,7 +11,9 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.resource.Resource;
+import org.icyphy.CodeGenConfig;
 import org.icyphy.Target;
+import org.icyphy.generator.StandaloneContext;
 import org.icyphy.tests.runtime.TestBase;
 
 public class LFTest implements Comparable<LFTest> {
@@ -52,7 +54,7 @@ public class LFTest implements Comparable<LFTest> {
     
     public Result result = Result.UNKNOWN;
     
-    public Resource resource;
+    public CodeGenConfig codeGenConfig;
     
     private final Path relativePath;
     

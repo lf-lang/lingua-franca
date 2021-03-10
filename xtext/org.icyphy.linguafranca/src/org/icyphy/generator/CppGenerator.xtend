@@ -25,21 +25,28 @@
  ***************/
 package org.icyphy.generator
 
+import com.google.inject.Inject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.LinkedList
 import java.util.List
+import java.util.stream.IntStream
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.icyphy.ASTUtils
+import org.icyphy.Target
+import org.icyphy.TargetProperty.LogLevel
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Model
 import org.icyphy.linguaFranca.Parameter
+import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
@@ -49,17 +56,12 @@ import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Visibility
+import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 
 import static extension org.icyphy.ASTUtils.*
-import java.util.stream.IntStream
-import org.icyphy.linguaFranca.Connection
-import org.icyphy.linguaFranca.Port
-import org.icyphy.ASTUtils
-import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
-import com.google.inject.Inject
-import org.icyphy.Target
-import org.icyphy.TargetProperty.LogLevel
-import org.icyphy.Configuration
+
+import static extension org.icyphy.CodeGenConfig.*
+import org.icyphy.CodeGenConfig
 
 /** Generator for C++ target.
  * 
@@ -107,12 +109,12 @@ class CppGenerator extends GeneratorBase {
     val libDir = "/lib/Cpp"
 
     def toDir(Resource r) {
-        r.toPath.getFilename
+        r.toPathString.getFilename // FIXME: do not convert to string first.
     }
 
     override printInfo() {
         super.printInfo()
-        println('******** generated binaries: ' + Configuration.toPath(binGenRoot))
+        println('******** generated binaries: ' + codeGenConfig.binPath)
     }
 
     def preambleHeaderFile(Resource r) '''«r.toDir»/preamble.hh'''
@@ -138,33 +140,35 @@ class CppGenerator extends GeneratorBase {
             reactors.add(mainReactor)
         }
 
-        fsa.generateFile('''«filename»/main.cc''',
+        val relativePath = this.codeGenConfig.srcGenBasePath.relativize(this.codeGenConfig.srcGenPath);
+
+        fsa.generateFile('''«relativePath»/main.cc''',
             mainReactor.generateMain)
-        fsa.generateFile('''«filename»/CMakeLists.txt''',
+        fsa.generateFile('''«relativePath»/CMakeLists.txt''',
             generateCmake)
         copyFileFromClassPath('''«libDir»/lfutil.hh''',
-            fsa.getAbsolutePath('''/«filename»/__include__/lfutil.hh'''))
+            fsa.getAbsolutePath('''/«relativePath»/__include__/lfutil.hh'''))
         copyFileFromClassPath('''«libDir»/time_parser.hh''',
-            fsa.getAbsolutePath('''/«filename»/__include__/time_parser.hh'''))
+            fsa.getAbsolutePath('''/«relativePath»/__include__/time_parser.hh'''))
         copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''',
-            fsa.getAbsolutePath('''/«filename»/__include__/CLI/CLI11.hpp'''))
+            fsa.getAbsolutePath('''/«relativePath»/__include__/CLI/CLI11.hpp'''))
 
         for (r : reactors) {
-            fsa.generateFile('''«filename»/«r.toDefinition.headerFile»''',
+            fsa.generateFile('''«relativePath»/«r.toDefinition.headerFile»''',
                 r.toDefinition.generateReactorHeader)
             val implFile = r.toDefinition.isGeneric ? r.toDefinition.headerImplFile : r.toDefinition.sourceFile
-            fsa.generateFile('''«filename»/«implFile»''',
+            fsa.generateFile('''«relativePath»/«implFile»''',
                 r.toDefinition.generateReactorSource)
         }
 
         for (r : this.resources ?: emptyList) {
-            fsa.generateFile('''«filename»/«r.preambleSourceFile»''',
+            fsa.generateFile('''«relativePath»/«r.preambleSourceFile»''',
                 r.generatePreambleSource)
-            fsa.generateFile('''«filename»/«r.preambleHeaderFile»''',
+            fsa.generateFile('''«relativePath»/«r.preambleHeaderFile»''',
                 r.generatePreambleHeader)
         }
 
-        if (!config.noCompile && !errorsOccurred()) {
+        if (!targetConfig.noCompile && !errorsOccurred()) {
             doCompile(fsa)
         } else {
             println("Exiting before invoking target compiler.")
@@ -835,7 +839,7 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def generateMain(Reactor main) '''
-        «resource.header»
+        «codeGenConfig.resource.header»
         
         #include <chrono>        
         #include <thread>
@@ -868,22 +872,22 @@ class CppGenerator extends GeneratorBase {
         };
         
         int main(int argc, char **argv) {
-          CLI::App app("«filename» Reactor Program");
+          CLI::App app("«topLevelName» Reactor Program");
           
-          unsigned threads = «IF config.threads != 0»«Integer.toString(config.threads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
+          unsigned threads = «IF targetConfig.threads != 0»«Integer.toString(targetConfig.threads)»«ELSE»std::thread::hardware_concurrency()«ENDIF»;
           app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
         
-          reactor::Duration timeout = «IF config.timeout !== null»«config.timeout.time»«timeUnitsToCppUnits.get(config.timeout.unit)»«ELSE»reactor::Duration::zero()«ENDIF»;
+          reactor::Duration timeout = «IF targetConfig.timeout !== null»«targetConfig.timeout.time»«timeUnitsToCppUnits.get(targetConfig.timeout.unit)»«ELSE»reactor::Duration::zero()«ENDIF»;
           auto opt_timeout = app.add_option("-o,--timeout", timeout, "Time after which the execution is aborted.");
         
           opt_timeout->check([](const std::string& val){ return validate_time_string(val); });
           opt_timeout->type_name("'FLOAT UNIT'");
           opt_timeout->default_str(time_to_quoted_string(timeout));
         
-          bool fast{«config.fastMode»};
+          bool fast{«targetConfig.fastMode»};
           app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
         
-          bool keepalive{«config.keepalive»};
+          bool keepalive{«targetConfig.keepalive»};
           app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
           «FOR p : mainReactor.parameters»
 
@@ -922,7 +926,7 @@ class CppGenerator extends GeneratorBase {
 
     def generateCmake() '''
         cmake_minimum_required(VERSION 3.5)
-        project(«filename» VERSION 1.0.0 LANGUAGES CXX)
+        project(«topLevelName» VERSION 1.0.0 LANGUAGES CXX)
         
         # require C++ 17
         set(CMAKE_CXX_STANDARD 17)
@@ -932,7 +936,7 @@ class CppGenerator extends GeneratorBase {
         include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
         include(GNUInstallDirs)
         
-        set(DEFAULT_BUILD_TYPE «IF config.cmakeBuildType === null»"Release"«ELSE»"«config.cmakeBuildType»"«ENDIF»)
+        set(DEFAULT_BUILD_TYPE «IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»)
         if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
           set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
         endif()
@@ -950,9 +954,9 @@ class CppGenerator extends GeneratorBase {
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-            -DREACTOR_CPP_VALIDATE=«IF config.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
-            -DREACTOR_CPP_TRACE=«IF config.tracing»ON«ELSE»OFF«ENDIF»
-            «IF config.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(config.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
+            -DREACTOR_CPP_VALIDATE=«IF targetConfig.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
+            -DREACTOR_CPP_TRACE=«IF targetConfig.tracing»ON«ELSE»OFF«ENDIF»
+            «IF targetConfig.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetConfig.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
         )
         
         set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
@@ -980,7 +984,7 @@ class CppGenerator extends GeneratorBase {
         endif ()
         set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
         
-        add_executable(«filename»
+        add_executable(«topLevelName»
           main.cc
           «FOR r : reactors»
               «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile»«ENDIF»
@@ -989,35 +993,34 @@ class CppGenerator extends GeneratorBase {
               «r.preambleSourceFile»
           «ENDFOR»
         )
-        target_include_directories(«filename» PUBLIC
+        target_include_directories(«topLevelName» PUBLIC
             "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}"
             "${PROJECT_SOURCE_DIR}"
             "${PROJECT_SOURCE_DIR}/__include__"
         )
-        target_link_libraries(«filename» reactor-cpp)
+        target_link_libraries(«topLevelName» reactor-cpp)
         
-        install(TARGETS «filename» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+        install(TARGETS «topLevelName» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
         
-        «IF !config.cmakeInclude.isNullOrEmpty»
-            include("«directory»/«config.cmakeInclude»")
+        «IF !targetConfig.cmakeInclude.isNullOrEmpty»
+            include("«topLevelName»/«targetConfig.cmakeInclude»")
         «ENDIF»
     '''
 
-    override getCopyPath() {
-        return fsa.getAbsolutePath('''«filename»/''')
-    }
+//    override getCopyPath() {
+//        return Paths.get(config.fsa.getAbsolutePath('''«topLevelName»/'''))
+//    }
 
     def void doCompile(IFileSystemAccess2 fsa) {
         // Cmake can only handle unix-style paths. Therefore, we replace `\' by '/' in the
         // absolute path in case we are running on Windows. All other platforms should not
         // be affected.
-        val srcGenPath = fsa.getAbsolutePath('/').replace('\\', '/')
+        //val srcGenPath = fsa.getAbsolutePath('/').replace('\\', '/')
 
-        val rootPath = srcGenPath.substring(0, srcGenPath.length() - "/src-gen".length())
+        val rootPath = this.codeGenConfig.outPath //srcGenPath.substring(0, srcGenPath.length() - "/src-gen".length())
 
-        val srcPath = fsa.getAbsolutePath('''«filename»/''')
-        val installPath = rootPath
-        val buildPath = '''«rootPath»/build/«filename»'''
+        val installPath = this.codeGenConfig.outPath.toString
+        val buildPath = '''«rootPath»/build/«topLevelName»'''
         val reactorCppPath = '''«rootPath»/build/reactor-cpp'''
         
         var buildDir = new File(buildPath)
@@ -1029,20 +1032,23 @@ class CppGenerator extends GeneratorBase {
             "--target",
             "install",
             "--config",
-            '''«IF config.cmakeBuildType === null»"Release"«ELSE»"«config.cmakeBuildType»"«ENDIF»'''])
+            '''«IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»'''],
+            codeGenConfig.outPath)
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
+            '''-DCMAKE_INSTALL_BINDIR=«codeGenConfig.outPath.relativize(codeGenConfig.binPath)»''',
             '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
-            srcPath])
+            codeGenConfig.srcGenPath.toString],
+            codeGenConfig.srcGenPath)
         if (makeBuilder === null || cmakeBuilder === null) {
             return
         }
 
         // prepare cmake
         cmakeBuilder.directory(buildDir)
-        if (config.compiler !== null) {
+        if (targetConfig.compiler !== null) {
             val cmakeEnv = cmakeBuilder.environment();
-            cmakeEnv.put("CXX", config.compiler);
+            cmakeEnv.put("CXX", targetConfig.compiler);
         }
         
         // run cmake
@@ -1055,8 +1061,8 @@ class CppGenerator extends GeneratorBase {
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
-                println('''Generated source code is in «srcPath»''')
-                println('''Compiled binary is in «installPath»/bin/«filename»''')
+                println('''Generated source code is in «codeGenConfig.srcGenPath»''')
+                println('''Compiled binary is in «codeGenConfig.binPath»''')
             } else {
                 reportError('''make failed with error code «makeReturnCode»''')
             }

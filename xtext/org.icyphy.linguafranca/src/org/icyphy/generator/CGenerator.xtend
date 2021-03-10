@@ -60,7 +60,6 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.ReactorDecl
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.TypedVariable
@@ -68,7 +67,8 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Configuration
+import java.nio.file.Paths
+import org.icyphy.CodeGenConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -327,8 +327,8 @@ class CGenerator extends GeneratorBase {
     new () {
         super()
         // set defaults
-        config.compiler = "gcc"
-        config.compilerFlags.add("-O2") // -Wall -Wconversion"
+        targetConfig.compiler = "gcc"
+        targetConfig.compilerFlags.add("-O2") // -Wall -Wconversion"
     }
 
     ////////////////////////////////////////////
@@ -336,7 +336,7 @@ class CGenerator extends GeneratorBase {
 
     override printInfo() {
         super.printInfo()
-        println('******** generated binaries: ' + Configuration.toPath(binGenRoot))
+        println('******** generated binaries: ' + codeGenConfig.binPath)
     }
 
     /**
@@ -366,11 +366,10 @@ class CGenerator extends GeneratorBase {
         }
         
         // Create the output directories if they don't yet exist.
-        var srcGenPath = Configuration.toPath(getSrcGenRoot)
-        var outPath = Configuration.toPath(getBinGenRoot)
-        var dir = new File(srcGenPath)
+        
+        var dir = codeGenConfig.srcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
-        dir = new File(outPath)
+        dir = codeGenConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
 
         // Copy the required core library files into the target file system.
@@ -379,7 +378,7 @@ class CGenerator extends GeneratorBase {
         // unless the program is federated, but they are often useful for user code,
         // so we include them anyway.
         var coreFiles = newArrayList("net_util.c", "net_util.h", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
-        if (config.threads === 0) {
+        if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
@@ -393,12 +392,12 @@ class CGenerator extends GeneratorBase {
             createLauncher(coreFiles)
         }
         
-        copyFilesFromClassPath("/lib/core", srcGenPath + File.separator + "core", coreFiles)
+        copyFilesFromClassPath("/lib/core", codeGenConfig.srcGenPath + File.separator + "core", coreFiles)
         
         copyTargetHeaderFile()
 
         // Perform distinct code generation into distinct files for each federate.
-        val baseFilename = filename
+        val baseFilename = topLevelName
         
         var commonCode = code;
         var commonStartTimers = startTimers;
@@ -407,8 +406,8 @@ class CGenerator extends GeneratorBase {
             startTimeStepTokens = 0
             
             // Only generate one output if there is no federation.
-            if (!federate.isSingleton) {                
-                filename = baseFilename + '_' + federate.name
+            if (!federate.isSingleton) {
+                topLevelName = baseFilename + '_' + federate.name
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
@@ -433,16 +432,16 @@ class CGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val cFilename = getTargetFileName(filename);
+            val cFilename = getTargetFileName(topLevelName);
 
             // Delete source previously produced by the LF compiler.
-            var file = new File(srcGenPath + File.separator + cFilename)
+            var file = codeGenConfig.srcGenPath.resolve(cFilename).toFile
             if (file.exists) {
                 file.delete
             }
 
             // Delete binary previously produced by the C compiler.
-            file = new File(outPath + File.separator + filename)
+            file = codeGenConfig.binPath.resolve(topLevelName).toFile
             if (file.exists) {
                 file.delete
             }
@@ -628,8 +627,8 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule timers for all reactors.
                 pr("void __initialize_timers() {")
                 indent()
-                if (config.tracing) {
-                    pr('''start_trace("«filename».lft");''') // .lft is for Lingua Franca trace
+                if (targetConfig.tracing) {
+                    pr('''start_trace("«topLevelName».lft");''') // .lft is for Lingua Franca trace
                 }
                 if (timerCount > 0) {
                     pr('''
@@ -650,7 +649,7 @@ class CGenerator extends GeneratorBase {
                 // that the specified logical time is complete.
                 pr('''
                     void logical_tag_complete(tag_t tag_to_send) {
-                        «IF federates.length > 1 && config.coordination == CoordinationType.CENTRALIZED»
+                        «IF federates.length > 1 && targetConfig.coordination == CoordinationType.CENTRALIZED»
                             _lf_logical_tag_complete(tag_to_send);
                         «ENDIF»
                     }
@@ -691,28 +690,28 @@ class CGenerator extends GeneratorBase {
                     pr("void terminate_execution() {}");
                 }
             }
-            val targetFile = srcGenPath + File.separator + cFilename
+            val targetFile = codeGenConfig.srcGenPath + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             // Create docker file.
-            if (config.dockerOptions !== null) {
-                writeDockerFile(filename)
+            if (targetConfig.dockerOptions !== null) {
+                writeDockerFile(topLevelName)
             }
 
             // If this code generator is directly compiling the code, compile it now so that we
             // clean it up after, removing the #line directives after errors have been reported.
-            if (!config.noCompile && config.buildCommands.nullOrEmpty) {
-                runCCompiler(directory, filename, true)
+            if (!targetConfig.noCompile && targetConfig.buildCommands.nullOrEmpty) {
+                runCCompiler(topLevelName, true)
                 writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
             }
         }
         // Restore the base filename.
-        filename = baseFilename
+        topLevelName = baseFilename
         
         // If a build directive has been given, invoke it now.
         // Note that the code does not get cleaned in this case.
-        if (!config.noCompile) {
-            if (!config.buildCommands.nullOrEmpty) {
+        if (!targetConfig.noCompile) {
+            if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand()
             } else if (federates.length > 1) {
                 // Compile the RTI files if there is more than one federate.
@@ -736,7 +735,7 @@ class CGenerator extends GeneratorBase {
             return
         }
         
-        var srcGenPath = Configuration.toPath(getSrcGenRoot())
+        var srcGenPath = codeGenConfig.srcGenPath
         val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
         val contents = new StringBuilder()
         
@@ -746,18 +745,18 @@ class CGenerator extends GeneratorBase {
             file.delete
         }
         // The Docker configuration uses gcc, so config.compiler is ignored here.
-        var compileCommand = '''gcc «config.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
-        if (!config.buildCommands.nullOrEmpty) {
-            compileCommand = config.buildCommands.join(' ')
+        var compileCommand = '''gcc «targetConfig.compilerFlags.join(" ")» src-gen/«filename».c -o bin/«filename»'''
+        if (!targetConfig.buildCommands.nullOrEmpty) {
+            compileCommand = targetConfig.buildCommands.join(' ')
         }
         var additionalFiles = ''
-        if (!config.fileNames.nullOrEmpty) {
-            additionalFiles = '''COPY "«config.fileNames.join('" "')»" "src-gen/"'''
+        if (!targetConfig.fileNames.nullOrEmpty) {
+            additionalFiles = '''COPY "«targetConfig.fileNames.join('" "')»" "src-gen/"'''
         }
         pr(contents, '''
-            # Generated docker file for «filename».lf in «directory».
+            # Generated docker file for «topLevelName».lf in «srcGenPath».
             # For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution
-            FROM «config.dockerOptions.from»
+            FROM «targetConfig.dockerOptions.from»
             WORKDIR /lingua-franca
             COPY src-gen/core src-gen/core
             COPY "src-gen/«filename».c" "src-gen/ctarget.h" "src-gen/"
@@ -785,30 +784,30 @@ class CGenerator extends GeneratorBase {
      */
     protected def initializeClockSynchronization(FederateInstance federate) {
         // Check if clock synchronization should be enabled for this federate in the first place
-        if (config.clockSync != ClockSyncMode.OFF
+        if (targetConfig.clockSync != ClockSyncMode.OFF
             && (!federationRTIProperties.get('host').toString.equals(federate.host) 
-            || config.clockSyncOptions.localFederatesOn)
+            || targetConfig.clockSyncOptions.localFederatesOn)
         ) {
             // Insert the #defines at the beginning
             code.insert(0, '''
                 #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_PERIOD_NS «config.clockSyncOptions.period»
-                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «config.clockSyncOptions.trials»
-                #define _LF_CLOCK_SYNC_ATTENUATION «config.clockSyncOptions.attenuation»
+                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period»
+                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
+                #define _LF_CLOCK_SYNC_ATTENUATION «targetConfig.clockSyncOptions.attenuation»
             ''')
             System.out.println("Initial clock synchronization is enabled for federate "
                 + federate.id
             );
-            if (config.clockSync == ClockSyncMode.ON) {
+            if (targetConfig.clockSync == ClockSyncMode.ON) {
                 var collectStatsEnable = ''
-                if (config.clockSyncOptions.collectStats) {
+                if (targetConfig.clockSyncOptions.collectStats) {
                     collectStatsEnable = "#define _LF_CLOCK_SYNC_COLLECT_STATS"
                     System.out.println("Will collect clock sync statistics for federate " + federate.id)
                     // Add libm to the compiler flags
                     // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
                     // FIXME: This is probably going to fail on MacOS (especially using clang)
                     // because libm functions are builtin
-                    config.compilerFlags.add("-lm")
+                    targetConfig.compilerFlags.add("-lm")
                 }
                 code.insert(0, '''
                     #define _LF_CLOCK_SYNC_ON
@@ -884,9 +883,9 @@ class CGenerator extends GeneratorBase {
             }
 
             // If a test clock offset has been specified, insert code to set it here.
-            if (config.clockSyncOptions.testOffset !== null) {
+            if (targetConfig.clockSyncOptions.testOffset !== null) {
                 pr('''
-                    set_physical_clock_offset((1 + «federate.id») * «config.clockSyncOptions.testOffset.toNanoSeconds»LL);
+                    set_physical_clock_offset((1 + «federate.id») * «targetConfig.clockSyncOptions.testOffset.toNanoSeconds»LL);
                 ''')
             }
             
@@ -897,9 +896,9 @@ class CGenerator extends GeneratorBase {
             
             // Disable clock synchronization for the federate if it resides on the same host as the RTI,
             // unless that is overridden with the clock-sync-options target property.
-            if (config.clockSync !== ClockSyncMode.OFF
+            if (targetConfig.clockSync !== ClockSyncMode.OFF
                 && (!federationRTIProperties.get('host').toString.equals(federate.host) 
-                    || config.clockSyncOptions.localFederatesOn)
+                    || targetConfig.clockSyncOptions.localFederatesOn)
             ) {
                 pr('''
                     synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);
@@ -933,7 +932,7 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        copyFileFromClassPath("/lib/C/ctarget.h", Configuration.toPath(srcGenRoot) + File.separator + "ctarget.h")
+        copyFileFromClassPath("/lib/C/ctarget.h", codeGenConfig.srcGenPath + File.separator + "ctarget.h")
     }
 
     ////////////////////////////////////////////
@@ -943,19 +942,18 @@ class CGenerator extends GeneratorBase {
      */
     override createFederateRTI() {
         // Derive target filename from the .lf filename.
-        var cFilename = getTargetFileName(filename + "_RTI")
+        var cFilename = getTargetFileName(topLevelName + "_RTI")
         
-        var srcGenPath = Configuration.toPath(getSrcGenRoot())
-        var outPath = Configuration.toPath(getBinGenRoot())
+        
 
         // Delete source previously produced by the LF compiler.
-        var file = new File(srcGenPath + File.separator + cFilename)
+        var file = codeGenConfig.srcGenPath.resolve(cFilename).toFile
         if (file.exists) {
             file.delete
         }
 
         // Delete binary previously produced by the C compiler.
-        file = new File(outPath + File.separator + filename)
+        file = codeGenConfig.binPath.resolve(topLevelName).toFile
         if (file.exists) {
             file.delete
         }
@@ -963,18 +961,18 @@ class CGenerator extends GeneratorBase {
         val rtiCode = new StringBuilder()
         pr(rtiCode, this.defineLogLevel)
         
-        if (config.clockSync == ClockSyncMode.INITIAL) {
+        if (targetConfig.clockSync == ClockSyncMode.INITIAL) {
             pr(rtiCode, '''
                 #define _LF_CLOCK_SYNC_INITIAL
-                #define _LF_CLOCK_SYNC_PERIOD_NS «config.clockSyncOptions.period.toNanoSeconds»
-                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «config.clockSyncOptions.trials»
+                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.toNanoSeconds»
+                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
             ''')
-        } else if (config.clockSync == ClockSyncMode.ON) {
+        } else if (targetConfig.clockSync == ClockSyncMode.ON) {
             pr(rtiCode, '''
                 #define _LF_CLOCK_SYNC_INITIAL
                 #define _LF_CLOCK_SYNC_ON
-                #define _LF_CLOCK_SYNC_PERIOD_NS «config.clockSyncOptions.period.toNanoSeconds»
-                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «config.clockSyncOptions.trials»
+                #define _LF_CLOCK_SYNC_PERIOD_NS «targetConfig.clockSyncOptions.period.toNanoSeconds»
+                #define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL «targetConfig.clockSyncOptions.trials»
             ''')
         }
         pr(rtiCode, '''
@@ -998,7 +996,7 @@ class CGenerator extends GeneratorBase {
             printf("Starting RTI for %d federates in federation ID %s\n", NUMBER_OF_FEDERATES, federation_id);
             for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
                 initialize_federate(i);
-                «IF config.fastMode»
+                «IF targetConfig.fastMode»
                     federates[i].mode = FAST;
                 «ENDIF»
             }
@@ -1104,14 +1102,13 @@ class CGenerator extends GeneratorBase {
         unindent(rtiCode)
         pr(rtiCode, "}")
         
-        var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + cFilename));
+        var fOut = new FileOutputStream(codeGenConfig.srcGenPath.resolve(cFilename).toFile);
         fOut.write(rtiCode.toString().getBytes())
         fOut.close()
         
         // Write a Dockerfile for the RTI.
-        if (config.dockerOptions !== null) {
-            writeDockerFile(filename + '_RTI')
+        if (targetConfig.dockerOptions !== null) {
+            writeDockerFile(topLevelName + '_RTI')
         }
     }
     
@@ -1164,13 +1161,13 @@ class CGenerator extends GeneratorBase {
         // to get screen to work looks like this:
         // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
         
-        var outPath = Configuration.toPath(getBinGenRoot())
+        //var outPath = binGenPath
 
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()
         pr(shCode, '''
             #!/bin/bash
-            # Launcher for federated «filename».lf Lingua Franca program.
+            # Launcher for federated «topLevelName».lf Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
             
@@ -1193,12 +1190,12 @@ class CGenerator extends GeneratorBase {
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
             FEDERATION_ID=`openssl rand -hex 24`
-            echo "Federate «filename» in Federation ID "$FEDERATION_ID
+            echo "Federate «topLevelName» in Federation ID "$FEDERATION_ID
             # Launch the federates:
         ''')
         val distHeader = '''
             #!/bin/bash
-            # Distributor for federated «filename».lf Lingua Franca program.
+            # Distributor for federated «topLevelName».lf Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
         '''
@@ -1214,6 +1211,7 @@ class CGenerator extends GeneratorBase {
         }
         // Launch the RTI in the foreground.
         if (host == 'localhost' || host == '0.0.0.0') {
+            // FIXME: the paths below will not work on Windows
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI)."
                 # The RTI is started first to allow proper boot-up
@@ -1221,7 +1219,7 @@ class CGenerator extends GeneratorBase {
                 # The RTI will be brought back to foreground
                 # to be responsive to user inputs after all federates
                 # are launched.
-                «outPath»«File.separator»«filename»_RTI -i $FEDERATION_ID &
+                «codeGenConfig.binPath.resolve(topLevelName)»_RTI -i $FEDERATION_ID &
                 # Store the PID of the RTI
                 RTI=$!
                 # Wait for the RTI to boot up before
@@ -1235,8 +1233,8 @@ class CGenerator extends GeneratorBase {
             // Copy the source code onto the remote machine and compile it there.
             if (distCode.length === 0) pr(distCode, distHeader)
             
-            val logFileName = '''log/«filename»_RTI.log'''
-            val compileCommand = '''«this.config.compiler» «config.compilerFlags.join(" ")» src-gen/«filename»_RTI.c -o bin/«filename»_RTI -pthread'''
+            val logFileName = '''log/«topLevelName»_RTI.log'''
+            val compileCommand = '''«this.targetConfig.compiler» «targetConfig.compilerFlags.join(" ")» src-gen/«topLevelName»_RTI.c -o bin/«topLevelName»_RTI -pthread'''
             
             // The mkdir -p flag below creates intermediate directories if needed.
             pr(distCode, '''
@@ -1253,9 +1251,9 @@ class CGenerator extends GeneratorBase {
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files for RTI to host «target»"
-                scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen
+                scp «topLevelName»_RTI.c ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
-                echo "Compiling on host «target» using: «config.compiler» «config.compilerFlags.join(" ")» «path»/src-gen/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
+                echo "Compiling on host «target» using: «targetConfig.compiler» «targetConfig.compilerFlags.join(" ")» «path»/src-gen/«topLevelName»_RTI.c -o «path»/bin/«topLevelName»_RTI -pthread"
                 ssh «target» ' \
                     cd «path»; \
                     echo "In «path» compiling RTI with: «compileCommand»" >> «logFileName» 2>&1; \
@@ -1276,7 +1274,7 @@ class CGenerator extends GeneratorBase {
             // The cryptic 2>&1 reroutes stderr to stdout so that both are returned.
             // The sleep at the end prevents screen from exiting before outgoing messages from
             // the federate have had time to go out to the RTI through the socket.
-            val executeCommand = '''bin/«filename»_RTI -i '$FEDERATION_ID' '''
+            val executeCommand = '''bin/«topLevelName»_RTI -i '$FEDERATION_ID' '''
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
                 # FIXME: Killing this ssh does not kill the remote process.
@@ -1302,8 +1300,8 @@ class CGenerator extends GeneratorBase {
         for (federate : federates) {
             if (federate.host !== null && federate.host != 'localhost' && federate.host != '0.0.0.0') {
                 if(distCode.length === 0) pr(distCode, distHeader)
-                val logFileName = '''log/«filename»_«federate.name».log'''
-                val compileCommand = '''«config.compiler» src-gen/«filename»_«federate.name».c -o bin/«filename»_«federate.name» -pthread «config.compilerFlags.join(" ")»'''
+                val logFileName = '''log/«topLevelName»_«federate.name».log'''
+                val compileCommand = '''«targetConfig.compiler» src-gen/«topLevelName»_«federate.name».c -o bin/«topLevelName»_«federate.name» -pthread «targetConfig.compilerFlags.join(" ")»'''
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen, src-gen/core, and log on host «federate.host»"
@@ -1319,7 +1317,7 @@ class CGenerator extends GeneratorBase {
                     popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».c «FOR file:config.filesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen
+                    scp «topLevelName»_«federate.name».c «FOR file:targetConfig.filesNamesWithoutPath SEPARATOR " "»«file»«ENDFOR» ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
                     echo "Compiling on host «federate.host» using: «compileCommand»"
                     ssh «federate.host» '\
@@ -1328,7 +1326,7 @@ class CGenerator extends GeneratorBase {
                         # Capture the output in the log file and stdout.
                         «compileCommand» 2>&1 | tee -a «logFileName»;'
                 ''')
-                val executeCommand = '''bin/«filename»_«federate.name» -i '$FEDERATION_ID' '''
+                val executeCommand = '''bin/«topLevelName»_«federate.name» -i '$FEDERATION_ID' '''
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
                     # FIXME: Killing this ssh does not kill the remote process.
@@ -1346,7 +1344,7 @@ class CGenerator extends GeneratorBase {
             } else {
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name»."
-                    «outPath»«File.separator»«filename»_«federate.name» -i $FEDERATION_ID &
+                    «codeGenConfig.binPath.resolve(topLevelName)»_«federate.name» -i $FEDERATION_ID &
                     pids[«federateIndex++»]=$!
                 ''')                
             }
@@ -1372,7 +1370,7 @@ class CGenerator extends GeneratorBase {
 
         // Write the launcher file.
         // Delete file previously produced, if any.
-        var file = new File(outPath + File.separator + filename)
+        var file = codeGenConfig.binPath.resolve(topLevelName).toFile
         if (file.exists) {
             file.delete
         }
@@ -1386,7 +1384,7 @@ class CGenerator extends GeneratorBase {
         
         // Write the distributor file.
         // Delete the file even if it does not get generated.
-        file = new File(outPath + File.separator + filename + '_distribute.sh')
+        file = codeGenConfig.binPath.resolve(topLevelName + '_distribute.sh').toFile
         if (file.exists) {
             file.delete
         }
@@ -2923,18 +2921,17 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protoc = createCommand("protoc-c", #["--c_out=src-gen", filename])
+        val protoc = createCommand("protoc-c", #['''--c_out=«this.codeGenConfig.srcGenPath»''', filename], Paths.get(codeGenConfig.sourceFile.parent))
         if (protoc === null) {
             return
         }
         val returnCode = protoc.executeCommand()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
-            config.compileAdditionalSources.add(SRC_GEN_DIR + File.separator + nameSansProto +
-                ".pb-c.c")
+            targetConfig.compileAdditionalSources.add(this.codeGenConfig.srcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
 
-            config.compileLibraries.add('-l')
-            config.compileLibraries.add('protobuf-c')    
+            targetConfig.compileLibraries.add('-l')
+            targetConfig.compileLibraries.add('protobuf-c')    
         } else {
             reportError("protoc-c returns error code " + returnCode)
         }
@@ -2946,7 +2943,7 @@ class CGenerator extends GeneratorBase {
     static def String defineLogLevel(GeneratorBase generator) {
         // FIXME: if we align the levels with the ordinals of the
         // enum (see CppGenerator), then we don't need this function.
-        switch(generator.config.logLevel) {
+        switch(generator.targetConfig.logLevel) {
             case ERROR: '''
                 #define LOG_LEVEL 0
             '''
@@ -3201,7 +3198,7 @@ class CGenerator extends GeneratorBase {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
-        if (config.tracing) {
+        if (targetConfig.tracing) {
             var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
@@ -3374,7 +3371,7 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects, '''
                             __shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->___reaction_«reactionCount»;
                         ''')
-                        if (config.tracing) {
+                        if (targetConfig.tracing) {
                             val description = getShortenedName(instance)
                             pr(initializeTriggerObjects, '''
                                 _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___shutdown),
@@ -3579,7 +3576,7 @@ class CGenerator extends GeneratorBase {
             }
             if (minDelay != TimeValue.MAX_VALUE) {
                 // Unless silenced, issue a warning.
-                if (config.coordinationOptions.advance_message_interval === null) {
+                if (targetConfig.coordinationOptions.advance_message_interval === null) {
                     reportWarning(outputFound, '''
                             Found a path from a physical action to output for reactor "«instance.name»". 
                             The amount of delay is «minDelay.toString()».
@@ -4133,7 +4130,7 @@ class CGenerator extends GeneratorBase {
                     return;
                 }
             ''')
-        } else if (config.coordination === CoordinationType.DECENTRALIZED) {
+        } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
             socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
             // Check if the socket is still valid first
@@ -4214,12 +4211,12 @@ class CGenerator extends GeneratorBase {
             pr('''
                 #define FEDERATED
             ''')
-            if (config.coordination === CoordinationType.CENTRALIZED) {
+            if (targetConfig.coordination === CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
                 pr('''
                     #define FEDERATED_CENTRALIZED
                 ''')                
-            } else if (config.coordination === CoordinationType.DECENTRALIZED) {
+            } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
                 // The coordination is decentralized
                 pr('''
                     #define FEDERATED_DECENTRALIZED
@@ -4231,14 +4228,14 @@ class CGenerator extends GeneratorBase {
 
         pr('#define NUMBER_OF_FEDERATES ' + federates.length);
         
-        if (config.coordinationOptions.advance_message_interval !== null) {
-            pr('#define ADVANCE_MESSAGE_INTERVAL ' + config.coordinationOptions.advance_message_interval.timeInTargetLanguage)
+        if (targetConfig.coordinationOptions.advance_message_interval !== null) {
+            pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
         }
                         
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (config.threads === 0 && federates.length > 1) {
-            config.threads = 1
+        if (targetConfig.threads === 0 && federates.length > 1) {
+            targetConfig.threads = 1
         }
 
         includeTargetLanguageSourceFiles()
@@ -4250,11 +4247,10 @@ class CGenerator extends GeneratorBase {
         parseTargetParameters()
         
         // Make sure src-gen directory exists.
-        val srcGenDir = new File(Configuration.toPath(getSrcGenRoot))
-        srcGenDir.mkdirs
+        codeGenConfig.srcGenPath.toFile.mkdirs
         
         // Handle .proto files.
-        for (file : config.protoFiles) {
+        for (file : targetConfig.protoFiles) {
             this.processProtoFile(file)
             val dotIndex = file.lastIndexOf('.')
             var rootFilename = file
@@ -4270,30 +4266,30 @@ class CGenerator extends GeneratorBase {
      * accordingly.
      */
     def parseTargetParameters() {
-        if (config.fastMode) {
+        if (targetConfig.fastMode) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
-                runCommand.add(filename)
+                runCommand.add(topLevelName)
             }
             runCommand.add("-f")
             runCommand.add("true")
         }
-        if (config.keepalive) {
+        if (targetConfig.keepalive) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
-                runCommand.add(filename)
+                runCommand.add(topLevelName)
             }
             runCommand.add("-k")
             runCommand.add("true")
         }
-        if (config.timeout !== null) {
+        if (targetConfig.timeout !== null) {
             // The runCommand has a first entry that is ignored but needed.
             if (runCommand.length === 0) {
-                runCommand.add(filename)
+                runCommand.add(topLevelName)
             }
             runCommand.add("-o")
-            runCommand.add(config.timeout.time.toString)
-            runCommand.add(config.timeout.unit.toString)
+            runCommand.add(targetConfig.timeout.time.toString)
+            runCommand.add(targetConfig.timeout.unit.toString)
         }
         
     }
@@ -4303,23 +4299,23 @@ class CGenerator extends GeneratorBase {
      *  uniformly across all target languages.
      */
     protected def includeTargetLanguageHeaders() {
-        if (config.tracing) {
+        if (targetConfig.tracing) {
             pr('#define LINGUA_FRANCA_TRACE')
         }
         pr('#include "ctarget.h"')
-        if (config.tracing) {
+        if (targetConfig.tracing) {
             pr('#include "core/trace.c"')            
         }
     }
     
     /** Add necessary source files specific to the target language.  */
     protected def includeTargetLanguageSourceFiles() {
-        if (config.threads > 0) {
+        if (targetConfig.threads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             pr(startTimers, '''
                 if (_lf_number_of_threads == 0) {
-                   _lf_number_of_threads = «config.threads»;
+                   _lf_number_of_threads = «targetConfig.threads»;
                 }
             ''')
             pr("#include \"core/reactor_threaded.c\"")
@@ -5010,9 +5006,9 @@ class CGenerator extends GeneratorBase {
                 offset += 1
             }
             if (System.getProperty("os.name").toLowerCase.contains("windows")) {
-                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + windowsSourceFile + '"')
+                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + codeGenConfig.windowsSourceFile + '"')
             } else {
-                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + sourceFile + '"')
+                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + codeGenConfig.sourceFile + '"')
             }
         }
     }
@@ -5097,7 +5093,7 @@ class CGenerator extends GeneratorBase {
     
     protected def isFederatedAndDecentralized() {
         if (isFederated &&
-            config.coordination === CoordinationType.DECENTRALIZED) {
+            targetConfig.coordination === CoordinationType.DECENTRALIZED) {
             return true
         }
         return false
@@ -5105,7 +5101,7 @@ class CGenerator extends GeneratorBase {
     
     protected def isFederatedAndCentralized() {
         if (isFederated &&
-            config.coordination === CoordinationType.CENTRALIZED) {
+            targetConfig.coordination === CoordinationType.CENTRALIZED) {
             return true
         }
         return false
