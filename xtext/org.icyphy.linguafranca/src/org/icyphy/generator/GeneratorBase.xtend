@@ -613,9 +613,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var cFilename = this.topLevelName + "_RTI.c"
 
         // Delete source previously produced by the LF compiler.
+        // 
         var file = RTISrcPath.resolve(cFilename).toFile
         if (file.exists) {
             file.delete
+        }
+        
+        // Also make sure the directory exists.
+        if (!file.parentFile.exists || !file.parentFile.isDirectory) {
+            file.mkdirs
         }
 
         // Delete binary previously produced by the C compiler.
@@ -766,13 +772,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /**
      * Run the custom build command specified with the "build" parameter.
+     * This command is executed in the same directory as the source file.
      */
     protected def runBuildCommand() {
         var commands = newLinkedList
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 1) {
-                val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.codeGenConfig.outPath)
+                val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.codeGenConfig.srcPath)
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
                 if (buildCommand === null) {
@@ -973,7 +980,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
     protected def createCommand(String cmd) {
-        return createCommand(cmd, #[], codeGenConfig.outPath, findCommandEnv(cmd))
+        return createCommand(cmd, #[], codeGenConfig.outPath, findCommandEnv(cmd)) // FIXME: add argument to specify where to execute; there is no useful assumption that would work here
     }
 
     /** 
@@ -1474,7 +1481,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Copy the file.
         try {
-            // Make sure the directory exists.
+            // Make sure the directory exists
             val destFile = new File(destination);
             destFile.getParentFile().mkdirs();
 

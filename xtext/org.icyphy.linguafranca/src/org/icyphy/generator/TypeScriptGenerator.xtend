@@ -55,6 +55,8 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /** Generator for TypeScript target.
  *
@@ -90,11 +92,10 @@ class TypeScriptGenerator extends GeneratorBase {
     // Path to a default configuration files
     var String configPath
     
+    val configFiles = #["package.json", "tsconfig.json", "babel.config.js"]
+    
     // Path to core reactor-ts files
     var String reactorTSCorePath
-    
-    // Path to the tsc command within the node modules directory
-    var String tscPath
     
     // FIXME: The CGenerator expects these next two paths to be
     // relative to the directory, not the project folder
@@ -183,23 +184,26 @@ class TypeScriptGenerator extends GeneratorBase {
             val jsFilename = federateFilename + ".js";
 
             // Delete source previously produced by the LF compiler.
-            var file = new File(srcGenPath + File.separator + tsFilename)
-            if (file.exists) {
-                file.delete
+            val generated = codeGenConfig.srcGenPath.resolve(tsFilename).toFile
+            if (generated.exists) {
+                generated.delete
             }
 
             // Delete .js previously output by TypeScript compiler
-            file = new File(outPath + File.separator + jsFilename)
-            if (file.exists) {
-                file.delete
+            val compiled = new File(outPath + File.separator + jsFilename)
+            if (compiled.exists) {
+                compiled.delete
             }
 
             // Write the generated code to the output file.
             var fOut = new FileOutputStream(
-                new File(srcGenPath + File.separator + tsFilename));
+                codeGenConfig.srcGenPath.resolve(tsFilename).toFile);
             fOut.write(getCode().getBytes())
             fOut.close()
         }
+    
+        // FIXME: delete srcGenPath if it is not a directory! This is likely also an issue for the other code generators. Important.
+
 
         // Copy the required library files into the src directory
         // so they may be compiled as part of the TypeScript project.
@@ -209,24 +213,12 @@ class TypeScriptGenerator extends GeneratorBase {
             "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts", "util.ts")
 
         for (file : reactorTSCoreFiles) {
-            copyReactorTSCoreFile(srcGenPath, file)
-        }
-        
-        // Only run npm install if we had to copy over the default package.json.
-        var boolean runNpmInstall
-        var File packageJSONFile = new File(topLevelName + File.separator + "package.json")
-        println(">>>>>> " + packageJSONFile)
-        if (packageJSONFile.exists()) {
-            runNpmInstall = false
-        } else {
-            runNpmInstall = true
+            copyReactorTSCoreFile(codeGenConfig.srcGenPath.toString, file)
         }
 
-        // Copy default versions of config files into project if
+        // Install default versions of config files into project if
         // they don't exist.       
-        createDefaultConfigFile(topLevelName, "package.json")
-        createDefaultConfigFile(projectPath, "tsconfig.json")
-        createDefaultConfigFile(projectPath, "babel.config.js")
+        this.initializeProjectConfiguration()
         
         // NOTE: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
         // the complete PATH variable needed to find the command npm. I had
@@ -238,14 +230,12 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // Install npm modules only if the default package.json was copied over.
         
-        if (runNpmInstall) {
-            val npmInstall = createCommand("npm", #["install"], codeGenConfig.outPath)
+            val npmInstall = createCommand("npm", #["install"], codeGenConfig.srcGenPath)
             if (npmInstall === null || npmInstall.executeCommand() !== 0) {
                 reportError(resource.findTarget, "ERROR: npm install command failed."
                     + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
-        }
         
         refreshProject()
         
@@ -289,30 +279,19 @@ class TypeScriptGenerator extends GeneratorBase {
         
 
         // Invoke the compiler on the generated code.
-        
-        // Working example: src-gen/Minimal.ts --outDir bin --module CommonJS --target es2018 --esModuleInterop true --lib esnext,dom --alwaysStrict true --strictBindCallApply true --strictNullChecks true
-        // Must compile to ES2015 or later and include the dom library.
-        // Working command without a tsconfig.json:
-        // compileCommand.addAll(tscPath,  relativeSrcFilename, 
-        //      "--outDir", "js", "--module", "CommonJS", "--target", "es2018", "--esModuleInterop", "true",
-        //      "--lib", "esnext,dom", "--alwaysStrict", "true", "--strictBindCallApply", "true",
-        //      "--strictNullChecks", "true");
-        
-        // FIXME: Perhaps add a compileCommand option to the target directive, as in C.
-        // Here, we just use a generic compile command.
-
         println("Type Checking")
-        // If $tsc is run with no arguments, it uses the tsconfig file.
-        val tsc = createCommand(tscPath)
+        val tsc = createCommand("npm", #["run", "check-types"], codeGenConfig.srcGenPath, findCommandEnv("npm"))
         if (tsc !== null) {
-            tsc.directory(new File(projectPath))
+            tsc.directory(codeGenConfig.srcGenPath.toFile)
             if (tsc.executeCommand() == 0) {
                 // Babel will compile TypeScript to JS even if there are type errors
                 // so only run compilation if tsc found no problems.
-                val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
+                //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
                 // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
                 println("Compiling")
-                val babel = createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], codeGenConfig.outPath)
+                val babel = createCommand("npm", #["run", "build"], codeGenConfig.srcGenPath)
+                //createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], codeGenConfig.outPath)
+                
                 if (babel !== null) {
                     babel.directory(new File(projectPath))
                     if (babel.executeCommand() == 0) {
@@ -327,19 +306,8 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         // If this is a federated execution, generate the C RTI
-        
-        // FIXME: DO THE COMMENT BELOW
-        // Also, create two RTI C files, one that launches the federates
-        // and one that does not.
-        
+                
         if (federates.length > 1) {
-            
-            // Create C output directories (if they don't exist)            
-            dir = new File(cSrcGenPath)
-            if (!dir.exists()) dir.mkdirs()
-            dir = new File(cOutPath)
-            if (!dir.exists()) dir.mkdirs()
-            
             createFederateRTI()
 
             // Copy the required library files into the target file system.
@@ -1167,7 +1135,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     throw new Error("'logging' command line argument is malformed.");
                 }
             } else {
-                Log.global.level = Log.levels.«getLoggingLevel»; // Default from target property.
+                Log.global.level = Log.levels.«targetConfig.logLevel.name»; // Default from target property.
             }
             
             // Help parameter (not a constructor parameter, but a command line option)
@@ -1291,8 +1259,6 @@ class TypeScriptGenerator extends GeneratorBase {
         cOutPath = codeGenConfig.binPath.toString
         reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
             + "core" + File.separator
-        tscPath = codeGenConfig.outPath + File.separator + "node_modules" +  File.separator 
-        + "typescript" +  File.separator + "bin" +  File.separator + "tsc"
     }
     
     /**
@@ -1316,28 +1282,7 @@ class TypeScriptGenerator extends GeneratorBase {
             pr(protoImportLine)  
         }
         pr("")  
-     }  
-    
-    
-    /** Look for a "logging" target property and return
-     *  the appropriate logging level. This level is a
-     *  subset of Log.level enum from the ulog module
-     *  https://www.npmjs.com/package/ulog. Logged messages
-     *  will display if the level of the message <= the logging level.
-     *  For now, these log levels are:
-     *  Error < Warn < Info < Log < Debug.
-     *  The case of the level when expressed as a target property
-     *  doesn't matter, but the return value from this function is
-     *  in all caps.
-     *  @return The logging target property's value in all caps.
-     */
-    private def getLoggingLevel() {
-        if (targetConfig.logLevel === null) {
-            LogLevel.ERROR.name
-        } else {
-            targetConfig.logLevel.name
-        }
-    }
+     }
     
     /** Copy the designated file from reactor-ts core into the target
      *  directory.
@@ -1351,25 +1296,26 @@ class TypeScriptGenerator extends GeneratorBase {
         )
     }
     
-    /** If the given filename doesn't already exist in the targetPath
-     *  create it by copying over the default from /lib/TS/. Do nothing
-     *  if the file already exists because we don't want to overwrite custom
-     *  user-specified configurations. 
-     *  @param targetPath The path to the where the file will be copied.
-     *  @param filename The name of the file for which to create a default in
-     *    the root of the project directory
-     *  @return true if the file was created, false otherwise.
+    /** 
+     * Check whether configuration files are present in the same directory
+     * as the source file. For those that are missing, install a default
+     * If the given filename is not present in the same directory as the source
+     * file, copy a default version of it from /lib/TS/.
      */
-    private def createDefaultConfigFile(String targetPath, String filename) {
-        var File defaultFile = new File(targetPath + File.separator + filename)
-        val libFile = configPath + File.separator + filename
-        if(!defaultFile.exists()){
-            println(filename + " does not already exist for this project."
-                + " Copying over default from " + libFile)
-            copyFileFromClassPath(libFile, targetPath + File.separator + filename)
-        } else {
-            println("This project already has " + targetPath + File.separator + filename)
-        }
+    private def initializeProjectConfiguration() {
+        
+        this.configFiles.forEach [ fName |
+            val alt = configPath + "/" + fName
+            val src = new File(codeGenConfig.srcPath.toFile, fName)
+            val dst = new File(codeGenConfig.srcGenPath.toFile, fName)
+            if (src.exists) {
+                println("Copying '" + fName + "' from " + codeGenConfig.srcPath)
+                Files.copy(src.toPath, dst.toPath, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                println("No '" + fName + "' exists in " + codeGenConfig.srcPath + ". Using default configuration.")
+                copyFileFromClassPath(alt, dst.absolutePath)
+            }
+        ]
     }
 
 
