@@ -244,11 +244,9 @@ class TypeScriptGenerator extends GeneratorBase {
         
         // First test if the project directory contains any .proto files
         if (targetConfig.protoFiles.size != 0) {
-            // Working example: protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --js_out=import_style=commonjs,binary:./generated --ts_out=./generated *.proto
+            // For more info, see: https://www.npmjs.com/package/ts-protoc-gen
             
-            // FIXME: Should we include protoc as a submodule? If so, how to invoke it?
-            // protoc is commonly installed in /usr/local/bin, which sadly is not by
-            // default on the PATH for a Mac.
+            // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
             val List<String> protocArgs = newLinkedList
             val relativeOutPath = codeGenConfig.srcPath.relativize(codeGenConfig.srcGenPath)
             protocArgs.addAll(
