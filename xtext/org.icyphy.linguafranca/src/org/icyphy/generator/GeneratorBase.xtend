@@ -119,7 +119,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var TargetConfig targetConfig = new TargetConfig()
     
-    protected var CodeGenConfig codeGenConfig
+    protected var CodeGenConfig codeGenConfig // FIXME: use getter/setter instead
     
     /**
      * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
@@ -159,6 +159,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def Path getRTIBinPath() {
         return this.codeGenConfig.binPath // FIXME: overriding this won't actually work because code that invokes the C compiler does not know whether it is compiling RTI code or regular reactor code.
+    }
+
+    def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+        this.codeGenConfig = new CodeGenConfig(resource, fsa, context);
     }
 
     /**
@@ -404,7 +408,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
-        this.codeGenConfig = new CodeGenConfig(resource, fsa, context);
+        setFileConfig(resource, fsa, context)
         
         // The following "analysis" has hidden in it AST transformations.
         // FIXME: We should factor them out and rename the following method

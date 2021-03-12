@@ -38,7 +38,6 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.InferredType
 import org.icyphy.Target
-import org.icyphy.TargetProperty.LogLevel
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Delay
@@ -77,25 +76,27 @@ class TypeScriptGenerator extends GeneratorBase {
         targetConfig.compilerFlags.add("-O2")
     }
     
-    // Path to the generated project directory
-    var String projectPath
+    //protected var TypeScriptConfig codeGenConfig
     
-    // Path to reactor-ts files
-    var String reactorTSPath
-    
-    // Path to the src directory
-    var String srcGenPath
-    
-    // Path to the output dist directory
-    var String outPath
+//    // Path to the generated project directory
+//    var String projectPath
+//    
+//    // Path to reactor-ts files
+//    var String reactorTSPath
+//    
+//    // Path to the src directory
+//    var String srcGenPath
+//    
+//    // Path to the output dist directory
+//    var String outPath
     
     // Path to a default configuration files
     var String configPath
     
     val configFiles = #["package.json", "tsconfig.json", "babel.config.js"]
     
-    // Path to core reactor-ts files
-    var String reactorTSCorePath
+//    // Path to core reactor-ts files
+//    var String reactorTSCorePath
     
     // FIXME: The CGenerator expects these next two paths to be
     // relative to the directory, not the project folder
@@ -113,6 +114,10 @@ class TypeScriptGenerator extends GeneratorBase {
     // custom command line arguments
     var customCLArgs = new HashSet<Parameter>()
 
+    override setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+        this.codeGenConfig = new TypeScriptConfig(resource, fsa, context)
+    }
+
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -126,7 +131,6 @@ class TypeScriptGenerator extends GeneratorBase {
         IGeneratorContext context
     ) {
         super.doGenerate(resource, fsa, context)
-        
         // Set variables for paths
         analyzePaths()
         
@@ -140,15 +144,13 @@ class TypeScriptGenerator extends GeneratorBase {
            
         // Generate code for each reactor. 
         for (r : reactors) {
-           r.toDefinition.generateReactor()
+           r.toDefinition.generateReactor() // FIXME: put each reactor class in its own file instead.
         }
         
         // Create output directories if they don't yet exist
-        var dir = new File(projectPath)
+        var dir = codeGenConfig.srcGenPkgPath.toFile
         if (!dir.exists()) dir.mkdirs()
-        dir = new File(srcGenPath)
-        if (!dir.exists()) dir.mkdirs()
-        dir = new File(outPath)
+        dir = codeGenConfig.srcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
 
         // Perform distinct code generation into distinct files for each federate.
@@ -190,7 +192,7 @@ class TypeScriptGenerator extends GeneratorBase {
             }
 
             // Delete .js previously output by TypeScript compiler
-            val compiled = new File(outPath + File.separator + jsFilename)
+            val compiled = codeGenConfig.srcGenPath.resolve("dist").resolve(jsFilename).toFile
             if (compiled.exists) {
                 compiled.delete
             }
@@ -213,7 +215,7 @@ class TypeScriptGenerator extends GeneratorBase {
             "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts", "util.ts")
 
         for (file : reactorTSCoreFiles) {
-            copyReactorTSCoreFile(codeGenConfig.srcGenPath.toString, file)
+            copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file, codeGenConfig.srcGenPath.resolve("core").resolve(file).toString)
         }
 
         // Install default versions of config files into project if
@@ -228,9 +230,7 @@ class TypeScriptGenerator extends GeneratorBase {
         // ~/.bash_profile file that specifies suitable paths, the command should
         // work.
         
-        // Install npm modules only if the default package.json was copied over.
-        
-            val npmInstall = createCommand("npm", #["install"], codeGenConfig.srcGenPath)
+            val npmInstall = createCommand("pnpm", #["install"], codeGenConfig.srcGenPkgPath)
             if (npmInstall === null || npmInstall.executeCommand() !== 0) {
                 reportError(resource.findTarget, "ERROR: npm install command failed."
                     + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
@@ -250,12 +250,13 @@ class TypeScriptGenerator extends GeneratorBase {
             // protoc is commonly installed in /usr/local/bin, which sadly is not by
             // default on the PATH for a Mac.
             val List<String> protocArgs = newLinkedList
+            val relativeOutPath = codeGenConfig.srcPath.relativize(codeGenConfig.srcGenPath)
             protocArgs.addAll(
-                "--plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts",
-                "--js_out=import_style=commonjs,binary:" + outPath,
-                "--ts_out=" + srcGenPath)
+                "--plugin=protoc-gen-ts=" + codeGenConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                "--js_out=import_style=commonjs,binary:"+relativeOutPath,
+                "--ts_out=" + relativeOutPath)
             protocArgs.addAll(targetConfig.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
-            val protoc = createCommand("protoc", protocArgs, codeGenConfig.outPath)
+            val protoc = createCommand("protoc", protocArgs, codeGenConfig.srcPath)
                 
             if (protoc === null) {
                 return
@@ -264,8 +265,8 @@ class TypeScriptGenerator extends GeneratorBase {
             val returnCode = protoc.executeCommand()
             if (returnCode == 0) {
                 val nameSansProto = topLevelName.substring(0, topLevelName.length - 6)
-                targetConfig.compileAdditionalSources.add("src-gen" + File.separator + nameSansProto +
-                    ".pb-c.c")
+                targetConfig.compileAdditionalSources.add(
+                this.codeGenConfig.srcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
 
                 targetConfig.compileLibraries.add('-l')
                 targetConfig.compileLibraries.add('protobuf-c')
@@ -280,20 +281,18 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Invoke the compiler on the generated code.
         println("Type Checking")
-        val tsc = createCommand("npm", #["run", "check-types"], codeGenConfig.srcGenPath, findCommandEnv("npm"))
+        val tsc = createCommand("npm", #["run", "check-types"], codeGenConfig.srcGenPkgPath, findCommandEnv("npm"))
         if (tsc !== null) {
-            tsc.directory(codeGenConfig.srcGenPath.toFile)
             if (tsc.executeCommand() == 0) {
                 // Babel will compile TypeScript to JS even if there are type errors
                 // so only run compilation if tsc found no problems.
                 //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
                 // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
                 println("Compiling")
-                val babel = createCommand("npm", #["run", "build"], codeGenConfig.srcGenPath)
+                val babel = createCommand("npm", #["run", "build"], codeGenConfig.srcGenPkgPath)
                 //createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], codeGenConfig.outPath)
                 
                 if (babel !== null) {
-                    babel.directory(new File(projectPath))
                     if (babel.executeCommand() == 0) {
                         println("SUCCESS (compiling generated TypeScript code)")                
                     } else {
@@ -305,8 +304,7 @@ class TypeScriptGenerator extends GeneratorBase {
             }
         }
 
-        // If this is a federated execution, generate the C RTI
-                
+        // If this is a federated execution, generate C code for the RTI.
         if (federates.length > 1) {
             createFederateRTI()
 
@@ -1243,11 +1241,11 @@ class TypeScriptGenerator extends GeneratorBase {
     
     private def analyzePaths() {
         // Important files and directories
-        projectPath = srcGenPath + File.separator + topLevelName
-        reactorTSPath = File.separator + "lib" + File.separator +
-            "TS" + File.separator + "reactor-ts"
-        srcGenPath = projectPath + File.separator + "src"
-        outPath = projectPath + File.separator + "dist"
+//        projectPath = srcGenPath + File.separator + topLevelName
+//        reactorTSPath = File.separator + "lib" + File.separator +
+//            "TS" + File.separator + "reactor-ts"
+//        srcGenPath = projectPath + File.separator + "src"
+//        outPath = projectPath + File.separator + "dist"
         configPath = File.separator + "lib" + File.separator + "TS"
         
         // FIXME: The CGenerator expects these paths to be
@@ -1257,8 +1255,8 @@ class TypeScriptGenerator extends GeneratorBase {
         // preferable.
         cSrcGenPath = codeGenConfig.srcGenPath.toString
         cOutPath = codeGenConfig.binPath.toString
-        reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
-            + "core" + File.separator
+//        reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
+//            + "core" + File.separator
     }
     
     /**
@@ -1284,18 +1282,6 @@ class TypeScriptGenerator extends GeneratorBase {
         pr("")  
      }
     
-    /** Copy the designated file from reactor-ts core into the target
-     *  directory.
-     *  @param targetPath The path to where the copied file will be placed.
-     *  @param filename The path to the file from reactor-ts core to copy.
-     */
-    private def copyReactorTSCoreFile(String targetPath, String filename) {
-        copyFileFromClassPath(
-            reactorTSCorePath + filename,
-            targetPath + File.separator + filename
-        )
-    }
-    
     /** 
      * Check whether configuration files are present in the same directory
      * as the source file. For those that are missing, install a default
@@ -1307,7 +1293,7 @@ class TypeScriptGenerator extends GeneratorBase {
         this.configFiles.forEach [ fName |
             val alt = configPath + "/" + fName
             val src = new File(codeGenConfig.srcPath.toFile, fName)
-            val dst = new File(codeGenConfig.srcGenPath.toFile, fName)
+            val dst = new File(codeGenConfig.srcGenPkgPath.toFile, fName)
             if (src.exists) {
                 println("Copying '" + fName + "' from " + codeGenConfig.srcPath)
                 Files.copy(src.toPath, dst.toPath, StandardCopyOption.REPLACE_EXISTING);
@@ -1405,19 +1391,14 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     }
 
-    static val reactorLibPath = "." + File.separator + "reactor"
-    static val federationLibPath = "." + File.separator + "federation"
-    static val timeLibPath =  "." + File.separator + "time"
-    static val utilLibPath =  "." + File.separator + "util"
-    static val cliLibPath =  "." + File.separator + "cli"
     static val preamble = 
 '''import commandLineArgs from 'command-line-args'
 import commandLineUsage from 'command-line-usage'
-import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App} from '«reactorLibPath»'
-import {FederatedApp} from '«federationLibPath»'
-import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin} from '«timeLibPath»'
-import {Log} from '«utilLibPath»'
-import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType} from '«cliLibPath»'
+import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App} from './core/reactor'
+import {FederatedApp} from './core/federation'
+import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin} from './core/time'
+import {Log} from './core/util'
+import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType} from './core/cli'
 
 '''
         

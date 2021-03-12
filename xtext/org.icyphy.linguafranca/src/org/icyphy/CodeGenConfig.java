@@ -85,7 +85,17 @@ public class CodeGenConfig {
      * to the package root, then the generated sources will be put in x/y/Z
      * relative to srcGenBasePath.
      */
-    public final Path srcGenPath;
+    protected Path srcGenPath;
+    
+    public Path getSrcGenPath() {
+        return srcGenPath;
+    }
+    
+    protected Path srcGenPkgPath;
+    
+    public Path getSrcGenPkgPath() {
+        return srcGenPkgPath;
+    }
     
     /**
      * The directory in which the source file was found.
@@ -136,6 +146,7 @@ public class CodeGenConfig {
         
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.pkgPath,
                 this.srcPath, nameWithoutExtension(this.srcFile));
+        this.srcGenPkgPath = this.srcGenPath;
         this.outPath = toPath(this.outputRoot);
         this.binPath = getBinPath(this.pkgPath, this.srcPath, this.outPath, context);
     }
