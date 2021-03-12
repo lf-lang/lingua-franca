@@ -76,40 +76,21 @@ class TypeScriptGenerator extends GeneratorBase {
         targetConfig.compilerFlags.add("-O2")
     }
     
-    //protected var TypeScriptConfig codeGenConfig
+    /**
+     * Path to the TypeScript library files (on the CLASSPATH).
+     */
+    val String LIB_PATH = "/lib/TS"
     
-//    // Path to the generated project directory
-//    var String projectPath
-//    
-//    // Path to reactor-ts files
-//    var String reactorTSPath
-//    
-//    // Path to the src directory
-//    var String srcGenPath
-//    
-//    // Path to the output dist directory
-//    var String outPath
-    
-    // Path to a default configuration files
-    var String configPath
-    
+    /**
+     * Names of the configuration files to check for and copy to the generated 
+     * source package root if they cannot be found in the source directory.
+     */
     val configFiles = #["package.json", "tsconfig.json", "babel.config.js"]
-    
-//    // Path to core reactor-ts files
-//    var String reactorTSCorePath
-    
-    // FIXME: The CGenerator expects these next two paths to be
-    // relative to the directory, not the project folder
-    // so for now I just left it that way. A different
-    // directory structure for RTI and TS code may be
-    // preferable.
         
     // Path to src-gen directory for C code
-    var String cSrcGenPath
-    
-    // Path to bin directory for compiled C code
-    var String cOutPath
-    
+    // FIXME: This is probably wrong, but there are no federated tests right now, so we have to implement those first.
+    var String cSrcGenPath = codeGenConfig.srcGenPath.toString
+
     // List of validly typed parameters of the main reactor for 
     // custom command line arguments
     var customCLArgs = new HashSet<Parameter>()
@@ -131,8 +112,6 @@ class TypeScriptGenerator extends GeneratorBase {
         IGeneratorContext context
     ) {
         super.doGenerate(resource, fsa, context)
-        // Set variables for paths
-        analyzePaths()
         
         // Generate imports for protocol buffer definitions
         // Note that the preamble is generated as part of
@@ -148,13 +127,15 @@ class TypeScriptGenerator extends GeneratorBase {
         }
         
         // Create output directories if they don't yet exist
+        // FIXME: move cleanup and initialize code to FileConfig
+        // FIXME: I saw some glitches that had to do with the path "existing" but it not being a directory. Add checks for this.
+        
         var dir = codeGenConfig.srcGenPkgPath.toFile
         if (!dir.exists()) dir.mkdirs()
         dir = codeGenConfig.srcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
 
         // Perform distinct code generation into distinct files for each federate.
-        val baseFilename = topLevelName
         var commonCode = code
         var String federateFilename
 
@@ -164,13 +145,13 @@ class TypeScriptGenerator extends GeneratorBase {
             
             // Only generate one output if there is no federation.
             if (!federate.isSingleton) {
-                federateFilename = baseFilename + '_' + federate.name
+                federateFilename = topLevelName + '_' + federate.name
                 // Clear out previously generated code,
                 // but keep the reactor class definitions
                 // and the preamble.
                 code = new StringBuilder(commonCode)
             } else {
-                federateFilename = baseFilename
+                federateFilename = topLevelName
             }
         
             // Build the instantiation tree if a main reactor is present.
@@ -204,9 +185,6 @@ class TypeScriptGenerator extends GeneratorBase {
             fOut.close()
         }
     
-        // FIXME: delete srcGenPath if it is not a directory! This is likely also an issue for the other code generators. Important.
-
-
         // Copy the required library files into the src directory
         // so they may be compiled as part of the TypeScript project.
         // This requires that the TypeScript submodule has been installed.
@@ -1238,26 +1216,6 @@ class TypeScriptGenerator extends GeneratorBase {
     // //////////////////////////////////////////
     // // Private methods.
     
-    private def analyzePaths() {
-        // Important files and directories
-//        projectPath = srcGenPath + File.separator + topLevelName
-//        reactorTSPath = File.separator + "lib" + File.separator +
-//            "TS" + File.separator + "reactor-ts"
-//        srcGenPath = projectPath + File.separator + "src"
-//        outPath = projectPath + File.separator + "dist"
-        configPath = File.separator + "lib" + File.separator + "TS"
-        
-        // FIXME: The CGenerator expects these paths to be
-        // relative to the directory, not the project folder
-        // so for now I just left it that way. A different
-        // directory structure for RTI and TS code may be
-        // preferable.
-        cSrcGenPath = codeGenConfig.srcGenPath.toString
-        cOutPath = codeGenConfig.binPath.toString
-//        reactorTSCorePath = reactorTSPath + File.separator + "src" + File.separator
-//            + "core" + File.separator
-    }
-    
     /**
      * Generate the part of the preamble that is determined
      * by imports to .proto files in the root directory
@@ -1290,7 +1248,7 @@ class TypeScriptGenerator extends GeneratorBase {
     private def initializeProjectConfiguration() {
         
         this.configFiles.forEach [ fName |
-            val alt = configPath + "/" + fName
+            val alt = LIB_PATH + "/" + fName
             val src = new File(codeGenConfig.srcPath.toFile, fName)
             val dst = new File(codeGenConfig.srcGenPkgPath.toFile, fName)
             if (src.exists) {
