@@ -299,9 +299,8 @@ abstract class TestBase {
                 }
             }
             case TS: {
-                val dist = Paths.get(root + File.separator + CodeGenConfig.DEFAULT_SRC_GEN_DIR + File.separator + nameOnly + File.separator + "dist")
+                val dist = test.codeGenConfig.srcGenPath.resolve("dist")
                 val file = dist.resolve(nameOnly + ".js")
-                //println(file.toString)
                 if (Files.exists(file)) {
                     pb = new ProcessBuilder("node", file.toString)
                 } else {

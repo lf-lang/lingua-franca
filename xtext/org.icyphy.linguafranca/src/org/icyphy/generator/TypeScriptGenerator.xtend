@@ -248,11 +248,12 @@ class TypeScriptGenerator extends GeneratorBase {
             
             // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
             val List<String> protocArgs = newLinkedList
-            val relativeOutPath = codeGenConfig.srcPath.relativize(codeGenConfig.srcGenPath)
+            val tsOutPath = codeGenConfig.srcPath.relativize(codeGenConfig.srcGenPath)
+            
             protocArgs.addAll(
                 "--plugin=protoc-gen-ts=" + codeGenConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
-                "--js_out=import_style=commonjs,binary:"+relativeOutPath,
-                "--ts_out=" + relativeOutPath)
+                "--js_out=import_style=commonjs,binary:"+tsOutPath,
+                "--ts_out=" + tsOutPath)
             protocArgs.addAll(targetConfig.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
             val protoc = createCommand("protoc", protocArgs, codeGenConfig.srcPath)
                 
