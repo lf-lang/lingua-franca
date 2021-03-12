@@ -312,7 +312,8 @@ public class Main {
                 try {
                     main.runGenerator(files);
                 } catch (RuntimeException e) {
-                    printFatalError("An unexpected error occurred.");
+                    printFatalError("An unexpected error occurred:");
+                    e.printStackTrace();
                     System.exit(1);
                 }
             }
