@@ -1,7 +1,6 @@
 package org.icyphy.generator;
 
 import java.io.IOException;
-import java.nio.file.Path;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
