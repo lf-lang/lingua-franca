@@ -60,8 +60,8 @@ import org.icyphy.scoping.LinguaFrancaGlobalScopeProvider
 
 import static extension org.icyphy.ASTUtils.*
 
-import static extension org.icyphy.CodeGenConfig.*
-import org.icyphy.CodeGenConfig
+import org.icyphy.FileConfig
+import static extension org.icyphy.FileConfig.*
 
 /** Generator for C++ target.
  * 
@@ -114,7 +114,7 @@ class CppGenerator extends GeneratorBase {
 
     override printInfo() {
         super.printInfo()
-        println('******** generated binaries: ' + codeGenConfig.binPath)
+        println('******** generated binaries: ' + fileConfig.binPath)
     }
 
     def preambleHeaderFile(Resource r) '''«r.toDir»/preamble.hh'''
@@ -140,7 +140,7 @@ class CppGenerator extends GeneratorBase {
             reactors.add(mainReactor)
         }
 
-        val relativePath = this.codeGenConfig.srcGenBasePath.relativize(this.codeGenConfig.srcGenPath);
+        val relativePath = this.fileConfig.srcGenBasePath.relativize(this.fileConfig.getSrcGenPath);
 
         fsa.generateFile('''«relativePath»/main.cc''',
             mainReactor.generateMain)
@@ -839,7 +839,7 @@ class CppGenerator extends GeneratorBase {
     '''
 
     def generateMain(Reactor main) '''
-        «codeGenConfig.resource.header»
+        «fileConfig.resource.header»
         
         #include <chrono>        
         #include <thread>
@@ -1013,9 +1013,9 @@ class CppGenerator extends GeneratorBase {
         // be affected.
         // There is a utility function for this in CodeGenConfig
 
-        val rootPath = this.codeGenConfig.outPath
+        val rootPath = this.fileConfig.outPath
 
-        val installPath = this.codeGenConfig.outPath.toString
+        val installPath = this.fileConfig.outPath.toString
         val buildPath = '''«rootPath»/build/«topLevelName»'''
         val reactorCppPath = '''«rootPath»/build/reactor-cpp'''
         
@@ -1029,13 +1029,13 @@ class CppGenerator extends GeneratorBase {
             "install",
             "--config",
             '''«IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»'''],
-            codeGenConfig.outPath)
+            fileConfig.outPath)
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
-            '''-DCMAKE_INSTALL_BINDIR=«codeGenConfig.outPath.relativize(codeGenConfig.binPath)»''',
+            '''-DCMAKE_INSTALL_BINDIR=«fileConfig.outPath.relativize(fileConfig.binPath)»''',
             '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
-            codeGenConfig.srcGenPath.toString],
-            codeGenConfig.srcGenPath)
+            fileConfig.getSrcGenPath.toString],
+            fileConfig.getSrcGenPath)
         if (makeBuilder === null || cmakeBuilder === null) {
             return
         }
@@ -1057,8 +1057,8 @@ class CppGenerator extends GeneratorBase {
 
             if (makeReturnCode == 0) {
                 println("SUCCESS (compiling generated C++ code)")
-                println('''Generated source code is in «codeGenConfig.srcGenPath»''')
-                println('''Compiled binary is in «codeGenConfig.binPath»''')
+                println('''Generated source code is in «fileConfig.getSrcGenPath»''')
+                println('''Compiled binary is in «fileConfig.binPath»''')
             } else {
                 reportError('''make failed with error code «makeReturnCode»''')
             }

@@ -655,7 +655,7 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonFiles(IFileSystemAccess2 fsa, FederateInstance federate)
     {
-        var file = new File(codeGenConfig.srcGenPath.toFile,  topLevelName + ".py")
+        var file = new File(fileConfig.getSrcGenPath.toFile,  topLevelName + ".py")
         if (file.exists) {
             file.delete
         }
@@ -664,7 +664,7 @@ class PythonGenerator extends CGenerator {
             file.getParentFile().mkdirs();
         writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, file.absolutePath)
         
-        val setupPath = codeGenConfig.srcGenPath.resolve("setup.py")
+        val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
         System.out.println("Generating setup file to " + setupPath)
         file = setupPath.toFile
@@ -683,12 +683,12 @@ class PythonGenerator extends CGenerator {
      * Execute the command that compiles and installs the current Python module
      */
     def pythonCompileCode() {
-        val compileCmd = createCommand('''python3''', #["setup.py", "build"], codeGenConfig.outPath)
+        val compileCmd = createCommand('''python3''', #["setup.py", "build"], fileConfig.outPath)
         val installCmd = createCommand('''python3''',
-            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."], codeGenConfig.outPath)
+            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."], fileConfig.outPath)
 
-        compileCmd.directory(codeGenConfig.srcGenPath.toFile)
-        installCmd.directory(codeGenConfig.srcGenPath.toFile)
+        compileCmd.directory(fileConfig.getSrcGenPath.toFile)
+        installCmd.directory(fileConfig.getSrcGenPath.toFile)
 
         // Set compile time environment variables
         val compileEnv = compileCmd.environment
@@ -818,7 +818,7 @@ class PythonGenerator extends CGenerator {
      * @param filename Name of the file to process.
      */
     override processProtoFile(String filename) {
-         val protoc = createCommand("protoc", #['''--python_out=«this.codeGenConfig.srcGenPath»''', filename], codeGenConfig.srcPath)
+         val protoc = createCommand("protoc", #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename], fileConfig.srcPath)
          //val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
         if (protoc === null) {
             return
@@ -948,7 +948,7 @@ class PythonGenerator extends CGenerator {
                     var filesToCopy = newArrayList('''«topLevelName».c''', "pythontarget.c", "pythontarget.h",
                         "ctarget.h", "core")
                     
-                    copyFilesFromClassPath(codeGenConfig.srcPath.toString, codeGenConfig.srcGenPath.toString, filesToCopy);
+                    copyFilesFromClassPath(fileConfig.srcPath.toString, fileConfig.getSrcGenPath.toString, filesToCopy);
                     
                     // Do not compile the Python code here. They will be compiled on remote machines
                 }
@@ -978,7 +978,7 @@ class PythonGenerator extends CGenerator {
         for (file : targetFiles) {
             copyFileFromClassPath(
                 "/" + "lib" + "/" + "Python" + "/" + file,
-                codeGenConfig.srcGenPath.resolve(file).toString
+                fileConfig.getSrcGenPath.resolve(file).toString
             )
         }
         
@@ -988,7 +988,7 @@ class PythonGenerator extends CGenerator {
         for (file : cTargetFiles) {
             copyFileFromClassPath(
                 "/" + "lib" + "/" + "C" + "/" + file,
-                codeGenConfig.srcGenPath.resolve(file).toString
+                fileConfig.getSrcGenPath.resolve(file).toString
             )
         }
     }
@@ -1041,7 +1041,7 @@ class PythonGenerator extends CGenerator {
         // on the machine that runs the RTI.  The command I tried
         // to get screen to work looks like this:
         // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
-        var outPath = codeGenConfig.srcGenPath
+        var outPath = fileConfig.getSrcGenPath
 
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()

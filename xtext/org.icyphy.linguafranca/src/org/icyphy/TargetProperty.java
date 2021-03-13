@@ -830,7 +830,7 @@ public enum TargetProperty {
             // the file actually exists.
             if (this == FILE) {
                 String file = ASTUtils.toText(e);
-                if (!CodeGenConfig.fileExists(file, v.info.directory)) {
+                if (!FileConfig.fileExists(file, v.info.directory)) {
                     v.targetPropertyWarnings
                             .add("Could not find file: '" + file + "'.");
                 }

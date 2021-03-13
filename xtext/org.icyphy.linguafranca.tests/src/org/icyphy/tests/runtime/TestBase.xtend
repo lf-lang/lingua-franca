@@ -33,8 +33,8 @@ import org.junit.jupiter.api.^extension.ExtendWith
 
 import static extension org.junit.Assert.assertTrue
 import org.icyphy.generator.GeneratorBase
-import org.icyphy.CodeGenConfig
 import org.icyphy.TargetConfig
+import org.icyphy.FileConfig
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -180,7 +180,7 @@ abstract class TestBase {
                 packageRoot = Paths.get(getRoot()); // FIXME: improve
                 hierarchicalBin = true;
             ]
-            test.codeGenConfig = new CodeGenConfig(resource, fileAccess, context);
+            test.codeGenConfig = new FileConfig(resource, fileAccess, context);
         } catch (Exception e) {
             test.result = Result.PARSE_FAIL
             restoreOutputs()
@@ -283,7 +283,7 @@ abstract class TestBase {
                 }
             }
             case Python: {
-                val srcGen = test.codeGenConfig.srcGenPath
+                val srcGen = test.codeGenConfig.getSrcGenPath
                 val fullPath = srcGen.resolve(nameOnly + ".py")
                 if (Files.exists(fullPath)) {
                     pb = new ProcessBuilder("python3", fullPath.toFile.name)
@@ -299,7 +299,7 @@ abstract class TestBase {
                 }
             }
             case TS: {
-                val dist = test.codeGenConfig.srcGenPath.resolve("dist")
+                val dist = test.codeGenConfig.getSrcGenPath.resolve("dist")
                 val file = dist.resolve(nameOnly + ".js")
                 if (Files.exists(file)) {
                     pb = new ProcessBuilder("node", file.toString)
@@ -348,7 +348,7 @@ abstract class TestBase {
         val x = 78f / tests.size()
         var marks = 0
         var done = 0
-        fileAccess.outputPath = getRoot() + File.separator + CodeGenConfig.DEFAULT_SRC_GEN_DIR
+        fileAccess.outputPath = getRoot() + File.separator + FileConfig.DEFAULT_SRC_GEN_DIR
         for (test : tests) {
             if (test.parseAndValidate(configuration) && test.generateCode()) {
                 if (run) {
