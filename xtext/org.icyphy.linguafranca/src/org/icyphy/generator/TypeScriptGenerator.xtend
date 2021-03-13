@@ -87,10 +87,6 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     val configFiles = #["package.json", "tsconfig.json", "babel.config.js"]
         
-    // Path to src-gen directory for C code
-    // FIXME: This is probably wrong, but there are no federated tests right now, so we have to implement those first.
-    var String cSrcGenPath = codeGenConfig.srcGenPath.toString
-
     // List of validly typed parameters of the main reactor for 
     // custom command line arguments
     var customCLArgs = new HashSet<Parameter>()
@@ -292,7 +288,7 @@ class TypeScriptGenerator extends GeneratorBase {
             for (file : files) {
                 copyFileFromClassPath(
                     File.separator + "lib" + File.separator + "core" + File.separator + file,
-                    cSrcGenPath + File.separator + file
+                    codeGenConfig.srcGenPath.toString + File.separator + file
                 )
             }
             compileRTI()
