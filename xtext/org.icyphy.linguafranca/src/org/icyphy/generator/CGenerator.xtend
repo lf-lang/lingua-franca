@@ -68,7 +68,7 @@ import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
 import java.nio.file.Paths
-import org.icyphy.CodeGenConfig
+import org.icyphy.FileConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -336,7 +336,7 @@ class CGenerator extends GeneratorBase {
 
     override printInfo() {
         super.printInfo()
-        println('******** generated binaries: ' + codeGenConfig.binPath)
+        println('******** generated binaries: ' + fileConfig.binPath)
     }
 
     /**
@@ -367,9 +367,9 @@ class CGenerator extends GeneratorBase {
         
         // Create the output directories if they don't yet exist.
         
-        var dir = codeGenConfig.srcGenPath.toFile
+        var dir = fileConfig.getSrcGenPath.toFile
         if (!dir.exists()) dir.mkdirs()
-        dir = codeGenConfig.binPath.toFile
+        dir = fileConfig.binPath.toFile
         if (!dir.exists()) dir.mkdirs()
 
         // Copy the required core library files into the target file system.
@@ -392,7 +392,7 @@ class CGenerator extends GeneratorBase {
             createLauncher(coreFiles)
         }
         
-        copyFilesFromClassPath("/lib/core", codeGenConfig.srcGenPath + File.separator + "core", coreFiles)
+        copyFilesFromClassPath("/lib/core", fileConfig.getSrcGenPath + File.separator + "core", coreFiles)
         
         copyTargetHeaderFile()
 
@@ -435,13 +435,13 @@ class CGenerator extends GeneratorBase {
             val cFilename = getTargetFileName(topLevelName);
 
             // Delete source previously produced by the LF compiler.
-            var file = codeGenConfig.srcGenPath.resolve(cFilename).toFile
+            var file = fileConfig.getSrcGenPath.resolve(cFilename).toFile
             if (file.exists) {
                 file.delete
             }
 
             // Delete binary previously produced by the C compiler.
-            file = codeGenConfig.binPath.resolve(topLevelName).toFile
+            file = fileConfig.binPath.resolve(topLevelName).toFile
             if (file.exists) {
                 file.delete
             }
@@ -690,7 +690,7 @@ class CGenerator extends GeneratorBase {
                     pr("void terminate_execution() {}");
                 }
             }
-            val targetFile = codeGenConfig.srcGenPath + File.separator + cFilename
+            val targetFile = fileConfig.getSrcGenPath + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             // Create docker file.
@@ -735,7 +735,7 @@ class CGenerator extends GeneratorBase {
             return
         }
         
-        var srcGenPath = codeGenConfig.srcGenPath
+        var srcGenPath = fileConfig.getSrcGenPath
         val dockerFile = srcGenPath + File.separator + filename + '.Dockerfile'
         val contents = new StringBuilder()
         
@@ -932,7 +932,7 @@ class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     def copyTargetHeaderFile() {
-        copyFileFromClassPath("/lib/C/ctarget.h", codeGenConfig.srcGenPath + File.separator + "ctarget.h")
+        copyFileFromClassPath("/lib/C/ctarget.h", fileConfig.getSrcGenPath + File.separator + "ctarget.h")
     }
 
     ////////////////////////////////////////////
@@ -947,13 +947,13 @@ class CGenerator extends GeneratorBase {
         
 
         // Delete source previously produced by the LF compiler.
-        var file = codeGenConfig.srcGenPath.resolve(cFilename).toFile
+        var file = fileConfig.getSrcGenPath.resolve(cFilename).toFile
         if (file.exists) {
             file.delete
         }
 
         // Delete binary previously produced by the C compiler.
-        file = codeGenConfig.binPath.resolve(topLevelName).toFile
+        file = fileConfig.binPath.resolve(topLevelName).toFile
         if (file.exists) {
             file.delete
         }
@@ -1102,7 +1102,7 @@ class CGenerator extends GeneratorBase {
         unindent(rtiCode)
         pr(rtiCode, "}")
         
-        var fOut = new FileOutputStream(codeGenConfig.srcGenPath.resolve(cFilename).toFile);
+        var fOut = new FileOutputStream(fileConfig.getSrcGenPath.resolve(cFilename).toFile);
         fOut.write(rtiCode.toString().getBytes())
         fOut.close()
         
@@ -1219,7 +1219,7 @@ class CGenerator extends GeneratorBase {
                 # The RTI will be brought back to foreground
                 # to be responsive to user inputs after all federates
                 # are launched.
-                «codeGenConfig.binPath.resolve(topLevelName)»_RTI -i $FEDERATION_ID &
+                «fileConfig.binPath.resolve(topLevelName)»_RTI -i $FEDERATION_ID &
                 # Store the PID of the RTI
                 RTI=$!
                 # Wait for the RTI to boot up before
@@ -1344,7 +1344,7 @@ class CGenerator extends GeneratorBase {
             } else {
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name»."
-                    «codeGenConfig.binPath.resolve(topLevelName)»_«federate.name» -i $FEDERATION_ID &
+                    «fileConfig.binPath.resolve(topLevelName)»_«federate.name» -i $FEDERATION_ID &
                     pids[«federateIndex++»]=$!
                 ''')                
             }
@@ -1370,7 +1370,7 @@ class CGenerator extends GeneratorBase {
 
         // Write the launcher file.
         // Delete file previously produced, if any.
-        var file = codeGenConfig.binPath.resolve(topLevelName).toFile
+        var file = fileConfig.binPath.resolve(topLevelName).toFile
         if (file.exists) {
             file.delete
         }
@@ -1384,7 +1384,7 @@ class CGenerator extends GeneratorBase {
         
         // Write the distributor file.
         // Delete the file even if it does not get generated.
-        file = codeGenConfig.binPath.resolve(topLevelName + '_distribute.sh').toFile
+        file = fileConfig.binPath.resolve(topLevelName + '_distribute.sh').toFile
         if (file.exists) {
             file.delete
         }
@@ -2921,14 +2921,14 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protoc = createCommand("protoc-c", #['''--c_out=«this.codeGenConfig.srcGenPath»''', filename], codeGenConfig.srcPath)
+        val protoc = createCommand("protoc-c", #['''--c_out=«this.fileConfig.getSrcGenPath»''', filename], fileConfig.srcPath)
         if (protoc === null) {
             return
         }
         val returnCode = protoc.executeCommand()
         if (returnCode == 0) {
             val nameSansProto = filename.substring(0, filename.length - 6)
-            targetConfig.compileAdditionalSources.add(this.codeGenConfig.srcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
+            targetConfig.compileAdditionalSources.add(this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
 
             targetConfig.compileLibraries.add('-l')
             targetConfig.compileLibraries.add('protobuf-c')    
@@ -4247,7 +4247,7 @@ class CGenerator extends GeneratorBase {
         parseTargetParameters()
         
         // Make sure src-gen directory exists.
-        codeGenConfig.srcGenPath.toFile.mkdirs
+        fileConfig.getSrcGenPath.toFile.mkdirs
         
         // Handle .proto files.
         for (file : targetConfig.protoFiles) {
@@ -5006,9 +5006,9 @@ class CGenerator extends GeneratorBase {
                 offset += 1
             }
             if (System.getProperty("os.name").toLowerCase.contains("windows")) {
-                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + codeGenConfig.windowsSourceFile + '"')
+                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + fileConfig.windowsSourceFile + '"')
             } else {
-                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + codeGenConfig.srcFile + '"')
+                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + fileConfig.srcFile + '"')
             }
         }
     }

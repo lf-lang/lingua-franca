@@ -6,11 +6,11 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
-import org.icyphy.CodeGenConfig;
+import org.icyphy.FileConfig;
 
-public class TypeScriptConfig extends CodeGenConfig {
+public class TypeScriptFileConfig extends FileConfig {
 
-    public TypeScriptConfig(Resource resource, IFileSystemAccess2 fsa,
+    public TypeScriptFileConfig(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) throws IOException {
         super(resource, fsa, context);
         this.srcGenPath = this.srcGenPath.resolve("src");

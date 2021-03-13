@@ -83,8 +83,8 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.CodeGenConfig
 import org.icyphy.TargetConfig
+import org.icyphy.FileConfig
 
 /**
  * Generator base class for shared code between code generators.
@@ -119,7 +119,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var TargetConfig targetConfig = new TargetConfig()
     
-    protected var CodeGenConfig codeGenConfig // FIXME: use getter/setter instead
+    /**
+     * The current file configuration. NOTE: not initialized until the
+     * invocation of doGenerate, which calls setFileConfig.
+     */
+    protected var FileConfig fileConfig
     
     /**
      * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
@@ -128,7 +132,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
      */
     public var Mode mode = Mode.UNDEFINED
-    
 
     /**
      * Collection of generated delay classes.
@@ -145,24 +148,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var String topLevelName;
     
-    /**
-     * Return the directory in which to put the generated sources for the 
-     * RTI. By default, this is the same as the regular src-gen directory.
-     */
-    def Path getRTISrcPath() {
-        return this.codeGenConfig.srcGenPath // FIXME: overriding this won't actually work because code that invokes the C compiler does not know whether it is compiling RTI code or regular reactor code.
-    }
-    
-    /**
-     * Return the directory in which to put the generated binaries for the 
-     * RTI. By default, this is the same as the regular src-gen directory.
-     */
-    def Path getRTIBinPath() {
-        return this.codeGenConfig.binPath // FIXME: overriding this won't actually work because code that invokes the C compiler does not know whether it is compiling RTI code or regular reactor code.
-    }
-
     def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        this.codeGenConfig = new CodeGenConfig(resource, fsa, context);
+        this.fileConfig = new FileConfig(resource, fsa, context);
     }
 
     /**
@@ -434,7 +421,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // "after" keyword by ones that go through a delay reactor. 
             r.insertGeneratedDelays(this)
 
-            if (r !== this.codeGenConfig.resource) {
+            if (r !== this.fileConfig.resource) {
                 // FIXME: This is just a proof of concept. What to do instead:
                 // - use reportError
                 // - report at node that represents import through which this resource
@@ -470,11 +457,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def copyUserFiles() {
         // Make sure the target directory exists.
-        val targetDir = this.codeGenConfig.srcGenPath.toFile
+        val targetDir = this.fileConfig.getSrcGenPath.toFile
         targetDir.mkdirs
 
         for (filename : targetConfig.fileNames) {
-            val file = CodeGenConfig.findFile(filename, this.codeGenConfig.srcFile.parent)
+            val file = FileConfig.findFile(filename, this.fileConfig.srcFile.parent)
             if (file !== null) {
                 val target = new File(targetDir, file.name)
                 if (target.exists) {
@@ -618,7 +605,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Delete source previously produced by the LF compiler.
         // 
-        var file = RTISrcPath.resolve(cFilename).toFile
+        var file = fileConfig.RTISrcPath.resolve(cFilename).toFile
         if (file.exists) {
             file.delete
         }
@@ -629,7 +616,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         // Delete binary previously produced by the C compiler.
-        file = this.RTIBinPath.resolve(topLevelName).toFile
+        file = fileConfig.RTIBinPath.resolve(topLevelName).toFile
         if (file.exists) {
             file.delete
         }
@@ -730,7 +717,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         unindent(rtiCode)
         pr(rtiCode, "}")
 
-        var fOut = new FileOutputStream(this.RTISrcPath.resolve(cFilename).toFile);
+        var fOut = new FileOutputStream(fileConfig.RTISrcPath.resolve(cFilename).toFile);
         fOut.write(rtiCode.toString().getBytes())
         fOut.close()
     }
@@ -783,7 +770,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 1) {
-                val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.codeGenConfig.srcPath)
+                val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.fileConfig.srcPath)
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
                 if (buildCommand === null) {
@@ -826,8 +813,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         val cFilename = getTargetFileName(fileToCompile);
 
-        var relativeSrcPath = codeGenConfig.outPath.relativize(codeGenConfig.srcGenPath.resolve(Paths.get(cFilename))).toString()
-        var relativeBinPath = codeGenConfig.outPath.relativize(codeGenConfig.binPath.resolve(Paths.get(fileToCompile))).toString()
+        var relativeSrcPath = fileConfig.outPath.relativize(fileConfig.getSrcGenPath.resolve(Paths.get(cFilename))).toString()
+        var relativeBinPath = fileConfig.outPath.relativize(fileConfig.binPath.resolve(Paths.get(fileToCompile))).toString()
 
         if (env == ExecutionEnvironment.BASH) { // NOTE: This is to make it work on Windows while using Bash.
             relativeSrcPath = relativeSrcPath.replace('/', '\\')
@@ -862,7 +849,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 reportError("ERROR: Did not output executable; no main reactor found.")
             }
         }
-        return createCommand(targetConfig.compiler,compileArgs, codeGenConfig.outPath, env)
+        return createCommand(targetConfig.compiler,compileArgs, fileConfig.outPath, env)
     }
 
     // //////////////////////////////////////////
@@ -888,7 +875,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         if (mode == Mode.INTEGRATED) {
             try {
                 iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(
-                CodeGenConfig.toIPath(codeGenConfig.resource.URI))
+                FileConfig.toIPath(fileConfig.resource.URI))
                 // First argument can be null to delete all markers.
                 // But will that delete xtext markers too?
                 iResource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
@@ -984,7 +971,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
     protected def createCommand(String cmd) {
-        return createCommand(cmd, #[], codeGenConfig.outPath, findCommandEnv(cmd)) // FIXME: add argument to specify where to execute; there is no useful assumption that would work here
+        return createCommand(cmd, #[], fileConfig.outPath, findCommandEnv(cmd)) // FIXME: add argument to specify where to execute; there is no useful assumption that would work here
     }
 
     /** 
@@ -1168,7 +1155,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def void generatePreamble() {
         prComment("Code generated by the Lingua Franca compiler from file:")
-        prComment(codeGenConfig.srcFile.absolutePath)
+        prComment(fileConfig.srcFile.absolutePath)
         val models = new LinkedHashSet<Model>
 
         for (r : this.reactors ?: emptyList) {
@@ -1568,7 +1555,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var fullPath = resource?.fullPath?.toString
         if (fullPath === null) {
             if (object !== null && object.eResource !== null) {
-                fullPath = CodeGenConfig.toPathString(object.eResource)
+                fullPath = FileConfig.toPathString(object.eResource)
             } 
         }
         if (fullPath === null) {
@@ -1589,7 +1576,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = new URI("file:/" + CodeGenConfig.toPathString(eResource))
+                    val uri = new URI("file:/" + FileConfig.toPathString(eResource))
                     val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                     val files = workspaceRoot.findFilesForLocationURI(uri)
                     if (files !== null && files.length > 0 && files.get(0) !== null) {
@@ -2074,15 +2061,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             System.err.println("ERROR: Source file protocol is not recognized: " + resource.URI);
         }
         
-        this.topLevelName = CodeGenConfig.nameWithoutExtension(codeGenConfig.srcFile)
+        this.topLevelName = FileConfig.nameWithoutExtension(fileConfig.srcFile)
         
         printInfo()
     }
 
     def printInfo() {
         println('******** mode: ' + mode)
-        println('******** source file: ' + codeGenConfig.srcFile) // FIXME: redundant
-        println('******** generated sources: ' + codeGenConfig.srcGenPath)
+        println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
+        println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }
 
     /**

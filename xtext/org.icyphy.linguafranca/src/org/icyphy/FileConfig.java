@@ -15,7 +15,13 @@ import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.icyphy.generator.StandaloneContext;
 
-public class CodeGenConfig {
+/**
+ * Base class that governs the interactions between code generators and the file system.
+ *  
+ * @author Marten Lohstroh <marten@berkeley.edu>
+ *
+ */
+public class FileConfig {
 
     // Public static fields.
     
@@ -48,17 +54,11 @@ public class CodeGenConfig {
     public final IGeneratorContext context;
     
     /**
-     * The parent of the specified directory for generated sources. Additional
-     * directories created during the build process should be created relative
-     * to this path.
+     * The directory that is the root of the package in which the source
+     * file resides.
      */
-    public final Path outPath;
-    
-    /**
-     * The directory that is the root of the package.
-     */
-    public final Path pkgPath;
-    
+    public final Path srcPkgPath;
+
     /**
      * The file containing the main source code.
      * This is the Eclipse eCore view of the file, which is distinct
@@ -73,10 +73,24 @@ public class CodeGenConfig {
     public final File srcFile;
 
     /**
+     * The directory in which the source file was found.
+     */
+    public final Path srcPath;
+    
+    // Protected fields.
+    
+    /**
+     * The parent of the specified directory for generated sources. Additional
+     * directories created during the build process should be created relative
+     * to this path.
+     */
+    protected Path outPath;
+   
+    /**
      * Path representation of srcGenRoot, the root directory for generated
      * sources.
      */
-    public final Path srcGenBasePath;
+    protected Path srcGenBasePath;
     
     /**
      * The directory in which to put the generated sources.
@@ -87,20 +101,12 @@ public class CodeGenConfig {
      */
     protected Path srcGenPath;
     
-    public Path getSrcGenPath() {
-        return srcGenPath;
-    }
-    
-    protected Path srcGenPkgPath;
-    
-    public Path getSrcGenPkgPath() {
-        return srcGenPkgPath;
-    }
-    
     /**
-     * The directory in which the source file was found.
+     * The directory that denotes the root of the package to which the
+     * generated sources belong, should the target language have a notion
+     * of packages.
      */
-    public final Path srcPath;
+    protected Path srcGenPkgPath;
     
     // Protected fields.
     
@@ -110,7 +116,6 @@ public class CodeGenConfig {
      */
     protected final URI outputRoot;
 
-    
     /**
      * URI representation of the directory in which to store generated sources.
      * This is the root, meaning that if the source file is x/y/Z.lf relative
@@ -124,12 +129,13 @@ public class CodeGenConfig {
     /**
      * Variant of {@link #GeneratorBase.sourceFile GeneratorBase.sourceFile}
      * used on the Windows platform. FIXME: not clear that we need this any longer.
+     * TODO: remove
      * @deprecated
      */
     public final File windowsSourceFile;
     
     
-    public CodeGenConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) throws IOException {
+    public FileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) throws IOException {
         this.resource = resource;
         this.fsa = fsa;
         this.context = context;
@@ -138,19 +144,54 @@ public class CodeGenConfig {
         this.windowsSourceFile = new File(toIPath(this.resource.getURI()).toOSString());
         
         this.srcPath = srcFile.toPath().getParent();
-        this.pkgPath = getPkgPath(resource, context);
+        this.srcPkgPath = getPkgPath(resource, context);
         
         this.srcGenRoot = getSrcGenRoot(fsa);
         this.srcGenBasePath = toPath(this.srcGenRoot);
         this.outputRoot = getOutputRoot(this.srcGenRoot);
         
-        this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.pkgPath,
+        this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
                 this.srcPath, nameWithoutExtension(this.srcFile));
         this.srcGenPkgPath = this.srcGenPath;
         this.outPath = toPath(this.outputRoot);
-        this.binPath = getBinPath(this.pkgPath, this.srcPath, this.outPath, context);
+        this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
     }
     
+    // Getters to be overridden in derived classes.
+    
+    public Path getOutPath() {
+        return outPath;
+    }
+ 
+    public Path getSrcGenPath() {
+        return srcGenPath;
+    }
+
+    
+    public Path getSrcGenBasePath() {
+        return srcGenBasePath;
+    }
+
+    public Path getSrcGenPkgPath() {
+        return srcGenPkgPath;
+    }
+    
+    /**
+     * Return the directory in which to put the generated sources for the 
+     * RTI. By default, this is the same as the regular src-gen directory.
+     */
+    public Path getRTISrcPath() {
+        return this.srcGenPath;
+    }
+    
+    /**
+     * Return the directory in which to put the generated binaries for the 
+     * RTI. By default, this is the same as the regular src-gen directory.
+     */
+    public Path getRTIBinPath() {
+        return this.binPath;
+    }
+
     private static URI getOutputRoot(URI srcGenRoot) {
         return URI.createURI(".").resolve(srcGenRoot);
     }
@@ -268,7 +309,7 @@ public class CodeGenConfig {
         File file = findFile(filename, directory);
         if (file == null) {
             // See if it can be found as a resource.
-            InputStream stream = CodeGenConfig.class.getResourceAsStream(filename);
+            InputStream stream = FileConfig.class.getResourceAsStream(filename);
             if (stream == null) {
                 return false;
             } else {

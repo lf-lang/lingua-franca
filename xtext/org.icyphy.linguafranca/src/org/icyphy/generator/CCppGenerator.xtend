@@ -417,7 +417,7 @@ class CCppGenerator extends CGenerator {
      * Copy target-specific header file to the src-gen directory.
      */
     override copyTargetHeaderFile() {
-        copyFileFromClassPath("/lib/CCpp/ccpptarget.h", codeGenConfig.srcGenPath.resolve("ccpptarget.h").toString)
+        copyFileFromClassPath("/lib/CCpp/ccpptarget.h", fileConfig.getSrcGenPath.resolve("ccpptarget.h").toString)
     }    
     
     
@@ -468,13 +468,13 @@ class CCppGenerator extends CGenerator {
         // to get screen to work looks like this:
         // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
         
-        var outPath = codeGenConfig.binPath
+        var outPath = fileConfig.binPath
 
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()
         pr(shCode, '''
             #!/bin/bash
-            # Launcher for federated «codeGenConfig.srcFile.name» Lingua Franca program.
+            # Launcher for federated «fileConfig.srcFile.name» Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
             # Set a trap to kill all background jobs on error.
@@ -483,7 +483,7 @@ class CCppGenerator extends CGenerator {
         ''')
         val distHeader = '''
             #!/bin/bash
-            # Distributor for federated «codeGenConfig.srcFile.name» Lingua Franca program.
+            # Distributor for federated «fileConfig.srcFile.name» Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
         '''
