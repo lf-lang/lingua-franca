@@ -39,11 +39,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "pqueue.c"
 #include "util.c"
 
-/**
- * Indicator for the absence of values for ports that remain disconnected.
- **/
-bool absent = false;
-
 /** 
  * Indicator of whether to wait for physical time to match logical time.
  * By default, execution will wait. The command-line argument -fast will
@@ -120,7 +115,7 @@ interval_t _lf_global_time_STP_offset = 0LL;
  * Reset absent fields on network input ports.
  * @note Defined in federate.c
  */
-void reset_absent_present_fields_on_input_port_triggers();
+void reset_status_fields_on_input_port_triggers();
 
 /**
  * 
@@ -445,7 +440,7 @@ void __start_time_step() {
 #ifdef FEDERATED
     // Reset absent fields on network ports because
     // their status is unknown
-    reset_absent_present_fields_on_input_port_triggers();
+    reset_status_fields_on_input_port_triggers();
 #endif
 }
 
@@ -644,7 +639,7 @@ void __pop_events() {
             token->ok_to_free = no;
 
         // Mark the trigger present.
-        event->trigger->is_present = true;
+        event->trigger->status = present;
         
         // If this event points to a next event, insert it into the next queue.
         if (event->next != NULL) {

@@ -1107,8 +1107,7 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     // queue or a call to schedule is needed. This checks whether the status
     // of the port is unkown for the current tag.
     if (compare_tags(tag, get_current_tag()) == 0 &&
-        _fed.network_input_port_triggers[port_id]->is_absent == false &&
-        _fed.network_input_port_triggers[port_id]->is_present == false) {
+        _fed.network_input_port_triggers[port_id]->status == unknown) {
 
         LOG_PRINT("Inserting reactions directly at tag (%lld, %u).", tag.time - start_time, tag.microstep);
         action->intended_tag = tag;
@@ -1754,14 +1753,14 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 }
 
 /**
- * Reset absent fields on network input ports.
+ * Reset the status fields on network input ports to unknown.
  * 
- * FIXME: change the name
+ * @note This function must be called at the beginning of each
+ *  logical time.
  */
-void reset_absent_present_fields_on_input_port_triggers() {
+void reset_status_fields_on_input_port_triggers() {
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-        _fed.network_input_port_triggers[i]->is_absent = false;
-        _fed.network_input_port_triggers[i]->is_present = false;
+        _fed.network_input_port_triggers[i]->status = unknown;
     }
 }
 
@@ -1786,8 +1785,7 @@ void enqueue_network_input_control_reactions(pqueue_t* reaction_q){
  */
 bool all_network_inputs_are_accounted_for() {
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-        if (_fed.network_input_port_triggers[i]->is_absent == false &&
-            _fed.network_input_port_triggers[i]->is_present == false) {
+        if (_fed.network_input_port_triggers[i]->status == unknown) {
                 LOG_PRINT("Not all network input ports are accounted for at tag (%lld, %u). "
                             "Will not advance time.",
                             current_tag.time - start_time,

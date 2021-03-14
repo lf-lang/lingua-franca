@@ -524,11 +524,10 @@ class ASTUtils {
     
     /**
      * Add a network control reaction for a given input port "portRef" to the reaction queue of its
-     * containing reactor. This reaction will decide for any valid logical time whether or not
-     * the trigger of that given port is going to be present or absent. 
+     * containing reactor. This reaction will block for any valid logical time until it is known 
+     * whether the trigger of that given port is present or absent.
      * 
-     * Note that the port trigger is a separate entity from the port itself and the is_present 
-     * and is_absent fields of these triggers are currently only used for this purpose.
+     * @note Used in federated execution
      * 
      * @input portRef The input port
      * @input instance The federate instance is used to keep track of all network input ports globally
