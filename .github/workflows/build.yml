@@ -10,6 +10,10 @@ on: [push, pull_request]
   # pull_request:
   #   branches: [ master ]
 
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   compiler-tests:
