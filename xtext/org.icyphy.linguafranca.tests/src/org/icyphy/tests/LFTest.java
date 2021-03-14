@@ -10,26 +10,65 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
-import org.eclipse.emf.ecore.resource.Resource;
 import org.icyphy.FileConfig;
 import org.icyphy.Target;
-import org.icyphy.generator.StandaloneContext;
 import org.icyphy.tests.runtime.TestBase;
 
+/**
+ * Information about an indexed Lingua Franca test program.
+ * 
+ * @author Marten Lohstroh <marten@berkeley.edu>
+ *
+ */
 public class LFTest implements Comparable<LFTest> {
     
+    /**
+     * Inner class for capturing streams during a particular phase of testing,
+     * such as compilation or execution.
+     * 
+     * @author Marten Lohstroh <marten@berkeley.edu>
+     *
+     */
     public class TestPhase {
+       
+        /**
+         * String builder used to record the standard output stream.
+         */
         StringBuilder std = new StringBuilder("");
+        
+        /**
+         * String builder used to record the standard error stream.
+         */
         StringBuilder err = new StringBuilder("");
         
-        public Thread recordStdOut(InputStream stream) {
+        /**
+         * Return a thread responsible for recording the given stream that
+         * should be attached to standard out.
+         * A separate thread is used so that the activity can preempted.
+         * @param stream The stream to record.
+         * @return A thread that will record the given stream.
+         */
+        public Thread recordStdOut(InputStream stream) { // FIXME: change argument to Process.
             return recordStream(std, stream);
         }
         
+        /**
+         * Return a thread responsible for recording the given stream that
+         * should be attached to standard error.
+         * A separate thread is used so that the activity can preempted.
+         * @param stream The stream to record.
+         * @return A thread that will record the given stream.
+         */
         public Thread recordStdErr(InputStream stream) {
             return recordStream(err, stream);
         }
         
+        /**
+         * 
+         * @param builder
+         * @param inputStream
+         * @return
+         */
         private Thread recordStream(StringBuilder builder, InputStream inputStream) {
             Thread t = new Thread(() -> {
                 try {
@@ -49,13 +88,30 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
     
+    /**
+     * The path to the test.
+     */
     public final Path path;
+    
+    /**
+     * The name of the test.
+     */
     public final String name;
     
+    /**
+     * The result of the test.
+     * @see Result
+     */
     public Result result = Result.UNKNOWN;
     
+    /**
+     * Object used to determine where the code generator puts files.
+     */
     public FileConfig codeGenConfig;
     
+    /**
+     * 
+     */
     private final Path relativePath;
     
     public ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -104,11 +160,6 @@ public class LFTest implements Comparable<LFTest> {
     public int hashCode() {
         return this.name.hashCode();
     }
-    
-//    public void clear() {
-//        this.exe = new StringBuilder("");
-//        this.properties.clear();
-//    }
     
     public boolean hasFailed() {
         if (result == Result.TEST_PASS) {
