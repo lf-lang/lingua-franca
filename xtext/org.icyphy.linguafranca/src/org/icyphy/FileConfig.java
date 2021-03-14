@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -14,6 +16,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.icyphy.generator.StandaloneContext;
+import org.icyphy.linguaFranca.Reactor;
 
 /**
  * Base class that governs the interactions between code generators and the file system.
@@ -28,13 +31,25 @@ public class FileConfig {
     /**
      * Default name of the directory to store binaries in.
      */
-    public static String DEFAULT_BIN_DIR = "bin";
+    public final static String DEFAULT_BIN_DIR = "bin";
     
     /**
      * Default name of the directory to store generated sources in.
      */
-    public static String DEFAULT_SRC_GEN_DIR = "src-gen";
+    public final static String DEFAULT_SRC_GEN_DIR = "src-gen";
 
+    /**
+     * Suffix that when appended to the name of a federated reactor yields 
+     * the name of its corresponding RTI executable.
+     */
+    public final static String RTI_BIN_SUFFIX = "_RTI";
+    
+    /**
+     * Suffix that when appended to the name of a federated reactor yields 
+     * the name of its corresponding distribution script.
+     */
+    public final static String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
+    
     // Public fields.
     
     /**
@@ -103,7 +118,9 @@ public class FileConfig {
     
     /**
      * The directory that denotes the root of the package to which the
-     * generated sources belong, should the target language have a notion
+     * generated sources belong. Even if the target language does not have a
+     * notion of packages, this directory groups all files associated with a 
+     * single main reactor.
      * of packages.
      */
     protected Path srcGenPkgPath;
@@ -223,6 +240,46 @@ public class FileConfig {
             Path srcPath, String name) throws IOException {
         return srcGenRootPath.resolve(pkgPath.relativize(srcPath))
                 .resolve(name);
+    }
+    
+    public void createDirectories() {
+        
+    }
+    
+    
+    
+    /**
+     * Remove files in the bin directory that may have been created.
+     * Call this if a compilation occurs so that files from a previous
+     * version do not accidentally get executed.
+     */
+    public void deleteBinFiles() {
+        String name = nameWithoutExtension(this.srcFile);
+        String[] files = this.binPath.toFile().list();
+        List<String> federateNames = new LinkedList<String>(); // FIXME: put this in ASTUtils?
+        resource.getAllContents().forEachRemaining(node -> {
+            if (node instanceof Reactor) {
+                Reactor r = (Reactor) node;
+                if (r.isFederated()) {
+                    r.getInstantiations().forEach(inst -> inst.getReactorClass().getName());
+                }
+            }
+        });
+        for (String f : files) {
+            // Delete executable file or launcher script, if any.
+            // Delete distribution file, if any.
+            // Delete RTI file, if any.
+            if (f.equals(name) || f.equals(getRTIBinName())
+                    || f.equals(name + getRTIDistributionScriptName())) {
+                new File(f).delete();
+            }
+            // Delete federate executable files, if any.
+            for (String federateName : federateNames) {
+                if (f.equals(name + "_" + federateName)) {
+                    new File(f).delete();
+                }
+            }
+        }
     }
     
     public static String nameWithoutExtension(File file) {
@@ -405,5 +462,29 @@ public class FileConfig {
      public static String getDirectory(String path) {
          File f = new File(path);
          return f.getParent();
+     }
+     
+     /**
+      * Return the name of the RTI executable.
+      * @return
+      */
+     public String getRTIBinName() {
+         return nameWithoutExtension(srcFile) + RTI_BIN_SUFFIX;
+     }
+     
+     public File getRTIBinFile() {
+         return this.binPath.resolve(getRTIBinName()).toFile();
+     }
+     
+     /**
+      * Return the name of the RTI distribution script.
+      * @return
+      */
+     public String getRTIDistributionScriptName() {
+         return nameWithoutExtension(srcFile) + RTI_DISTRIBUTION_SCRIPT_SUFFIX;
+     }
+     
+     public File getRTIDistributionScriptFile() {
+         return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
      }
 }

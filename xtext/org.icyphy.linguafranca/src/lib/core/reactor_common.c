@@ -1449,8 +1449,10 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
 #ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated LF programs
                         // Set the tardiness for the downstream reaction
-                        downstream_reaction->is_tardy = inherited_tardiness;
-                        DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->is_tardy);
+                        if (downstream_reaction != NULL) {
+                            downstream_reaction->is_tardy = inherited_tardiness;
+                            DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->is_tardy);
+                        }
 #endif
                         if (downstream_reaction != NULL && downstream_reaction != downstream_to_execute_now) {
                             num_downstream_reactions++;

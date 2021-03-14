@@ -219,7 +219,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     // // Target properties, if they are included.
     /**
      * A list of federate instances or a list with a single empty string
-     * if there are no federates specified.
+     * if there are no federates specified. FIXME: Why put a single empty string there? It should be just empty...
      */
     protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
 
@@ -738,14 +738,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * This is required here in order to allow any target to compile the RTI.
      * 
      * @param file The source file to compile without the .c extension.
-     * param doNotLinkIfNoMain If true, the compile command will have a
+     * @param doNotLinkIfNoMain If true, the compile command will have a
      *  `-c` flag when there is no main reactor. If false, the compile command
      *  will never have a `-c` flag.
+     * 
+     * @return true if compilation succeeds, false otherwise. 
      */
     def runCCompiler(String file, boolean doNotLinkIfNoMain) {
         val compile = compileCCommand(file, doNotLinkIfNoMain)
         if (compile === null) {
-            return
+            return false
         }
 
         val stderr = new ByteArrayOutputStream()
@@ -759,6 +761,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
             reportCommandErrors(stderr.toString())
         }
+        return (returnCode == 0)
     }
 
     /**
