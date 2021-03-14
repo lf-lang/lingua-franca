@@ -40,11 +40,13 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
+import org.icyphy.TargetProperty.CoordinationType
 import org.icyphy.generator.FederateInstance
 import org.icyphy.generator.GeneratorBase
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.ArraySpec
+import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
@@ -68,7 +70,6 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
-import org.icyphy.TargetProperty.CoordinationType
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -149,7 +150,7 @@ class ASTUtils {
     }
     
     /**
-     * Return true if any port on the left or right of the connection invoves
+     * Return true if any port on the left or right of the connection involves
      * a bank of reactors or a multiport.
      * @param connection The connection.
      */
@@ -1215,74 +1216,205 @@ class ASTUtils {
     }
         
     /**
-     * Return the width of the port reference if it can be determined
-     * and otherwise return -1.  The width can be determined if the
-     * port is not a multiport in a bank of reactors (the width will 1)
-     * or if the width of the multiport and/or the bank is given by a
-     * literal constant.
-     * @param reference A reference to a port.
-     * @return The width of a port or -1 if it cannot be determined.
+     * Given a parameter, return its initial value.
+     * The initial value is a list of instances of Value, where each
+     * Value is either an instance of Time, Literal, or Code.
+     * 
+     * If the instantiations argument is null or an empty list, then the
+     * value returned is simply the default value given when the parameter
+     * is defined.
+     * 
+     * If a list of instantiations is given, then the first instantiation
+     * is required to be an instantiation of the reactor class that is 
+     * parameterized by the parameter. I.e.,
+     * ```
+     *     parameter.eContainer == instantiations.get(0).reactorClass
+     * ```
+     * If a second instantiation is given, then it is required to be an instantiation of a
+     * reactor class that contains the first instantiation.  That is,
+     * ```
+     *     instantiations.get(0).eContainer == instantiations.get(1).reactorClass
+     * ```
+     * More generally, for all 0 <= i < instantiations.size - 1,
+     * ```
+     *     instantiations.get(i).eContainer == instantiations.get(i + 1).reactorClass
+     * ```
+     * If any of these conditions is not satisfied, then an IllegalArgumentException
+     * will be thrown.
+     * 
+     * Note that this chain of reactions cannot be inferred from the parameter because
+     * in each of the predicates above, there may be more than one instantiation that
+     * can appear on the right hand side of the predicate.
+     * 
+     * For example, consider the following program:
+     * ```
+     *     reactor A(x:int(1)) {}
+     *     reactor B(y:int(2)) {
+     *         a1 = new A(x = y);
+     *         a2 = new A(x = -1);
+     *     }
+     *     reactor C(z:int(3)) {
+     *         b1 = new B(y = z);
+     *         b2 = new B(y = -2);
+     *     }
+     * ```
+     * Notice that there are a total of four instances of reactor class A.
+     * Then
+     * ```
+     *     iv (x) returns 1
+     *     iv (x, null) returns 1
+     *     iv (x, [a1]) returns 2
+     *     iv (x, [a2]) returns -1
+     *     iv (x, [a1, b1]) returns 3
+     *     iv (x, [a2, b1]) returns -1
+     *     iv (x, [a1, b2]) returns -2
+     *     iv (x, [a2, b2]) returns -1
+     * ```
+     * (Actually, in each of the above cases, the returned value is a list with
+     * one entry, a Literal, e.g. ["1"]).
+     * 
+     * There are two instances of reactor class B.
+     * ```
+     *     iv (y) returns 2
+     *     iv (y, null) returns 2
+     *     iv (y, [a1]) throws an IllegalArgumentException
+     *     iv (y, [b1]) returns 3
+     *     iv (y, [b2]) returns -2
+     * ```
+     * FIXME: The above should be jUnit tests, but jUnit doesn’t work for me.
+     * 
+     * @param parameter The parameter.
+     * @param instantiation The (optional) instantiation.
+     * 
+     * @return The value of the parameter.
+     * 
+     * @throws IllegalArgumentException If an instantiation provided is not an
+     *  instantiation of the reactor class that is parameterized by the
+     *  respective parameter or if the chain of instantiations is not nested.
      */
-    def static int multiportWidth(VarRef reference) {
-        if (reference.variable instanceof Port) {
-            var bankWidth = 1
-            if (reference.container !== null) {
-                bankWidth = width(reference.container.widthSpec)
-                if (bankWidth < 0) return -1
+    def static List<Value> initialValue(Parameter parameter, List<Instantiation> instantiations) {
+        // If instantiations are given, then check to see whether this parameter gets overridden in
+        // the first of those instantiations.
+        if (instantiations !== null && instantiations.size > 0) {
+            // Check to be sure that the instantiation is in fact an instantiation
+            // of the reactor class for which this is a parameter.
+            val instantiation = instantiations.get(0);
+            if (parameter.eContainer !== instantiation.reactorClass) {
+                throw new IllegalArgumentException("Parameter "
+                    + parameter.name
+                    + " is not a parameter of reactor instance "
+                    + instantiation.name
+                    + "."
+                );
             }
-            val portWidth = width((reference.variable as Port).widthSpec)
-            if (portWidth > 0) return portWidth * bankWidth
-        }
-        return -1
-    }    
-
-    /**
-     * Given the specification of the width of either a bank of reactors
-     * or a multiport, return the width if it can be determined and otherwise
-     * return -1. The width can be determined if it is given by one or more
-     * literal constants or if the widthSpec is null (it is not a multiport
-     * or reactor bank).
-     * @param widthSpec The width specification.
-     * @return The width or -1 if it cannot be determined.
-     */
-    def static int width(WidthSpec widthSpec) {
-        if (widthSpec === null) return 1
-        var result = 0
-        if (widthSpec.ofVariableLength) {
-            return -1
-        }
-        for (term : widthSpec.terms) {
-            if (term.parameter === null) {
-                result += term.width
-            } else {
-                return -1
+            // In case there is more than one assignment to this parameter, we need to
+            // find the last one.
+            var lastAssignment = null as Assignment;
+            for (assignment: instantiation.parameters) {
+                if (assignment.lhs == parameter) {
+                    lastAssignment = assignment;
+                }
+            }
+            if (lastAssignment !== null) {
+                // Right hand side can be a list. Collect the entries.
+                val result = new LinkedList<Value>()
+                for (value: lastAssignment.rhs) {
+                    if (value.parameter !== null) {
+                        if (instantiations.size() > 1
+                            && instantiation.eContainer !== instantiations.get(1).reactorClass
+                        ) {
+                            throw new IllegalArgumentException("Reactor instance "
+                                    + instantiation.name
+                                    + " is not contained by instance "
+                                    + instantiations.get(1).name
+                                    + "."
+                            );
+                        }
+                        result.addAll(initialValue(value.parameter, 
+                                instantiations.subList(1, instantiations.size())));
+                    } else {
+                        result.add(value)
+                    }
+                }
+                return result;
             }
         }
-        return result
+        // If we reach here, then either no instantiation was supplied or
+        // there was no assignment in the instantiation. So just use the
+        // parameter's initial value.
+        return parameter.init;
     }
     
     /**
-     * Calculate the width of a port reference in a connection.
-     * The width will be the product of the bank width and the multiport width,
-     * or 1 if the port is not in a bank and is not a multiport.
-     * This throws an exception if the width depends on a parameter value.
-     * If the width depends on a parameter value, then this method
-     * will need to determine that parameter for each instance, not
-     * just class definition of the containing reactor.
+     * Given a parameter return its integer value or null
+     * if it does not have an integer value.
+     * If the value of the parameter is a list of integers,
+     * return the sum of value in the list.
+     * The instantiations parameter is as in 
+     * {@link initialValue(Parameter, List<Instantiation>}.
+     * 
+     * @param parameter The parameter.
+     * @param instantiations The (optional) list of instantiations.
+     * 
+     * @return The integer value of the parameter, or null if does not have an integer value.
+     *
+     * @throws IllegalArgumentException If an instantiation provided is not an
+     *  instantiation of the reactor class that is parameterized by the
+     *  respective parameter or if the chain of instantiations is not nested.
      */
-    def static int portWidth(VarRef port, Connection c) {
-        val result = port.multiportWidth
-        if (result < 0) {
-            // The port may be in a bank that has variable width,
-            // in which case, we attempt to infer its width.
-            // Specifically, this supports 'after' in multiport and reactor bank connections.
-            if (port.container !== null && port.container.widthSpec !== null && port.container.widthSpec.isOfVariableLength) {
-                // This could be a bank of delays.
+    def static Integer initialValueInt(Parameter parameter, List<Instantiation> instantiations) {
+        val values = initialValue(parameter, instantiations);
+        var result = 0;
+        for (value: values) {
+            try {
+                result += Integer.decode(value.literal);
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Given the width specification of port or instantiation
+     * and an (optional) list of nested intantiations, return
+     * the width if it can be determined and -1 if not.
+     * It will not be able to be determined if either the
+     * width is variable (in which case you should use
+     * {@link inferPortWidth(VarRef, Connection, List<Instantiation>})
+     * or the list of instantiations is incomplete or missing.
+     * If there are parameter references in the width, they are
+     * evaluated to the extent possible given the instantiations list.
+     * 
+     * The instantiations list is as in 
+     * {@link initialValue(Parameter, List<Instantiation>}.
+     * If the spec belongs to an instantiation (for a bank of reactors),
+     * then the first element on this list should be the instantiation
+     * that contains this instantiation. If the spec belongs to a port,
+     * then the first element on the list should be the instantiation
+     * of the reactor that contains the port.
+     *
+     * @param spec The width specification or null (to return 1).
+     * @param instantiations The (optional) list of instantiations.
+     * 
+     * @return The width, or -1 if the width could not be determined.
+     *
+     * @throws IllegalArgumentException If an instantiation provided is not as
+     *  given above or if the chain of instantiations is not nested.
+     */
+    def static int width(WidthSpec spec, List<Instantiation> instantiations) {
+        if (spec === null) return 1;
+        if (spec.ofVariableLength && spec.eContainer instanceof Instantiation) {
+            // We may be able to infer the width by examining the connections of
+            // the enclosing reactor definition. This works, for example, with
+            // delays between multiports or banks of reactors.
+            // Attempt to infer the width.
+            for (c : (spec.eContainer.eContainer as Reactor).connections) {
                 var leftWidth = 0
                 var rightWidth = 0
                 var leftOrRight = 0
                 for (leftPort : c.leftPorts) {
-                    if (leftPort === port) {
+                    if (leftPort.container === spec.eContainer) {
                         if (leftOrRight !== 0) {
                             throw new Exception("Multiple ports with variable width on a connection.")
                         }
@@ -1293,7 +1425,7 @@ class ASTUtils {
                     }
                 }
                 for (rightPort : c.rightPorts) {
-                    if (rightPort === port) {
+                    if (rightPort.container === spec.eContainer) {
                         if (leftOrRight !== 0) {
                             throw new Exception("Multiple ports with variable width on a connection.")
                         }
@@ -1309,10 +1441,196 @@ class ASTUtils {
                     return leftWidth - rightWidth
                 }
             }
-            
-            throw new Exception("Cannot determine port width. Only multiport widths with literal integer values are supported for now.")
+            // A connection was not found with the instantiation.
+            return -1;
         }
-        return result
+        var result = 0;
+        for (term: spec.terms) {
+            if (term.parameter !== null) {
+                val termWidth = initialValueInt(term.parameter, instantiations);
+                if (termWidth !== null) {
+                    result += termWidth;
+                } else {
+                    return -1;
+                }
+            } else {
+                result += term.width;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Infer the width of a port reference in a connection.
+     * The port reference one or two parts, a port and an (optional) container
+     * which is an Instantiation that may refer to a bank of reactors.
+     * The width will be the product of the bank width and the port width.
+     * The returned value will be 1 if the port is not in a bank and is not a multiport.
+     * 
+     * If the width cannot be determined, this will return -1.
+     * The width cannot be determined if the list of instantiations is
+     * missing or incomplete.
+     * 
+     * The instantiations list is as in 
+     * {@link initialValue(Parameter, List<Instantiation>}.
+     * The first element on this list should be the instantiation
+     * that contains the specified connection.
+     *
+     * @param reference A port reference.
+     * @param connection A connection, or null if not in the context of a connection.
+     * @param instantiations The (optional) list of instantiations.
+     * 
+     * @return The width or -1 if it could not be determined.
+     *
+     * @throws IllegalArgumentException If an instantiation provided is not as
+     *  given above or if the chain of instantiations is not nested.
+     */
+    def static int inferPortWidth(
+        VarRef reference, Connection connection, List<Instantiation> instantiations
+    ) {
+        if (reference.variable instanceof Port) {
+            // If the port is given as a.b, then we want to prepend a to
+            // the list of instantiations to determine the width of this port.
+            var extended = instantiations;
+            if (reference.container !== null) {
+                extended = new LinkedList<Instantiation>();
+                extended.add(reference.container);
+                if (instantiations !== null) {
+                    extended.addAll(instantiations);
+                }
+            }
+
+            val portWidth = width((reference.variable as Port).widthSpec, extended)
+            if (portWidth < 0) return -1; // Could not determine port width.
+            
+            // Next determine the bank width. This may be unspecified, in which
+            // case it has to be inferred using the connection.
+            var bankWidth = 1
+            if (reference.container !== null) {
+                bankWidth = width(reference.container.widthSpec, instantiations)
+                if (bankWidth < 0 && connection !== null) {
+                    // Try to infer the bank width from the connection.
+                    if (reference.container.widthSpec.isOfVariableLength) {
+                        // This occurs for a bank of delays.
+                        var leftWidth = 0
+                        var rightWidth = 0
+                        var leftOrRight = 0
+                        for (leftPort : connection.leftPorts) {
+                            if (leftPort === reference) {
+                                if (leftOrRight !== 0) {
+                                    throw new Exception("Multiple ports with variable width on a connection.")
+                                }
+                                // Indicate that this port is on the left.
+                                leftOrRight = -1
+                            } else {
+                                // The left port is not the same as this reference.
+                                val otherWidth = inferPortWidth(leftPort, connection, instantiations)
+                                if (otherWidth < 0) return -1; // Cannot determine width.
+                                leftWidth += otherWidth;
+                            }
+                        }
+                        for (rightPort : connection.rightPorts) {
+                            if (rightPort === reference) {
+                                if (leftOrRight !== 0) {
+                                    throw new Exception("Multiple ports with variable width on a connection.")
+                                }
+                                // Indicate that this port is on the right.
+                                leftOrRight = 1
+                            } else {
+                                val otherWidth = inferPortWidth(rightPort, connection, instantiations)
+                                if (otherWidth < 0) return -1; // Cannot determine width.
+                                rightWidth += otherWidth
+                            }
+                        }
+                        var discrepancy = 0;
+                        if (leftOrRight < 0) {
+                            // This port is on the left.
+                            discrepancy = rightWidth - leftWidth
+                        } else if (leftOrRight > 0) {
+                            // This port is on the right.
+                            discrepancy = leftWidth - rightWidth
+                        }
+                        // Check that portWidth divides the discrepancy.
+                        if (discrepancy % portWidth != 0) {
+                            return -1; // This is an error.
+                        }
+                        bankWidth = discrepancy / portWidth;
+                    } else {
+                        return -1; // Could not determine the bank width.
+                    }
+                }
+            }
+            return portWidth * bankWidth
+        }
+        // Argument is not a port.
+        return -1;
+    }
+
+    /**
+     * Return the width of the port reference if it can be determined
+     * and otherwise return -1.  The width can be determined if the
+     * port is not a multiport in a bank of reactors (the width will 1)
+     * or if the width of the multiport and/or the bank is given by a
+     * literal constant.
+     * 
+     * IMPORTANT: This method should not be used you really need to
+     * determine the width! It will not evaluate parameter values.
+     * @see width(WidthSpec, List<Instantiation> instantiations)
+     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
+     * 
+     * @param reference A reference to a port.
+     * @return The width of a port or -1 if it cannot be determined.
+     */
+    def static int multiportWidthIfLiteral(VarRef reference) {
+        return inferPortWidth(reference, null, null);
+    }   
+    
+    /**
+     * Given the specification of the width of either a bank of reactors
+     * or a multiport, return the width if it can be determined and otherwise
+     * return -1. The width can be determined if it is given by one or more
+     * literal constants or if the widthSpec is null (it is not a multiport
+     * or reactor bank).
+     * 
+     * IMPORTANT: This method should not be used you really need to
+     * determine the width! It will not evaluate parameter values.
+     * @see width(WidthSpec, List<Instantiation> instantiations)
+     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
+     * 
+     * @param widthSpec The width specification.
+     * 
+     * @return The width or -1 if it cannot be determined.
+     */
+    def static int width(WidthSpec widthSpec) {
+        return width(widthSpec, null);
+    }
+    
+    /**
+     * Calculate the width of a port reference in a connection.
+     * The width will be the product of the bank width and the multiport width,
+     * or 1 if the port is not in a bank and is not a multiport.
+     * This throws an exception if the width cannot be determined.
+     * The width cannot be determined if it depends on a parameter
+     * whose value cannot be determined because we are not given a
+     * specific instance of the port.
+     *
+     * IMPORTANT: This method should not be used you really need to
+     * determine the width! It will not evaluate parameter values.
+     * @see width(WidthSpec, List<Instantiation> instantiations)
+     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
+     * 
+     * @param reference A reference to a port.
+     * @param connection The connection.
+     * 
+     * @return The width of a port or -1 if it cannot be determined.
+     */
+    def static int portWidth(VarRef reference, Connection connection) {
+        val result = inferPortWidth(reference, connection, null);
+        if (result < 0) {
+            throw new Exception("Cannot determine port width. " +
+                "Only multiport widths with literal integer values are supported for now.")
+        }
+        return result;
     }
     
     /**
@@ -1324,57 +1642,20 @@ class ASTUtils {
      * exception. If the width is variable, this will find
      * connections in the enclosing reactor and attempt to infer the
      * width. If the width cannot be determined, it will throw an exception.
+     *
+     * IMPORTANT: This method should not be used you really need to
+     * determine the width! It will not evaluate parameter values.
+     * @see width(WidthSpec, List<Instantiation> instantiations)
+     *
      * @param instantiation A reactor instantiation.
+     * 
      * @return The width, if it can be determined.
      */
     def static int widthSpecification(Instantiation instantiation) {
-        if (instantiation.widthSpec === null) return 1
-        if (instantiation.widthSpec.ofVariableLength) {
-            // Attempt to infer the width.
-            for (c : (instantiation.eContainer as Reactor).connections) {
-                var leftWidth = 0
-                var rightWidth = 0
-                var leftOrRight = 0
-                for (leftPort : c.leftPorts) {
-                    if (leftPort.container === instantiation) {
-                        if (leftOrRight !== 0) {
-                            throw new Exception("Multiple ports with variable width on a connection.")
-                        }
-                        // Indicate that the port is on the left.
-                        leftOrRight = -1
-                    } else {
-                        leftWidth += portWidth(leftPort, c)
-                    }
-                }
-                for (rightPort : c.rightPorts) {
-                    if (rightPort.container === instantiation) {
-                        if (leftOrRight !== 0) {
-                            throw new Exception("Multiple ports with variable width on a connection.")
-                        }
-                        // Indicate that the port is on the right.
-                        leftOrRight = 1
-                    } else {
-                        rightWidth += portWidth(rightPort, c)
-                    }
-                }
-                if (leftOrRight < 0) {
-                    return rightWidth - leftWidth
-                } else if (leftOrRight > 0) {
-                    return leftWidth - rightWidth
-                }
-            }
-            // A connection was not found with the instantition.
-            throw new Exception("Cannot determine width.")
-        }
-        var result = 0
-        for (term : instantiation.widthSpec.terms) {
-            if (term.parameter === null) {
-                result += term.width
-            } else {
-                throw new Exception("Cannot determine width for the class because it depends on parameter "
-                    + term.parameter.name
-                )
-            }
+        val result = width(instantiation.widthSpec, null);
+        if (result < 0) {
+            throw new Exception("Cannot determine width for the instance "
+                    + instantiation.name);
         }
         return result
     }
