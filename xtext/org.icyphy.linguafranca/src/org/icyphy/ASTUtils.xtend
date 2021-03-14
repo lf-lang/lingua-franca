@@ -1274,7 +1274,6 @@ class ASTUtils {
      * 
      * There are two instances of reactor class B.
      * ```
-     *     initialValue(y) returns 2
      *     initialValue(y, null) returns 2
      *     initialValue(y, [a1]) throws an IllegalArgumentException
      *     initialValue(y, [b1]) returns 3
