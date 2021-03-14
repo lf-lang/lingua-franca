@@ -32,6 +32,7 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import org.eclipse.emf.ecore.EObject
+import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
@@ -41,6 +42,7 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.WidthSpec
@@ -240,8 +242,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Check for dangling connections.
      */
-    // FIXME identifies only dangling inputs
     def checkForDanglingConnections() {
+        // FIXME identifies only dangling inputs
         // First, check that each bank index is either 0 (allowed for sources)
         // or equals the width of the bank, meaning all banks were used.
         for (portReference : nextBankTable.keySet) {
@@ -441,10 +443,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         dstInstances.add(dstInstance)
     }
     
-    /** Override the base class to return the uniqueID of the bank rather
-     *  than this member of the bank, if this is a member of a bank of reactors.
-     *  @return An identifier for this instance that is guaranteed to be
-     *   unique within the top-level parent.
+    /** 
+     * Override the base class to return the uniqueID of the bank rather
+     * than this member of the bank, if this is a member of a bank of reactors.
+     * 
+     * @return An identifier for this instance that is guaranteed to be
+     *  unique within the top-level parent.
      */
     override uniqueID() {
         if (this.bank !== null) {
@@ -455,6 +459,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     // ////////////////////////////////////////////////////
     // // Public fields.
+    
     /** The action instances belonging to this reactor instance. */
     public var actions = new LinkedList<ActionInstance>
     
@@ -491,23 +496,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     // ////////////////////////////////////////////////////
     // // Public methods.
     
-    /** Return the action instance within this reactor 
-     *  instance corresponding to the specified action reference.
-     *  @param action The action as an AST node.
-     *  @return The corresponding action instance or null if the
-     *   action does not belong to this reactor.
-     */
-    def getActionInstance(Action action) {
-        for (actionInstance : actions) {
-            if (actionInstance.name.equals(action.name)) {
-                return actionInstance
-            }
-        }
-    }
-
-    /** Override the base class to append [index] if this reactpr
-     *  is in a bank of reactors.
-     *  @return The full name of this instance.
+    /** 
+     * Override the base class to append [index] if this reactpr
+     * is in a bank of reactors.
+     * 
+     * @return The full name of this instance.
      */
     override String getFullName() {
         var result = super.getFullName()
@@ -517,8 +510,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         result
     }
 
-    /** Return the shutdown action within this reactor instance.
-     *  @return The corresponding shutdown action instance or null
+    /** 
+     * Return the shutdown action within this reactor instance.
+     * 
+     * @return The corresponding shutdown action instance or null
      *  if this reactor instance does not have a shutdown action.
      */
     def getShutdownAction() {
@@ -529,8 +524,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    /** Return the startup timer within this reactor instance.
-     *  @return The corresponding startup timer instance or null
+    /** 
+     * Return the startup timer within this reactor instance.
+     * 
+     * @return The corresponding startup timer instance or null
      *  if this reactor instance does not have a shutdown timer.
      */
     def getStartupTimer() {
@@ -541,11 +538,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    /** Return the instance of a child rector created by the specified
-     *  definition or null if there is none.
-     *  @param definition The definition of the child reactor ("new" statement).
-     *  @return The instance of the child reactor or null if there is no
-     *   such "new" statement.
+    /** 
+     * Return the instance of a child rector created by the specified
+     * definition or null if there is none.
+     * 
+     * @param definition The definition of the child reactor ("new" statement).
+     * 
+     * @return The instance of the child reactor or null if there is no
+     *  such "new" statement.
      */
     def getChildReactorInstance(Instantiation definition) {
         for (child : this.children) {
@@ -556,18 +556,22 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         null
     }
 
-    /** Return the name of this instance as given by the definition.
-     *  Note that is unique only relative to other instances with the same
-     *  parent.
-     *  @return The name of this instance.
+    /** 
+     * Return the name of this instance as given by the definition.
+     * Note that is unique only relative to other instances with the same
+     * parent.
+     * 
+     * @return The name of this instance.
      */
     override String getName() {
         this.definition.name
     }
 
-    /** Return the trigger instances (input ports, timers, and actions
-     *  that trigger reactions) belonging to this reactor instance.
-     *  @return The trigger instances belonging to this reactor instance.
+    /** 
+     * Return the trigger instances (input ports, timers, and actions
+     * that trigger reactions) belonging to this reactor instance.
+     * 
+     * @return The trigger instances belonging to this reactor instance.
      */
     def getTriggers() {
         var triggers = new LinkedHashSet<TriggerInstance<Variable>>
@@ -577,10 +581,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
 
-    /** Return the trigger instances (input ports, timers, and actions
-     *  that trigger reactions) together the ports that the reaction reads
-     *  but that don't trigger it.
-     *  @return The trigger instances belonging to this reactor instance.
+    /** 
+     * Return the trigger instances (input ports, timers, and actions
+     * that trigger reactions) together the ports that the reaction reads
+     * but that don't trigger it.
+     * 
+     * @return The trigger instances belonging to this reactor instance.
      */
     def getTriggersAndReads() {
         var triggers = new LinkedHashSet<TriggerInstance<Variable>>
@@ -591,9 +597,115 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
         
+    /**
+     * Given a parameter definition for this reactor, return the initial value
+     * of the parameter. If the parameter is overridden when instantiating
+     * this reactor or any of its containing reactors, use that value.
+     * Otherwise, use the default value in the reactor definition.
+     * 
+     * The returned list of Value objects is such that each element is an
+     * instance of Time, String, or Code, never Parameter.
+     * For most uses, this list has only one element, but parameter
+     * values can be lists of elements, so the returned value is a list.
+     * 
+     * @param parameter The parameter definition (a syntactic object in the AST).
+     * 
+     * @return A list of Value objects, or null if the parameter is not found.
+     *  Return an empty list if no initial value is given.
+     *  Each value is an instance of Literal if a literal value is given,
+     *  a Time if a time value was given, or a Code, if a code value was
+     *  given (text in the target language delimited by {= ... =}
+     */
+    def List<Value> initialParameterValue(Parameter parameter) {
+        return ASTUtils.initialValue(parameter, instantiations());
+    }
+
+    /**
+     * Given a parameter definition for this reactor, return the initial integer
+     * value of the parameter. If the parameter is overridden when instantiating
+     * this reactor or any of its containing reactors, use that value.
+     * Otherwise, use the default value in the reactor definition.
+     * If the parameter cannot be found or its value is not an integer, return null.
+     * 
+     * @param parameter The parameter definition (a syntactic object in the AST).
+     * 
+     * @return An integer value or null.
+     */
+    def Integer initialIntParameterValue(Parameter parameter) {
+        return ASTUtils.initialValueInt(parameter, instantiations());
+    }
+
+    /**
+     * Return a list of Instantiation objects such that the first object
+     * is the AST instantiation that created this reactor instance, the
+     * second is the AST instantiation that created the containing
+     * reactor instance, and so on until there are no more containing
+     * reactor instances. This will return an empty list if this
+     * reactor instance is at the top level (is main).
+     */
+    def List<Instantiation> instantiations() {
+        if (_instantiations === null) {
+            _instantiations = new LinkedList<Instantiation>();
+            if (definition !== null) {
+                _instantiations.add(definition);
+                if (parent !== null) {
+                    _instantiations.addAll(parent.instantiations());
+                }
+            }
+        }
+        return _instantiations;
+    }
+
+    /** Return the main reactor, which is the top-level parent.
+     *  @return The top-level parent.
+     */
+    override ReactorInstance main() {
+        if (this.parent === null) {
+            this
+        } else {
+            parent.main
+        }
+    }
+    
+    /** Return a descriptive string. */
+    override toString() {
+        "ReactorInstance " + getFullName
+    }
+
+    /** 
+     * Return the set of all ports that receive data from the 
+     * specified source. This includes inputs and outputs at the same level 
+     * of hierarchy and input ports deeper in the hierarchy.
+     * It does not include inputs or outputs up the hierarchy (i.e., ones
+     * that are reached via any output port that it does return).
+     * If the argument is an input port, then it is included in the result.
+     * No port will appear more than once in the result.
+     * 
+     * @param source An output or input port.
+     */
+    def transitiveClosure(PortInstance source) {
+        var result = new LinkedHashSet<PortInstance>();
+        transitiveClosure(source, result);
+        result
+    }
+    
     ///////////////////////////////////////////////////
     //// Methods for finding instances in this reactor given an AST node.
     
+    /** Return the action instance within this reactor 
+     *  instance corresponding to the specified action reference.
+     *  @param action The action as an AST node.
+     *  @return The corresponding action instance or null if the
+     *   action does not belong to this reactor.
+     */
+    def ActionInstance lookupActionInstance(Action action) {
+        for (actionInstance : actions) {
+            if (actionInstance.name.equals(action.name)) {
+                return actionInstance
+            }
+        }
+    }
+
     /** 
      * Given a parameter definition, return the parameter instance
      * corresponding to that definition, or null if there is
@@ -607,42 +719,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         ]
     }
     
-    /**
-     * Given a parameter definition for this reactor, return the value
-     * of the parameter. If the parameter is overridden when instantiating
-     * this reactor, use that value. Otherwise, use the default value
-     * in the reactor definition. If either value references another
-     * parameter, then follow that parameter until the value no longer
-     * references another parameter. The value may be a Time, String,
-     * or Code.
-     * @param parameter The parameter definition (a syntactic object in the AST).
-     * @return A value, or null if the parameter or its value is not found.
-     *  The value is an instance of String if a literal value is given,
-     *  a Time if a time value was given, or a Code, if a code value was
-     *  given.
-     */
-    def Object lookupParameterValue(Parameter parameter) {
-        val instance = lookupParameterInstance(parameter)
-        if (instance.init.length === 0) return null
-        var value = instance.init.get(0)
-        if (value.parameter !== null) {
-            // References another parameter. Could be a parameter of this
-            // reactor or of this reactor's parent.  Try this reactor first.
-            var candidate = lookupParameterValue(value.parameter)
-            if (candidate !== null) return candidate
-            // Try the parent next.
-            if (parent !== null) {
-                candidate = parent.lookupParameterValue(value.parameter)
-                if (candidate !== null) return candidate
-            }
-            // No luck.
-            return null
-        }
-        if (value.literal !== null) return value.literal
-        if (value.time !== null) return value.time
-        if (value.code !== null) return value.code
-    }
-
     /** 
      * Given a port definition, return the port instance
      * corresponding to that definition, or null if there is
@@ -718,37 +794,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     
-
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
-     */
-    override ReactorInstance main() {
-        if (this.parent === null) {
-            this
-        } else {
-            parent.main
-        }
-    }
-    
-    /** Return a descriptive string. */
-    override toString() {
-        "ReactorInstance " + getFullName
-    }
-
-    /** Return the set of all ports that receive data from the 
-     *  specified source. This includes inputs and outputs at the same level 
-     *  of hierarchy and input ports deeper in the hierarchy.
-     *  It does not include inputs or outputs up the hierarchy (i.e., ones
-     *  that are reached via any output port that it does return).
-     *  If the argument is an input port, then it is included in the result.
-     *  No port will appear more than once in the result.
-     *  @param source An output or input port.
-     */
-    def transitiveClosure(PortInstance source) {
-        var result = new LinkedHashSet<PortInstance>();
-        transitiveClosure(source, result);
-        result
-    }
+    ///////////////////////////////////////////////////
+    //// Methods for getting widths of ports and banks
 
     /**
      * For the specified port of this reactor, return the width. If the port is not a
@@ -1091,4 +1138,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return result
     }
+    
+    ////////////////////////////////////////
+    //// Private variables
+    
+    /** The nested list of instantiations that created this reactor instance. */
+    var List<Instantiation> _instantiations;
 }

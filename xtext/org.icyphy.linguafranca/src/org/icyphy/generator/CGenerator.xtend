@@ -525,7 +525,7 @@ class CGenerator extends GeneratorBase {
                     val triggers = new LinkedList<String>()
                     for (action : federate.networkMessageActions) {
                         // Find the corresponding ActionInstance.
-                        val actionInstance = main.getActionInstance(action)
+                        val actionInstance = main.lookupActionInstance(action)
                         triggers.add(triggerStructName(actionInstance))
                     }
                     var actionTableCount = 0
