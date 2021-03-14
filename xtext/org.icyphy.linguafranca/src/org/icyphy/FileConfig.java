@@ -261,7 +261,8 @@ public class FileConfig {
             if (node instanceof Reactor) {
                 Reactor r = (Reactor) node;
                 if (r.isFederated()) {
-                    r.getInstantiations().forEach(inst -> inst.getReactorClass().getName());
+                    r.getInstantiations().forEach(inst -> federateNames
+                            .add(inst.getName()));
                 }
             }
         });
@@ -270,13 +271,13 @@ public class FileConfig {
             // Delete distribution file, if any.
             // Delete RTI file, if any.
             if (f.equals(name) || f.equals(getRTIBinName())
-                    || f.equals(name + getRTIDistributionScriptName())) {
-                new File(f).delete();
+                    || f.equals(getRTIDistributionScriptName())) {
+                this.binPath.resolve(f).toFile().delete();
             }
             // Delete federate executable files, if any.
             for (String federateName : federateNames) {
                 if (f.equals(name + "_" + federateName)) {
-                    new File(f).delete();
+                    this.binPath.resolve(f).toFile().delete();
                 }
             }
         }
