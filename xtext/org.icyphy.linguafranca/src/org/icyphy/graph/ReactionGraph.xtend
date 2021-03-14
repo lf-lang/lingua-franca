@@ -95,13 +95,13 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
                     // depends on the widths. Here, if the width cannot be inferred, we
                     // pessimistically assume a dependency exists.
                     var rightPort = c.rightPorts.get(0)
-                    var remainingRightPorts = rightPort.multiportWidth
+                    var remainingRightPorts = rightPort.multiportWidthIfLiteral
                     // If any port returns width -1, then the width cannot be determined
                     // and we will pessimistically make all remaining connections.
                     var pessimistic = (remainingRightPorts < 0)
                     var rightPortCount = 0
                     for (leftPort : c.leftPorts) {
-                        var remainingLeftPorts = leftPort.multiportWidth
+                        var remainingLeftPorts = leftPort.multiportWidthIfLiteral
                         pessimistic = pessimistic || (remainingLeftPorts < 0)
                         addEdge(leftPort, rightPort, path)
                         // How many ports were connected by this edge?
@@ -119,7 +119,7 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
                             while (remainingLeftPorts > 0) {
                                 rightPortCount++
                                 rightPort = c.rightPorts.get(rightPortCount)
-                                remainingRightPorts = rightPort.multiportWidth
+                                remainingRightPorts = rightPort.multiportWidthIfLiteral
                                 pessimistic = pessimistic || (remainingRightPorts < 0)
                                 addEdge(leftPort, rightPort, path)
                                 // How many ports were connected by this edge?
@@ -130,7 +130,7 @@ class ReactionGraph extends PrecedenceGraph<InstanceBinding> {
                             if (remainingRightPorts === 0 && rightPortCount < c.rightPorts.length - 1) {
                                 rightPortCount++
                                 rightPort = c.rightPorts.get(rightPortCount)
-                                remainingRightPorts = rightPort.multiportWidth
+                                remainingRightPorts = rightPort.multiportWidthIfLiteral
                                 pessimistic = pessimistic || (remainingRightPorts < 0)
                             }
                         }

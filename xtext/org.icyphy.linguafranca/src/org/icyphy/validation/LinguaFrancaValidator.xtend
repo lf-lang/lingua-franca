@@ -405,7 +405,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // to the code generator to check it.
         var leftWidth = 0
         for (port : connection.leftPorts) {
-            val width = port.multiportWidth
+            val width = port.multiportWidthIfLiteral
             if (width < 0 || leftWidth < 0) {
                 // Cannot determine the width of the left ports.
                 leftWidth = -1
@@ -415,7 +415,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         var rightWidth = 0
         for (port : connection.rightPorts) {
-            val width = port.multiportWidth
+            val width = port.multiportWidthIfLiteral
             if (width < 0 || rightWidth < 0) {
                 // Cannot determine the width of the left ports.
                 rightWidth = -1

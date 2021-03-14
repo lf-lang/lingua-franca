@@ -92,10 +92,13 @@ class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions
 	}
 	
     /**
-     * Returns true if the port is a multi port
+     * Returns true if the port is a multiport
      */
     def boolean isMultiport(VarRef port) {
-        return port.multiportWidth !== 1
+        if (port.variable instanceof Port) {
+            return isMultiport(port.variable as Port)
+        }
+        return false
     }
     def boolean isMultiport(Port port) {
         return port?.widthSpec !== null ? port.widthSpec.width !== 1 : false

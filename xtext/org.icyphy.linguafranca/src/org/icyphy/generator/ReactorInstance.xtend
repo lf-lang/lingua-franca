@@ -103,7 +103,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             var width = if (definition.widthSpec.ofVariableLength) {
                 parent.varBankWidth(definition)
             } else {
-                parent.width(definition.widthSpec, definition.widthSpec)
+                parent.width(definition)
             }
             if (width > 0) {
                 this.bankMembers = new ArrayList<ReactorInstance>(width)
@@ -230,94 +230,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             ReactorInstance.reactionGraph = new ReactionInstanceGraph(this)
         }
     }
-    
-    /**
-     * For the specified contained bank of reactors with variable width,
-     * return its width found by iterating over the connections of this reactor
-     * and inferring the required width. If the width cannot be inferred,
-     * report an error and return 0.
-     * @param bank A bank of reactors.
-     * @return The inferred width of the bank of reactors, or 0 if it cannot be determined.
-     */
-    def varBankWidth(Instantiation bank) {
-        var result = 0
-        for (connection : definition.reactorClass.toDefinition.allConnections) {
-            var found = 0
-            // First, check to see whether either side of the connection refers to this bank.
-            var leftVariableWidth = null as Instantiation
-            var leftWidth = 0
-            for (leftPort : connection.leftPorts) {
-                if (leftPort.container !== null
-                    && leftPort.container.widthSpec !== null 
-                    && leftPort.container.widthSpec.ofVariableLength
-                ) {
-                    if (connection.isIterated) {
-                        generator.reportError(connection, 
-                                "Iterated connection cannot contain a variable-width bank of reactors.")
-                    } else if (leftVariableWidth !== null) {
-                        generator.reportError(connection, 
-                                "Connection cannot contain more than one variable-width bank of reactors.")
-                    } else {
-                        leftVariableWidth = leftPort.container
-                        // Set found to -1 if this bank was found on the left.
-                        if (leftVariableWidth === bank) found = -1
-                    }
-                } else {
-                    var reactorInstance = this
-                    if (leftPort.container !== null) {
-                        reactorInstance = getChildReactorInstance(leftPort.container)
-                    }
-                    leftWidth += reactorInstance.width(leftPort.container.widthSpec, connection)
-                            * reactorInstance.width((leftPort.variable as Port).widthSpec, connection)
-                }
-            }
-            var rightVariableWidth = null as Instantiation
-            var rightWidth = 0
-            for (rightPort : connection.rightPorts) {
-                if (rightPort.container !== null
-                    && rightPort.container.widthSpec !== null 
-                    && rightPort.container.widthSpec.ofVariableLength
-                ) {
-                    if (leftVariableWidth !== null || rightVariableWidth !== null) {
-                        generator.reportError(connection, 
-                                "Connection cannot contain more than one variable-width bank of reactors.")
-                    } else {
-                        rightVariableWidth = rightPort.container
-                        // Set found to 1 if this bank was found on the right.
-                        if (rightVariableWidth === bank) found = 1
-                    }
-                } else {
-                    var reactorInstance = this
-                    if (rightPort.container !== null) {
-                        reactorInstance = getChildReactorInstance(rightPort.container)
-                    }
-                    rightWidth += reactorInstance.width(rightPort.container.widthSpec, connection)
-                            * reactorInstance.width((rightPort.variable as Port).widthSpec, connection)
-                }
-            }
-            if (found !== 0) {
-                var width = if (found < 0) {
-                    // bank was found on the left
-                    rightWidth - leftWidth
-                } else {
-                    // bank was found on the right.
-                    leftWidth - rightWidth
-                }
-                // Found a variable width reactor.
-                if (width <= 0) {
-                    generator.reportError(connection, 
-                            "Variable-width bank of reactors does not have a positive width.")
-                } else if (result != 0 && width != result) {
-                    generator.reportError(connection, 
-                            "Variable-width bank of reactors has more than one possible width.")
-                } else {
-                    result = width
-                }
-            }
-        }
-        return result
-    }
-    
+        
     /** Data structure used by nextPort() to keep track of the next available bank. */
     var nextBankTable = new LinkedHashMap<VarRef,Integer>()
 
@@ -362,7 +275,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * statement within this reactor instance, return the next available port instance
      * for that connection. If there are no more available ports, return null.
      * 
-     * This handles parallel connections like `a.out || b.out -> c.in || d.in`.
+     * This handles parallel connections like `a.out, b.out -> c.in, d.in`.
      * Each VarRef on each side may also refer to a port of this reactor, as in
      * `in1 || in2 -> b.in`.
      * To realize such connection statements, make connections until one side or
@@ -677,88 +590,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return triggers
     }
-    
-    /**
-     * For the specified parameter, if its value is a positive integer, return
-     * that value. Otherwise, report an error and return 0.
-     * @param parameter The parameter.
-     * @param errorReportingObject If an error occurs, report the error
-     *  on this object in the AST.
-     */
-    def int intParameterValue(Parameter parameter, EObject errorReportingObject) {
-        // Parameter values can be tuples.
-        // Here, we just sum the elements.
-        var values = parameter.init
         
-        // Check for an override.  
-        val override = definition.parameters.findFirst[it.lhs === parameter]
-        if (override !== null) {
-            values = override.rhs
-        }
-        
-        var result = 0
-        for (value : values) {
-            if (value.literal !== null) {
-                try {
-                    var candidate = Integer.decode(value.literal)
-                    if (candidate <= 0) {
-                        generator.reportError(
-                            errorReportingObject,
-                            '''Parameter «parameter.name» does not have a positive value: «candidate».'''
-                        )
-                        candidate = 0
-                    }
-                    result += candidate
-                } catch (NumberFormatException ex) {
-                    generator.reportError(
-                        errorReportingObject,
-                        '''Parameter «parameter.name» does not have an integer value.'''
-                    )
-                }
-            } else if (value.parameter !== null) {
-                // Parameter value is not a literal.
-                // Check for an override.  
-                val assignment = definition.parameters.findFirst[it.lhs === value.parameter]
-                if (assignment === null) {
-                    // There is no override, so we can use the default value.
-                    // In case that simply refers to another parameter of the same reactor,
-                    // call this function recursively.
-                    result += intParameterValue(value.parameter, errorReportingObject)
-                } else {
-                    // There is an override.
-                    // The right-hand side of the override may be a tuple,
-                    // so sum those elements.
-                    for (term : assignment.rhs) {
-                        if (term.literal !== null) {
-                            try {
-                                var candidate = Integer.decode(value.literal)
-                                if (candidate <= 0) {
-                                    generator.reportError(
-                                        errorReportingObject,
-                                        '''Non-positive value: «candidate».'''
-                                    )
-                                    candidate = 0
-                                }
-                                result += candidate
-                            } catch (NumberFormatException ex) {
-                                generator.reportError(
-                                    errorReportingObject,
-                                    '''Value «value.literal» is not an integer.'''
-                                )
-                            }
-                        } else if (value.parameter !== null) {
-                            // The override refers to a parameter of the parent.
-                            result += parent.intParameterValue(value.parameter, errorReportingObject)
-                        }
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-        return result
-    }
-    
     ///////////////////////////////////////////////////
     //// Methods for finding instances in this reactor given an AST node.
     
@@ -785,6 +617,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * or Code.
      * @param parameter The parameter definition (a syntactic object in the AST).
      * @return A value, or null if the parameter or its value is not found.
+     *  The value is an instance of String if a literal value is given,
+     *  a Time if a time value was given, or a Code, if a code value was
+     *  given.
      */
     def Object lookupParameterValue(Parameter parameter) {
         val instance = lookupParameterInstance(parameter)
@@ -916,29 +751,34 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * For the specified width specification, return the width.
-     * This may be for a bank of reactors within this reactor instance or
-     * for a port of this reactor instance. If the argument is null, there
-     * is no width specification, so return 1. Otherwise, evaluate the
-     * width value by determining the value of any referenced parameters.
+     * For the specified port of this reactor, return the width. If the port is not a
+     * multiport, this will return 1. Otherwise, if the port's width is given by a
+     * parameter, it will evaluate the parameter value in the context of this
+     * reactor instance. its specified width
+     * 
      * @param widthSpec The width specification.
      * @param errorReportingObject If an error occurs, report the error
      *  on this object in the AST.
      */
-    def width(WidthSpec widthSpec, EObject errorReportingObject) {
-        if (widthSpec === null) return 1
-        var result = 0
-        for (term : widthSpec.terms) {
-            if (term.parameter !== null) {
-                result += intParameterValue(term.parameter, errorReportingObject)
-            } else {
-                // The validator has checked for positive integers here.
-                result += term.width
-            }
-        }
-        return result
+    def width(Port port) {
+        return width(port.widthSpec, port.widthSpec);
     }
     
+    /**
+     * For the specified instantiation within this reactor, return the width.
+     * If the instantiation is not a bank of reactors, return 1.
+     * 
+     * @param widthSpec The width specification.
+     * @param errorReportingObject If an error occurs, report the error
+     *  on this object in the AST.
+     */
+    def width(Instantiation instantiation) {
+        if (instantiation.eContainer != this.definition.reactorClass) {
+            throw new IllegalArgumentException("Instantiation does not belong to this reactor.");
+        }
+        return width(instantiation.widthSpec, instantiation.widthSpec);
+    }
+
     // ////////////////////////////////////////////////////
     // // Protected fields.
     
@@ -968,8 +808,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     // ////////////////////////////////////////////////////
     // // Protected methods
 
-    
-    
     /** Create all the reaction instances of this reactor instance
      *  and record the dependencies and antidependencies
      *  between ports, actions, and timers and reactions.
@@ -1053,5 +891,204 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             reactionsWithoutLevels(child, result)
         }
         result
+    }
+
+    ////////////////////////////////////////
+    //// Private methods
+    
+    /**
+     * For the specified contained bank of reactors with variable width,
+     * return its width found by iterating over the connections of this reactor
+     * and inferring the required width. If the width cannot be inferred,
+     * report an error and return 0.
+     * @param bank A bank of reactors.
+     * @return The inferred width of the bank of reactors, or 0 if it cannot be determined.
+     */
+    private def varBankWidth(Instantiation bank) {
+        var result = 0
+        for (connection : definition.reactorClass.toDefinition.allConnections) {
+            var found = 0
+            // First, check to see whether either side of the connection refers to this bank.
+            var leftVariableWidth = null as Instantiation
+            var leftWidth = 0
+            for (leftPort : connection.leftPorts) {
+                if (leftPort.container !== null
+                    && leftPort.container.widthSpec !== null 
+                    && leftPort.container.widthSpec.ofVariableLength
+                ) {
+                    if (connection.isIterated) {
+                        generator.reportError(connection, 
+                                "Iterated connection cannot contain a variable-width bank of reactors.")
+                    } else if (leftVariableWidth !== null) {
+                        generator.reportError(connection, 
+                                "Connection cannot contain more than one variable-width bank of reactors.")
+                    } else {
+                        leftVariableWidth = leftPort.container
+                        // Set found to -1 if this bank was found on the left.
+                        if (leftVariableWidth === bank) found = -1
+                    }
+                } else {
+                    var reactorInstance = this
+                    if (leftPort.container !== null) {
+                        reactorInstance = getChildReactorInstance(leftPort.container)
+                    }
+                    leftWidth += reactorInstance.width(leftPort.container.widthSpec, connection)
+                            * reactorInstance.width((leftPort.variable as Port).widthSpec, connection)
+                }
+            }
+            var rightVariableWidth = null as Instantiation
+            var rightWidth = 0
+            for (rightPort : connection.rightPorts) {
+                if (rightPort.container !== null
+                    && rightPort.container.widthSpec !== null 
+                    && rightPort.container.widthSpec.ofVariableLength
+                ) {
+                    if (leftVariableWidth !== null || rightVariableWidth !== null) {
+                        generator.reportError(connection, 
+                                "Connection cannot contain more than one variable-width bank of reactors.")
+                    } else {
+                        rightVariableWidth = rightPort.container
+                        // Set found to 1 if this bank was found on the right.
+                        if (rightVariableWidth === bank) found = 1
+                    }
+                } else {
+                    var reactorInstance = this
+                    if (rightPort.container !== null) {
+                        reactorInstance = getChildReactorInstance(rightPort.container)
+                    }
+                    rightWidth += reactorInstance.width(rightPort.container.widthSpec, connection)
+                            * reactorInstance.width((rightPort.variable as Port).widthSpec, connection)
+                }
+            }
+            if (found !== 0) {
+                var width = if (found < 0) {
+                    // bank was found on the left
+                    rightWidth - leftWidth
+                } else {
+                    // bank was found on the right.
+                    leftWidth - rightWidth
+                }
+                // Found a variable width reactor.
+                if (width <= 0) {
+                    generator.reportError(connection, 
+                            "Variable-width bank of reactors does not have a positive width.")
+                } else if (result != 0 && width != result) {
+                    generator.reportError(connection, 
+                            "Variable-width bank of reactors has more than one possible width.")
+                } else {
+                    result = width
+                }
+            }
+        }
+        return result
+    }
+
+    /**
+     * For the specified width specification, return the width.
+     * This may be for a bank of reactors within this reactor instance or
+     * for a port of this reactor instance. If the argument is null, there
+     * is no width specification, so return 1. Otherwise, evaluate the
+     * width value by determining the value of any referenced parameters.
+     * 
+     * @param widthSpec The width specification.
+     * @param errorReportingObject If an error occurs, report the error
+     *  on this object in the AST.
+     */
+    private def width(WidthSpec widthSpec, EObject errorReportingObject) {
+        if (widthSpec === null) return 1
+        var result = 0
+        for (term : widthSpec.terms) {
+            if (term.parameter !== null) {
+                result += widthParameterValue(term.parameter, errorReportingObject)
+            } else {
+                // The validator has checked for positive integers here.
+                result += term.width
+            }
+        }
+        return result
+    }
+    
+    /**
+     * For the specified parameter, if its value is a positive integer, return
+     * that value. Otherwise, report an error and return 0.
+     * This is used to calculate a width.
+     * 
+     * @see width(WidthSpec, EObject)
+     * @param parameter The parameter.
+     * @param errorReportingObject If an error occurs, report the error
+     *  on this object in the AST.
+     */
+    private def int widthParameterValue(Parameter parameter, EObject errorReportingObject) {
+        // Parameter values can be tuples.
+        // Here, we just sum the elements.
+        var values = parameter.init
+        
+        // Check for an override.  
+        val override = definition.parameters.findFirst[it.lhs === parameter]
+        if (override !== null) {
+            values = override.rhs
+        }
+        
+        var result = 0
+        for (value : values) {
+            if (value.literal !== null) {
+                try {
+                    var candidate = Integer.decode(value.literal)
+                    if (candidate <= 0) {
+                        generator.reportError(
+                            errorReportingObject,
+                            '''Parameter «parameter.name» does not have a positive value: «candidate».'''
+                        )
+                        candidate = 0
+                    }
+                    result += candidate
+                } catch (NumberFormatException ex) {
+                    generator.reportError(
+                        errorReportingObject,
+                        '''Parameter «parameter.name» does not have an integer value.'''
+                    )
+                }
+            } else if (value.parameter !== null) {
+                // Parameter value is not a literal.
+                // Check for an override.  
+                val assignment = definition.parameters.findFirst[it.lhs === value.parameter]
+                if (assignment === null) {
+                    // There is no override, so we can use the default value.
+                    // In case that simply refers to another parameter of the same reactor,
+                    // call this function recursively.
+                    result += widthParameterValue(value.parameter, errorReportingObject)
+                } else {
+                    // There is an override.
+                    // The right-hand side of the override may be a tuple,
+                    // so sum those elements.
+                    for (term : assignment.rhs) {
+                        if (term.literal !== null) {
+                            try {
+                                var candidate = Integer.decode(value.literal)
+                                if (candidate <= 0) {
+                                    generator.reportError(
+                                        errorReportingObject,
+                                        '''Non-positive value: «candidate».'''
+                                    )
+                                    candidate = 0
+                                }
+                                result += candidate
+                            } catch (NumberFormatException ex) {
+                                generator.reportError(
+                                    errorReportingObject,
+                                    '''Value «value.literal» is not an integer.'''
+                                )
+                            }
+                        } else if (value.parameter !== null) {
+                            // The override refers to a parameter of the parent.
+                            result += parent.widthParameterValue(value.parameter, errorReportingObject)
+                        }
+                    }
+                }
+            } else {
+                return -1
+            }
+        }
+        return result
     }
 }
