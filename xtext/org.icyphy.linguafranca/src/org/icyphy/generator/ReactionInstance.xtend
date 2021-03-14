@@ -71,7 +71,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     portInstance.dependentReactions.add(this)
                     this.triggers.add(portInstance)
                 } else if (trigger.variable instanceof Action) {
-                    var actionInstance = parent.getActionInstance(
+                    var actionInstance = parent.lookupActionInstance(
                         trigger.variable as Action)
                     this.triggers.add(actionInstance)
                     actionInstance.dependentReactions.add(this)
@@ -109,7 +109,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                 }
             } else {
                 // Effect must be an Action.
-                var actionInstance = parent.getActionInstance(
+                var actionInstance = parent.lookupActionInstance(
                     effect.variable as Action)
                 this.effects.add(actionInstance)
                 actionInstance.dependsOnReactions.add(this)
