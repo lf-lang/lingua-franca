@@ -93,7 +93,7 @@ jobs:
         with:
           vcpkgArguments: 'protobuf'
           vcpkgGitCommitId: $(vcpkgGitRef)
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          vcpkgGitURL: https://github.com/microsoft/vcpkg/
         if: runner.os == 'Windows'
       - name: Run C tests;
         run: |
