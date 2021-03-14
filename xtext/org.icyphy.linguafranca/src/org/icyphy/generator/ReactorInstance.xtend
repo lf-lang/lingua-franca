@@ -275,7 +275,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * statement within this reactor instance, return the next available port instance
      * for that connection. If there are no more available ports, return null.
      * 
-     * This handles parallel connections like `a.out || b.out -> c.in || d.in`.
+     * This handles parallel connections like `a.out, b.out -> c.in, d.in`.
      * Each VarRef on each side may also refer to a port of this reactor, as in
      * `in1 || in2 -> b.in`.
      * To realize such connection statements, make connections until one side or
