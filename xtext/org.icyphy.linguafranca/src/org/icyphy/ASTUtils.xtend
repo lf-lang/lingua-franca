@@ -1261,27 +1261,25 @@ class ASTUtils {
      * Notice that there are a total of four instances of reactor class A.
      * Then
      * ```
-     *     iv (x) returns 1
-     *     iv (x, null) returns 1
-     *     iv (x, [a1]) returns 2
-     *     iv (x, [a2]) returns -1
-     *     iv (x, [a1, b1]) returns 3
-     *     iv (x, [a2, b1]) returns -1
-     *     iv (x, [a1, b2]) returns -2
-     *     iv (x, [a2, b2]) returns -1
+     *     initialValue(x, null) returns 1
+     *     initialValue(x, [a1]) returns 2
+     *     initialValue(x, [a2]) returns -1
+     *     initialValue(x, [a1, b1]) returns 3
+     *     initialValue(x, [a2, b1]) returns -1
+     *     initialValue(x, [a1, b2]) returns -2
+     *     initialValue(x, [a2, b2]) returns -1
      * ```
      * (Actually, in each of the above cases, the returned value is a list with
      * one entry, a Literal, e.g. ["1"]).
      * 
      * There are two instances of reactor class B.
      * ```
-     *     iv (y) returns 2
-     *     iv (y, null) returns 2
-     *     iv (y, [a1]) throws an IllegalArgumentException
-     *     iv (y, [b1]) returns 3
-     *     iv (y, [b2]) returns -2
+     *     initialValue(y) returns 2
+     *     initialValue(y, null) returns 2
+     *     initialValue(y, [a1]) throws an IllegalArgumentException
+     *     initialValue(y, [b1]) returns 3
+     *     initialValue(y, [b2]) returns -2
      * ```
-     * FIXME: The above should be jUnit tests, but jUnit doesn’t work for me.
      * 
      * @param parameter The parameter.
      * @param instantiation The (optional) instantiation.
