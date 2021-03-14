@@ -45,7 +45,7 @@ jobs:
   c-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest]
+        platform: [ubuntu-latest, macos-latest, windows]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Setup Java JDK
@@ -92,8 +92,6 @@ jobs:
         if: runner.os == 'Windows'
       - name: Run C tests;
         run: |
-          #bin/build-lfc;
-          #bin/run-lf-tests C;
           cd xtext
           ./gradlew test --tests org.icyphy.tests.runtime.CTest.*
   
@@ -115,8 +113,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run C++ tests;
         run: |
-          #bin/build-lfc;
-          #bin/run-lf-tests Cpp;
           cd xtext
           ./gradlew test --tests org.icyphy.tests.runtime.CppTest.runGenericTests
         
@@ -202,8 +198,6 @@ jobs:
       - uses: actions/checkout@v2      
       - name: Run Python tests;
         run: |
-          #bin/build-lfc;
-          #bin/run-lf-tests Python;
           cd xtext
           ./gradlew test --tests org.icyphy.tests.runtime.PythonTest.*
 
