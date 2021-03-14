@@ -88,13 +88,13 @@ jobs:
           brew install protobuf-c
           brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install Dependencies Windows
-        uses: lukka/run-vcpkg@v4
-        with:
-          vcpkgArguments: 'protobuf'
-          vcpkgGitCommitId: $(vcpkgGitRef)
-          vcpkgGitURL: https://github.com/microsoft/vcpkg/
-        if: runner.os == 'Windows'
+#       - name: Install Dependencies Windows
+#         uses: lukka/run-vcpkg@v4
+#         with:
+#           vcpkgArguments: 'protobuf'
+#           vcpkgGitCommitId: $(vcpkgGitRef)
+#           vcpkgGitURL: https://github.com/microsoft/vcpkg/
+#         if: runner.os == 'Windows'
       - name: Run C tests;
         run: |
           cd xtext
