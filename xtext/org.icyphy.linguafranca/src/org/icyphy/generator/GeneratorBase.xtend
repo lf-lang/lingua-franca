@@ -1499,7 +1499,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def copyFilesFromClassPath(String srcDir, String dstDir, List<String> files) {
         for (file : files) {
-            copyFileFromClassPath(srcDir + File.separator + file, dstDir + File.separator + file)
+            copyFileFromClassPath(srcDir + '/' + file, dstDir + File.separator + file)
         }
     }
 
