@@ -107,7 +107,7 @@ abstract class TestBase {
         printTestHeader("Description: Run non-federated tests in federated mode.")
         this.target.runTestsAndPrintResults([
             it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED
-        ], [ASTUtils.makeFederated(it.codeGenConfig.resource)])
+        ], [ASTUtils.makeFederated(it.fileConfig.resource)])
     }
     
     @Test
@@ -180,14 +180,14 @@ abstract class TestBase {
                 packageRoot = Paths.get(getRoot()); // FIXME: improve
                 hierarchicalBin = true;
             ]
-            test.codeGenConfig = new FileConfig(resource, fileAccess, context);
+            test.fileConfig = new FileConfig(resource, fileAccess, context);
         } catch (Exception e) {
             test.result = Result.PARSE_FAIL
             restoreOutputs()
             return false
         }
         
-        if (test.codeGenConfig === null || test.codeGenConfig.resource === null || !test.codeGenConfig.resource.errors.isEmpty) {
+        if (test.fileConfig === null || test.fileConfig.resource === null || !test.fileConfig.resource.errors.isEmpty) {
             test.result = Result.PARSE_FAIL
             restoreOutputs()
             return false
@@ -204,7 +204,7 @@ abstract class TestBase {
             test.properties.setProperty("no-compile", "")
         }
         
-        if (!test.codeGenConfig.resource.allContents.filter(Reactor).exists[it.isMain || it.isFederated]) {
+        if (!test.fileConfig.resource.allContents.filter(Reactor).exists[it.isMain || it.isFederated]) {
             test.result = Result.NO_MAIN_FAIL
             restoreOutputs()
             return false
@@ -213,7 +213,7 @@ abstract class TestBase {
         // Validate the resource and store issues in the test object.
         try {
             redirectOutputs(test)
-            val issues = validator.validate(test.codeGenConfig.resource, CheckMode.ALL, CancelIndicator.NullImpl)
+            val issues = validator.validate(test.fileConfig.resource, CheckMode.ALL, CancelIndicator.NullImpl)
             if (!issues.isNullOrEmpty) {
                 test.issues.append(issues.join(NEW_LINE))
                 if (issues.exists [
@@ -234,28 +234,25 @@ abstract class TestBase {
         return true
     }
 
+    /**
+     * Invoke the code generator for the given test.
+     * 
+     * @return True if code was generated successfully, false otherwise.
+     */
     def boolean generateCode(LFTest test) {
-        if (test.codeGenConfig.resource !== null) {
-            // Specify where to put the generated files. 
-            // This implicitly also specifies the root.
+        if (test.fileConfig.resource !== null) {
             redirectOutputs(test)
             try {
-                generator.generate(test.codeGenConfig.resource, fileAccess, test.codeGenConfig.context)
-                // FIXME: retrieve from the code generator where the files have been put
-                // Use a static function that takes in a fileAccess
-                // FIXME: if the target compiler reports errors, we should receive an exception.
-                // This is currently not the case.
+                generator.generate(test.fileConfig.resource, fileAccess, test.fileConfig.context)
             } catch (Exception e) {
-                //test.compileOut.append(e.toString() + NEW_LINE)
-                // FIXME: Weed out kinds of exceptions and set result accordingly.
-                // FIXME Catch FileNotFoundException and print it 
+                println(e.stackTrace)
+                test.issues.append(e.message)
                 test.result = Result.CODE_GEN_FAIL
                 restoreOutputs()
                 return false
             }
             
             restoreOutputs()
-            //println(test.out.toString(StandardCharsets.UTF_8))
             return true
         }
         return false
@@ -272,7 +269,7 @@ abstract class TestBase {
             case C,
             case CPP,
             case CCPP: {
-                val bin = test.codeGenConfig.binPath
+                val bin = test.fileConfig.binPath
                 val fullPath = bin.resolve(nameOnly)
                 if (Files.exists(fullPath)) {
                     pb = new ProcessBuilder("." + File.separator + nameOnly)
@@ -283,7 +280,7 @@ abstract class TestBase {
                 }
             }
             case Python: {
-                val srcGen = test.codeGenConfig.getSrcGenPath
+                val srcGen = test.fileConfig.getSrcGenPath
                 val fullPath = srcGen.resolve(nameOnly + ".py")
                 if (Files.exists(fullPath)) {
                     pb = new ProcessBuilder("python3", fullPath.toFile.name)
@@ -299,7 +296,7 @@ abstract class TestBase {
                 }
             }
             case TS: {
-                val dist = test.codeGenConfig.getSrcGenPath.resolve("dist")
+                val dist = test.fileConfig.getSrcGenPath.resolve("dist")
                 val file = dist.resolve(nameOnly + ".js")
                 if (Files.exists(file)) {
                     pb = new ProcessBuilder("node", file.toString)
