@@ -44,21 +44,23 @@ import org.icyphy.linguaFranca.Delay
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.TimeValue
 
-/** Instance of a federate, or marker that no federation has been defined
- *  (if isSingleton() returns true). Every top-level reactor (contained
- *  directly by the main reactor) is a federate, so there will be one
- *  instance of this class for each top-level reactor.
+/** 
+ * Instance of a federate, or marker that no federation has been defined
+ * (if isSingleton() returns true). Every top-level reactor (contained
+ * directly by the main reactor) is a federate, so there will be one
+ * instance of this class for each top-level reactor.
  * 
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class FederateInstance {
 
-    /** Construct a new instance with the specified instantiation of
-     *  of a top-level reactor. The federate will be given the specified
-     *  integer ID.
-     *  @param instantiation The instantiation of a top-level reactor,
-     *   or null if no federation has been defined.
-     *  @param The generator (for reporting errors).
+    /**
+     * Construct a new instance with the specified instantiation of
+     * of a top-level reactor. The federate will be given the specified
+     * integer ID.
+     * @param instantiation The instantiation of a top-level reactor,
+     *  or null if no federation has been defined.
+     * @param The generator (for reporting errors).
      */
     protected new(Instantiation instantiation, int id, GeneratorBase generator) {
         this.instantiation = instantiation
@@ -75,8 +77,15 @@ class FederateInstance {
     /////////////////////////////////////////////
     //// Public Fields
     
-    /** Set of names of contained reactors. Note that will be
-     *  empty if isSingleton() returns true.
+    /**
+     * The position within a bank of reactors for this federate.
+     * This is 0 if the instantiation is not a bank of reactors.
+     */
+    public var bankPosition = 0;
+    
+    /** 
+     * Set of names of contained reactors. Note that will be
+     * empty if isSingleton() returns true.
      */
     public var Set<String> containedReactorNames = new LinkedHashSet<String>
     
@@ -91,10 +100,11 @@ class FederateInstance {
     /** The instantiation of the top-level reactor, or null if there is no federation. */
     public var Instantiation instantiation;
     
-    /** Map from the federates that this federate receives messages from
-     *  to the delays on connections from that federate. The delay set
-     *  may be empty, meaning no delay (not even a microstep or 0 delay)
-     *  was specified.
+    /**
+     * Map from the federates that this federate receives messages from
+     * to the delays on connections from that federate. The delay set
+     * may be empty, meaning no delay (not even a microstep or 0 delay)
+     * was specified.
      */
     public var dependsOn = new LinkedHashMap<FederateInstance,Set<Delay>>()
     
