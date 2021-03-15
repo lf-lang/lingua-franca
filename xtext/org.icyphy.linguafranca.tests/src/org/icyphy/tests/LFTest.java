@@ -107,7 +107,7 @@ public class LFTest implements Comparable<LFTest> {
     /**
      * Object used to determine where the code generator puts files.
      */
-    public FileConfig codeGenConfig;
+    public FileConfig fileConfig;
     
     /**
      * 
