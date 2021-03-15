@@ -693,6 +693,11 @@ class CGenerator extends GeneratorBase {
             val targetFile = fileConfig.getSrcGenPath + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
+            // FIXME: Added this for debugging purposes
+            if (System.getProperty("os.name").toLowerCase.equals("windows")) {
+                print(this.code)
+            }
+            
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
                 writeDockerFile(topLevelName)
