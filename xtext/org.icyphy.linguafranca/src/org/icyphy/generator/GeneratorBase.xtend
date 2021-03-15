@@ -53,6 +53,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.validation.CheckMode
+import org.icyphy.ASTUtils
 import org.icyphy.Configuration
 import org.icyphy.InferredType
 import org.icyphy.Target
@@ -253,20 +254,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var List<FederateInstance> federates = new LinkedList<FederateInstance>
 
     /**
-     * A map from federate names to federate instances.
-     */
-    protected var Map<String, FederateInstance> federateByName = new LinkedHashMap<String, FederateInstance>()
-
-    /**
      * A map from federate IDs to federate instances.
      */
     protected var Map<Integer, FederateInstance> federateByID = new LinkedHashMap<Integer, FederateInstance>()
 
     /**
-     * A map from reactor names to the federate instance that contains the
-     * reactor.
+     * A map from instantiations to the federate instances for that instantiation.
+     * If the instantiation has a width, there may be more than one federate instance.
      */
-    protected var Map<String, FederateInstance> federateByReactor
+    protected var Map<Instantiation, List<FederateInstance>> federatesByInstantiation
 
     /**
      * The federation RTI properties, which defaults to 'localhost: 15045'.
@@ -1931,7 +1927,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, this)
             federates.add(federateInstance)
-            federateByName.put("", federateInstance)
             federateByID.put(0, federateInstance)
         } else {
             // The Lingua Franca program is federated
@@ -1961,32 +1956,38 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
             // Create a FederateInstance for each top-level reactor.
             for (instantiation : mainDefn.allInstantiations) {
-                // Assign an integer ID to the federate.
-                var federateID = federates.length
-                // Add the federate name to the list of names.
-                var federateInstance = new FederateInstance(instantiation, federateID, this)
-                federates.add(federateInstance)
-                federateByName.put(instantiation.name, federateInstance)
-                federateByID.put(federateID, federateInstance)
+                var bankWidth = ASTUtils.width(instantiation.widthSpec);
+                if (bankWidth < 0) {
+                    reportError(instantiation, "Cannot determine bank width!");
+                    // Continue with a bank width of 1.
+                    bankWidth = 1;
+                }
+                // Create one federate instance for each reactor instance in the bank of reactors.
+                val federateInstances = new LinkedList<FederateInstance>();
+                for (var i = 0; i < bankWidth; i++) {
+                    // Assign an integer ID to the federate.
+                    var federateID = federates.length
+                    var federateInstance = new FederateInstance(instantiation, federateID, this)
+                    federateInstance.bankPosition = i;
+                    federates.add(federateInstance)
+                    federateInstances.add(federateInstance)
+                    federateByID.put(federateID, federateInstance)
 
-                if (instantiation.host !== null) {
-                    federateInstance.host = instantiation.host.addr
-                    // The following could be 0.
-                    federateInstance.port = instantiation.host.port
-                    // The following could be null.
-                    federateInstance.user = instantiation.host.user
-                /* FIXME
-                 * federateInstance.dir = instantiation.host.dir
-                 */
+                    if (instantiation.host !== null) {
+                        federateInstance.host = instantiation.host.addr
+                        // The following could be 0.
+                        federateInstance.port = instantiation.host.port
+                        // The following could be null.
+                        federateInstance.user = instantiation.host.user
+                        /* FIXME: The at keyword should support a directory component.
+                         * federateInstance.dir = instantiation.host.dir
+                         */
+                    }
                 }
-
-                if (federateByReactor === null) {
-                    federateByReactor = new LinkedHashMap<String, FederateInstance>()
+                if (federatesByInstantiation === null) {
+                    federatesByInstantiation = new LinkedHashMap<Instantiation, List<FederateInstance>>();
                 }
-                for (reactorName : federateInstance.containedReactorNames) {
-                    federateByReactor.put(reactorName, federateInstance)
-                }
-                
+                federatesByInstantiation.put(instantiation, federateInstances);
             }
 
             // In a federated execution, we need keepalive to be true,
@@ -1998,75 +1999,110 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
             // Analyze the connection topology of federates.
             // First, find all the connections between federates.
-            // Those that are labeled "physical" create no dependency.
-            // Otherwise, there is a dependency. This may have a delay
-            // which corresponds to the "lookahead" of HLA.
-            // FIXME: If there is no delay, we may have to transmit
-            // the microstep, not just the timestamp.
-            // FIXME: Now that each top-level reactor is a federate,
-            // this is redundant with the connectivity information in
-            // ReactorInstanace.
             // For each connection between federates, replace it in the
             // AST with an action (which inherits the delay) and two reactions.
             // The action will be physical for physical connections and logical
             // for logical connections.
             var connectionsToRemove = new LinkedList<Connection>()
             for (connection : mainDefn.connections) {
-                // FIXME: Connections between federates do not support parallel connections.
-                if (connection.leftPorts.length !== 1 || connection.rightPorts.length !== 1) {
-                    val message = "FIXME: Parallel connections between federates are not supported yet."
-                    reportError(connection, message)
-                }
-                var leftFederate = federateByReactor.get(connection.leftPorts.get(0).container.name)
-                var rightFederate = federateByReactor.get(connection.rightPorts.get(0).container.name)
-                if (leftFederate !== rightFederate) {
-                    // Connection spans federates.
-                    // First, update the dependencies in the FederateInstances.
-                    // Exclude physical connections because these do not create real dependencies.
-                    if (leftFederate !== rightFederate && !connection.physical && (config.coordination !==
-                        CoordinationType.DECENTRALIZED)) {
-                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                        if (dependsOn === null) {
-                            dependsOn = new LinkedHashSet<Delay>()
-                            rightFederate.dependsOn.put(leftFederate, dependsOn)
-                        }
-                        if (connection.delay !== null) {
-                            dependsOn.add(connection.delay)
-                        }
-                        var sendsTo = leftFederate.sendsTo.get(rightFederate)
-                        if (sendsTo === null) {
-                            sendsTo = new LinkedHashSet<Delay>()
-                            leftFederate.sendsTo.put(rightFederate, sendsTo)
-                        }
-                        if (connection.delay !== null) {
-                            sendsTo.add(connection.delay)
-                        }
-                        // Check for causality loops between federates.
-                        // FIXME: This does not detect cycles involving more than one federate.
-                        var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                        if (reverseDependency !== null) {
-                            // Check that at least one direction has a delay.
-                            if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                // Found a causality loop.
-                                val message = "Causality loop found between federates " + leftFederate.name + " and " +
-                                    rightFederate.name
-                                reportError(connection, message)
-                                // This is a fatal error, so throw an exception.
-                                throw new Exception(message)
+                // Each connection object may represent more than one physical connection between
+                // federates because of banks and multiports. We need to generate communciation
+                // for each of these. This iteration assumes the balance of the connection has been
+                // checked.
+                var rightIndex = 0;
+                var rightPort = connection.rightPorts.get(rightIndex++);
+                var rightBankIndex = 0;
+                var rightChannelIndex = 0;
+                var rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                for (leftPort: connection.leftPorts) {
+                    var leftPortWidth = width((leftPort.variable as Port).widthSpec);
+                    for (var leftBankIndex = 0; leftBankIndex < width(leftPort.container.widthSpec); leftBankIndex++) {
+                        var leftChannelIndex = 0;
+                        while (rightPort !== null) {
+                            var minWidth = (leftPortWidth - leftChannelIndex < rightPortWidth - rightChannelIndex)
+                                    ? leftPortWidth - leftChannelIndex
+                                    : rightPortWidth - rightChannelIndex;
+                            for (var j = 0; j < minWidth; j++) {
+                            
+                                // Finally, we have a specific connection.
+                                // Replace the connection in the AST with an action
+                                // (which inherits the delay) and two reactions.
+                                // The action will be physical if the connection physical and
+                                // otherwise will be logical.
+                                val leftFederate = federatesByInstantiation.get(leftPort.container).get(leftBankIndex);
+                                val rightFederate = federatesByInstantiation.get(rightPort.container).get(rightBankIndex);
+
+                                // Set up dependency information.
+                                // FIXME: Maybe we don't need this any more?
+                                if (
+                                    leftFederate !== rightFederate
+                                    && !connection.physical
+                                    && config.coordination !== CoordinationType.DECENTRALIZED
+                                ) {
+                                    var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                                    if (dependsOn === null) {
+                                        dependsOn = new LinkedHashSet<Delay>()
+                                        rightFederate.dependsOn.put(leftFederate, dependsOn)
+                                    }
+                                    if (connection.delay !== null) {
+                                        dependsOn.add(connection.delay)
+                                    }
+                                    var sendsTo = leftFederate.sendsTo.get(rightFederate)
+                                    if (sendsTo === null) {
+                                        sendsTo = new LinkedHashSet<Delay>()
+                                        leftFederate.sendsTo.put(rightFederate, sendsTo)
+                                    }
+                                    if (connection.delay !== null) {
+                                        sendsTo.add(connection.delay)
+                                    }
+                                    // Check for causality loops between federates.
+                                    // FIXME: This does not detect cycles involving more than one federate.
+                                    var reverseDependency = leftFederate.dependsOn.get(rightFederate)
+                                    if (reverseDependency !== null) {
+                                        // Check that at least one direction has a delay.
+                                        if (reverseDependency.size === 0 && dependsOn.size === 0) {
+                                            // Found a causality loop.
+                                            val message = "Causality loop found between federates " +
+                                                leftFederate.name + " and " + rightFederate.name
+                                            reportError(connection, message)
+                                            // This is a fatal error, so throw an exception.
+                                            throw new Exception(message)
+                                        }
+                                    }
+                                }
+                                
+                                // FIXME: makeCommunication is going to need more: bank position, channel index.
+                                ASTUtils.makeCommunication(
+                                    connection, leftFederate, rightFederate, this, config.coordination
+                                )
+                            
+                                leftChannelIndex++;
+                                rightChannelIndex++;
+                                if (rightChannelIndex >= rightPortWidth) {
+                                    // Ran out of channels on the right.
+                                    // First, check whether there is another bank reactor.
+                                    if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
+                                        rightBankIndex++;
+                                        rightChannelIndex = 0;
+                                    } else if (rightIndex >= connection.rightPorts.size()) {
+                                        // We are done.
+                                        rightPort = null;
+                                        rightBankIndex = 0;
+                                        rightChannelIndex = 0;
+                                    } else {
+                                        rightBankIndex = 0;
+                                        rightPort = connection.rightPorts.get(rightIndex++);
+                                        rightChannelIndex = 0;
+                                        rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                                    }
+                                }
                             }
                         }
                     }
-
-                    // Next, replace the connection in the AST with an action
-                    // (which inherits the delay) and two reactions.
-                    // The action will be physical if the connection physical and
-                    // otherwise will be logical.
-                    connection.makeCommunication(leftFederate, rightFederate, this, config.coordination)
-
-                    // To avoid concurrent modification exception, collect a list
-                    // of connections to remove.
-                    connectionsToRemove.add(connection)
                 }
+                // To avoid concurrent modification exception, collect a list
+                // of connections to remove.
+                connectionsToRemove.add(connection)
             }
             for (connection : connectionsToRemove) {
                 // Remove the original connection for the parent.
