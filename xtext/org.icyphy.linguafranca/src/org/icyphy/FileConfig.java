@@ -140,17 +140,6 @@ public class FileConfig {
      * relative to this URI.
      */
     protected final URI srcGenRoot;
-
-    // Deprecated fields.
-    
-    /**
-     * Variant of {@link #GeneratorBase.sourceFile GeneratorBase.sourceFile}
-     * used on the Windows platform. FIXME: not clear that we need this any longer.
-     * TODO: remove
-     * @deprecated
-     */
-    public final File windowsSourceFile;
-    
     
     public FileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) throws IOException {
         this.resource = resource;
@@ -158,7 +147,6 @@ public class FileConfig {
         this.context = context;
         
         this.srcFile = toPath(this.resource.getURI()).toFile();
-        this.windowsSourceFile = new File(toIPath(this.resource.getURI()).toOSString());
         
         this.srcPath = srcFile.toPath().getParent();
         this.srcPkgPath = getPkgPath(resource, context);

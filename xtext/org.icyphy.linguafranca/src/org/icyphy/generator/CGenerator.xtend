@@ -5029,7 +5029,7 @@ class CGenerator extends GeneratorBase {
                 offset += 1
             }
             if (System.getProperty("os.name").toLowerCase.contains("windows")) {
-                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + fileConfig.windowsSourceFile + '"')
+                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + FileConfig.toUnixFormat(fileConfig.srcFile.toPath) + '"') // FIXME: remove the condition
             } else {
                 pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + fileConfig.srcFile + '"')
             }
