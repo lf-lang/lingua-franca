@@ -354,9 +354,9 @@ token_freed __done_using(lf_token_t* token) {
     if (token == NULL) return result;
     if (token->ref_count == 0) {
         warning_print("Token being freed that has already been freed: %p", token);
-    } else {
-        token->ref_count--;
+        return NOT_FREED;
     }
+    token->ref_count--;
     DEBUG_PRINT("__done_using: ref_count = %d.", token->ref_count);
     if (token->ref_count == 0) {
         if (token->value != NULL) {
@@ -1836,6 +1836,9 @@ void termination() {
 
     // Stop any tracing, if it is running.
     stop_trace();
+
+    // In order to free tokens, we perform the same actions we would have for a new time step.
+    __start_time_step();
 
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {
