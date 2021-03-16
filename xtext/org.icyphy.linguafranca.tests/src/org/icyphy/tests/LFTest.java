@@ -175,7 +175,7 @@ public class LFTest implements Comparable<LFTest> {
             sb.append("Failed: " + this.name + "\n");
             sb.append("-----------------------------------------------------------------------------\n");
             sb.append("Reason: " + this.result.reason + TestBase.NEW_LINE);
-            appendIfNotEmpty("Compilation issues", this.issues.toString(), sb);
+            appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
             appendIfNotEmpty("Compilation error output", this.err.toString(), sb);
             appendIfNotEmpty("Compilation standard output", this.out.toString(), sb);
             appendIfNotEmpty("Execution error output", this.exec.err.toString(), sb);
