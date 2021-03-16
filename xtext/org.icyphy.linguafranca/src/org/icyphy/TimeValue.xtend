@@ -195,8 +195,8 @@ class TimeValue {
         TimeUnit.DAY -> 86400000000000L, TimeUnit.DAYS -> 86400000000000L,
         TimeUnit.WEEK -> 604800000000000L, TimeUnit.WEEKS -> 604800000000000L}
         
-    public static TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.WEEKS)
-    public static TimeValue MIN_VALUE = new TimeValue(Long.MIN_VALUE, TimeUnit.WEEKS)
+    public static TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NSECS)
+    public static TimeValue MIN_VALUE = new TimeValue(Long.MIN_VALUE, TimeUnit.NSECS)
     
     /**
      * Return the result of adding b's time to the calling
