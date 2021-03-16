@@ -273,9 +273,9 @@ abstract class TestBase {
                 val fullPath = bin.resolve(nameOnly)
                 if (Files.exists(fullPath)) {
                     if (System.getProperty("os.name").startsWith("Windows")) {
-                        pb = new ProcessBuilder("." + File.separator + nameOnly)
-                    } else {
                         pb = new ProcessBuilder("start", nameOnly)
+                    } else {
+                        pb = new ProcessBuilder("." + File.separator + nameOnly)
                     }
                     pb.directory(bin.toFile)
                 } else {
