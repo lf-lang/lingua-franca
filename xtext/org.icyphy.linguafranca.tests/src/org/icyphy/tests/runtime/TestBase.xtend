@@ -278,7 +278,7 @@ abstract class TestBase {
                     if (System.getProperty("os.name").startsWith("Windows")) {
                         val winPath = bin.resolve(nameOnly + ".exe")
                         if (Files.exists(winPath)) {
-                            pb = new ProcessBuilder(nameOnly + ".exe")
+                            pb = new ProcessBuilder("start " + nameOnly + ".exe")
                             pb.directory(bin.toFile)
                         } else {
                             test.issues.append(winPath + ": No such file or directory." + NEW_LINE)
@@ -325,16 +325,14 @@ abstract class TestBase {
         if (pb !== null) {
             try {
                 val p = pb.start()
-                val stdout = test.exec.recordStdOut(p.inputStream)
-                val stderr = test.exec.recordStdErr(p.errorStream)
-                //println("Executing: " + nameOnly)
+                val stdout = test.exec.recordStdOut(p)
+                val stderr = test.exec.recordStdErr(p)
                 if(!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
                     stdout.interrupt()
                     stderr.interrupt()
                     p.destroyForcibly()
                     test.result = Result.TEST_TIMEOUT
                 } else {
-                    println(new String(p.getInputStream().readAllBytes()))
                     if (p.exitValue == 0) {
                         test.result = Result.TEST_PASS
                     } else {
