@@ -60,7 +60,6 @@ import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.ReactorDecl
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.Time
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.TypedVariable
@@ -2793,6 +2792,9 @@ class CGenerator extends GeneratorBase {
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
+        // Note that there may be more than one reaction reacting to the same
+        // port so we have to avoid listing the port more than once.
+        val portsSeen = new LinkedHashSet<PortInstance>();
         for (reaction : instance.reactions) {
             if (federate === null || federate.containsReaction(
                 instance.definition.reactorClass.toDefinition,
@@ -2827,18 +2829,34 @@ class CGenerator extends GeneratorBase {
                         }
                     }
                 }
+                // Find outputs of contained reactors that have token types and therefore
+                // need to have their reference counts decremented.
                 for (port : reaction.sources) {
-                    if (port.definition instanceof Output) {
+                    if (port.definition instanceof Output && !portsSeen.contains(port)) {
+                        portsSeen.add(port as PortInstance)
                         // This reaction is receiving data from the port.
                         if (isTokenType((port.definition as Output).inferredType)) {
-                            pr(startTimeStep, '''
-                                __tokens_with_ref_count[«startTimeStepTokens»].token
-                                        = &«containerSelfStructName»->__«port.parent.name».«port.name»->token;
-                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                        = &«containerSelfStructName»->__«port.parent.name».«port.name»->is_present;
-                                __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
-                            ''')
-                            startTimeStepTokens++
+                            if (port instanceof MultiportInstance) {
+                                pr(startTimeStep, '''
+                                    for (int i = 0; i < «port.width»; i++) {
+                                        __tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                                = &«containerSelfStructName»->__«port.parent.name».«port.name»[i]->token;
+                                        __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                                = &«containerSelfStructName»->__«port.parent.name».«port.name»[i]->is_present;
+                                        __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                    }
+                                ''')
+                                startTimeStepTokens += port.width
+                            } else {
+                                pr(startTimeStep, '''
+                                    __tokens_with_ref_count[«startTimeStepTokens»].token
+                                            = &«containerSelfStructName»->__«port.parent.name».«port.name»->token;
+                                    __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                            = &«containerSelfStructName»->__«port.parent.name».«port.name»->is_present;
+                                    __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                                ''')
+                                startTimeStepTokens++
+                            }
                         }
                     }
                 }
@@ -4041,6 +4059,8 @@ class CGenerator extends GeneratorBase {
      * @param receivingPortID The ID of the destination port.
      * @param sendingFed The sending federate.
      * @param receivingFed The destination federate.
+     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
+     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      */
     override generateNetworkReceiverBody(
@@ -4050,6 +4070,8 @@ class CGenerator extends GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
+        int receivingBankIndex,
+        int receivingChannelIndex,
         InferredType type
     ) {
         // Adjust the type of the action and the receivingPort.
@@ -4066,7 +4088,11 @@ class CGenerator extends GeneratorBase {
         }
 
         val sendRef = generateVarRef(sendingPort)
-        val receiveRef = generateVarRef(receivingPort)
+        var receiveRef = generateVarRef(receivingPort)
+        // If the receiving port is a multiport, index it.
+        if ((receivingPort.variable as Port).widthSpec !== null && receivingChannelIndex >= 0) {
+            receiveRef = receiveRef + '[' + receivingChannelIndex + ']'
+        }
         val result = new StringBuilder()
         if (isFederatedAndDecentralized) {
             result.append('''
@@ -4097,6 +4123,8 @@ class CGenerator extends GeneratorBase {
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
      * @param sendingFed The sending federate.
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
      * @param receivingFed The destination federate.
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
@@ -4107,12 +4135,18 @@ class CGenerator extends GeneratorBase {
         VarRef receivingPort,
         int receivingPortID, 
         FederateInstance sendingFed,
+        int sendingBankIndex,
+        int sendingChannelIndex,
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
         Delay delay
     ) { 
-        val sendRef = generateVarRef(sendingPort)
+        var sendRef = generateVarRef(sendingPort)
+        // If the sending port is a multiport, index it.
+        if ((sendingPort.variable as Port).getWidthSpec() !== null && sendingChannelIndex >= 0) {
+            sendRef = sendRef + '[' + sendingChannelIndex + ']'
+        }
         val receiveRef = generateVarRef(receivingPort)
         val result = new StringBuilder()
         result.append('''
@@ -4210,9 +4244,7 @@ class CGenerator extends GeneratorBase {
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
-                «sendRef»->token->ref_count++;
                 «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
-                __done_using(«sendRef»->token);
             ''')
         } else {
             // Handle native types.

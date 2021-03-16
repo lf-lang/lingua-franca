@@ -57,6 +57,8 @@ DistributedLoopedAction.lf
 DistributedLoopedActionDecentralized.lf
 DistributedLoopedPhysicalAction.lf
 DistributedLoopedPhysicalActionDecentralized.lf
+DistributedMultiport.lf
+DistributedMultiportToken.lf
 DistributedNetworkOrder.lf
 DistributedNetworkOrderDecentralized.lf
 DistributedStop.lf
