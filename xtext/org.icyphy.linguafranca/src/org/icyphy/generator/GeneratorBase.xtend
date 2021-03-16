@@ -816,22 +816,28 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         val cFilename = getTargetFileName(fileToCompile);
 
-        var relativeSrcPath = fileConfig.outPath.relativize(fileConfig.getSrcGenPath.resolve(Paths.get(cFilename))).toString()
-        var relativeBinPath = fileConfig.outPath.relativize(fileConfig.binPath.resolve(Paths.get(fileToCompile))).toString()
+        var relativeSrcPath = fileConfig.outPath.relativize(
+            fileConfig.getSrcGenPath.resolve(Paths.get(cFilename)))
+        var relativeBinPath = fileConfig.outPath.relativize(
+            fileConfig.binPath.resolve(Paths.get(fileToCompile)))
 
-        if (env == ExecutionEnvironment.BASH) { // NOTE: This is to make it work on Windows while using Bash.
-            relativeSrcPath = relativeSrcPath.replace('/', '\\')
-            relativeBinPath = relativeBinPath.replace('/', '\\')
+        var relSrcPathString = relativeSrcPath.toString
+        var relBinPathString = relativeBinPath.toString
+        
+        if (env == ExecutionEnvironment.BASH) {
+            // NOTE: This is to make it work on Windows while using Bash.
+            relSrcPathString = FileConfig.toUnixPath(relativeSrcPath).toString
+            relBinPathString = FileConfig.toUnixPath(relativeBinPath).toString
         }
         var compileArgs = newArrayList
-        compileArgs.add(relativeSrcPath)
+        compileArgs.add(relSrcPathString)
         compileArgs.addAll(targetConfig.compileAdditionalSources)
         compileArgs.addAll(targetConfig.compileLibraries)
 
         // Only set the output file name if it hasn't already been set
         // using a target property or Args line flag.
         if (compileArgs.forall[it.trim != "-o"]) {
-            compileArgs.addAll("-o", relativeBinPath)
+            compileArgs.addAll("-o", relBinPathString)
         }
 
         // If threaded computation is requested, add a -pthread option.
