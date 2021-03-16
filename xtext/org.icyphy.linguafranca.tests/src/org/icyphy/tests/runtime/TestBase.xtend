@@ -272,7 +272,11 @@ abstract class TestBase {
                 val bin = test.fileConfig.binPath
                 val fullPath = bin.resolve(nameOnly)
                 if (Files.exists(fullPath)) {
-                    pb = new ProcessBuilder("." + File.separator + nameOnly)
+                    if (System.getProperty("os.name").startsWith("Windows")) {
+                        pb = new ProcessBuilder(nameOnly + ".exe")
+                    } else {
+                        pb = new ProcessBuilder("." + File.separator + nameOnly)
+                    }
                     pb.directory(bin.toFile)
                 } else {
                     test.issues.append(fullPath + ": No such file or directory." + NEW_LINE)
