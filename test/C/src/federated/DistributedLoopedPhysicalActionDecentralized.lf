@@ -12,7 +12,7 @@ target C {
 
 import Sender, Receiver from "DistributedLoopedPhysicalAction.lf"
 
-federated reactor {
+federated reactor DistributedLoopedActionDecentralized {
     sender = new Sender();
     receiver = new Receiver();
     

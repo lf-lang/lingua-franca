@@ -1,0 +1,55 @@
+#!/bin/bash
+# Launcher for federated PingPongDistributed.lf Lingua Franca program.
+# Uncomment to specify to behave as close as possible to the POSIX standard.
+# set -o posix
+
+# Enable job control
+set -m
+shopt -s huponexit
+
+# Set a trap to kill all background jobs on error or control-C
+cleanup() {
+    echo "#### Received signal."
+    printf "Killing federate %s.\n" ${pids[*]}
+    kill ${pids[@]}
+    printf "#### Killing RTI %s.\n" ${RTI}
+    kill ${RTI}
+    exit 1
+}
+trap cleanup ERR
+trap cleanup SIGINT
+
+# Create a random 48-byte text ID for this federation.
+# The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
+FEDERATION_ID=`openssl rand -hex 24`
+echo "Federate PingPongDistributed in Federation ID "$FEDERATION_ID
+# Launch the federates:
+echo "#### Launching the runtime infrastructure (RTI)."
+# The RTI is started first to allow proper boot-up
+# before federates will try to connect.
+# The RTI will be brought back to foreground
+# to be responsive to user inputs after all federates
+# are launched.
+C:\Users\soyer\lingua-franca-master\git\lingua-franca\benchmark\C\Savina\bin\PingPongDistributed_RTI -i $FEDERATION_ID &
+# Store the PID of the RTI
+RTI=$!
+# Wait for the RTI to boot up before
+# starting federates (this could be done by waiting for a specific output
+# from the RTI, but here we use sleep)
+sleep 1
+echo "#### Launching the federate ping."
+C:\Users\soyer\lingua-franca-master\git\lingua-franca\benchmark\C\Savina\bin\PingPongDistributed_ping -i $FEDERATION_ID &
+pids[0]=$!
+echo "#### Launching the federate pong."
+C:\Users\soyer\lingua-franca-master\git\lingua-franca\benchmark\C\Savina\bin\PingPongDistributed_pong -i $FEDERATION_ID &
+pids[1]=$!
+echo "#### Bringing the RTI back to foreground"
+fg 1
+RTI=$! # Store the new pid of the RTI
+    
+# Wait for launched processes to finish.
+# The errors are handled separately via trap.
+for pid in ${pids[*]}; do
+    wait $pid
+done
+wait $RTI
