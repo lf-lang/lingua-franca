@@ -334,7 +334,7 @@ abstract class TestBase {
                     p.destroyForcibly()
                     test.result = Result.TEST_TIMEOUT
                 } else {
-                    //println(new String(p.getInputStream().readAllBytes()))
+                    println(new String(p.getInputStream().readAllBytes()))
                     if (p.exitValue == 0) {
                         test.result = Result.TEST_PASS
                     } else {
