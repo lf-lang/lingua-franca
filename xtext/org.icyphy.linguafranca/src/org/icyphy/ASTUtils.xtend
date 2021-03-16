@@ -377,7 +377,11 @@ class ASTUtils {
     static def void makeCommunication(
         Connection connection, 
         FederateInstance leftFederate,
+        int leftBankIndex,
+        int leftChannelIndex,
         FederateInstance rightFederate,
+        int rightBankIndex,
+        int rightChannelIndex,
         GeneratorBase generator,
         CoordinationType coordination
     ) {
@@ -457,6 +461,8 @@ class ASTUtils {
             outRef,
             receivingPortID,
             leftFederate,
+            leftBankIndex,
+            leftChannelIndex,
             rightFederate,
             action.inferredType,
             connection.isPhysical,
@@ -474,6 +480,8 @@ class ASTUtils {
             receivingPortID,
             leftFederate,
             rightFederate,
+            rightBankIndex,
+            rightChannelIndex,
             action.inferredType
         )
 
