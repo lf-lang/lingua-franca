@@ -272,22 +272,16 @@ abstract class TestBase {
                 val bin = test.fileConfig.binPath
                 val fullPath = bin.resolve(nameOnly)
                 if (Files.exists(fullPath)) {
-                    pb = new ProcessBuilder("." + File.separator + nameOnly)
+                    if (System.getProperty("os.name").startsWith("Windows")) {
+                        pb = new ProcessBuilder("." + File.separator + nameOnly)
+                    } else {
+                        pb = new ProcessBuilder("start", nameOnly)
+                    }
                     pb.directory(bin.toFile)
                 } else {
-                    if (System.getProperty("os.name").startsWith("Windows")) {
-                        val winPath = bin.resolve(nameOnly + ".exe")
-                        if (Files.exists(winPath)) {
-                            pb = new ProcessBuilder("start", nameOnly + ".exe")
-                            pb.directory(bin.toFile)
-                        } else {
-                            test.issues.append(winPath + ": No such file or directory." + NEW_LINE)
-                            test.result = Result.NO_EXEC_FAIL
-                        }
-                    } else {
-                        test.issues.append(fullPath + ": No such file or directory." + NEW_LINE)
-                        test.result = Result.NO_EXEC_FAIL
-                    }
+                    test.issues.append(
+                        fullPath + ": No such file or directory." + NEW_LINE)
+                    test.result = Result.NO_EXEC_FAIL
                 }
             }
             case Python: {
