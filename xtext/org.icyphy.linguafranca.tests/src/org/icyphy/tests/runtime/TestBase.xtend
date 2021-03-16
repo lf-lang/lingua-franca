@@ -278,7 +278,7 @@ abstract class TestBase {
                     if (System.getProperty("os.name").startsWith("Windows")) {
                         val winPath = bin.resolve(nameOnly + ".exe")
                         if (Files.exists(winPath)) {
-                            pb = new ProcessBuilder("start " + nameOnly + ".exe")
+                            pb = new ProcessBuilder("start", nameOnly + ".exe")
                             pb.directory(bin.toFile)
                         } else {
                             test.issues.append(winPath + ": No such file or directory." + NEW_LINE)
