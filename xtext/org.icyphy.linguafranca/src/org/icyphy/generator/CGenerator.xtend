@@ -695,9 +695,9 @@ class CGenerator extends GeneratorBase {
             
             // FIXME: Added this for debugging purposes
             //
-            if (System.getProperty("os.name").toLowerCase.equals("windows")) {
+            //if (System.getProperty("os.name").toLowerCase.equals("windows")) {
                 print(this.code)
-            }
+            //}
             
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
