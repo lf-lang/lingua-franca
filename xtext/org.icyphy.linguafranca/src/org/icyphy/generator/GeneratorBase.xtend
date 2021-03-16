@@ -824,11 +824,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var relSrcPathString = relativeSrcPath.toString
         var relBinPathString = relativeBinPath.toString
         
-        if (env == ExecutionEnvironment.BASH) {
+        //if (env == ExecutionEnvironment.BASH) {
             // NOTE: This is to make it work on Windows while using Bash.
             relSrcPathString = FileConfig.toUnixPath(relativeSrcPath).toString
             relBinPathString = FileConfig.toUnixPath(relativeBinPath).toString
-        }
+        //}
         var compileArgs = newArrayList
         compileArgs.add(relSrcPathString)
         compileArgs.addAll(targetConfig.compileAdditionalSources)
