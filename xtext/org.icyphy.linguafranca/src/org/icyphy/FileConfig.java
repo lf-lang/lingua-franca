@@ -339,10 +339,17 @@ public class FileConfig {
      * @param path
      * @return
      */
-    public static String toUnixFormat(Path path) {
+    public static String toUnixPath(Path path) {
         return path.toString().replace('\\', '/');
     }
     
+    public static String toFileURI(Path path) {
+        return "file:/" + FileConfig.toUnixPath(path);
+    }
+    
+    public static String toFileURI(File file) {
+        return "file:/" + FileConfig.toUnixPath(file.toPath());
+    }
     
     /**
      * Check whether a given file (i.e., a relative path) exists in the given

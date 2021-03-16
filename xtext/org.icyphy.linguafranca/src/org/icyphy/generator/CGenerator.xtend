@@ -693,12 +693,6 @@ class CGenerator extends GeneratorBase {
             val targetFile = fileConfig.getSrcGenPath + File.separator + cFilename
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
-            // FIXME: Added this for debugging purposes
-            //
-            //if (System.getProperty("os.name").toLowerCase.equals("windows")) {
-                print(this.code)
-            //}
-            
             // Create docker file.
             if (targetConfig.dockerOptions !== null) {
                 writeDockerFile(topLevelName)
@@ -5028,11 +5022,7 @@ class CGenerator extends GeneratorBase {
             if (eObject instanceof Code) {
                 offset += 1
             }
-            if (System.getProperty("os.name").toLowerCase.contains("windows")) {
-                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + FileConfig.toUnixFormat(fileConfig.srcFile.toPath) + '"') // FIXME: remove the condition
-            } else {
-                pr(output, "#line " + (node.getStartLine() + offset) + ' "file:' + fileConfig.srcFile + '"')
-            }
+            pr(output, "#line " + (node.getStartLine() + offset) + ' "' + FileConfig.toFileURI(fileConfig.srcFile) + '"')
         }
     }
 
