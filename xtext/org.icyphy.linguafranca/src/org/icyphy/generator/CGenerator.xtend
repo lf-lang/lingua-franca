@@ -694,6 +694,7 @@ class CGenerator extends GeneratorBase {
             writeSourceCodeToFile(getCode().getBytes(), targetFile)
             
             // FIXME: Added this for debugging purposes
+            //
             if (System.getProperty("os.name").toLowerCase.equals("windows")) {
                 print(this.code)
             }
