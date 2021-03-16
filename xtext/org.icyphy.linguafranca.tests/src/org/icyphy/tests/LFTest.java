@@ -48,8 +48,8 @@ public class LFTest implements Comparable<LFTest> {
          * @param stream The stream to record.
          * @return A thread that will record the given stream.
          */
-        public Thread recordStdOut(InputStream stream) { // FIXME: change argument to Process.
-            return recordStream(std, stream);
+        public Thread recordStdOut(Process process) {
+            return recordStream(std, process.getInputStream());
         }
         
         /**
@@ -59,8 +59,8 @@ public class LFTest implements Comparable<LFTest> {
          * @param stream The stream to record.
          * @return A thread that will record the given stream.
          */
-        public Thread recordStdErr(InputStream stream) {
-            return recordStream(err, stream);
+        public Thread recordStdErr(Process process) {
+            return recordStream(err, process.getErrorStream());
         }
         
         /**
@@ -196,13 +196,13 @@ public class LFTest implements Comparable<LFTest> {
     
     public enum Result {
         UNKNOWN("No information available."),
-        CONFIG_FAIL("Unable to succesfully apply configuration."),
+        CONFIG_FAIL("Could not apply configuration."),
         NO_MAIN_FAIL("No main reactor."),
-        PARSE_FAIL("Unable to successfully parse test."),
-        VALIDATE_FAIL("Unable to successfully validate test."),
-        CODE_GEN_FAIL("Unable to successfully generate code for test."),
-        BUILD_FAIL("Unable to successfully compile generated code for test."),
-        NO_EXEC_FAIL("Unable to successfully execute test."),
+        PARSE_FAIL("Unable to parse test."),
+        VALIDATE_FAIL("Unable to validate test."),
+        CODE_GEN_FAIL("Error while generating code for test."),
+        BUILD_FAIL("Error while building test."),
+        NO_EXEC_FAIL("Did not to execute test."),
         TEST_FAIL("Test did not pass."),
         TEST_TIMEOUT("Test timed out."),
         TEST_PASS("Test passed.");
