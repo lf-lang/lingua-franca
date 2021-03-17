@@ -31,8 +31,6 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-import org.eclipse.xtext.xbase.lib.ObjectExtensions;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 import org.icyphy.ASTUtils;
 import org.icyphy.LinguaFrancaStandaloneSetup;
 
@@ -408,10 +406,10 @@ public class Main {
     private void rebuildOrExit() {
         String root = JAR_PATH.replace(JAR_PATH_IN_SRC_TREE, "");
         ProcessBuilder build;
-        if (this.mustUpdate()) // FIXME: Use .bat for Windows?
+        if (this.mustUpdate()) {
             build = new ProcessBuilder("./gradlew",
-                "generateStandaloneCompiler");
-        else {
+                    "generateStandaloneCompiler");
+        } else {
             build = new ProcessBuilder("./gradlew",
                     "generateStandaloneCompiler", "--offline");
         }
@@ -459,8 +457,6 @@ public class Main {
      * Store arguments as properties, to be passed on to the generator.
      */
     protected Properties getProps(CommandLine cmd) {
-        // FIXME: We don't have to use Properties for this; we can just add fields
-        // to StandaloneContext
         Properties props = new Properties();
         List<Option> passOn = CLIOption.getPassedOptions();
         for (Option o : cmd.getOptions()) {
@@ -474,30 +470,21 @@ public class Main {
         }
         return props;
     }
-    
-//    private static Path packageRoot(File srcFile) {
-//        Path path = srcFile.toPath();
-//        do {
-//            path = path.getParent();
-//            if (path == null) {
-//                return srcFile.getParentFile().toPath();
-//            }
-//        } while (!path.toFile().getName().equals("src"));
-//        return path;
-//    }
-    
+
     /**
      * Find the package root by looking for an 'src' directory. Print a warning
-     * if none can be found and return the current working directory.
-     * @param f
-     * @return
+     * if none can be found and return the current working directory instead.
+     * 
+     * @param f The *.lf file to find the package root for.
+     * @return The package root, or the current working directory if none
+     *         exists.
      */
     private static Path findPackageRoot(File f) {
         Path p = f.toPath();
         do {
             p = p.getParent();
             if (p == null) {
-                printWarning("File '" + f + "' is not located in an 'src' directory.");
+                printWarning("File '" + f.getName() + "' is not located in an 'src' directory.");
                 printWarning("Adopting the current working directory as the package root.");
                 return Paths.get(new File("").getAbsolutePath());
             }
@@ -565,16 +552,11 @@ public class Main {
                 System.exit(1);
             }
             
-            StandaloneContext _standaloneContext = new StandaloneContext();
-            final Procedure1<StandaloneContext> _function_1 = (
-                    StandaloneContext it) -> {
-                it.setCancelIndicator(CancelIndicator.NullImpl);
-                it.setArgs(properties);
-                it.setPackageRoot(pkgRoot);
-            };
-            final StandaloneContext context = ObjectExtensions
-                    .<StandaloneContext>operator_doubleArrow(_standaloneContext,
-                            _function_1);
+            StandaloneContext context = new StandaloneContext();
+            context.setArgs(properties);
+            context.setCancelIndicator(CancelIndicator.NullImpl);
+            context.setPackageRoot(pkgRoot);
+
             this.generator.generate(resource, this.fileAccess, context);
             System.out.println("Code generation finished.");
         }
