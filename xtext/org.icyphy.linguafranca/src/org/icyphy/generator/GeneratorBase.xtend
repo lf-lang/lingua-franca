@@ -1933,7 +1933,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         if (this.mainDef === null || !mainDefn.isFederated) {
             // Ensure federates is never empty.
-            var federateInstance = new FederateInstance(null, 0, this)
+            var federateInstance = new FederateInstance(null, 0, 0, this)
             federates.add(federateInstance)
             federateByID.put(0, federateInstance)
         } else {
@@ -1975,7 +1975,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
                     var federateID = federates.length
-                    var federateInstance = new FederateInstance(instantiation, federateID, this)
+                    var federateInstance = new FederateInstance(instantiation, federateID, i, this)
                     federateInstance.bankPosition = i;
                     federates.add(federateInstance)
                     federateInstances.add(federateInstance)

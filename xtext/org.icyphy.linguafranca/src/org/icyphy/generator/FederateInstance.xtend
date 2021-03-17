@@ -60,17 +60,27 @@ class FederateInstance {
      * integer ID.
      * @param instantiation The instantiation of a top-level reactor,
      *  or null if no federation has been defined.
-     * @param The generator (for reporting errors).
+     * @param id The federate ID.
+     * @param bankPosition If instantiation.widthSpec !== null, this gives the bank position.
+     * @param generator The generator (for reporting errors).
      */
-    protected new(Instantiation instantiation, int id, GeneratorBase generator) {
-        this.instantiation = instantiation
-        this.id = id
-        this.generator = generator
+    protected new(Instantiation instantiation, int id, int bankPosition, GeneratorBase generator) {
+        this.instantiation = instantiation;
+        this.id = id;
+        this.generator = generator;
+        this.bankPosition = bankPosition;
                 
-        // The contained reactor names set has just one name, the name
-        // of this reactor.
         if (instantiation !== null) {
-            containedReactorNames.add(instantiation.name)
+            // The contained reactor names set now has just one name, the name
+            // of this reactor. It used to be able to have multiple names.
+            containedReactorNames.add(instantiation.name);
+            
+            this.name = instantiation.name;
+            // If the instantiation is in a bank, then we have to append
+            // the bank index to the name.
+            if (instantiation.widthSpec !== null) {
+                this.name = instantiation.name + "__" + bankPosition;
+            }
         }
     }
 
@@ -90,7 +100,7 @@ class FederateInstance {
     public var Set<String> containedReactorNames = new LinkedHashSet<String>
     
     /**
-     * A list of ...
+     * A list of outputs that can be triggered directly or indirectly by physical actions.
      */
     public var outputsConnectedToPhysicalActions = new LinkedHashSet<Delay>()
     
@@ -127,6 +137,13 @@ class FederateInstance {
     /** The integer ID of this federate. */
     public var id = 0;
     
+    /**
+     * The name of this federate instance. This will be the instantiation
+     * name, poassibly appended with "__n", where n is the bank position of
+     * this instance if the instantiation is of a bank of reactors.
+     */
+    public var name = "Unnamed";
+    
     /** List of networkMessage actions. Each of these handles a message
      *  received from another federate over the network. The ID of
      *  receiving port is simply the position of the action in the list.
@@ -155,22 +172,27 @@ class FederateInstance {
     /////////////////////////////////////////////
     //// Public Methods
     
-    /** Return true if the specified reactor name is contained by
-     *  this federate.
-     *  @return True if the federate contains the reactor.
+    /** 
+     * Return true if the specified reactor name is contained by
+     * this federate. At one point, a federate could contain more than
+     * one federate, but now, each reactor within the top level is a
+     * separate federate, so there is only one reactor contained.
+     * s
+     * @return True if the federate contains the reactor.
      */
     def contains(String reactorName) {
         containedReactorNames.contains(reactorName) 
     }
         
-    /** Return true if the specified reactor is not the main reactor,
-     *  or if it is and the reaction should be included in the code generated for the
-     *  federate. This means that if the reaction is triggered by or
-     *  sends data to a port of a contained reactor, then that reactor
-     *  is in the federate. Otherwise, return false.
-     *  @param reaction The reaction.
-     *  @param federate The federate instance or null if there
-     *   is no federation.
+    /** 
+     * Return true if the specified reactor is not the main reactor,
+     * or if it is and the reaction should be included in the code generated for the
+     * federate. This means that if the reaction is triggered by or
+     * sends data to a port of a contained reactor, then that reactor
+     * is in the federate. Otherwise, return false.
+     * @param reaction The reaction.
+     * @param federate The federate instance or null if there
+     *  is no federation.
      */
     def containsReaction(Reactor reactor, Reaction reaction) {
         // Easy case first.
@@ -232,16 +254,10 @@ class FederateInstance {
         return !excludeReactions.contains(reaction)
     }
     
-    /** Return the name of this federate. 
-     *  @return The name of this federate or null if this is not a federation.
-     */
-    def getName() {
-        this.instantiation?.name
-    }
-    
-    /** Return true if this is singleton, meaning either that no federation
-     *  has been defined or that there is only one federate.
-     *  @return True if no federation has been defined.
+    /** 
+     * Return true if this is singleton, meaning either that no federation
+     * has been defined or that there is only one federate.
+     * @return True if no federation has been defined.
      */
      def isSingleton() {
          return ((instantiation === null) || (generator.federates.size <= 1))
@@ -323,5 +339,4 @@ class FederateInstance {
         }
         return minDelay
     }
-    
 }
