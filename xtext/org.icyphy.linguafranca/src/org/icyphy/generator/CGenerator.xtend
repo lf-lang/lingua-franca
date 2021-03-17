@@ -400,6 +400,7 @@ class CGenerator extends GeneratorBase {
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
             
+            // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             if (!federate.isSingleton) {                
                 filename = baseFilename + '_' + federate.name
