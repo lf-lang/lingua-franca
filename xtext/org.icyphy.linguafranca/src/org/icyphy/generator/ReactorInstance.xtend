@@ -774,6 +774,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
+    /**
+     * Return the reactor instance within this reactor
+     * that has the specified instantiation. Note that this
+     * may be a bank of reactors.
+     */
+    def lookupReactorInstance(Instantiation instantiation) {
+        for (reactorInstance : children) {
+            if (reactorInstance.definition === instantiation) {
+                return reactorInstance
+            }
+        }
+    }
+    
     /** Return the timer instance within this reactor 
      *  instance corresponding to the specified timer reference.
      *  @param timer The timer as an AST node.
