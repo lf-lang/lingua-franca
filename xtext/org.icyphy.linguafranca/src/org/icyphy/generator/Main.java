@@ -284,17 +284,36 @@ public class Main {
     }
     
     /**
-     * 
-     * @param args
+     * Main function of the stand-alone compiler.
+     * @param args CLI arguments
      */
     public static void main(final String[] args) {
+        
+        /**
+         * Injector used to obtain Main instance.
+         */
         final Injector injector = new LinguaFrancaStandaloneSetup()
                 .createInjectorAndDoEMFRegistration();
+        
+        /**
+         * Main instance.
+         */
         final Main main = injector.<Main>getInstance(Main.class);
 
+        /**
+         * Apache Commons Options object configured to according to available 
+         * CLI arguments. 
+         */
         Options options = CLIOption.getOptions();
 
+        /**
+         * CLI arguments parser.
+         */
         CommandLineParser parser = new DefaultParser();
+        
+        /**
+         * Helper object for printing "help" menu.
+         */
         HelpFormatter formatter = new HelpFormatter();
         
         try {
@@ -326,8 +345,11 @@ public class Main {
     }
     
     /**
+     * Fork off a new process (that is an execution of a freshly rebuilt jar)
+     * and wait for it to return.
      * 
-     * @param cmd
+     * @param cmd The CommandLine object that has stored in it the CLI 
+     * arguments of the parent process, to be passed on to the child process.
      */
     private void forkAndWait(CommandLine cmd) {
         LinkedList<String> cmdList = new LinkedList<String>();
@@ -337,7 +359,8 @@ public class Main {
         for (Option o : cmd.getOptions()) {
             if (!CLIOption.REBUILD.option.equals(o)
                     && !CLIOption.UPDATE.option.equals(o)) {
-                // Prevent infinite loop when the source fails to compile.
+                // Remove -r and -o flags to prevent an 
+                // infinite loop in case the source fails to compile.
                 cmdList.add(o.getOpt() + " " + o.getValue());
             }
         }
@@ -356,8 +379,9 @@ public class Main {
     }
     
     /**
-     * Indicate whether there is any work to do
-     * @return
+     * Indicate whether or not there is any work to do.
+     * 
+     * @return True if a rebuild is necessary, false otherwise.
      */
     private boolean needsUpdate() {
         File jar = new File(JAR_PATH);
@@ -378,6 +402,9 @@ public class Main {
         return outOfDate;
     }
     
+    /**
+     * Rebuild and return. If the rebuilding failed, exit.
+     */
     private void rebuildOrExit() {
         String root = JAR_PATH.replace(JAR_PATH_IN_SRC_TREE, "");
         ProcessBuilder build;
@@ -408,6 +435,12 @@ public class Main {
         }
     }
     
+    /**
+     * Rebuild and fork if an update is needed. If the rebuild was successful,
+     * return true. If no update was needed, return false. If the rebuild was
+     * needed but failed, exit.
+     * @return
+     */
     private boolean rebuildAndFork() {
         // jar:file:<root>org.icyphy.linguafranca/build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
         if (needsUpdate()) {
@@ -426,6 +459,8 @@ public class Main {
      * Store arguments as properties, to be passed on to the generator.
      */
     protected Properties getProps(CommandLine cmd) {
+        // FIXME: We don't have to use Properties for this; we can just add fields
+        // to StandaloneContext
         Properties props = new Properties();
         List<Option> passOn = CLIOption.getPassedOptions();
         for (Option o : cmd.getOptions()) {
@@ -439,43 +474,35 @@ public class Main {
         }
         return props;
     }
-  
-    private static String joinPaths(String path1, String path2) {
-        if (path1.isEmpty()) {
-            return path2;
-        }
-        if (path2.isEmpty()) {
-            return path1;
-        }
-        if (path1.endsWith(File.separator)) {
-            if (path2.startsWith(File.separator)) {
-                return path1 + path2.substring(1, path2.length());
-            } else {
-                return path1 + path2;
-            }
-        } else {
-            if (path2.startsWith(File.separator)) {
-                return path1 + path2;
-            } else {
-                return path1 + File.separator + path2;
-            }
-        }
-    }
     
-    private static Path packageRoot(String file) {
-        File f = new File(file).getAbsoluteFile(); 
-        String p;
+//    private static Path packageRoot(File srcFile) {
+//        Path path = srcFile.toPath();
+//        do {
+//            path = path.getParent();
+//            if (path == null) {
+//                return srcFile.getParentFile().toPath();
+//            }
+//        } while (!path.toFile().getName().equals("src"));
+//        return path;
+//    }
+    
+    /**
+     * Find the package root by looking for an 'src' directory. Print a warning
+     * if none can be found and return the current working directory.
+     * @param f
+     * @return
+     */
+    private static Path findPackageRoot(File f) {
+        Path p = f.toPath();
         do {
-            p = f.getParent();
+            p = p.getParent();
             if (p == null) {
-                printWarning("File '" + file + "' is not located in an 'src' directory.");
+                printWarning("File '" + f + "' is not located in an 'src' directory.");
                 printWarning("Adopting the current working directory as the package root.");
                 return Paths.get(new File("").getAbsolutePath());
-            } else {
-                f = new File(p);
             }
-        } while (!f.getName().equals("src"));
-        return Paths.get(new File(f.getParent()).getAbsolutePath());
+        } while (!p.toFile().getName().equals("src"));
+        return p.getParent();
     }
     
     /**
@@ -483,22 +510,17 @@ public class Main {
      */
     protected void runGenerator(List<String> files) {
         Properties properties = this.getProps(cmd);
-        String rootPath = "";
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
+        File root = null;
         if (cmd.hasOption(pathOption)) {
-            File root = new File(cmd.getOptionValue(pathOption));
-            if (!root.exists()) {
+            root = new File(cmd.getOptionValue(pathOption));
+            if (!root.exists()) { // FIXME: Create it instead?
                 printFatalError("Output location '" + root + "' does not exist.");
                 System.exit(1);
             }
             if (!root.isDirectory()) {
                 printFatalError("Output location '" + root + "' is not a directory.");
                 System.exit(1);
-            }
-            try {
-                rootPath = root.getCanonicalPath();
-            } catch (IOException e) {
-                printFatalError("Could not access '" + root + "'.");
             }
         }
         
@@ -511,13 +533,18 @@ public class Main {
             }
         }
         for (String file : files) {
-            Path pkgRoot = packageRoot(file);
+            Path pkgRoot = findPackageRoot(new File(file).getAbsoluteFile());
             final File f = new File(file);
-            if (!rootPath.isEmpty()) {
-                this.fileAccess.setOutputPath(joinPaths(rootPath, "src-gen"));
-            } else {
-                this.fileAccess.setOutputPath(joinPaths(pkgRoot.toString(), "src-gen"));
-                
+            String resolved = "";
+            try {
+                if (root != null) {
+                    resolved = new File(root, "src-gen").getCanonicalPath();
+                } else {
+                    resolved = new File(pkgRoot.toFile(), "src-gen").getCanonicalPath();
+                }
+                this.fileAccess.setOutputPath(resolved);
+            } catch (IOException e) {
+              printFatalError("Could not access '" + resolved + "'.");
             }
             
             final ResourceSet set = this.resourceSetProvider.get();
