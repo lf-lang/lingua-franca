@@ -1060,6 +1060,7 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     }
 
     // Read the tag of the message.
+    // FIXME : intended_tag
     tag_t tag;
     tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));

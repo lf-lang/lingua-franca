@@ -4179,6 +4179,10 @@ class CGenerator extends GeneratorBase {
         int receivingChannelIndex,
         InferredType type
     ) {
+        // FIXME: Notify a special type of notification once this reaction is done
+        // FIXME: The receiver logic for the ABSENT message should also notify using this
+        // special message.
+        
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
         // This string is dynamically allocated, and type 'string' is to be
