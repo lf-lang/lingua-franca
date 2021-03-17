@@ -10,7 +10,7 @@ target C {
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
-	timer t(offset, period);
+	timer t(0, 1 usec);
 	state count:int(0);
 	reaction(t) -> y {=
 		(self->count)++;
@@ -27,6 +27,7 @@ reactor Destination {
 		    warning_print("Expected %d and got %d.", self->s, x->value);
 		}
 		self->s++;
+        // info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
 	=}
     reaction(shutdown) {=
         info_print("**** shutdown reaction invoked.");

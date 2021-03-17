@@ -867,6 +867,10 @@ void _lf_initialize_start_tag() {
     __trigger_startup_reactions(); 
 
 #ifdef FEDERATED
+    // Reset status fields before talking to the RTI to set network port
+    // statuses to unknown
+    reset_status_fields_on_input_port_triggers();
+
     // Get a start_time from the RTI
     synchronize_with_other_federates(); // Resets start_time in federated execution according to the RTI.
     current_tag = (tag_t){.time = start_time, .microstep = 0u};

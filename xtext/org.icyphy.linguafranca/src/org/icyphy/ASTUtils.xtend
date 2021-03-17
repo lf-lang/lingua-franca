@@ -514,137 +514,12 @@ class ASTUtils {
         if (!connection.physical) {
             // Add the network dependent reaction for the right port
             // Only for logical connections
-            org.icyphy.ASTUtils.addNetworkInputControlReaction(
+            org.icyphy.federated.ASTUtils.addNetworkInputControlReaction(
                 connection.rightPorts.get(0), 
                 rightFederate,
                 generator
             );
         }
-    }
-    
-    /**
-     * Add a network control reaction for a given input port "portRef" to the reaction queue of its
-     * containing reactor. This reaction will block for any valid logical time until it is known 
-     * whether the trigger of that given port is present or absent.
-     * 
-     * @note Used in federated execution
-     * 
-     * @input portRef The input port
-     * @input instance The federate instance is used to keep track of all network input ports globally
-     * @input generator The GeneratorBase instance used to indentify certain target properties
-     */
-    static def void addNetworkInputControlReaction(VarRef portRef, FederateInstance instance, GeneratorBase generator) {        
-        val factory = LinguaFrancaFactory.eINSTANCE        
-        val reaction = factory.createReaction
-        val reactor = portRef.variable.eContainer as Reactor
-        val newPortRef = factory.createVarRef
-        
-        newPortRef.container = null
-        newPortRef.variable = portRef.variable as Input
-        
-        // First, check if there are any connections to contained reactors that need to be handled
-        val connectionsWithPort = reactor.allConnections.filter[
-            c | c.leftPorts.exists[
-                v | v.variable.equals(portRef.variable)
-            ]
-        ]
-        
-        // Find the list of reactions that have the port as trigger or source (could be a variable name)
-        val reactionsWithPort = reactor.allReactions.filter[
-            r | (r.triggers.exists[
-                        t | 
-                            if (t instanceof VarRef) {
-                                // Check if the variables match
-                                t.variable == portRef.variable
-                            } else {
-                                // Not a network port (startup or shutdown)
-                                false
-                            }
-                    ] || 
-                r.sources.exists[
-                        s | s.variable == portRef.variable
-                    ]
-                )
-        ]
-                
-        if (reactionsWithPort.isEmpty && connectionsWithPort.isEmpty) {
-            // Nothing to do here
-            return;
-        }        
-        
-        // Add the port to network input ports
-        instance.networkInputPorts.add(portRef.variable as Input)
-        
-        // Find a list of STP offsets (if any exists)
-        var Set<Value> STPList = newLinkedHashSet
-        if (generator.federatedAndDecentralized) {
-            for (r : reactionsWithPort ?: emptyList) {
-                // If STP offset is determined, add it
-                // If not, assume it is zero
-                if (r.stp !== null) {
-                    if (r.stp.offset !== null) {
-                        STPList.add(r.stp.offset)
-                    }
-                }
-            }
-
-            // Check the children for STPs as well
-            for (c : connectionsWithPort ?: emptyList) {
-                val childPort = c.rightPorts.get(0);
-                val childReactor = childPort.variable.eContainer as Reactor
-                // Find the list of reactions that have the port as trigger or source (could be a variable name)
-                val childReactionsWithPort = childReactor.allReactions.filter [ r |
-                    (r.triggers.exists [ t |
-                        if (t instanceof VarRef) {
-                            // Check if the variables match
-                            t.variable == childPort.variable
-                        } else {
-                            // Not a network port (startup or shutdown)
-                            false
-                        }
-                    ] || r.sources.exists [ s |
-                        s.variable == childPort.variable
-                    ]
-                    )
-                ]
-
-                for (r : childReactionsWithPort ?: emptyList) {
-                    // If STP offset is determined, add it
-                    // If not, assume it is zero
-                    if (r.stp !== null) {
-                        if (r.stp.offset !== null) {
-                            STPList.add(r.stp.offset)
-                        }
-                    }
-                }
-            }
-        }
-        
-        // FIXME: Ideally, we would like to add this port to the
-        // sources and not the triggers to avoid cluttering
-        // the trigger table, but a reaction with no triggers
-        // will have all the sources as triggers.
-        reaction.triggers.add(newPortRef)
-        reaction.code = factory.createCode()
-        
-        reaction.code.body = generator.generateNetworkInputControlReactionBody(
-            portRef.variable as Port,
-            STPList
-        )
-        
-        // If there are no top-level reactions in this federate that has this port
-        // as its trigger or source, there must be a connection to a contained reactor
-        // We still take care of the network dependency at this level by injecting
-        // a reaction even if there are no other reactions
-        var firstIndex = 0
-        if (!reactionsWithPort.isEmpty) {
-            // Find the index of the first reaction that has portRef as its trigger or source
-            firstIndex = reactor.allReactions.indexOf(reactionsWithPort.get(0))
-        }
-        
-        // Insert the newly generated reaction before the first reaction
-        /// that has the port as its trigger or source
-        reactor.reactions.add(firstIndex, reaction)
     }
     
     /**
@@ -1377,6 +1252,135 @@ class ASTUtils {
             return new TimeValue(v.time.interval, v.time.unit)
         } else {
             return new TimeValue(0, TimeUnit.NONE)
+        }
+    }
+    
+    /** 
+     * Replace the specified connection with a communication between federates.
+     * @param connection The connection.
+     * @param leftFederate The source federate.
+     *  @param rightFederate The destination federate.
+     */
+    static def void makeCommunication(
+        Connection connection, 
+        FederateInstance leftFederate,
+        FederateInstance rightFederate,
+        GeneratorBase generator,
+        CoordinationType coordination
+    ) {
+        val factory = LinguaFrancaFactory.eINSTANCE
+        // Assume all the types are the same, so just use the first on the right.
+        var type = (connection.rightPorts.get(0).variable as Port).type.copy
+        val action = factory.createAction
+        val triggerRef = factory.createVarRef
+        val inRef = factory.createVarRef
+        val outRef = factory.createVarRef
+        val parent = (connection.eContainer as Reactor)
+        val r1 = factory.createReaction
+        val r2 = factory.createReaction
+        
+        // These reactions do not require any dependency relationship
+        // to other reactions in the container.
+        generator.makeUnordered(r1)
+        generator.makeUnordered(r2)
+
+        // Name the newly created action; set its delay and type.
+        action.name = getUniqueIdentifier(parent, "networkMessage")
+        action.type = type
+        action.minDelay = factory.createValue
+        action.minDelay.time = factory.createTime
+        
+        // The connection is 'physical' if it uses the ~> notation.
+        if (connection.physical) {
+            leftFederate.outboundP2PConnections.add(rightFederate)
+            rightFederate.inboundP2PConnections.add(leftFederate)
+            action.origin = ActionOrigin.PHYSICAL
+            // Messages sent on physical connections do not
+            // carry a timestamp, or a delay. The delay
+            // provided using after is enforced by setting
+            // the minDelay.
+            if (connection.delay !== null) {
+                action.minDelay.time.interval = connection.delay.interval
+                action.minDelay.time.unit = connection.delay.unit
+            } else {
+                action.minDelay.time.interval = 0;
+                action.minDelay.time.unit = TimeUnit.NONE;
+            }
+        } else {
+            // If the connection is logical but coordination
+            // is decentralized, we would need
+            // to make P2P connections
+            if (coordination === CoordinationType.DECENTRALIZED) {
+                leftFederate.outboundP2PConnections.add(rightFederate)
+                rightFederate.inboundP2PConnections.add(leftFederate)                
+            }            
+            action.origin = ActionOrigin.LOGICAL
+            action.minDelay.time.interval = 0;
+            action.minDelay.time.unit = TimeUnit.NONE;
+        }
+        
+        // Record this action in the right federate.
+        // The ID of the receiving port (rightPort) is the position
+        // of the action in this list.
+        val receivingPortID = rightFederate.networkMessageActions.length
+        rightFederate.networkMessageActions.add(action)
+
+        // Establish references to the action.
+        triggerRef.variable = action
+
+        // Establish references to the involved ports.
+        // FIXME: This does not support parallel connections yet!!
+        if (connection.leftPorts.length > 1 || connection.rightPorts.length > 1) {
+            throw new UnsupportedOperationException("FIXME: Parallel connections are not yet supported between federates.")
+        }
+        inRef.container = connection.leftPorts.get(0).container
+        inRef.variable = connection.leftPorts.get(0).variable
+        outRef.container = connection.rightPorts.get(0).container
+        outRef.variable = connection.rightPorts.get(0).variable
+
+        // Add the action to the reactor.
+        parent.actions.add(action)
+        
+        // Configure the sending reaction.
+        r1.triggers.add(inRef)
+        r1.code = factory.createCode()
+        r1.code.body = generator.generateNetworkSenderBody(
+            inRef,
+            outRef,
+            receivingPortID,
+            leftFederate,
+            rightFederate,
+            action.inferredType,
+            connection.isPhysical,
+            connection.delay
+        )
+
+        // Configure the receiving reaction.
+        r2.triggers.add(triggerRef)
+        r2.effects.add(outRef)
+        r2.code = factory.createCode()
+        r2.code.body = generator.generateNetworkReceiverBody(
+            action,
+            inRef,
+            outRef,
+            receivingPortID,
+            leftFederate,
+            rightFederate,
+            action.inferredType
+        )
+
+        // Add the reactions to the parent.
+        parent.reactions.add(r1)
+        parent.reactions.add(r2)       
+        
+        if (!connection.physical) {
+            // Add the network dependent reaction for the right port
+            // Only for logical connections
+            org.icyphy.federated.ASTUtils.addNetworkInputControlReaction(
+                connection.rightPorts.get(0), 
+                rightFederate,
+                generator
+            );
         }
     }
         

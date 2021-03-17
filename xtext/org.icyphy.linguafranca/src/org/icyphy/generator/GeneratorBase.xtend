@@ -1168,11 +1168,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
     
     /**
-     * Generate code for the body of a reaction that decides whether the trigger for the given
-     * port is going to be present or absent for the current logical time.
-     * This reaction is put just before the first reaction that is triggered by the network
-     * input port "port" or has it in its sources. If there are only connections to contained 
-     * reactors, in the top-level reactor.
+     * Generate code for the body of a reaction that waits long enough so that the status
+     * of the trigger for the given port becomes known for the current logical time.
      * 
      * @param port The port to generate the control reaction for
      * @param STPList The list of STP values/parameters that are assigned to reactions (if any)
@@ -1184,6 +1181,18 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
     }    
+    
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     * 
+     * @param port The port to generate the control reaction for
+     */
+    def String generateNetworkOutputControlReactionBody(
+        Port port
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }  
     
     /**
      * 
