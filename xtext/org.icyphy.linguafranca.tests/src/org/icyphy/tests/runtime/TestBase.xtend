@@ -272,7 +272,7 @@ abstract class TestBase {
                 val bin = test.fileConfig.binPath
                 val fullPath = bin.resolve(nameOnly)
                 if (Files.exists(fullPath)) {
-                    pb = new ProcessBuilder("start", nameOnly)
+                    pb = new ProcessBuilder("./" + nameOnly)
                     pb.directory(bin.toFile)
                 } else {
                     test.issues.append(

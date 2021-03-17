@@ -28,6 +28,8 @@ public class FileConfig {
 
     // Public static fields.
     
+    public final static String DEFAULT_SRC_DIR = "src";
+    
     /**
      * Default name of the directory to store binaries in.
      */
@@ -210,7 +212,7 @@ public class FileConfig {
         // hierarchically (just like we do with the generated sources).
         if (context instanceof StandaloneContext) {
            if (((StandaloneContext) context).isHierarchicalBin()) {
-               return root.resolve(pkgPath.relativize(srcPath));
+               return root.resolve(getSubPkgPath(pkgPath, srcPath));
            }
         }
         return root;
@@ -226,12 +228,34 @@ public class FileConfig {
     
     private static Path getSrcGenPath(Path srcGenRootPath, Path pkgPath,
             Path srcPath, String name) throws IOException {
-        return srcGenRootPath.resolve(pkgPath.relativize(srcPath))
-                .resolve(name);
+        return srcGenRootPath.resolve(getSubPkgPath(pkgPath, srcPath)).resolve(name);
+    }
+    
+    /**
+     * Given a path that denotes the root of the package and a path
+     * that denotes the full path to a source file (not including the
+     * file itself), return the relative path from the root of the 'src'
+     * directory, or, if there is no 'src' directory, the relative path 
+     * from the root of the package. 
+     * @param pkgPath The root of the package.
+     * @param srcPath The path to the source.
+     * @return
+     */
+    private static Path getSubPkgPath(Path pkgPath, Path srcPath) {
+        Path relSrcPath = pkgPath.relativize(srcPath);
+        if (relSrcPath.startsWith(DEFAULT_SRC_DIR)) {
+            int segments = relSrcPath.getNameCount(); 
+            if (segments == 1) {
+                return Paths.get("");
+            } else {
+                relSrcPath = relSrcPath.subpath(1, segments);
+            }
+        }
+        return relSrcPath;
     }
     
     public void createDirectories() {
-        
+        // FIXME
     }
     
     
