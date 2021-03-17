@@ -218,6 +218,10 @@ public class FileConfig {
         return root;
     }
     
+    /**
+     * FIXME: Forget why the trailing slash mattered. It probably shouldn't.
+     * 
+     */
     private static URI getSrcGenRoot(IFileSystemAccess2 fsa) {
         URI srcGenURI = fsa.getURI("");
         if (srcGenURI.hasTrailingPathSeparator()) {
