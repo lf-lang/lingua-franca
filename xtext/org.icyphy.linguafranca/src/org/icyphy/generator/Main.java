@@ -561,4 +561,8 @@ public class Main {
             System.out.println("Code generation finished.");
         }
     }
+    
+    public ResourceSet getResourceSet() {
+        return this.resourceSetProvider.get();
+    }
 }

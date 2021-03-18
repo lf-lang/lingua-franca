@@ -1,7 +1,6 @@
 package org.icyphy.tests;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
-import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,17 +13,26 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
 
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
+import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.icyphy.LinguaFrancaStandaloneSetup;
 import org.icyphy.Target;
+import org.icyphy.generator.Main;
+import org.icyphy.linguaFranca.Reactor;
+import org.icyphy.tests.LFTest.Result;
 import org.icyphy.tests.runtime.TestBase;
+
+import com.google.common.collect.Iterables;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -33,12 +41,29 @@ import org.icyphy.tests.runtime.TestBase;
  */
 public class TestRegistry {
     
-    /**
-     * List of directories that should be skipped when indexing test files. Any
-     * test file that has a directory in its path that matches an entry in this
-     * array will not be discovered.
-     */
-    public static final String[] IGNORED_DIRECTORIES = new String[] {"bin", "build", "include", "lib", "share", "src-gen"};
+    static class TestMap {
+        /**
+         * Registry that maps targets to maps from categories to sets of tests. 
+         */
+        protected final Map<Target,
+                Map<TestCategory, Set<LFTest>>> map = new HashMap<Target,
+                        Map<TestCategory, Set<LFTest>>>();
+
+        public TestMap() {
+            for (Target target : Target.values()) {
+                Map<TestCategory, Set<LFTest>> categories = new HashMap<TestCategory, Set<LFTest>>();
+                for (TestCategory cat : TestCategory.values()) {
+                    categories.put(cat, new TreeSet<LFTest>());
+                }
+                map.put(target, categories);
+            }
+        }
+        
+        public Set<LFTest> getTests(Target t, TestCategory c) {
+            return this.map.get(t).get(c);
+        }
+        
+    }
     
     /**
      * The location in which to find the tests.
@@ -48,9 +73,9 @@ public class TestRegistry {
     /**
      * Registry that maps targets to maps from categories to sets of tests. 
      */
-    protected final static Map<Target,
-            Map<TestCategory, Set<LFTest>>> registry = new HashMap<Target,
-                    Map<TestCategory, Set<LFTest>>>();
+    protected final static TestMap registered = new TestMap();
+
+    protected final static TestMap ignored = new TestMap();
 
     /**
      * Maps each target to a set of target categories it supports.
@@ -118,6 +143,10 @@ public class TestRegistry {
     }
     
     static {
+        ResourceSet rs = new LinguaFrancaStandaloneSetup()
+                .createInjectorAndDoEMFRegistration()
+                .<Main>getInstance(Main.class).getResourceSet();
+
         // Prepare for the collection of tests per category.
         for (TestCategory t: TestCategory.values()) {
             allTargets.put(t, new TreeSet<LFTest>());
@@ -125,11 +154,6 @@ public class TestRegistry {
         // Populate the registry.
         for (Target target : Target.values()) {
             // Initialize the lists.
-            Map<TestCategory, Set<LFTest>> categories = new HashMap<TestCategory, Set<LFTest>>();
-            for (TestCategory cat : TestCategory.values()) {
-                categories.put(cat, new LinkedHashSet<LFTest>());
-            }
-            registry.put(target, categories);
             Set<TestCategory> supported = new HashSet<TestCategory>();
             support.put(target, supported);
             // Walk the tree.
@@ -138,7 +162,7 @@ public class TestRegistry {
                 if (Files.exists(dir)) {
                     // A test directory exist. Assume support for generic tests.
                     supported.add(TestCategory.GENERIC);
-                    Files.walkFileTree(dir, new TestFileVisitor(target));
+                    Files.walkFileTree(dir, new TestFileVisitor(rs, target));
                 } else {
                     messages.append("WARNING: No test directory for target " + target + "\n");
                 }
@@ -150,30 +174,30 @@ public class TestRegistry {
             }
             // Record the tests for later use when reporting coverage.
             Arrays.asList(TestCategory.values()).forEach(
-                    c -> allTargets.get(c).addAll(getTests(target, c)));
+                    c -> allTargets.get(c).addAll(getRegisteredTests(target, c)));
         }
-    }
-    
-    public static Set<LFTest> getTests(Target target, TestCategory category) {
-        Set<LFTest> sorted = new TreeSet<LFTest>();
-        registry.get(target).get(category).forEach(
-                test -> sorted.add(new LFTest(test.target, test.path)));
-        return sorted;
     }
     
     /**
-     * Return all tests that belong to the given test categories.
-     * @param target The target for which to look up the tests.
-     * @param included The test categories to include in the returned list.
+     * Return the tests that were indexed for a given target and category.
+     * 
+     * @param target
+     * @param category
      * @return
      */
-    public static List<LFTest> getTestsIncluding(Target target,
-            List<TestCategory> included) {
-        List<LFTest> tests = new LinkedList<LFTest>();
-        for (TestCategory category : included) {
-            tests.addAll(getTests(target, category));
-        }
-        return tests;
+    public static Set<LFTest> getRegisteredTests(Target target, TestCategory category) {
+        return registered.getTests(target, category);
+    }
+    
+    /**
+     * Return the test that were found but not indexed because they did not
+     * have a main reactor.
+     * @param target
+     * @param category
+     * @return
+     */
+    public static Set<LFTest> getIgnoredTests(Target target, TestCategory category) {
+        return ignored.getTests(target, category);
     }
     
     /**
@@ -184,10 +208,19 @@ public class TestRegistry {
      */
     public static String getCoverageReport(Target target, TestCategory category) {
         StringBuilder s = new StringBuilder();
-        Set<LFTest> own = getTests(target, category);
+        Set<LFTest> ignored = TestRegistry.getIgnoredTests(target, category);
+        s.append(TestBase.THIN_LINE);
+        s.append("Ignored: " + ignored.size() + "\n");
+        s.append(TestBase.THIN_LINE);
+        
+        for (LFTest test : ignored) {
+            s.append("No main reactor in: " + test.name + "\n");
+        }
+        
+        Set<LFTest> own = getRegisteredTests(target, category);
         if (support.get(target).contains(category)) {
             Set<LFTest> all = allTargets.get(category);
-            s.append(TestBase.THIN_LINE);
+            s.append("\n" + TestBase.THIN_LINE);
             s.append("Covered: " + own.size() + "/" + all.size() + "\n");
             s.append(TestBase.THIN_LINE);
             int missing = all.size() - own.size();
@@ -234,13 +267,15 @@ public class TestRegistry {
          */
         protected Target target;
         
+        protected ResourceSet rs;
         
         /**
          * Create a new file visitor based on a given target.
          * @param target The target that all encountered tests belong to.
          */
-        public TestFileVisitor(Target target) {
+        public TestFileVisitor(ResourceSet rs, Target target) {
             stack.push(TestCategory.GENERIC);
+            this.rs = rs;
             this.target = target;
         }
         
@@ -251,11 +286,6 @@ public class TestRegistry {
         @Override
         public FileVisitResult preVisitDirectory(Path dir,
                 BasicFileAttributes attrs) {
-            for (String ignored : IGNORED_DIRECTORIES) {
-                if (dir.getFileName().toString().equalsIgnoreCase(ignored)) {
-                    return SKIP_SUBTREE;
-                }
-            }
 
             for (TestCategory category : TestCategory.values()) {
                 if (dir.getFileName().toString()
@@ -283,13 +313,39 @@ public class TestRegistry {
         }
         
         /**
-         * Add test files to the registry if they end with ".lf".
+         * Add test files to the registry if they end with ".lf", but only if they have a main reactor.
          */
         @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attr) {
-            if (attr.isRegularFile() && file.toString().endsWith(".lf")) {
-                registry.get(this.target)
-                        .get(this.stack.peek()).add(new LFTest(target, file));
+        public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
+            if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
+                // Parse the file. If this is unsuccessful, add the test and
+                // report that it didn't compile.
+                Resource r = rs.getResource(
+                        URI.createFileURI(path.toFile().getAbsolutePath()),
+                        true);
+                LFTest test = new LFTest(r, target, path);
+                EList<Diagnostic> errors = r.getErrors();
+                if (!errors.isEmpty()) {
+                    for (Diagnostic d : errors) {
+                        test.issues.append(d.toString()); // FIXME: Not showing
+                                                          // up for some reason.
+                    }
+                    test.result = Result.PARSE_FAIL;
+                } else {
+                    Iterable<Reactor> reactors = Iterables.<Reactor>filter(
+                            IteratorExtensions.<EObject>toIterable(
+                                    r.getAllContents()),
+                            Reactor.class);
+                    if (!IteratorExtensions.exists(reactors.iterator(),
+                            it -> it.isMain() || it.isFederated())) {
+                        // If the test compiles but doesn't have a main reactor,
+                        // _do not add the file_. We assume it is a library
+                        // file.
+                        ignored.getTests(this.target, this.stack.peek()).add(test);
+                        return CONTINUE;
+                    }
+                }
+                registered.getTests(this.target, this.stack.peek()).add(test);
             }
             return CONTINUE;
         }
