@@ -1110,7 +1110,7 @@ class CGenerator extends GeneratorBase {
 
         unindent(rtiCode)
         pr(rtiCode, "}")
-        
+
         var fOut = new FileOutputStream(fileConfig.getSrcGenPath.resolve(cFilename).toFile);
         fOut.write(rtiCode.toString().getBytes())
         fOut.close()
