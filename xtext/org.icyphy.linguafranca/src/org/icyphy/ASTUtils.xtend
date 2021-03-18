@@ -1585,6 +1585,7 @@ class ASTUtils {
      * 
      * @param reference A reference to a port.
      * @return The width of a port or -1 if it cannot be determined.
+     * @deprecated
      */
     def static int multiportWidthIfLiteral(VarRef reference) {
         return inferPortWidth(reference, null, null);
@@ -1605,6 +1606,7 @@ class ASTUtils {
      * @param widthSpec The width specification.
      * 
      * @return The width or -1 if it cannot be determined.
+     * @deprecated
      */
     def static int width(WidthSpec widthSpec) {
         return width(widthSpec, null);
@@ -1628,6 +1630,7 @@ class ASTUtils {
      * @param connection The connection.
      * 
      * @return The width of a port or -1 if it cannot be determined.
+     * @deprecated
      */
     def static int portWidth(VarRef reference, Connection connection) {
         val result = inferPortWidth(reference, connection, null);
@@ -1655,6 +1658,7 @@ class ASTUtils {
      * @param instantiation A reactor instantiation.
      * 
      * @return The width, if it can be determined.
+     * @deprecated
      */
     def static int widthSpecification(Instantiation instantiation) {
         val result = width(instantiation.widthSpec, null);
