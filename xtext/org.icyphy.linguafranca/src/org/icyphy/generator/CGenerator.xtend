@@ -3305,6 +3305,15 @@ class CGenerator extends GeneratorBase {
             return
         }
 
+        // If this reactor is an instance in a bank of federates, then only generate an
+        // instance if the bank index of the reactor matches the bank index of the federate.
+        if (federate.instantiation === instance.definition    // Is a top-level federate.
+            && federate.instantiation.widthSpec !== null      // Is in a bank of federates.
+            && federate.bankPosition != instance.bankIndex    // Bank position does not match.
+        ) {
+            return;
+        }
+
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct). The form is slightly different
         // depending on whether its in a bank of reactors.
