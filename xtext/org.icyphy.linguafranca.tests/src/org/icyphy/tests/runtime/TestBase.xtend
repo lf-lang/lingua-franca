@@ -41,7 +41,6 @@ import org.icyphy.FileConfig
 
 abstract class TestBase {
     
-    @Inject Provider<ResourceSet> resourceSetProvider
     @Inject IResourceValidator validator
     @Inject GeneratorDelegate generator
     @Inject JavaIoFileSystemAccess fileAccess
@@ -145,11 +144,11 @@ abstract class TestBase {
         val categories = TestCategory.values().filter(selection)
         for (category : categories) {
             println(category.header);
-            val tests = TestRegistry.getTests(target, category)
-            tests.compileAndRun(configuration)
+            val tests = TestRegistry.getRegisteredTests(target, category)
+            tests.validateAndRun(configuration)
             println(TestRegistry.getCoverageReport(target, category));
             if (check) {
-                tests.checkAndReportFailures
+                tests.checkAndReportFailures()
             }
         }
     }
@@ -161,32 +160,32 @@ abstract class TestBase {
         println(TestBase.THICK_LINE)
     }
 
-    def void checkAndReportFailures(Set<LFTest> tests) {
-        var passed = tests.filter[!it.hasFailed].size
-        print(NEW_LINE + THIN_LINE)
-        println("Passing: " + passed + "/" + tests.size)
-        print(THIN_LINE)
+    def void checkAndReportFailures(Set<LFTest> registered) {
+        var passed = registered.filter[!it.hasFailed].size
         
-        for (test : tests) {
+        print(THIN_LINE)
+        println("Passing: " + passed + "/" + registered.size)
+        print(THIN_LINE)
+         
+        for (test : registered) {
             print(test.reportErrors)
         }
-        tests.forall[it.result === Result.TEST_PASS].assertTrue
+        registered.forall[it.result === Result.TEST_PASS].assertTrue
     }
 
-    def boolean parseAndValidate(LFTest test, Function1<LFTest, Boolean> configuration) {
-        // Obtain the resource (i.e., the AST).
-        try {
-            redirectOutputs(test)
-            val resource = resourceSetProvider.get.getResource(URI.createFileURI(test.path.toString()),true)
-            test.fileConfig = new FileConfig(resource, fileAccess, test.context);
-        } catch (Exception e) {
-            test.result = Result.PARSE_FAIL
-            restoreOutputs()
+    def boolean configureAndValidate(LFTest test, Function1<LFTest, Boolean> configuration) {
+        
+        if (test.result == Result.PARSE_FAIL) {
+            // Abort is parsing was unsuccessful.
             return false
         }
         
-        if (test.fileConfig === null || test.fileConfig.resource === null || !test.fileConfig.resource.errors.isEmpty) {
-            test.result = Result.PARSE_FAIL
+        redirectOutputs(test)
+
+        try {
+            test.fileConfig = new FileConfig(test.resource, fileAccess, test.context);
+        } catch (Exception e) {
+            test.result = Result.CONFIG_FAIL
             restoreOutputs()
             return false
         }
@@ -202,15 +201,8 @@ abstract class TestBase {
             test.properties.setProperty("no-compile", "")
         }
         
-        if (!test.fileConfig.resource.allContents.filter(Reactor).exists[it.isMain || it.isFederated]) {
-            test.result = Result.NO_MAIN_FAIL
-            restoreOutputs()
-            return false
-        }
-        
         // Validate the resource and store issues in the test object.
         try {
-            redirectOutputs(test)
             val issues = validator.validate(test.fileConfig.resource, CheckMode.ALL, CancelIndicator.NullImpl)
             if (!issues.isNullOrEmpty) {
                 test.issues.append(issues.join(NEW_LINE))
@@ -338,7 +330,7 @@ abstract class TestBase {
 
     }
 
-    def compileAndRun(Set<LFTest> tests, Function1<LFTest, Boolean> configuration) {
+    def validateAndRun(Set<LFTest> tests, Function1<LFTest, Boolean> configuration) {
         val x = 78f / tests.size()
         var marks = 0
         var done = 0
@@ -346,7 +338,7 @@ abstract class TestBase {
             target.toString()).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).
             toString()
         for (test : tests) {
-            if (test.parseAndValidate(configuration) && test.generateCode()) {
+            if (test.configureAndValidate(configuration) && test.generateCode()) {
                 if (run) {
                     test.execute()
                 }

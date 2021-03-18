@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
+import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.icyphy.FileConfig;
 import org.icyphy.Target;
@@ -132,7 +133,10 @@ public class LFTest implements Comparable<LFTest> {
     
     public final Target target;
     
-    public LFTest(Target target, Path path) {
+    public final Resource resource;
+    
+    public LFTest(Resource resource, Target target, Path path) {
+        this.resource = resource;
         this.context.setCancelIndicator(CancelIndicator.NullImpl);
         this.context.setArgs(this.properties);
         this.context.setPackageRoot(TestRegistry.LF_TEST_PATH.resolve(target.toString()));
@@ -144,6 +148,10 @@ public class LFTest implements Comparable<LFTest> {
         this.relativePath = Paths.get(name);
     }
     
+    /**
+     * Implementation to allow for tests to be sorted (e.g., when added to a
+     * tree set).
+     */
     public int compareTo(LFTest t) {
         return this.relativePath.compareTo(t.relativePath);
     }
@@ -199,14 +207,13 @@ public class LFTest implements Comparable<LFTest> {
     public void appendIfNotEmpty(String description, String log, StringBuffer buffer) {
         if (!log.isEmpty()) {
             buffer.append(description + ":" + TestBase.NEW_LINE);
-            buffer.append(log);
+            buffer.append(log + TestBase.NEW_LINE);
         }
     }
     
     public enum Result {
         UNKNOWN("No information available."),
         CONFIG_FAIL("Could not apply configuration."),
-        NO_MAIN_FAIL("No main reactor."),
         PARSE_FAIL("Unable to parse test."),
         VALIDATE_FAIL("Unable to validate test."),
         CODE_GEN_FAIL("Error while generating code for test."),
