@@ -69,8 +69,12 @@ abstract class TestBase {
     
     protected boolean build = true;
     
-    def getRoot() {
-        return TestRegistry.LF_TEST_PATH + target
+    /**
+     * Create a new test suite.
+     */
+    new() {
+        // Report if the test registry encountered any issues.
+        System.out.println(TestRegistry.messages.toString());
     }
     
     @Test
@@ -174,13 +178,7 @@ abstract class TestBase {
         try {
             redirectOutputs(test)
             val resource = resourceSetProvider.get.getResource(URI.createFileURI(test.path.toString()),true)
-            val context = new StandaloneContext => [
-                cancelIndicator = CancelIndicator.NullImpl
-                args = test.properties; // FIXME change this
-                packageRoot = Paths.get(getRoot()); // FIXME: improve
-                hierarchicalBin = true;
-            ]
-            test.fileConfig = new FileConfig(resource, fileAccess, context);
+            test.fileConfig = new FileConfig(resource, fileAccess, test.context);
         } catch (Exception e) {
             test.result = Result.PARSE_FAIL
             restoreOutputs()
@@ -344,7 +342,9 @@ abstract class TestBase {
         val x = 78f / tests.size()
         var marks = 0
         var done = 0
-        fileAccess.outputPath = getRoot() + File.separator + FileConfig.DEFAULT_SRC_GEN_DIR
+        fileAccess.outputPath = TestRegistry.LF_TEST_PATH.resolve(
+            target.toString()).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).
+            toString()
         for (test : tests) {
             if (test.parseAndValidate(configuration) && test.generateCode()) {
                 if (run) {

@@ -10,8 +10,10 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
+import org.eclipse.xtext.util.CancelIndicator;
 import org.icyphy.FileConfig;
 import org.icyphy.Target;
+import org.icyphy.generator.StandaloneContext;
 import org.icyphy.tests.runtime.TestBase;
 
 /**
@@ -42,8 +44,8 @@ public class LFTest implements Comparable<LFTest> {
         StringBuilder err = new StringBuilder("");
         
         /**
-         * Return a thread responsible for recording the given stream that
-         * should be attached to standard out.
+         * Return a thread responsible for recording the standard output stream
+         * of the given process.
          * A separate thread is used so that the activity can preempted.
          * @param stream The stream to record.
          * @return A thread that will record the given stream.
@@ -53,8 +55,8 @@ public class LFTest implements Comparable<LFTest> {
         }
         
         /**
-         * Return a thread responsible for recording the given stream that
-         * should be attached to standard error.
+         * Return a thread responsible for recording the error stream of the
+         * given process.
          * A separate thread is used so that the activity can preempted.
          * @param stream The stream to record.
          * @return A thread that will record the given stream.
@@ -64,9 +66,9 @@ public class LFTest implements Comparable<LFTest> {
         }
         
         /**
-         * 
-         * @param builder
-         * @param inputStream
+         * Return a thread responsible for recording the given stream.
+         * @param builder The builder to append to.
+         * @param inputStream The stream to read from.
          * @return
          */
         private Thread recordStream(StringBuilder builder, InputStream inputStream) {
@@ -126,9 +128,16 @@ public class LFTest implements Comparable<LFTest> {
     
     public Properties properties = new Properties();
     
+    public StandaloneContext context = new StandaloneContext();
+    
     public final Target target;
     
     public LFTest(Target target, Path path) {
+        this.context.setCancelIndicator(CancelIndicator.NullImpl);
+        this.context.setArgs(this.properties);
+        this.context.setPackageRoot(TestRegistry.LF_TEST_PATH.resolve(target.toString()));
+        this.context.setHierarchicalBin(true);
+        
         this.target = target; // FIXME: do we need the target?
         this.path = path;
         this.name = normalize(target, path);
@@ -140,7 +149,7 @@ public class LFTest implements Comparable<LFTest> {
     }
     
     private static String normalize(Target target, Path path) {
-        return path.toString().replaceFirst(Pattern.quote(TestRegistry.LF_TEST_PATH + target + File.separator), "");
+        return TestRegistry.LF_TEST_PATH.resolve(target.toString()).relativize(path).toString();
     }
     
     @Override
