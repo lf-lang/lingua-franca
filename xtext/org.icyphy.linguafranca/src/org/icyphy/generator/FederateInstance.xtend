@@ -71,10 +71,6 @@ class FederateInstance {
         this.bankPosition = bankPosition;
                 
         if (instantiation !== null) {
-            // The contained reactor names set now has just one name, the name
-            // of this reactor. It used to be able to have multiple names.
-            containedReactorNames.add(instantiation.name);
-            
             this.name = instantiation.name;
             // If the instantiation is in a bank, then we have to append
             // the bank index to the name.
@@ -92,12 +88,6 @@ class FederateInstance {
      * This is 0 if the instantiation is not a bank of reactors.
      */
     public var bankPosition = 0;
-    
-    /** 
-     * Set of names of contained reactors. Note that will be
-     * empty if isSingleton() returns true.
-     */
-    public var Set<String> containedReactorNames = new LinkedHashSet<String>
     
     /**
      * A list of outputs that can be triggered directly or indirectly by physical actions.
@@ -173,15 +163,17 @@ class FederateInstance {
     //// Public Methods
     
     /** 
-     * Return true if the specified reactor name is contained by
-     * this federate. At one point, a federate could contain more than
-     * one federate, but now, each reactor within the top level is a
-     * separate federate, so there is only one reactor contained.
-     * s
-     * @return True if the federate contains the reactor.
+     * Return true if the specified reactor instance is contained by
+     * this federate.
+     * @return True if the federate contains the reactor instance
      */
-    def contains(String reactorName) {
-        containedReactorNames.contains(reactorName) 
+    def contains(ReactorInstance instance) {
+        if (instance.definition === this.instantiation
+            && (instance.bankIndex < 0 || instance.bankIndex == this.bankPosition)
+        ) {
+            return true;
+        }
+        return false;
     }
         
     /** 
@@ -219,7 +211,7 @@ class FederateInstance {
                 if (trigger instanceof VarRef) {
                     if (trigger.variable instanceof Output) {
                         // The trigger is an output port of a contained reactor.
-                        if (contains(trigger.container.name)) {
+                        if (trigger.container === this.instantiation) {
                             referencesFederate = true;
                         } else {
                             if (referencesFederate) {
@@ -235,7 +227,7 @@ class FederateInstance {
             for (effect : react.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
                     // It is the input of a contained reactor.
-                    if (contains(effect.container.name)) {
+                    if (effect.container === this.instantiation) {
                         referencesFederate = true;
                     } else {
                         if (referencesFederate) {

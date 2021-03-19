@@ -45,6 +45,7 @@ DelayStructWithAfter.lf
 DelayStructWithAfterOverlapped.lf
 Determinism.lf
 DeterminismThreaded.lf
+DistributedBank.lf
 DistributedCount.lf
 DistributedCountDecentralized.lf
 DistributedCountDecentralizedLate.lf
