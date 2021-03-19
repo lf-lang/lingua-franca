@@ -3964,7 +3964,7 @@ class CGenerator extends GeneratorBase {
             return true
         } else {
             if (instance.parent === this.main 
-                && !federate.contains(instance.name)
+                && !federate.contains(instance)
             ) {
                 return false
             } else {
