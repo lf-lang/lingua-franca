@@ -131,7 +131,8 @@ abstract class TestBase {
     def void runNonFederatedTestsAsFederated() {
         printTestHeader("Description: Run non-federated tests in federated mode.")
         this.target.runTestsAndPrintResults([
-            it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED
+            it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED &&
+            it !== TestCategory.EXAMPLE
         ], [ASTUtils.makeFederated(it.fileConfig.resource)])
     }
     
