@@ -15,8 +15,8 @@ public abstract class ThreadedBase extends TestBase {
                         it != TestCategory.FEDERATED && 
                         it != TestCategory.EXAMPLE),
                 it -> {
-                    it.properties.setProperty("threads", "4");
+                    it.getContext().getArgs().setProperty("threads", "4");
                     return true;
-                });
+                }, true);
     }
 }

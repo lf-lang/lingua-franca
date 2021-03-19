@@ -26,7 +26,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.icyphy.FileConfig;
 import org.icyphy.LinguaFrancaStandaloneSetup;
 import org.icyphy.Target;
 import org.icyphy.generator.Main;
@@ -96,11 +95,6 @@ public class TestRegistry {
     protected final static Map<TestCategory, Set<LFTest>> allTargets = new HashMap<TestCategory, Set<LFTest>>();
     
     /**
-     * Messages to print when done indexing.
-     */
-    public static StringBuffer messages = new StringBuffer();
-
-    /**
      * Enumeration of test categories, used to map tests to categories. The
      * nearest containing directory that matches any of the categories will
      * determine the category that the test is mapped to. Matching is case
@@ -150,6 +144,7 @@ public class TestRegistry {
     }
     
     static {
+        System.out.println("Indexing...");
         ResourceSet rs = new LinguaFrancaStandaloneSetup()
                 .createInjectorAndDoEMFRegistration()
                 .<Main>getInstance(Main.class).getResourceSet();
@@ -171,7 +166,7 @@ public class TestRegistry {
                     supported.add(TestCategory.GENERIC);
                     Files.walkFileTree(dir, new TestDirVisitor(rs, target));
                 } else {
-                    messages.append("WARNING: No test directory for target " + target + "\n");
+                    System.out.println("WARNING: No test directory for target " + target + "\n");
                 }
                 
             } catch (IOException e) {
@@ -181,7 +176,7 @@ public class TestRegistry {
             }
             // Record the tests for later use when reporting coverage.
             Arrays.asList(TestCategory.values()).forEach(
-                    c -> allTargets.get(c).addAll(getRegisteredTests(target, c)));
+                    c -> allTargets.get(c).addAll(getRegisteredTests(target, c, false)));
         }
         
         // Also scan the examples directory.
@@ -195,6 +190,12 @@ public class TestRegistry {
         
     }
     
+    public static void initialize() {
+        // This is just to make sure that any errors encountered
+        // while indexing are printed before anything else gets
+        // printed.d
+    }
+    
     /**
      * Return the tests that were indexed for a given target and category.
      * 
@@ -202,8 +203,17 @@ public class TestRegistry {
      * @param category
      * @return
      */
-    public static Set<LFTest> getRegisteredTests(Target target, TestCategory category) {
-        return registered.getTests(target, category);
+    public static Set<LFTest> getRegisteredTests(Target target,
+            TestCategory category, boolean copy) {
+        if (copy) {
+            Set<LFTest> copies = new TreeSet<LFTest>();
+            for (LFTest test : registered.getTests(target, category)) {
+                copies.add(new LFTest(test.target, test.srcFile, test.packageRoot));
+            }
+            return copies;
+        } else {
+            return registered.getTests(target, category);
+        }
     }
     
     /**
@@ -234,7 +244,7 @@ public class TestRegistry {
             s.append("No main reactor in: " + test.name + "\n");
         }
         
-        Set<LFTest> own = getRegisteredTests(target, category);
+        Set<LFTest> own = getRegisteredTests(target, category, false);
         if (support.get(target).contains(category)) {
             Set<LFTest> all = allTargets.get(category);
             s.append("\n" + TestBase.THIN_LINE);
@@ -267,7 +277,8 @@ public class TestRegistry {
         }
         
         /**
-         * Pop categories from the stack as appropriate.
+         * Update the state of the visitor to reflect whether it currently 
+         * is in a test directory or not.
          */
         @Override
         public FileVisitResult postVisitDirectory(Path dir, IOException exc)
@@ -280,19 +291,16 @@ public class TestRegistry {
         }
         
         /**
-         * Push categories onto the stack as appropriate and skip directories
-         * that should be ignored.
+         * Update the state of the visitor to reflect whether it currently 
+         * is in a test directory or not.
          */
         @Override
         public FileVisitResult preVisitDirectory(Path dir,
                 BasicFileAttributes attrs) {
-
-            //for (TestCategory category : TestCategory.values()) {
-                if (dir.getFileName().toString()
-                        .equalsIgnoreCase("test")) {
-                    this.inTestDir = true;
-                }
-            //}
+            if (dir.getFileName().toString()
+                    .equalsIgnoreCase("test")) {
+                this.inTestDir = true;
+            }
             return CONTINUE;
         }
         
@@ -310,8 +318,7 @@ public class TestRegistry {
                 
                 EList<Diagnostic> errors = r.getErrors();
                 if (!errors.isEmpty()) {
-                    // FIXME
-                    System.out.println("Jacked to the tits!");
+                    // FIXME: Report on this by adding to a set of Paths that didn't compile.
                 } else {
                     //System.out.println(path);
                     Iterator<TargetDecl> targetDecls = Iterables.<TargetDecl>filter(
@@ -329,16 +336,15 @@ public class TestRegistry {
                         if (IteratorExtensions.exists(reactors.iterator(),
                                 it -> it.isMain() || it.isFederated())) {
                             if (this.inTestDir || path.getFileName().toString().toLowerCase().contains("test")) {
-                                registered.getTests(target, TestCategory.EXAMPLE_TEST).add(new LFTest(r, target, path, TestRegistry.LF_EXAMPLE_PATH));
+                                registered.getTests(target, TestCategory.EXAMPLE_TEST).add(new LFTest(target, path, TestRegistry.LF_EXAMPLE_PATH));
                             } else {
-                                registered.getTests(target, TestCategory.EXAMPLE).add(new LFTest(r, target, path, TestRegistry.LF_EXAMPLE_PATH));
+                                registered.getTests(target, TestCategory.EXAMPLE).add(new LFTest(target, path, TestRegistry.LF_EXAMPLE_PATH));
                             }
                             
                             return CONTINUE;
                         }
                     } else {
-                        // FIXME: no target
-                        System.out.println("Jacked to the tits!");
+                        // FIXME: Report on this by adding to a set of Paths that didn't specify a target.
                     }   
                 }
             }
@@ -433,13 +439,12 @@ public class TestRegistry {
                         URI.createFileURI(path.toFile().getAbsolutePath()),
                         true);
                 // FIXME: issue warning if target doesn't match!
-                LFTest test = new LFTest(r, target, path, TestRegistry.LF_TEST_PATH.resolve(
+                LFTest test = new LFTest(target, path, TestRegistry.LF_TEST_PATH.resolve(
                         target.toString()));
                 EList<Diagnostic> errors = r.getErrors();
                 if (!errors.isEmpty()) {
                     for (Diagnostic d : errors) {
-                        test.issues.append(d.toString()); // FIXME: Not showing
-                                                          // up for some reason.
+                        test.issues.append(d.toString());
                     }
                     test.result = Result.PARSE_FAIL;
                 } else {

@@ -35,6 +35,8 @@ import static extension org.junit.Assert.assertTrue
 import org.icyphy.generator.GeneratorBase
 import org.icyphy.TargetConfig
 import org.icyphy.FileConfig
+import org.eclipse.emf.ecore.resource.Resource
+import java.util.Properties
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)
@@ -44,6 +46,8 @@ abstract class TestBase {
     @Inject IResourceValidator validator
     @Inject GeneratorDelegate generator
     @Inject JavaIoFileSystemAccess fileAccess
+    @Inject Provider<ResourceSet> resourceSetProvider;
+    
 
     static val out = System.out;
     static val err = System.err;
@@ -69,11 +73,10 @@ abstract class TestBase {
     protected boolean build = true;
     
     /**
-     * Create a new test suite.
+     * Force the instantiation of the test registry.
      */
     new() {
-        // Report if the test registry encountered any issues.
-        System.out.println(TestRegistry.messages.toString());
+        TestRegistry.initialize()
     }
     
     @Test
@@ -81,9 +84,7 @@ abstract class TestBase {
         printTestHeader("Description: Run example tests.")
         this.target.runTestsAndPrintResults([
             it === TestCategory.EXAMPLE_TEST
-        ], [
-            return true
-        ])
+        ], null, false)
     }
     
 //    @Test
@@ -104,27 +105,30 @@ abstract class TestBase {
         this.target.runTestsAndPrintResults([
             it === TestCategory.GENERIC
         ], [
-            it.properties.setProperty("threads", "0")
+            it.context.getArgs().setProperty("threads", "0")
             return true
-        ])
+        ],  
+        false)
     }
     
     @Test
     def void runTargetSpecificTests() {
         printTestHeader("Description: Run target-specific tests (threads = 0).")
         this.target.runTestsAndPrintResults([it === TestCategory.TARGET], [
-            it.properties.setProperty("threads", "0")
+            it.context.getArgs().setProperty("threads", "0")
             return true
-        ])
+        ],
+        false)
     }
     
     @Test
     def void runMultiportTests() {
         printTestHeader("Description: Run multiport tests (threads = 0).")
         this.target.runTestsAndPrintResults([it === TestCategory.MULTIPORT], [
-            it.properties.setProperty("threads", "0")
+            it.context.getArgs().setProperty("threads", "0")
             return true
-        ])
+        ],
+        false)
     }
     
     @Test
@@ -133,19 +137,20 @@ abstract class TestBase {
         this.target.runTestsAndPrintResults([
             it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED &&
             it !== TestCategory.EXAMPLE
-        ], [ASTUtils.makeFederated(it.fileConfig.resource)])
+        ], [ASTUtils.makeFederated(it.fileConfig.resource)], 
+        true)
     }
     
     @Test
     def void runThreadedTests() {
         printTestHeader("Description: Run threaded tests.")
-        this.target.runTestsAndPrintResults([it === TestCategory.CONCURRENT], [true])
+        this.target.runTestsAndPrintResults([it === TestCategory.CONCURRENT], null, false)
     }
     
     @Test
     def void runFederatedTests() {
         printTestHeader("Description: Run federated tests.")
-        this.target.runTestsAndPrintResults([it === TestCategory.FEDERATED], [true])
+        this.target.runTestsAndPrintResults([it === TestCategory.FEDERATED], null, false)
     }
 
     static def void restoreOutputs() {
@@ -163,11 +168,11 @@ abstract class TestBase {
 //        }));
     }
 
-    def runTestsAndPrintResults(Target target, Function1<TestCategory, Boolean> selection, Function1<LFTest, Boolean> configuration) {
+    def runTestsAndPrintResults(Target target, Function1<TestCategory, Boolean> selection, Function1<LFTest, Boolean> configuration, boolean copy) {
         val categories = TestCategory.values().filter(selection)
         for (category : categories) {
             println(category.header);
-            val tests = TestRegistry.getRegisteredTests(target, category)
+            val tests = TestRegistry.getRegisteredTests(target, category, copy)
             tests.validateAndRun(configuration)
             println(TestRegistry.getCoverageReport(target, category));
             if (check) {
@@ -205,34 +210,43 @@ abstract class TestBase {
         
         redirectOutputs(test)
         
-        // FIXME: the LFTest should identify what the output root should be.
+        val context = new StandaloneContext()
+        // Update file config, which includes a fresh resource that has not
+        // been tampered with using AST transformations.
+        context.setCancelIndicator(CancelIndicator.NullImpl);
+        context.setArgs(new Properties());
+        context.setPackageRoot(test.packageRoot);
+        context.setHierarchicalBin(true);
         
-        fileAccess.outputPath = test.context.packageRoot.resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString();
+        val r = resourceSetProvider.get().getResource(
+                    URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
+                    true)
         
-        try {
-            test.fileConfig = new FileConfig(test.resource, fileAccess, test.context);
-        } catch (Exception e) {
-            test.result = Result.CONFIG_FAIL
+        if (r.errors.size > 0) {
+            test.result = Result.PARSE_FAIL
             restoreOutputs()
             return false
         }
+        fileAccess.outputPath = context.packageRoot.resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString();
+        test.fileConfig = new FileConfig(r, fileAccess, context);
         
+        // Set the no-compile flag if appropriate.
         if (!this.build) {
-            test.properties.setProperty("no-compile", "")
+            context.getArgs().setProperty("no-compile", "")
         }
         
         // Validate the resource and store issues in the test object.
         try {
-            val issues = validator.validate(test.fileConfig.resource, CheckMode.ALL, CancelIndicator.NullImpl)
+            val issues = validator.validate(test.fileConfig.resource,
+                CheckMode.ALL, context.cancelIndicator)
             if (!issues.isNullOrEmpty) {
                 test.issues.append(issues.join(NEW_LINE))
                 if (issues.exists [
                     it.severity == Severity.ERROR
                 ]) {
-                    restoreOutputs()
                     test.result = Result.VALIDATE_FAIL
+                    restoreOutputs()
                     return false
-                    //test.executionErrors = "Did not execute due to compilation error(s)."
                 }
             }
         } catch(Exception e) {
@@ -242,12 +256,11 @@ abstract class TestBase {
         }
         
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
-        if (!configuration.apply(test)) {
+        if (configuration !== null && !configuration.apply(test)) {
             test.result = Result.CONFIG_FAIL
             restoreOutputs()
             return false
         }
-        
         
         restoreOutputs()
         return true
@@ -368,7 +381,7 @@ abstract class TestBase {
 
     }
 
-    def validateAndRun(Set<LFTest> tests, Function1<LFTest, Boolean> configuration) {
+    def validateAndRun(Set<LFTest> tests, Function1<LFTest, Boolean> configuration) { // FIXME change this into Consumer
         val x = 78f / tests.size()
         var marks = 0
         var done = 0

@@ -126,22 +126,14 @@ public class LFTest implements Comparable<LFTest> {
     public TestPhase compile = new TestPhase();
     
     public StringBuilder issues = new StringBuilder();
-    
-    public Properties properties = new Properties();
-    
-    public StandaloneContext context = new StandaloneContext();
-    
-    public final Resource resource;
-    
+        
     public final Target target;
     
-    public LFTest(Resource resource, Target target, Path srcFile, Path packageRoot) {
-        this.resource = resource;
+    public final Path packageRoot;
+    
+    public LFTest(Target target, Path srcFile, Path packageRoot) {
         this.target = target;
-        this.context.setCancelIndicator(CancelIndicator.NullImpl);
-        this.context.setArgs(this.properties);
-        this.context.setPackageRoot(packageRoot);
-        this.context.setHierarchicalBin(true);
+        this.packageRoot = packageRoot;
         
         this.srcFile = srcFile;
         this.name = packageRoot.relativize(srcFile).toString();
@@ -179,6 +171,10 @@ public class LFTest implements Comparable<LFTest> {
             return false;
         }
         return true;
+    }
+    
+    public StandaloneContext getContext() {
+        return (StandaloneContext)this.fileConfig.context;
     }
     
     public String reportErrors() {
