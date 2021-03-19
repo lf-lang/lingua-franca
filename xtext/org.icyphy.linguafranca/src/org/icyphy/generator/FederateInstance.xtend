@@ -167,7 +167,17 @@ class FederateInstance {
      * for a given port is going to be present or absent for a given logical time. The indexes
      * for this list should correspond to the portID of the receiver...
      */
-    public var networkInputPorts = new LinkedHashSet<Port>()
+    public var networkInputPorts = new LinkedHashSet<Port>();
+    
+    
+    /**
+     * A list of network trigger ports that trigger the output control reaction of this 
+     * federate. This list is kept because, in certain
+     * circumstances, there is a need to send an ABSENT message for a network output port to
+     * notify all downstream federates that no value will be present on the given network port,
+     * allowing input control reactions on those federates to stop blocking.
+     */
+    public var triggerForNetworkOutputControlReactions = new LinkedHashSet<Port>();
 
     /////////////////////////////////////////////
     //// Public Methods

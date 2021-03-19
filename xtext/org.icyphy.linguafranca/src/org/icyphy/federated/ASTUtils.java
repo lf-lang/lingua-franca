@@ -74,7 +74,7 @@ public class ASTUtils {
      * @input portRef The input port
      * @input instance The federate instance is used to keep track of all
      *        network input ports globally
-     * @input generator The GeneratorBase instance used to indentify certain
+     * @input generator The GeneratorBase instance used to identify certain
      *        target properties
      */
     public static void addNetworkInputControlReaction(VarRef portRef,
@@ -213,16 +213,22 @@ public class ASTUtils {
      * @note Used in federated execution
      * 
      * @input portRef The output port
-     * @input generator The GeneratorBase instance used to indentify certain
+     * @input receivingPortID The ID of the receiving port
+     * @input instance The federate instance is used to keep track of all
+     *        network input ports globally
+     * @input generator The GeneratorBase instance used to identify certain
      *        target properties
      */
     public static void addNetworkOutputControlReaction(VarRef portRef,
+            FederateInstance instance,
+            int portID,
             GeneratorBase generator) {
         LinguaFrancaFactory factory = LinguaFrancaFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         Reactor reactor = (Reactor) portRef.getVariable().eContainer();
+        // Output
         VarRef newPortRef = factory.createVarRef();
-
+        
         newPortRef.setContainer(null);
         newPortRef.setVariable((Output) portRef.getVariable());
 
@@ -255,13 +261,33 @@ public class ASTUtils {
         if (reactionsWithPort.isEmpty() && connectionsWithPort.isEmpty()) {
             // Nothing to do here
             return;
+        } else if (reactionsWithPort.isEmpty()) {
+            // There are no top-level reactions that connect to this output.
+            // Therefore, the network output control reaction should be put
+            // in a contained reactor.
+            for (Connection connection : connectionsWithPort) {
+                for (VarRef leftPort : connection.getLeftPorts()) {
+                    addNetworkOutputControlReaction(leftPort, instance, portID, generator);
+                }
+            }
+            return;
         }
+        
+
+        // The trigger for the reaction
+        VarRef newTriggerForControlReaction = (VarRef) factory.createVarRef();
+        
+        // Add the port to network input ports
+        instance.triggerForNetworkOutputControlReactions.add((Port) newTriggerForControlReaction.getVariable());
+        
         reaction.getEffects().add(newPortRef);
         reaction.setCode(factory.createCode());
 
         reaction.getCode()
                 .setBody(generator.generateNetworkOutputControlReactionBody(
-                        (Port) portRef.getVariable()));
+                        (Port) portRef.getVariable(),
+                        portID,
+                        instance.id));
 
         // If there are no top-level reactions in this federate that has this
         // port

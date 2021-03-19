@@ -512,11 +512,19 @@ class ASTUtils {
         parent.reactions.add(r2)       
         
         if (!connection.physical) {
-            // Add the network dependent reaction for the right port
+            // Add the network control reactions for the ports
             // Only for logical connections
             org.icyphy.federated.ASTUtils.addNetworkInputControlReaction(
                 connection.rightPorts.get(0), 
                 rightFederate,
+                generator
+            );
+            
+            
+            org.icyphy.federated.ASTUtils.addNetworkOutputControlReaction(
+                connection.leftPorts.get(0), 
+                rightFederate,
+                receivingPortID,
                 generator
             );
         }
