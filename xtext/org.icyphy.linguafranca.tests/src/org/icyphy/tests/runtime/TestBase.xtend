@@ -288,11 +288,20 @@ abstract class TestBase {
             case C,
             case CPP,
             case CCPP: {
-                val bin = test.fileConfig.binPath
-                val fullPath = bin.resolve(nameOnly)
+                val binPath = test.fileConfig.binPath
+                var binaryName = nameOnly
+                // Adjust binary extension if running on Window
+                if (System.getProperty("os.name").startsWith("Windows")) {
+                    binaryName = nameOnly + ".exe"
+                }
+
+                val fullPath = binPath.resolve(binaryName)
                 if (Files.exists(fullPath)) {
-                    pb = new ProcessBuilder("./" + nameOnly)
-                    pb.directory(bin.toFile)
+                    // Running the command as .\binary.exe does not work on Windows for
+                    // some reason... Thus we simply pass the full path here, which
+                    // should work across all platforms
+                    pb = new ProcessBuilder(fullPath.toString)
+                    pb.directory(binPath.toFile)
                 } else {
                     test.issues.append(
                         fullPath + ": No such file or directory." + NEW_LINE)
