@@ -214,7 +214,7 @@ public class LFTest implements Comparable<LFTest> {
         VALIDATE_FAIL("Unable to validate test."),
         CODE_GEN_FAIL("Error while generating code for test."),
         BUILD_FAIL("Error while building test."),
-        NO_EXEC_FAIL("Did not to execute test."),
+        NO_EXEC_FAIL("Did not execute test."),
         TEST_FAIL("Test did not pass."),
         TEST_TIMEOUT("Test timed out."),
         TEST_PASS("Test passed.");
