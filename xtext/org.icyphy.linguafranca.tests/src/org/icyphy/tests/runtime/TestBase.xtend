@@ -77,6 +77,28 @@ abstract class TestBase {
     }
     
     @Test
+    def void runExampleTests() {
+        printTestHeader("Description: Run example tests.")
+        this.target.runTestsAndPrintResults([
+            it === TestCategory.EXAMPLE_TEST
+        ], [
+            return true
+        ])
+    }
+    
+//    @Test
+//    def void compileExamples() {
+//        printTestHeader("Description: Compile examples.")
+//        this.run = false;
+//        this.target.runTestsAndPrintResults([
+//            it === TestCategory.EXAMPLE
+//        ], [
+//            return true
+//        ])
+//        this.run = false;
+//    }
+    
+    @Test
     def void runGenericTests() {
         printTestHeader("Description: Run generic tests (threads = 0).")
         this.target.runTestsAndPrintResults([
@@ -181,17 +203,14 @@ abstract class TestBase {
         }
         
         redirectOutputs(test)
-
+        
+        // FIXME: the LFTest should identify what the output root should be.
+        
+        fileAccess.outputPath = test.context.packageRoot.resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString();
+        
         try {
             test.fileConfig = new FileConfig(test.resource, fileAccess, test.context);
         } catch (Exception e) {
-            test.result = Result.CONFIG_FAIL
-            restoreOutputs()
-            return false
-        }
-        
-        // Update the test by applying the configuration. E.g., to carry out an AST transformation.
-        if (!configuration.apply(test)) {
             test.result = Result.CONFIG_FAIL
             restoreOutputs()
             return false
@@ -220,6 +239,15 @@ abstract class TestBase {
             restoreOutputs()
             return false
         }
+        
+        // Update the test by applying the configuration. E.g., to carry out an AST transformation.
+        if (!configuration.apply(test)) {
+            test.result = Result.CONFIG_FAIL
+            restoreOutputs()
+            return false
+        }
+        
+        
         restoreOutputs()
         return true
     }
@@ -235,7 +263,7 @@ abstract class TestBase {
             try {
                 generator.generate(test.fileConfig.resource, fileAccess, test.fileConfig.context)
             } catch (Exception e) {
-                println(e.stackTrace)
+                e.printStackTrace()
                 test.issues.append(e.message)
                 test.result = Result.CODE_GEN_FAIL
                 restoreOutputs()
@@ -250,7 +278,7 @@ abstract class TestBase {
 
     def execute(LFTest test) {
         var ProcessBuilder pb;
-        val nameWithExtension = test.path.fileName.toString
+        val nameWithExtension = test.srcFile.fileName.toString
         val nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'))
         
         // FIXME: we probably want to use the createCommand utility from GeneratorBase here.
@@ -334,13 +362,12 @@ abstract class TestBase {
         val x = 78f / tests.size()
         var marks = 0
         var done = 0
-        fileAccess.outputPath = TestRegistry.LF_TEST_PATH.resolve(
-            target.toString()).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).
-            toString()
         for (test : tests) {
             if (test.configureAndValidate(configuration) && test.generateCode()) {
                 if (run) {
                     test.execute()
+                } else if (test.result == Result.UNKNOWN) {
+                    test.result = Result.TEST_PASS;
                 }
             }
             done++

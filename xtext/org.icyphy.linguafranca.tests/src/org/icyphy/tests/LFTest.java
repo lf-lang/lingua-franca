@@ -94,7 +94,7 @@ public class LFTest implements Comparable<LFTest> {
     /**
      * The path to the test.
      */
-    public final Path path;
+    public final Path srcFile;
     
     /**
      * The name of the test.
@@ -131,20 +131,20 @@ public class LFTest implements Comparable<LFTest> {
     
     public StandaloneContext context = new StandaloneContext();
     
-    public final Target target;
-    
     public final Resource resource;
     
-    public LFTest(Resource resource, Target target, Path path) {
+    public final Target target;
+    
+    public LFTest(Resource resource, Target target, Path srcFile, Path packageRoot) {
         this.resource = resource;
+        this.target = target;
         this.context.setCancelIndicator(CancelIndicator.NullImpl);
         this.context.setArgs(this.properties);
-        this.context.setPackageRoot(TestRegistry.LF_TEST_PATH.resolve(target.toString()));
+        this.context.setPackageRoot(packageRoot);
         this.context.setHierarchicalBin(true);
         
-        this.target = target; // FIXME: do we need the target?
-        this.path = path;
-        this.name = normalize(target, path);
+        this.srcFile = srcFile;
+        this.name = packageRoot.relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
     }
     
@@ -154,10 +154,6 @@ public class LFTest implements Comparable<LFTest> {
      */
     public int compareTo(LFTest t) {
         return this.relativePath.compareTo(t.relativePath);
-    }
-    
-    private static String normalize(Target target, Path path) {
-        return TestRegistry.LF_TEST_PATH.resolve(target.toString()).relativize(path).toString();
     }
     
     @Override
