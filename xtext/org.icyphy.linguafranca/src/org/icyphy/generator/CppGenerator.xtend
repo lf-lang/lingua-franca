@@ -1013,13 +1013,12 @@ class CppGenerator extends GeneratorBase {
         // be affected.
         // There is a utility function for this in CodeGenConfig
 
-        val rootPath = this.fileConfig.outPath
+        val outPath = this.fileConfig.outPath
 
-        val installPath = this.fileConfig.outPath.toString
-        val buildPath = '''«rootPath»/build/«topLevelName»'''
-        val reactorCppPath = '''«rootPath»/build/reactor-cpp'''
+        val buildPath = outPath.resolve("build").resolve(topLevelName)
+        val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
         
-        var buildDir = new File(buildPath)
+        var buildDir = new File(buildPath.toString())
         if (!buildDir.exists()) buildDir.mkdirs()
 
         val makeBuilder = createCommand("cmake", #[
@@ -1029,11 +1028,11 @@ class CppGenerator extends GeneratorBase {
             "install",
             "--config",
             '''«IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»'''],
-            fileConfig.outPath)
+            outPath)
         val cmakeBuilder = createCommand("cmake", #[
-            '''-DCMAKE_INSTALL_PREFIX=«installPath»''',
-            '''-DCMAKE_INSTALL_BINDIR=«fileConfig.outPath.relativize(fileConfig.binPath)»''',
-            '''-DREACTOR_CPP_BUILD_DIR=«reactorCppPath»''',
+            '''-DCMAKE_INSTALL_PREFIX=«FileConfig.toUnixPath(outPath)»''',
+            '''-DREACTOR_CPP_BUILD_DIR=«FileConfig.toUnixPath(reactorCppPath)»''',
+            '''-DCMAKE_INSTALL_BINDIR=«FileConfig.toUnixPath(outPath.relativize(fileConfig.binPath))»''',
             fileConfig.getSrcGenPath.toString],
             fileConfig.getSrcGenPath)
         if (makeBuilder === null || cmakeBuilder === null) {
