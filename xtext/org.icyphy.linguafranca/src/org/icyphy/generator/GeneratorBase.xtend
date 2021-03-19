@@ -1189,7 +1189,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param port The port to generate the control reaction for
      */
     def String generateNetworkOutputControlReactionBody(
-        Port port
+        Port port,
+        int portID,
+        int federateID
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
     }  
@@ -2074,7 +2076,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                                 val rightFederate = federatesByInstantiation.get(rightPort.container).get(rightBankIndex);
 
                                 // Set up dependency information.
-                                // FIXME: Maybe we don't need this any more?
                                 if (
                                     leftFederate !== rightFederate
                                     && !connection.physical

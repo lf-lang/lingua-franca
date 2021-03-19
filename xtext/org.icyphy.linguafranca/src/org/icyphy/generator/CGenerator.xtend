@@ -2455,10 +2455,10 @@ class CGenerator extends GeneratorBase {
                 // No triggers are given, which means the reaction would react to any input.
                 // We need to check the intended tag for every input.
                 // NOTE: this does not include contained outputs. 
-                for (input : reaction.sources) {
+                for (input : (reaction.eContainer as Reactor).inputs) {
                     pr(intendedTagInheritenceCode, '''
-                        if (compare_tags(«input.variable.name»->intended_tag, inherited_min_intended_tag) > 0) {
-                            inherited_min_intended_tag = «input.variable.name»->intended_tag;
+                        if (compare_tags(«input.name»->intended_tag, inherited_min_intended_tag) > 0) {
+                            inherited_min_intended_tag = «input.name»->intended_tag;
                         }
                     ''')
                 }
@@ -4487,6 +4487,33 @@ class CGenerator extends GeneratorBase {
         
         return result.toString        
     }
+
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     * 
+     * @param port The port to generate the control reaction for
+     */
+    override def String generateNetworkOutputControlReactionBody(
+        Port port,
+        int portID,
+        int federateID
+    ) {
+        // Store the code
+        val result = new StringBuilder();
+        
+        result.append('''
+            // If the output port has not been SET for the current logical time
+            // send an ABSENT message to the receiving federate
+            if (!«port.name»->is_present) {
+                send_port_ABSENT_to_federate(«portID», «federateID»);
+            }
+        ''')
+        
+        
+        return result.toString();
+               
+    }  
 
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
