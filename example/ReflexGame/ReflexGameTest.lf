@@ -1,6 +1,7 @@
 target C {
     threads: 1,
-    keepalive: true
+    keepalive: true,
+    timeout: 5 sec
 };
 main reactor KeyListener {
     preamble {=

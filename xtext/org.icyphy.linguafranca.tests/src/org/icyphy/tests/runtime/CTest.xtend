@@ -46,6 +46,17 @@ class CTest extends ThreadedBase {
     }
     
     @Test
+    override runExampleTests() {
+        super.runExampleTests()
+    }
+
+// FIXME this works, but commented out for CI for now
+//    @Test
+//    override compileExamples() {
+//        super.compileExamples()
+//    }
+    
+    @Test
     override runGenericTests() {
         super.runGenericTests()
     }
