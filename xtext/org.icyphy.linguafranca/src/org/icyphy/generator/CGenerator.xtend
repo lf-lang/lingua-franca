@@ -4503,10 +4503,10 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder();
         
         result.append('''
-            // If the output port has not been SET for the current logical time
+            // If the output port has not been SET for the current logical time,
             // send an ABSENT message to the receiving federate
             if (!«port.name»->is_present) {
-                send_port_ABSENT_to_federate(«portID», «federateID»);
+                send_port_absent_to_federate(«portID», «federateID»);
             }
         ''')
         

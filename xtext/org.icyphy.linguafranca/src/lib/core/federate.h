@@ -74,7 +74,7 @@ typedef struct federate_instance_t {
 	int sockets_for_inbound_p2p_connections[NUMBER_OF_FEDERATES];
 
 	/**
-	 * An array that holds the socket descriptors for outbound physical
+	 * An array that holds the socket descriptors for outbound direct
 	 * connections to each remote federate. The index will be the federate
 	 * ID of the remote receiving federate. This is initialized at startup
 	 * to -1 and is set to a socket ID by connect_to_federate()
