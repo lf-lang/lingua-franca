@@ -167,10 +167,10 @@ class Configuration {
     public TimeValue timeout
 
     /**
-     * If true, configure the runtime environment to perform tracing.
-     * The default is false.
+     * If non-null, configure the runtime environment to perform tracing.
+     * The default is null.
      */
-    public boolean tracing = false
+    public TracingOptions tracing = null
     
     // Static methods.
     
@@ -330,4 +330,15 @@ class DockerOptions {
      * The base image and tag from which to build the Docker image. The default is "alpine:latest".
      */
     public String from = "alpine:latest"
+}
+
+/**
+ * Settings related to tracing options.
+ */
+class TracingOptions {
+    /**
+     * The name to use as the root of the trace file produced.
+     * This defaults to the name of the .lf file.
+     */
+    public String traceFileName = null
 }

@@ -623,8 +623,12 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule timers for all reactors.
                 pr("void __initialize_timers() {")
                 indent()
-                if (config.tracing) {
-                    pr('''start_trace("«filename».lft");''') // .lft is for Lingua Franca trace
+                if (config.tracing !== null) {
+                    var traceFileName = filename;
+                    if (config.tracing.traceFileName !== null) {
+                        traceFileName = config.tracing.traceFileName;
+                    }
+                    pr('''start_trace("«traceFileName».lft");''') // .lft is for Lingua Franca trace
                 }
                 if (timerCount > 0) {
                     pr('''
@@ -3258,7 +3262,7 @@ class CGenerator extends GeneratorBase {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
-        if (config.tracing) {
+        if (config.tracing !== null) {
             var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
@@ -3440,7 +3444,7 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects, '''
                             __shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->___reaction_«reactionCount»;
                         ''')
-                        if (config.tracing) {
+                        if (config.tracing !== null) {
                             val description = getShortenedName(instance)
                             pr(initializeTriggerObjects, '''
                                 _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___shutdown),
@@ -4383,11 +4387,15 @@ class CGenerator extends GeneratorBase {
      *  uniformly across all target languages.
      */
     protected def includeTargetLanguageHeaders() {
-        if (config.tracing) {
-            pr('#define LINGUA_FRANCA_TRACE')
+        if (config.tracing !== null) {
+            var filename = "";
+            if (config.tracing.traceFileName !== null) {
+                filename = config.tracing.traceFileName;
+            }
+            pr('#define LINGUA_FRANCA_TRACE ' + filename)
         }
         pr('#include "ctarget.h"')
-        if (config.tracing) {
+        if (config.tracing !== null) {
             pr('#include "core/trace.c"')            
         }
     }

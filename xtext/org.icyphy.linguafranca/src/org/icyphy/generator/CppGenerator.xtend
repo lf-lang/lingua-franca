@@ -945,7 +945,7 @@ class CppGenerator extends GeneratorBase {
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
             -DREACTOR_CPP_VALIDATE=«IF config.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
-            -DREACTOR_CPP_TRACE=«IF config.tracing»ON«ELSE»OFF«ENDIF»
+            -DREACTOR_CPP_TRACE=«IF config.tracing !== null»ON«ELSE»OFF«ENDIF»
             «IF config.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(config.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
         )
         
