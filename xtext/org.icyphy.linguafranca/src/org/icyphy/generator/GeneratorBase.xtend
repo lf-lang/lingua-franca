@@ -860,7 +860,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         // If threaded computation is requested, add a -pthread option.
-        if (config.threads !== 0 || config.tracing) {
+        if (config.threads !== 0 || config.tracing !== null) {
             compileArgs.add("-pthread")
         }
         // Finally add the compiler flags in target parameters (if any)
