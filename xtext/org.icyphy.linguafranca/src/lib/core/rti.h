@@ -497,6 +497,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 20
 
 
+/**
+ * A port absent message, informing the receiver that a given port
+ * will not have event for the current logical time.
+ * 
+ * The next 2 bytes is the port id.
+ * The next 2 bytes will be the federate id of the destination federate.
+ *  This is needed for the centralized coordination so that the RTI knows where
+ *  to forward the message.
+ */
+#define PORT_ABSENT 21
+
+
 /////////////////////////////////////////////
 //// Rejection codes
 

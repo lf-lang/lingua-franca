@@ -256,6 +256,46 @@ int create_server(int specified_port, ushort port, socket_type_t socket_type) {
     return socket_descriptor;
 }
 
+/**
+ * Handle a port absent message being received rom a federate via the RIT.
+ */
+void handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer) {
+    int message_size = sizeof(unsigned short) + sizeof(unsigned short);
+
+    read_from_socket_errexit(sending_federate->socket, message_size, &(buffer[1]), 
+                            " RTI failed ot read port absent message from federate %u.", 
+                            sending_federate->id);
+
+    unsigned short port_id = extract_ushort(&(buffer[1]));
+    unsigned short federate_id = extract_ushort(&(buffer[1 + sizeof(unsigned int)]));
+
+    // Need to acquire the mutex lock to ensure that the thread handling
+    // messages coming from the socket connected to the destination does not
+    // issue a TAG before this message has been forwarded.
+    pthread_mutex_lock(&rti_mutex);
+
+    // If the destination federate is no longer connected, issue a warning
+    // and return.
+    if (federates[federate_id].state == NOT_CONNECTED) {
+        pthread_mutex_unlock(&rti_mutex);
+        warning_print("RTI: Destination federate %d is no longer connected. Dropping message.",
+                federate_id);
+        return;
+    }
+
+    LOG_PRINT("RTI forwarding port absent message for port %u to federate %u.",
+                port_id,
+                federate_id);
+
+
+    // Forward the message.
+    int destination_socket = federates[federate_id].socket;
+    write_to_socket_errexit(destination_socket, message_size + 1, buffer,
+            "RTI failed to forward message to federate %d.", federate_id);
+    
+    pthread_mutex_unlock(&rti_mutex);
+}
+
 /** Handle a timed message being received from a federate via the RTI.
  *  @param sending_federate The sending federate.
  *  @param buffer The buffer to read into (the first byte is already there).

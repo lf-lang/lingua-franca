@@ -213,8 +213,8 @@ void create_server(int specified_port) {
  */
 void send_message(int socket,
                   int message_type,
-                  unsigned int port,
-                  unsigned int federate,
+                  unsigned short port,
+                  unsigned short federate,
                   const char next_destination_str[],
                   size_t length,
                   unsigned char* message) {
@@ -278,8 +278,8 @@ void send_message(int socket,
 void send_timed_message(interval_t additional_delay,
                         int socket,
                         int message_type,
-                        unsigned int port,
-                        unsigned int federate,
+                        unsigned short port,
+                        unsigned short federate,
                         const char next_destination_str[],
                         size_t length,
                         unsigned char* message) {
@@ -1795,4 +1795,37 @@ bool all_network_inputs_are_accounted_for() {
             }
     }
     return true;
+}
+
+
+/**
+ * Send a port absent message to federate with fed_ID, informing the
+ * remote federate that the current federate will not produce an event
+ * on this network port at the current logical time.
+ */
+void send_port_absent_to_federate(unsigned short port_ID, 
+                                  unsigned short fed_ID) {
+    // Construct the message
+    int message_length = 1 + sizeof(port_ID) + sizeof(fed_ID);
+    unsigned char buffer[message_length];
+
+    buffer[0] = PORT_ABSENT;
+    encode_ushort(port_ID, &(buffer[1]));
+    encode_ushort(fed_ID, &(buffer[1+sizeof(port_ID)]));
+
+    int socket = -1;
+
+#ifdef FEDERATED_CENTRALIZED
+    // Send the absent message through the RTI
+    socket = _fed.socket_TCP_RTI;
+#else
+    // Send the absent message directly to the federate
+    socket = _fed.sockets_for_outbound_p2p_connections[fed_ID];
+#endif
+
+    pthread_mutex_lock(&outbound_socket_mutex);
+    write_to_socket_errexit(socket, message_length, buffer,
+            "Failed to send port absent message for port %u to federate %u.", 
+            port_ID, fed_ID);
+    pthread_mutex_unlock(&outbound_socket_mutex);
 }
