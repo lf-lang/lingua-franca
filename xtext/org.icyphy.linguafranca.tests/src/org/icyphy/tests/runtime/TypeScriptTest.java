@@ -47,8 +47,8 @@ public class TypeScriptTest extends TestBase {
         
     @Test
     @Override
-    public void runThreadedTests() {
-        super.runThreadedTests();
+    public void runConcurrentTests() {
+        super.runConcurrentTests();
     }
     
     @Test

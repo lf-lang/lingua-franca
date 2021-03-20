@@ -119,7 +119,7 @@ jobs:
       - name: Run C++ tests;
         run: |
           cd xtext
-          ./gradlew test --tests org.icyphy.tests.runtime.CppTest.runGenericTests
+          ./gradlew test --tests org.icyphy.tests.runtime.CppTest.*
         
   ts-tests:
     strategy:

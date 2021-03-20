@@ -78,10 +78,10 @@ class CodeGenCoverage extends ThreadedBase {
     }
 
     @Test
-    override runSingleThreadedTestsAsThreaded() {
+    override runWithFourThreads() {
         for (target : Target.values()) {
             this.target = target;
-            super.runSingleThreadedTestsAsThreaded()
+            super.runWithFourThreads()
         }
     }
 
@@ -94,10 +94,10 @@ class CodeGenCoverage extends ThreadedBase {
     }
 
     @Test
-    override runThreadedTests() {
+    override runConcurrentTests() {
         for (target : Target.values()) {
             this.target = target;
-            super.runThreadedTests()
+            super.runConcurrentTests()
         }
     }
 

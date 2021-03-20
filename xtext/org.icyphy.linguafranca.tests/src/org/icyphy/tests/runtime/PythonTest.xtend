@@ -68,8 +68,8 @@ class PythonTest extends TestBase {
     
         
     @Test
-    override runThreadedTests() {
-        super.runThreadedTests()
+    override runConcurrentTests() {
+        super.runConcurrentTests()
     }
     
     @Test

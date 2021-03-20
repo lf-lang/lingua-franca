@@ -64,6 +64,8 @@ abstract class TestBase {
     
     public final static String EDGE_LINE = "+--------------------------------------------------------------------=-------+" + NEW_LINE;
     
+    public final static String RUN_AS_FEDERATED_DESC = "Description: Run non-federated tests in federated mode.";
+    
     protected Target target;
     
     protected boolean check = true;
@@ -133,7 +135,7 @@ abstract class TestBase {
     
     @Test
     def void runNonFederatedTestsAsFederated() {
-        printTestHeader("Description: Run non-federated tests in federated mode.")
+        printTestHeader(RUN_AS_FEDERATED_DESC)
         this.target.runTestsAndPrintResults([
             it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED &&
             it !== TestCategory.EXAMPLE
@@ -142,8 +144,8 @@ abstract class TestBase {
     }
     
     @Test
-    def void runThreadedTests() {
-        printTestHeader("Description: Run threaded tests.")
+    def void runConcurrentTests() {
+        printTestHeader("Description: Run concurrent tests.")
         this.target.runTestsAndPrintResults([it === TestCategory.CONCURRENT], null, false)
     }
     
