@@ -72,8 +72,8 @@ class CTest extends ThreadedBase {
     }
     
     @Test
-    override runSingleThreadedTestsAsThreaded() {
-        super.runSingleThreadedTestsAsThreaded()
+    override runWithFourThreads() {
+        super.runWithFourThreads()
     }
     
     @Test
@@ -83,8 +83,8 @@ class CTest extends ThreadedBase {
     }
     
     @Test
-    override runThreadedTests() {
-        super.runThreadedTests()
+    override runConcurrentTests() {
+        super.runConcurrentTests()
     }
     
     @Test

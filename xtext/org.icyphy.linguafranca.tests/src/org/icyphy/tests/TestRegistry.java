@@ -86,7 +86,7 @@ public class TestRegistry {
     /**
      * Maps each target to a set of target categories it supports.
      */
-    protected final static Map<Target, Set<TestCategory>> support = new HashMap<Target, Set<TestCategory>>();
+    protected final static Map<Target, Set<TestCategory>> support = new HashMap<Target, Set<TestCategory>>(); // FIXME: Seems like we don't need this.
     
     /**
      * Maps each test category to a set of tests that is the union of tests in
@@ -245,7 +245,7 @@ public class TestRegistry {
         }
         
         Set<LFTest> own = getRegisteredTests(target, category, false);
-        if (support.get(target).contains(category)) {
+        if (category.isCommon) {
             Set<LFTest> all = allTargets.get(category);
             s.append("\n" + TestBase.THIN_LINE);
             s.append("Covered: " + own.size() + "/" + all.size() + "\n");

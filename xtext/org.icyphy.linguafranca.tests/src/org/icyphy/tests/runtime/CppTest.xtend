@@ -61,24 +61,28 @@ class CppTest extends ThreadedBase {
     }
     
     @Test
-    override runSingleThreadedTestsAsThreaded() {
-        super.runSingleThreadedTestsAsThreaded()
+    override runWithFourThreads() {
+        printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
+        println("N/A")
     }
     
     @Test
     override runNonFederatedTestsAsFederated() {
-        super.runNonFederatedTestsAsFederated()
+        printTestHeader(RUN_AS_FEDERATED_DESC)
+        println("N/A")
     }
     
         
     @Test
-    override runThreadedTests() {
-        super.runThreadedTests()
+    override runConcurrentTests() {
+        super.runConcurrentTests()
     }
     
     @Test
     override runFederatedTests() {
-        super.runFederatedTests()
+        printTestHeader("Description: Run federated tests.")
+        println("N/A")
+        //super.runFederatedTests()
     }
 
 }

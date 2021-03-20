@@ -6,10 +6,11 @@ import org.junit.jupiter.api.Test;
 
 public abstract class ThreadedBase extends TestBase {
 
+    public final static String RUN_WITH_FOUR_THREADS_DESC = "Description: Run non-concurrent and non-federated tests (threads = 4).";
+    
     @Test
-    public void runSingleThreadedTestsAsThreaded() {
-        printTestHeader(
-                "Description: Run non-concurrent and non-federated test (threads = 4).");
+    public void runWithFourThreads() {
+        printTestHeader(RUN_WITH_FOUR_THREADS_DESC);
         this.runTestsAndPrintResults(this.target,
                 it -> (it != TestCategory.CONCURRENT &&
                         it != TestCategory.FEDERATED && 
