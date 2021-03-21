@@ -255,11 +255,31 @@ public enum TargetProperty {
             }),
     
     /**
-     * Directive to let the runtime produce execution traces.
+     * Directive to generate a Dockerfile. This is either a boolean,
+     * true or false, or a dictionary of options.
      */
-    TRACING("tracing", PrimitiveType.BOOLEAN,
+    TRACING("tracing", UnionType.TRACING_UNION,
             Arrays.asList(Target.C, Target.CPP), (config, value) -> {
-                config.tracing = ASTUtils.toBoolean(value);
+                if (value.getLiteral() != null) {
+                    if (ASTUtils.toBoolean(value)) {
+                        config.tracing = new TracingOptions();
+                    } else {
+                        config.tracing = null;
+                    }
+                } else {
+                    config.tracing = new TracingOptions();
+                    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                        TracingOption option = (TracingOption) DictionaryType.TRACING_DICT
+                                .forName(entry.getName());
+                        switch (option) {
+                            case TRACE_FILE_NAME:
+                                config.tracing.traceFileName = ASTUtils.toText(entry.getValue());
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
             });
     
     /**
@@ -360,7 +380,9 @@ public enum TargetProperty {
     public enum DictionaryType implements TargetPropertyType {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
         DOCKER_DICT(Arrays.asList(DockerOption.values())),
-        COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values()));    
+        COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
+        TRACING_DICT(Arrays.asList(TracingOption.values())); 
+        
         /**
          * The keys and assignable types that are allowed in this dictionary.
          */
@@ -456,6 +478,8 @@ public enum TargetProperty {
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INITIAL),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
+                null),
+        TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT),
                 null);
     
         /**
@@ -962,6 +986,38 @@ public enum TargetProperty {
         @Override
         public String toString() {
             return this.name().toLowerCase();
+        }
+    }
+
+    /**
+     * Tracing options.
+     * @author{Edward A. Lee <eal@berkeley.edu>}
+     */
+    public enum TracingOption implements DictionaryElement {
+        TRACE_FILE_NAME("trace-file-name", PrimitiveType.STRING);
+        
+        public final PrimitiveType type;
+        
+        private final String description;
+        
+        private TracingOption(String alias, PrimitiveType type) {
+            this.description = alias;
+            this.type = type;
+        }
+        
+        /**
+         * Return the description of this dictionary element.
+         */
+        @Override
+        public String toString() {
+            return this.description;
+        }
+    
+        /**
+         * Return the type associated with this dictionary element.
+         */
+        public TargetPropertyType getType() {
+            return this.type;
         }
     }
 }

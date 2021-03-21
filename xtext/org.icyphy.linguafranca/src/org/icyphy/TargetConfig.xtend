@@ -162,10 +162,10 @@ class TargetConfig {
     public TimeValue timeout
 
     /**
-     * If true, configure the runtime environment to perform tracing.
-     * The default is false.
+     * If non-null, configure the runtime environment to perform tracing.
+     * The default is null.
      */
-    public boolean tracing = false
+    public TracingOptions tracing = null
     
 }
 
@@ -239,8 +239,19 @@ class DockerOptions {
     public String from = "alpine:latest"
 }
 
-    enum Mode {
-        STANDALONE,
-        INTEGRATED,
-        UNDEFINED
-    }
+enum Mode {
+    STANDALONE,
+    INTEGRATED,
+    UNDEFINED
+}
+
+/**
+ * Settings related to tracing options.
+ */
+class TracingOptions {
+    /**
+     * The name to use as the root of the trace file produced.
+     * This defaults to the name of the .lf file.
+     */
+    public String traceFileName = null
+}

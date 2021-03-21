@@ -1,0 +1,44 @@
+// Check multiport connections between federates where the message is
+// carried by a Token (in this case, with an array of char).
+target C {
+    timeout: 1 sec,
+    coordination: centralized
+};
+
+reactor Source {
+    output[4] out:char*;
+    timer t(0, 200 msec);
+    state count:int(0);
+    reaction(t) -> out {=
+        for (int i = 0; i < out_width; i++) {
+            // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
+            // Add one for the null terminator.
+            int length = snprintf(NULL, 0, "Hello %d", self->count) + 1;
+            // Dynamically allocate memory for the output.
+            SET_NEW_ARRAY(out[i], length);
+            // Populate the output string and increment the count.
+            snprintf(out[i]->value, length, "Hello %d", self->count++);
+            info_print("MessageGenerator: At time %lld, send message: %s.",
+                get_elapsed_logical_time(),
+                out[i]->value
+            );
+        }
+    =}
+}
+
+reactor Destination {
+    input[4] in:char*;
+    reaction(in) {=
+        for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) {
+                info_print("Received %s.", in[i]->value);                
+            }
+        }
+    =}
+}
+
+federated reactor DistributedMultiportToken {
+    s = new Source();
+    d = new Destination();
+    s.out -> d.in;
+}
