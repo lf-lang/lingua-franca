@@ -46,6 +46,15 @@ class CodeGenCoverage extends ThreadedBase {
     }
 
     @Test
+    override compileExamples() {
+        for (target : Target.values()) {
+            this.target = target;
+            super.compileExamples()
+        }
+    }
+
+
+    @Test
     override runExampleTests() {
         for (target : Target.values()) {
             this.target = target;
