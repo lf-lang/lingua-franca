@@ -1,6 +1,7 @@
 package org.icyphy.tests;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
 import java.io.File;
 import java.io.IOException;
@@ -66,6 +67,13 @@ public class TestRegistry {
         }
         
     }
+    
+    /**
+     * List of directories that should be skipped when indexing test files. Any
+     * test file that has a directory in its path that matches an entry in this
+     * array will not be discovered.
+     */
+    public static final String[] IGNORED_DIRECTORIES = new String[] {"failing", "knownfailed", "failed"};
     
     public static final Path LF_REPO_PATH = Paths.get(new File("").getAbsolutePath()).getParent().getParent();
     
@@ -297,6 +305,11 @@ public class TestRegistry {
         @Override
         public FileVisitResult preVisitDirectory(Path dir,
                 BasicFileAttributes attrs) {
+            for (String ignored : IGNORED_DIRECTORIES) {
+                if (dir.getFileName().toString().equalsIgnoreCase(ignored)) {
+                    return SKIP_SUBTREE;
+                }
+            }
             if (dir.getFileName().toString()
                     .equalsIgnoreCase("test")) {
                 this.inTestDir = true;
@@ -401,7 +414,11 @@ public class TestRegistry {
         @Override
         public FileVisitResult preVisitDirectory(Path dir,
                 BasicFileAttributes attrs) {
-
+            for (String ignored : IGNORED_DIRECTORIES) {
+                if (dir.getFileName().toString().equalsIgnoreCase(ignored)) {
+                    return SKIP_SUBTREE;
+                }
+            }
             for (TestCategory category : TestCategory.values()) {
                 if (dir.getFileName().toString()
                         .equalsIgnoreCase(category.name())) {
@@ -412,6 +429,7 @@ public class TestRegistry {
             return CONTINUE;
         }
         
+               
         /**
          * Pop categories from the stack as appropriate.
          */

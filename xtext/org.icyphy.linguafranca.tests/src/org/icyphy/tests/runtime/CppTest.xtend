@@ -67,7 +67,7 @@ class CppTest extends ThreadedBase {
     }
     
     @Test
-    override runNonFederatedTestsAsFederated() {
+    override runAsFederated() {
         printTestHeader(RUN_AS_FEDERATED_DESC)
         println("N/A")
     }

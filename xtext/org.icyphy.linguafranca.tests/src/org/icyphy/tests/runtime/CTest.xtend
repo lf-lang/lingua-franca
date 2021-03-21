@@ -50,11 +50,11 @@ class CTest extends ThreadedBase {
         super.runExampleTests()
     }
 
-// FIXME this works, but commented out for CI for now
-//    @Test
-//    override compileExamples() {
-//        super.compileExamples()
-//    }
+ 
+    @Test
+    override compileExamples() {
+        super.compileExamples()
+    }
     
     @Test
     override runGenericTests() {
@@ -77,7 +77,7 @@ class CTest extends ThreadedBase {
     }
     
     @Test
-    override runNonFederatedTestsAsFederated() {
+    override runAsFederated() {
         // Commented this out because only 27/96 tests pass.
         // super.runNonFederatedTestsAsFederated()
     }
