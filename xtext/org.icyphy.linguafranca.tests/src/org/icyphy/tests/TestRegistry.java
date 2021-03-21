@@ -91,10 +91,7 @@ public class TestRegistry {
 
     protected final static TestMap ignored = new TestMap();
 
-    /**
-     * Maps each target to a set of target categories it supports.
-     */
-    protected final static Map<Target, Set<TestCategory>> support = new HashMap<Target, Set<TestCategory>>(); // FIXME: Seems like we don't need this.
+    protected static final Set<Path> erroneousExamples = new TreeSet<Path>();
     
     /**
      * Maps each test category to a set of tests that is the union of tests in
@@ -165,7 +162,6 @@ public class TestRegistry {
         for (Target target : Target.values()) {
             // Initialize the lists.
             Set<TestCategory> supported = new HashSet<TestCategory>();
-            support.put(target, supported);
             // Walk the tree.
             try {
                 Path dir = LF_TEST_PATH.resolve(target.toString());
@@ -198,11 +194,13 @@ public class TestRegistry {
         
     }
     
-    public static void initialize() {
-        // This is just to make sure that any errors encountered
-        // while indexing are printed before anything else gets
-        // printed.d
-    }
+    /**
+     * Calling this function forces the lazy initialization of the static code
+     * that indexes all files. It is advisable to do this prior to executing
+     * other code that prints to standard out so that any error messages
+     * printed while indexing are printed first.
+     */
+    public static void initialize() {}
     
     /**
      * Return the tests that were indexed for a given target and category.
@@ -274,6 +272,10 @@ public class TestRegistry {
         return s.toString();
     }
     
+//    public static String reportOnExamples() {
+//        
+//    }
+    
     public static class ExampleDirVisitor extends SimpleFileVisitor<Path> {
 
         protected ResourceSet rs;
@@ -328,43 +330,53 @@ public class TestRegistry {
                 Resource r = rs.getResource(
                         URI.createFileURI(path.toFile().getAbsolutePath()),
                         true);
-                
+
                 EList<Diagnostic> errors = r.getErrors();
                 if (!errors.isEmpty()) {
-                    // FIXME: Report on this by adding to a set of Paths that didn't compile.
+                    erroneousExamples.add(path);
                 } else {
-                    //System.out.println(path);
-                    Iterator<TargetDecl> targetDecls = Iterables.<TargetDecl>filter(
-                            IteratorExtensions.<EObject>toIterable(
-                                    r.getAllContents()),
-                            TargetDecl.class).iterator();
+                    // No errors. Find the target.
+                    Iterator<TargetDecl> targetDecls = Iterables
+                            .<TargetDecl>filter(
+                                    IteratorExtensions.<EObject>toIterable(
+                                            r.getAllContents()),
+                                    TargetDecl.class)
+                            .iterator();
                     
                     if (targetDecls.hasNext()) {
                         TargetDecl decl = targetDecls.next();
                         Target target = Target.forName(decl.getName());
                         Iterable<Reactor> reactors = Iterables.<Reactor>filter(
-                                IteratorExtensions.<EObject>toIterable(
-                                        r.getAllContents()),
-                                Reactor.class);
+                                    IteratorExtensions.<EObject>toIterable(
+                                            r.getAllContents()), 
+                                                Reactor.class);
                         if (IteratorExtensions.exists(reactors.iterator(),
                                 it -> it.isMain() || it.isFederated())) {
-                            if (this.inTestDir || path.getFileName().toString().toLowerCase().contains("test")) {
-                                registered.getTests(target, TestCategory.EXAMPLE_TEST).add(new LFTest(target, path, TestRegistry.LF_EXAMPLE_PATH));
+                            if (this.inTestDir || path.getFileName().toString()
+                                    .toLowerCase().contains("test")) {
+                                // File is labeled as test.
+                                registered.getTests(target, 
+                                        TestCategory.EXAMPLE_TEST).add(
+                                                new LFTest(target, path,
+                                                TestRegistry.LF_EXAMPLE_PATH)
+                                        );
                             } else {
-                                registered.getTests(target, TestCategory.EXAMPLE).add(new LFTest(target, path, TestRegistry.LF_EXAMPLE_PATH));
+                                // Ordinary example.
+                                registered
+                                        .getTests(target, TestCategory.EXAMPLE)
+                                        .add(new LFTest(target, path,
+                                                TestRegistry.LF_EXAMPLE_PATH));
                             }
-                            
                             return CONTINUE;
                         }
                     } else {
-                        // FIXME: Report on this by adding to a set of Paths that didn't specify a target.
-                    }   
+                        // No target, list as failure.
+                        erroneousExamples.add(path);
+                    }
                 }
             }
             return CONTINUE;
         }
-
-        
     }
     
     
@@ -422,7 +434,6 @@ public class TestRegistry {
             for (TestCategory category : TestCategory.values()) {
                 if (dir.getFileName().toString()
                         .equalsIgnoreCase(category.name())) {
-                    support.get(target).add(category);
                     stack.push(category);
                 }
             }

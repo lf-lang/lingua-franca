@@ -49,7 +49,6 @@ class CTest extends ThreadedBase {
     override runExampleTests() {
         super.runExampleTests()
     }
-
  
     @Test
     override compileExamples() {
