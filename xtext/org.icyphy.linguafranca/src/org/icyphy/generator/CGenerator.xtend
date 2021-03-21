@@ -405,6 +405,7 @@ class CGenerator extends GeneratorBase {
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
             
+            // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             if (!federate.isSingleton) {
                 topLevelName = baseFilename + '_' + federate.name
@@ -529,7 +530,7 @@ class CGenerator extends GeneratorBase {
                     val triggers = new LinkedList<String>()
                     for (action : federate.networkMessageActions) {
                         // Find the corresponding ActionInstance.
-                        val actionInstance = main.getActionInstance(action)
+                        val actionInstance = main.lookupActionInstance(action)
                         triggers.add(triggerStructName(actionInstance))
                     }
                     var actionTableCount = 0
@@ -627,8 +628,12 @@ class CGenerator extends GeneratorBase {
                 // Generate function to schedule timers for all reactors.
                 pr("void __initialize_timers() {")
                 indent()
-                if (targetConfig.tracing) {
-                    pr('''start_trace("«topLevelName».lft");''') // .lft is for Lingua Franca trace
+                if (targetConfig.tracing !== null) {
+                    var traceFileName = topLevelName;
+                    if (targetConfig.tracing.traceFileName !== null) {
+                        traceFileName = targetConfig.tracing.traceFileName;
+                    }
+                    pr('''start_trace("«traceFileName».lft");''') // .lft is for Lingua Franca trace
                 }
                 if (timerCount > 0) {
                     pr('''
@@ -2764,6 +2769,9 @@ class CGenerator extends GeneratorBase {
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
         // output of a contained reactor.
+        // Note that there may be more than one reaction reacting to the same
+        // port so we have to avoid listing the port more than once.
+        val portsSeen = new LinkedHashSet<PortInstance>();
         for (reaction : instance.reactions) {
             if (federate === null || federate.containsReaction(
                 instance.definition.reactorClass.toDefinition,
@@ -2798,18 +2806,34 @@ class CGenerator extends GeneratorBase {
                         }
                     }
                 }
+                // Find outputs of contained reactors that have token types and therefore
+                // need to have their reference counts decremented.
                 for (port : reaction.sources) {
-                    if (port.definition instanceof Output) {
+                    if (port.definition instanceof Output && !portsSeen.contains(port)) {
+                        portsSeen.add(port as PortInstance)
                         // This reaction is receiving data from the port.
                         if (isTokenType((port.definition as Output).inferredType)) {
-                            pr(startTimeStep, '''
-                                __tokens_with_ref_count[«startTimeStepTokens»].token
-                                        = &«containerSelfStructName»->__«port.parent.name».«port.name»->token;
-                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                                        = &«containerSelfStructName»->__«port.parent.name».«port.name»->is_present;
-                                __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
-                            ''')
-                            startTimeStepTokens++
+                            if (port instanceof MultiportInstance) {
+                                pr(startTimeStep, '''
+                                    for (int i = 0; i < «port.width»; i++) {
+                                        __tokens_with_ref_count[«startTimeStepTokens» + i].token
+                                                = &«containerSelfStructName»->__«port.parent.name».«port.name»[i]->token;
+                                        __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                                = &«containerSelfStructName»->__«port.parent.name».«port.name»[i]->is_present;
+                                        __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
+                                    }
+                                ''')
+                                startTimeStepTokens += port.width
+                            } else {
+                                pr(startTimeStep, '''
+                                    __tokens_with_ref_count[«startTimeStepTokens»].token
+                                            = &«containerSelfStructName»->__«port.parent.name».«port.name»->token;
+                                    __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                            = &«containerSelfStructName»->__«port.parent.name».«port.name»->is_present;
+                                    __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
+                                ''')
+                                startTimeStepTokens++
+                            }
                         }
                     }
                 }
@@ -3209,7 +3233,7 @@ class CGenerator extends GeneratorBase {
         // If tracing is turned on, record the address of this reaction
         // in the _lf_trace_object_descriptions table that is used to generate
         // the header information in the trace file.
-        if (targetConfig.tracing) {
+        if (targetConfig.tracing !== null) {
             var description = getShortenedName(instance)
             var nameOfSelfStruct = selfStructName(instance)
             pr(builder, '''
@@ -3254,6 +3278,15 @@ class CGenerator extends GeneratorBase {
                 «structType»* «nameOfSelfStruct»[«instance.bankMembers.size»];
             ''')
             return
+        }
+
+        // If this reactor is an instance in a bank of federates, then only generate an
+        // instance if the bank index of the reactor matches the bank index of the federate.
+        if (federate.instantiation === instance.definition    // Is a top-level federate.
+            && federate.instantiation.widthSpec !== null      // Is in a bank of federates.
+            && federate.bankPosition != instance.bankIndex    // Bank position does not match.
+        ) {
+            return;
         }
 
         // Generate the instance self struct containing parameters, state variables,
@@ -3382,7 +3415,8 @@ class CGenerator extends GeneratorBase {
                         pr(initializeTriggerObjects, '''
                             __shutdown_reactions[«shutdownReactionCount++»] = &«nameOfSelfStruct»->___reaction_«reactionCount»;
                         ''')
-                        if (targetConfig.tracing) {
+
+                        if (targetConfig.tracing !== null) {
                             val description = getShortenedName(instance)
                             pr(initializeTriggerObjects, '''
                                 _lf_register_trace_event(«nameOfSelfStruct», &(«nameOfSelfStruct»->___shutdown),
@@ -3902,7 +3936,7 @@ class CGenerator extends GeneratorBase {
             return true
         } else {
             if (instance.parent === this.main 
-                && !federate.contains(instance.name)
+                && !federate.contains(instance)
             ) {
                 return false
             } else {
@@ -4011,6 +4045,8 @@ class CGenerator extends GeneratorBase {
      * @param receivingPortID The ID of the destination port.
      * @param sendingFed The sending federate.
      * @param receivingFed The destination federate.
+     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
+     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
      */
     override generateNetworkReceiverBody(
@@ -4020,6 +4056,8 @@ class CGenerator extends GeneratorBase {
         int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
+        int receivingBankIndex,
+        int receivingChannelIndex,
         InferredType type
     ) {
         // Adjust the type of the action and the receivingPort.
@@ -4036,7 +4074,11 @@ class CGenerator extends GeneratorBase {
         }
 
         val sendRef = generateVarRef(sendingPort)
-        val receiveRef = generateVarRef(receivingPort)
+        var receiveRef = generateVarRef(receivingPort)
+        // If the receiving port is a multiport, index it.
+        if ((receivingPort.variable as Port).widthSpec !== null && receivingChannelIndex >= 0) {
+            receiveRef = receiveRef + '[' + receivingChannelIndex + ']'
+        }
         val result = new StringBuilder()
         if (isFederatedAndDecentralized) {
             result.append('''
@@ -4067,6 +4109,8 @@ class CGenerator extends GeneratorBase {
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
      * @param sendingFed The sending federate.
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
      * @param receivingFed The destination federate.
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
@@ -4077,12 +4121,18 @@ class CGenerator extends GeneratorBase {
         VarRef receivingPort,
         int receivingPortID, 
         FederateInstance sendingFed,
+        int sendingBankIndex,
+        int sendingChannelIndex,
         FederateInstance receivingFed,
         InferredType type,
         boolean isPhysical,
         Delay delay
     ) { 
-        val sendRef = generateVarRef(sendingPort)
+        var sendRef = generateVarRef(sendingPort)
+        // If the sending port is a multiport, index it.
+        if ((sendingPort.variable as Port).getWidthSpec() !== null && sendingChannelIndex >= 0) {
+            sendRef = sendRef + '[' + sendingChannelIndex + ']'
+        }
         val receiveRef = generateVarRef(receivingPort)
         val result = new StringBuilder()
         result.append('''
@@ -4180,9 +4230,7 @@ class CGenerator extends GeneratorBase {
             // both have the same endianess. Otherwise, you have to use protobufs or some other serialization scheme.
             result.append('''
                 size_t message_length = «sendRef»->token->length * «sendRef»->token->element_size;
-                «sendRef»->token->ref_count++;
                 «sendingFunction»(«commonArgs», (unsigned char*) «sendRef»->value);
-                __done_using(«sendRef»->token);
             ''')
         } else {
             // Handle native types.
@@ -4310,11 +4358,15 @@ class CGenerator extends GeneratorBase {
      *  uniformly across all target languages.
      */
     protected def includeTargetLanguageHeaders() {
-        if (targetConfig.tracing) {
-            pr('#define LINGUA_FRANCA_TRACE')
+        if (targetConfig.tracing !== null) {
+            var filename = "";
+            if (targetConfig.tracing.traceFileName !== null) {
+                filename = targetConfig.tracing.traceFileName;
+            }
+            pr('#define LINGUA_FRANCA_TRACE ' + filename)
         }
         pr('#include "ctarget.h"')
-        if (targetConfig.tracing) {
+        if (targetConfig.tracing !== null) {
             pr('#include "core/trace.c"')            
         }
     }

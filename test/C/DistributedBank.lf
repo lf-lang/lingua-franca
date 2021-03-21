@@ -1,0 +1,22 @@
+// Check bank of federates.
+target C {
+    timeout: 1 sec,
+    coordination: centralized
+};
+
+reactor Node {
+    timer t(0, 100 msec);
+    state count:int(0);
+    reaction(t) {=
+        info_print("Hello world %d.", self->count++);
+    =}
+    reaction(shutdown) {=
+        if (self->count == 0) {
+            error_print_and_exit("Timer reactions did not execute.");
+        }
+    =}
+}
+
+federated reactor DistributedBank {
+    n = new[2] Node();
+}

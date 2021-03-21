@@ -71,7 +71,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     portInstance.dependentReactions.add(this)
                     this.triggers.add(portInstance)
                 } else if (trigger.variable instanceof Action) {
-                    var actionInstance = parent.getActionInstance(
+                    var actionInstance = parent.lookupActionInstance(
                         trigger.variable as Action)
                     this.triggers.add(actionInstance)
                     actionInstance.dependentReactions.add(this)
@@ -103,13 +103,27 @@ class ReactionInstance extends NamedInstance<Reaction> {
                         this.effects.add(multiportInstance)
                         multiportInstance.dependsOnReactions.add(this)
                     }
-                } else {
+                } else if (portInstance !== null) {
                     this.effects.add(portInstance)
                     portInstance.dependsOnReactions.add(this)
+                } else {
+                    // The effect container must be a bank of reactors.
+                    // Need to find the ports of all the instances within the bank.
+                    val bank = parent.lookupReactorInstance(effect.container);
+                    if (bank === null || bank.bankIndex != -2) {
+                        throw new Exception("Unexpected effect. Cannot find port " + effect.variable.name);
+                    }
+                    for (bankElement : bank.bankMembers) {
+                        portInstance = bankElement.lookupPortInstance(effect.variable as Port);
+                        if (portInstance === null) {
+                            throw new Exception("Unexpected effect. Cannot find port within bank: " + effect.variable.name);
+                        }
+                        portInstance.dependsOnReactions.add(this);
+                    }
                 }
             } else {
                 // Effect must be an Action.
-                var actionInstance = parent.getActionInstance(
+                var actionInstance = parent.lookupActionInstance(
                     effect.variable as Action)
                 this.effects.add(actionInstance)
                 actionInstance.dependsOnReactions.add(this)
