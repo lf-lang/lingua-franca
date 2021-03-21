@@ -89,17 +89,18 @@ abstract class TestBase {
         ], null, false)
     }
     
-//    @Test
-//    def void compileExamples() {
-//        printTestHeader("Description: Compile examples.")
-//        this.run = false;
-//        this.target.runTestsAndPrintResults([
-//            it === TestCategory.EXAMPLE
-//        ], [
-//            return true
-//        ])
-//        this.run = false;
-//    }
+    @Test
+    def void compileExamples() {
+        printTestHeader("Description: Compile examples.")
+        this.run = false;
+        this.target.runTestsAndPrintResults([
+            it === TestCategory.EXAMPLE
+        ], [
+            return true
+        ], 
+        false)
+        this.run = false;
+    }
     
     @Test
     def void runGenericTests() {
@@ -134,7 +135,7 @@ abstract class TestBase {
     }
     
     @Test
-    def void runNonFederatedTestsAsFederated() {
+    def void runAsFederated() {
         printTestHeader(RUN_AS_FEDERATED_DESC)
         this.target.runTestsAndPrintResults([
             it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED &&

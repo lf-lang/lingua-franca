@@ -39,7 +39,7 @@ public class TypeScriptTest extends TestBase {
     
     @Test
     @Override
-    public void runNonFederatedTestsAsFederated() {
+    public void runAsFederated() {
         System.out.println("FIXME");
         //super.runNonFederatedTestsAsFederated();
     }

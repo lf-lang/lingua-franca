@@ -61,7 +61,7 @@ class PythonTest extends TestBase {
     }
     
     @Test
-    override runNonFederatedTestsAsFederated() {
+    override runAsFederated() {
         println("FIXME")
         //super.runNonFederatedTestsAsFederated()
     }

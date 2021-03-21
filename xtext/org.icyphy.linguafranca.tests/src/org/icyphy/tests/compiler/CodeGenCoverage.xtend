@@ -86,10 +86,10 @@ class CodeGenCoverage extends ThreadedBase {
     }
 
     @Test
-    override runNonFederatedTestsAsFederated() {
+    override runAsFederated() {
         for (target : Target.values()) {
             this.target = target;
-            super.runNonFederatedTestsAsFederated()
+            super.runAsFederated()
         }
     }
 
