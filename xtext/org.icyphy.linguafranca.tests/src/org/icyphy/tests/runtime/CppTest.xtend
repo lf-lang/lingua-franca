@@ -80,9 +80,7 @@ class CppTest extends ThreadedBase {
     
     @Test
     override runFederatedTests() {
-        printTestHeader("Description: Run federated tests.")
-        println("N/A")
-        //super.runFederatedTests()
+        super.runFederatedTests()
     }
 
 }
