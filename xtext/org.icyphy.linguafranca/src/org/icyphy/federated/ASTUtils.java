@@ -43,8 +43,10 @@ import org.icyphy.linguaFranca.Output;
 import org.icyphy.linguaFranca.Port;
 import org.icyphy.linguaFranca.Reaction;
 import org.icyphy.linguaFranca.Reactor;
+import org.icyphy.linguaFranca.Type;
 import org.icyphy.linguaFranca.Value;
 import org.icyphy.linguaFranca.VarRef;
+import org.icyphy.linguaFranca.Variable;
 
 /**
  * @author Soroush Bateni {soroush@utdallas.edu}
@@ -121,8 +123,18 @@ public class ASTUtils {
             return;
         }
 
+        String triggerName = "inputControlReactionTriggerFor"
+                + newPortRef.getVariable().getName();
+
         // Add the port to network input ports
         instance.networkInputPorts.add((Input) portRef.getVariable());
+
+        // Avoid duplicate reactions
+        if (reactor.getInputs().stream().anyMatch(i -> {
+            return i.getName().equals(triggerName);
+        })) {
+            return;
+        }
 
         // Find a list of STP offsets (if any exists)
         Set<Value> STPList = CollectionLiterals.<Value>newLinkedHashSet();
@@ -174,10 +186,15 @@ public class ASTUtils {
             }
         }
 
-        // FIXME: Ideally, we would like to add this port to the
-        // sources and not the triggers to avoid cluttering
-        // the trigger table, but a reaction with no triggers
-        // will have all the sources as triggers.
+        // The trigger for the reaction
+        VarRef newTriggerForControlReaction = (VarRef) factory.createVarRef();
+        Variable newTriggerForControlReactionVariable = factory
+                .createVariable();
+        newTriggerForControlReactionVariable.setName(triggerName);
+        newTriggerForControlReaction
+                .setVariable(newTriggerForControlReactionVariable);
+
+        reaction.getTriggers().add(newTriggerForControlReaction);
         reaction.getTriggers().add(newPortRef);
         reaction.setCode(factory.createCode());
 
@@ -203,8 +220,17 @@ public class ASTUtils {
         // Insert the newly generated reaction before the first reaction
         /// that has the port as its trigger or source
         reactor.getReactions().add(firstIndex, reaction);
+
+        // Create a new Input port for the reaction trigger
+        Input newTriggerForControlReactionInput = factory.createInput();
+        newTriggerForControlReactionInput
+                .setName(newTriggerForControlReactionVariable.getName());
+        Type portType = factory.createType();
+        portType.setId(generator.getTargetTimeType());
+        newTriggerForControlReactionInput.setType(portType);
+        reactor.getInputs().add(newTriggerForControlReactionInput);
     }
-    
+
     /**
      * Add a network control reaction for a given output port "portRef" to the
      * reaction queue of its containing reactor. This reaction will send a port
@@ -220,15 +246,14 @@ public class ASTUtils {
      *        target properties
      */
     public static void addNetworkOutputControlReaction(VarRef portRef,
-            FederateInstance instance,
-            int portID,
+            FederateInstance instance, int portID, int receivingFedID,
             GeneratorBase generator) {
         LinguaFrancaFactory factory = LinguaFrancaFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         Reactor reactor = (Reactor) portRef.getVariable().eContainer();
         // Output
         VarRef newPortRef = factory.createVarRef();
-        
+
         newPortRef.setContainer(null);
         newPortRef.setVariable((Output) portRef.getVariable());
 
@@ -247,10 +272,9 @@ public class ASTUtils {
                 .allReactions(reactor).stream().filter(r -> {
                     // Check the triggers of reaction r first
                     return r.getEffects().stream().anyMatch(t -> {
-                        if (t instanceof Output) {
+                        if (t.getVariable() instanceof Output) {
                             // Check if the variables match
-                            return ((VarRef) t).getVariable() == portRef
-                                    .getVariable();
+                            return t.getVariable() == portRef.getVariable();
                         } else {
                             // Inputs to contained reactors
                             return false;
@@ -267,27 +291,40 @@ public class ASTUtils {
             // in a contained reactor.
             for (Connection connection : connectionsWithPort) {
                 for (VarRef leftPort : connection.getLeftPorts()) {
-                    addNetworkOutputControlReaction(leftPort, instance, portID, generator);
+                    addNetworkOutputControlReaction(leftPort, instance, portID,
+                            receivingFedID, generator);
                 }
             }
             return;
         }
-        
+
+        String triggerName = "outputControlReactionTriggerFor_"
+                + newPortRef.getVariable().getName() + "_toFederate"
+                + receivingFedID;
 
         // The trigger for the reaction
         VarRef newTriggerForControlReaction = (VarRef) factory.createVarRef();
-        
-        // Add the port to network input ports
-        instance.triggerForNetworkOutputControlReactions.add((Port) newTriggerForControlReaction.getVariable());
-        
+
+        Variable newTriggerForControlReactionVariable = factory.createInput();
+        newTriggerForControlReactionVariable.setName(triggerName);
+
+        Type portType = factory.createType();
+        portType.setId(generator.getTargetTimeType());
+        ((Input) newTriggerForControlReactionVariable).setType(portType);
+
+        newTriggerForControlReaction
+                .setVariable(newTriggerForControlReactionVariable);
+
+        reactor.getInputs().add((Input) newTriggerForControlReactionVariable);
+        instance.networkOutputControlTriggers
+                .add((Input) newTriggerForControlReactionVariable);
+
         reaction.getEffects().add(newPortRef);
         reaction.setCode(factory.createCode());
 
         reaction.getCode()
                 .setBody(generator.generateNetworkOutputControlReactionBody(
-                        (Port) portRef.getVariable(),
-                        portID,
-                        instance.id));
+                        (Port) portRef.getVariable(), portID, receivingFedID));
 
         // If there are no top-level reactions in this federate that has this
         // port
@@ -296,17 +333,17 @@ public class ASTUtils {
         // We still take care of the network dependency at this level by
         // injecting
         // a reaction even if there are no other reactions
-        int firstIndex = 0;
+        int lastIndex = 0;
         if (!reactionsWithPort.isEmpty()) {
             // Find the index of the first reaction that has portRef as its
             // trigger or source
-            firstIndex = org.icyphy.ASTUtils.allReactions(reactor)
-                    .indexOf(reactionsWithPort.get(0));
+            lastIndex = org.icyphy.ASTUtils.allReactions(reactor)
+                    .lastIndexOf(reactionsWithPort.get(0));
         }
 
         // Insert the newly generated reaction before the first reaction
         /// that has the port as its trigger or source
-        reactor.getReactions().add(firstIndex, reaction);
+        reactor.getReactions().add(lastIndex + 1, reaction);
     }
 
 }

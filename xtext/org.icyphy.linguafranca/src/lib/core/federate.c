@@ -52,8 +52,15 @@ char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via R
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
 
 // Mutex locks held while performing socket operations.
+<<<<<<< HEAD
 lf_mutex_t inbound_socket_mutex;
 lf_mutex_t outbound_socket_mutex;
+=======
+pthread_mutex_t inbound_socket_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t outbound_socket_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t port_status_changed = PTHREAD_COND_INITIALIZER;
+
+>>>>>>> Refactored control reaction initialization out
 
 /**
  * The state of this federate instance.
@@ -967,6 +974,36 @@ void _lf_close_outbound_socket(int fed_id) {
     lf_mutex_unlock(&outbound_socket_mutex);
 }
 
+/** 
+ * Handle a port absent message received from a remote federate.
+ * @param socket The socket to read the message from
+ * @param buffer The buffer to read
+ * @param fed_id The sending federate ID or -1 if the centralized coordination.
+ */
+void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
+    info_print("Handling port absent.");
+    size_t bytes_to_read = sizeof(ushort) + sizeof(ushort);
+    size_t bytes_read = read_from_socket(socket, bytes_to_read, buffer);
+    if (bytes_read != bytes_to_read) {
+        _lf_close_inbound_socket(fed_id);
+        error_print_and_exit("Failed to read message header.");
+    }
+    // Extract the header information.
+    unsigned short port_id = extract_ushort(buffer);
+    unsigned short federate_id = extract_ushort(&(buffer[sizeof(ushort)]));
+
+    info_print("Handling port absent for port %d from federate %d.", port_id, federate_id);
+
+    pthread_mutex_lock(&mutex);
+    // Set the mutex status as absent
+    _fed.network_input_port_triggers[port_id]->status = absent;
+    // Port is now absent. Therfore, notify the network input
+    // control reactions to stop waiting and re-check the port
+    // status.
+    pthread_cond_broadcast(&port_status_changed);
+    pthread_mutex_unlock(&mutex);
+}
+
 /**
  * Handle a message being received from a remote federate.
  * 
@@ -1379,6 +1416,10 @@ void* listen_to_federates(void* fed_id_ptr) {
                 LOG_PRINT("Received timed message from federate %d.", fed_id);
                 handle_timed_message(socket_id, buffer + 1, fed_id);
                 break;
+            case PORT_ABSENT:
+                LOG_PRINT("Received port absent message from federate %d.", fed_id);
+                handle_port_absent_message(socket_id, buffer + 1, fed_id);
+                break;
             default:
                 bad_message = true;
         }
@@ -1427,6 +1468,9 @@ void* listen_to_rti_TCP(void* args) {
                 break;
             case STOP_GRANTED:
                 handle_stop_granted_message();
+                break;
+            case PORT_ABSENT:
+                handle_port_absent_message(_fed.socket_TCP_RTI, &(buffer[1]), -1);
                 break;
             case PHYSICAL_CLOCK_SYNC_MESSAGE_T1:
             case PHYSICAL_CLOCK_SYNC_MESSAGE_T4:
@@ -1780,6 +1824,15 @@ void enqueue_network_input_control_reactions(pqueue_t* reaction_q){
     }
 }
 
+void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
+    for (int i = 0; i < _fed.triggers_for_network_output_control_reactions_size; i++) {
+       reaction_t* reaction = _fed.triggers_for_network_output_control_reactions[i]->reactions[0];
+       if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+           pqueue_insert(reaction_q, reaction);
+       }
+    }
+}
+
 /**
  * Check that all network input ports are either present or absent. In other
  * words, check if all network input ports are accounted for.
@@ -1805,6 +1858,10 @@ bool all_network_inputs_are_accounted_for() {
  */
 void send_port_absent_to_federate(unsigned short port_ID, 
                                   unsigned short fed_ID) {
+     info_print("Sending port "
+                "absent for port %d to federate %d.", 
+                port_ID, fed_ID);
+
     // Construct the message
     int message_length = 1 + sizeof(port_ID) + sizeof(fed_ID);
     unsigned char buffer[message_length];
@@ -1825,7 +1882,7 @@ void send_port_absent_to_federate(unsigned short port_ID,
 
     pthread_mutex_lock(&outbound_socket_mutex);
     write_to_socket_errexit(socket, message_length, buffer,
-            "Failed to send port absent message for port %u to federate %u.", 
+            "Failed to send port absent message for port %hu to federate %hu.", 
             port_ID, fed_ID);
     pthread_mutex_unlock(&outbound_socket_mutex);
 }

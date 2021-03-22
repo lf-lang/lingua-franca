@@ -523,8 +523,9 @@ class ASTUtils {
             
             org.icyphy.federated.ASTUtils.addNetworkOutputControlReaction(
                 connection.leftPorts.get(0), 
-                rightFederate,
+                leftFederate,
                 receivingPortID,
+                leftFederate.id,
                 generator
             );
         }
