@@ -43,11 +43,26 @@ import java.util.Properties
 
 abstract class TestBase {
     
+    /**
+     * Injected code validator for validating tests.
+     */
     @Inject IResourceValidator validator
-    @Inject GeneratorDelegate generator
-    @Inject JavaIoFileSystemAccess fileAccess
-    @Inject Provider<ResourceSet> resourceSetProvider;
     
+    /**
+     * Injected code generator for generating code for tests.
+     */
+    @Inject GeneratorDelegate generator
+    
+    /**
+     * Injected file system abstraction for accessing the file system.
+     */
+    @Inject JavaIoFileSystemAccess fileAccess
+    
+    /**
+     * Injected resourceSetProvider for retrieving resources associated with
+     * given paths.
+     */
+    @Inject Provider<ResourceSet> resourceSetProvider;
 
     /**
      * Reference to System.out.
@@ -199,7 +214,10 @@ abstract class TestBase {
         this.target.runTestsAndPrintResults([it === TestCategory.FEDERATED], null, false)
     }
 
-    //
+    /**
+     * Reconnect the system to the terminal (after having redirected the
+     * standard out and standard error streams for recording).
+     */
     static def void restoreOutputs() {
         System.out.flush()
         System.err.flush()
@@ -207,12 +225,21 @@ abstract class TestBase {
         System.setErr(err)
     }
 
+    /**
+     * Record standard out and standard error in the test object so that
+     * it can be displayed at a later time.
+     */
     static def void redirectOutputs(LFTest test) {
         System.setOut(new PrintStream(test.out))
         System.setErr(new PrintStream(test.err))
     }
 
-    def runTestsAndPrintResults(Target target, Function1<TestCategory, Boolean> selection, Function1<LFTest, Boolean> configuration, boolean copy) {
+    /**
+     * 
+     */
+    def runTestsAndPrintResults(Target target,
+        Function1<TestCategory, Boolean> selection,
+        Function1<LFTest, Boolean> configuration, boolean copy) {
         val categories = TestCategory.values().filter(selection)
         for (category : categories) {
             println(category.header);
@@ -225,6 +252,9 @@ abstract class TestBase {
         }
     }
     
+    /**
+     * 
+     */
     def void printTestHeader(String description) {
         print(TestBase.THICK_LINE)
         println("Target: " + this.target)
@@ -232,6 +262,9 @@ abstract class TestBase {
         println(TestBase.THICK_LINE)
     }
 
+    /**
+     * 
+     */
     def void checkAndReportFailures(Set<LFTest> registered) {
         var passed = registered.filter[!it.hasFailed].size
         
@@ -245,6 +278,9 @@ abstract class TestBase {
         registered.forall[it.result === Result.TEST_PASS].assertTrue
     }
 
+    /**
+     * 
+     */
     def boolean configureAndValidate(LFTest test, Function1<LFTest, Boolean> configuration) {
         
         if (test.result == Result.PARSE_FAIL) {
@@ -261,24 +297,24 @@ abstract class TestBase {
         context.setArgs(new Properties());
         context.setPackageRoot(test.packageRoot);
         context.setHierarchicalBin(true);
-        
+
         val r = resourceSetProvider.get().getResource(
-                    URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
-                    true)
-        
+            URI.createFileURI(test.srcFile.toFile().getAbsolutePath()), true)
+
         if (r.errors.size > 0) {
             test.result = Result.PARSE_FAIL
             restoreOutputs()
             return false
         }
-        fileAccess.outputPath = context.packageRoot.resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString();
+        fileAccess.outputPath = context.packageRoot.resolve(
+            FileConfig.DEFAULT_SRC_GEN_DIR).toString();
         test.fileConfig = new FileConfig(r, fileAccess, context);
-        
+
         // Set the no-compile flag if appropriate.
         if (!this.build) {
             context.getArgs().setProperty("no-compile", "")
         }
-        
+
         // Validate the resource and store issues in the test object.
         try {
             val issues = validator.validate(test.fileConfig.resource,
@@ -299,13 +335,14 @@ abstract class TestBase {
             return false
         }
         
-        // Update the test by applying the configuration. E.g., to carry out an AST transformation.
+        // Update the test by applying the configuration. 
+        // E.g., to carry out an AST transformation.
         if (configuration !== null && !configuration.apply(test)) {
             test.result = Result.CONFIG_FAIL
             restoreOutputs()
             return false
         }
-        
+
         restoreOutputs()
         return true
     }
@@ -425,9 +462,14 @@ abstract class TestBase {
         } else {
             test.result = Result.NO_EXEC_FAIL
         }
-
     }
 
+    /**
+     * For all of the given tests, validate, apply the given configuration, and
+     * run the test program.
+     * 
+     * Progress is printed on the command line, and so are reports of failures.
+     */
     def validateAndRun(Set<LFTest> tests, Function1<LFTest, Boolean> configuration) { // FIXME change this into Consumer
         val x = 78f / tests.size()
         var marks = 0
