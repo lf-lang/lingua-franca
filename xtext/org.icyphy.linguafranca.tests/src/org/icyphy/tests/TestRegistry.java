@@ -196,7 +196,7 @@ public class TestRegistry {
                     supported.add(TestCategory.GENERIC);
                     Files.walkFileTree(dir, new TestDirVisitor(rs, target));
                 } else {
-                    System.out.println("WARNING: No test directory for target " + target + "\n");
+                    System.out.println("WARNING: No test directory for target " + target + TestBase.NEW_LINE);
                 }
                 
             } catch (IOException e) {
@@ -270,37 +270,55 @@ public class TestRegistry {
      * @param category
      * @return
      */
-    public static String getCoverageReport(Target target, TestCategory category) {
+    public static String getCoverageReport(Target target,
+            TestCategory category) {
         StringBuilder s = new StringBuilder();
         Set<LFTest> ignored = TestRegistry.getIgnoredTests(target, category);
         s.append(TestBase.THIN_LINE);
-        s.append("Ignored: " + ignored.size() + "\n");
+        s.append("Ignored: " + ignored.size() + TestBase.NEW_LINE);
         s.append(TestBase.THIN_LINE);
-        
+
         for (LFTest test : ignored) {
-            s.append("No main reactor in: " + test.name + "\n");
+            s.append("No main reactor in: " + test.name + TestBase.NEW_LINE);
         }
-        
+
         Set<LFTest> own = getRegisteredTests(target, category, false);
         if (category.isCommon) {
             Set<LFTest> all = allTargets.get(category);
-            s.append("\n" + TestBase.THIN_LINE);
-            s.append("Covered: " + own.size() + "/" + all.size() + "\n");
+            s.append(TestBase.NEW_LINE + TestBase.THIN_LINE);
+            s.append("Covered: " + own.size() + "/" + all.size() +
+                    TestBase.NEW_LINE);
             s.append(TestBase.THIN_LINE);
             int missing = all.size() - own.size();
             if (missing > 0) {
                 all.stream().filter(test -> !own.contains(test))
-                        .forEach(test -> s.append("Missing: " + test.toString() + "\n"));
+                        .forEach(test -> s.append("Missing: " +
+                                test.toString() + TestBase.NEW_LINE));
             }
         } else {
-            s.append("\n" + TestBase.THIN_LINE);
-            s.append("Covered: " + own.size() + "/" + own.size() + "\n");
+            s.append(TestBase.NEW_LINE + TestBase.THIN_LINE);
+            s.append("Covered: " + own.size() + "/" + own.size() +
+                    TestBase.NEW_LINE);
             s.append(TestBase.THIN_LINE);
         }
-        
+
         return s.toString();
     }
     
+    /**
+     * FileVisitor implementation used to traverse the example directory
+     * to index files. When a file is found, it is either indexed as an
+     * example, as an example test, or ignored.
+     * 
+     * Specifically, a file can only be indexed properly if it compiles,
+     * has a main reactor, and declares a valid target. Otherwise, it gets
+     * ignored. Anything located in an directory on the ignore list also gets
+     * ignored. We distinguish ordinary examples, which we only compile,
+     * and example tests, which we compile and run. A file gets indexed
+     * as a test only if it has the word "test" in it, or when it is located
+     * in a "test" directory.
+     * 
+     */ 
     public static class ExampleDirVisitor extends SimpleFileVisitor<Path> {
 
         protected ResourceSet rs;
@@ -345,7 +363,8 @@ public class TestRegistry {
         }
         
         /**
-         * Add test files to the registry if they end with ".lf", but only if they have a main reactor.
+         * Add test files to the registry if they end with ".lf", but only if
+         * they have a main reactor.
          */
         @Override
         public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
@@ -377,6 +396,9 @@ public class TestRegistry {
                                                 Reactor.class);
                         if (IteratorExtensions.exists(reactors.iterator(),
                                 it -> it.isMain() || it.isFederated())) {
+                            // Recognize file as test if it has the word "test"
+                            // in the name, or if it is located in a "test"
+                            // directory.
                             if (this.inTestDir || path.getFileName().toString()
                                     .toLowerCase().contains("test")) {
                                 // File is labeled as test.
@@ -415,7 +437,7 @@ public class TestRegistry {
      * such a directory, its corresponding category is popped from the stack.
      * Any test (*.lf) file that is encountered will be mapped to the category
      * that is on top of the stack. Initially, the stack has one element that 
-     * is TestCategory.COMMON, meaning that test files in the top-level test
+     * is TestCategory.GENERIC, meaning that test files in the top-level test
      * directory for a given target will be mapped to that category.
      * 
      * @author Marten Lohstroh <marten@berkeley.edu>
@@ -464,8 +486,7 @@ public class TestRegistry {
             }
             return CONTINUE;
         }
-        
-               
+
         /**
          * Pop categories from the stack as appropriate.
          */
@@ -482,7 +503,8 @@ public class TestRegistry {
         }
         
         /**
-         * Add test files to the registry if they end with ".lf", but only if they have a main reactor.
+         * Add test files to the registry if they end with ".lf", but only if
+         * they have a main reactor.
          */
         @Override
         public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
@@ -493,8 +515,8 @@ public class TestRegistry {
                         URI.createFileURI(path.toFile().getAbsolutePath()),
                         true);
                 // FIXME: issue warning if target doesn't match!
-                LFTest test = new LFTest(target, path, TestRegistry.LF_TEST_PATH.resolve(
-                        target.toString()));
+                LFTest test = new LFTest(target, path,
+                        TestRegistry.LF_TEST_PATH.resolve(target.toString()));
                 EList<Diagnostic> errors = r.getErrors();
                 if (!errors.isEmpty()) {
                     for (Diagnostic d : errors) {
@@ -511,7 +533,8 @@ public class TestRegistry {
                         // If the test compiles but doesn't have a main reactor,
                         // _do not add the file_. We assume it is a library
                         // file.
-                        ignored.getTests(this.target, this.stack.peek()).add(test);
+                        ignored.getTests(this.target, this.stack.peek())
+                                .add(test);
                         return CONTINUE;
                     }
                 }
