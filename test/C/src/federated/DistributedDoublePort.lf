@@ -1,0 +1,54 @@
+/** 
+ * Test the case for when two upstream federates
+ * send messages to a downstream federte on two
+ * different ports. One message should carry a 
+ * microstep delay relative to the other
+ * message.
+ * 
+ * @author Soroush Bateni
+ */
+target C {
+    timeout: 900 msec,
+    coordination: centralized
+};
+
+import Count from "../lib/Count.lf";
+
+reactor CountMicrostep {
+    state count:int(1);
+    output out:int;
+    logical action act:int;
+    timer t(0, 1 sec);
+    reaction(t) -> act {=
+        schedule_int(act, 0, self->count++);
+    =}
+    
+    reaction(act) -> out {=
+        SET(out, act->value);
+    =}
+}
+
+reactor Print {
+    input in:int;
+    input in2:int;
+    reaction(in, in2) {=
+        interval_t elapsed_time = get_elapsed_logical_time();
+        printf("At tag (%lld, %u), received in = %d and in2 = %d.\n", elapsed_time, get_microstep(), in->value, in2->value);
+        if (in->is_present && in2->is_present) {
+            fprintf(stderr, "ERROR: invalid logical simultaneity.\n");
+            exit(1);
+        }
+    =}
+    
+    reaction(shutdown) {=
+        printf("SUCCESS: messages were at least one microstep apart.\n");
+    =}
+}
+
+federated reactor DistributedDoublePort {
+    c = new Count();
+    cm = new CountMicrostep();
+    p = new Print();
+    c.out -> p.in;    // Indicating a 'logical' connection.
+    cm.out -> p.in2;
+}

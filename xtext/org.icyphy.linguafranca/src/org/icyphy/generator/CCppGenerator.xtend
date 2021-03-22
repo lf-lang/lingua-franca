@@ -263,8 +263,8 @@ class CCppGenerator extends CGenerator {
     new () {
         super()
         // set defaults
-        config.compiler = "g++"
-        config.compilerFlags.add("-O2") // -Wall -Wconversion"
+        targetConfig.compiler = "g++"
+        targetConfig.compilerFlags.add("-O2") // -Wall -Wconversion"
     }
 	
     /** 
@@ -374,12 +374,12 @@ class CCppGenerator extends CGenerator {
     /** Add necessary source files specific to the target language.  */
     override includeTargetLanguageSourceFiles()
     {
-        if (config.threads > 0) {
+        if (targetConfig.threads > 0) {
             // Set this as the default in the generated code,
             // but only if it has not been overridden on the command line.
             pr(startTimers, '''
                 if (number_of_threads == 0) {
-                   number_of_threads = «config.threads»;
+                   number_of_threads = «targetConfig.threads»;
                 }
             ''')
         }
@@ -407,7 +407,7 @@ class CCppGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
                 // Always use the threaded version
-                config.threads = 1;
+                targetConfig.threads = 1;
 
             	super.doGenerate(resource, fsa, context);
             }
@@ -417,8 +417,7 @@ class CCppGenerator extends CGenerator {
      * Copy target-specific header file to the src-gen directory.
      */
     override copyTargetHeaderFile() {
-        val srcGenPath = directory + File.separator + "src-gen"
-        copyFileFromClassPath("/lib/CCpp/ccpptarget.h", srcGenPath + File.separator + "ccpptarget.h")
+        copyFileFromClassPath("/lib/CCpp/ccpptarget.h", fileConfig.getSrcGenPath.resolve("ccpptarget.h").toString)
     }    
     
     
@@ -469,13 +468,13 @@ class CCppGenerator extends CGenerator {
         // to get screen to work looks like this:
         // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
         
-        var outPath = directory + File.separator + "bin"
+        var outPath = fileConfig.binPath
 
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()
         pr(shCode, '''
             #!/bin/bash
-            # Launcher for federated «filename».lf Lingua Franca program.
+            # Launcher for federated «fileConfig.srcFile.name» Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
             # Set a trap to kill all background jobs on error.
@@ -484,7 +483,7 @@ class CCppGenerator extends CGenerator {
         ''')
         val distHeader = '''
             #!/bin/bash
-            # Distributor for federated «filename».lf Lingua Franca program.
+            # Distributor for federated «fileConfig.srcFile.name» Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
         '''
@@ -510,23 +509,23 @@ class CCppGenerator extends CGenerator {
                     popd > /dev/null
                     pushd src-gen > /dev/null
                     echo "Copying source files to host «federate.host»"
-                    scp «filename»_«federate.name».cc ctarget.h «federate.host»:«path»/src-gen
+                    scp «topLevelName»_«federate.name».cc ctarget.h «federate.host»:«path»/src-gen
                     popd > /dev/null
-                    echo "Compiling on host «federate.host» using: «config.compiler» -O2 src-gen/«filename»_«federate.name».cc -o bin/«filename»_«federate.name» -pthread"
-                    ssh «federate.host» 'cd «path»; «config.compiler» -O2 src-gen/«filename»_«federate.name».cc -o bin/«filename»_«federate.name» -pthread'
+                    echo "Compiling on host «federate.host» using: «targetConfig.compiler» -O2 src-gen/«topLevelName»_«federate.name».cc -o bin/«topLevelName»_«federate.name» -pthread"
+                    ssh «federate.host» 'cd «path»; «targetConfig.compiler» -O2 src-gen/«topLevelName»_«federate.name».cc -o bin/«topLevelName»_«federate.name» -pthread'
                 ''')
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
                     ssh «federate.host» '\
-                        cd «path»; bin/«filename»_«federate.name» >& log/«filename»_«federate.name».out; \
+                        cd «path»; bin/«topLevelName»_«federate.name» >& log/«topLevelName»_«federate.name».out; \
                         echo "****** Output from federate «federate.name» on host «federate.host»:"; \
-                        cat log/«filename»_«federate.name».out; \
+                        cat log/«topLevelName»_«federate.name».out; \
                         echo "****** End of output from federate «federate.name» on host «federate.host»"' &
                 ''')                
             } else {
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name»."
-                    «outPath»«File.separator»«filename»_«federate.name» &
+                    «outPath»«File.separator»«topLevelName»_«federate.name» &
                 ''')                
             }
         }
@@ -534,7 +533,7 @@ class CCppGenerator extends CGenerator {
         if (host == 'localhost' || host == '0.0.0.0') {
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI)."
-                «outPath»«File.separator»«filename»_RTI
+                «outPath»«File.separator»«topLevelName»_RTI
             ''')
         } else {
             // Copy the source code onto the remote machine and compile it there.
@@ -550,10 +549,10 @@ class CCppGenerator extends CGenerator {
                 popd > /dev/null
                 pushd src-gen > /dev/null
                 echo "Copying source files to host «target»"
-                scp «filename»_RTI.cc ctarget.h «target»:«path»/src-gen
+                scp «topLevelName»_RTI.cc ctarget.h «target»:«path»/src-gen
                 popd > /dev/null
-                echo "Compiling on host «target» using: «config.compiler» -O2 «path»/src-gen/«filename»_RTI.cc -o «path»/bin/«filename»_RTI -pthread"
-                ssh «target» '«config.compiler» -O2 «path»/src-gen/«filename»_RTI.cc -o «path»/bin/«filename»_RTI -pthread'
+                echo "Compiling on host «target» using: «targetConfig.compiler» -O2 «path»/src-gen/«topLevelName»_RTI.cc -o «path»/bin/«topLevelName»_RTI -pthread"
+                ssh «target» '«targetConfig.compiler» -O2 «path»/src-gen/«topLevelName»_RTI.cc -o «path»/bin/«topLevelName»_RTI -pthread'
             ''')
 
             // Launch the RTI on the remote machine using ssh and screen.
@@ -572,16 +571,16 @@ class CCppGenerator extends CGenerator {
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
                 ssh «target» 'cd «path»; \
-                    bin/«filename»_RTI >& log/«filename»_RTI.out; \
-                    echo "------ output from «filename»_RTI on host «target»:"; \
-                    cat log/«filename»_RTI.out; \
-                    echo "------ end of output from «filename»_RTI on host «target»"'
+                    bin/«topLevelName»_RTI >& log/«topLevelName»_RTI.out; \
+                    echo "------ output from «topLevelName»_RTI on host «target»:"; \
+                    cat log/«topLevelName»_RTI.out; \
+                    echo "------ end of output from «topLevelName»_RTI on host «target»"'
             ''')
         }
 
         // Write the launcher file.
         // Delete file previously produced, if any.
-        var file = new File(outPath + File.separator + filename)
+        var file = new File(outPath.toFile, topLevelName)
         if (file.exists) {
             file.delete
         }
@@ -595,7 +594,7 @@ class CCppGenerator extends CGenerator {
         
         // Write the distributor file.
         // Delete the file even if it does not get generated.
-        file = new File(outPath + File.separator + filename + '_distribute.sh')
+        file = new File(outPath.toFile, topLevelName + '_distribute.sh')
         if (file.exists) {
             file.delete
         }

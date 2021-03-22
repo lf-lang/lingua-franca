@@ -54,6 +54,9 @@ import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.Target
+import java.nio.file.Path
+import static extension org.icyphy.TargetConfig.*
+import org.icyphy.TargetConfig
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -78,9 +81,9 @@ class PythonGenerator extends CGenerator {
     new() {
         super()
         // set defaults
-        config.compiler = "gcc"
-        config.compilerFlags = newArrayList // -Wall -Wconversion"
-        config.linkerFlags = ""
+        targetConfig.compiler = "gcc"
+        targetConfig.compilerFlags = newArrayList // -Wall -Wconversion"
+        targetConfig.linkerFlags = ""
     }
     	
     /** 
@@ -607,7 +610,7 @@ class PythonGenerator extends CGenerator {
      * @return the code body 
      */
     def generatePythonCode(FederateInstance federate) '''
-       from LinguaFranca«filename» import *
+       from LinguaFranca«topLevelName» import *
        from LinguaFrancaBase.constants import * #Useful constants
        from LinguaFrancaBase.functions import * #Useful helper functions
        from LinguaFrancaBase.classes import * #Useful classes
@@ -636,12 +639,12 @@ class PythonGenerator extends CGenerator {
     def generatePythonSetupFile() '''
     from setuptools import setup, Extension
     
-    linguafranca«filename»module = Extension("LinguaFranca«filename»",
-                                               sources = ["«filename».c"],
-                                               define_macros=[('MODULE_NAME', 'LinguaFranca«filename»')])
+    linguafranca«topLevelName»module = Extension("LinguaFranca«topLevelName»",
+                                               sources = ["«topLevelName».c"],
+                                               define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')])
     
-    setup(name="LinguaFranca«filename»", version="1.0",
-            ext_modules = [linguafranca«filename»module],
+    setup(name="LinguaFranca«topLevelName»", version="1.0",
+            ext_modules = [linguafranca«topLevelName»module],
             install_requires=['LinguaFrancaBase' «pythonRequiredModules»],)
     '''
     
@@ -652,28 +655,26 @@ class PythonGenerator extends CGenerator {
      */
     def generatePythonFiles(IFileSystemAccess2 fsa, FederateInstance federate)
     {
-        var srcGenPath = getSrcGenPath()
-        
-        var file = new File(srcGenPath + File.separator + filename + ".py")
+        var file = new File(fileConfig.getSrcGenPath.toFile,  topLevelName + ".py")
         if (file.exists) {
             file.delete
         }
         // Create the necessary directories
         if (!file.getParentFile().exists())
             file.getParentFile().mkdirs();
-        writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, srcGenPath + File.separator + filename + ".py")
+        writeSourceCodeToFile(generatePythonCode(federate).toString.bytes, file.absolutePath)
         
-        val setupPath = srcGenPath + File.separator + "setup.py"
+        val setupPath = fileConfig.getSrcGenPath.resolve("setup.py")
         // Handle Python setup
         System.out.println("Generating setup file to " + setupPath)
-        file = new File(setupPath)
+        file = setupPath.toFile
         if (file.exists) {
             // Append
             file.delete
         }
             
         // Create the setup file
-        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath)
+        writeSourceCodeToFile(generatePythonSetupFile.toString.bytes, setupPath.toString)
              
         
     }
@@ -682,22 +683,22 @@ class PythonGenerator extends CGenerator {
      * Execute the command that compiles and installs the current Python module
      */
     def pythonCompileCode() {
-        val compileCmd = createCommand('''python3''', #["setup.py", "build"])
+        val compileCmd = createCommand('''python3''', #["setup.py", "build"], fileConfig.outPath)
         val installCmd = createCommand('''python3''',
-            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."])
+            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."], fileConfig.outPath)
 
-        compileCmd.directory(new File(getSrcGenPath))
-        installCmd.directory(new File(getSrcGenPath))
+        compileCmd.directory(fileConfig.getSrcGenPath.toFile)
+        installCmd.directory(fileConfig.getSrcGenPath.toFile)
 
         // Set compile time environment variables
         val compileEnv = compileCmd.environment
-        compileEnv.put("CC", config.compiler) // Use gcc as the compiler
-        compileEnv.put("LDFLAGS", config.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+        compileEnv.put("CC", targetConfig.compiler) // Use gcc as the compiler
+        compileEnv.put("LDFLAGS", targetConfig.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
         val installEnv = compileCmd.environment
-        installEnv.put("CC", config.compiler) // Use gcc as the compiler
-        installEnv.put("LDFLAGS", config.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
+        installEnv.put("CC", targetConfig.compiler) // Use gcc as the compiler
+        installEnv.put("LDFLAGS", targetConfig.linkerFlags) // The linker complains about including pythontarget.h twice (once in the generated code and once in pythontarget.c)
         // To avoid this, we force the linker to allow multiple definitions. Duplicate names would still be caught by the 
         // compiler.
         if (executeCommand(installCmd) == 0) {
@@ -712,7 +713,7 @@ class PythonGenerator extends CGenerator {
      * @param state 0=beginning, 1=end
      */
     def pyThreadMutexLockCode(int state, Reactor reactor) {
-        if(config.threads > 0)
+        if(targetConfig.threads > 0)
         {
             switch(state){
                 case 0: return '''pthread_mutex_lock(&py_«reactor.name»_reaction_mutex);'''
@@ -727,23 +728,9 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
-     * Returns the desired source gen. path
-     */
-    override getSrcGenPath() {
-          directory + File.separator + "src-gen" + File.separator + filename
-    }
-     
-    /**
-     * Returns the desired output path
-     */
-    override getBinGenPath() {
-          directory + File.separator + "src-gen" + File.separator + filename
-    }
-    
-    /**
      * Do nothing. The Python generator handles compiling differently.
      */
-    override runCCompiler(String directory, String file, boolean doNotLinkIfNoMain) {
+    override runCCompiler(String file, boolean doNotLinkIfNoMain) {
         // Note that this function is deliberately left empty to prevent the CGenerator from
         // compiling this code. The Python generator will create a setup.py and compile generated
         // C code appropriately.
@@ -785,8 +772,8 @@ class PythonGenerator extends CGenerator {
 
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (config.threads === 0 && federates.length > 1) {
-            config.threads = 1
+        if (targetConfig.threads === 0 && federates.length > 1) {
+            targetConfig.threads = 1
         }
 
         super.includeTargetLanguageSourceFiles()
@@ -798,7 +785,7 @@ class PythonGenerator extends CGenerator {
         // This is necessary because Python is not thread-safe
         // and running multiple instances of the same function can cause
         // a segmentation fault.
-        if (config.threads > 0) {
+        if (targetConfig.threads > 0) {
             for (r : this.reactors ?: emptyList) {
                 pr('''
                     pthread_mutex_t py_«r.toDefinition.name»_reaction_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -812,7 +799,7 @@ class PythonGenerator extends CGenerator {
             }
         }
         // Handle .proto files.
-        for (name : config.protoFiles) {
+        for (name : targetConfig.protoFiles) {
             this.processProtoFile(name)
             val dotIndex = name.lastIndexOf('.')
             var rootFilename = name
@@ -831,8 +818,9 @@ class PythonGenerator extends CGenerator {
      * the required .h and .c files.
      * @param filename Name of the file to process.
      */
-     override processProtoFile(String filename) {
-        val protoc = createCommand("protoc", #['''--python_out=src-gen/«this.filename»''', filename])
+    override processProtoFile(String filename) {
+         val protoc = createCommand("protoc", #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename], fileConfig.srcPath)
+         //val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
         if (protoc === null) {
             return
         }
@@ -923,7 +911,7 @@ class PythonGenerator extends CGenerator {
      *  uniformly across all target languages.
      */
     override includeTargetLanguageHeaders() {
-        pr('''#define MODULE_NAME LinguaFranca«filename»''')
+        pr('''#define MODULE_NAME LinguaFranca«topLevelName»''')
         pr('''#define __GARBAGE_COLLECTED''')    	
         pr('#include "pythontarget.c"')
     }
@@ -938,15 +926,15 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         // If there are federates, assign the number of threads in the CGenerator to 1        
         if(federates.length > 1) {
-            config.threads = 1;
+            targetConfig.threads = 1;
         }
 
         super.doGenerate(resource, fsa, context)
 
-        var baseFileName = filename
+        var baseFileName = topLevelName
         for (federate : federates) {
             if (!federate.isSingleton) {
-                filename = baseFileName + '_' + federate.name
+                topLevelName = baseFileName + '_' + federate.name
             }
             // Don't generate code if there is no main reactor
             if (this.main !== null) {
@@ -956,26 +944,26 @@ class PythonGenerator extends CGenerator {
                 // "pip install ." individually to compile and install each module
                 // Here, we move the necessary C files into each federate's folder
                 if (!federate.isSingleton) {
-
-                    val srcDir = directory + File.separator + "src-gen" + File.separator + baseFileName
-                    val dstDir = directory + File.separator + "src-gen" + File.separator + filename
-                    var filesToCopy = newArrayList('''«filename».c''', "pythontarget.c", "pythontarget.h",
+//                    val srcDir = directory + File.separator + "src-gen" + File.separator + baseFileName
+//                    val dstDir = directory + File.separator + "src-gen" + File.separator + filename
+                    var filesToCopy = newArrayList('''«topLevelName».c''', "pythontarget.c", "pythontarget.h",
                         "ctarget.h", "core")
                     
-                    copyFilesFromClassPath(srcDir, dstDir, filesToCopy);
+                    copyFilesFromClassPath(fileConfig.srcPath.toString, fileConfig.getSrcGenPath.toString, filesToCopy);
                     
                     // Do not compile the Python code here. They will be compiled on remote machines
                 }
-                else
-                {
-                    // If there are no federates, compile and install the generated code
-                    pythonCompileCode                
+                else {
+                    if (targetConfig.noCompile !== true) {
+                        // If there are no federates, compile and install the generated code
+                        pythonCompileCode
+                    }
                 }
             }
 
         }
         // Restore filename
-        filename = baseFileName
+        topLevelName = baseFileName
     }
             
             
@@ -983,16 +971,15 @@ class PythonGenerator extends CGenerator {
     /**
      * Copy Python specific target code to the src-gen directory
      */        
-    override copyUserFiles(String srcGenPath) {    	
-        super.copyUserFiles(srcGenPath)
-
-    	// Copy the required target language files into the target file system.
+    override copyUserFiles() {
+        super.copyUserFiles()
+        // Copy the required target language files into the target file system.
         // This will also overwrite previous versions.
         var targetFiles = newArrayList("pythontarget.h", "pythontarget.c");
         for (file : targetFiles) {
             copyFileFromClassPath(
                 "/" + "lib" + "/" + "Python" + "/" + file,
-                srcGenPath + File.separator + file
+                fileConfig.getSrcGenPath.resolve(file).toString
             )
         }
         
@@ -1002,7 +989,7 @@ class PythonGenerator extends CGenerator {
         for (file : cTargetFiles) {
             copyFileFromClassPath(
                 "/" + "lib" + "/" + "C" + "/" + file,
-                srcGenPath + File.separator + file
+                fileConfig.getSrcGenPath.resolve(file).toString
             )
         }
     }
@@ -1055,13 +1042,13 @@ class PythonGenerator extends CGenerator {
         // on the machine that runs the RTI.  The command I tried
         // to get screen to work looks like this:
         // ssh -t «target» cd «path»; screen -S «filename»_«federate.name» -L bin/«filename»_«federate.name» 2>&1
-        var outPath = directory + File.separator + "src-gen" + File.separator + filename
+        var outPath = fileConfig.getSrcGenPath
 
         val shCode = new StringBuilder()
         val distCode = new StringBuilder()
         pr(shCode, '''
             #!/bin/bash
-            # Launcher for federated «filename».lf Lingua Franca program.
+            # Launcher for federated «topLevelName».lf Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
             # Set a trap to kill all background jobs on error.
@@ -1070,7 +1057,7 @@ class PythonGenerator extends CGenerator {
         ''')
         val distHeader = '''
             #!/bin/bash
-            # Distributor for federated «filename».lf Lingua Franca program.
+            # Distributor for federated «topLevelName».lf Lingua Franca program.
             # Uncomment to specify to behave as close as possible to the POSIX standard.
             # set -o posix
         '''
@@ -1089,28 +1076,28 @@ class PythonGenerator extends CGenerator {
                 if(distCode.length === 0) pr(distCode, distHeader)
                 pr(distCode, '''
                     echo "Making directory «path» and subdirectories src-gen and path on host «federate.host»"
-                    ssh «federate.host» mkdir -p «path»/log «path»/src-gen/«filename»/core
+                    ssh «federate.host» mkdir -p «path»/log «path»/src-gen/«topLevelName»/core
                     echo "Copying necessary files to host «federate.host»"
-                    scp -r  src-gen/«filename» «federate.host»:«path»/src-gen/
+                    scp -r  src-gen/«topLevelName» «federate.host»:«path»/src-gen/
                     echo "Compiling on host «federate.host» using: pip install ."
-                    ssh «federate.host» 'cd «path»/src-gen/«filename»; pip install .'
+                    ssh «federate.host» 'cd «path»/src-gen/«topLevelName»; pip install .'
                 ''')
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name» on host «federate.host»"
                     ssh «federate.host» '\
-                        cd «path»; python3 src-gen/«filename»/«filename»_«federate.name».py >& log/«filename»_«federate.name».out; \
+                        cd «path»; python3 src-gen/«topLevelName»/«topLevelName»_«federate.name».py >& log/«topLevelName»_«federate.name».out; \
                         echo "****** Output from federate «federate.name» on host «federate.host»:"; \
-                        cat log/«filename»_«federate.name».out; \
+                        cat log/«topLevelName»_«federate.name».out; \
                         echo "****** End of output from federate «federate.name» on host «federate.host»"' &
                 ''')                
             } else {
                 pr(shCode, '''
                     echo "#### Launching the federate «federate.name»."
                     pushd «outPath» > /dev/
-                    echo "Compiling and installing the LinguaFranca«filename» module"
+                    echo "Compiling and installing the LinguaFranca«topLevelName» module"
                     pip install .
                     popd > /dev/null
-                    python3 «outPath»«File.separator»«filename»_«federate.name».py &
+                    python3 «outPath»«File.separator»«topLevelName»_«federate.name».py &
                 ''')                
             }
         }
@@ -1118,7 +1105,7 @@ class PythonGenerator extends CGenerator {
         if (host == 'localhost' || host == '0.0.0.0') {
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI)."
-                «outPath»«File.separator»«filename»_RTI
+                «outPath»«File.separator»«topLevelName»_RTI
             ''')
         } else {
             // Copy the source code onto the remote machine and compile it there.
@@ -1127,17 +1114,17 @@ class PythonGenerator extends CGenerator {
             pr(distCode, '''
                 cd «path»
                 echo "Making directory «path» and subdirectories src-gen and path on host «target»"
-                ssh «target» mkdir -p «path»/log «path»/src-gen/«filename»/core
-                pushd src-gen/«filename»/core > /dev/null
+                ssh «target» mkdir -p «path»/log «path»/src-gen/«topLevelName»/core
+                pushd src-gen/«topLevelName»/core > /dev/null
                 echo "Copying LF core files to host «target»"
-                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/«filename»/core
+                scp rti.c rti.h util.h util.c reactor.h pqueue.h «target»:«path»/src-gen/«topLevelName»/core
                 popd > /dev/null
-                pushd src-gen/«filename» > /dev/null
+                pushd src-gen/«topLevelName» > /dev/null
                 echo "Copying source files to host «target»"
-                scp «filename»_RTI.c ctarget.h «target»:«path»/src-gen/«filename»
+                scp «topLevelName»_RTI.c ctarget.h «target»:«path»/src-gen/«topLevelName»
                 popd > /dev/null
-                echo "Compiling on host «target» using: «config.compiler» -O2 «path»/src-gen/«filename»/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread"
-                ssh «target» '«config.compiler» -O2 «path»/src-gen/«filename»/«filename»_RTI.c -o «path»/bin/«filename»_RTI -pthread'
+                echo "Compiling on host «target» using: «targetConfig.compiler» -O2 «path»/src-gen/«topLevelName»/«topLevelName»_RTI.c -o «path»/bin/«topLevelName»_RTI -pthread"
+                ssh «target» '«targetConfig.compiler» -O2 «path»/src-gen/«topLevelName»/«topLevelName»_RTI.c -o «path»/bin/«topLevelName»_RTI -pthread'
             ''')
 
             // Launch the RTI on the remote machine using ssh and screen.
@@ -1156,16 +1143,16 @@ class PythonGenerator extends CGenerator {
             pr(shCode, '''
                 echo "#### Launching the runtime infrastructure (RTI) on remote host «host»."
                 ssh «target» 'cd «path»; \
-                    «outPath»/«filename»_RTI >& log/«filename»_RTI.out; \
-                    echo "------ output from «filename»_RTI on host «target»:"; \
-                    cat log/«filename»_RTI.out; \
-                    echo "------ end of output from «filename»_RTI on host «target»"'
+                    «outPath»/«topLevelName»_RTI >& log/«topLevelName»_RTI.out; \
+                    echo "------ output from «topLevelName»_RTI on host «target»:"; \
+                    cat log/«topLevelName»_RTI.out; \
+                    echo "------ end of output from «topLevelName»_RTI on host «target»"'
             ''')
         }
 
         // Write the launcher file.
         // Delete file previously produced, if any.
-        var file = new File(outPath + File.separator + filename)
+        var file = new File(outPath + File.separator + topLevelName)
         if (file.exists) {
             file.delete
         }
@@ -1179,7 +1166,7 @@ class PythonGenerator extends CGenerator {
         
         // Write the distributor file.
         // Delete the file even if it does not get generated.
-        file = new File(outPath + File.separator + filename + '_distribute.sh')
+        file = new File(outPath + File.separator + topLevelName + '_distribute.sh')
         if (file.exists) {
             file.delete
         }
@@ -1372,7 +1359,7 @@ class PythonGenerator extends CGenerator {
         // Unfortunately, threads cannot run concurrently in Python.
         // Therefore, we need to make sure reactions cannot execute concurrently by
         // holding the mutex lock.
-        if(config.threads > 0) {
+        if(targetConfig.threads > 0) {
             pr(pyThreadMutexLockCode(0, reactor))
         }
         
@@ -1384,7 +1371,7 @@ class PythonGenerator extends CGenerator {
             }
         ''')
         
-        if(config.threads > 0) {
+        if(targetConfig.threads > 0) {
             pr(pyThreadMutexLockCode(1, reactor))
         }
         
@@ -1404,7 +1391,7 @@ class PythonGenerator extends CGenerator {
             // Unfortunately, threads cannot run concurrently in Python.
             // Therefore, we need to make sure reactions cannot execute concurrently by
             // holding the mutex lock.
-            if (config.threads > 0) {
+            if (targetConfig.threads > 0) {
                 pr(pyThreadMutexLockCode(0, reactor))
             }
             
@@ -1416,7 +1403,7 @@ class PythonGenerator extends CGenerator {
                 }
             ''')
 
-            if (config.threads > 0) {
+            if (targetConfig.threads > 0) {
                 pr(pyThreadMutexLockCode(1, reactor))
             }
             //pr(reactionInitialization.toString)
@@ -1539,10 +1526,10 @@ class PythonGenerator extends CGenerator {
         {
             val pythonFunctionName = pythonReactionFunctionName(reaction.reactionIndex)
             // Create a PyObject for each reaction
-            pr(initializationCode, '''«nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = get_python_function("«filename»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"«pythonFunctionName»");''')
+            pr(initializationCode, '''«nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = get_python_function("«topLevelName»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"«pythonFunctionName»");''')
         
             if (reaction.definition.deadline !== null) {
-                pr(initializationCode, '''«nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = get_python_function("«filename»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"deadline_function_«reaction.reactionIndex»");''')
+                pr(initializationCode, '''«nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = get_python_function("«topLevelName»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"deadline_function_«reaction.reactionIndex»");''')
             }
         
         }
