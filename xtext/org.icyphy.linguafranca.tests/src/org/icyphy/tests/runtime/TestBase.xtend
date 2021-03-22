@@ -235,7 +235,8 @@ abstract class TestBase {
     }
 
     /**
-     * 
+     * For the selected target and set of categories, run the tests and report
+     * the results.
      */
     def runTestsAndPrintResults(Target target,
         Function1<TestCategory, Boolean> selection,
@@ -253,7 +254,7 @@ abstract class TestBase {
     }
     
     /**
-     * 
+     * Print a header with the given description.
      */
     def void printTestHeader(String description) {
         print(TestBase.THICK_LINE)

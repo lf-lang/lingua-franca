@@ -138,7 +138,7 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ~/.pnpm-store
-          key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node${{ matrix.node-version }} #-${{ hashFiles('**/pnpm-lock.yaml') }}
       - name: Install pnpm
         run: sudo npm i -g pnpm
       - name: Install Dependencies Ubuntu
