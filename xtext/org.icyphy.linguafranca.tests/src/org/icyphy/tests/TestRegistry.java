@@ -52,7 +52,11 @@ public class TestRegistry {
                 Map<TestCategory, Set<LFTest>>> map = new HashMap<Target,
                         Map<TestCategory, Set<LFTest>>>();
 
+        /**
+         * Create a new test map.
+         */
         public TestMap() {
+            // Populate the internal datastructures.
             for (Target target : Target.values()) {
                 Map<TestCategory, Set<LFTest>> categories = new HashMap<TestCategory, Set<LFTest>>();
                 for (TestCategory cat : TestCategory.values()) {
@@ -62,6 +66,12 @@ public class TestRegistry {
             }
         }
         
+        /**
+         * Return a set of tests given a target and test category.
+         * @param t The target.
+         * @param c The test category.
+         * @return A set of tests for the given target and test category.
+         */
         public Set<LFTest> getTests(Target t, TestCategory c) {
             return this.map.get(t).get(c);
         }
@@ -75,27 +85,40 @@ public class TestRegistry {
      */
     public static final String[] IGNORED_DIRECTORIES = new String[] {"failing", "knownfailed", "failed"};
     
+    /**
+     * Path to the root of the repository.
+     */
     public static final Path LF_REPO_PATH = Paths.get(new File("").getAbsolutePath()).getParent().getParent();
     
+    /**
+     * Path to the example directory in the repository.
+     */
     public static final Path LF_EXAMPLE_PATH = LF_REPO_PATH.resolve("example");
     
     /**
-     * The location in which to find the tests.
+     * Path to the test directory in the repository.
      */
     public static final Path LF_TEST_PATH = LF_REPO_PATH.resolve("test");
 
     /**
-     * Registry that maps targets to maps from categories to sets of tests. 
+     * Internal data structure that stores registered tests. 
      */
     protected final static TestMap registered = new TestMap();
 
+    /**
+     * Internal data structure that stores ignored tests. For instance,
+     * source files with no main reactor are indexed here.
+     */
     protected final static TestMap ignored = new TestMap();
 
+    /**
+     * The set of found examples that that did not compile or specify a target.
+     */
     protected static final Set<Path> erroneousExamples = new TreeSet<Path>();
     
     /**
-     * Maps each test category to a set of tests that is the union of tests in
-     * that category across all targets.
+     * A map from each test category to a set of tests that is the union of
+     * all registered tests in that category across all targets.
      */
     protected final static Map<TestCategory, Set<LFTest>> allTargets = new HashMap<TestCategory, Set<LFTest>>();
     
@@ -120,7 +143,8 @@ public class TestRegistry {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     public enum TestCategory {
-        CONCURRENT(true), GENERIC(true), MULTIPORT(true), TARGET(false), FEDERATED(true), EXAMPLE(false), EXAMPLE_TEST(false);
+        CONCURRENT(true), GENERIC(true), MULTIPORT(true), TARGET(false),
+        FEDERATED(true), EXAMPLE(false), EXAMPLE_TEST(false);
         
         /**
          * Whether or not we should compare coverage against other targets.
@@ -148,6 +172,8 @@ public class TestRegistry {
         }
     }
     
+    // Static code that performs the file system traversal and discovers
+    // all .lf files to be included in the registry.
     static {
         System.out.println("Indexing...");
         ResourceSet rs = new LinguaFrancaStandaloneSetup()
@@ -175,7 +201,7 @@ public class TestRegistry {
                 
             } catch (IOException e) {
                 System.err.println(
-                        "Error while indexing tests for target " + target);
+                        "ERROR: Caught exception while indexing tests for target " + target);
                 e.printStackTrace();
             }
             // Record the tests for later use when reporting coverage.
@@ -190,6 +216,11 @@ public class TestRegistry {
             System.err.println(
                     "Error while indexing tests from example directory.");
             e.printStackTrace();
+        }
+        
+        if (erroneousExamples.size() > 0) {
+            System.err.println("The following examples do not compile or specify no target:");
+            erroneousExamples.forEach(e -> System.err.println(e));
         }
         
     }
@@ -259,9 +290,7 @@ public class TestRegistry {
             int missing = all.size() - own.size();
             if (missing > 0) {
                 all.stream().filter(test -> !own.contains(test))
-                        //.map(test -> test.toString())
                         .forEach(test -> s.append("Missing: " + test.toString() + "\n"));
-                        //.collect(Collectors.joining(", ", "[", "]")) + "\n");
             }
         } else {
             s.append("\n" + TestBase.THIN_LINE);
@@ -271,10 +300,6 @@ public class TestRegistry {
         
         return s.toString();
     }
-    
-//    public static String reportOnExamples() {
-//        
-//    }
     
     public static class ExampleDirVisitor extends SimpleFileVisitor<Path> {
 

@@ -139,7 +139,8 @@ abstract class TestBase {
         printTestHeader(RUN_AS_FEDERATED_DESC)
         this.target.runTestsAndPrintResults([
             it !== TestCategory.CONCURRENT && it !== TestCategory.FEDERATED &&
-            it !== TestCategory.EXAMPLE
+            it !== TestCategory.EXAMPLE && it !== TestCategory.EXAMPLE_TEST &&
+            it !== TestCategory.MULTIPORT // FIXME: also run the multiport tests once these are supported.
         ], [ASTUtils.makeFederated(it.fileConfig.resource)], 
         true)
     }
