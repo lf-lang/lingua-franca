@@ -1,4 +1,4 @@
-/* Tests for computing code coverage. */
+/* Tests for code coverage. */
 
 /*************
  * Copyright (c) 2021, The University of California at Berkeley.
@@ -34,8 +34,6 @@ import org.icyphy.tests.runtime.ThreadedBase
  * Collection of tests intended to touch as many lines of the code
  * generator as possible for the purpose of recording code coverage.
  * 
- * Each test cycles through the available targets.
- * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class CodeGenCoverage extends ThreadedBase {
@@ -55,26 +53,12 @@ class CodeGenCoverage extends ThreadedBase {
         }
     }
 
-    @Test
-    override runAsFederated() {
-        this.target = Target.C; // Only meaningful in C, so far.
-        super.runAsFederated()
-        
-    }
 
     @Test
     override runExampleTests() {
         for (target : Target.values()) {
             this.target = target;
             super.runExampleTests()
-        }
-    }
-    
-    @Test
-    override runFederatedTests() {
-        for (target : Target.values()) {
-            this.target = target;
-            super.runFederatedTests()
         }
     }
 
@@ -87,18 +71,18 @@ class CodeGenCoverage extends ThreadedBase {
     }
 
     @Test
-    override runMultiportTests() {
-        for (target : Target.values()) {
-            this.target = target;
-            super.runMultiportTests()
-        }
-    }
-
-    @Test
     override runTargetSpecificTests() {
         for (target : Target.values()) {
             this.target = target;
             super.runTargetSpecificTests()
+        }
+    }
+
+    @Test
+    override runMultiportTests() {
+        for (target : Target.values()) {
+            this.target = target;
+            super.runMultiportTests()
         }
     }
 
@@ -111,10 +95,25 @@ class CodeGenCoverage extends ThreadedBase {
     }
 
     @Test
+    override runAsFederated() {
+        this.target = Target.C; // Only meaningful in C, so far.
+        super.runAsFederated()
+        
+    }
+
+    @Test
     override runConcurrentTests() {
         for (target : Target.values()) {
             this.target = target;
             super.runConcurrentTests()
+        }
+    }
+
+    @Test
+    override runFederatedTests() {
+        for (target : Target.values()) {
+            this.target = target;
+            super.runFederatedTests()
         }
     }
 }
