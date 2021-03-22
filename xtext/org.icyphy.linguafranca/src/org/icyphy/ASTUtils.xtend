@@ -525,7 +525,7 @@ class ASTUtils {
                 connection.leftPorts.get(0), 
                 leftFederate,
                 receivingPortID,
-                leftFederate.id,
+                rightFederate.id,
                 generator
             );
         }
