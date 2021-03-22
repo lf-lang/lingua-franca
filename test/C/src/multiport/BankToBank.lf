@@ -1,0 +1,40 @@
+ // Check bank of reactors sending to bank of reactors.
+target C {
+    timeout: 2 sec,
+    fast: true,
+    threads: 4
+};
+reactor Source {
+	timer t(0, 200 msec);
+	output out:int;
+	state s:int(0);
+	reaction(t) -> out {=
+        SET(out, self->s);
+   	    self->s += self->bank_index;
+	=}
+}
+reactor Destination {
+	state s:int(0);
+	input in:int;
+	reaction(in) {=
+		printf("Destination %d received: %d.\n", self->bank_index, in->value);
+		if (in->value != self->s) {
+			printf("ERROR: Expected %d.\n", self->s);
+			exit(1);
+		}
+		self->s += self->bank_index;
+	=}
+	reaction(shutdown) {=
+        if (self->s == 0 && self->bank_index != 0) {
+            fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor BankToBank(width:int(4)) { 
+	a = new[width] Source();
+	b = new[width] Destination();
+	a.out -> b.in;
+}

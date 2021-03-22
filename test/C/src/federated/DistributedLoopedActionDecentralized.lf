@@ -1,0 +1,121 @@
+/**
+ * Test a sender-receiver network system that
+ * relies on microsteps being taken into account.
+ * The purpose of this test is to check whether the functionalities
+ * pertinent to dynamic STP offset adjustments are present and
+ * functioning to a degree.
+ * 
+ * This version of the test does not use a centralized
+ * coordinator to advance tag. Therefore,
+ * the receiver will rely on an STP offset (initially
+ * zero) to wait long enough for messages to arrive 
+ * before advancing its tag. In this test,
+ * the STP offset is initially zero and gradually 
+ * raised every time a tardiness is perceived until 
+ * no tardiness is observed. Therefore, the exact 
+ * outcome of the test will depend on actual runtime
+ * timing.
+ *
+ *  
+ * @author Soroush Bateni
+ */
+
+target C {
+    timeout: 1 sec,
+    coordination: decentralized
+};
+
+import Sender from "../lib/LoopedActionSender.lf"
+
+reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
+    input in:int;
+    state received_messages:int(0);
+    state total_received_messages:int(0);
+    state breaks:int(0);
+    reaction(in) {=
+        tag_t current_tag = get_current_tag();
+        printf("At tag (%lld, %u) received value %d with tardiness (%lld, %u).\n",
+            current_tag.time - get_start_time(),
+            current_tag.microstep,
+            in->value,
+            current_tag.time - in->intended_tag.time,
+            current_tag.microstep - in->intended_tag.microstep
+        );
+        self->total_received_messages++;
+        if (in->value != get_microstep()) {
+            fprintf(stderr,"WARNING: received incorrect value %d. Expected %d.\n", in->value, get_microstep());
+            // exit(1); // The receiver should tolerate this type of error
+                        // in this test because messages on the network can
+                        // arrive late. Note that with an accurate STP offset,
+                        // this type of error should be extremely rare.
+                        
+        }
+        if (in->value != self->received_messages) {
+            fprintf(stderr,"WARNING: skipped expected value %d. Received value %d.\n", self->received_messages, in->value);
+            self->received_messages = in->value;
+            // exit(1); // The receiver should tolerate this type of error
+                        // in this test because multiple messages arriving 
+                        // at a given tag (t, m) can overwrite each other.
+                        // Because messages arrive in order, only the last 
+                        // value that is received on the port at a given tag
+                        // can be observed. Note that with an accurate STP 
+                        // offset, this type of error should be extremely 
+                        // rare.
+                        // FIXME: Messages should not be dropped or
+                        // overwritten.
+        }
+        self->received_messages++;
+        if (self->received_messages == self->take_a_break_after) {
+            // Sender is taking a break;
+            self->breaks++;
+            self->received_messages = 0;
+        }
+    =}
+    
+    reaction(shutdown) {=
+        if (self->breaks != 3 ||
+            (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
+        ) {
+            fprintf(stderr,"ERROR: test failed. Breaks: %d, Messages: %d.\n", self->breaks, self->total_received_messages);
+            exit(4);
+        }
+        printf("SUCCESS: Successfully received all messages from the sender.\n");
+    =}
+}
+
+reactor TardyReceiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
+    input in:int;
+    state last_time_updated_stp:time(0);
+    receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec);
+    timer t (0, 1 msec); // Force advancement of logical time
+    
+    reaction (in) -> receiver.in {=
+        SET(receiver.in, in->value);
+    =} tardy {=
+        tag_t current_tag = get_current_tag();
+        printf("Tardiness (%lld, %u) perceived on the input.\n",              
+               current_tag.time - in->intended_tag.time,
+               current_tag.microstep - in->intended_tag.microstep);
+        SET(receiver.in, in->value);
+        // Only update the STP offset once per
+        // time step.
+        if (current_tag.time != self->last_time_updated_stp) {
+            printf("Raising the STP offset by %lld.\n", MSEC(1));
+	        interval_t current_stp_offset = get_stp_offset();
+	        set_stp_offset(current_stp_offset + MSEC(1));
+	        self->last_time_updated_stp = current_tag.time;
+        }
+    =}
+    
+    reaction (t) {=
+        // Do nothing
+    =}
+}
+
+
+federated reactor DistributedLoopedActionDecentralized {    
+    sender = new Sender(take_a_break_after = 10, break_interval = 400 msec);
+    tardyReceiver = new TardyReceiver(take_a_break_after = 10, break_interval = 400 msec);
+    
+    sender.out -> tardyReceiver.in;
+}

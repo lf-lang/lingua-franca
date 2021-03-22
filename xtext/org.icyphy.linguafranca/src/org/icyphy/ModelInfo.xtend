@@ -101,7 +101,7 @@ class ModelInfo {
      */
     def update(Model model) {
         this.model = model
-        this.directory = new File(Configuration.toPath(model.eResource.URI)).parent
+        this.directory = FileConfig.toPath(model.eResource.URI).toFile.parent
         this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {
