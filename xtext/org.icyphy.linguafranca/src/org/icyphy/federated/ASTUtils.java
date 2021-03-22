@@ -319,6 +319,7 @@ public class ASTUtils {
         instance.networkOutputControlTriggers
                 .add((Input) newTriggerForControlReactionVariable);
 
+        reaction.getTriggers().add(newTriggerForControlReaction);
         reaction.getEffects().add(newPortRef);
         reaction.setCode(factory.createCode());
 
