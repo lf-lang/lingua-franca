@@ -842,7 +842,14 @@ class LinguaFrancaValidationTest {
         UnionType.DOCKER_UNION -> #[
             #["foo", "", UnionType.DOCKER_UNION],
             #["[1]", "", UnionType.DOCKER_UNION],
-            #["{bar: baz}", "", DictionaryType.DOCKER_DICT]
+            #["{bar: baz}", "", DictionaryType.DOCKER_DICT],
+            #["{FROM: [1, 2, 3]}", ".FROM", PrimitiveType.STRING]
+        ],
+        UnionType.TRACING_UNION -> #[
+            #["foo", "", UnionType.TRACING_UNION],
+            #["[1]", "", UnionType.TRACING_UNION],
+            #["{bar: baz}", "", DictionaryType.TRACING_DICT],
+            #["{trace-file-name: [1, 2, 3]}", ".trace-file-name", PrimitiveType.STRING]
         ]
     }
     
