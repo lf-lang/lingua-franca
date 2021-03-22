@@ -981,7 +981,6 @@ void _lf_close_outbound_socket(int fed_id) {
  * @param fed_id The sending federate ID or -1 if the centralized coordination.
  */
 void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
-    info_print("Handling port absent.");
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort);
     size_t bytes_read = read_from_socket(socket, bytes_to_read, buffer);
     if (bytes_read != bytes_to_read) {
@@ -992,7 +991,7 @@ void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
     unsigned short port_id = extract_ushort(buffer);
     unsigned short federate_id = extract_ushort(&(buffer[sizeof(ushort)]));
 
-    info_print("Handling port absent for port %d from federate %d.", port_id, federate_id);
+    LOG_PRINT("Handling port absent for port %d from federate %d.", port_id, federate_id);
 
     pthread_mutex_lock(&mutex);
     // Set the mutex status as absent
@@ -1858,7 +1857,7 @@ bool all_network_inputs_are_accounted_for() {
  */
 void send_port_absent_to_federate(unsigned short port_ID, 
                                   unsigned short fed_ID) {
-     info_print("Sending port "
+     LOG_PRINT("Sending port "
                 "absent for port %d to federate %d.", 
                 port_ID, fed_ID);
 
