@@ -334,6 +334,11 @@ abstract class TestBase {
         return false
     }
 
+    /**
+     * Given an indexed test, execute it and label the test as failing if it
+     * did not execute, took too long to execute, or executed but exited with
+     * an error code.
+     */
     def execute(LFTest test) {
         var ProcessBuilder pb;
         val nameWithExtension = test.srcFile.fileName.toString
