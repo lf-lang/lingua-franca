@@ -4408,7 +4408,7 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         
         result.append('''
-            info_print("Invoked network dependant reaction.");
+            DEBUG_PRINT("Invoked network dependant reaction.");
             // Check if the port is triggered
             if («port.name»->is_present) {
                 // Don't wait
@@ -4515,7 +4515,7 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // If the output port has not been SET for the current logical time,
             // send an ABSENT message to the receiving federate            
-            info_print("Contemplating whether to send port "
+            DEBUG_PRINT("Contemplating whether to send port "
                        "absent for port %d to federate %d.", 
                        «portID», «federateID»);
             if (!«port.name»->is_present) {
