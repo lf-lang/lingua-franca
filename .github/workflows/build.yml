@@ -103,7 +103,7 @@ jobs:
   cpp-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Setup Java JDK
