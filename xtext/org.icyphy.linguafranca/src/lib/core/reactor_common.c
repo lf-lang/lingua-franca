@@ -121,6 +121,8 @@ void reset_status_fields_on_input_port_triggers();
  * 
  */
 void enqueue_network_input_control_reactions(pqueue_t* reaction_q);
+
+void enqueue_network_output_control_reactions(pqueue_t* reaction_q);
 #endif
 
 /**
@@ -573,6 +575,7 @@ void __pop_events() {
         // Insert network dependant reactions for network input ports into
         // the reaction queue
         enqueue_network_input_control_reactions(reaction_q);
+        enqueue_network_output_control_reactions(reaction_q);
 #endif
 
         lf_token_t *token = event->token;

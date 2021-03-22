@@ -1232,6 +1232,9 @@ void* federate_thread_TCP(void* fed) {
             case STOP_REQUEST_REPLY:
                 handle_stop_request_reply(my_fed);
                 break;
+            case PORT_ABSENT:
+                handle_port_absent_message(my_fed, buffer);
+                break;
             default:
                 error_print("RTI received from federate %d an unrecognized TCP message type: %u.", my_fed->id, buffer[0]);
         }

@@ -35,6 +35,7 @@ reactor Looper(incr:int(1), delay:time(0 msec), stp_offset:time(0)) {
         pthread_create(&thread_id, NULL, &ping, a);        
     =}
     reaction(a) -> out {=
+        info_print("Setting out.");
         SET(out, self->count);
         self->count += self->incr;
     =}

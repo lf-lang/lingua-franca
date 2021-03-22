@@ -636,6 +636,17 @@ class CGenerator extends GeneratorBase {
                                 );
                         ''')
                     }
+                    if (federate.networkOutputControlTriggers.size > 0) {
+                        // Proliferate the network input port array
+                        pr('''
+                            // Initialize the array of pointers to network output port triggers
+                            _fed.triggers_for_network_output_control_reactions_size = 
+                             «federate.networkOutputControlTriggers.size»;
+                            _fed.triggers_for_network_output_control_reactions = (trigger_t**)malloc(
+                                    _fed.triggers_for_network_output_control_reactions_size * sizeof(trigger_t*)
+                                );
+                        ''')
+                    }
                 }
                 
                 pr(initializeTriggerObjects.toString)
@@ -3584,21 +3595,11 @@ class CGenerator extends GeneratorBase {
                     // width of -2 indicates that it is not a multiport.
                     «nameOfSelfStruct»->__«input.name»__width = -2;
                 ''')
-            }
-            
-            // Initialize the network_input_port_trigger for the input, if any exists
-            if (federate.networkInputPorts !== null) {
-                if (federate.networkInputPorts.contains(input)) {
-                    pr(initializeTriggerObjectsEnd, '''
-                        // Add trigger «nameOfSelfStruct»->___«input.name» to the global list of network input
-                        // ports 
-                        _fed.network_input_port_triggers[«federate.networkInputPorts.toList.indexOf(input)»]= 
-                                                                                    &«nameOfSelfStruct»->___«input.name»;
-                    ''')
-                }
-            }
+            }            
         }
 
+        pr(initializeTriggerObjectsEnd,
+            org.icyphy.federated.CGeneratorExtension.initializeTriggerForControlReactions(instance, federate));
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.        
         generateStateVariableInitializations(instance)
@@ -3633,6 +3634,7 @@ class CGenerator extends GeneratorBase {
                     «nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "num_destinations")» = «numDestinations»;
                 ''')
             }
+            
         }
         
         // Do the same for inputs of contained reactors that are sent data by reactions
@@ -4224,6 +4226,14 @@ class CGenerator extends GeneratorBase {
                 SET(«receiveRef», «action.name»->value);
             ''')
         }
+        
+        result.append('''        
+                // Port is now present. Therfore, notify the network input
+                // control reactions to stop waiting and re-check the port
+                // status.
+                pthread_cond_broadcast(&port_status_changed);
+        ''')
+        
         return result.toString
     }
 
@@ -4398,7 +4408,7 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder()
         
         result.append('''
-            DEBUG_PRINT("Invoked network dependant reaction.");
+            info_print("Invoked network dependant reaction.");
             // Check if the port is triggered
             if («port.name»->is_present) {
                 // Don't wait
@@ -4451,7 +4461,7 @@ class CGenerator extends GeneratorBase {
                                 max_STP,
                                 current_tag.time - start_time,
                                 current_tag.microstep);
-                        while(!wait_until(current_tag.time + max_STP, &reaction_q_changed)) {
+                        while(!wait_until(current_tag.time + max_STP, &port_status_changed)) {
                             // Interrupted
                             LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
                             if («port.name»->is_present) {
@@ -4494,7 +4504,7 @@ class CGenerator extends GeneratorBase {
      * 
      * @param port The port to generate the control reaction for
      */
-    override def String generateNetworkOutputControlReactionBody(
+    override generateNetworkOutputControlReactionBody(
         Port port,
         int portID,
         int federateID
@@ -4504,7 +4514,10 @@ class CGenerator extends GeneratorBase {
         
         result.append('''
             // If the output port has not been SET for the current logical time,
-            // send an ABSENT message to the receiving federate
+            // send an ABSENT message to the receiving federate            
+            info_print("Contemplating whether to send port "
+                       "absent for port %d to federate %d.", 
+                       «portID», «federateID»);
             if (!«port.name»->is_present) {
                 send_port_absent_to_federate(«portID», «federateID»);
             }
