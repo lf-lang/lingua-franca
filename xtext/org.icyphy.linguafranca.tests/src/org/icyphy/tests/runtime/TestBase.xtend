@@ -49,29 +49,69 @@ abstract class TestBase {
     @Inject Provider<ResourceSet> resourceSetProvider;
     
 
+    /**
+     * Reference to System.out.
+     */
     static val out = System.out;
+    
+    /**
+     * Reference to System.err.
+     */
     static val err = System.err;
     
+    /**
+     * Execution timeout enforced for all tests.
+     */
     final static long MAX_EXECUTION_TIME_SECONDS = 60
     
+    /**
+     * Line separator used for ending lines in terminal output. 
+     */
     public final static String NEW_LINE = System.getProperty("line.separator");
     
+    /**
+     * Content separator used in test output, 78 characters wide.
+     */
     public final static String DIVIDER = "+----------------------------------------------------------------------------+" + NEW_LINE;
     
+    /**
+     * Content separator used in test output, 78 characters wide.
+     */
     public final static String THIN_LINE = "------------------------------------------------------------------------------" + NEW_LINE;
     
+    /**
+     * Content separator used in test output, 78 characters wide.
+     */
     public final static String THICK_LINE = "==============================================================================" + NEW_LINE;
     
+    /**
+     * Content separator used in test output, 78 characters wide.
+     */
     public final static String EDGE_LINE = "+--------------------------------------------------------------------=-------+" + NEW_LINE;
     
+    /**
+     * Static description of test that runs non-federated tests as federated ones.
+     */
     public final static String RUN_AS_FEDERATED_DESC = "Description: Run non-federated tests in federated mode.";
     
+    /**
+     * The current target for which tests are being run.
+     */
     protected Target target;
     
+    /**
+     * Whether or not to check/report on the result of the program under test.
+     */
     protected boolean check = true;
     
+    /**
+     * Whether to execute the program under test.
+     */
     protected boolean run = true;
     
+    /**
+     * Whether to build/compile the produced target code or not.
+     */
     protected boolean build = true;
     
     /**
@@ -80,6 +120,8 @@ abstract class TestBase {
     new() {
         TestRegistry.initialize()
     }
+    
+    // Tests.
     
     @Test
     def void runExampleTests() {
@@ -157,6 +199,7 @@ abstract class TestBase {
         this.target.runTestsAndPrintResults([it === TestCategory.FEDERATED], null, false)
     }
 
+    //
     static def void restoreOutputs() {
         System.out.flush()
         System.err.flush()
@@ -167,9 +210,6 @@ abstract class TestBase {
     static def void redirectOutputs(LFTest test) {
         System.setOut(new PrintStream(test.out))
         System.setErr(new PrintStream(test.err))
-//        System.setErr(new PrintStream(new OutputStream() {
-//            override write(int b) throws IOException {}
-//        }));
     }
 
     def runTestsAndPrintResults(Target target, Function1<TestCategory, Boolean> selection, Function1<LFTest, Boolean> configuration, boolean copy) {
@@ -299,8 +339,6 @@ abstract class TestBase {
         val nameWithExtension = test.srcFile.fileName.toString
         val nameOnly = nameWithExtension.substring(0, nameWithExtension.lastIndexOf('.'))
         
-        // FIXME: we probably want to use the createCommand utility from GeneratorBase here.
-        // Should it be made static? Factored out?
         switch(test.target) {
             case C,
             case CPP,
