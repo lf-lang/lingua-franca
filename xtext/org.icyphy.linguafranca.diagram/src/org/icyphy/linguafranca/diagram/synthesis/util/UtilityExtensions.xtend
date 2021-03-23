@@ -1,4 +1,4 @@
-package org.icyphy.linguafranca.diagram.synthesis
+package org.icyphy.linguafranca.diagram.synthesis.util
 
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
@@ -18,6 +18,7 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
+import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
 
 import static extension org.icyphy.ASTUtils.*
 
@@ -27,7 +28,7 @@ import static extension org.icyphy.ASTUtils.*
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 @ViewSynthesisShared
-class LinguaFrancaSynthesisUtilityExtensions extends AbstractSynthesisExtensions {
+class UtilityExtensions extends AbstractSynthesisExtensions {
 	
 	extension KGraphFactory = KGraphFactory.eINSTANCE
 	

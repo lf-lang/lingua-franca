@@ -1,4 +1,4 @@
-package org.icyphy.linguafranca.diagram.synthesis
+package org.icyphy.linguafranca.diagram.synthesis.util
 
 import com.google.common.collect.HashMultimap
 import com.google.inject.Inject
@@ -13,6 +13,8 @@ import org.icyphy.graph.ReactionGraph
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Reactor
+import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
+import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
 
 /**
  * Dependency cycle detection for Lingua Franca diagrams.
@@ -20,13 +22,13 @@ import org.icyphy.linguaFranca.Reactor
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 @ViewSynthesisShared
-class LinguaFrancaSynthesisCycleDetection extends AbstractSynthesisExtensions {
+class CycleVisualization extends AbstractSynthesisExtensions {
 	
 	// Properties for marking diagram elements
 	public static val DEPENDENCY_CYCLE = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.dependency.cycle", false)
 	
 	@Inject
-	extension LinguaFrancaSynthesisUtilityExtensions
+	extension UtilityExtensions
 	
 	/**
 	 * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements

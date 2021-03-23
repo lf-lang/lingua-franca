@@ -68,6 +68,9 @@ import org.icyphy.linguafranca.diagram.synthesis.action.ShowCycleAction
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.ReactorFigureComponents
+import org.icyphy.linguafranca.diagram.synthesis.util.CycleVisualization
+import org.icyphy.linguafranca.diagram.synthesis.util.InterfaceDependenciesVisualization
+import org.icyphy.linguafranca.diagram.synthesis.util.UtilityExtensions
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.icyphy.ASTUtils.*
@@ -90,9 +93,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension KPolylineExtensions
 	@Inject extension LinguaFrancaStyleExtensions
 	@Inject extension LinguaFrancaShapeExtensions
-	@Inject extension LinguaFrancaSynthesisUtilityExtensions
-	@Inject extension LinguaFrancaSynthesisCycleDetection
-    @Inject extension LinguaFrancaSynthesisInterfaceDependencies
+	@Inject extension UtilityExtensions
+	@Inject extension CycleVisualization
+    @Inject extension InterfaceDependenciesVisualization
 	@Inject extension FilterCycleAction
 	
 	// -------------------------------------------------------------------------
