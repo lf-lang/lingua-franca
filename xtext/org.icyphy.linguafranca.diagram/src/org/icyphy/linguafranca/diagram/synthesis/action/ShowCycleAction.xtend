@@ -3,10 +3,10 @@ package org.icyphy.linguafranca.diagram.synthesis.action
 import de.cau.cs.kieler.klighd.IAction
 import de.cau.cs.kieler.klighd.kgraph.KNode
 import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
-import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesisCycleDetection
 
 import static extension de.cau.cs.kieler.klighd.util.ModelingUtil.*
 import static extension org.icyphy.linguafranca.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import org.icyphy.linguafranca.diagram.synthesis.util.CycleVisualization
 
 /**
  * Action that expands all reactor nodes that are included in a cycle.
@@ -28,7 +28,7 @@ class ShowCycleAction extends AbstractAction {
         // Expand only errors
         val cycleNodes = <KNode>newHashSet()
         cycleNodes += vc.viewModel.eAllContentsOfType(KNode).filter[
-        	getProperty(LinguaFrancaSynthesisCycleDetection.DEPENDENCY_CYCLE) && sourceIsReactor
+        	getProperty(CycleVisualization.DEPENDENCY_CYCLE) && sourceIsReactor
         ].toIterable
         // include parents
         val check = <KNode>newLinkedList(cycleNodes)
