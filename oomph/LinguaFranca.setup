@@ -54,7 +54,7 @@
         xsi:type="setup:EclipseIniTask"
         excludedTriggers="STARTUP MANUAL"
         option="-perspective"
-        value="org.eclipse.pde.ui.PDEPerspective">
+        value="org.eclipse.jdt.ui.JavaPerspective">
       <description>Set the default perspective</description>
     </setupTask>
   </setupTask>
