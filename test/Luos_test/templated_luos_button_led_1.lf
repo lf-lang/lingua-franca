@@ -1,0 +1,194 @@
+target C {
+    coordination: decentralized
+};
+
+preamble {=
+    #include "luos.h"
+=}
+
+// Templated driver container
+reactor Button {
+    
+    physical action pressed;
+    
+    input _in:boolean; // this should be a UPDATE_PUB msg_t type
+    output out:boolean;
+    
+    preamble {=
+        #include "button.h"
+		#include "gpio.h"
+		#include "template_state.h"
+		
+		template_state_t button_template;
+		class_state_t *button = &button_template.class;
+
+		/******************************************************************************
+		 * @brief loop must be call in project loop
+		 * @param None
+		 * @return None
+		 ******************************************************************************/
+		void Button_Loop(void)
+		{
+		    button->state = (bool)HAL_GPIO_ReadPin(BTN_GPIO_Port, BTN_Pin);
+		}
+    =}
+    
+    reaction(startup) {=
+        
+		/******************************************************************************
+		 * @brief init must be call in project init
+		 * @param None
+		 * @return None
+		 ******************************************************************************/
+		void Button_Init(void)
+		{
+		    revision_t revision = {.unmap = REV};
+		    // Class configuration
+		    button->access = READ_ONLY_ACCESS;
+		    // Container creation following template
+		    TemplateState_CreateContainer(0, &button_template, "button", revision);
+		}
+		
+    =}
+    // No reaction needed on templated mode. Luos already handle it automagically
+}
+
+// Templated driver container
+reactor Led {
+    
+    input _in:boolean;
+    
+    preamble {=
+        #include "led.h"
+		#include "gpio.h"
+		#include "template_state.h"
+		
+		template_state_t led_template;
+		class_state_t *led = &led_template.class;
+		
+		/******************************************************************************
+		 * @brief loop must be call in project loop
+		 * @param None
+		 * @return None
+		 ******************************************************************************/
+		void Led_Loop(void)
+		{
+		     HAL_GPIO_WritePin(BTN_GPIO_Port, BTN_Pin, led->state);
+		}
+    =}
+    reaction(startup) {=
+		/******************************************************************************
+		 * @brief init must be call in project init
+		 * @param None
+		 * @return None
+		 ******************************************************************************/
+		void Led_Init(void)
+		{
+		    revision_t revision = {.unmap = REV};
+		    // Class configuration
+		    led->access = WRITE_ONLY_ACCESS;
+		    // Container creation following template
+		    TemplateState_CreateContainer(0, &led_template, "led", revision);
+		}
+    =}
+    // No reaction needed on templated mode. Luos already handle it automagically
+}
+
+// Not templated App container
+reactor App {
+    
+    input from_button:boolean;
+    output to_button:boolean; // this should be a UPDATE_PUB msg_t type
+    output to_led:boolean;
+    
+    preamble {=
+        #include "app.h"
+		#include "luos.h"
+		
+		typedef enum
+		{
+		    APP = LUOS_LAST_TYPE
+		} test_t;
+		
+		/*******************************************************************************
+		 * Variables
+		 ******************************************************************************/
+		container_t *app;
+		
+		/******************************************************************************
+		 * @brief loop must be call in project loop
+		 * @param None
+		 * @return None
+		 ******************************************************************************/
+		void App_Loop(void)
+		{
+            // Nothing to do here
+		}
+    =}
+    reaction(startup) {=
+		/******************************************************************************
+		 * @brief init must be call in project init
+		 * @param None
+		 * @return None
+		 ******************************************************************************/
+		void App_Init(void)
+		{
+		    revision_t revision = {.unmap = REV};
+		    // Create App
+		    Luos_CreateContainer(App_MsgHandler, APP, "test_app", revision);
+		    // Detect all containers of the system
+		    RoutingTB_DetectContainers(app);
+		    // ********* Setup button to auto-refresh *****
+		    // Try to find the button
+            int id = RoutingTB_IDFromAlias("button");
+            if (id > 0)
+            {
+                // I should probably use the SET(to_button, ret) but I don't know how so I add what the SET should do in Luos instead.
+                msg_t msg;
+                msg.header.target = id;
+                msg.header.target_mode = IDACK;
+                // Setup auto update each ms on button
+                time_luos_t time = TimeOD_TimeFrom_ms(1);
+                TimeOD_TimeToMsg(&time, &msg);
+                msg.header.cmd = UPDATE_PUB;
+                Luos_SendMsg(app, &msg);
+            }
+		}
+    =}
+    
+    
+    // reaction()
+    reaction(from_button) -> to_led {=
+        // Normally Luos call the "App_MsgHandler" function specified on container creation
+        // this function receive the receiving container pointer (container) and the received message (msg)
+        
+        if (msg->header.cmd == IO_STATE)
+	    {
+            // This is the button info
+            // Try to find the led
+            int id = RoutingTB_IDFromAlias("led");
+            if (id > 0)
+            {
+                // I should probably use the SET(to_led, ret) but I don't know how so I add what the SET should do in Luos instead.
+            	// Send it to led
+                msg_t ret_msg;
+                ret_msg.header.target = id;
+                ret_msg.header.target_mode = IDACK;
+                ret_msg.header.cmd = IO_STATE;
+                ret_msg.header.size = 1;
+                ret_msg.data[0] = msg->data[0];
+                Luos_SendMsg(container, &ret_msg);
+            }
+	    }
+    =}
+}
+
+federated reactor Composite {
+    led = new Led();
+    button = new Button();
+    app = new App();
+        
+    app.to_button -> button._in;
+    app.to_led -> led._in;
+    button.out -> app.from_button after 1 msec;
+}
