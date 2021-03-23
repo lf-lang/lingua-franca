@@ -38,7 +38,8 @@ jobs:
         uses: codecov/codecov-action@v1 
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos 
-          files: ./xtext/org.icyphy.linguafranca.tests/build/reports/xml/jacoco
+          files: ${{ GITHUB_WORKSPACE }}/xtext/org.icyphy.linguafranca.tests/build/reports/xml/jacoco
+          # gcov_prefix: 
           # optional flags: unittests 
           # optional name: codecov-umbrella 
           # optional fail_ci_if_error: true 
