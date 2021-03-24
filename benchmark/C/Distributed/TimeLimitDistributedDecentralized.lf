@@ -23,6 +23,7 @@ reactor Destination {
 	state s:int(1);
 	reaction(x) {=
 		// printf("%d\n", x->value);
+		// printf("Reacting at time %ld.\n", get_elapsed_logical_time());
 		if (x->value != self->s) {
 		    warning_print("Expected %d and got %d.", self->s, x->value);
 		}

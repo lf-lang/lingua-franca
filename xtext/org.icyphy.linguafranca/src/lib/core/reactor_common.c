@@ -580,6 +580,10 @@ void __pop_events() {
 
         lf_token_t *token = event->token;
 
+        // if (token != NULL) {
+	    //     token->ref_count++;
+	    // }
+
         // Put the corresponding reactions onto the reaction queue.
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
             DEBUG_PRINT("Pushed onto reaction_q: %p", event->trigger->reactions[i]);
@@ -1255,6 +1259,11 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
         warning_print("_lf_schedule_init_reactions() called on a timer or physical action.");
         return 0;
     }
+
+    // Increment the reference count of the token.
+	if (token != NULL) {
+	    token->ref_count++;
+	}
 
 #ifdef FEDERATED_DECENTRALIZED
     // Set the intended tag which is current_tag
