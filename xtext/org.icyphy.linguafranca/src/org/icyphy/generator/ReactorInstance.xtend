@@ -458,7 +458,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** The action instances belonging to this reactor instance. */
     public var actions = new LinkedList<ActionInstance>
     
-    /** The contained instances, indexed by name. */
+    /** 
+     * The contained reactor instances, in order of declaration.
+     * For banks of reactors, this includes both the bank definition
+     * Reactor (which has bankIndex == -2) followed by each of the
+     * bank members (which have bankIndex >= 0).
+     */
     public var LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
 
     /** A map from sources to destinations as specified by the connections

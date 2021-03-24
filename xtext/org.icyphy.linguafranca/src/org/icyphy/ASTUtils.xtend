@@ -1829,7 +1829,13 @@ class ASTUtils {
         return defn?.typeParms.length != 0;
     }
     
-    
+    /**
+     * If the specified reactor declaration is an import, then
+     * return the imported reactor class definition. Otherwise,
+     * just return the argument.
+     * @param r A Reactor or an ImportedReactor.
+     * @return The Reactor class definition.
+     */
     def static Reactor toDefinition(ReactorDecl r) {
         if (r === null)
             return null
@@ -1839,6 +1845,7 @@ class ASTUtils {
             return r.reactorClass
         }
     }
+    
     /**
      * Retrieve a specific annotation in a JavaDoc style comment associated with the given model element in the AST.
      * 
