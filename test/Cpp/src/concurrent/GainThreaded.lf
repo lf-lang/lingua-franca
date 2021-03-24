@@ -18,7 +18,7 @@ reactor Test {
         }
     =}
 }
-main reactor Gain {
+main reactor {
     g = new Scale();
     t = new Test();
     g.y -> t.x;

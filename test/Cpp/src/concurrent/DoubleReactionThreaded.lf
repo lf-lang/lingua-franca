@@ -35,7 +35,7 @@ reactor Destination {
         s += 2;
     =}
 }
-main reactor DoubleReaction {
+main reactor {
     c1 = new Clock();
     c2 = new Clock();
     d = new Destination();

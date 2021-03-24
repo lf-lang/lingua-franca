@@ -37,6 +37,7 @@ reactor Sink {
         }
 	=}
 }
+
 main reactor ActionDelay {
     source = new Source();
     sink = new Sink();

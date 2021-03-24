@@ -1,7 +1,7 @@
 // This is a smoke test of a minimal reactor.
 target Cpp;
 
-main reactor Minimal {
+main reactor {
     reaction(startup) {=
         std::cout << "Hello World!\n";
     =}

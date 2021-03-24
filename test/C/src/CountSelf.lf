@@ -3,7 +3,7 @@ target C {
     timeout: 1 sec,
     fast: true
 };
-reactor CountSelf(delay:time(100 msec)) {
+reactor CountSelf2(delay:time(100 msec)) {
     output out:int;
     logical action a:int;
     reaction(startup) -> a, out {=
@@ -28,8 +28,8 @@ reactor Test {
     =}
 }
 
-main reactor DelayInt { 
-    d = new CountSelf();
+main reactor { 
+    d = new CountSelf2();
     t = new Test();
     d.out -> t.in; 
 }

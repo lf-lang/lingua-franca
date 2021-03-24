@@ -34,7 +34,7 @@ reactor Pass {
     =}
 }
 
-main reactor Determinism {
+main reactor {
     s = new Source();
     d = new Destination();
     p1 = new Pass();

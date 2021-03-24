@@ -75,7 +75,7 @@ reactor Receiver {
     =}
 }
 
-federated reactor DistributedStop {
+federated reactor {
     sender = new Sender();
     receiver = new Receiver();
     

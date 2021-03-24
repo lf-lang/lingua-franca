@@ -1,6 +1,6 @@
 // Example from Schedule section of the C Reactor Target wiki page.
 target C;
-reactor Schedule {
+reactor Schedule2 {
     input x:int;
     logical action a;
     reaction(x) -> a {=
@@ -15,8 +15,8 @@ reactor Schedule {
         }
     =}
 }
-main reactor Main {
-    a = new Schedule();
+main reactor {
+    a = new Schedule2();
     timer t;
     reaction(t) -> a.x {=
         SET(a.x, 1);

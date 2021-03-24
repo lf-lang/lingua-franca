@@ -63,7 +63,7 @@ reactor Pong(expected:int(10)) {
         printf("Pong received %d pings.\n", self->count);
     =}
 }
-federated reactor PingPong(count:int(10)) {
+federated reactor (count:int(10)) {
     ping = new Ping(count = count);
     pong = new Pong(expected = count);
     ping.send ~> pong.receive;

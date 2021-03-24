@@ -8,6 +8,6 @@ reactor Foo(bar:time(42 msec)) {
 	=}
 }
 
-main reactor X {
+main reactor {
 	a = new Foo();
 }

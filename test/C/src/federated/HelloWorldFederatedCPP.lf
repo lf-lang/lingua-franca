@@ -10,7 +10,7 @@ target C {
     coordination: centralized,
     timeout: 1 sec
 };
-reactor HelloWorld {
+reactor HelloWorld2 {
     state success:bool(false);
     reaction(startup) {=
         printf("Hello World.\n");
@@ -24,7 +24,8 @@ reactor HelloWorld {
         }
     =}
 }
-federated reactor HelloWorldTest {
-    a = new HelloWorld();
-    b = new HelloWorld(); // Create a non-singleton federation
+
+federated reactor {
+    a = new HelloWorld2();
+    b = new HelloWorld2(); // Create a non-singleton federation
 }

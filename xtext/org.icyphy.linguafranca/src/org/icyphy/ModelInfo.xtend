@@ -96,12 +96,18 @@ class ModelInfo {
     public ReactionGraph reactionGraph
     
     /**
+     * The name of the main reactor, which must match the file name.
+     */
+    public String mainReactorName
+    
+    /**
      * Redo all analysis based on the given model.
      * @param model the model to analyze.
      */
     def update(Model model) {
         this.model = model
         this.directory = FileConfig.toPath(model.eResource.URI).toFile.parent
+        this.mainReactorName = FileConfig.nameWithoutExtension(this.model.eResource)
         this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {

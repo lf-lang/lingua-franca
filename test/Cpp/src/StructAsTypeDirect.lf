@@ -17,7 +17,7 @@ reactor DirectSource {
     =}
 }
 
-main reactor StructAsType {
+main reactor {
     s = new DirectSource();
     p = new Print();
     s.out -> p.in;

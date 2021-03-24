@@ -36,7 +36,7 @@ reactor Inside(period:time(1 sec),
                message:{=std::string=}("Composite default message.")) {
     third_instance = new HelloCpp(period = period, message = message);
 }
-main reactor Hello { 
+main reactor { 
     first_instance = new HelloCpp(period = 4 sec, 
                                   message = "Hello from first_instance.");
     second_instance = new HelloCpp(message = "Hello from second_instance.");

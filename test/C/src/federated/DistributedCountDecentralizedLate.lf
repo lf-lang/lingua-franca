@@ -56,7 +56,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCountDecentralized {
+federated reactor {
     c = new Count();
     p = new Print();
     c.out -> p.in;    // Indicating a 'logical' connection.

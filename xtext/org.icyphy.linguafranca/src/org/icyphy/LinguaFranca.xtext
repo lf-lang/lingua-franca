@@ -79,7 +79,7 @@ QualifiedNameWithWildcard:
  * Declaration of a reactor class.
  */
 Reactor:
-    ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' name=ID 
+    {Reactor} ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)? 
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
