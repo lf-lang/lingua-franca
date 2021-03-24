@@ -34,7 +34,7 @@ reactor Test {
 	    }
 	=}
 }
-main reactor Composition {
+main reactor {
 	s = new SourceExtended();
 	d = new Test();
 	s.y -> d.x;

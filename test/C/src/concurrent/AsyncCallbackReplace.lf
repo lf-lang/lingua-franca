@@ -7,7 +7,7 @@ target C {
 	timeout: 2 sec
 };
 
-main reactor AsyncCallback {
+main reactor {
 	
 	preamble {= 
 		#include <pthread.h>

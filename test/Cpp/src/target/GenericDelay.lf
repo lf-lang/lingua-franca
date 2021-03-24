@@ -2,7 +2,7 @@ target Cpp;
 
 import Test from "../DelayInt.lf";
 
-reactor GenericDelay<T>(delay:time(0)) {
+reactor Delay<T>(delay:time(0)) {
     output out:T;
     input in:T;
     logical action a(delay):T;
@@ -16,8 +16,8 @@ reactor GenericDelay<T>(delay:time(0)) {
     =}
 }
 
-main reactor GenericDelayTest {
-    d = new GenericDelay<int>(delay=100 msec);
+main reactor {
+    d = new Delay<int>(delay=100 msec);
     test = new Test();
     d.out -> test.in; 
     reaction(startup) -> d.in {=

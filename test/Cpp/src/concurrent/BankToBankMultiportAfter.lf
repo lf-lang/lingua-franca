@@ -48,7 +48,7 @@ reactor Destination(width:int(1)) {
         std::cout << "Success.\n";
     =}
 }
-main reactor BankToBankMultiport(bank_width:int(4)) {
+main reactor (bank_width:int(4)) {
     // FIXME: replace '4' with 'bank_width'. 
 	a = new[4] Source(width = 4);
 	b = new[4] Destination(width = 4);

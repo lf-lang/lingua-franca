@@ -393,6 +393,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         setFileConfig(resource, fsa, context)
         
+        ASTUtils.setMainName(resource)
         // The following "analysis" has hidden in it AST transformations.
         // FIXME: We should factor them out and rename the following method
         // parseTargetProperties or something along those lines. 

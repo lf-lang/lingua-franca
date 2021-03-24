@@ -511,4 +511,8 @@ public class FileConfig {
      public File getRTIDistributionScriptFile() {
          return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
      }
+     
+     public static String nameWithoutExtension(Resource r) throws IOException {
+         return nameWithoutExtension(toPath(r.getURI()).toFile());
+     }
 }

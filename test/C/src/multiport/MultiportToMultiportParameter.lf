@@ -40,7 +40,7 @@ reactor Destination(width:int(1)) {
         printf("Success.\n");
     =}
 }
-main reactor MultiportParameterized(width:int(4)) { 
+main reactor (width:int(4)) { 
     a = new Source(width = width);
     b = new Destination(width = width);
     a.out -> b.in;

@@ -78,6 +78,7 @@ import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.TargetProperty
+import org.icyphy.FileConfig
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -883,6 +884,37 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkReactor(Reactor reactor) {
+        if (reactor.name === null) {
+            if (!reactor.isFederated && !reactor.isMain) {
+                error(
+                    "Reactor must be named.",
+                    Literals.REACTOR_DECL__NAME
+                )
+            }
+            // Prevent NPE in tests below.
+            return
+        } else {
+            if (reactor.isFederated || reactor.isMain) {
+                if(!reactor.name.equals(info.mainReactorName)) {
+                    // Make sure that if the name is omitted, the reactor is indeed main.
+                    error(
+                        "Name of main or federated reactor must match the file name (or be omitted).",
+                        Literals.REACTOR_DECL__NAME
+                    )
+                }
+            } else if (info.numberOfMainReactors > 0 && reactor.name.equals(info.mainReactorName)) {
+                // Make sure that if a main reactor is specified, there are no
+                // ordinary reactors that clash with it.
+                error(
+                    "Name conflict with main reactor.",
+                    Literals.REACTOR_DECL__NAME
+                )
+            }
+        }
+        
+        // If there is a main reactor (with no name) then disallow other (non-main) reactors
+        // matching the file name.
+        
         checkName(reactor.name, Literals.REACTOR_DECL__NAME)
         
         // C++ reactors may not be called 'preamble'
@@ -902,6 +934,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
         }
+        
         // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
         // (essentially all the classes that are imported by default).
 

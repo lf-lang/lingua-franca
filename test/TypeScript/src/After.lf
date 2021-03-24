@@ -26,7 +26,7 @@ reactor Print {
         expected_time = expected_time.add(new UnitBasedTimeValue(1, TimeUnit.sec));
     =}
 }
-main reactor Top {
+main reactor {
     f = new Foo();
     p = new Print();
     timer t(0, 1 sec);

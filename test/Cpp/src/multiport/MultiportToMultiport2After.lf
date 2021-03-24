@@ -46,7 +46,7 @@ reactor Destination(width:int(2)) {
     =}
 }
 
-main reactor MultiportToMultiport2 {
+main reactor {
     a1 = new Source3(width = 3);
     a2 = new Source2(width = 2);
     b = new Destination(width = 5);

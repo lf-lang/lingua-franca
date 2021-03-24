@@ -53,7 +53,7 @@ reactor Consumer {
     =}
 } 
 
-main reactor Timeout {
+main reactor {
    consumer = new Consumer();
    producer = new Sender(break_interval = 1 msec); 
    

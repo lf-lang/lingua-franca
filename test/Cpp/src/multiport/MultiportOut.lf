@@ -50,7 +50,7 @@ reactor Destination {
     =}
 }
 
-main reactor ThreadedMultiport { 
+main reactor { 
 	a = new Source();
 	t1 = new Computation();
 	t2 = new Computation();

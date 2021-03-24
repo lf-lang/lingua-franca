@@ -27,7 +27,8 @@ reactor Test {
 		}
 	=} 
 }
-main reactor Composition(delay:time(5 sec)) {
+
+main reactor CompositionAfter(delay:time(5 sec)) {
 	s = new Source();
 	d = new Test();
 	s.y -> d.x after delay;

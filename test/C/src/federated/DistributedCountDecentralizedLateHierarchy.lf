@@ -88,7 +88,7 @@ reactor Receiver {
     =}
 }
 
-federated reactor DistributedCountDecentralized {
+federated reactor {
     c = new Count();
     r = new Receiver();
     c.out -> r.in;    // Indicating a 'logical' connection.

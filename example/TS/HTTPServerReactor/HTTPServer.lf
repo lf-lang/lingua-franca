@@ -3,7 +3,7 @@ target TypeScript {
     //logging : "debug"
     //timeout : 10 sec
 };
-main reactor Server {
+main reactor {
     preamble {=
         import * as https from "https"
         import * as http from "http"

@@ -16,7 +16,7 @@ reactor Printer {
         count++;
     =}
 }
-main reactor SendingInside {
+main reactor {
     state count:int(0);
     timer t(0, 1 sec);
     p = new Printer();

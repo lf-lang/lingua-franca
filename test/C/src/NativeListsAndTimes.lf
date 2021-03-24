@@ -2,7 +2,7 @@ target C;
 
 // This test passes if it is successfully compiled into valid target code.
 
-main reactor Foo(x:int(0), 
+main reactor(x:int(0), 
 			y:time(0), 		// Units are missing but not required
 			z(1 msec), 		// Type is missing but not required
 			p:int[](1, 2, 3, 4),		// List of integers 

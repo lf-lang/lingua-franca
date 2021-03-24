@@ -58,7 +58,7 @@ reactor Receiver {
     =}
 }
 
-federated reactor DistributedNetworkOrder {
+federated reactor {
     sender = new Sender();
     receiver = new Receiver();
     
