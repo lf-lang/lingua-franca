@@ -1,7 +1,6 @@
 package org.icyphy.tests.runtime;
 
 import org.icyphy.tests.TestRegistry.TestCategory;
-import org.icyphy.tests.runtime.TestBase;
 import org.junit.jupiter.api.Test;
 
 public abstract class ThreadedBase extends TestBase {
