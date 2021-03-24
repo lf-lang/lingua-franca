@@ -260,14 +260,14 @@ int create_server(int specified_port, ushort port, socket_type_t socket_type) {
  * Handle a port absent message being received rom a federate via the RIT.
  */
 void handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer) {
-    int message_size = sizeof(unsigned short) + sizeof(unsigned short);
+    int message_size = sizeof(unsigned short) + sizeof(unsigned short) + sizeof(instant_t) + sizeof(microstep_t);
 
     read_from_socket_errexit(sending_federate->socket, message_size, &(buffer[1]), 
                             " RTI failed ot read port absent message from federate %u.", 
                             sending_federate->id);
 
     unsigned short port_id = extract_ushort(&(buffer[1]));
-    unsigned short federate_id = extract_ushort(&(buffer[1 + sizeof(unsigned int)]));
+    unsigned short federate_id = extract_ushort(&(buffer[1 + sizeof(unsigned short)]));
 
     // Need to acquire the mutex lock to ensure that the thread handling
     // messages coming from the socket connected to the destination does not
@@ -563,7 +563,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     // then grant a new TAG to the federate with payload equal to NET.
     // Otherwise, do not send a reply now.  A TAG will presumably later
     // be sent when one of the upstream federates makes progress.
-    if (t_d.time == FOREVER || compare_tags(t_d, fed->next_event) > 0) {
+    if (t_d.time == FOREVER || compare_tags(t_d, fed->next_event) >= 0) {
         // Send TAG to federate.
         send_tag_advance_grant(fed, fed->next_event);
         return true;

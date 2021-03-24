@@ -912,6 +912,7 @@ class CGenerator extends GeneratorBase {
                 // Initialize the socket mutex
                 lf_mutex_init(&inbound_socket_mutex);
                 lf_mutex_init(&outbound_socket_mutex);
+                lf_mutex_init(&port_status_changed);
             ''')
             
 //            if (isFederatedAndDecentralized) {
@@ -4407,22 +4408,6 @@ class CGenerator extends GeneratorBase {
         // Store the code
         val result = new StringBuilder()
         
-        result.append('''
-            DEBUG_PRINT("Invoked network dependant reaction.");
-            // Check if the port is triggered
-            if («port.name»->is_present) {
-                // Don't wait
-                LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
-                          "because it is already present.");
-                // Set the is_present value of the trigger so that we know the status
-                // of this trigger for the current logical time.
-                // The is_present field for triggers of ports appears
-                // to be unused for any other meaningful purpose
-                self->___«port.name».status = present;
-                return;
-            }
-        ''')
-        
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
             result.append('''
@@ -4454,6 +4439,31 @@ class CGenerator extends GeneratorBase {
                 pthread_mutex_lock(&mutex);
         ''')
         
+        result.append('''
+            DEBUG_PRINT("Invoked network dependant reaction.");
+            // Check if the port is triggered
+            if («port.name»->is_present) {
+                // Don't wait
+                LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
+                          "because it is already present.");
+                // Set the is_present value of the trigger so that we know the status
+                // of this trigger for the current logical time.
+                // The is_present field for triggers of ports appears
+                // to be unused for any other meaningful purpose
+                self->___«port.name».status = present;
+                pthread_mutex_unlock(&mutex);
+                return;
+            } else if (self->___«port.name».status == absent || 
+                              compare_tags(self->___«port.name».last_known_status_tag, 
+                                get_current_tag()) > 0) {
+                // We have a known status for this port in a future tag. Therefore, no event is going
+                // to be present for this port at the current tag.
+                self->___«port.name».status = absent;
+                pthread_mutex_unlock(&mutex);
+                return;
+            }
+        ''')
+        
         if(isFederatedAndDecentralized) {
             result.append('''
                     if(max_STP != 0LL) {
@@ -4475,10 +4485,49 @@ class CGenerator extends GeneratorBase {
                                 // Unlock the mutex
                                 pthread_mutex_unlock(&mutex);
                                 return;
+                            } else if (self->___«port.name».status == absent || 
+                                              compare_tags(self->___«port.name».last_known_status_tag, 
+                                                get_current_tag()) > 0) {
+                                // We have a known status for this port in a future tag. Therefore, no event is going
+                                // to be present for this port at the current tag.
+                                self->___«port.name».status = absent;
+                                pthread_mutex_unlock(&mutex);
+                                return;
                             }
                         }
                         // Done waiting
                     }
+            ''')        
+        } else {
+            result.append('''                    
+                    LOG_PRINT("------ Waiting for network input port \"in\" at tag (%llu, %d).",
+                            current_tag.time - start_time,
+                            current_tag.microstep);
+                    while(!wait_until(FOREVER, &port_status_changed)) {
+                        // Interrupted
+                        LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
+                        if («port.name»->is_present) {
+                            // Don't wait any longer
+                            LOG_PRINT("------ Done waiting for network input port \"«port.name»\".");
+                            // Set the is_present value of the trigger so that we know the status
+                            // of this trigger for the current logical time
+                            // The is_present field for triggers of ports appears
+                            // to be unused for any other meaningful purpose
+                            self->___«port.name».status = present;
+                            // Unlock the mutex
+                            pthread_mutex_unlock(&mutex);
+                            return;
+                        } else if (self->___«port.name».status == absent || 
+                                          compare_tags(self->___«port.name».last_known_status_tag, 
+                                            get_current_tag()) > 0) {
+                            // We have a known status for this port in a future tag. Therefore, no event is going
+                            // to be present for this port at the current tag.
+                            self->___«port.name».status = absent;
+                            pthread_mutex_unlock(&mutex);
+                            return;
+                        }
+                    }
+                    // Done waiting
             ''')        
         }
         

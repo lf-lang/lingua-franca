@@ -505,6 +505,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 2 bytes will be the federate id of the destination federate.
  *  This is needed for the centralized coordination so that the RTI knows where
  *  to forward the message.
+ * The next 8 bytes are the intended time of the absent message
+ * The next 4 bytes are the intended microstep of the absent message
  */
 #define PORT_ABSENT 21
 
