@@ -632,6 +632,10 @@ class CGenerator extends GeneratorBase {
                     var traceFileName = topLevelName;
                     if (targetConfig.tracing.traceFileName !== null) {
                         traceFileName = targetConfig.tracing.traceFileName;
+                        // Since all federates would have the same name, we need to append the federate name.
+                        if (!federate.isSingleton()) {
+                            traceFileName += "_" + federate.name;
+                        }
                     }
                     pr('''start_trace("«traceFileName».lft");''') // .lft is for Lingua Franca trace
                 }
