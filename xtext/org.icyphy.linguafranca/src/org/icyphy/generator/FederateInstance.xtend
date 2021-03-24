@@ -61,21 +61,21 @@ class FederateInstance {
      * @param instantiation The instantiation of a top-level reactor,
      *  or null if no federation has been defined.
      * @param id The federate ID.
-     * @param bankPosition If instantiation.widthSpec !== null, this gives the bank position.
+     * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
      * @param generator The generator (for reporting errors).
      */
-    protected new(Instantiation instantiation, int id, int bankPosition, GeneratorBase generator) {
+    protected new(Instantiation instantiation, int id, int bankIndex, GeneratorBase generator) {
         this.instantiation = instantiation;
         this.id = id;
         this.generator = generator;
-        this.bankPosition = bankPosition;
+        this.bankIndex = bankIndex;
                 
         if (instantiation !== null) {
             this.name = instantiation.name;
             // If the instantiation is in a bank, then we have to append
             // the bank index to the name.
             if (instantiation.widthSpec !== null) {
-                this.name = instantiation.name + "__" + bankPosition;
+                this.name = instantiation.name + "__" + bankIndex;
             }
         }
     }
@@ -87,7 +87,7 @@ class FederateInstance {
      * The position within a bank of reactors for this federate.
      * This is 0 if the instantiation is not a bank of reactors.
      */
-    public var bankPosition = 0;
+    public var bankIndex = 0;
     
     /**
      * A list of outputs that can be triggered directly or indirectly by physical actions.
@@ -163,15 +163,37 @@ class FederateInstance {
     //// Public Methods
     
     /** 
-     * Return true if the specified reactor instance is contained by
-     * this federate.
-     * @return True if the federate contains the reactor instance
+     * Return true if the specified reactor instance or any parent
+     * reactor instance is contained by this federate.
+     * If the specified instance is the top-level reactor, return true
+     * (this reactor belongs to all federates).
+     * If it is a bank member, then this returns true only if the bankIndex
+     * of the reactor instance matches the federate instance bank index.
+     * If this federate instance is a singleton, then return true if the
+     * instance is non null.
+     * 
+     * @param instance The reactor instance.
+     * @return True if this federate contains the reactor instance
      */
     def contains(ReactorInstance instance) {
-        if (instance.definition === this.instantiation
-            && (instance.bankIndex < 0 || instance.bankIndex == this.bankPosition)
-        ) {
+        if (isSingleton) {
+            return (instance !== null);
+        }
+        if (instance.parent === null) {
             return true;
+        }
+        // Start with this instance, then check its parents.
+        var i = instance;
+        while (i !== null) {
+            if (i.definition === this.instantiation
+                    && (
+                        i.bankIndex < 0                 // Not a bank member
+                        || i.bankIndex == this.bankIndex  // Index matches.
+                    )
+            ) {
+                return true;
+            }
+            i = i.parent;
         }
         return false;
     }
