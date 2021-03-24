@@ -4446,10 +4446,8 @@ class CGenerator extends GeneratorBase {
                 // Don't wait
                 LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
                           "because it is already present.");
-                // Set the is_present value of the trigger so that we know the status
+                // Set the status of the trigger so that we know the status
                 // of this trigger for the current logical time.
-                // The is_present field for triggers of ports appears
-                // to be unused for any other meaningful purpose
                 self->___«port.name».status = present;
                 pthread_mutex_unlock(&mutex);
                 return;
@@ -4564,7 +4562,7 @@ class CGenerator extends GeneratorBase {
         result.append('''
             // If the output port has not been SET for the current logical time,
             // send an ABSENT message to the receiving federate            
-            DEBUG_PRINT("Contemplating whether to send port "
+            LOG_PRINT("Contemplating whether to send port "
                        "absent for port %d to federate %d.", 
                        «portID», «federateID»);
             if (!«port.name»->is_present) {
