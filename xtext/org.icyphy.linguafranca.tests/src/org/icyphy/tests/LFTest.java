@@ -2,16 +2,11 @@ package org.icyphy.tests;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.regex.Pattern;
 
-import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.util.CancelIndicator;
 import org.icyphy.FileConfig;
 import org.icyphy.Target;
 import org.icyphy.generator.StandaloneContext;
