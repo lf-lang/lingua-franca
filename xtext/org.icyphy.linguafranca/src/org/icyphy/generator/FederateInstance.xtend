@@ -177,7 +177,7 @@ class FederateInstance {
      * notify all downstream federates that no value will be present on the given network port,
      * allowing input control reactions on those federates to stop blocking.
      */
-    public var networkOutputControlTriggers = new LinkedHashSet<Port>();
+    public var VarRef networkOutputControlReactionsTrigger = null;
 
     /////////////////////////////////////////////
     //// Public Methods

@@ -1189,7 +1189,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param port The port to generate the control reaction for
      */
     def String generateNetworkOutputControlReactionBody(
-        Port port,
+        VarRef port,
         int portID,
         int federateID
     ) {

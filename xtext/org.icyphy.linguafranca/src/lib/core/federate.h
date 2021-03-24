@@ -203,20 +203,15 @@ typedef struct federate_instance_t {
 
 
 	/**
-	 * A record of triggers for all network output control reactions. 
+	 * The triggers for all network output control reactions. 
 	 * 
-	 * This list is used to trigger network output
+	 * This is used to trigger network output
 	 * control reactions that will potentially send an ABSENT 
 	 * message to any downstream federate that might be blocking 
 	 * on the network port. The ABSENT message will only be sent if
 	 * the output is not present.
 	 */
-	trigger_t** triggers_for_network_output_control_reactions;
-
-	/**
-	 * Number of network output ports.
-	 */
-	int triggers_for_network_output_control_reactions_size;
+	trigger_t* trigger_for_network_output_control_reactions;
 
 } federate_instance_t;
 

@@ -6,8 +6,7 @@
 target C {
     flags: ["-O2", "-Wall", "-g", "-rdynamic"],
     coordination: decentralized,
-    timeout: 2 secs,
-    logging: DEBUG
+    timeout: 4 secs
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
@@ -15,7 +14,7 @@ reactor Clock(offset:time(0), period:time(1 sec)) {
 	state count:int(0);
 	reaction(t) -> y {=
 		(self->count)++;
-		printf("Reacting at time %ld.\n", get_elapsed_logical_time());
+        // info_print("Reacting at time (%lld, %u).", get_elapsed_logical_time(), get_microstep());
 		SET(y, self->count);
 	=}
 }
@@ -23,8 +22,8 @@ reactor Destination {
 	input x:int;
 	state s:int(1);
 	reaction(x) {=
-		// printf("%d\n", x->value);
-		// printf("Reacting at time %ld.\n", get_elapsed_logical_time());
+		// info_print("%d", x->value);
+		// info_print("Reacting at time (%lld, %u).", get_elapsed_logical_time(), get_microstep());
 		if (x->value != self->s) {
 		    warning_print("Expected %d and got %d.", self->s, x->value);
 		}
@@ -39,7 +38,7 @@ reactor Destination {
         info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-federated reactor TimeLimitDistributedDecentralized(period:time(1 sec)) {
+federated reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x after period;

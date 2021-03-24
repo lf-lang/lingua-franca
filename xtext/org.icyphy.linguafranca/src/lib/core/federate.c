@@ -77,7 +77,8 @@ federate_instance_t _fed = {
         .last_sent_NET = (tag_t) {.time = NEVER, .microstep = 0u},
         .min_delay_from_physical_action_to_federate_output = NEVER,
         .network_input_port_triggers = NULL,
-        .network_input_port_triggers_size = 0
+        .network_input_port_triggers_size = 0,
+        .trigger_for_network_output_control_reactions = NULL
 };
 
 /** 
@@ -1832,8 +1833,12 @@ void enqueue_network_input_control_reactions(pqueue_t* reaction_q){
 }
 
 void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
-    for (int i = 0; i < _fed.triggers_for_network_output_control_reactions_size; i++) {
-       reaction_t* reaction = _fed.triggers_for_network_output_control_reactions[i]->reactions[0];
+    if (_fed.trigger_for_network_output_control_reactions == NULL) {
+        // There are no network output control reactions
+        return;
+    }
+    for (int i = 0; i < _fed.trigger_for_network_output_control_reactions->number_of_reactions; i++) {
+       reaction_t* reaction = _fed.trigger_for_network_output_control_reactions->reactions[i];
        if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
            pqueue_insert(reaction_q, reaction);
        }

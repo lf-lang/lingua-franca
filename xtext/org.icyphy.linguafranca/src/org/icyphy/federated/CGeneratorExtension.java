@@ -19,9 +19,6 @@ public class CGeneratorExtension {
             ReactorInstance instance, FederateInstance federate) {
         StringBuilder builder = new StringBuilder();
 
-        List<Port> networkOutputControlTriggersList = new ArrayList<Port>(
-                federate.networkOutputControlTriggers);
-
         List<Port> networkInputPorts = new ArrayList<Port>(
                 federate.networkInputPorts);
 
@@ -45,25 +42,23 @@ public class CGeneratorExtension {
                             + ";\n");
                 }
             }
+        }
+
+        if (instance.parent != null) {
+            nameOfSelfStruct = org.icyphy.generator.CGenerator
+                    .selfStructName(instance.parent);
 
             // Initialize triggers for network output control reactions
             // Initialize the triggerForNetworkOutputControlReactions for the
             // output, if any exists
-            if (federate.networkOutputControlTriggers != null) {
-                // Find the trigger
-                if (federate.networkOutputControlTriggers.contains(input)) {
-                        builder.append(
-                                "_fed.triggers_for_network_output_control_reactions["
-                                        + networkOutputControlTriggersList
-                                        .indexOf(input)
-                                        + "]= &" + nameOfSelfStruct + "->___"
-                                        + input.getName() + ";\n");
-                }
+            if (federate.networkOutputControlReactionsTrigger != null) {
+                builder.append(
+                        "_fed.trigger_for_network_output_control_reactions=&"
+                                + nameOfSelfStruct
+                                + "->___outputControlReactionTrigger;\n");
             }
-
         }
 
-        
         return builder;
     }
 }
