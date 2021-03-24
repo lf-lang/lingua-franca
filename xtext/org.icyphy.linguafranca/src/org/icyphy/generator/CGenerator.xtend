@@ -636,17 +636,6 @@ class CGenerator extends GeneratorBase {
                                 );
                         ''')
                     }
-                    if (federate.networkOutputControlTriggers.size > 0) {
-                        // Proliferate the network input port array
-                        pr('''
-                            // Initialize the array of pointers to network output port triggers
-                            _fed.triggers_for_network_output_control_reactions_size = 
-                             «federate.networkOutputControlTriggers.size»;
-                            _fed.triggers_for_network_output_control_reactions = (trigger_t**)malloc(
-                                    _fed.triggers_for_network_output_control_reactions_size * sizeof(trigger_t*)
-                                );
-                        ''')
-                    }
                 }
                 
                 pr(initializeTriggerObjects.toString)
@@ -4552,7 +4541,7 @@ class CGenerator extends GeneratorBase {
      * @param port The port to generate the control reaction for
      */
     override generateNetworkOutputControlReactionBody(
-        Port port,
+        VarRef port,
         int portID,
         int federateID
     ) {
@@ -4565,7 +4554,7 @@ class CGenerator extends GeneratorBase {
             LOG_PRINT("Contemplating whether to send port "
                        "absent for port %d to federate %d.", 
                        «portID», «federateID»);
-            if (!«port.name»->is_present) {
+            if (!«port.container.name».«port.variable.name»->is_present) {
                 send_port_absent_to_federate(«portID», «federateID»);
             }
         ''')
