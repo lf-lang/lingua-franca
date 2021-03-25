@@ -2,16 +2,12 @@ package org.icyphy.federated;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.icyphy.generator.FederateInstance;
 import org.icyphy.generator.ReactorInstance;
 import org.icyphy.linguaFranca.Input;
-import org.icyphy.linguaFranca.Output;
 import org.icyphy.linguaFranca.Port;
-import org.icyphy.linguaFranca.Reaction;
 import org.icyphy.linguaFranca.ReactorDecl;
-import org.icyphy.linguaFranca.VarRef;
 
 public class CGeneratorExtension {
 
