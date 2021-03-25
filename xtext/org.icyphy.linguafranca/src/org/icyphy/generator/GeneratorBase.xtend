@@ -1201,7 +1201,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def isFederatedAndDecentralized() {
         if (isFederated &&
-            config.coordination === CoordinationType.DECENTRALIZED) {
+            targetConfig.coordination === CoordinationType.DECENTRALIZED) {
             return true
         }
         return false
@@ -1212,7 +1212,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def isFederatedAndCentralized() {
         if (isFederated &&
-            config.coordination === CoordinationType.CENTRALIZED) {
+            targetConfig.coordination === CoordinationType.CENTRALIZED) {
             return true
         }
         return false
