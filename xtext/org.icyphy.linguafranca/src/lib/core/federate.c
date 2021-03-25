@@ -1164,6 +1164,7 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
 
         LOG_PRINT("Calling schedule with tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         schedule_message_received_from_network_already_locked(action, intended_tag, message_token);
+    
         // Notify any control reaction that a future event has been produced for a port
         lf_cond_broadcast(&port_status_changed);
     }
