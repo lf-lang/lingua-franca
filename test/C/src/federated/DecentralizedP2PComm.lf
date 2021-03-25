@@ -22,7 +22,7 @@ reactor Platform(start:int(0), expected_start:int(0), stp_offset:time(0)) {
     =} STP (stp_offset) {=
         tag_t current_tag = get_current_tag();
         self->expected_start++;
-        error_print_and_exit("STP offset was violated by (%lld, %u).",
+        error_print("STP offset was violated by (%lld, %u).",
             current_tag.time - in->intended_tag.time
         );
     =}
