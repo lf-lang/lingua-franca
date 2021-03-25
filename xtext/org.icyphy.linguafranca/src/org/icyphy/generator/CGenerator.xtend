@@ -4443,7 +4443,7 @@ class CGenerator extends GeneratorBase {
                 return;
             } else if (self->___«port.name».status == unknown && 
                               compare_tags(self->___«port.name».last_known_status_tag, 
-                                get_current_tag()) > 0) {
+                                get_current_tag()) >= 0) {
                 // We have a known status for this port in a future tag. Therefore, no event is going
                 // to be present for this port at the current tag.
                 self->___«port.name».status = absent;
@@ -4478,7 +4478,7 @@ class CGenerator extends GeneratorBase {
                                 return;
                             } else if (self->___«port.name».status == unknown && 
                                                   compare_tags(self->___«port.name».last_known_status_tag, 
-                                                    get_current_tag()) > 0) {
+                                                    get_current_tag()) >= 0) {
                                 // We have a known status for this port in a future tag. Therefore, no event is going
                                 // to be present for this port at the current tag.
                                 self->___«port.name».status = absent;
@@ -4513,7 +4513,7 @@ class CGenerator extends GeneratorBase {
                             return;
                         }else if (self->___«port.name».status == unknown && 
                                           compare_tags(self->___«port.name».last_known_status_tag, 
-                                            get_current_tag()) > 0) {
+                                            get_current_tag()) >= 0) {
                             // We have a known status for this port in a future tag. Therefore, no event is going
                             // to be present for this port at the current tag.
                             self->___«port.name».status = absent;

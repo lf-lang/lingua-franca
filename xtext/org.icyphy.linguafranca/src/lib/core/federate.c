@@ -1158,7 +1158,7 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
         _lf_insert_reactions_for_trigger(action, message_token);
         // Notify the main thread in case it is waiting for reactions.
         DEBUG_PRINT("Broadcasting notification that reaction queue changed.");
-        lf_cond_broadcast(&reaction_q_changed);
+        lf_cond_signal(&reaction_q_changed);
     } else {
         // Acquire the one mutex lock to prevent logical time from advancing
         // during the call to schedule().
