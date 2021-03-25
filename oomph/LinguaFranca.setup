@@ -342,6 +342,10 @@
         <requirement
             name="org.eclipse.cdt.feature.group"/>
         <requirement
+            name="org.eclipse.wildwebdeveloper.feature.feature.group"/>
+        <requirement
+            name="org.python.pydev.feature.feature.group"/>
+        <requirement
             name="com.google.inject"/>
         <requirement
             name="com.google.guava"
@@ -394,6 +398,10 @@
               url="http://download.eclipse.org/elk/updates/releases/0.7.0/"/>
           <repository
               url="https://kieler.github.io/KLighD/v2.0.0/"/>
+          <repository
+              url="https://www.pydev.org/updates/"/>
+          <repository
+              url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
         </repositoryList>
       </targlet>
     </setupTask>
