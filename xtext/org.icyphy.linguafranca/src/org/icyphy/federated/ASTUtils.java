@@ -40,7 +40,6 @@ import org.icyphy.generator.GeneratorBase;
 import org.icyphy.linguaFranca.Connection;
 import org.icyphy.linguaFranca.Input;
 import org.icyphy.linguaFranca.LinguaFrancaFactory;
-import org.icyphy.linguaFranca.Output;
 import org.icyphy.linguaFranca.Port;
 import org.icyphy.linguaFranca.Reaction;
 import org.icyphy.linguaFranca.Reactor;

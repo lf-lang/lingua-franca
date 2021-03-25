@@ -995,14 +995,15 @@ void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
     // Set the mutex status as absent
     // First, check if the absent message was intended for the current tag
     // or the future tag.
-    if(compare_tags(intended_tag, get_current_tag()) == 0) {
+    if(compare_tags(intended_tag, get_current_tag()) >= 0 &&
+            _fed.network_input_port_triggers[port_id]->status == unknown) {
         _fed.network_input_port_triggers[port_id]->status = absent;
+        // Port is now absent. Therfore, notify the network input
+        // control reactions to stop waiting and re-check the port
+        // status.
+        pthread_cond_broadcast(&port_status_changed);
     }
     _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
-    // Port is now absent. Therfore, notify the network input
-    // control reactions to stop waiting and re-check the port
-    // status.
-    pthread_cond_broadcast(&port_status_changed);
     pthread_mutex_unlock(&mutex);
 }
 
@@ -1161,6 +1162,16 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     } else {
         // Acquire the one mutex lock to prevent logical time from advancing
         // during the call to schedule().
+
+        if(compare_tags(intended_tag, get_current_tag()) > 0 &&
+            _fed.network_input_port_triggers[port_id]->status == unknown) {
+            // Received an event for a future tag, while the current status of the port
+            // is unknown. This indicates that this port will be absent for the current tag.
+            _fed.network_input_port_triggers[port_id]->status = absent;
+    
+            // Notify any control reaction that a future event has been produced for a port
+            pthread_cond_broadcast(&port_status_changed);
+        }
 
         LOG_PRINT("Calling schedule with tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         schedule_message_received_from_network_already_locked(action, intended_tag, message_token);
