@@ -370,13 +370,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 this.mainDef.setReactorClass(reactor)
             }
         }
-
-        // If federates are specified in the target, create a mapping
-        // from Instantiations in the main reactor to federate names.
-        // Also create a list of federate names or a list with a single
-        // empty name if there are no federates specified.
-        // This must be done before desugaring delays below.
-        resource.analyzeFederates
     }
 
     /**
@@ -439,7 +432,16 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
                 }
             }
-        }
+        }        
+        
+
+        // If federates are specified in the target, create a mapping
+        // from Instantiations in the main reactor to federate names.
+        // Also create a list of federate names or a list with a single
+        // empty name if there are no federates specified.
+        // This must be done before desugaring delays below.
+        resource.analyzeFederates
+        
         // Assuming all AST transformations have completed, build the instantiation graph.
         this.instantiationGraph = new InstantiationGraph(resource, false) // FIXME: obtain this from the validator instead
 

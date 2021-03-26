@@ -79,11 +79,10 @@ public class ASTUtils {
      * @input generator The GeneratorBase instance used to identify certain
      *        target properties
      */
-    public static void addNetworkInputControlReaction(VarRef portRef,
+    public static void addNetworkInputControlReaction(VarRef portRef, Reactor reactor,
             FederateInstance instance, GeneratorBase generator) {
         LinguaFrancaFactory factory = LinguaFrancaFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        Reactor reactor = (Reactor) portRef.getVariable().eContainer();
         VarRef newPortRef = factory.createVarRef();
 
         newPortRef.setContainer(null);
@@ -127,7 +126,7 @@ public class ASTUtils {
             // Add the network input control reaction to all the contained
             // reactors, if appropriate
             for (VarRef port : connection.getRightPorts()) {
-                addNetworkInputControlReaction(port, instance, generator);
+                addNetworkInputControlReaction(port, reactor, instance, generator);
             }
         }
 
