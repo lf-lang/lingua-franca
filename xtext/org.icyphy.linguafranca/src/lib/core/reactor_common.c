@@ -561,6 +561,7 @@ bool _lf_is_tag_after_stop_tag(tag_t tag) {
  * queue.
  */
 void __pop_events() {
+    bool reactions_added = false;
     event_t* event = (event_t*)pqueue_peek(event_q);
     while(event != NULL && event->time == current_tag.time) {
         event = (event_t*)pqueue_pop(event_q);
@@ -571,18 +572,7 @@ void __pop_events() {
             continue;
         }
 
-#ifdef FEDERATED
-        // Insert network dependant reactions for network input ports into
-        // the reaction queue
-        enqueue_network_input_control_reactions(reaction_q);
-        enqueue_network_output_control_reactions(reaction_q);
-#endif
-
         lf_token_t *token = event->token;
-
-        // if (token != NULL) {
-	    //     token->ref_count++;
-	    // }
 
         // Put the corresponding reactions onto the reaction queue.
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
@@ -614,6 +604,7 @@ void __pop_events() {
 #endif
                 DEBUG_PRINT("Enqueing reaction %p.", reaction);
                 pqueue_insert(reaction_q, reaction);
+                reactions_added = true;
             }
         }
 
@@ -659,6 +650,16 @@ void __pop_events() {
         // Peek at the next event in the event queue.
         event = (event_t*)pqueue_peek(event_q);
     };
+
+    
+    #ifdef FEDERATED
+    if(reactions_added) {
+        // Insert network dependant reactions for network input ports into
+        // the reaction queue
+        enqueue_network_input_control_reactions(reaction_q);
+        enqueue_network_output_control_reactions(reaction_q);
+    }
+    #endif
 
     // After populating the reaction queue, see if there are things on the
     // next queue to put back into the event queue.
@@ -805,7 +806,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
 
     tag_t current_logical_tag = get_current_tag();
 
-    DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).",
+    info_print("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).",
                   tag.time - start_time, tag.microstep,
                   current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {
@@ -845,7 +846,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
 
     event_t* found = (event_t *)pqueue_find_equal_same_priority(event_q, e);
     if (found != NULL) {
-        if (tag.microstep == 0) {
+        if (tag.microstep == 0u) {
                 // The microstep is 0, which means that the event is being scheduled
                 // at a future time and at the beginning of the skip list of events 
                 // at that time.

@@ -28,8 +28,11 @@ reactor Destination {
     state s:int(1);
     reaction(x) {=
         // info_print("%d", x->value);
+        tag_t current_tag = get_current_tag();
         if (x->value != self->s) {
-            error_print_and_exit("Expected %d and got %d.", self->s, x->value);
+            error_print_and_exit("At tag (%lld, %u) expected %d and got %d.", 
+                current_tag.time - start_time, current_tag.microstep, self->s, x->value
+            );
         }
         self->s++;
     =}

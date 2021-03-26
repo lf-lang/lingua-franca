@@ -4431,13 +4431,11 @@ class CGenerator extends GeneratorBase {
         
         result.append('''
             DEBUG_PRINT("Invoked network dependant reaction.");
-            // Check if the port is triggered
-            if («port.name»->is_present) {
-                // Don't wait
+            // Check if the status of the port is known
+            if (self->__«port.name»->is_present) {
                 LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
                           "because it is already present.");
-                // Set the status of the trigger so that we know the status
-                // of this trigger for the current logical time.
+                // The status of the trigger is present. No need to wait.
                 self->___«port.name».status = present;
                 pthread_mutex_unlock(&mutex);
                 return;
@@ -4450,6 +4448,7 @@ class CGenerator extends GeneratorBase {
                 pthread_mutex_unlock(&mutex);
                 return;
             } else if (self->___«port.name».status == absent) {
+                // The status of the trigger is absent. No need to wait.
                 pthread_mutex_unlock(&mutex);
                 return;
             }
@@ -4465,26 +4464,24 @@ class CGenerator extends GeneratorBase {
                         while(!wait_until(current_tag.time + max_STP, &port_status_changed)) {
                             // Interrupted
                             LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
-                            if («port.name»->is_present) {
-                                // Don't wait any longer
-                                LOG_PRINT("------ Done waiting for network input port \"«port.name»\".");
-                                // Set the is_present value of the trigger so that we know the status
-                                // of this trigger for the current logical time
-                                // The is_present field for triggers of ports appears
-                                // to be unused for any other meaningful purpose
+                            // Check if the status of the port is known
+                            if (self->__«port.name»->is_present) {
+                                LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
+                                          "because it is already present.");
+                                // The status of the trigger is present. No need to wait.
                                 self->___«port.name».status = present;
-                                // Unlock the mutex
                                 pthread_mutex_unlock(&mutex);
                                 return;
                             } else if (self->___«port.name».status == unknown && 
-                                                  compare_tags(self->___«port.name».last_known_status_tag, 
-                                                    get_current_tag()) >= 0) {
+                                              compare_tags(self->___«port.name».last_known_status_tag, 
+                                                get_current_tag()) >= 0) {
                                 // We have a known status for this port in a future tag. Therefore, no event is going
                                 // to be present for this port at the current tag.
                                 self->___«port.name».status = absent;
                                 pthread_mutex_unlock(&mutex);
                                 return;
                             } else if (self->___«port.name».status == absent) {
+                                // The status of the trigger is absent. No need to wait.
                                 pthread_mutex_unlock(&mutex);
                                 return;
                             }
@@ -4500,18 +4497,15 @@ class CGenerator extends GeneratorBase {
                     while(!wait_until(FOREVER, &port_status_changed)) {
                         // Interrupted
                         LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
-                        if («port.name»->is_present) {
-                            // Don't wait any longer
-                            LOG_PRINT("------ Done waiting for network input port \"«port.name»\".");
-                            // Set the is_present value of the trigger so that we know the status
-                            // of this trigger for the current logical time
-                            // The is_present field for triggers of ports appears
-                            // to be unused for any other meaningful purpose
+                        // Check if the status of the port is known
+                        if (self->__«port.name»->is_present) {
+                            LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
+                                      "because it is already present.");
+                            // The status of the trigger is present. No need to wait.
                             self->___«port.name».status = present;
-                            // Unlock the mutex
                             pthread_mutex_unlock(&mutex);
                             return;
-                        }else if (self->___«port.name».status == unknown && 
+                        } else if (self->___«port.name».status == unknown && 
                                           compare_tags(self->___«port.name».last_known_status_tag, 
                                             get_current_tag()) >= 0) {
                             // We have a known status for this port in a future tag. Therefore, no event is going
@@ -4520,6 +4514,7 @@ class CGenerator extends GeneratorBase {
                             pthread_mutex_unlock(&mutex);
                             return;
                         } else if (self->___«port.name».status == absent) {
+                            // The status of the trigger is absent. No need to wait.
                             pthread_mutex_unlock(&mutex);
                             return;
                         }
