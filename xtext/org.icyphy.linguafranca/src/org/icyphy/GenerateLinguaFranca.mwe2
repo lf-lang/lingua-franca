@@ -12,9 +12,9 @@ Workflow {
             project = StandardProjectConfig {
                 baseName = "org.icyphy.linguafranca"
                 rootPath = rootPath
-                runtimeTest = {
-                    enabled = true
-                }
+//                runtimeTest = {
+//                    enabled = true
+//                }
                 eclipsePlugin = {
                     enabled = true
                 }
