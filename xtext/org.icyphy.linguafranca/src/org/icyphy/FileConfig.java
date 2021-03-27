@@ -351,9 +351,9 @@ public class FileConfig {
         if (uri.isPlatform()) {
             IPath path = new org.eclipse.core.runtime.Path(uri.toPlatformString(true));
             if (path.segmentCount() == 1) {
-                return ResourcesPlugin.getWorkspace().getRoot().getProject(path.lastSegment()).getRawLocation();
+                return ResourcesPlugin.getWorkspace().getRoot().getProject(path.lastSegment()).getLocation();
             } else {
-                return ResourcesPlugin.getWorkspace().getRoot().getFile(path).getRawLocation();
+                return ResourcesPlugin.getWorkspace().getRoot().getFile(path).getLocation();
             }
         } else if (uri.isFile()) {
             return new org.eclipse.core.runtime.Path(uri.toFileString());
