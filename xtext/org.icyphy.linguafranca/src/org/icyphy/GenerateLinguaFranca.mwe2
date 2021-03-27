@@ -12,9 +12,9 @@ Workflow {
             project = StandardProjectConfig {
                 baseName = "org.icyphy.linguafranca"
                 rootPath = rootPath
-//                runtimeTest = {
-//                    enabled = true
-//                }
+                runtimeTest = {
+                    enabled = false
+                }
                 eclipsePlugin = {
                     enabled = true
                 }
@@ -47,9 +47,9 @@ Workflow {
             parserGenerator = {
                 debugGrammar = true
             }
-            // generator = {
-            //     generateXtendMain = true
-            // }
+             generator = {
+                 generateXtendMain = false
+             }
         }
     }
 }
