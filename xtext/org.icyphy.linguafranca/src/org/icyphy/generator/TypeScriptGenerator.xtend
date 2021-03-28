@@ -77,11 +77,11 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     static val DEFAULT_IMPORTS =  '''import commandLineArgs from 'command-line-args'
     import commandLineUsage from 'command-line-usage'
-    import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App} from './core/reactor'
-    import {FederatedApp} from './core/federation'
-    import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin} from './core/time'
-    import {Log} from './core/util'
-    import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType} from './core/cli'
+    import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Priority as __Priority, Mutation as __Mutation, Read as __Read, Triggers as __Triggers, ReadWrite as __ReadWrite, Write as __Write, Named as __Named, Reaction as __Reaction, Action as __Action, Startup as __Startup, Schedule as __Schedule, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
+    import {FederatedApp as __FederatedApp} from './core/federation'
+    import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag as __Tag, Origin as __Origin} from './core/time'
+    import {Log as __Log} from './core/util'
+    import {ProcessedCommandLineArgs as __ProcessedCommandLineArgs, CommandLineOptionDefs as __CommandLineOptionDefs, CommandLineUsageDefs as __CommandLineUsageDefs, CommandLineOptionSpec as __CommandLineOptionSpec, unitBasedTimeValueCLAType as __unitBasedTimeValueCLAType, booleanCLAType as __booleanCLAType} from './core/cli'
     
     '''
     
@@ -333,11 +333,11 @@ class TypeScriptGenerator extends GeneratorBase {
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
         if (reactor.isMain()) {
-            pr("export class " + reactorName + " extends App {")
+            pr("class " + reactorName + " extends __App {")
         } else if (reactor.isFederated()) {
-            pr("export class " + reactorName + " extends FederatedApp {")
+            pr("class " + reactorName + " extends __FederatedApp {")
         } else {
-            pr("export class " + reactorName + " extends Reactor {")
+            pr("export class " + reactorName + " extends __Reactor {")
         }
         
         indent()
@@ -348,7 +348,7 @@ class TypeScriptGenerator extends GeneratorBase {
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
         } else {
-            arguments.add("parent: Reactor")
+            arguments.add("parent: __Reactor")
         }
         
         // For TS, parameters are arguments of the class constructor.
@@ -443,32 +443,32 @@ class TypeScriptGenerator extends GeneratorBase {
 
             }
 
-            pr(timer.getName() + ": Timer;")
+            pr(timer.getName() + ": __Timer;")
             pr(reactorConstructor, "this." + timer.getName()
-                + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
+                + " = new __Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
             
         }     
 
         // Create properties for parameters
         for (param : reactor.parameters) {
-            pr(param.name + ": Parameter<" + param.targetType + ">;")
+            pr(param.name + ": __Parameter<" + param.targetType + ">;")
             pr(reactorConstructor, "this." + param.name +
-                " = new Parameter(" + param.name + ");" )
+                " = new __Parameter(" + param.name + ");" )
         }
 
         // Next handle states.
         for (stateVar : reactor.stateVars) {
             if (stateVar.isInitialized) {
                 pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
-                    "new State(" + stateVar.targetInitializer + ');');
+                    "new __State(" + stateVar.targetInitializer + ');');
             } else {
                 pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
-                    "new State(undefined);");
+                    "new __State(undefined);");
             }
         }
         
         for (stateVar : reactor.stateVars) {            
-            pr(stateVar.name + ': ' + "State<" + stateVar.getTargetType + '>;');            
+            pr(stateVar.name + ': ' + "__State<" + stateVar.getTargetType + '>;');            
         }
         // Next handle actions.
         for (action : reactor.actions) {
@@ -477,9 +477,9 @@ class TypeScriptGenerator extends GeneratorBase {
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                pr(action.name + ": Action<" + getActionType(action) + ">;")
+                pr(action.name + ": __Action<" + getActionType(action) + ">;")
 
-                var actionArgs = "this, Origin." + action.origin  
+                var actionArgs = "this, __Origin." + action.origin  
                 if (action.minDelay !== null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
@@ -490,22 +490,22 @@ class TypeScriptGenerator extends GeneratorBase {
                     }
                 }
                 pr(reactorConstructor, "this." + 
-                    action.name + " = new Action<" + getActionType(action) +
+                    action.name + " = new __Action<" + getActionType(action) +
                     ">(" + actionArgs  + ");")
             }
         }
         
         // Next handle inputs.
         for (input : reactor.inputs) {
-            pr(input.name + ": " + "InPort<" + getPortType(input) + ">;")
-            pr(reactorConstructor, "this." + input.name + " = new InPort<"
+            pr(input.name + ": " + "__InPort<" + getPortType(input) + ">;")
+            pr(reactorConstructor, "this." + input.name + " = new __InPort<"
                 + getPortType(input) + ">(this);")
         }
         
         // Next handle outputs.
         for (output : reactor.outputs) {
-            pr(output.name + ": " + "OutPort<" + getPortType(output) + ">;")
-            pr(reactorConstructor, "this." + output.name + " = new OutPort<"
+            pr(output.name + ": " + "__OutPort<" + getPortType(output) + ">;")
+            pr(reactorConstructor, "this." + output.name + " = new __OutPort<"
                 + getPortType(output) + ">(this);")
         }
         
@@ -638,14 +638,14 @@ class TypeScriptGenerator extends GeneratorBase {
                     var reactSignatureElementType = "";
                     
                     if (trigOrSource.variable instanceof Timer) {
-                        reactSignatureElementType = "Tag"
+                        reactSignatureElementType = "__Tag"
                     } else if (trigOrSource.variable instanceof Action) {
                         reactSignatureElementType = getActionType(trigOrSource.variable as Action)
                     } else if (trigOrSource.variable instanceof Port) {
                         reactSignatureElementType = getPortType(trigOrSource.variable as Port)
                     }
                     
-                    reactSignature.add('''«trigOrSource.generateArg»: Read<«reactSignatureElementType»>''')
+                    reactSignature.add('''«trigOrSource.generateArg»: __Read<«reactSignatureElementType»>''')
                     reactFunctArgs.add("this." + trigOrSource.generateVarRef)
                     if (trigOrSource.container === null) {
                         pr(reactPrologue, '''let «trigOrSource.variable.name» = «trigOrSource.generateArg».get();''')
@@ -668,10 +668,10 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (effect.variable instanceof Timer) {
                     reportError("A timer cannot be an effect of a reaction")
                 } else if (effect.variable instanceof Action){
-                    reactSignatureElement += ": Schedule<" + getActionType(effect.variable as Action) + ">"
+                    reactSignatureElement += ": __Schedule<" + getActionType(effect.variable as Action) + ">"
                     schedActionSet.add(effect.variable as Action)
                 } else if (effect.variable instanceof Port){
-                    reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
+                    reactSignatureElement += ": __ReadWrite<" + getPortType(effect.variable as Port) + ">"
                     if (effect.container === null) {
                         pr(reactEpilogue, "if (" + effect.variable.name + " !== undefined) {")
                         reactEpilogue.indent()
@@ -719,7 +719,7 @@ class TypeScriptGenerator extends GeneratorBase {
             for (param : reactor.parameters) {
                 
                 // Underscores are added to parameter names to prevent conflict with prologue
-                reactSignature.add("__" + param.name + ": Parameter<"
+                reactSignature.add("__" + param.name + ": __Parameter<"
                     + param.targetType + ">")
                 reactFunctArgs.add("this." + param.name)
                 
@@ -729,7 +729,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // Add state to the react function
             for (state : reactor.stateVars) {
                 // Underscores are added to state names to prevent conflict with prologue
-                reactSignature.add("__" + state.name + ": State<"
+                reactSignature.add("__" + state.name + ": __State<"
                     + getStateType(state) + ">")
                 reactFunctArgs.add("this." + state.name )
                 
@@ -773,8 +773,8 @@ class TypeScriptGenerator extends GeneratorBase {
             // Write the reaction itself
             pr(reactorConstructor, "this.addReaction(")//new class<T> extends Reaction<T> {")
             reactorConstructor.indent()
-            pr(reactorConstructor, "new Triggers(" + reactionTriggers + "),")
-            pr(reactorConstructor, "new Args(" + reactFunctArgs + "),")
+            pr(reactorConstructor, "new __Triggers(" + reactionTriggers + "),")
+            pr(reactorConstructor, "new __Args(" + reactFunctArgs + "),")
             pr(reactorConstructor, "function (" + reactSignature + ") {")
             reactorConstructor.indent()
             pr(reactorConstructor, "// =============== START react prologue")
@@ -1028,7 +1028,7 @@ class TypeScriptGenerator extends GeneratorBase {
             } else if (paramType == "TimeValue") {
                 mainParameters.add(parameter)
                 //clTypeExtension.add(parameter.name + " : UnitBasedTimeValue | null")
-                customArgType = "unitBasedTimeValueCLAType"
+                customArgType = "__unitBasedTimeValueCLAType"
                 customTypeLabel = "\'<duration> <units>\'"
             }
             // Otherwise don't add the parameter to customCLArgs
@@ -1066,20 +1066,20 @@ class TypeScriptGenerator extends GeneratorBase {
             let __noStart = false; // If set to true, don't start the app.
             
             // ************* Custom Command Line Arguments
-            let __additionalCommandLineArgs : CommandLineOptionSpec = «customArgsList»;
-            let __customCommandLineArgs = CommandLineOptionDefs.concat(__additionalCommandLineArgs);
-            let __customCommandLineUsageDefs = CommandLineUsageDefs;
+            let __additionalCommandLineArgs : __CommandLineOptionSpec = «customArgsList»;
+            let __customCommandLineArgs = __CommandLineOptionDefs.concat(__additionalCommandLineArgs);
+            let __customCommandLineUsageDefs = __CommandLineUsageDefs;
             type __customCLTypeExtension = «clTypeExtensionDef»;
             __customCommandLineUsageDefs[1].optionList = __customCommandLineArgs;
             const __clUsage = commandLineUsage(__customCommandLineUsageDefs);
                          
             // Set App parameters using values from the constructor or command line args.
             // Command line args have precedence over values from the constructor
-            let __processedCLArgs: ProcessedCommandLineArgs & __customCLTypeExtension;
+            let __processedCLArgs: __ProcessedCommandLineArgs & __customCLTypeExtension;
             try {
-                __processedCLArgs =  commandLineArgs(__customCommandLineArgs) as ProcessedCommandLineArgs & __customCLTypeExtension;
+                __processedCLArgs =  commandLineArgs(__customCommandLineArgs) as __ProcessedCommandLineArgs & __customCLTypeExtension;
             } catch (e){
-                Log.global.error(__clUsage);
+                __Log.global.error(__clUsage);
                 throw new Error("Command line argument parsing failed with: " + e);
             }
             
@@ -1088,7 +1088,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (__processedCLArgs.fast !== null) {
                     __fast = __processedCLArgs.fast;
                 } else {
-                    Log.global.error(__clUsage);
+                    __Log.global.error(__clUsage);
                     throw new Error("'fast' command line argument is malformed.");
                 }
             }
@@ -1098,7 +1098,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (__processedCLArgs.keepalive !== null) {
                     __keepAlive = __processedCLArgs.keepalive;
                 } else {
-                    Log.global.error(__clUsage);
+                    __Log.global.error(__clUsage);
                     throw new Error("'keepalive' command line argument is malformed.");
                 }
             }
@@ -1108,7 +1108,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (__processedCLArgs.timeout !== null) {
                     __timeout = __processedCLArgs.timeout;
                 } else {
-                    Log.global.error(__clUsage);
+                    __Log.global.error(__clUsage);
                     throw new Error("'timeout' command line argument is malformed.");
                 }
             }
@@ -1116,20 +1116,20 @@ class TypeScriptGenerator extends GeneratorBase {
             // Logging parameter (not a constructor parameter, but a command line option)
             if (__processedCLArgs.logging !== undefined) {
                 if (__processedCLArgs.logging !== null) {
-                    Log.global.level = __processedCLArgs.logging;
+                    __Log.global.level = __processedCLArgs.logging;
                 } else {
-                    Log.global.error(__clUsage);
+                    __Log.global.error(__clUsage);
                     throw new Error("'logging' command line argument is malformed.");
                 }
             } else {
-                Log.global.level = Log.levels.«targetConfig.logLevel.name»; // Default from target property.
+                __Log.global.level = __Log.levels.«targetConfig.logLevel.name»; // Default from target property.
             }
             
             // Help parameter (not a constructor parameter, but a command line option)
             // NOTE: this arg has to be checked after logging, because the help mode should
             // suppress debug statements from it changes logging
             if (__processedCLArgs.help === true) {
-                Log.global.error(__clUsage);
+                __Log.global.error(__clUsage);
                 __noStart = true;
                 // Don't execute the app if the help flag is given.
             }
@@ -1141,19 +1141,19 @@ class TypeScriptGenerator extends GeneratorBase {
             // Runtime command line arguments 
             if (__processedCLArgs.fast !== undefined && __processedCLArgs.fast !== null
                 && !__noStart) {
-                Log.global.info("'fast' property overridden by command line argument.");
+                __Log.global.info("'fast' property overridden by command line argument.");
             }
             if (__processedCLArgs.keepalive !== undefined && __processedCLArgs.keepalive !== null
                 && !__noStart) {
-                Log.global.info("'keepalive' property overridden by command line argument.");
+                __Log.global.info("'keepalive' property overridden by command line argument.");
             }
             if (__processedCLArgs.timeout !== undefined && __processedCLArgs.timeout !== null
                 && !__noStart) {
-                Log.global.info("'timeout' property overridden by command line argument.");
+                __Log.global.info("'timeout' property overridden by command line argument.");
             }
             if (__processedCLArgs.logging !== undefined && __processedCLArgs.logging !== null
                 && !__noStart) {
-                 Log.global.info("'logging' property overridden by command line argument.");
+                 __Log.global.info("'logging' property overridden by command line argument.");
             }
             
             // Custom command line arguments
@@ -1179,7 +1179,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (__processedCLArgs.«parameter.name» !== null) {
                         __CL«parameter.name» = __processedCLArgs.«parameter.name»;
                     } else {
-                        Log.global.error(__clUsage);
+                        __Log.global.error(__clUsage);
                         throw new Error("Custom '«parameter.name»' command line argument is malformed.");
                     }
                 }
@@ -1202,7 +1202,7 @@ class TypeScriptGenerator extends GeneratorBase {
             code.add('''
                 if (__processedCLArgs.«parameter.name» !== undefined && __processedCLArgs.«parameter.name» !== null
                     && !__noStart) {
-                    Log.global.info("'«parameter.name»' property overridden by command line argument.");
+                    __Log.global.info("'«parameter.name»' property overridden by command line argument.");
                 }
             ''')
         }

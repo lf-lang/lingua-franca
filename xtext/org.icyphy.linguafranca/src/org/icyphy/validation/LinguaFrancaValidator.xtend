@@ -940,9 +940,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
         }
-        
-        // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
-        // (essentially all the classes that are imported by default).
 
         var variables = new ArrayList()
         variables.addAll(reactor.inputs)
