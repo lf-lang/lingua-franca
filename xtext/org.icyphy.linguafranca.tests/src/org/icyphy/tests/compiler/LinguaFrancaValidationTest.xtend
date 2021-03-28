@@ -114,7 +114,7 @@ class LinguaFrancaValidationTest {
     def void disallowReactorCalledPreamble() {
         val model_no_errors = '''
             target Cpp;
-            main reactor Foo {
+            main reactor {
             }
         '''.parse
         
@@ -156,11 +156,23 @@ class LinguaFrancaValidationTest {
     def void disallowUnderscoreInputs() {
         parseWithoutError('''
             target TypeScript;
-            main reactor Foo {
+            main reactor {
                 input __bar;
             }
         ''').assertError(LinguaFrancaPackage::eINSTANCE.input, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
+    }
+    
+    /**
+     * 
+     */
+    @Test
+    def void disallowMainWithDifferentNameThanFile() {
+        parseWithoutError('''
+            target C;
+            main reactor Foo {}
+        ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+            "Name of main reactor must match the file name (or be omitted)")
     }
     
     /**
@@ -293,7 +305,7 @@ class LinguaFrancaValidationTest {
                 input inp:int;
                 output out:int;
             }
-            main reactor Bar {
+            main reactor {
                 output out:int;
                 x = new Foo();
                 y = new Foo();
@@ -317,7 +329,7 @@ class LinguaFrancaValidationTest {
             reactor Foo {
                 input in:int;
             }
-            main reactor Bar {
+            main reactor {
                 input in:int;
                 x1 = new Foo();
                 x2 = new Foo();
@@ -339,7 +351,7 @@ class LinguaFrancaValidationTest {
             reactor Foo {
                 input in:int;
             }
-            main reactor Bar {
+            main reactor {
                 input in:int;
                 x1 = new Foo();
                 in -> x1.in;
@@ -365,7 +377,7 @@ class LinguaFrancaValidationTest {
             	input in:int;
             }
 
-            main reactor Bar {
+            main reactor {
             	input in:int;
             	   src = new Source();
             	   sink = new Sink();
@@ -421,7 +433,7 @@ class LinguaFrancaValidationTest {
     def void nonZeroTimeValueWithoutUnits() {
         parseWithoutError('''
             target C;
-              main reactor HelloWorld {
+              main reactor {
                   timer t(42, 1 sec);
                   reaction(t) {=
                       printf("Hello World.\n");
@@ -439,7 +451,7 @@ class LinguaFrancaValidationTest {
     def void parameterTypeMismatch() {
         parseWithoutError('''
             target C;
-              main reactor HelloWorld(p:int(0)) {
+              main reactor (p:int(0)) {
                   timer t(p, 1 sec);
                   reaction(t) {=
                       printf("Hello World.\n");
@@ -457,7 +469,7 @@ class LinguaFrancaValidationTest {
     def void targetCodeInTimeArgument() {
         parseWithoutError('''
             target C;
-            main reactor HelloWorld {
+            main reactor {
                 timer t({=foo()=}, 1 sec);
                 reaction(t) {=
                     printf("Hello World.\n");
@@ -475,7 +487,7 @@ class LinguaFrancaValidationTest {
     def void overflowingDeadlineC() {
         parseWithoutError('''
             target C;
-            main reactor HelloWorld {
+            main reactor {
             timer t;
                 reaction(t) {=
                     printf("Hello World.\n");
@@ -495,7 +507,7 @@ class LinguaFrancaValidationTest {
     def void overflowingParameterC() {
         parseWithoutError('''
             target C;
-            main reactor HelloWorld(d:time(40 hours)) {
+            main reactor(d:time(40 hours)) {
             timer t;
                 reaction(t) {=
                     printf("Hello World.\n");
@@ -522,7 +534,7 @@ class LinguaFrancaValidationTest {
                 =} deadline (d) {=
                 =}
             }
-            main reactor HelloWorld {
+            main reactor {
                 p = new Print(d=40 hours);
             }
         ''').assertError(LinguaFrancaPackage::eINSTANCE.assignment, null,
@@ -723,7 +735,7 @@ class LinguaFrancaValidationTest {
             parseWithoutError('''
                 target C;
                 reactor Y {}
-                federated reactor X at [foo@«addr»]:4242 {
+                federated reactor at [foo@«addr»]:4242 {
                     y = new Y() at [«addr»]:2424; 
                 }
             ''').assertNoIssues()
@@ -734,7 +746,7 @@ class LinguaFrancaValidationTest {
             parseWithError('''
                 target C;
                 reactor Y {}
-                federated reactor X at [foo@«addr»]:4242 {
+                federated reactor at [foo@«addr»]:4242 {
                     y = new Y() at [«addr»]:2424; 
                 }
             ''')
@@ -745,7 +757,7 @@ class LinguaFrancaValidationTest {
             parseWithoutError('''
                 target C;
                 reactor Y {}
-                federated reactor X at [foo@«addr»]:4242 {
+                federated reactor at [foo@«addr»]:4242 {
                     y = new Y() at [«addr»]:2424; 
                 }
             ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
@@ -770,7 +782,7 @@ class LinguaFrancaValidationTest {
             parseWithoutError('''
                 target C;
                 reactor Y {}
-                federated reactor X at foo@«addr»:4242 {
+                federated reactor at foo@«addr»:4242 {
                     y = new Y() at «addr»:2424; 
                 }
             ''').assertNoIssues()
@@ -781,7 +793,7 @@ class LinguaFrancaValidationTest {
             parseWithError('''
                 target C;
                 reactor Y {}
-                federated reactor X at foo@«addr»:4242 {
+                federated reactor at foo@«addr»:4242 {
                     y = new Y() at «addr»:2424; 
                 }
             ''')
@@ -792,7 +804,7 @@ class LinguaFrancaValidationTest {
             parseWithoutError('''
                 target C;
                 reactor Y {}
-                federated reactor X at foo@«addr»:4242 {
+                federated reactor at foo@«addr»:4242 {
                     y = new Y() at «addr»:2424; 
                 }
             ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
@@ -957,7 +969,7 @@ class LinguaFrancaValidationTest {
         return parseWithoutError('''
                 target C {«key»: «value»};
                 reactor Y {}
-                main reactor X {
+                main reactor {
                     y = new Y() 
                 }
             ''')
