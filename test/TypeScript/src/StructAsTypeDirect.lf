@@ -28,7 +28,7 @@ reactor Print(expected:number(42)) {
         }
     =}
 }
-main reactor StructPrint {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p.x;

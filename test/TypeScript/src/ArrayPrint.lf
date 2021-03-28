@@ -39,7 +39,7 @@ reactor Print(scale:number(1)) {
         }
     =}
 }
-main reactor ArrayAsType {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p.x;

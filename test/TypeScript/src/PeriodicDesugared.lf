@@ -1,5 +1,5 @@
 target TypeScript;
-main reactor Periodic(
+main reactor (
         offset:time(0), 
         period:time(500 msec)) {
     logical action init(offset);
