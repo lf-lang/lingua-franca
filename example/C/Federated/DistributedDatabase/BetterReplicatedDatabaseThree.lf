@@ -8,7 +8,7 @@ target C {
 
 import Platform from "BetterReplicatedDatabase.lf"
 
-main reactor ReplicatedDatabase(
+main reactor (
     query_period:time(1 sec),
     num_remote_inputs:int(2)
 ) {

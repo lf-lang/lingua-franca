@@ -30,7 +30,7 @@ reactor Door {
     self->locked = lock->value;
   =}
 }
-main reactor TrainSystem {
+main reactor {
   controller = new Controller();
   door = new Door();
   train = new Train();

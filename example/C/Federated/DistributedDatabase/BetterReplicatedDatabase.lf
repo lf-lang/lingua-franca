@@ -240,7 +240,7 @@ reactor Platform(
     update -> database.remote_update;
 }
 
-main reactor ReplicatedDatabase(
+main reactor (
     query_period:time(1 sec),
     num_remote_inputs:int(1)
 ) {

@@ -3,7 +3,7 @@ target C {
     keepalive: true,
     timeout: 5 sec
 };
-main reactor KeyListener {
+main reactor {
     preamble {=
         // Specify a thread that sends all keyboard characters
         // as valued physical actions until an EOF (control-d or

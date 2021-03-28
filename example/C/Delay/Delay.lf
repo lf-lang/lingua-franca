@@ -1,8 +1,8 @@
 target C {timeout: 1 sec};
 
-main reactor Main {
+main reactor {
 	ramp = new Ramp();
-	delay = new Delay();
+	delay = new Delay2();
 	print = new Print();
 	ramp.y -> delay.x;
 	delay.y -> print.x;
@@ -18,7 +18,7 @@ reactor Ramp {
     =}
 }
 
-reactor Delay {
+reactor Delay2 {
     logical action a(50 msec):int;
 	input x:int;
 	output y:int;

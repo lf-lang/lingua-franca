@@ -48,7 +48,7 @@ reactor RhythmLinuxPlayer {
     tempo -> source.tempo;
 }
 
-federated reactor RhythmLinuxDistributed at localhost {
+federated reactor at localhost {
     player1 = new RhythmLinuxMaster() at localhost;
     player2 = new RhythmLinuxPlayer() at localhost;
     player1.rhythm_change -> player2.rhythm_change after 20 msec;

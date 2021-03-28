@@ -101,10 +101,16 @@ class ModelInfo {
     public String mainReactorName
     
     /**
+     * Whether or not the model information has been updated at least once.
+     */
+    public boolean updated
+    
+    /**
      * Redo all analysis based on the given model.
      * @param model the model to analyze.
      */
     def update(Model model) {
+        this.updated = true
         this.model = model
         this.directory = FileConfig.toPath(model.eResource.URI).toFile.parent
         this.mainReactorName = FileConfig.nameWithoutExtension(this.model.eResource)

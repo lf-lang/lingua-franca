@@ -7,9 +7,9 @@ target C {
     coordination: centralized
 }
 
-import Platform from "BetterReplicatedDatabase.lf"
+import Platform from "../BetterReplicatedDatabase.lf"
 
-federated reactor ReplicatedDatabase(
+federated reactor (
     query_period:time(1 sec),
     num_remote_inputs:int(1)
 ) {

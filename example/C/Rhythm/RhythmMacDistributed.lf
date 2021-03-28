@@ -458,7 +458,7 @@ reactor RhythmMacPlayer {
     tempo -> source.tempo;
 }
 
-federated reactor RhythmMac at localhost {
+federated reactor at localhost {
     player1 = new RhythmMacMaster() at localhost;
     player2 = new RhythmMacPlayer() at localhost;
     player1.rhythm_change -> player2.rhythm_change after 20 msec;
