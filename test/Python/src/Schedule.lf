@@ -1,6 +1,6 @@
 // Example from Schedule section of the C Reactor Target wiki page.
 target Python;
-reactor Schedule {
+reactor Schedule2 {
     input x;
     logical action a;
     reaction(x) -> a {=
@@ -14,8 +14,8 @@ reactor Schedule {
             exit(1)
     =}
 }
-main reactor Main {
-    a = new Schedule();
+main reactor {
+    a = new Schedule2();
     timer t;
     reaction(t) -> a.x {=
         a.x.set(1)

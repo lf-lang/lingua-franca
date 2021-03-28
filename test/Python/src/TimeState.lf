@@ -8,6 +8,6 @@ reactor Foo(bar(42)) {
     =}
 }
 
-main reactor X {
+main reactor {
     a = new Foo();
 }

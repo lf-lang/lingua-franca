@@ -24,7 +24,7 @@ reactor Check(expected(42)) {
     =}
 }
 
-main reactor StructPrintTest {
+main reactor {
     s = new Print();
     p = new Check();
     s.out -> p._in;

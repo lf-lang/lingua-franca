@@ -3,7 +3,7 @@ target Python {
     timeout: 1 sec,
     fast: true
 };
-reactor CountSelf(delay(100 msec)) {
+reactor CountSelf2(delay(100 msec)) {
     output out;
     logical action a;
     reaction(startup) -> a, out {=
@@ -28,8 +28,8 @@ reactor Test {
     =}
 }
 
-main reactor DelayInt { 
-    d = new CountSelf();
+main reactor { 
+    d = new CountSelf2();
     t = new Test();
     d.out -> t._in; 
 }
