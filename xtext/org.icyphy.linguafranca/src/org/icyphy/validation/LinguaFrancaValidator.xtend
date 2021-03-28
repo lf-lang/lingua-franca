@@ -900,9 +900,9 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
             // Prevent NPE in tests below.
             return
-        } else {
+        } else if (info.mainReactorName !== null){
             if (reactor.isFederated || reactor.isMain) {
-                if(info.mainReactorName !== null && !reactor.name.equals(info.mainReactorName)) {
+                if(!reactor.name.equals(info.mainReactorName)) {
                     // Make sure that if the name is omitted, the reactor is indeed main.
                     error(
                         "Name of main reactor must match the file name (or be omitted).",
