@@ -32,7 +32,7 @@ reactor RhythmLinuxPlayer {
     source.instrument -> play.waveform;
 }
 
-federated reactor RhythmLinuxDistributed at localhost {
+federated reactor at localhost {
     player1 = new RhythmLinuxPlayer() at localhost;
     player2 = new RhythmLinuxPlayer();
 }

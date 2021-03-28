@@ -669,8 +669,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
     }
 
-    @Check(NORMAL)
+    @Check(FAST)
     def checkModel(Model model) {
+        if (!info.updated) {
+            info.update(model)
+        }
+    }
+    
+    @Check(NORMAL)
+    def updateModelInfo(Model model) {
         info.update(model)
     }
 

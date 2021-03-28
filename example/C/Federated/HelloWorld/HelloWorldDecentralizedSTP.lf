@@ -37,7 +37,7 @@ reactor PrintMessageWithSTP(STP:time(10 msec)) extends PrintMessageWithDetector 
     
 }
 
-federated reactor HelloWorldDecentralized {
+federated reactor {
     source = new MessageGenerator(root = "Hello World");
     print = new PrintMessageWithSTP(
         offset = 0,

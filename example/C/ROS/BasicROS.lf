@@ -152,7 +152,7 @@ reactor MessageReceiver {
     =}
 }
 
-main reactor MainContainer {
+main reactor {
     sender = new MessageGenerator();
     receiver = new MessageReceiver();
 }

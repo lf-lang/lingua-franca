@@ -39,7 +39,7 @@ reactor Door {
     self->locked = false;
   =}
 }
-main reactor System {
+main reactor {
   c = new Controller(); d = new Door();
   t = new Train();
   c.lock -> d.lock;
