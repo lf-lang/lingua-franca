@@ -15,7 +15,6 @@ reactor GeneratedDelay {
         SET(y_out, self->y_state);
     =}
 }
-
 reactor Source {
     output out:int;
     reaction(startup) -> out {=

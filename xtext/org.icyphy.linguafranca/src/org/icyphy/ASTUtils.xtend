@@ -1924,7 +1924,7 @@ class ASTUtils {
     
     def static setMainName(Resource resource) {
         val main = resource.allContents.filter(Reactor).findFirst[it.isMain || it.isFederated]
-        if (main.name === null) {
+        if (main !== null && main.name === null) {
             main.name = FileConfig.nameWithoutExtension(resource)
         }
     }
