@@ -256,7 +256,8 @@ public enum Target {
                 "TimeUnit",
                 "TimeValue",
                 "Present",
-                "UnitBasedTimeValue" // FIXME: deprecate
+                "UnitBasedTimeValue", // FIXME: deprecate
+                "Schedule"
                 )
     ), 
     Python("Python", false, Arrays.asList(

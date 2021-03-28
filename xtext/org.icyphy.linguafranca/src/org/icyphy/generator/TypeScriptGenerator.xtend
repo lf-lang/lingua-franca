@@ -77,7 +77,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     static val DEFAULT_IMPORTS =  '''import commandLineArgs from 'command-line-args'
     import commandLineUsage from 'command-line-usage'
-    import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Priority as __Priority, Mutation as __Mutation, Read as __Read, Triggers as __Triggers, ReadWrite as __ReadWrite, Write as __Write, Named as __Named, Reaction as __Reaction, Action as __Action, Startup as __Startup, Schedule as __Schedule, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
+    import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Priority as __Priority, Mutation as __Mutation, Read as __Read, Triggers as __Triggers, ReadWrite as __ReadWrite, Write as __Write, Named as __Named, Reaction as __Reaction, Action as __Action, Startup as __Startup, Schedule as Schedule, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
     import {FederatedApp as __FederatedApp} from './core/federation'
     import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag as __Tag, Origin as __Origin} from './core/time'
     import {Log as __Log} from './core/util'
@@ -668,7 +668,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (effect.variable instanceof Timer) {
                     reportError("A timer cannot be an effect of a reaction")
                 } else if (effect.variable instanceof Action){
-                    reactSignatureElement += ": __Schedule<" + getActionType(effect.variable as Action) + ">"
+                    reactSignatureElement += ": Schedule<" + getActionType(effect.variable as Action) + ">"
                     schedActionSet.add(effect.variable as Action)
                 } else if (effect.variable instanceof Port){
                     reactSignatureElement += ": __ReadWrite<" + getPortType(effect.variable as Port) + ">"
