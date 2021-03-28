@@ -30,14 +30,15 @@ import java.util.List
 import javax.inject.Inject
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.PortSide
+import org.eclipse.elk.graph.properties.Property
 import org.eclipse.xtend.lib.annotations.Data
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
-import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesisUtilityExtensions
 import org.icyphy.linguafranca.diagram.synthesis.postprocessor.ReactionPortAdjustment
+import org.icyphy.linguafranca.diagram.synthesis.util.UtilityExtensions
 
 import static org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis.*
 
@@ -54,7 +55,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	
 	public static val float REACTION_POINTINESS = 6 // arrow point length 
     // Property for marking the KContainterRendering in Reactor figures that is supposed to hold the content
-    public static val REACTOR_CONTENT_CONTAINER = new org.eclipse.elk.graph.properties.Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.shapes.reactor.content", false)
+    public static val REACTOR_CONTENT_CONTAINER = new Property<Boolean>("org.icyphy.linguafranca.diagram.synthesis.shapes.reactor.content", false)
     
 	@Inject extension KNodeExtensions
 	@Inject extension KEdgeExtensions
@@ -65,7 +66,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	@Inject extension KPolylineExtensions
 	@Inject extension KColorExtensions
 	@Inject extension LinguaFrancaStyleExtensions
-	@Inject extension LinguaFrancaSynthesisUtilityExtensions
+	@Inject extension UtilityExtensions
 	
     extension KRenderingFactory = KRenderingFactory.eINSTANCE
     

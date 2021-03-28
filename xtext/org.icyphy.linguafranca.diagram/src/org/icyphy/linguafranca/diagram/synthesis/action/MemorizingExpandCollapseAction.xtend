@@ -21,7 +21,7 @@ import org.eclipse.emf.ecore.EObject
 import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
 
 import static extension com.google.common.base.Preconditions.*
-import static extension org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesisInterfaceDependencies.updateInterfaceDependencyVisibility 
+import static extension org.icyphy.linguafranca.diagram.synthesis.util.InterfaceDependenciesVisualization.updateInterfaceDependencyVisibility
 
 /**
  * Action for toggling collapse/expand state of reactors that memorizes the state and

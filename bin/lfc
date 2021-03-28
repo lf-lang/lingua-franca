@@ -20,6 +20,21 @@ function fatal_error() {
     1>&2 echo -e "\e[1mlfc: \e[31mfatal error: \e[0m$1"
 }
 
+pushd () {
+    command pushd "$@" > /dev/null
+}
+
+popd () {
+    command popd "$@" > /dev/null
+}
+
+# Build first if no jar exists.
+if [[ ! -f "$jarpath" ]]; then
+    pushd "$base"
+    ./gradlew generateStandaloneCompiler
+    popd
+fi
+
 if [[ $(type -p java) != "" ]]; then
     #echo found java executable in PATH
     _java=java

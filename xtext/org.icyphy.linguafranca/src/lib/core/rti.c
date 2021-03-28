@@ -367,7 +367,8 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
 
 /** 
  * Find the earliest tag at which the specified federate may
- * experience its next event. This is the least next event tag
+ * experience its next event. This is the least next event tag (NET)
+ * or time advance notice (TAN)
  * of the specified federate and (transitively) upstream federates
  * (with delays of the connections added). For upstream federates,
  * we assume (conservatively) that federate upstream of those
@@ -443,7 +444,8 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
  * send TAG to the federate with tag equal to the NET of the federate.
  *
  * This should be called whenever an upstream federate sends to the RTI
- * either an LTC (Logical Time Complete) or NET (Next Event Tag) message.
+ * either a TAN (Time Advance Notice) or NET (Next Event Tag) message.
+ * It is also called when an upstream federate resigns from the federation.
  *
  * This function assumes that the caller holds the mutex lock.
  *
@@ -477,7 +479,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     // At the same time, find the earliest completed tag of the
     // immediately upstream federates.
     tag_t t_d = FOREVER_TAG;
-    tag_t completed = FOREVER_TAG;
+    tag_t min_upstream_completed = FOREVER_TAG;
     DEBUG_PRINT("NOTE: FOREVER is displayed as (%lld, %u) and NEVER as (%lld, %u)",
             FOREVER_TAG.time - start_time, FOREVER_TAG.microstep,
             NEVER - start_time, 0u);
@@ -505,15 +507,15 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         if (compare_tags(candidate, t_d) < 0) {
             t_d = candidate;
         }
-        if (compare_tags(upstream->completed, completed) < 0) {
-            completed = upstream->completed;
+        if (compare_tags(upstream->completed, min_upstream_completed) < 0) {
+            min_upstream_completed = upstream->completed;
         }
     }
 
     LOG_PRINT("Minimum upstream LTC for fed %d is (%lld, %u) and earliest message time "
             "(adjusted by after delay) is (%lld, %u).",
             fed->id,
-            completed.time - start_time, completed.microstep,
+            min_upstream_completed.time - start_time, min_upstream_completed.microstep,
             t_d.time - start_time, t_d.microstep);
 
     // If the earliest event time of the upstream federates (adjusted by
@@ -525,9 +527,9 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         // Send TAG to federate.
         send_tag_advance_grant(fed, fed->next_event);
         return true;
-    } else if (compare_tags(completed, fed->completed) > 0) {
+    } else if (compare_tags(min_upstream_completed, fed->completed) > 0) {
         // Upstream federates have completed a tag greater than this federate.
-        send_tag_advance_grant(fed, completed);
+        send_tag_advance_grant(fed, min_upstream_completed);
         return true;
     }
     return false;

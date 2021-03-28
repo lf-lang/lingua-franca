@@ -195,7 +195,7 @@ public class Main {
      */
     enum CLIOption {
         COMPILER("c", "target-compiler", true, false, "Target compuler to invoke.", true),
-        HELP("h", "help", true, false, "Display this information.", false),
+        HELP("h", "help", false, false, "Display this information.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         REBUILD("r", "rebuild", false, false, "Rebuild the compiler first.", false),
         UPDATE("u", "update-deps", false, false, "Update dependencies and rebuild the compiler (requires Internet connection).", false),
@@ -315,7 +315,12 @@ public class Main {
         HelpFormatter formatter = new HelpFormatter();
         
         try {
-            main.cmd = parser.parse(options, args);
+            main.cmd = parser.parse(options, args, true);
+            
+            if (main.cmd.hasOption(CLIOption.HELP.option.getOpt())) {
+                formatter.printHelp("lfc", options);
+                System.exit(0);
+            }
             
             // If the rebuild flag is not used, or if it is used but the jar
             // is not out of date, continue with the normal flow of execution.
