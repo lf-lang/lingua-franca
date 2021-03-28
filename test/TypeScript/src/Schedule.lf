@@ -17,7 +17,7 @@ reactor ScheduleLogicalAction {
         }
     =}
 }
-main reactor Main {
+main reactor {
     a = new ScheduleLogicalAction();
     timer t;
     reaction(t) -> a.x {=

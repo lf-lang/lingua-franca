@@ -40,6 +40,7 @@ import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
 import org.icyphy.Target
+import org.icyphy.TargetProperty
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -77,8 +78,6 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TargetProperty
-import org.icyphy.FileConfig
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -901,7 +900,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             // Prevent NPE in tests below.
             return
         } else if (info.mainReactorName !== null){
-            if (reactor.isFederated || reactor.isMain) {
+            if (reactor.isFederated || reactor.isMain) {            
                 if(!reactor.name.equals(info.mainReactorName)) {
                     // Make sure that if the name is omitted, the reactor is indeed main.
                     error(
