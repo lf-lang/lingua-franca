@@ -31,7 +31,7 @@ reactor print {
         self.expected_time += MSEC(500)
     =}
 }
-main reactor top {
+main reactor {
     f = new foo();
     p = new print();
     timer t(0, 1 sec);

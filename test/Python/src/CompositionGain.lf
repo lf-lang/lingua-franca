@@ -15,7 +15,7 @@ reactor Wrapper {
     x -> gain.gainin;
     gain.y -> y;
 }
-main reactor ImportComposition {
+main reactor {
     wrapper = new Wrapper();
     reaction(startup) -> wrapper.x {=
         wrapper_x.set(42)

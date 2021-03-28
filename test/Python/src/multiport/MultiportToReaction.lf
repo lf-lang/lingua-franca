@@ -13,7 +13,7 @@ reactor Source(width(1)) {
             self.s += 1
     =}
 }
-main reactor MultiportFromReaction {
+main reactor {
     state s(6);
     reaction(b.out) {=
         sm = 0
