@@ -51,7 +51,7 @@ reactor Destination(width:int(4)) {
 		self->s += in_width;
 	=}
 }
-main reactor ThreadedThreaded(width:int(4)) {
+main reactor (width:int(4)) {
 	a = new Source();
 	t = new[width] TakeTime();
 	(a.out)+ -> t.in;
