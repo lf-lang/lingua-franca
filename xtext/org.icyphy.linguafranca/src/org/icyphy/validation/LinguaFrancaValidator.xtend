@@ -898,7 +898,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 if(!reactor.name.equals(info.mainReactorName)) {
                     // Make sure that if the name is omitted, the reactor is indeed main.
                     error(
-                        "Name of main or federated reactor must match the file name (or be omitted).",
+                        "Name of main reactor must match the file name (or be omitted).",
                         Literals.REACTOR_DECL__NAME
                     )
                 }
