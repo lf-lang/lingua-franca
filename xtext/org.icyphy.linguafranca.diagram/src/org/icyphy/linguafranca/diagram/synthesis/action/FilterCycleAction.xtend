@@ -6,7 +6,7 @@ import de.cau.cs.kieler.klighd.krendering.KText
 import java.util.WeakHashMap
 import org.eclipse.elk.graph.properties.Property
 import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
-import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesisCycleDetection
+import org.icyphy.linguafranca.diagram.synthesis.util.CycleVisualization
 
 /**
  * Action that filters the diagram for only those elements included in a cycle.
@@ -56,9 +56,9 @@ class FilterCycleAction extends AbstractAction {
     }
     
     def void filterCycle(KNode root) {
-    	root.children.removeIf[!getProperty(LinguaFrancaSynthesisCycleDetection.DEPENDENCY_CYCLE)]
+    	root.children.removeIf[!getProperty(CycleVisualization.DEPENDENCY_CYCLE)]
     	for (node : root.children) {
-    		node.outgoingEdges.removeIf[!getProperty(LinguaFrancaSynthesisCycleDetection.DEPENDENCY_CYCLE)]
+    		node.outgoingEdges.removeIf[!getProperty(CycleVisualization.DEPENDENCY_CYCLE)]
     		node.filterCycle()
     	}
     }

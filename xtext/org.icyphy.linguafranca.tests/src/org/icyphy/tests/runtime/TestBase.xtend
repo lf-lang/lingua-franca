@@ -2,10 +2,9 @@ package org.icyphy.tests.runtime
 
 import com.google.inject.Inject
 import com.google.inject.Provider
-import java.io.File
 import java.io.PrintStream
 import java.nio.file.Files
-import java.nio.file.Paths
+import java.util.Properties
 import java.util.Set
 import java.util.concurrent.TimeUnit
 import org.eclipse.emf.common.util.URI
@@ -20,9 +19,9 @@ import org.eclipse.xtext.validation.CheckMode
 import org.eclipse.xtext.validation.IResourceValidator
 import org.eclipse.xtext.xbase.lib.Functions.Function1
 import org.icyphy.ASTUtils
+import org.icyphy.FileConfig
 import org.icyphy.Target
 import org.icyphy.generator.StandaloneContext
-import org.icyphy.linguaFranca.Reactor
 import org.icyphy.tests.LFTest
 import org.icyphy.tests.LFTest.Result
 import org.icyphy.tests.LinguaFrancaInjectorProvider
@@ -32,11 +31,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 
 import static extension org.junit.Assert.assertTrue
-import org.icyphy.generator.GeneratorBase
-import org.icyphy.TargetConfig
-import org.icyphy.FileConfig
-import org.eclipse.emf.ecore.resource.Resource
-import java.util.Properties
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LinguaFrancaInjectorProvider)

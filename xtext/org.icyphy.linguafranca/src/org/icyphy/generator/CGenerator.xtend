@@ -632,6 +632,10 @@ class CGenerator extends GeneratorBase {
                     var traceFileName = topLevelName;
                     if (targetConfig.tracing.traceFileName !== null) {
                         traceFileName = targetConfig.tracing.traceFileName;
+                        // Since all federates would have the same name, we need to append the federate name.
+                        if (!federate.isSingleton()) {
+                            traceFileName += "_" + federate.name;
+                        }
                     }
                     pr('''start_trace("«traceFileName».lft");''') // .lft is for Lingua Franca trace
                 }
@@ -3284,7 +3288,7 @@ class CGenerator extends GeneratorBase {
         // instance if the bank index of the reactor matches the bank index of the federate.
         if (federate.instantiation === instance.definition    // Is a top-level federate.
             && federate.instantiation.widthSpec !== null      // Is in a bank of federates.
-            && federate.bankPosition != instance.bankIndex    // Bank position does not match.
+            && federate.bankIndex != instance.bankIndex    // Bank position does not match.
         ) {
             return;
         }
@@ -3922,27 +3926,17 @@ class CGenerator extends GeneratorBase {
             return list.join('{', ', ', '}', [it])
     }
     
-    /** Return true if the specified reactor instance belongs to the specified
-     *  federate. This always returns true if the specified federate is
-     *  null or a singleton. Otherwise, it returns true only if the
-     *  instance is contained by the main reactor and the instance name
-     *  was included in the 'reactors' property of the targets 'federates'
-     *  specification.
-     *  @param instance A reactor instance.
-     *  @param federate A federate null if there are no federates.
+    /** 
+     * Return true if the specified reactor instance belongs to the specified
+     * federate. This always returns true if the specified federate is
+     * null or a singleton. Otherwise, it returns true only if the
+     * instance is contained within the specified federate. 
+     * 
+     * @param instance A reactor instance.
+     * @param federate A federate or null if there are no federates.
      */
     def reactorBelongsToFederate(ReactorInstance instance, FederateInstance federate) {
-        if (federate === null || federate.isSingleton) {
-            return true
-        } else {
-            if (instance.parent === this.main 
-                && !federate.contains(instance)
-            ) {
-                return false
-            } else {
-                return true
-            }
-        }
+        return (federate === null || federate.contains(instance));
     }
 
     /** Set the reaction priorities based on dependency analysis.

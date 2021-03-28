@@ -1,4 +1,4 @@
-package org.icyphy.linguafranca.diagram.synthesis
+package org.icyphy.linguafranca.diagram.synthesis.util
 
 import com.google.common.collect.Sets
 import com.google.inject.Inject
@@ -21,6 +21,8 @@ import java.util.Random
 import org.eclipse.elk.core.math.ElkMargin
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.graph.properties.Property
+import org.icyphy.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
+import org.icyphy.linguafranca.diagram.synthesis.LinguaFrancaSynthesis
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
 import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 
@@ -30,7 +32,7 @@ import org.icyphy.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensi
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 @ViewSynthesisShared
-class LinguaFrancaSynthesisInterfaceDependencies extends AbstractSynthesisExtensions {
+class InterfaceDependenciesVisualization extends AbstractSynthesisExtensions {
     
     // Related synthesis option
     public static val SynthesisOption SHOW_INTERFACE_DEPENDENCIES = SynthesisOption.createCheckOption("Port Dependencies in Collapsed Reactors", false).setCategory(LinguaFrancaSynthesis.APPEARANCE)
@@ -42,7 +44,7 @@ class LinguaFrancaSynthesisInterfaceDependencies extends AbstractSynthesisExtens
     @Inject extension KRenderingExtensions
     @Inject extension KContainerRenderingExtensions
     @Inject extension LinguaFrancaStyleExtensions
-    @Inject extension LinguaFrancaSynthesisUtilityExtensions
+    @Inject extension UtilityExtensions
     
     /**
      * Updates the visibility of interface dependencies edges based on the expansion state.

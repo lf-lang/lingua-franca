@@ -52,9 +52,8 @@
     </setupTask>
     <setupTask
         xsi:type="setup:EclipseIniTask"
-        excludedTriggers="STARTUP MANUAL"
         option="-perspective"
-        value="org.eclipse.pde.ui.PDEPerspective">
+        value="org.eclipse.jdt.ui.JavaPerspective">
       <description>Set the default perspective</description>
     </setupTask>
   </setupTask>
@@ -343,6 +342,10 @@
         <requirement
             name="org.eclipse.cdt.feature.group"/>
         <requirement
+            name="org.eclipse.wildwebdeveloper.feature.feature.group"/>
+        <requirement
+            name="org.python.pydev.feature.feature.group"/>
+        <requirement
             name="com.google.inject"/>
         <requirement
             name="com.google.guava"
@@ -395,6 +398,10 @@
               url="http://download.eclipse.org/elk/updates/releases/0.7.0/"/>
           <repository
               url="https://kieler.github.io/KLighD/v2.0.0/"/>
+          <repository
+              url="https://www.pydev.org/updates/"/>
+          <repository
+              url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
         </repositoryList>
       </targlet>
     </setupTask>

@@ -4,7 +4,6 @@
 		<property name="context-root" value="org.icyphy.linguafranca.web"/>
 		<wb-resource deploy-path="/WEB-INF/classes" source-path="src"/>
 		<wb-resource deploy-path="/WEB-INF/classes" source-path="src-gen"/>
-		<wb-resource deploy-path="/WEB-INF/classes" source-path="xtend-gen"/>
 		<wb-resource deploy-path="/" source-path="WebRoot"/>
 		<dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/org.icyphy.linguafranca.ide/org.icyphy.linguafranca.ide">
 			<dependency-type>uses</dependency-type>
