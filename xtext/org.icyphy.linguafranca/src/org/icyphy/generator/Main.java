@@ -68,7 +68,7 @@ public class Main {
      */
     private static String SRC_PATH = JAR_PATH.replace(
             "build/libs/org.icyphy.linguafranca-1.0.0-SNAPSHOT-all.jar", "")
-            + "src/org";
+            + "src"; // FIXME: use Path
     
     /**
      * ANSI sequence color escape sequence for red bold font.
@@ -381,6 +381,12 @@ public class Main {
         
     }
     
+    private boolean modifiedFilesExist(Path start, long mod) throws IOException {
+        return ((Files.find(start, Integer.MAX_VALUE,
+                (path, attr) -> (attr.lastModifiedTime()
+                        .compareTo(FileTime.fromMillis(mod)) > 0))).count() > 0);
+    }
+    
     /**
      * Indicate whether or not there is any work to do.
      * 
@@ -388,14 +394,10 @@ public class Main {
      */
     private boolean needsUpdate() {
         File jar = new File(JAR_PATH);
-        long mod = jar.lastModified();
         boolean outOfDate = false;
         try {
-            outOfDate = (!jar.exists() || Files
-                    .find(Paths.get(SRC_PATH), Integer.MAX_VALUE,
-                            (path, attr) -> (attr.lastModifiedTime()
-                                    .compareTo(FileTime.fromMillis(mod)) > 0))
-                    .count() > 0);
+            outOfDate = (!jar.exists() || modifiedFilesExist(
+                    Paths.get(SRC_PATH), jar.lastModified()));
 
         } catch (IOException e) {
             printFatalError("Rebuild unsuccessful. Reason:");
