@@ -77,14 +77,15 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     static val DEFAULT_IMPORTS =  '''import commandLineArgs from 'command-line-args'
     import commandLineUsage from 'command-line-usage'
-    import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Priority as __Priority, Mutation as __Mutation, Read, Triggers as __Triggers, ReadWrite, Write, Named as __Named, Reaction as __Reaction, Action as __Action, Startup as __Startup, Sched, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
+    import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Read, Triggers as __Triggers, ReadWrite, Write, Action as __Action, Startup as __Startup, Sched, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
+    import {Reaction as __Reaction} from './core/reaction'
     import {FederatedApp as __FederatedApp} from './core/federation'
     import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag as __Tag, Origin as __Origin} from './core/time'
-    import {Log as __Log} from './core/util'
+    import {Log} from './core/util'
     import {ProcessedCommandLineArgs as __ProcessedCommandLineArgs, CommandLineOptionDefs as __CommandLineOptionDefs, CommandLineUsageDefs as __CommandLineUsageDefs, CommandLineOptionSpec as __CommandLineOptionSpec, unitBasedTimeValueCLAType as __unitBasedTimeValueCLAType, booleanCLAType as __booleanCLAType} from './core/cli'
     
     '''
-    
+  
     /**
      * Names of the configuration files to check for and copy to the generated 
      * source package root if they cannot be found in the source directory.
@@ -95,8 +96,8 @@ class TypeScriptGenerator extends GeneratorBase {
      * Files to be copied from the reactor-ts submodule into the generated
      * source directory. 
      */
-    static val RUNTIME_FILES = #["reactor.ts", "federation.ts",
-            "cli.ts", "command-line-args.d.ts", "command-line-usage.d.ts", 
+    static val RUNTIME_FILES = #["cli.ts", "command-line-args.d.ts", "command-line-usage.d.ts",
+            "component.ts", "federation.ts", "reaction.ts", "reactor.ts",
             "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts", "util.ts"]
     
     /**
@@ -1079,7 +1080,7 @@ class TypeScriptGenerator extends GeneratorBase {
             try {
                 __processedCLArgs =  commandLineArgs(__customCommandLineArgs) as __ProcessedCommandLineArgs & __customCLTypeExtension;
             } catch (e){
-                __Log.global.error(__clUsage);
+                Log.global.error(__clUsage);
                 throw new Error("Command line argument parsing failed with: " + e);
             }
             
@@ -1088,7 +1089,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (__processedCLArgs.fast !== null) {
                     __fast = __processedCLArgs.fast;
                 } else {
-                    __Log.global.error(__clUsage);
+                    Log.global.error(__clUsage);
                     throw new Error("'fast' command line argument is malformed.");
                 }
             }
@@ -1098,7 +1099,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (__processedCLArgs.keepalive !== null) {
                     __keepAlive = __processedCLArgs.keepalive;
                 } else {
-                    __Log.global.error(__clUsage);
+                    Log.global.error(__clUsage);
                     throw new Error("'keepalive' command line argument is malformed.");
                 }
             }
@@ -1108,7 +1109,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (__processedCLArgs.timeout !== null) {
                     __timeout = __processedCLArgs.timeout;
                 } else {
-                    __Log.global.error(__clUsage);
+                    Log.global.error(__clUsage);
                     throw new Error("'timeout' command line argument is malformed.");
                 }
             }
@@ -1116,20 +1117,20 @@ class TypeScriptGenerator extends GeneratorBase {
             // Logging parameter (not a constructor parameter, but a command line option)
             if (__processedCLArgs.logging !== undefined) {
                 if (__processedCLArgs.logging !== null) {
-                    __Log.global.level = __processedCLArgs.logging;
+                    Log.global.level = __processedCLArgs.logging;
                 } else {
-                    __Log.global.error(__clUsage);
+                    Log.global.error(__clUsage);
                     throw new Error("'logging' command line argument is malformed.");
                 }
             } else {
-                __Log.global.level = __Log.levels.«targetConfig.logLevel.name»; // Default from target property.
+                Log.global.level = Log.levels.«targetConfig.logLevel.name»; // Default from target property.
             }
             
             // Help parameter (not a constructor parameter, but a command line option)
             // NOTE: this arg has to be checked after logging, because the help mode should
             // suppress debug statements from it changes logging
             if (__processedCLArgs.help === true) {
-                __Log.global.error(__clUsage);
+                Log.global.error(__clUsage);
                 __noStart = true;
                 // Don't execute the app if the help flag is given.
             }
@@ -1141,19 +1142,19 @@ class TypeScriptGenerator extends GeneratorBase {
             // Runtime command line arguments 
             if (__processedCLArgs.fast !== undefined && __processedCLArgs.fast !== null
                 && !__noStart) {
-                __Log.global.info("'fast' property overridden by command line argument.");
+                Log.global.info("'fast' property overridden by command line argument.");
             }
             if (__processedCLArgs.keepalive !== undefined && __processedCLArgs.keepalive !== null
                 && !__noStart) {
-                __Log.global.info("'keepalive' property overridden by command line argument.");
+                Log.global.info("'keepalive' property overridden by command line argument.");
             }
             if (__processedCLArgs.timeout !== undefined && __processedCLArgs.timeout !== null
                 && !__noStart) {
-                __Log.global.info("'timeout' property overridden by command line argument.");
+                Log.global.info("'timeout' property overridden by command line argument.");
             }
             if (__processedCLArgs.logging !== undefined && __processedCLArgs.logging !== null
                 && !__noStart) {
-                 __Log.global.info("'logging' property overridden by command line argument.");
+                 Log.global.info("'logging' property overridden by command line argument.");
             }
             
             // Custom command line arguments
@@ -1179,7 +1180,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     if (__processedCLArgs.«parameter.name» !== null) {
                         __CL«parameter.name» = __processedCLArgs.«parameter.name»;
                     } else {
-                        __Log.global.error(__clUsage);
+                        Log.global.error(__clUsage);
                         throw new Error("Custom '«parameter.name»' command line argument is malformed.");
                     }
                 }
@@ -1202,13 +1203,12 @@ class TypeScriptGenerator extends GeneratorBase {
             code.add('''
                 if (__processedCLArgs.«parameter.name» !== undefined && __processedCLArgs.«parameter.name» !== null
                     && !__noStart) {
-                    __Log.global.info("'«parameter.name»' property overridden by command line argument.");
+                    Log.global.info("'«parameter.name»' property overridden by command line argument.");
                 }
             ''')
         }
         code.toString()
     }
-
 
     /** Given a representation of time that may possibly include units,
      *  return a string that TypeScript can recognize as a value.
