@@ -257,7 +257,10 @@ public enum Target {
                 "TimeValue",
                 "Present",
                 "UnitBasedTimeValue", // FIXME: deprecate
-                "Schedule"
+                "Sched",
+                "Read",
+                "Write",
+                "ReadWrite"
                 )
     ), 
     Python("Python", false, Arrays.asList(
