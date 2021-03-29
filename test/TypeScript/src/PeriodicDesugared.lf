@@ -19,7 +19,7 @@ main reactor (
         console.log("Hello World!");
         actions.recur.schedule(0, null);
         if (count > 10) {
-            util.requestShutdown();
+            util.requestShutdown(true);
         }
         count++;
     =}
