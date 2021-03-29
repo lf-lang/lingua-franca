@@ -36,7 +36,7 @@ reactor Destination {
 main reactor TimeLimit(period:time(1 sec)) {
     timer stop(10 secs);
     reaction(stop) {=
-        util.requestShutdown();
+        util.requestShutdown(true);
     =}
 
     c = new Clock(period = period);
