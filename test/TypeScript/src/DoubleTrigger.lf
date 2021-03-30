@@ -1,7 +1,8 @@
 // Test that two simultaneous triggers don't cause 
 // a reaction to execute twice at the same tag.
 target TypeScript {
-    fast: true
+    fast: true,
+    timeout: 1 sec
 };
 main reactor DoubleTrigger {
 	timer t1;
@@ -10,14 +11,12 @@ main reactor DoubleTrigger {
 	reaction(t1, t2) {=
         s++;
         if (s > 1) {
-            console.log("FAILURE: Reaction got triggered twice.")
+            util.requestErrorStop("FAILURE: Reaction got triggered twice.")
         }
     =}
     reaction(shutdown) {=
-        if (s == 1) {
-            console.log("SUCCESS.");
-        } else {
-            console.log("FAILURE: Reaction was never triggered.");
+        if (s != 1) {
+            util.reportError("FAILURE: Reaction was never triggered.");
         }
     =}
 }

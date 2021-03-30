@@ -36,8 +36,7 @@ reactor Print {
     reaction(x) {=
         x = x as number;
         if (x != expected) {
-            console.log("Expected " + expected);
-            util.failure();
+            util.requestErrorStop("Expected " + expected);
         }
         expected++;
     =}

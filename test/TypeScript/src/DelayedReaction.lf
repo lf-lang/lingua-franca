@@ -14,14 +14,12 @@ reactor Sink {
 	reaction(x) {=
         let elapsed = util.getElapsedLogicalTime();
         console.log("Nanoseconds since start: " + elapsed);
-        if (! elapsed.isEqualTo(new UnitBasedTimeValue( 100, TimeUnit.msec))) {
-            console.log("ERROR: Expected 100 msecs but got" + elapsed );
-            util.failure();
+        if (! elapsed.isEqualTo(TimeValue.msec(100))) {
+            util.requestErrorStop("ERROR: Expected 100 msecs but got" + elapsed)
         }
 	=}
 }
 main reactor DelayedReaction {
-    
     source = new Source();
     sink = new Sink();
     source.out -> sink.x after 100 msec;

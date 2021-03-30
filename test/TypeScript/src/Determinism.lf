@@ -19,8 +19,7 @@ reactor Destination {
         }
         console.log("Received " + sum);
         if (sum != 2) {
-            console.log("FAILURE: Expected 2.");
-            util.failure();
+            util.requestErrorStop("FAILURE: Expected 2.")
         }
     =}
 }
