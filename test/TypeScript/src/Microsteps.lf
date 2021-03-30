@@ -5,9 +5,8 @@ reactor Destination {
     reaction(x, y) {=
         let elapsed = util.getElapsedLogicalTime();
         console.log("Time since start: " + elapsed);
-        if (! elapsed.isEqualTo(new UnitBasedTimeValue( 0, TimeUnit.sec ))) {
-            console.log("Expected elapsed time to be 0, but it was " + elapsed);
-            util.failure();
+        if (! elapsed.isEqualTo(TimeValue.zero())) {
+            util.requestErrorStop("Expected elapsed time to be 0, but it was " + elapsed);
         }
         let count = 0;
         if (x) {
@@ -19,8 +18,7 @@ reactor Destination {
             count++;
         }
         if (count != 1) {
-            console.log("Expected exactly one input to be present but got " + count);
-            util.failure();
+            util.requestErrorStop("Expected exactly one input to be present but got " + count)
         }
     =}
 }

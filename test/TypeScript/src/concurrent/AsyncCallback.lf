@@ -38,7 +38,7 @@ main reactor AsyncCallback {
         ); 
 		if (elapsed_time.isEarlierThan(expected_time)) {
 		    console.log("ERROR: Expected logical time to be larger than " + expected_time + ".");
-		    util.failure();
+		    util.requestShutdown(false)utdown(false);
 		}
         if (toggle) {
             toggle = false;

@@ -23,7 +23,7 @@ reactor Destination {
     reaction(x) {=
         if (x != s) {
             console.log("Error: Expected " + s + " and got " + x + ".")
-            util.failure()
+            util.requestShutdown(false)utdown(false)
         }
         s++;        
     =}

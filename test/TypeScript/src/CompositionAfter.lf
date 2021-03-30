@@ -21,8 +21,7 @@ reactor Test {
 		count++;
 		console.log("Received " + x);
 		if (x != count) { 
-			console.log("FAILURE: Expected " + count);
-			util.failure(); 
+			util.requestErrorStop("FAILURE: Expected " + count); 
 		}
 	=} 
 }

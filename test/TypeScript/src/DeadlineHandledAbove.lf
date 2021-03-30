@@ -7,9 +7,7 @@ reactor Deadline(threshold:time(100 msec)) {
     input x:number;
     output deadline_violation:boolean;
     reaction(x) -> deadline_violation {=
-        console.log("ERROR: Deadline violation was not detected!");
-        util.failure()
-        //throw new Error("ERROR: Deadline violation was not detected!");
+        util.requestErrorStop("ERROR: Deadline violation was not detected!")
     =} deadline(threshold) {=
         console.log("Deadline violation detected.");
         deadline_violation = true;
@@ -21,7 +19,7 @@ main reactor DeadlineHandledAbove {
     reaction(startup) -> d.x {=
         // Busy wait 20 msec to cause a deadline violation.
         let initialElapsedTime = util.getElapsedPhysicalTime();
-        while ( util.getElapsedPhysicalTime().isEarlierThan(initialElapsedTime.add( new UnitBasedTimeValue(20, TimeUnit.msec))));
+        while (util.getElapsedPhysicalTime().isEarlierThan(initialElapsedTime.add(TimeValue.msec(20))));
         d.x = 42;
     =}
     reaction(d.deadline_violation) {=
@@ -34,9 +32,7 @@ main reactor DeadlineHandledAbove {
         if ( violation_detected) {
             console.log("SUCCESS. Test passes.");
         } else {
-            console.log("FAILURE. Container did not react to deadline violation.");
-           util.failure()
-            //throw new Error("FAILURE. Container did not react to deadline violation.");
+            util.requestErrorStop("FAILURE. Container did not react to deadline violation.")
         }
     =}
 }

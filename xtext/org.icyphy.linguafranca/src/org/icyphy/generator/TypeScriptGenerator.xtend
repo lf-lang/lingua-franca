@@ -1028,7 +1028,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 customTypeLabel = '[true | false]'
             } else if (paramType == "TimeValue") {
                 mainParameters.add(parameter)
-                //clTypeExtension.add(parameter.name + " : UnitBasedTimeValue | null")
+                //clTypeExtension.add(parameter.name + " : TimeValue | null")
                 customArgType = "__unitBasedTimeValueCLAType"
                 customTypeLabel = "\'<duration> <units>\'"
             }
@@ -1218,10 +1218,10 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     override timeInTargetLanguage(TimeValue value) {
         if (value.unit != TimeUnit.NONE) {
-            "new UnitBasedTimeValue(" + value.time + ", TimeUnit." + value.unit + ")"
+            '''TimeValue.«value.unit»(«value.time»)'''
         } else {
-            // The default time unit for TypeScript is msec.
-            "new UnitBasedTimeValue(" + value.time + ", TimeUnit.msec)"
+            // The value must be zero.
+            "TimeValue.zero()"
         }
     }
 

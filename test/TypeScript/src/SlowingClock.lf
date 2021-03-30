@@ -1,5 +1,6 @@
 target TypeScript {
-    timeout : 5 sec
+    timeout: 5 sec,
+    fast: true
 };
 main reactor SlowingClock {
     logical action a(100 msec);
@@ -12,21 +13,16 @@ main reactor SlowingClock {
         let elapsed_logical_time : TimeValue = util.getElapsedLogicalTime();
         console.log("Logical time since start: " + elapsed_logical_time);
         if (!elapsed_logical_time.isEqualTo(expected_time)) {
-            console.log("ERROR: Expected time to be: " + expected_time);
-            util.failure();
-            //throw new Error("ERROR: Expected time to be: " + (this.state as any).expected_time);
+            util.requestErrorStop("ERROR: Expected time to be: " + expected_time)
         }
         actions.a.schedule(interval, null);
-        expected_time = expected_time.add(new UnitBasedTimeValue(100 , TimeUnit.msec))
+        expected_time = expected_time.add(TimeValue.msec(100))
         expected_time = expected_time.add(interval);
-        interval = interval.add(new UnitBasedTimeValue(100 , TimeUnit.msec));
+        interval = interval.add(TimeValue.msec(100));
     =}
     reaction(shutdown) {=
-        if (!expected_time.isEqualTo(new UnitBasedTimeValue(5500 , TimeUnit.msec))) {
-            console.log("ERROR: Expected the next expected time to be: " + new UnitBasedTimeValue(5500 , TimeUnit.msec));
-            console.log("It was: " + expected_time);
-            util.failure();
-            //throw new Error("ERROR: Expected the next expected time to be: [ 5, 500000000 ]");
+        if (!expected_time.isEqualTo(TimeValue.msec(5500))) {
+            util.requestErrorStop("ERROR: Expected the next expected time to be: " + TimeValue.msec(5500) + "It was: " + expected_time)
         }
     =}
 }
