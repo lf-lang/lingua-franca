@@ -396,14 +396,14 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_macos_support.c")            
             coreFiles.add("platform/lf_macos_support.h")
-            config.compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_macos_support.c")
+            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_macos_support.c")
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
             coreFiles.add("platform/lf_C11_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_windows_support.c")
             coreFiles.add("platform/lf_windows_support.h")
-            config.compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_windows_support.c")
+            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_windows_support.c")
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
             coreFiles.add("platform/lf_POSIX_threads_support.c")
@@ -412,7 +412,7 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_linux_support.c")
             coreFiles.add("platform/lf_linux_support.h")
-            config.compileAdditionalSources.add(srcGenPath + File.separator + "core/platform/lf_linux_support.c")
+            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_linux_support.c")
         } else {
             reportError("Platform " + OS + " is not supported")
         }
@@ -882,7 +882,8 @@ class CGenerator extends GeneratorBase {
             ''')            
             pr('''
                 // Initialize the socket mutex
-                lf_mutex_init(&socket_mutex);
+                lf_mutex_init(&inbound_socket_mutex);
+                lf_mutex_init(&outbound_socket_mutex);
             ''')
             
             if (isFederatedAndDecentralized) {

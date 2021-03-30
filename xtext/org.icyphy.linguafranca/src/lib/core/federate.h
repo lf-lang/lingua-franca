@@ -92,7 +92,7 @@ typedef struct federate_instance_t {
 	 * Thread ID for a thread that accepts sockets and then supervises
 	 * listening to those sockets for incoming P2P (physical) connections.
 	 */
-	pthread_t inbound_p2p_handling_thread_id;
+	lf_thread_t inbound_p2p_handling_thread_id;
 
 	/**
 	 * A socket descriptor for the socket server of the federate.

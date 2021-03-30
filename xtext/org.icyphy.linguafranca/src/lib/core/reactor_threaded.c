@@ -468,19 +468,13 @@ bool wait_until(instant_t logical_time_ns) {
             unadjusted_wait_until_time_ns = _lf_last_reported_unadjusted_physical_time_ns + ns_to_wait;
         }
         DEBUG_PRINT("-------- Clock offset is %lld ns.", current_physical_time - _lf_last_reported_unadjusted_physical_time_ns);
-
-        // Convert the absolute time to a timespec.
-        // timespec is seconds and nanoseconds.
-        struct timespec unadjusted_wait_until_time
-                = {(time_t)unadjusted_wait_until_time_ns / BILLION, (long)unadjusted_wait_until_time_ns % BILLION};
-
         DEBUG_PRINT("-------- Waiting %lld ns for physical time to match logical time %llu.", ns_to_wait, 
                 logical_time_ns - start_time);
 
         // lf_cond_timedwait returns 0 if it is awakened before the timeout.
         // Hence, we want to run it repeatedly until either it returns non-zero or the
         // current physical time matches or exceeds the logical time.
-        if (lf_cond_timedwait(&event_q_changed, &mutex, &unadjusted_wait_until_time) != LF_TIMEOUT) {
+        if (lf_cond_timedwait(&event_q_changed, &mutex, unadjusted_wait_until_time_ns) != LF_TIMEOUT) {
             DEBUG_PRINT("-------- Wait on event queue interrupted before timeout.");
 
             // Wait did not time out, which means that there
@@ -492,6 +486,7 @@ bool wait_until(instant_t logical_time_ns) {
             return_value = false;
         } else {
             // Reached timeout.
+            // FIXME: move this to Mac-specific platform implementation
             // Unfortunately, at least on Macs, pthread_cond_timedwait appears
             // to be implemented incorrectly and it returns well short of the target
             // time.  Check for this condition and wait again if necessary.
@@ -871,9 +866,9 @@ void _lf_notify_workers_locked() {
  * This function acquires the mutex lock.
  */
 void _lf_notify_workers() {
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     _lf_notify_workers_locked();
-    pthread_mutex_unlock(&mutex);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -1202,7 +1197,7 @@ void start_threads() {
     __thread_ids = (lf_thread_t*)malloc(_lf_number_of_threads * sizeof(lf_thread_t));
     number_of_idle_threads = _lf_number_of_threads;
     for (unsigned int i = 0; i < _lf_number_of_threads; i++) {
-        lf_thread_create(&__thread_ids[i], NULL, worker, NULL);
+        lf_thread_create(&__thread_ids[i], worker, NULL);
     }
 }
 
