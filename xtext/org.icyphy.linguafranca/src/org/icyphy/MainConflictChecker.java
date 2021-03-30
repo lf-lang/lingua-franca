@@ -18,40 +18,65 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.icyphy.generator.Main;
 import org.icyphy.linguaFranca.Reactor;
 
 import com.google.common.collect.Iterables;
 
+/**
+ * Class that (up instantiation) determines whether there are any conflicting main reactors in the current package.
+ * Conflicts are reported in the instance's conflicts list.
+ * 
+ * @author Marten Lohstroh <marten@berkeley.edu>
+ *
+ */
 public class MainConflictChecker {
 
+    /**
+     * List of conflict encountered while traversing the package.
+     */
     public final List<String> conflicts = new LinkedList<String>();
     
-    protected String name;
-    
+    /**
+     * The current file configuration.
+     */
     protected FileConfig fileConfig;
     
+    /**
+     * Resource set used to obtain resources from.
+     */
     protected ResourceSet rs = new LinguaFrancaStandaloneSetup()
             .createInjectorAndDoEMFRegistration()
-            .<Main>getInstance(Main.class).getResourceSet();
+            .<LinguaFrancaResourceProvider>getInstance(LinguaFrancaResourceProvider.class).getResourceSet();
     
-    public MainConflictChecker(String name, FileConfig fileConfig) {
-        this.name = name;
+    /**
+     * Create a new instance that walks the file tree of the package to find conflicts.
+     * 
+     * @param fileConfig The current file configuration.
+     */
+    public MainConflictChecker(FileConfig fileConfig) {
         this.fileConfig = fileConfig;
-        // FIXME: Report the conflicting differently depending on whether we are in the IDE or on the CLI.
-        // We are now just reporting the file as it exists in the file system.
         try {
             Files.walkFileTree(fileConfig.srcPkgPath, new PackageVisitor());
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+            System.err.println("Error while checking for name conflicts in package.");
             e.printStackTrace();
         }
     }
     
+    /**
+     * Extension of a SimpleFileVisitor that adds entries to the conflicts list in the outer class.
+     * 
+     * Specifically, each visited file is checked against the name present in the current file configuration.
+     * If the name matches the current file (but is not the file itself), then parse that file and determine whether 
+     * there is a main reactor declared. If there is one, report a conflict.
+     * 
+     * @author Marten Lohstroh <marten@berkeley.edu>
+     *
+     */
     public class PackageVisitor extends SimpleFileVisitor<Path> {
 
         /**
-         * Add test files to the registry if they end with ".lf", but only if they have a main reactor.
+         * Report a conflicting main reactors in visited files.
          */
         @Override
         public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
@@ -68,12 +93,15 @@ public class MainConflictChecker {
                                     Reactor.class)
                             .iterator();
                     File file = path.toFile();
+                    // If this is not the same file, but it has a main reactor
+                    // and the name matches, then report the conflict.
                     if (!fileConfig.srcFile.equals(file)
                             && IteratorExtensions.exists(reactors,
                                     it -> it.isMain() || it.isFederated())
-                            && name.equals(
+                            && fileConfig.name.equals(
                                     FileConfig.nameWithoutExtension(file))) {
-                        conflicts.add(path.toString());
+                        conflicts.add(
+                                fileConfig.srcPath.relativize(path).toString());
                     }
                 }
             }
