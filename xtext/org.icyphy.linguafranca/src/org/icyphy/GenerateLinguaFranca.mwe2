@@ -47,9 +47,9 @@ Workflow {
             parserGenerator = {
                 debugGrammar = true
             }
-            // generator = {
-            //     generateXtendMain = true
-            // }
+             generator = {
+                 generateXtendMain = false
+             }
         }
     }
 }

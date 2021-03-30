@@ -1,0 +1,66 @@
+/**
+ * Ptolemy II Example for Modes.
+ * An SDF model where the ModalModel requires more than one token
+ * on its input in order to fire.
+ * http://ptolemy.org/systems/models/modal/ModalSDF/index.html
+ * 
+ * @author Alexander Schulz-Rosengarten
+ */
+target Python{
+    threads: 0
+};
+
+import Plotter, Sinewave from "sine_max_avg.lf"
+
+reactor ModalModel(sample_size(10)) {
+    input data;
+    output out;
+    
+    state sample({=[None] * sample_size=});
+    state count(0);
+    
+    state mode(0); # Only present w/o mode support
+    
+    logical action process
+    
+    reaction(data) -> process {=
+        if self.mode == 0: # Only present w/o mode support 
+            self.sample[self.count] = data.value
+            self.count += 1
+            if self.count == self.sample_size:
+                self.count = 0
+                process.schedule(0)
+    =}
+    
+//    initial mode AVG {
+
+    /** @label Mode AVG: Process and Transition */
+    reaction(process) -> out {=
+        if self.mode == 0: # Only present w/o mode support 
+            print("Processing: ", self.sample)
+            out.set(sum(self.sample) / self.sample_size)
+            # Transition to MAX
+            self.mode = 1 # set_mode(MAX)
+    =}
+    
+//    }
+//    mode MAX {
+    
+    /** @label Mode MAX: Process and Transition */
+    reaction(process) -> out {=
+        if self.mode == 1: # Only present w/o mode support 
+            print("Processing: ", self.sample)
+            out.set(max(self.sample))
+            # Transition to MAX
+            self.mode = 0 # set_mode(AVG)
+    =}
+//    }
+}
+
+main reactor SineAvgMax {
+    s = new Sinewave(sample_rate = 125 msec, frequency = 0.44)
+    m = new ModalModel()
+    p = new Plotter()
+    s.data -> m.data
+    m.out -> p.data
+}

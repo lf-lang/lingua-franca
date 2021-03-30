@@ -354,9 +354,9 @@ token_freed __done_using(lf_token_t* token) {
     if (token == NULL) return result;
     if (token->ref_count == 0) {
         warning_print("Token being freed that has already been freed: %p", token);
-    } else {
-        token->ref_count--;
+        return NOT_FREED;
     }
+    token->ref_count--;
     DEBUG_PRINT("__done_using: ref_count = %d.", token->ref_count);
     if (token->ref_count == 0) {
         if (token->value != NULL) {
@@ -406,7 +406,7 @@ void _lf_enqueue_reaction(reaction_t* reaction);
  * counts between time steps and at the end of execution.
  */
 void __start_time_step() {
-    LOG_PRINT("--------- Start time step.");
+    LOG_PRINT("--------- Start time step at tag (%lld, %u).", current_tag.time - start_time, current_tag.microstep);
     for(int i = 0; i < __tokens_with_ref_count_size; i++) {
         if (*(__tokens_with_ref_count[i].is_present)) {
             if (__tokens_with_ref_count[i].reset_is_present) {
@@ -423,7 +423,7 @@ void __start_time_step() {
     }
     for(int i = 0; i < __is_present_fields_size; i++) {
         *__is_present_fields[i] = false;
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
         // FIXME: For now, an intended tag of (NEVER, 0)
         // indicates that it has never been set.
         *__intended_tag_fields[i] = (tag_t) {NEVER, 0};
@@ -564,7 +564,7 @@ void __pop_events() {
             reaction_t *reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
                 // In federated execution, an intended tag that is not (NEVER, 0)
                 // indicates that this particular event is triggered by a network message.
                 // The intended tag is set in handle_timed_message in federate.c whenever
@@ -684,7 +684,7 @@ event_t* _lf_get_new_event() {
     event_t* e = (event_t*)pqueue_pop(recycle_q);
     if (e == NULL) {
         e = (event_t*)calloc(1, sizeof(struct event_t));
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
         e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
 #endif
     }
@@ -701,7 +701,7 @@ void _lf_recycle_event(event_t* e) {
     e->pos = 0;
     e->token = NULL;
     e->is_dummy = false;
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
     e->intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
 #endif
     e->next = NULL;
@@ -765,6 +765,8 @@ void _lf_replace_token(event_t* event, lf_token_t* token) {
  * where bigger_tag > smaller_tag. This function is primarily
  * used for network communication (which is assumed to be
  * in order).
+ * 
+ * This function assumes the caller holds the mutex lock.
  *
  * @param trigger The trigger to be invoked at a later logical time.
  * @param tag Logical tag of the event
@@ -777,7 +779,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
 
     tag_t current_logical_tag = get_current_tag();
 
-    DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).\n",
+    DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).",
                   tag.time - start_time, tag.microstep,
                   current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {
@@ -810,7 +812,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
     // Set the payload.
     e->token = token;
 
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
     // Set the intended tag
     e->intended_tag = trigger->intended_tag;
 #endif
@@ -986,7 +988,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
     }
 
     if (extra_delay < 0LL) {
-        warning_print("schedule called with a negative extra_delay. Replacing with zero.");
+        warning_print("schedule called with a negative extra_delay %lld. Replacing with zero.", extra_delay);
         extra_delay = 0LL;
     }
 
@@ -1050,7 +1052,9 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
         }
     }
 
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
+    // Event inherits the original intended_tag of the trigger
+    // set by the network stack (or the default, which is (NEVER,0))
     e->intended_tag = trigger->intended_tag;
 #endif
     
@@ -1070,7 +1074,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
                 intended_tag.microstep++;
             }
             if (_lf_is_tag_after_stop_tag(intended_tag)) {
-                warning_print("Attempt to schedule an event after stop_tag was rejected.");
+                DEBUG_PRINT("Attempt to schedule an event after stop_tag was rejected.");
                 // Scheduling an event will incur a microstep
                 // after the stop tag.
                 _lf_recycle_event(e);
@@ -1126,7 +1130,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
                         _lf_recycle_event(e);
                         return(0);
                     }
-                    // If the preceding event _has_ been handled, the adjust
+                    // If the preceding event _has_ been handled, then adjust
                     // the tag to defer the event.
                     intended_time = earliest_time;
                     break;
@@ -1150,6 +1154,17 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
                     break;
             }
         }
+    }
+
+    // Check if the intended time is in the future
+    // This is a sanity check for the logic above
+    // FIXME: This is a development assertion and might
+    // not be necessary for end-user LF programs
+    if (intended_time < current_tag.time) {
+        error_print("Attempting to schedule an event earlier than current time by %lld nsec!"
+                "Revising to the current time %lld.",
+                current_tag.time - intended_time, current_tag.time);
+        intended_time = current_tag.time;
     }
 
     // Set the tag of the event.
@@ -1221,12 +1236,15 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     // Check to see if the execution
     // has not started yet.
     if (_lf_execution_started) {
+        warning_print("_lf_schedule_init_reactions() called when execution has already started.");
         return 0;
     }
     
     // Check to see if we are actually at startup
     // FIXME: add microsteps
     if (current_tag.time != start_time) {
+        warning_print("_lf_schedule_init_reactions() at a time (%lld) other than start time (%lld).",
+                      current_tag.time, start_time);
         return 0;
     }
 
@@ -1234,22 +1252,25 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
     // Doing this after incrementing the reference count ensures that the
     // payload will be freed, if there is one.
 	if (trigger == NULL) {
+        warning_print("_lf_schedule_init_reactions() called with a NULL trigger");
 	    __done_using(token);
 	    return 0;
 	}
 
     // Check to see if the intended event will actually be scheduled at (0,0)
     if ((trigger->offset + extra_delay) != 0LL) {
+        warning_print("_lf_schedule_init_reactions() called with with intended time %lld which is non-zero.", trigger->offset + extra_delay);
         return 0;
     }
     
     // Check to see if the trigger is not a timer
     // and not a physical action
     if (trigger->is_timer || trigger->is_physical) {
+        warning_print("_lf_schedule_init_reactions() called on a timer or physical action.");
         return 0;
     }
 
-#ifdef _LF_COORD_DECENTRALIZED
+#ifdef FEDERATED_DECENTRALIZED
     // Set the intended tag which is (0,0)
     trigger->intended_tag = (tag_t) { .time = start_time, .microstep = 0 };
 #endif
@@ -1322,11 +1343,32 @@ trigger_t* _lf_action_to_trigger(void* action) {
  * @param next_time The time step to advance to.
  */ 
 void _lf_advance_logical_time(instant_t next_time) {
-    if (current_tag.time != next_time) {
+    // FIXME: The following checks that _lf_advance_logical_time()
+    // is being called correctly. Namely, check if logical time
+    // is being pushed past the head of the event queue. This should
+    // never happen if _lf_advance_logical_time() is called correctly.
+    // This is commented out because it will add considerable overhead
+    // to the ordinary execution of LF programs. Instead, there might
+    // be a need for a target property that enables these kinds of logic
+    // assertions for development purposes only.
+    /*
+    event_t* next_event = (event_t*)pqueue_peek(event_q);
+    if (next_event != NULL) {
+        if (next_time > next_event->time) {
+            error_print_and_exit("_lf_advance_logical_time(): Attempted to move time to %lld, which is "
+                    "past the head of the event queue, %lld.", 
+                    next_time - start_time, next_event->time - start_time);
+        }
+    }
+    */
+
+    if (current_tag.time < next_time) {
         current_tag.time = next_time;
         current_tag.microstep = 0;
-    } else {
+    } else if (current_tag.time == next_time) {
         current_tag.microstep++;
+    } else {
+        error_print_and_exit("_lf_advance_logical_time(): Attempted to move tag back in time.");
     }
     LOG_PRINT("Advanced (elapsed) tag to (%lld, %u)", next_time - start_time, current_tag.microstep);
 }
@@ -1389,7 +1431,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     // without going through the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
     int num_downstream_reactions = 0;
-#ifdef _LF_COORD_DECENTRALIZED // Only pass down tardiness for federated programs that use decentralized coordination.
+#ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated programs that use decentralized coordination.
     // Extract the inherited tardiness
     bool inherited_tardiness = reaction->is_tardy;
 #endif
@@ -1405,10 +1447,12 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                     DEBUG_PRINT("Trigger %p lists %d reactions.", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
-#ifdef _LF_COORD_DECENTRALIZED // Only pass down tardiness for federated LF programs
+#ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated LF programs
                         // Set the tardiness for the downstream reaction
-                        downstream_reaction->is_tardy = inherited_tardiness;
-                        DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->is_tardy);
+                        if (downstream_reaction != NULL) {
+                            downstream_reaction->is_tardy = inherited_tardiness;
+                            DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->is_tardy);
+                        }
 #endif
                         if (downstream_reaction != NULL && downstream_reaction != downstream_to_execute_now) {
                             num_downstream_reactions++;
@@ -1446,7 +1490,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     if (downstream_to_execute_now != NULL) {
         LOG_PRINT("Worker %d: Optimizing and executing downstream reaction now.", worker);
         bool violation = false;
-#ifdef _LF_COORD_DECENTRALIZED // Only use the Tardy handler for federated programs that use decentralized coordination
+#ifdef FEDERATED_DECENTRALIZED // Only use the Tardy handler for federated programs that use decentralized coordination
         // If the is_tardy for the reaction is true,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
@@ -1788,7 +1832,13 @@ void initialize() {
  */
 void termination() {
     // Invoke the code generated termination function.
-    __termination();
+    terminate_execution();
+
+    // Stop any tracing, if it is running.
+    stop_trace();
+
+    // In order to free tokens, we perform the same actions we would have for a new time step.
+    __start_time_step();
 
     // If the event queue still has events on it, report that.
     if (event_q != NULL && pqueue_size(event_q) > 0) {
@@ -1807,14 +1857,18 @@ void termination() {
         warning_print("Number of unfreed tokens: %d.", __count_token_allocations);
     }
     // Print elapsed times.
-    char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
-    readable_time(time_buffer, get_elapsed_logical_time());
-    info_print("---- Elapsed logical time (in nsec): %s", time_buffer);
+    // If these are negative, then the program failed to start up.
+    interval_t elapsed_time = get_elapsed_logical_time();
+    if (elapsed_time >= 0LL) {
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        readable_time(time_buffer, elapsed_time);
+        info_print("---- Elapsed logical time (in nsec): %s", time_buffer);
 
-    // If physical_start_time is 0, then execution didn't get far enough along
-    // to initialize this.
-    if (physical_start_time > 0LL) {
-        readable_time(time_buffer, get_elapsed_physical_time());
-        info_print("---- Elapsed physical time (in nsec): %s", time_buffer);
+        // If physical_start_time is 0, then execution didn't get far enough along
+        // to initialize this.
+        if (physical_start_time > 0LL) {
+            readable_time(time_buffer, get_elapsed_physical_time());
+            info_print("---- Elapsed physical time (in nsec): %s", time_buffer);
+        }
     }
 }

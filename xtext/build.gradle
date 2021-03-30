@@ -9,6 +9,8 @@ buildscript {
 
 plugins {
     id "com.github.johnrengelman.shadow" version "6.0.0"
+	id 'java'
+	id 'jacoco'
 }
 
 subprojects {
@@ -20,6 +22,10 @@ subprojects {
 	apply plugin: 'java'
 	dependencies {
 		implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
+		// https://mvnrepository.com/artifact/com.google.inject/guice
+		implementation group: 'com.google.inject', name: 'guice', version: '5.0.0-BETA-1'
+		// https://mvnrepository.com/artifact/commons-cli/commons-cli
+		implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
 	}
 
 	apply plugin: 'org.xtext.xtend'

@@ -27,7 +27,6 @@
 package org.icyphy.validation
 
 import java.util.ArrayList
-import java.util.Arrays
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
@@ -40,6 +39,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
+import org.icyphy.Target
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -65,7 +65,7 @@ import org.icyphy.linguaFranca.Preamble
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.Target
+import org.icyphy.linguaFranca.TargetDecl
 import org.icyphy.linguaFranca.TimeUnit
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.Type
@@ -77,11 +77,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TargetSupport.TargetProperties
-import org.icyphy.TargetSupport.CoordinationType
-import org.icyphy.TargetSupport
-import org.icyphy.TargetSupport.LogLevel
-import org.icyphy.TargetSupport.BuildType
+import org.icyphy.TargetProperty
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -96,9 +92,8 @@ import org.icyphy.TargetSupport.BuildType
  */
 class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
-    var TargetSupport target;
-
-    var info = new ModelInfo()
+    var Target target
+    public var info = new ModelInfo()
 
     /**
      * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
@@ -133,6 +128,10 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     public static val GLOBALLY_DUPLICATE_NAME = 'GLOBALLY_DUPLICATE_NAME'
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
+
+    public val List<String> targetPropertyErrors = newLinkedList
+    
+    public val List<String> targetPropertyWarnings = newLinkedList
 
     @Check
     def checkImportedReactor(ImportedReactor reactor) {
@@ -183,7 +182,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             error(RESERVED_MESSAGE + name, feature)
         }
 
-        if (this.target == TargetSupport.TS) {
+        if (this.target == Target.TS) {
             // "actions" is a reserved word within a TS reaction
             if (name.equals("actions")) {
                 error(ACTIONS_MESSAGE + name, feature)
@@ -295,7 +294,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
-            if (this.target == TargetSupport.C &&
+            if (this.target == Target.C &&
                 this.info.overflowingAssignments.contains(assignment)) {
                 error(
                     "Time value used to specify a deadline exceeds the maximum of " +
@@ -311,7 +310,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     
     @Check(FAST)
     def checkWidthSpec(WidthSpec widthSpec) {
-        if (this.target != TargetSupport.C && this.target != TargetSupport.CPP && this.target != TargetSupport.Python) {
+        if (this.target != Target.C && this.target != Target.CPP && this.target != Target.Python) {
             error("Multiports and banks are currently only supported by the C and Cpp targets.",
                     Literals.WIDTH_SPEC__TERMS)
         } else {
@@ -321,7 +320,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                         error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS)
                     }
                 } else {
-                    if (this.target != TargetSupport.C && this.target != TargetSupport.Python) {
+                    if (this.target != Target.C && this.target != Target.Python) {
                         error("Parameterized widths are currently only supported by the C target.", 
                                 Literals.WIDTH_SPEC__TERMS)
                     }
@@ -368,25 +367,33 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // For the C target, since C has such a weak type system, check that
         // the types on both sides of every connection match. For other languages,
         // we leave type compatibility that language's compiler or interpreter.
-        if (this.target == TargetSupport.C) {
+        if (this.target == Target.C) {
             var type = null as Type
             for (port : connection.leftPorts) {
-                if (type === null) {
-                    type = (port.variable as Port).type
-                } else {
-                    // Unfortunately, xtext does not generate a suitable equals()
-                    // method for AST types, so we have to manually check the types.
-                    if (!sameType(type, (port.variable as Port).type)) {
-                        error("Types do not match.", Literals.CONNECTION__LEFT_PORTS)
+                // If the variable is not a port, then there is some other
+                // error. Avoid a class cast exception.
+                if (port.variable instanceof Port) {
+                    if (type === null) {
+                        type = (port.variable as Port).type
+                    } else {
+                        // Unfortunately, xtext does not generate a suitable equals()
+                        // method for AST types, so we have to manually check the types.
+                        if (!sameType(type, (port.variable as Port).type)) {
+                            error("Types do not match.", Literals.CONNECTION__LEFT_PORTS)
+                        }
                     }
                 }
             }
             for (port : connection.rightPorts) {
-                if (type === null) {
-                    type = (port.variable as Port).type
-                } else {
-                    if (!sameType(type, (port.variable as Port).type)) {
-                        error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS)
+                // If the variable is not a port, then there is some other
+                // error. Avoid a class cast exception.
+                if (port.variable instanceof Port) {
+                    if (type === null) {
+                        type = (port.variable as Port).type
+                    } else {
+                        if (!sameType(type, (port.variable as Port).type)) {
+                            error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS)
+                        }
                     }
                 }
             }
@@ -398,7 +405,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         // to the code generator to check it.
         var leftWidth = 0
         for (port : connection.leftPorts) {
-            val width = port.multiportWidth
+            val width = port.multiportWidthIfLiteral
             if (width < 0 || leftWidth < 0) {
                 // Cannot determine the width of the left ports.
                 leftWidth = -1
@@ -408,7 +415,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         var rightWidth = 0
         for (port : connection.rightPorts) {
-            val width = port.multiportWidth
+            val width = port.multiportWidthIfLiteral
             if (width < 0 || rightWidth < 0) {
                 // Cannot determine the width of the left ports.
                 rightWidth = -1
@@ -505,7 +512,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkDeadline(Deadline deadline) {
-        if (this.target == TargetSupport.C &&
+        if (this.target == Target.C &&
             this.info.overflowingDeadlines.contains(deadline)) {
             error(
                 "Deadline exceeds the maximum of " +
@@ -547,7 +554,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
         
         // mutable has no meaning in C++
-        if (input.mutable && this.target == TargetSupport.CPP) {
+        if (input.mutable && this.target == Target.CPP) {
             warning(
                 "The mutable qualifier has no meaning for the C++ target and should be removed. " +
                 "In C++, any value can be made mutable by calling get_mutable_copy().",
@@ -595,7 +602,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (instantiation.widthSpec !== null 
                 && instantiation.widthSpec.ofVariableLength
         ) {
-            if (this.target == TargetSupport.C) {
+            if (this.target == Target.C) {
                 warning("Variable-width banks are for internal use only.",
                     Literals.INSTANTIATION__WIDTH_SPEC
                 )
@@ -611,17 +618,20 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkKeyValuePair(KeyValuePair param) {
         // Check only if the container's container is a Target.
-        if (param.eContainer.eContainer instanceof Target) {
+        if (param.eContainer.eContainer instanceof TargetDecl) {
 
-            if (!TargetProperties.isValidName(param.name)) {
+            val prop = TargetProperty.forName(param.name)
+
+            // Make sure the key is valid.
+            if (prop === null) {
                 warning(
                     "Unrecognized target parameter: " + param.name +
                         ". Recognized parameters are: " +
-                        TargetProperties.values().join(", ") + ".",
+                        TargetProperty.getOptions().join(", ") + ".",
                     Literals.KEY_VALUE_PAIR__NAME)
             }
-            val prop = TargetProperties.get(param.name)
 
+            // Check whether the property is supported by the target.
             if (!prop.supportedBy.contains(this.target)) {
                 warning(
                     "The target parameter: " + param.name +
@@ -630,122 +640,16 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                     Literals.KEY_VALUE_PAIR__NAME)
             }
 
-            // Perform property-specific checks.
-            switch prop {
-                case BUILD_TYPE:
-                    param.checkIfOneOf(Arrays.asList(BuildType.values()))
-                case CLOCK_SYNC:
-                    if (!param.value.id.equalsIgnoreCase('off') 
-                            && !param.value.id.equalsIgnoreCase('initial') 
-                            && !param.value.id.equalsIgnoreCase('on')) {
-                        error("Target property clock-sync is required to be off, initial, or on. "
-                                + "Default is initial.",
-                            Literals.KEY_VALUE_PAIR__VALUE)
-                    }
-                case CLOCK_SYNC_OPTIONS: {
-                    if (param.value.keyvalue === null) {
-                        error("Target property clock-sync-options needs to be a list of "
-                               + "key-value pairs like "
-                               + "{local-federates-on: true, test-offset: 200 msec}",
-                               Literals.KEY_VALUE_PAIR__VALUE)
-                    }
-                    for (entry: param.value.keyvalue.pairs) {
-                        if (entry.name.equalsIgnoreCase('local-federates-on')) {
-                            if (entry.value.literal === null
-                                    || (!entry.value.literal.equalsIgnoreCase('true')
-                                    && !entry.value.literal.equalsIgnoreCase('false'))) {
-                                error("Target property clock-sync-options local-federates-on"
-                                        + " entry needs to be true or false.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            }
-                        } else if (entry.name.equalsIgnoreCase('test-offset')) {
-                            if (entry.value.unit === null) {
-                                error("Target property clock-sync-options test-offset"
-                                        + " entry needs to be a time value (with units).",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            }
-                        } else if (entry.name.equalsIgnoreCase('period')) {
-                            if (entry.value.unit === null) {
-                                error("Target property clock-sync-options period"
-                                        + " entry needs to be a time value (with units).",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            }
-                        } else if (entry.name.equalsIgnoreCase('attenuation')) {
-                            if (entry.value.literal === null) {
-                                error("Target property clock-sync-options attenuation"
-                                        + " entry needs to be a positive integer.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            } else {
-                                try {
-                                    val value = Integer.decode(entry.value.literal)
-                                    if (value <= 0) {
-                                        error("Target property clock-sync-options attenuation"
-                                                + " entry needs to be a positive integer.",
-                                                Literals.KEY_VALUE_PAIR__VALUE)
-                                    }
-                                } catch (NumberFormatException ex) {
-                                    error("Target property clock-sync-options attenuation"
-                                            + " entry needs to be a positive integer.",
-                                            Literals.KEY_VALUE_PAIR__VALUE)
-                                }
-                            }
-                        } else if (entry.name.equalsIgnoreCase('trials')) {
-                            if (entry.value.literal === null) {
-                                error("Target property clock-sync-options trials"
-                                        + " entry needs to be an integer.",
-                                        Literals.KEY_VALUE_PAIR__VALUE)
-                            } else {
-                                try {
-                                    val value = Integer.decode(entry.value.literal)
-                                    if (value <= 0) {
-                                        error("Target property clock-sync-options trials"
-                                                + " entry needs to be a positive integer.",
-                                                Literals.KEY_VALUE_PAIR__VALUE)
-                                    }
-                                } catch (NumberFormatException ex) {
-                                    error("Target property clock-sync-options trials"
-                                            + " entry needs to be a positive integer.",
-                                            Literals.KEY_VALUE_PAIR__VALUE)
-                                }
-                            }
-                        } else {
-                            error("Unrecognized clock-sync-options entry. Options are: "
-                                    + "local-federates-on, test-offset.",
-                                    Literals.KEY_VALUE_PAIR__VALUE)
-                        }
-                    }
-                }
-                case CMAKE_INCLUDE:
-                    param.checkIfString
-                case COMPILER:
-                    checkIfString(param)
-                case COORDINATION:
-                    param.checkIfOneOf(Arrays.asList(CoordinationType.values())) 
-                case FLAGS:
-                    param.checkIfString
-                case FAST:
-                    param.checkIfBoolean
-                case KEEPALIVE:
-                    param.checkIfBoolean
-                case LOGGING:
-                    param.checkIfOneOf(Arrays.asList(LogLevel.values()))
-                case NO_COMPILE:
-                    param.checkIfBoolean
-                case NO_RUNTIME_VALIDATION:
-                    param.checkIfBoolean
-                case THREADS: 
-                    param.checkIfInteger(true)
-                case TIMEOUT:
-                    param.checkValidTime
-                case TRACING:
-                    checkIfBoolean(param)
-                case BUILD:
-                    param.checkIfStringOrListOfStrings
-                case FILES:
-                    param.checkIfStringOrListOfStrings
-                case PROTOBUFS:
-                    param.checkIfStringOrListOfStrings
-            }
+            // Report problem with the assigned value.
+            prop.type.check(param.value, param.name, this)
+            targetPropertyErrors.forEach [
+                error(it, Literals.KEY_VALUE_PAIR__VALUE)
+            ]
+            targetPropertyErrors.clear()
+            targetPropertyWarnings.forEach [
+                warning(it, Literals.KEY_VALUE_PAIR__VALUE)
+            ]
+            targetPropertyWarnings.clear()
         }
     }
 
@@ -815,7 +719,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
         }
 
-        if (this.target == TargetSupport.C &&
+        if (this.target == Target.C &&
             this.info.overflowingParameters.contains(param)) {
             error(
                 "Time value used to specify a deadline exceeds the maximum of " +
@@ -826,7 +730,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkPreamble(Preamble preamble) {
-        if (this.target == TargetSupport.CPP) {
+        if (this.target == Target.CPP) {
             if (preamble.visibility == Visibility.NONE) {
                 error(
                     "Preambles for the C++ target need a visibility qualifier (private or public)!",
@@ -982,7 +886,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         checkName(reactor.name, Literals.REACTOR_DECL__NAME)
         
         // C++ reactors may not be called 'preamble'
-        if (this.target == TargetSupport.CPP && reactor.name.equalsIgnoreCase("preamble")) {
+        if (this.target == Target.CPP && reactor.name.equalsIgnoreCase("preamble")) {
             error(
                 "Reactor cannot be named '" + reactor.name + "'",
                 Literals.REACTOR_DECL__NAME
@@ -1157,7 +1061,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             error("State must have a type.", Literals.STATE_VAR__TYPE)
         }
 
-        if (this.target == TargetSupport.C && stateVar.init.size > 1) {
+        if (this.target == Target.C && stateVar.init.size > 1) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
             if (stateVar.init.exists[it.parameter !== null]) {
@@ -1169,12 +1073,12 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     }
 
     @Check(FAST)
-    def checkTarget(Target target) {
-        if (!TargetSupport.isValidName(target.name)) {
+    def checkTargetDecl(TargetDecl target) {
+        if (!Target.hasForName(target.name)) {
             warning("Unrecognized target: " + target.name,
-                Literals.TARGET__NAME)
+                Literals.TARGET_DECL__NAME)
         } else {
-            this.target = TargetSupport.get(target.name);
+            this.target = Target.forName(target.name);
         }
     }
 
@@ -1191,7 +1095,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if fast is defined
-                TargetProperties.get(pair.name) == TargetProperties.FAST
+                TargetProperty.forName(pair.name) == TargetProperty.FAST
         )) {
             if (info.model.reactors.exists(
                 reactor |
@@ -1220,13 +1124,14 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         if (targetProperties.pairs.exists(
             pair |
                 // Check to see if clock-sync is defined
-                TargetProperties.get(pair.name) == TargetProperties.CLOCK_SYNC
+                TargetProperty.forName(pair.name) == TargetProperty.CLOCK_SYNC
         )) {
 
-            if (info.model.reactors.exists( reactor |
-                // Check to see if the program has a federated reactor and if there is a physical connection
-                // defined.
-                reactor.isFederated
+            if (info.model.reactors.exists(
+                reactor |
+                    // Check to see if the program has a federated reactor and if there is a physical connection
+                    // defined.
+                    reactor.isFederated
             ) == false) {
                 warning(
                     "The clock-sync target property is incompatible with non-federated programs.",
@@ -1283,7 +1188,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     @Check(FAST)
     def checkType(Type type) {
         // FIXME: disallow the use of generics in C
-        if (this.target == TargetSupport.CPP) {
+        if (this.target == Target.CPP) {
             if (type.stars.size > 0) {
                 warning(
                     "Raw pointers should be avoided in conjunction with LF. Ports " +
@@ -1295,7 +1200,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
         }
-        else if (this.target == TargetSupport.Python) {
+        else if (this.target == Target.Python) {
             if (type !== null) {               
                 error(
                     "Types are not allowed in the Python target",
@@ -1308,103 +1213,5 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
     static val UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": "
     static val ACTIONS_MESSAGE = "\"actions\" is a reserved word for the TypeScript target for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
     static val RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): "
-    
-    def checkIfBoolean(KeyValuePair param) {
-        if (!param.value.id.equals('true') && !param.value.id.equals('false')) {
-            error('''Target property '«param.name»' is required to be 'true' or 'false.''',
-                Literals.KEY_VALUE_PAIR__VALUE)
-        }
-    }
-    
-    /**
-     * Report an error stating that the given parameter must be of the given type.
-     */
-    def shouldBe(KeyValuePair param, String type) {
-        error('''Target property '«param.name»' is required to be «type».''',
-            Literals.KEY_VALUE_PAIR__VALUE)
-    }
-    
-    def boolean isString(KeyValuePair param) {
-        if (param.value.literal !== null || param.value.id !== null) {
-            return true
-        }
-        return false
-    }
-    
-    /**
-     * Check whether the given parameter is a string.
-     */
-    def checkIfString(KeyValuePair param) {
-        if (!param.isString) {
-            param.shouldBe("a string")
-            return false
-        }
-        return true
-    }
-    
-    def boolean isListOfStrings(KeyValuePair param) {
-        if (param.value.array !== null) {
-            for (entry : param.value.array.elements) {
-                if (entry.id !== null || entry.literal !== null) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-    
-    def checkIfStringOrListOfStrings(KeyValuePair param) {
-        if (!param.isString && !param.isListOfStrings) {
-            param.shouldBe("a string or a list of strings")
-        }
-    }
-    
-    /**
-     * Check whether the given parameter is an integer.
-     */
-    def checkIfInteger(KeyValuePair param, Boolean nonNegative) {
-        val type = nonNegative ? "a non-negative integer" : "an integer"
-        if (param.value.literal === null) {
-            param.shouldBe(type)
-        }
-        try {
-            val value = Integer.decode(param.value.literal)
-            if (nonNegative && value < 0) {
-                param.shouldBe(type)
-            }
-        } catch (NumberFormatException ex) {
-            param.shouldBe(type)
-        }
-    }
-    
-    /**
-     * Return true of the given parameter matches the given value.
-     */
-    def matches(KeyValuePair param, String value) {
-        return (value.equalsIgnoreCase(param.value.id) ||
-            (param.value.literal !== null &&
-                value.equalsIgnoreCase(param.value.literal)))
-    }
-    
-    def shouldBeOneOf(KeyValuePair param, Iterable<Enum<?>> list,
-        Enum<?> defaultValue) {
-        error('''Target property '«param.name»' is required to be one of: «list». «IF defaultValue !== null»The default is '«defaultValue»'.«ENDIF»''',
-            Literals.KEY_VALUE_PAIR__VALUE)
-    }
-    
-    def checkIfOneOf(KeyValuePair param, Iterable<Enum<?>> list) {
-        if (!list.exists [
-            param.matches(it.toString)
-        ]) {
-            param.shouldBeOneOf(list, null)
-        }
-    }
-    
-    def checkValidTime(KeyValuePair param) {
-        if (param.value.unit === null) {
-            param.shouldBeOneOf(Arrays.asList(TimeUnit.VALUES.filter[it != TimeUnit.NONE]), null)
-        } else if (param.value.time < 0) {
-            param.shouldBe("a non-negative time value with units")
-        }
-    }
+
 }

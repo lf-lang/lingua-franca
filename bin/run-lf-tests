@@ -2,9 +2,17 @@
 
 #==========================================================
 # Description:  Run all tests for a given LF target.
-# Author:       Marten Lohstroh, Matt Weber
+# Author:       Marten Lohstroh
 # Usage:        run-lf-tests [TARGET]
 #==========================================================
+
+pushd () {
+    command pushd "$@" > /dev/null
+}
+
+popd () {
+    command popd "$@" > /dev/null
+}
 
 if [ "$(dirname "$0")" == '.' ]; then
         base="../";
@@ -16,97 +24,8 @@ fi
 if [ "$1" == '' ]; then
     echo "Usage: run-lf-tests [target]";
 else
-    ext=$(echo "$1" | awk '{print tolower($0)}')
-    test_dir="$base""test/""$1";
-    manifest="$base""test/test-manifest";
-    offset="../../";
-    total=0;
-    correct=0;
-    failed="";
-    timeout_command="";
-    
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        if ! command -v gtimeout &> /dev/null; then
-            echo "gtimeout could not be found. Please install gtimeout using 'brew install coreutils'";
-            exit 1;
-        fi
-        timeout_command+="gtimeout 2m " # 2 minute timeout
-    else
-        timeout_command+="timeout 2m " # 2 minute timeout
-    fi
-
-    if [ ! -f "$manifest" ]; then
-        echo "Unable to locate manifest.";
-        echo "File not found: ""$manifest";
-    else
-        "${base}bin/build-lfc" "--offline";
-        build_exit_code=$?;
-        if [ $build_exit_code -ne 0 ]; then
-            echo "Build failed. Exiting run-lf-tests.";
-            exit 1;
-        else 
-            pushd $test_dir;
-            if [ $1 == "TS" ]; then
-                echo "Executing command: rm package.json";
-                rm package.json;
-            elif [ $1 == "Python" ]; then
-                echo "Removing the src-gen directory";
-                rm -rf src-gen;
-            fi
-            while read p; do
-                if [[ "$p" =~ ^[[:space:]]*#.* ]]; then
-                    #echo "Ignoring commented out test: $p";
-                    continue;
-                fi
-                if [ ! -f "$p" ]; then
-                        echo "[WARNING] $p does not exist.";
-                    continue
-                fi
-                echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
-                total=$((total + 1))
-                name=$(echo $p | rev | cut -d. -f2 | rev)
-                echo $p;
-                echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
-                echo "================================================================================";
-                eval "$offset""bin/lfc ""$p";
-                if [ $? -ne 0 ]; then
-                    failed="$name $failed"
-                    continue
-                fi
-                echo "================================================================================";
-                command=${timeout_command}
-                if [ $1 == "Cpp" ]; then
-                    command+="bin/$name"
-                elif [ $1 == "C" ]; then
-                    command+="bin/$name"
-	            elif [ $1 == "CCpp" ]; then
-                    command+="bin/$name"
-	            elif [ $1 == "TS" ]; then
-                    command+="node ${name}/dist/${name}"".js"
-                elif [ $1 == "Python" ]; then
-                    command+="python3 src-gen/${name}/${name}"".py"
-                else
-                    echo "Unknown target. Valid targets are: \"Cpp\", \"CCpp\", \"TS\", \"Python\", and \"C\".";
-                    exit 1;
-                fi
-                echo "Executing command:"$command;
-                echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-                
-                if $command; # timeout 2m
-                then
-                    correct=$((correct + 1))
-                else
-                    failed="$name $failed"
-                fi
-                echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-            done <"../test-manifest"
-            echo "--------------------------------------------------------------------------------";        
-            echo "Number of tests passed: ("$correct"/"$total")";
-            echo "--------------------------------------------------------------------------------";
-            if (($correct != $total)); then
-                echo "Failed tests: $failed"
-                exit 1;
-            fi
-        fi
-    fi
+    "${base}bin/build-lfc" "--offline";
+    pushd "$base""xtext"
+    ./gradlew clean test --tests org.icyphy.tests.runtime.LinguaFranca"$1"Test
+    popd
 fi

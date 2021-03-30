@@ -41,42 +41,58 @@ import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
 import org.icyphy.linguaFranca.Delay
+import org.icyphy.linguaFranca.ActionOrigin
+import org.icyphy.TimeValue
 
-/** Instance of a federate, or marker that no federation has been defined
- *  (if isSingleton() returns true). Every top-level reactor (contained
- *  directly by the main reactor) is a federate, so there will be one
- *  instance of this class for each top-level reactor.
+/** 
+ * Instance of a federate, or marker that no federation has been defined
+ * (if isSingleton() returns true). Every top-level reactor (contained
+ * directly by the main reactor) is a federate, so there will be one
+ * instance of this class for each top-level reactor.
  * 
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class FederateInstance {
 
-    /** Construct a new instance with the specified instantiation of
-     *  of a top-level reactor. The federate will be given the specified
-     *  integer ID.
-     *  @param instantiation The instantiation of a top-level reactor,
-     *   or null if no federation has been defined.
-     *  @param The generator (for reporting errors).
+    /**
+     * Construct a new instance with the specified instantiation of
+     * of a top-level reactor. The federate will be given the specified
+     * integer ID.
+     * @param instantiation The instantiation of a top-level reactor,
+     *  or null if no federation has been defined.
+     * @param id The federate ID.
+     * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
+     * @param generator The generator (for reporting errors).
      */
-    protected new(Instantiation instantiation, int id, GeneratorBase generator) {
-        this.instantiation = instantiation
-        this.id = id
-        this.generator = generator
+    protected new(Instantiation instantiation, int id, int bankIndex, GeneratorBase generator) {
+        this.instantiation = instantiation;
+        this.id = id;
+        this.generator = generator;
+        this.bankIndex = bankIndex;
                 
-        // The contained reactor names set has just one name, the name
-        // of this reactor.
         if (instantiation !== null) {
-            containedReactorNames.add(instantiation.name)
+            this.name = instantiation.name;
+            // If the instantiation is in a bank, then we have to append
+            // the bank index to the name.
+            if (instantiation.widthSpec !== null) {
+                this.name = instantiation.name + "__" + bankIndex;
+            }
         }
     }
 
     /////////////////////////////////////////////
     //// Public Fields
     
-    /** Set of names of contained reactors. Note that will be
-     *  empty if isSingleton() returns true.
+    /**
+     * The position within a bank of reactors for this federate.
+     * This is 0 if the instantiation is not a bank of reactors.
      */
-    public var Set<String> containedReactorNames = new LinkedHashSet<String>
+    public var bankIndex = 0;
+    
+    /**
+     * A list of outputs that can be triggered directly or indirectly by physical actions.
+     */
+    public var outputsConnectedToPhysicalActions = new LinkedHashSet<Delay>()
     
     /** The host, if specified using the 'at' keyword. */
     public var String host = 'localhost'
@@ -84,10 +100,11 @@ class FederateInstance {
     /** The instantiation of the top-level reactor, or null if there is no federation. */
     public var Instantiation instantiation;
     
-    /** Map from the federates that this federate receives messages from
-     *  to the delays on connections from that federate. The delay set
-     *  may be empty, meaning no delay (not even a microstep or 0 delay)
-     *  was specified.
+    /**
+     * Map from the federates that this federate receives messages from
+     * to the delays on connections from that federate. The delay set
+     * may be empty, meaning no delay (not even a microstep or 0 delay)
+     * was specified.
      */
     public var dependsOn = new LinkedHashMap<FederateInstance,Set<Delay>>()
     
@@ -109,6 +126,13 @@ class FederateInstance {
     
     /** The integer ID of this federate. */
     public var id = 0;
+    
+    /**
+     * The name of this federate instance. This will be the instantiation
+     * name, poassibly appended with "__n", where n is the bank position of
+     * this instance if the instantiation is of a bank of reactors.
+     */
+    public var name = "Unnamed";
     
     /** List of networkMessage actions. Each of these handles a message
      *  received from another federate over the network. The ID of
@@ -138,22 +162,51 @@ class FederateInstance {
     /////////////////////////////////////////////
     //// Public Methods
     
-    /** Return true if the specified reactor name is contained by
-     *  this federate.
-     *  @return True if the federate contains the reactor.
+    /** 
+     * Return true if the specified reactor instance or any parent
+     * reactor instance is contained by this federate.
+     * If the specified instance is the top-level reactor, return true
+     * (this reactor belongs to all federates).
+     * If it is a bank member, then this returns true only if the bankIndex
+     * of the reactor instance matches the federate instance bank index.
+     * If this federate instance is a singleton, then return true if the
+     * instance is non null.
+     * 
+     * @param instance The reactor instance.
+     * @return True if this federate contains the reactor instance
      */
-    def contains(String reactorName) {
-        containedReactorNames.contains(reactorName) 
+    def contains(ReactorInstance instance) {
+        if (isSingleton) {
+            return (instance !== null);
+        }
+        if (instance.parent === null) {
+            return true;
+        }
+        // Start with this instance, then check its parents.
+        var i = instance;
+        while (i !== null) {
+            if (i.definition === this.instantiation
+                    && (
+                        i.bankIndex < 0                 // Not a bank member
+                        || i.bankIndex == this.bankIndex  // Index matches.
+                    )
+            ) {
+                return true;
+            }
+            i = i.parent;
+        }
+        return false;
     }
         
-    /** Return true if the specified reactor is not the main reactor,
-     *  or if it is and the reaction should be included in the code generated for the
-     *  federate. This means that if the reaction is triggered by or
-     *  sends data to a port of a contained reactor, then that reactor
-     *  is in the federate. Otherwise, return false.
-     *  @param reaction The reaction.
-     *  @param federate The federate instance or null if there
-     *   is no federation.
+    /** 
+     * Return true if the specified reactor is not the main reactor,
+     * or if it is and the reaction should be included in the code generated for the
+     * federate. This means that if the reaction is triggered by or
+     * sends data to a port of a contained reactor, then that reactor
+     * is in the federate. Otherwise, return false.
+     * @param reaction The reaction.
+     * @param federate The federate instance or null if there
+     *  is no federation.
      */
     def containsReaction(Reactor reactor, Reaction reaction) {
         // Easy case first.
@@ -180,7 +233,7 @@ class FederateInstance {
                 if (trigger instanceof VarRef) {
                     if (trigger.variable instanceof Output) {
                         // The trigger is an output port of a contained reactor.
-                        if (contains(trigger.container.name)) {
+                        if (trigger.container === this.instantiation) {
                             referencesFederate = true;
                         } else {
                             if (referencesFederate) {
@@ -196,7 +249,7 @@ class FederateInstance {
             for (effect : react.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
                     // It is the input of a contained reactor.
-                    if (contains(effect.container.name)) {
+                    if (effect.container === this.instantiation) {
                         referencesFederate = true;
                     } else {
                         if (referencesFederate) {
@@ -215,19 +268,34 @@ class FederateInstance {
         return !excludeReactions.contains(reaction)
     }
     
-    /** Return the name of this federate. 
-     *  @return The name of this federate or null if this is not a federation.
-     */
-    def getName() {
-        this.instantiation?.name
-    }
-    
-    /** Return true if this is singleton, meaning either that no federation
-     *  has been defined or that there is only one federate.
-     *  @return True if no federation has been defined.
+    /** 
+     * Return true if this is singleton, meaning either that no federation
+     * has been defined or that there is only one federate.
+     * @return True if no federation has been defined.
      */
      def isSingleton() {
          return ((instantiation === null) || (generator.federates.size <= 1))
+     }
+     
+    /**
+     * Find output ports that are connected to a physical action trigger upstream
+     * in the same reactor. Return a list of such outputs paired with the minimum delay
+     * from the nearest physical action.
+     * @param instance The reactor instance containing the output ports
+     * @return A LinkedHashMap<Output, TimeValue>
+     */
+     def findOutputsConnectedToPhysicalActions(ReactorInstance instance) {
+         var physicalActionToOutputMinDelay = new LinkedHashMap<Output, TimeValue>()
+         // Find reactions that write to the output port of the reactor
+         for (output : instance.outputs) {
+             for (reaction : output.dependsOnReactions) {
+                 var minDelay = findNearestPhysicalActionTrigger(reaction)
+                 if (minDelay != TimeValue.MAX_VALUE) {
+                    physicalActionToOutputMinDelay.put(output.definition as Output, minDelay)                 
+                 }
+             }
+         }
+         return physicalActionToOutputMinDelay
      }
 
     /////////////////////////////////////////////
@@ -239,4 +307,50 @@ class FederateInstance {
     /** The generator using this. */
     var generator = null as GeneratorBase
     
+    /**
+     * Find the nearest (shortest) path to a physical action trigger from this
+     * 'reaction' in terms of minimum delay.
+     * 
+     * @param reaction The reaction to start with
+     * @return The minimum delay found to the nearest physical action and
+     *  TimeValue.MAX_VALUE otherwise
+     */
+    def TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
+        var minDelay = TimeValue.MAX_VALUE;
+        for (trigger : reaction.triggers) {
+            if (trigger.definition instanceof Action) {
+                var action = trigger.definition as Action
+                var actionInstance = trigger as ActionInstance
+                if (action.origin === ActionOrigin.PHYSICAL) {
+                    if (actionInstance.minDelay.isEarlierThan(minDelay)) {
+                        minDelay = actionInstance.minDelay;
+                    }
+                } else {
+                    // Logical action
+                    // Follow it upstream inside the reactor
+                    for (uReaction: actionInstance.dependsOnReactions) {
+                        // Avoid a loop
+                        if (uReaction != reaction) {
+                            var uMinDelay = actionInstance.minDelay.add(findNearestPhysicalActionTrigger(uReaction))
+                            if (uMinDelay.isEarlierThan(minDelay)) {
+                                minDelay = uMinDelay;
+                            }
+                        }
+                    }
+                }
+                
+            } else if (trigger.definition instanceof Output) {
+                // Outputs of contained reactions
+                var outputInstance = trigger as PortInstance
+                for (uReaction: outputInstance.dependsOnReactions) {
+                    println("Found reaction " + uReaction.name + " upstream in contained reactors")
+                    var uMinDelay = findNearestPhysicalActionTrigger(uReaction)
+                    if (uMinDelay.isEarlierThan(minDelay)) {
+                        minDelay = uMinDelay;
+                    }
+                }
+            }
+        }
+        return minDelay
+    }
 }

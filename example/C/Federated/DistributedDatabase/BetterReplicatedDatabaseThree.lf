@@ -1,0 +1,36 @@
+/**
+ * A version of BetterReplicatedDatabase.lf with three replicas arranged in
+ * a broadcast pattern.
+ */
+target C {
+    timeout: 5 sec
+}
+
+import Platform from "BetterReplicatedDatabase.lf"
+
+main reactor ReplicatedDatabase(
+    query_period:time(1 sec),
+    num_remote_inputs:int(2)
+) {
+    a = new Platform(
+            query_period = query_period,
+            update_period = 5 sec,
+            update_amount = 100,
+            name = "San Francisco",
+            num_remote_inputs = num_remote_inputs);
+    b = new Platform(
+            query_period = query_period,
+            update_period = 1 sec,
+            update_amount = -20,
+            name = "Berkeley",
+            num_remote_inputs = num_remote_inputs);
+    c = new Platform(
+            query_period = query_period,
+            update_period = 3 sec,
+            update_amount = 10,
+            name = "Berkeley",
+            num_remote_inputs = num_remote_inputs);
+    b.publish, c.publish -> a.update;
+    a.publish, c.publish -> b.update;
+    a.publish, b.publish -> c.update;
+}
