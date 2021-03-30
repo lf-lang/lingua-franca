@@ -51,47 +51,61 @@ int lf_thread_join(_lf_thread_t thread, void** thread_return) {
     return thrd_join((thrd_t)thread, (int*)*thread_return);
 }
 
-/* Initialize a mutex. */
+/**
+ * Initialize a mutex.
+ */
 int lf_mutex_init(_lf_mutex_t* mutex) {
     // Set up a timed and recursive mutex (default behavior)
     return mtx_init((mtx_t*)mutex, mtx_timed | mtx_recursive);
 }
 
-/* Lock a mutex.  */
+/**
+ * Lock a mutex.
+ */
 int lf_mutex_lock(_lf_mutex_t* mutex) {
     return mtx_lock((mtx_t*) mutex);
 }
 
-/* Unlock a mutex.  */
+/** 
+ * Unlock a mutex.
+ */
 int lf_mutex_unlock(_lf_mutex_t* mutex) {
     return mtx_unlock((mtx_t*) mutex);
 }
 
-/* Initialize a conditional variable. */
+/** 
+ * Initialize a conditional variable.
+ */
 int lf_cond_init(_lf_cond_t* cond) {
     return cnd_init((cnd_t*)cond);
 }
 
-/* Wake up all threads waiting for condition variable cond.  */
+/** 
+ * Wake up all threads waiting for condition variable cond.
+ */
 int lf_cond_broadcast(_lf_cond_t* cond) {
     return cnd_broadcast((cnd_t*)cond);
 }
 
-/* Wake up one thread waiting for condition variable cond.  */
+/** 
+ * Wake up one thread waiting for condition variable cond.
+ */
 int lf_cond_signal(_lf_cond_t* cond) {
     return cnd_signal((cnd_t*)cond);
 }
 
-/* Wait for condition variable COND to be signaled or broadcast.
-   MUTEX is assumed to be locked before. */
+/** 
+ * Wait for condition variable "cond" to be signaled or broadcast.
+ * "mutex" is assumed to be locked before.
+ */
 int lf_cond_wait(_lf_cond_t* cond, _lf_mutex_t* mutex) {
     return cnd_wait((cnd_t*)cond, (mtx_t*)mutex);
 }
 
 /** 
  * Block current thread on the condition variable until condition variable
- * pointed by COND is signaled or time pointed by TIME_POINT is
- * reached.
+ * pointed by "cond" is signaled or time pointed by "absolute_time_ns" in
+ * nanoseconds is reached.
  * 
  * @return 0 on success and LF_TIMEOUT on timeout.
  */

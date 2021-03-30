@@ -107,34 +107,42 @@ int lf_mutex_unlock(_lf_critical_section_t* critical_section) {
     return 0;
 }
 
-/* Initialize a conditional variable. */
+/** 
+ * Initialize a conditional variable.
+ */
 int lf_cond_init(_lf_cond_t* cond) {
     InitializeConditionVariable((CONDITION_VARIABLE*)cond);
     return 0;
 }
 
-/* Wake up all threads waiting for condition variable cond.  */
+/** 
+ * Wake up all threads waiting for condition variable cond.
+ */
 int lf_cond_broadcast(_lf_cond_t* cond) {
     WakeAllConditionVariable((CONDITION_VARIABLE*)cond);
     return 0;
 }
 
-/* Wake up one thread waiting for condition variable cond.  */
+/** 
+ * Wake up one thread waiting for condition variable cond.
+ */
 int lf_cond_signal(_lf_cond_t* cond) {
     WakeConditionVariable((CONDITION_VARIABLE*)cond);
     return 0;
 }
 
-/* Wait for condition variable COND to be signaled or broadcast.
-   MUTEX is assumed to be locked before. */
+/** 
+ * Wait for condition variable "cond" to be signaled or broadcast.
+ * "mutex" is assumed to be locked before.
+ */
 int lf_cond_wait(_lf_cond_t* cond, _lf_critical_section_t* critical_section) {
     return (int)SleepConditionVariableCS((CONDITION_VARIABLE*)cond, (CRITICAL_SECTION*)critical_section, INFINITE);
 }
 
 /** 
  * Block current thread on the condition variable until condition variable
- * pointed by COND is signaled or time pointed by TIME_POINT is
- * reached.
+ * pointed by "cond" is signaled or time pointed by "absolute_time_ns" in
+ * nanoseconds is reached.
  * 
  * @return 0 on success and LF_TIMEOUT on timeout.
  */
