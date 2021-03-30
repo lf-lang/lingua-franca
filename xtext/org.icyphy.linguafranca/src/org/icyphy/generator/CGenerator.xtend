@@ -973,7 +973,7 @@ class CGenerator extends GeneratorBase {
                     // connect_to_federate for each outbound physical connection at the same
                     // time that the new thread is listening for such connections for inbound
                     // physical connections. The thread will live until termination.
-                    lf_thread_create(&_fed.inbound_p2p_handling_thread_id, NULL, handle_p2p_connections_from_federates, NULL);
+                    lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
                             
