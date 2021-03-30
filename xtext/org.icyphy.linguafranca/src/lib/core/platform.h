@@ -112,15 +112,15 @@ extern int lf_cond_broadcast(lf_cond_t* cond);
 extern int lf_cond_signal(lf_cond_t* cond);
 
 /** 
- * Wait for condition variable cond to be signaled or broadcast.
- * mutex is assumed to be locked before.
+ * Wait for condition variable "cond" to be signaled or broadcast.
+ * "mutex" is assumed to be locked before.
  */
 extern int lf_cond_wait(lf_cond_t* cond, lf_mutex_t* mutex);
 
 /** 
  * Block current thread on the condition variable until condition variable
- * pointed by __COND is signaled or time pointed by __TIME_POINT is
- * reached.
+ * pointed by "cond" is signaled or time pointed by "absolute_time_ns" in
+ * nanoseconds is reached.
  * 
  * @return 0 on success and LF_TIMEOUT on timeout.
  */
