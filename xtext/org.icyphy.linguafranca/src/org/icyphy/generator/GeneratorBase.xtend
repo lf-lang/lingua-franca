@@ -86,6 +86,7 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.MainConflictChecker
 
 /**
  * Generator base class for shared code between code generators.
@@ -398,6 +399,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // FIXME: We should factor them out and rename the following method
         // parseTargetProperties or something along those lines. 
         analyzeModel(resource, fsa, context)
+
+        // Check if there are any conflicting main reactors elsewhere in the package.
+        for (String conflict : new MainConflictChecker(topLevelName, fileConfig).conflicts) {
+            reportError(this.mainDef, "Conflicting main reactor in " + conflict);
+        }
 
         // Process target files. Copy each of them into the src-gen dir.
         copyUserFiles()
@@ -2303,4 +2309,5 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         fOut.write(code)
         fOut.close()
     }
+    
 }

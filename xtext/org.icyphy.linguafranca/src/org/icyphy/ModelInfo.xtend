@@ -40,7 +40,6 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TargetDecl
 
 import static extension org.icyphy.ASTUtils.*
-import java.io.File
 
 /**
  * A helper class for analyzing the AST.
@@ -130,7 +129,8 @@ class ModelInfo {
         }
         
         // Count the number of main/federated reactors.
-         countMainReactors()
+        countMainReactors()
+         
     }
 
     /**
