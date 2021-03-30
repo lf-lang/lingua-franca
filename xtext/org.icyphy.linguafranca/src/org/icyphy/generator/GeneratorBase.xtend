@@ -402,7 +402,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (mainDef !== null) {
-            for (String conflict : new MainConflictChecker(topLevelName, fileConfig).conflicts) {
+            for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
                 reportError(this.mainDef, "Conflicting main reactor in " + conflict);
             }
         }
