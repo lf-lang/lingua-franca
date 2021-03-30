@@ -25,8 +25,7 @@ reactor Sink {
         x = x as number;
         console.log("Received " + x);
         if (x != 42) {
-            console.log("FAILED: Expected 42.");
-            util.requestShutdown(false);
+            util.requestErrorStop("FAILED: Expected 42.")
         }
     =}
 }
