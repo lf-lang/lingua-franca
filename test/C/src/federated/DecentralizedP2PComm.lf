@@ -2,7 +2,7 @@ target C {
     timeout: 1 sec,
     tracing: true,
     clock-sync: off,
-    coordination: decentralized
+    coordination: decentralized 
 }
 
 reactor Platform(start:int(0), expected_start:int(0), stp_offset:time(0)) {
@@ -17,7 +17,10 @@ reactor Platform(start:int(0), expected_start:int(0), stp_offset:time(0)) {
     reaction(in) {=
         info_print("Received %d.", in->value);
         if (in->value != self->expected_start++) {
-            error_print_and_exit("Expected %d.", self->expected_start - 1);
+            error_print_and_exit("Expected %d but got %d.", 
+                self->expected_start - 1,
+                in->value
+            );
         }
     =} STP (stp_offset) {=
         tag_t current_tag = get_current_tag();

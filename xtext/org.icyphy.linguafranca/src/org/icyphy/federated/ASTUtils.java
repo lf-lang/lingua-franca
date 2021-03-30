@@ -75,12 +75,14 @@ public class ASTUtils {
      * 
      * @input portRef The input port
      * @input instance The federate instance is used to keep track of all
-     *        network input ports globally
+     *  network input ports globally
      * @input generator The GeneratorBase instance used to identify certain
-     *        target properties
+     *  target properties
+     * @input isTopLevel indicates whether this reaction is being produced in the top-level
+     *  federated reactor or not
      */
-    public static void addNetworkInputControlReaction(VarRef portRef, Reactor reactor,
-            FederateInstance instance, GeneratorBase generator) {
+    public static void addNetworkInputControlReaction(VarRef portRef, int recevingPortID, Reactor reactor,
+            FederateInstance instance, GeneratorBase generator, boolean isTopLevel) {
         LinguaFrancaFactory factory = LinguaFrancaFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         VarRef newPortRef = factory.createVarRef();
@@ -120,15 +122,21 @@ public class ASTUtils {
         if (reactionsWithPort.isEmpty() && connectionsWithPort.isEmpty()) {
             // Nothing to do here
             return;
+        } else {
+            // Only add the port for the top-level federate.
+            if (isTopLevel) {
+                // Add the port to network input ports
+                instance.networkInputPorts.add((Input) portRef.getVariable());
+            }
         }
 
         for (Connection connection : connectionsWithPort) {
             // Add the network input control reaction to all the contained
             // reactors, if appropriate
             for (VarRef port : connection.getRightPorts()) {
-                addNetworkInputControlReaction(port, reactor, instance, generator);
+                addNetworkInputControlReaction(port, recevingPortID, reactor, instance, generator, false);
             }
-        }
+        }        
 
         if (!reactionsWithPort.isEmpty()) {
             // If there are reactions at this level, insert the
@@ -136,9 +144,6 @@ public class ASTUtils {
 
             String triggerName = "inputControlReactionTriggerFor"
                     + newPortRef.getVariable().getName();
-
-            // Add the port to network input ports
-            instance.networkInputPorts.add((Input) portRef.getVariable());
 
             // Avoid duplicate reactions
             if (reactor.getInputs().stream().anyMatch(i -> {
@@ -176,7 +181,7 @@ public class ASTUtils {
 
             reaction.getCode()
                     .setBody(generator.generateNetworkInputControlReactionBody(
-                            (Port) portRef.getVariable(), STPList));
+                            recevingPortID, STPList));
 
             // If there are no top-level reactions in this federate that has
             // this

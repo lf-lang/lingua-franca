@@ -4218,7 +4218,8 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-        result.append('''        
+        result.append('''
+                _fed.network_input_port_triggers[«receivingPortID»]->status = present;        
                 // Port is now present. Therfore, notify the network input
                 // control reactions to stop waiting and re-check the port
                 // status.
@@ -4392,7 +4393,7 @@ class CGenerator extends GeneratorBase {
      *  that have port as their trigger or source
      */
     override generateNetworkInputControlReactionBody(
-        Port port,
+        int receivingPortID,
         Set<Value> STPList
     ) {
         // Store the code
@@ -4431,27 +4432,13 @@ class CGenerator extends GeneratorBase {
         
         result.append('''
             DEBUG_PRINT("Invoked network dependant reaction.");
-            // Check if the status of the port is known
-            if (self->__«port.name»->is_present) {
-                LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
-                          "because it is already present.");
-                // The status of the trigger is present. No need to wait.
-                self->___«port.name».status = present;
+            if (determine_port_status_if_possible(«receivingPortID») != unknown) {
+                // The status of the trigger is known. No need to wait.
+                LOG_PRINT("------ Not waiting for network input port «receivingPortID»: "
+                           "Status of the port is known already.");
                 pthread_mutex_unlock(&mutex);
                 return;
-            } else if (self->___«port.name».status == unknown && 
-                              compare_tags(self->___«port.name».last_known_status_tag, 
-                                get_current_tag()) >= 0) {
-                // We have a known status for this port in a future tag. Therefore, no event is going
-                // to be present for this port at the current tag.
-                self->___«port.name».status = absent;
-                pthread_mutex_unlock(&mutex);
-                return;
-            } else if (self->___«port.name».status == absent) {
-                // The status of the trigger is absent. No need to wait.
-                pthread_mutex_unlock(&mutex);
-                return;
-            }
+            }            
         ''')
         
         if(isFederatedAndDecentralized) {
@@ -4463,25 +4450,12 @@ class CGenerator extends GeneratorBase {
                                 current_tag.microstep);
                         while(!wait_until(current_tag.time + max_STP, &port_status_changed)) {
                             // Interrupted
-                            LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
+                            DEBUG_PRINT("------ Wait for network input port «receivingPortID» interrupted");
                             // Check if the status of the port is known
-                            if (self->__«port.name»->is_present) {
-                                LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
-                                          "because it is already present.");
-                                // The status of the trigger is present. No need to wait.
-                                self->___«port.name».status = present;
-                                pthread_mutex_unlock(&mutex);
-                                return;
-                            } else if (self->___«port.name».status == unknown && 
-                                              compare_tags(self->___«port.name».last_known_status_tag, 
-                                                get_current_tag()) >= 0) {
-                                // We have a known status for this port in a future tag. Therefore, no event is going
-                                // to be present for this port at the current tag.
-                                self->___«port.name».status = absent;
-                                pthread_mutex_unlock(&mutex);
-                                return;
-                            } else if (self->___«port.name».status == absent) {
-                                // The status of the trigger is absent. No need to wait.
+                            if (determine_port_status_if_possible(«receivingPortID») != unknown) {
+                                // The status of the trigger is known. No need to wait.
+                                LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
+                                           "Status of the port has changed.");
                                 pthread_mutex_unlock(&mutex);
                                 return;
                             }
@@ -4496,25 +4470,12 @@ class CGenerator extends GeneratorBase {
                             current_tag.microstep);
                     while(!wait_until(FOREVER, &port_status_changed)) {
                         // Interrupted
-                        LOG_PRINT("------ Wait for network input port \"«port.name»\" interrupted");
+                        DEBUG_PRINT("------ Wait for network input port «receivingPortID» interrupted");
                         // Check if the status of the port is known
-                        if (self->__«port.name»->is_present) {
-                            LOG_PRINT("------ Not waiting for network input port \"«port.name»\" "
-                                      "because it is already present.");
-                            // The status of the trigger is present. No need to wait.
-                            self->___«port.name».status = present;
-                            pthread_mutex_unlock(&mutex);
-                            return;
-                        } else if (self->___«port.name».status == unknown && 
-                                          compare_tags(self->___«port.name».last_known_status_tag, 
-                                            get_current_tag()) >= 0) {
-                            // We have a known status for this port in a future tag. Therefore, no event is going
-                            // to be present for this port at the current tag.
-                            self->___«port.name».status = absent;
-                            pthread_mutex_unlock(&mutex);
-                            return;
-                        } else if (self->___«port.name».status == absent) {
-                            // The status of the trigger is absent. No need to wait.
+                        if (determine_port_status_if_possible(«receivingPortID») != unknown) {
+                            // The status of the trigger is known. No need to wait.
+                            LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
+                                       "Status of the port has changed.");
                             pthread_mutex_unlock(&mutex);
                             return;
                         }
@@ -4524,16 +4485,17 @@ class CGenerator extends GeneratorBase {
         }
         
         result.append('''
-                if (self->___«port.name».status == unknown) {
-                    // Port will not be triggered at
+                if (determine_port_status_if_possible(«receivingPortID») == unknown) {
+                    // Port will not be triggered at the
                     // current logical time. Set the absent
                     // value of the trigger accordingly
                     // so that the receiving logic cannot
                     // insert any further reaction
-                    self->___«port.name».status = absent;
+                    _fed.network_input_port_triggers[«receivingPortID»]->status = absent;
                 }
                 pthread_mutex_unlock(&mutex);
-                LOG_PRINT("------ Done waiting for network input port \"«port.name»\".");
+                LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
+                          "Wait timed out without a port status change.");
         ''')
         
         return result.toString        
@@ -4619,10 +4581,6 @@ class CGenerator extends GeneratorBase {
             }
         }
         
-//        if (targetConfig.threads === 0 && federates.length > 1) {
-//            targetConfig.threads = 1
-//        }
-
         includeTargetLanguageSourceFiles()
         
         // Do this after the above includes so that the preamble can

@@ -220,8 +220,6 @@ void send_message(int socket,
                   const char next_destination_str[],
                   size_t length,
                   unsigned char* message) {
-    assert(port < 65536);
-    assert(federate < 65536);
     unsigned char header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)];
     // First byte identifies this as a timed message.
     header_buffer[0] = message_type;
@@ -285,8 +283,6 @@ void send_timed_message(interval_t additional_delay,
                         const char next_destination_str[],
                         size_t length,
                         unsigned char* message) {
-    assert(port < 65536);
-    assert(federate < 65536);
     if (socket < 0) {
         return;
     }
@@ -907,7 +903,7 @@ handle_t schedule_message_received_from_network_already_locked(
 #else
         // Set the delay back to 0
         extra_delay = 0LL;
-        DEBUG_PRINT("Calling schedule with 0 delay and intended tag (%lld, %u).",
+        LOG_PRINT("Calling schedule with 0 delay and intended tag (%lld, %u).",
                     trigger->intended_tag.time - start_time,
                     trigger->intended_tag.microstep);
         return_value = __schedule(trigger, extra_delay, token);
@@ -915,7 +911,7 @@ handle_t schedule_message_received_from_network_already_locked(
     } else {
         // In case the message is in the future, call
         // _lf_schedule_at_tag() so that the microstep is respected.
-        DEBUG_PRINT("Received a message that is (%lld nanoseconds, %u microsteps) "
+        LOG_PRINT("Received a message that is (%lld nanoseconds, %u microsteps) "
                 "in the future.", extra_delay, tag.microstep - get_microstep());
         return_value = _lf_schedule_at_tag(trigger, tag, token);
     }
@@ -1137,7 +1133,6 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     // The following is only valid for string messages.
     // DEBUG_PRINT("Message received: %s.", message_contents);
 
-    lf_mutex_lock(&mutex);
     // Create a token for the message
     lf_token_t* message_token = create_token(action->element_size);
     // Set up the token
@@ -1145,6 +1140,13 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     message_token->value = message_contents;
     message_token->length = length;
 
+    lf_mutex_lock(&mutex);
+
+    if (compare_tags(intended_tag,
+            _fed.network_input_port_triggers[port_id]->last_known_status_tag) <= 0) {
+        error_print_and_exit("The following contract was violated: In-order "
+                             "delivery of messages over a TCP socket.");
+    }
     _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
 
     // Check if reactions need to be inserted directly into the reaction
@@ -1162,16 +1164,6 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     } else {
         // Acquire the one mutex lock to prevent logical time from advancing
         // during the call to schedule().
-
-        if(compare_tags(intended_tag, get_current_tag()) > 0 &&
-            _fed.network_input_port_triggers[port_id]->status == unknown) {
-            // Received an event for a future tag, while the current status of the port
-            // is unknown. This indicates that this port will be absent for the current tag.
-            _fed.network_input_port_triggers[port_id]->status = absent;
-    
-            // Notify any control reaction that a future event has been produced for a port
-            pthread_cond_broadcast(&port_status_changed);
-        }
 
         LOG_PRINT("Calling schedule with tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         schedule_message_received_from_network_already_locked(action, intended_tag, message_token);
@@ -1912,4 +1904,32 @@ void send_port_absent_to_federate(unsigned short port_ID,
             "Failed to send port absent message for port %hu to federate %hu.", 
             port_ID, fed_ID);
     pthread_mutex_unlock(&outbound_socket_mutex);
+}
+
+/**
+ * Determine the status of the port at the current logical time.
+ * If successful, return true. If the status cannot be determined
+ * at this moment, return false.
+ * 
+ * @param portID the ID of the port to determine status for
+ */
+port_status_t determine_port_status_if_possible(int portID) {
+    // Check if the status of the port is known
+    if (_fed.network_input_port_triggers[portID]->status == present) {
+        LOG_PRINT("------ Not waiting for network input port %d"
+                    "because it is already present.", portID);
+        // The status of the trigger is present.
+        return present;
+    } else if (_fed.network_input_port_triggers[portID]->status == unknown && 
+                        compare_tags(_fed.network_input_port_triggers[portID]->last_known_status_tag, 
+                        get_current_tag()) >= 0) {
+        // We have a known status for this port in a future tag. Therefore, no event is going
+        // to be present for this port at the current tag.
+        _fed.network_input_port_triggers[portID]->status = absent;
+        return absent;
+    } else if (_fed.network_input_port_triggers[portID]->status == absent) {
+        // The status of the trigger is absent.
+        return absent;
+    }
+    return unknown;
 }

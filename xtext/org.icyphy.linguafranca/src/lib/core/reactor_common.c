@@ -123,6 +123,8 @@ void reset_status_fields_on_input_port_triggers();
 void enqueue_network_input_control_reactions(pqueue_t* reaction_q);
 
 void enqueue_network_output_control_reactions(pqueue_t* reaction_q);
+
+port_status_t determine_port_status_if_possible(int portID);
 #endif
 
 /**
@@ -806,7 +808,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
 
     tag_t current_logical_tag = get_current_tag();
 
-    info_print("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).",
+    DEBUG_PRINT("_lf_schedule_at_tag() called with tag (%lld, %u) at tag (%lld, %u).",
                   tag.time - start_time, tag.microstep,
                   current_logical_tag.time - start_time, current_logical_tag.microstep);
     if (compare_tags(tag, current_logical_tag) <= 0) {

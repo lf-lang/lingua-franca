@@ -1178,7 +1178,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  that have port as their trigger or source
      */
     def String generateNetworkInputControlReactionBody(
-        Port port,
+        int receivingPortID,
         Set<Value> STPList
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
