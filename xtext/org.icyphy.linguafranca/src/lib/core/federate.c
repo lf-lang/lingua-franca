@@ -961,7 +961,7 @@ handle_t schedule_message_received_from_network_already_locked(
  *  federate, or -1 if the RTI (centralized coordination).
  */
 void _lf_close_inbound_socket(int fed_id) {
-    pthread_mutex_lock(&inbound_socket_mutex);
+    lf_mutex_lock(&inbound_socket_mutex);
     if (fed_id < 0) {
         // socket connection is to the RTI.
         shutdown(_fed.socket_TCP_RTI, SHUT_RDWR);
@@ -971,7 +971,7 @@ void _lf_close_inbound_socket(int fed_id) {
         close(_fed.sockets_for_inbound_p2p_connections[fed_id]);
         _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
     }
-    pthread_mutex_unlock(&inbound_socket_mutex);
+    lf_mutex_unlock(&inbound_socket_mutex);
 }
 
 /**
@@ -983,7 +983,7 @@ void _lf_close_inbound_socket(int fed_id) {
  *  federate, or -1 if the RTI (centralized coordination).
  */
 void _lf_close_outbound_socket(int fed_id) {
-    pthread_mutex_lock(&outbound_socket_mutex);
+    lf_mutex_lock(&outbound_socket_mutex);
     if (fed_id < 0) {
         // socket connection is to the RTI.
         shutdown(_fed.socket_TCP_RTI, SHUT_RDWR);
@@ -993,7 +993,7 @@ void _lf_close_outbound_socket(int fed_id) {
         close(_fed.sockets_for_outbound_p2p_connections[fed_id]);
         _fed.sockets_for_outbound_p2p_connections[fed_id] = -1;
     }
-    pthread_mutex_unlock(&outbound_socket_mutex);
+    lf_mutex_unlock(&outbound_socket_mutex);
 }
 
 /**
@@ -1696,7 +1696,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
                 // Wait until either something changes on the event queue or
                 // the RTI has responded with a TAG.
                 DEBUG_PRINT("Waiting for a TAG from the RTI.");
-                if (pthread_cond_wait(&event_q_changed, &mutex) != 0) {
+                if (lf_cond_wait(&event_q_changed, &mutex) != 0) {
                     error_print("Wait error.");
                 }
                 // Either there is a new event on the event queue or a TAG arrived.
@@ -1740,7 +1740,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
         // set _lf_last_reported_unadjusted_physical_time_ns, the
         // time obtained using CLOCK_REALTIME before adjustment for
         // clock synchronization. Since that is the clock used by
-        // pthread_cond_timedwait, this is the clock we want to use.
+        // lf_cond_timedwait, this is the clock we want to use.
         instant_t wait_until_time_ns =
                 _lf_last_reported_unadjusted_physical_time_ns + ADVANCE_MESSAGE_INTERVAL;
 
@@ -1750,12 +1750,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
             wait_until_time_ns = original_tag.time;
         }
 
-        // Convert the absolute time to a timespec.
-        // timespec is seconds and nanoseconds.
-        struct timespec wait_until_time
-                = {(time_t)wait_until_time_ns / BILLION, (long)wait_until_time_ns % BILLION};
-
-        pthread_cond_timedwait(&event_q_changed, &mutex, &wait_until_time);
+        lf_cond_timedwait(&event_q_changed, &mutex, wait_until_time_ns);
 
         DEBUG_PRINT("Wait finished or interrupted.");
 

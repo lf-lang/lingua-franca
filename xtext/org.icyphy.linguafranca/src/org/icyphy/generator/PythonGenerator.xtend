@@ -644,7 +644,7 @@ class PythonGenerator extends CGenerator {
     
     linguafranca«topLevelName»module = Extension("LinguaFranca«topLevelName»",
                                                sources = ["«topLevelName».c"], «FOR src : targetConfig.compileAdditionalSources SEPARATOR ", "» "«src»"«ENDFOR»],
-                                               define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')«IF (targetConfig.threads !== 0 || targetConfig.tracing)», 
+                                               define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')«IF (targetConfig.threads !== 0 || (targetConfig.tracing !== null))», 
                                                               ('NUMBER_OF_WORKERS', '«targetConfig.threads»')«ENDIF»])
     
     setup(name="LinguaFranca«topLevelName»", version="1.0",
