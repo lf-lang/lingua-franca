@@ -515,10 +515,12 @@ class ASTUtils {
             // Add the network control reactions for the ports
             // Only for logical connections
             org.icyphy.federated.ASTUtils.addNetworkInputControlReaction(
-                connection.rightPorts.get(0),                
+                connection.rightPorts.get(0),
+                receivingPortID,         
                 connection.rightPorts.get(0).variable.eContainer as Reactor,
                 rightFederate,
-                generator
+                generator,
+                true
             );
             
             
