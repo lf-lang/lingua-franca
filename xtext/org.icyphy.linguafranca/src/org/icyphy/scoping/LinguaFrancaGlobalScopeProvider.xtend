@@ -25,8 +25,6 @@
  ***************/
 package org.icyphy.scoping
 
-import org.eclipse.xtext.scoping.impl.ImportUriGlobalScopeProvider
-
 import com.google.common.base.Splitter
 import com.google.inject.Inject
 import com.google.inject.Provider
@@ -35,9 +33,10 @@ import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.EcoreUtil2
 import org.eclipse.xtext.resource.IResourceDescription
+import org.eclipse.xtext.scoping.impl.ImportUriGlobalScopeProvider
 import org.eclipse.xtext.util.IResourceScopeCache
-import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.LinguaFrancaResourceDescriptionStrategy
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 
 /**
  * Global scope provider that limits access to only those files that were
@@ -159,11 +158,15 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
                     // Attempt to resolve the URI
                     var includedUri = uri.resolve(resource)
                     if (includedUri !== null) {
-                        if (uniqueImportURIs === null ||
-                            uniqueImportURIs.add(includedUri)) {
-                            resources.add(
-                                resource.getResourceSet().getResource(
-                                    includedUri, true))
+                        try {
+                            if (uniqueImportURIs === null ||
+                                uniqueImportURIs.add(includedUri)) {
+                                resources.add(
+                                    resource.getResourceSet().getResource(
+                                        includedUri, true))
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Unable to import " + includedUri)
                         }
                     }
                 ]

@@ -31,7 +31,7 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
-import org.eclipse.emf.ecore.EObject
+import org.icyphy.ASTUtils
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Input
@@ -41,6 +41,7 @@ import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
 import org.icyphy.linguaFranca.Reaction
 import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 import org.icyphy.linguaFranca.WidthSpec
@@ -100,11 +101,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (reactorIndex === -2) {
             // If the bank width is variable, then we have to wait until the first connection
             // before instantiating the children.
-            var width = if (definition.widthSpec.ofVariableLength) {
-                parent.varBankWidth(definition)
-            } else {
-                parent.width(definition.widthSpec, definition.widthSpec)
-            }
+            var width = width(definition.widthSpec)
             if (width > 0) {
                 this.bankMembers = new ArrayList<ReactorInstance>(width)
                 for (var index = 0; index < width; index++) {
@@ -230,94 +227,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             ReactorInstance.reactionGraph = new ReactionInstanceGraph(this)
         }
     }
-    
-    /**
-     * For the specified contained bank of reactors with variable width,
-     * return its width found by iterating over the connections of this reactor
-     * and inferring the required width. If the width cannot be inferred,
-     * report an error and return 0.
-     * @param bank A bank of reactors.
-     * @return The inferred width of the bank of reactors, or 0 if it cannot be determined.
-     */
-    def varBankWidth(Instantiation bank) {
-        var result = 0
-        for (connection : definition.reactorClass.toDefinition.allConnections) {
-            var found = 0
-            // First, check to see whether either side of the connection refers to this bank.
-            var leftVariableWidth = null as Instantiation
-            var leftWidth = 0
-            for (leftPort : connection.leftPorts) {
-                if (leftPort.container !== null
-                    && leftPort.container.widthSpec !== null 
-                    && leftPort.container.widthSpec.ofVariableLength
-                ) {
-                    if (connection.isIterated) {
-                        generator.reportError(connection, 
-                                "Iterated connection cannot contain a variable-width bank of reactors.")
-                    } else if (leftVariableWidth !== null) {
-                        generator.reportError(connection, 
-                                "Connection cannot contain more than one variable-width bank of reactors.")
-                    } else {
-                        leftVariableWidth = leftPort.container
-                        // Set found to -1 if this bank was found on the left.
-                        if (leftVariableWidth === bank) found = -1
-                    }
-                } else {
-                    var reactorInstance = this
-                    if (leftPort.container !== null) {
-                        reactorInstance = getChildReactorInstance(leftPort.container)
-                    }
-                    leftWidth += reactorInstance.width(leftPort.container.widthSpec, connection)
-                            * reactorInstance.width((leftPort.variable as Port).widthSpec, connection)
-                }
-            }
-            var rightVariableWidth = null as Instantiation
-            var rightWidth = 0
-            for (rightPort : connection.rightPorts) {
-                if (rightPort.container !== null
-                    && rightPort.container.widthSpec !== null 
-                    && rightPort.container.widthSpec.ofVariableLength
-                ) {
-                    if (leftVariableWidth !== null || rightVariableWidth !== null) {
-                        generator.reportError(connection, 
-                                "Connection cannot contain more than one variable-width bank of reactors.")
-                    } else {
-                        rightVariableWidth = rightPort.container
-                        // Set found to 1 if this bank was found on the right.
-                        if (rightVariableWidth === bank) found = 1
-                    }
-                } else {
-                    var reactorInstance = this
-                    if (rightPort.container !== null) {
-                        reactorInstance = getChildReactorInstance(rightPort.container)
-                    }
-                    rightWidth += reactorInstance.width(rightPort.container.widthSpec, connection)
-                            * reactorInstance.width((rightPort.variable as Port).widthSpec, connection)
-                }
-            }
-            if (found !== 0) {
-                var width = if (found < 0) {
-                    // bank was found on the left
-                    rightWidth - leftWidth
-                } else {
-                    // bank was found on the right.
-                    leftWidth - rightWidth
-                }
-                // Found a variable width reactor.
-                if (width <= 0) {
-                    generator.reportError(connection, 
-                            "Variable-width bank of reactors does not have a positive width.")
-                } else if (result != 0 && width != result) {
-                    generator.reportError(connection, 
-                            "Variable-width bank of reactors has more than one possible width.")
-                } else {
-                    result = width
-                }
-            }
-        }
-        return result
-    }
-    
+        
     /** Data structure used by nextPort() to keep track of the next available bank. */
     var nextBankTable = new LinkedHashMap<VarRef,Integer>()
 
@@ -327,8 +237,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Check for dangling connections.
      */
-    // FIXME identifies only dangling inputs
     def checkForDanglingConnections() {
+        // FIXME identifies only dangling inputs
         // First, check that each bank index is either 0 (allowed for sources)
         // or equals the width of the bank, meaning all banks were used.
         for (portReference : nextBankTable.keySet) {
@@ -362,9 +272,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * statement within this reactor instance, return the next available port instance
      * for that connection. If there are no more available ports, return null.
      * 
-     * This handles parallel connections like `a.out || b.out -> c.in || d.in`.
+     * This handles parallel connections like `a.out, b.out -> c.in, d.in`.
      * Each VarRef on each side may also refer to a port of this reactor, as in
-     * `in1 || in2 -> b.in`.
+     * `in1, in2 -> b.in`.
      * To realize such connection statements, make connections until one side or
      * the other of the connection statement causes this method to return null,
      * then proceed to the next port on that side.
@@ -528,10 +438,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         dstInstances.add(dstInstance)
     }
     
-    /** Override the base class to return the uniqueID of the bank rather
-     *  than this member of the bank, if this is a member of a bank of reactors.
-     *  @return An identifier for this instance that is guaranteed to be
-     *   unique within the top-level parent.
+    /** 
+     * Override the base class to return the uniqueID of the bank rather
+     * than this member of the bank, if this is a member of a bank of reactors.
+     * 
+     * @return An identifier for this instance that is guaranteed to be
+     *  unique within the top-level parent.
      */
     override uniqueID() {
         if (this.bank !== null) {
@@ -542,10 +454,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     // ////////////////////////////////////////////////////
     // // Public fields.
+    
     /** The action instances belonging to this reactor instance. */
     public var actions = new LinkedList<ActionInstance>
     
-    /** The contained instances, indexed by name. */
+    /** 
+     * The contained reactor instances, in order of declaration.
+     * For banks of reactors, this includes both the bank definition
+     * Reactor (which has bankIndex == -2) followed by each of the
+     * bank members (which have bankIndex >= 0).
+     */
     public var LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
 
     /** A map from sources to destinations as specified by the connections
@@ -578,23 +496,11 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     // ////////////////////////////////////////////////////
     // // Public methods.
     
-    /** Return the action instance within this reactor 
-     *  instance corresponding to the specified action reference.
-     *  @param action The action as an AST node.
-     *  @return The corresponding action instance or null if the
-     *   action does not belong to this reactor.
-     */
-    def getActionInstance(Action action) {
-        for (actionInstance : actions) {
-            if (actionInstance.name.equals(action.name)) {
-                return actionInstance
-            }
-        }
-    }
-
-    /** Override the base class to append [index] if this reactpr
-     *  is in a bank of reactors.
-     *  @return The full name of this instance.
+    /** 
+     * Override the base class to append [index] if this reactpr
+     * is in a bank of reactors.
+     * 
+     * @return The full name of this instance.
      */
     override String getFullName() {
         var result = super.getFullName()
@@ -604,8 +510,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         result
     }
 
-    /** Return the shutdown action within this reactor instance.
-     *  @return The corresponding shutdown action instance or null
+    /** 
+     * Return the shutdown action within this reactor instance.
+     * 
+     * @return The corresponding shutdown action instance or null
      *  if this reactor instance does not have a shutdown action.
      */
     def getShutdownAction() {
@@ -616,8 +524,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    /** Return the startup timer within this reactor instance.
-     *  @return The corresponding startup timer instance or null
+    /** 
+     * Return the startup timer within this reactor instance.
+     * 
+     * @return The corresponding startup timer instance or null
      *  if this reactor instance does not have a shutdown timer.
      */
     def getStartupTimer() {
@@ -628,11 +538,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    /** Return the instance of a child rector created by the specified
-     *  definition or null if there is none.
-     *  @param definition The definition of the child reactor ("new" statement).
-     *  @return The instance of the child reactor or null if there is no
-     *   such "new" statement.
+    /** 
+     * Return the instance of a child rector created by the specified
+     * definition or null if there is none.
+     * 
+     * @param definition The definition of the child reactor ("new" statement).
+     * 
+     * @return The instance of the child reactor or null if there is no
+     *  such "new" statement.
      */
     def getChildReactorInstance(Instantiation definition) {
         for (child : this.children) {
@@ -643,18 +556,22 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         null
     }
 
-    /** Return the name of this instance as given by the definition.
-     *  Note that is unique only relative to other instances with the same
-     *  parent.
-     *  @return The name of this instance.
+    /** 
+     * Return the name of this instance as given by the definition.
+     * Note that is unique only relative to other instances with the same
+     * parent.
+     * 
+     * @return The name of this instance.
      */
     override String getName() {
         this.definition.name
     }
 
-    /** Return the trigger instances (input ports, timers, and actions
-     *  that trigger reactions) belonging to this reactor instance.
-     *  @return The trigger instances belonging to this reactor instance.
+    /** 
+     * Return the trigger instances (input ports, timers, and actions
+     * that trigger reactions) belonging to this reactor instance.
+     * 
+     * @return The trigger instances belonging to this reactor instance.
      */
     def getTriggers() {
         var triggers = new LinkedHashSet<TriggerInstance<Variable>>
@@ -664,10 +581,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers
     }
 
-    /** Return the trigger instances (input ports, timers, and actions
-     *  that trigger reactions) together the ports that the reaction reads
-     *  but that don't trigger it.
-     *  @return The trigger instances belonging to this reactor instance.
+    /** 
+     * Return the trigger instances (input ports, timers, and actions
+     * that trigger reactions) together the ports that the reaction reads
+     * but that don't trigger it.
+     * 
+     * @return The trigger instances belonging to this reactor instance.
      */
     def getTriggersAndReads() {
         var triggers = new LinkedHashSet<TriggerInstance<Variable>>
@@ -677,91 +596,116 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return triggers
     }
-    
+        
     /**
-     * For the specified parameter, if its value is a positive integer, return
-     * that value. Otherwise, report an error and return 0.
-     * @param parameter The parameter.
-     * @param errorReportingObject If an error occurs, report the error
-     *  on this object in the AST.
+     * Given a parameter definition for this reactor, return the initial value
+     * of the parameter. If the parameter is overridden when instantiating
+     * this reactor or any of its containing reactors, use that value.
+     * Otherwise, use the default value in the reactor definition.
+     * 
+     * The returned list of Value objects is such that each element is an
+     * instance of Time, String, or Code, never Parameter.
+     * For most uses, this list has only one element, but parameter
+     * values can be lists of elements, so the returned value is a list.
+     * 
+     * @param parameter The parameter definition (a syntactic object in the AST).
+     * 
+     * @return A list of Value objects, or null if the parameter is not found.
+     *  Return an empty list if no initial value is given.
+     *  Each value is an instance of Literal if a literal value is given,
+     *  a Time if a time value was given, or a Code, if a code value was
+     *  given (text in the target language delimited by {= ... =}
      */
-    def int intParameterValue(Parameter parameter, EObject errorReportingObject) {
-        // Parameter values can be tuples.
-        // Here, we just sum the elements.
-        var values = parameter.init
-        
-        // Check for an override.  
-        val override = definition.parameters.findFirst[it.lhs === parameter]
-        if (override !== null) {
-            values = override.rhs
-        }
-        
-        var result = 0
-        for (value : values) {
-            if (value.literal !== null) {
-                try {
-                    var candidate = Integer.decode(value.literal)
-                    if (candidate <= 0) {
-                        generator.reportError(
-                            errorReportingObject,
-                            '''Parameter «parameter.name» does not have a positive value: «candidate».'''
-                        )
-                        candidate = 0
-                    }
-                    result += candidate
-                } catch (NumberFormatException ex) {
-                    generator.reportError(
-                        errorReportingObject,
-                        '''Parameter «parameter.name» does not have an integer value.'''
-                    )
+    def List<Value> initialParameterValue(Parameter parameter) {
+        return ASTUtils.initialValue(parameter, instantiations());
+    }
+
+    /**
+     * Given a parameter definition for this reactor, return the initial integer
+     * value of the parameter. If the parameter is overridden when instantiating
+     * this reactor or any of its containing reactors, use that value.
+     * Otherwise, use the default value in the reactor definition.
+     * If the parameter cannot be found or its value is not an integer, return null.
+     * 
+     * @param parameter The parameter definition (a syntactic object in the AST).
+     * 
+     * @return An integer value or null.
+     */
+    def Integer initialIntParameterValue(Parameter parameter) {
+        return ASTUtils.initialValueInt(parameter, instantiations());
+    }
+
+    /**
+     * Return a list of Instantiation objects such that the first object
+     * is the AST instantiation that created this reactor instance, the
+     * second is the AST instantiation that created the containing
+     * reactor instance, and so on until there are no more containing
+     * reactor instances. This will return an empty list if this
+     * reactor instance is at the top level (is main).
+     */
+    def List<Instantiation> instantiations() {
+        if (_instantiations === null) {
+            _instantiations = new LinkedList<Instantiation>();
+            if (definition !== null) {
+                _instantiations.add(definition);
+                if (parent !== null) {
+                    _instantiations.addAll(parent.instantiations());
                 }
-            } else if (value.parameter !== null) {
-                // Parameter value is not a literal.
-                // Check for an override.  
-                val assignment = definition.parameters.findFirst[it.lhs === value.parameter]
-                if (assignment === null) {
-                    // There is no override, so we can use the default value.
-                    // In case that simply refers to another parameter of the same reactor,
-                    // call this function recursively.
-                    result += intParameterValue(value.parameter, errorReportingObject)
-                } else {
-                    // There is an override.
-                    // The right-hand side of the override may be a tuple,
-                    // so sum those elements.
-                    for (term : assignment.rhs) {
-                        if (term.literal !== null) {
-                            try {
-                                var candidate = Integer.decode(value.literal)
-                                if (candidate <= 0) {
-                                    generator.reportError(
-                                        errorReportingObject,
-                                        '''Non-positive value: «candidate».'''
-                                    )
-                                    candidate = 0
-                                }
-                                result += candidate
-                            } catch (NumberFormatException ex) {
-                                generator.reportError(
-                                    errorReportingObject,
-                                    '''Value «value.literal» is not an integer.'''
-                                )
-                            }
-                        } else if (value.parameter !== null) {
-                            // The override refers to a parameter of the parent.
-                            result += parent.intParameterValue(value.parameter, errorReportingObject)
-                        }
-                    }
-                }
-            } else {
-                return -1
             }
         }
-        return result
+        return _instantiations;
+    }
+
+    /** Return the main reactor, which is the top-level parent.
+     *  @return The top-level parent.
+     */
+    override ReactorInstance main() {
+        if (this.parent === null) {
+            this
+        } else {
+            parent.main
+        }
+    }
+    
+    /** Return a descriptive string. */
+    override toString() {
+        "ReactorInstance " + getFullName
+    }
+
+    /** 
+     * Return the set of all ports that receive data from the 
+     * specified source. This includes inputs and outputs at the same level 
+     * of hierarchy and input ports deeper in the hierarchy.
+     * It does not include inputs or outputs up the hierarchy (i.e., ones
+     * that are reached via any output port that it does return).
+     * If the argument is an input port, then it is included in the result.
+     * No port will appear more than once in the result.
+     * 
+     * @param source An output or input port.
+     */
+    def transitiveClosure(PortInstance source) {
+        var result = new LinkedHashSet<PortInstance>();
+        transitiveClosure(source, result);
+        result
     }
     
     ///////////////////////////////////////////////////
     //// Methods for finding instances in this reactor given an AST node.
     
+    /** Return the action instance within this reactor 
+     *  instance corresponding to the specified action reference.
+     *  @param action The action as an AST node.
+     *  @return The corresponding action instance or null if the
+     *   action does not belong to this reactor.
+     */
+    def ActionInstance lookupActionInstance(Action action) {
+        for (actionInstance : actions) {
+            if (actionInstance.name.equals(action.name)) {
+                return actionInstance
+            }
+        }
+    }
+
     /** 
      * Given a parameter definition, return the parameter instance
      * corresponding to that definition, or null if there is
@@ -775,39 +719,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         ]
     }
     
-    /**
-     * Given a parameter definition for this reactor, return the value
-     * of the parameter. If the parameter is overridden when instantiating
-     * this reactor, use that value. Otherwise, use the default value
-     * in the reactor definition. If either value references another
-     * parameter, then follow that parameter until the value no longer
-     * references another parameter. The value may be a Time, String,
-     * or Code.
-     * @param parameter The parameter definition (a syntactic object in the AST).
-     * @return A value, or null if the parameter or its value is not found.
-     */
-    def Object lookupParameterValue(Parameter parameter) {
-        val instance = lookupParameterInstance(parameter)
-        if (instance.init.length === 0) return null
-        var value = instance.init.get(0)
-        if (value.parameter !== null) {
-            // References another parameter. Could be a parameter of this
-            // reactor or of this reactor's parent.  Try this reactor first.
-            var candidate = lookupParameterValue(value.parameter)
-            if (candidate !== null) return candidate
-            // Try the parent next.
-            if (parent !== null) {
-                candidate = parent.lookupParameterValue(value.parameter)
-                if (candidate !== null) return candidate
-            }
-            // No luck.
-            return null
-        }
-        if (value.literal !== null) return value.literal
-        if (value.time !== null) return value.time
-        if (value.code !== null) return value.code
-    }
-
     /** 
      * Given a port definition, return the port instance
      * corresponding to that definition, or null if there is
@@ -868,6 +779,19 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
     
+    /**
+     * Return the reactor instance within this reactor
+     * that has the specified instantiation. Note that this
+     * may be a bank of reactors.
+     */
+    def lookupReactorInstance(Instantiation instantiation) {
+        for (reactorInstance : children) {
+            if (reactorInstance.definition === instantiation) {
+                return reactorInstance
+            }
+        }
+    }
+    
     /** Return the timer instance within this reactor 
      *  instance corresponding to the specified timer reference.
      *  @param timer The timer as an AST node.
@@ -883,37 +807,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     
-
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
-     */
-    override ReactorInstance main() {
-        if (this.parent === null) {
-            this
-        } else {
-            parent.main
-        }
-    }
-    
-    /** Return a descriptive string. */
-    override toString() {
-        "ReactorInstance " + getFullName
-    }
-
-    /** Return the set of all ports that receive data from the 
-     *  specified source. This includes inputs and outputs at the same level 
-     *  of hierarchy and input ports deeper in the hierarchy.
-     *  It does not include inputs or outputs up the hierarchy (i.e., ones
-     *  that are reached via any output port that it does return).
-     *  If the argument is an input port, then it is included in the result.
-     *  No port will appear more than once in the result.
-     *  @param source An output or input port.
-     */
-    def transitiveClosure(PortInstance source) {
-        var result = new LinkedHashSet<PortInstance>();
-        transitiveClosure(source, result);
-        result
-    }
+    ///////////////////////////////////////////////////
+    //// Methods for getting widths of ports and banks
 
     /**
      * For the specified width specification, return the width.
@@ -921,22 +816,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * for a port of this reactor instance. If the argument is null, there
      * is no width specification, so return 1. Otherwise, evaluate the
      * width value by determining the value of any referenced parameters.
+     * 
      * @param widthSpec The width specification.
-     * @param errorReportingObject If an error occurs, report the error
-     *  on this object in the AST.
+     * 
+     * @return The width, or -1 if it cannot be determined.
      */
-    def width(WidthSpec widthSpec, EObject errorReportingObject) {
-        if (widthSpec === null) return 1
-        var result = 0
-        for (term : widthSpec.terms) {
-            if (term.parameter !== null) {
-                result += intParameterValue(term.parameter, errorReportingObject)
-            } else {
-                // The validator has checked for positive integers here.
-                result += term.width
-            }
+    def width(WidthSpec widthSpec) {
+        if (widthSpec.eContainer instanceof Instantiation && parent !== null) {
+            // We need the instantiations list of the containing reactor,
+            // not this one.
+            return ASTUtils.width(widthSpec, parent.instantiations());
         }
-        return result
+        return ASTUtils.width(widthSpec, instantiations());
     }
     
     // ////////////////////////////////////////////////////
@@ -968,8 +859,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     // ////////////////////////////////////////////////////
     // // Protected methods
 
-    
-    
     /** Create all the reaction instances of this reactor instance
      *  and record the dependencies and antidependencies
      *  between ports, actions, and timers and reactions.
@@ -1054,4 +943,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         result
     }
+
+    ////////////////////////////////////////
+    //// Private variables
+    
+    /** The nested list of instantiations that created this reactor instance. */
+    var List<Instantiation> _instantiations;
 }

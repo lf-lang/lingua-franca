@@ -45,19 +45,19 @@ interval_t _lf_epoch_offset = 0LL;
 /**
  * Current time in nanoseconds since January 1, 1970
  * This is not in scope for reactors.
- * FIXME: Should this be volatile?
+ * This should only ever be accessed while holding the mutex lock.
  */
 tag_t current_tag = {.time = 0LL, .microstep = 0};
 
 /**
  * Physical time at the start of the execution.
- * FIXME: Should this be volatile?
+ * This should only ever be accessed while holding the mutex lock.
  */
 instant_t physical_start_time = NEVER;
 
 /**
  * Logical time at the start of execution.
- * FIXME: Should this be volatile?
+ * This should only ever be accessed while holding the mutex lock.
  */
 instant_t start_time = NEVER;
 
@@ -107,6 +107,42 @@ int compare_tags(tag_t tag1, tag_t tag2) {
 }
 
 /**
+ * Delay a tag by the specified time interval to realize the "after" keyword.
+ * If either the time interval or the time field of the tag is NEVER,
+ * return the unmodified tag.
+ * If the time interval is 0LL, add one to the microstep, leave
+ * the time field alone, and return the result.
+ * Otherwise, add the interval to the time field of the tag and reset
+ * the microstep to 0.
+ * If the sum overflows, saturate the time value at FOREVER.
+ *
+ * Note that normally it makes no sense to call this with a negative
+ * interval (except NEVER), but this is not checked.
+ *
+ * @param tag The tag to increment.
+ * @param interval The time interval.
+ */
+tag_t delay_tag(tag_t tag, interval_t interval) {
+	if (tag.time == NEVER || interval == NEVER) return tag;
+	tag_t result = tag;
+	if (interval == 0LL) {
+		// Note that unsigned variables will wrap on overflow.
+		// This is probably the only reasonable thing to do with overflowing
+		// microsteps.
+		result.microstep++;
+	} else {
+		// Note that overflow in C is undefined for signed variables.
+		if (FOREVER - interval < result.time) {
+			result.time = FOREVER;
+		} else {
+			result.time += interval;
+		}
+		result.microstep = 0;
+	}
+	return result;
+}
+
+/**
  * Return the elapsed logical time in nanoseconds since the start of execution.
  */
 interval_t get_elapsed_logical_time() {
@@ -152,12 +188,6 @@ instant_t _lf_last_reported_physical_time_ns = 0LL;
 instant_t _lf_last_reported_unadjusted_physical_time_ns = NEVER;
 
 /**
- * Records the physical time at which the clock of this federate was
- * synchronized with the RTI. Used to calculate the drift.
- */
-instant_t _lf_last_clock_sync_instant = 0LL;
-
-/**
  * Return the current physical time in nanoseconds since January 1, 1970,
  * adjusted by the global physical time offset.
  */
@@ -175,14 +205,14 @@ instant_t get_physical_time() {
     // Apply the test offset
     adjusted_clock_ns += _lf_global_test_physical_clock_offset;
 
-    if (_lf_global_physical_clock_drift != 0LL
-            && _lf_last_clock_sync_instant != 0LL) {
-        // Apply the calculated drift, if appropriate
-        interval_t drift = (adjusted_clock_ns - _lf_last_clock_sync_instant) *
-                           _lf_global_physical_clock_drift;
-        adjusted_clock_ns += drift;
-        DEBUG_PRINT("Physical time adjusted for clock drift by %lld.", drift);
-    }
+    // if (_lf_global_physical_clock_drift != 0LL
+    //         && _lf_last_clock_sync_instant != 0LL) {
+    //     // Apply the calculated drift, if appropriate
+    //     interval_t drift = (adjusted_clock_ns - _lf_last_clock_sync_instant) *
+    //                        _lf_global_physical_clock_drift;
+    //     adjusted_clock_ns += drift;
+    //     DEBUG_PRINT("Physical time adjusted for clock drift by %lld.", drift);
+    // }
     
     // Check if the clock has progressed since the last reported value
     // This ensures that the clock is monotonic

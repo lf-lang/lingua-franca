@@ -58,11 +58,11 @@ class MultiportInstance extends PortInstance {
         var width = 0
         for (term : definition.widthSpec.terms) {
             if (term.parameter !== null) {
-                val parameterValue = parent.lookupParameterValue(term.parameter)
+                val parameterValue = parent.initialIntParameterValue(term.parameter)
                 // Only a Literal is supported.
-                if (parameterValue instanceof String) {
+                if (parameterValue !== null) {
                     // This could throw NumberFormatException
-                    width += Integer.decode(parameterValue)
+                    width += parameterValue
                 } else {
                     generator.reportError(definition,
                         "Width of a multiport must be given as an integer. It is: "

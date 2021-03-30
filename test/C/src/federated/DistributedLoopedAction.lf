@@ -1,0 +1,66 @@
+/**
+ * Test a sender-receiver network system that
+ * relies on microsteps being taken into account.
+ *  
+ * @author Soroush Bateni
+ */
+
+target C {
+    timeout: 1 sec
+};
+
+import Sender from "../lib/LoopedActionSender.lf"
+
+reactor Receiver(take_a_break_after:int(10), break_interval:time(400 msec)) {
+    input in:int;
+    state received_messages:int(0);
+    state total_received_messages:int(0);
+    state breaks:int(0);
+    timer t(0, 1 msec); // This will impact the performance
+                        // but forces the logical time to advance
+                        // Comment this line for a more sensible
+                        // log output.
+    reaction(in) {=
+        printf("At tag (%lld, %u) received value %d.\n",
+            get_elapsed_logical_time(),
+            get_microstep(),
+            in->value);
+        self->total_received_messages++;
+        if (in->value != self->received_messages++) {
+            fprintf(stderr,"ERROR: received messages out of order.\n");
+            // exit(1);
+        }        
+        if (get_elapsed_logical_time() != self->breaks * self->break_interval) {
+            fprintf(stderr,"ERROR: received messages at an incorrect time: %lld.\n", get_elapsed_logical_time());
+            // exit(2);
+        }  
+
+        if (self->received_messages == self->take_a_break_after) {
+            // Sender is taking a break;
+            self->breaks++;
+            self->received_messages = 0;
+        }
+    =}
+    
+    reaction(t) {=
+        // Do nothing
+    =}
+    
+    reaction(shutdown) {=
+        if (self->breaks != 3 ||
+            (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
+        ) {
+            fprintf(stderr,"ERROR: test failed.\n");
+            exit(4);
+        }
+        printf("SUCCESS: Successfully received all messages from the sender.\n");
+    =}
+}
+
+
+federated reactor DistributedLoopedAction {
+    sender = new Sender();
+    receiver = new Receiver();
+    
+    sender.out -> receiver.in;
+}

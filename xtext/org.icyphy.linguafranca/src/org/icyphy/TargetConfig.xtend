@@ -21,10 +21,11 @@
 package org.icyphy
 
 import java.util.List
-import org.icyphy.TargetSupport.BuildType
-import org.icyphy.TargetSupport.ClockSyncMode
-import org.icyphy.TargetSupport.CoordinationType
-import org.icyphy.TargetSupport.LogLevel
+import org.icyphy.TargetProperty.BuildType
+import org.icyphy.TargetProperty.ClockSyncMode
+import org.icyphy.TargetProperty.CoordinationType
+import org.icyphy.TargetProperty.LogLevel
+import org.icyphy.linguaFranca.TimeUnit
 
 /** 
  * A class for keeping the current target configuration.
@@ -36,7 +37,7 @@ import org.icyphy.TargetSupport.LogLevel
 class TargetConfig {
 
     /**
-     * The custom build command, which replaces the default build process of
+     * A list of custom build commands that replace the default build process of
      * directly invoking a designated compiler. A common usage of this target
      * property is to set the command to build on the basis of a Makefile.
      */
@@ -49,9 +50,14 @@ class TargetConfig {
     public ClockSyncMode clockSync = ClockSyncMode.INITIAL
 
     /**
+     * Clock sync options.
+     */
+    public ClockSyncOptions clockSyncOptions = new ClockSyncOptions();
+
+    /**
      * Parameter passed to cmake. The default is 'Release'.
      */
-    public BuildType cmakeBuildType = BuildType.Release
+    public BuildType cmakeBuildType = BuildType.RELEASE
 
     /**
      * An optional additional .cmake file to include.
@@ -76,13 +82,23 @@ class TargetConfig {
     /**
      * Flags to pass to the compiler, unless a build command has been specified.
      */
-    public String compilerFlags = ""
+    public List<String> compilerFlags = newArrayList
 
     /**
      * The type of coordination used during the execution of a federated program.
      * The default is 'centralized'.
      */
     public CoordinationType coordination = CoordinationType.CENTRALIZED
+
+    /**
+     * Docker options.
+     */
+    public DockerOptions dockerOptions = null;
+    
+    /**
+     * Coordination options.
+     */
+    public CoordinationOptions coordinationOptions = new CoordinationOptions();
 
     /**
      * If true, configure the execution environment such that it does not
@@ -130,6 +146,11 @@ class TargetConfig {
     public boolean noRuntimeValidation = false
 
     /**
+     * List of proto files to be processed by the code generator.
+     */
+    public List<String> protoFiles = newLinkedList
+
+    /**
      * The number of worker threads to deploy. The default is zero (i.e.,
      * all work is done in the main thread).
      */
@@ -141,9 +162,96 @@ class TargetConfig {
     public TimeValue timeout
 
     /**
-     * If true, configure the runtime environment to perform tracing.
-     * The default is false.
+     * If non-null, configure the runtime environment to perform tracing.
+     * The default is null.
      */
-    public boolean tracing = false
+    public TracingOptions tracing = null
+    
+}
 
+/**
+ * Settings related to clock synchronization.
+ */
+class ClockSyncOptions {
+    
+    /**
+     * FIXME
+     * The default is 10.
+     */
+    public int attenuation = 10
+
+    /**
+     * Whether or not to collect statistics while performing clock synchronization.
+     * This setting is only considered when clock synchronization has been activated.
+     * The default is true.
+     */
+    public boolean collectStats = true
+
+    /**
+     * FIXME
+     */
+    public boolean localFederatesOn
+
+    
+    /**
+     * FIXME
+     * The default is 5 milliseconds.
+     */
+    public TimeValue period = new TimeValue(5, TimeUnit.MSEC)
+    
+    /**
+     * FIXME
+     * The default is 10.
+     */
+    public int trials = 10
+    
+    /**
+     * Used to create an artificial clock synchronization error for the purpose of testing.
+     * The default is null.
+     */
+    public TimeValue testOffset;
+}
+
+/**
+ * Settings related to coordination of federated execution.
+ */
+class CoordinationOptions {
+    
+    /**
+     * For centralized coordination, if a federate has a physical action that can trigger
+     * an output, directly or indirectly, then it will send NET (next event tag) messages
+     * to the RTI periodically as its physical clock advances. This option sets the amount
+     * of time to wait between sending such messages. Increasing this value results in
+     * downstream federates that lag further behind physical time (if the "after" delays
+     * are insufficient).
+     * The default is null, which means it is up the implementation to choose an interval.
+     */
+    public TimeValue advance_message_interval = null;
+}
+
+/**
+ * Settings related to Docker options.
+ */
+class DockerOptions {
+    /**
+     * The base image and tag from which to build the Docker image. The default is "alpine:latest".
+     */
+    public String from = "alpine:latest"
+}
+
+enum Mode {
+    STANDALONE,
+    INTEGRATED,
+    UNDEFINED
+}
+
+/**
+ * Settings related to tracing options.
+ */
+class TracingOptions {
+    /**
+     * The name to use as the root of the trace file produced.
+     * This defaults to the name of the .lf file.
+     */
+    public String traceFileName = null
 }
