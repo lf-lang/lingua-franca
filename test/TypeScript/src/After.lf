@@ -1,7 +1,7 @@
 // This checks that the after keyword adjusts logical time, not
 // using physical time.
 target TypeScript {
-    fast: false,
+    fast: true,
     timeout: 3 sec
 };
 reactor Foo {

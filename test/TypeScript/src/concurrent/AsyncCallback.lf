@@ -37,12 +37,11 @@ main reactor AsyncCallback {
             + ": Assigned logical time greater than start time by " + elapsed_time + " nsec."
         ); 
 		if (elapsed_time.isEarlierThan(expected_time)) {
-		    console.log("ERROR: Expected logical time to be larger than " + expected_time + ".");
-		    util.requestShutdown(false)utdown(false);
+		    util.requestErrorStop("ERROR: Expected logical time to be larger than " + expected_time + ".")
 		}
         if (toggle) {
             toggle = false;
-            expected_time.add( new UnitBasedTimeValue(200, TimeUnit.msec));
+            expected_time.add(TimeValue.msec(200));
         } else {
             toggle = true;
         }
