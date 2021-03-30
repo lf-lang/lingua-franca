@@ -401,10 +401,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         analyzeModel(resource, fsa, context)
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        for (String conflict : new MainConflictChecker(topLevelName, fileConfig).conflicts) {
-            reportError(this.mainDef, "Conflicting main reactor in " + conflict);
+        if (mainDef !== null) {
+            for (String conflict : new MainConflictChecker(topLevelName, fileConfig).conflicts) {
+                reportError(this.mainDef, "Conflicting main reactor in " + conflict);
+            }
         }
-
+        
         // Process target files. Copy each of them into the src-gen dir.
         copyUserFiles()
 
