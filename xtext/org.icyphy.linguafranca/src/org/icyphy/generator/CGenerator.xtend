@@ -4329,11 +4329,7 @@ class CGenerator extends GeneratorBase {
         // First, if there are federates, then ensure that threading is enabled.
         if (targetConfig.threads === 0 && federates.length > 1) {
             targetConfig.threads = 1
-        }
-        
-        includeTargetLanguageHeaders()
-
-        pr('#define NUMBER_OF_FEDERATES ' + federates.length);
+        }        
 
         includeTargetLanguageSourceFiles()
         
