@@ -1504,8 +1504,6 @@ class CGenerator extends GeneratorBase {
 
         pr("// =============== END reactor class " + reactor.name)
         pr("")
-
-        
     }
     
     /**
@@ -1754,7 +1752,6 @@ class CGenerator extends GeneratorBase {
         
         var body = new StringBuilder()
         
-       
         // Extensions can add functionality to the CGenerator
         generateSelfStructExtension(body, decl, federate, constructorCode, destructorCode)
         
@@ -1846,6 +1843,7 @@ class CGenerator extends GeneratorBase {
         val portsReferencedInContainedReactors = new PortsReferencedInContainedReactors(reactor, federate)
 
         for (containedReactor : portsReferencedInContainedReactors.containedReactors) {
+            
             pr(body, "struct {")
             indent(body)
             for (port : portsReferencedInContainedReactors.portsOfInstance(containedReactor)) {
@@ -1928,7 +1926,25 @@ class CGenerator extends GeneratorBase {
                 }
             }
             unindent(body)
-            pr(body, "} __" + containedReactor.name + ';')
+            // FIXME: To support parameterized bank widths, the following
+            // array needs to be malloc'd, which means this struct
+            // needs to be pulled out as an auxiliary typedef.
+            var width = containedReactorBankWidth(containedReactor);
+            var array = "";
+            if (width >= 0) {
+                array = "[" + width + "]";
+            }
+            pr(body, '''
+                } __«containedReactor.name»«array»;
+                int __«containedReactor.name»_width;
+            ''');
+            // FIXME: The following needs to be done for each instance
+            // so that the width can be parameter, not in the constructor.
+            pr(constructorCode, '''
+                // Set the _width variable for all cases. This will be -2
+                // if the reactor is not a bank of reactors.
+                self->__«containedReactor.name»_width = «width»;
+            ''')
         }
         
         // Next, generate the fields needed for each reaction.
@@ -2468,7 +2484,6 @@ class CGenerator extends GeneratorBase {
      * @param reaction The initialization code will be generated for this specific reaction
      * @param decl The reactor that has the reaction
      * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
-     * @return The reaction initialization code for reusability.
      */
     def generateInitializationForReaction(String body, Reaction reaction, ReactorDecl decl, int reactionIndex) {
         val reactor = decl.toDefinition
@@ -2482,12 +2497,20 @@ class CGenerator extends GeneratorBase {
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType !== null) {
-             pr(reactionInitialization, '''
+             pr('''
                  #pragma GCC diagnostic push
                  #pragma GCC diagnostic ignored "-Wunused-variable"
                  «structType»* self = («structType»*)instance_args;
+             ''')
+        }
+
+        // Do not generate the initialization code if the body is marked
+        // to not generate it.
+        if (body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
+             pr('''
                  #pragma GCC diagnostic pop
              ''')
+            return;
         }
 
         // A reaction may send to or receive from multiple ports of
@@ -2559,7 +2582,6 @@ class CGenerator extends GeneratorBase {
         // value that may have been written to that output in an earlier reaction.
         if (reaction.effects !== null) {
             for (effect : reaction.effects) {
-                // val action = getAction(reactor, output)
                 if (effect.variable instanceof Action) {
                     // It is an action, not an output.
                     // If it has already appeared as trigger, do not redefine it.
@@ -2588,31 +2610,57 @@ class CGenerator extends GeneratorBase {
                 }
             }
         }
-        // Do not generate the initialization code if the body is marked
-        // to not generate it.
-        if (!body.startsWith(CGenerator.DISABLE_REACTION_INITIALIZATION_MARKER)) {
-            // First generate the structs used for communication to and from contained reactors.
-            for (containedReactor : fieldsForStructsForContainedReactors.keySet) {
-                pr('struct ' + containedReactor.name + '{')
-                indent();
-                pr(fieldsForStructsForContainedReactors.get(containedReactor).toString)
-                unindent();
-                pr('} ' + containedReactor.name + ';')
+        // Before the reaction initialization,
+        // generate the structs used for communication to and from contained reactors.
+        for (containedReactor : fieldsForStructsForContainedReactors.keySet) {
+            pr('struct ' + containedReactor.name + '{')
+            indent();
+            pr(fieldsForStructsForContainedReactors.get(containedReactor).toString)
+            unindent();
+            var array = "";
+            if (containedReactor.widthSpec !== null) {
+                array = '''[self->__«containedReactor.name»_width]''';
             }
-            // Next generate all the collected setup code.
-            pr(reactionInitialization.toString)
-            
-            if (reaction.tardy === null) {
-                // Pass down the intended_tag to all input and output effects
-                // downstream if the current reaction does not have a tardy
-                // handler.
-                generateIntendedTagInheritence(body, reaction, decl, reactionIndex)                
-            }
-        } else {
-            pr(structType + "* self = (" + structType + "*)instance_args;")
+            pr('''
+                } «containedReactor.name»«array»;
+            ''');
         }
-        
-        return reactionInitialization.toString
+        // Next generate all the collected setup code.
+        pr(reactionInitialization.toString)
+        pr('''
+            #pragma GCC diagnostic pop
+        ''')
+
+        if (reaction.tardy === null) {
+            // Pass down the intended_tag to all input and output effects
+            // downstream if the current reaction does not have a tardy
+            // handler.
+            generateIntendedTagInheritence(body, reaction, decl, reactionIndex)
+        }
+    }
+    
+    /**
+     * FIXME: A temporary function that returns the width of a bank of reactors.
+     * If the width is not a literal constant, this throws an UnsupportedOperationException.
+     * If the reactor is not a bank, this returns -2.
+     * @param containedReactor The contained reactor instantiation. 
+     */
+    private def int containedReactorBankWidth(Instantiation containedReactor) {
+        // FIXME: Because the width of the bank may be given by a parameter, it is
+        // impossible to know a fixed width here.
+        if (containedReactor.widthSpec !== null) {
+            // FIXME: Using deprecated method here because of above FIXME.
+            val numericalWidth = ASTUtils.width(containedReactor.widthSpec);
+            if (numericalWidth <= 0) {
+                throw new UnsupportedOperationException(
+                        "Apologies, but parameterized widths are not yet supported here: "
+                        + containedReactor.name
+                        + "["
+                        + containedReactor.widthSpec);
+            }
+            return numericalWidth;
+        }
+        return -2;
     }
 
     /** Generate code to create the trigger table for each reaction of the
@@ -3421,7 +3469,9 @@ class CGenerator extends GeneratorBase {
                                 portAllocatedAlready.add(port)
                                 allocate = true
                             }
-                            initializeReactionEffectMultiport(initializeTriggerObjectsEnd, initialization, effect, instance, reactionCount, index, allocate)
+                            initializeReactionEffectMultiport(initializeTriggerObjectsEnd, initialization, 
+                                effect, instance, reactionCount, index, allocate
+                            )
                             // Append the width of this port to an expression for the total number of
                             // outputs from this reaction.
                             try {
@@ -3441,6 +3491,7 @@ class CGenerator extends GeneratorBase {
                 }
                 // Next handle triggers of the reaction that come from a multiport output
                 // of a contained reactor.  Also, handle startup and shutdown triggers.
+                // FIXME: This does not handle triggers that come from a contained bank of reactors.
                 for (trigger : reaction.triggers) {
                     if (trigger instanceof VarRef
                         && (trigger as VarRef).variable instanceof Port
@@ -3764,6 +3815,7 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Generate code to allocate memory for a multiport of a contained reactor
+     * that triggers reactions in this reactor.
      * @param builder The StringBuilder that the allocation code is appended to
      * @param port The multiport of a contained reactor
      * @param container The container of the contained reactor
@@ -3819,7 +3871,7 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * A function used to generate initialization code for an output multiport
+     * Generate code that malloc's memory for an output multiport.
      * @param builder The generated code is put into builder
      * @param output The output port to be initialized
      * @name
@@ -3837,10 +3889,10 @@ class CGenerator extends GeneratorBase {
      * Generate instantiation and initialization code for an output multiport of a reaction.
      * The instantiations and the initializations are put into two separate StringBuilders
      * in case delayed initialization is desirable.
-     * @param instantiation The StringBuilder used to put code that allocates overall memory for a multiport
-     * @param initialization The StringBuilderused to put code that initializes members of a multiport
-     * @param effect The output effect of a given reaction
-     * @param instance The reaction instance itself
+     * @param instantiation The StringBuilder used to put code that allocates overall memory for a multiport.
+     * @param initialization The StringBuilderused to put code that initializes members of a multiport.
+     * @param effect The output effect of a given reaction.
+     * @param instance The reactor instance itself.
      * @param reactionIdx The index of the reaction in the Reactor
      * @param startIdx The index used to figure out the starting position of the output_produced array
      * @param allocate If true, then allocate memory. Otherwise, assume the memory has been previously allocated.
@@ -4790,13 +4842,6 @@ class CGenerator extends GeneratorBase {
         val structType = variableStructType(input, decl)
         val inputType = input.inferredType
         
-        // We define various local variables that may or may not be used by a reaction.
-        // To suppress "unused variable" warnings, we use a pragma.
-        pr(builder, '''
-            #pragma GCC diagnostic push
-            #pragma GCC diagnostic ignored "-Wunused-variable"
-        ''')
-        
         // Create the local variable whose name matches the input name.
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
@@ -4905,7 +4950,6 @@ class CGenerator extends GeneratorBase {
         // It will be -2 if it is not multiport.
         pr(builder, '''
             int «input.name»_width = self->__«input.name»__width;
-            #pragma GCC diagnostic pop
         ''')
     }
     
@@ -5007,7 +5051,7 @@ class CGenerator extends GeneratorBase {
 
     /** Generate into the specified string builder the code to
      *  initialize local variables for sending data to an input
-     *  of a contained reaction (e.g. for a deadline violation).
+     *  of a contained reactor (e.g. for a deadline violation).
      *  The code goes into two builders because some of it has to
      *  collected into a single struct definition.
      *  @param builder The string builder.
@@ -5032,9 +5076,23 @@ class CGenerator extends GeneratorBase {
             pr(structBuilder, '''
                 «inputStructType»* «input.name»;
             ''')
+            var bankIndex = "";
+            if (definition.widthSpec !== null) {
+                pr(builder, '''
+                    for (int bankIndex = 0; bankIndex < self->__«definition.name»_width; bankIndex++) {
+                ''')
+                indent(builder);
+                bankIndex = "[bankIndex]";
+            }
             pr(builder, '''
-                «definition.name».«input.name» = &(self->__«definition.name».«input.name»);
+                «definition.name»«bankIndex».«input.name» = &(self->__«definition.name»«bankIndex».«input.name»);
             ''')
+            if (definition.widthSpec !== null) {
+                unindent(builder);
+                pr(builder, '''
+                    }
+                ''')
+            }
         } else {
             // Contained reactor's input is a multiport.
             pr(structBuilder, '''
