@@ -50,8 +50,6 @@ public class MainConflictChecker {
     
     public class PackageVisitor extends SimpleFileVisitor<Path> {
 
-        boolean inTestDir = false;
-        
         /**
          * Add test files to the registry if they end with ".lf", but only if they have a main reactor.
          */
