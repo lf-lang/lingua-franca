@@ -1,6 +1,6 @@
 // This is used by the test for the ability to import a reactor definition
 // that itself imports a reactor definition.
-target C {barf: true};
+target C;
 import ImportedAgain from "./ImportedAgain.lf"
 reactor Imported {
     
