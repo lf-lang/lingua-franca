@@ -440,7 +440,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
         }
         // Assuming all AST transformations have completed, build the instantiation graph.
-        this.instantiationGraph = new InstantiationGraph(resource, false)
+        this.instantiationGraph = new InstantiationGraph(resource, false) // FIXME: obtain this from the validator instead
 
         // Topologically sort the reactors such that all of a reactor's
         // dependencies occur earlier in the sorted list or reactors.
