@@ -130,11 +130,8 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
             this.reactorToInstantiation.put(reactor, instantiation)
             this.reactorToDecl.put(reactor, decl)
 
-            if (!container.isMain && !container.isFederated) { // FIXME: Why exclude these?
-                this.addEdge(container, reactor)
-            } else {
-                this.addNode(reactor)
-            }
+            this.addEdge(container, reactor)
+            
             for (inst : reactor.instantiations) {
                 inst.buildGraph(visited)
             }
