@@ -416,7 +416,7 @@ void synchronize_with_other_federates();
  *  the stop time, if one was specified. Return true if the full wait time
  *  was reached.
  */
-bool wait_until(instant_t logical_time_ns, pthread_cond_t* condition) {
+bool wait_until(instant_t logical_time_ns, lf_cond_t* condition) {
     DEBUG_PRINT("-------- Waiting until physical time matches logical time %lld", logical_time_ns);
     bool return_value = true;
     interval_t wait_until_time_ns = logical_time_ns;

@@ -902,7 +902,7 @@ class CGenerator extends GeneratorBase {
                 // Initialize the socket mutex
                 lf_mutex_init(&inbound_socket_mutex);
                 lf_mutex_init(&outbound_socket_mutex);
-                lf_mutex_init(&port_status_changed);
+                lf_cond_init(&port_status_changed);
             ''')
             
 //            if (isFederatedAndDecentralized) {
@@ -4223,7 +4223,7 @@ class CGenerator extends GeneratorBase {
                 // Port is now present. Therfore, notify the network input
                 // control reactions to stop waiting and re-check the port
                 // status.
-                pthread_cond_broadcast(&port_status_changed);
+                lf_cond_broadcast(&port_status_changed);
         ''')
         
         return result.toString
@@ -4427,7 +4427,7 @@ class CGenerator extends GeneratorBase {
                 // Need to lock the mutex to prevent
                 // a race condition with the network
                 // receiver logic.
-                pthread_mutex_lock(&mutex);
+                lf_mutex_lock(&mutex);
         ''')
         
         result.append('''
@@ -4436,7 +4436,7 @@ class CGenerator extends GeneratorBase {
                 // The status of the trigger is known. No need to wait.
                 LOG_PRINT("------ Not waiting for network input port «receivingPortID»: "
                            "Status of the port is known already.");
-                pthread_mutex_unlock(&mutex);
+                lf_mutex_unlock(&mutex);
                 return;
             }            
         ''')
@@ -4456,7 +4456,7 @@ class CGenerator extends GeneratorBase {
                                 // The status of the trigger is known. No need to wait.
                                 LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
                                            "Status of the port has changed.");
-                                pthread_mutex_unlock(&mutex);
+                                lf_mutex_unlock(&mutex);
                                 return;
                             }
                         }
@@ -4476,7 +4476,7 @@ class CGenerator extends GeneratorBase {
                             // The status of the trigger is known. No need to wait.
                             LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
                                        "Status of the port has changed.");
-                            pthread_mutex_unlock(&mutex);
+                            lf_mutex_unlock(&mutex);
                             return;
                         }
                     }
@@ -4493,7 +4493,7 @@ class CGenerator extends GeneratorBase {
                     // insert any further reaction
                     _fed.network_input_port_triggers[«receivingPortID»]->status = absent;
                 }
-                pthread_mutex_unlock(&mutex);
+                lf_mutex_unlock(&mutex);
                 LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
                           "Wait timed out without a port status change.");
         ''')
