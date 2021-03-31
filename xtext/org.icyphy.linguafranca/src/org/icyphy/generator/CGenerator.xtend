@@ -291,7 +291,7 @@ class CGenerator extends GeneratorBase {
     //// Private variables
         
     // Place to collect code to initialize the trigger objects for all reactor instances.
-    var initializeTriggerObjects = new StringBuilder()
+    protected var initializeTriggerObjects = new StringBuilder()
 
     // Place to collect code to go at the end of the __initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
@@ -350,7 +350,7 @@ class CGenerator extends GeneratorBase {
             IGeneratorContext context) {
         
         // The following generates code needed by all the reactors.
-        super.doGenerate(resource, fsa, context)
+        super.doGenerate(resource, fsa, context)        
 
         if (generatorErrorsOccurred) return;
 
@@ -378,12 +378,47 @@ class CGenerator extends GeneratorBase {
         // Note that net_util.h/c are not used by the infrastructure
         // unless the program is federated, but they are often useful for user code,
         // so we include them anyway.
-        var coreFiles = newArrayList("net_util.c", "net_util.h", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c")
+        var coreFiles = newArrayList("net_util.c", "net_util.h", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "tag.h", "tag.c", "trace.h", "trace.c", "util.h", "util.c", "platform.h")
         if (targetConfig.threads === 0) {
             coreFiles.add("reactor.c")
         } else {
             coreFiles.add("reactor_threaded.c")
         }
+        // Check the operating system
+        val OS = System.getProperty("os.name").toLowerCase();
+        // FIXME: allow for cross-compiling
+        // Based on the detected operating system, copy the required files
+        // to enable platform-specific functionality. See lib/core/platform.h
+        // for more detail.
+        if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+            // Mac support
+            coreFiles.add("platform/lf_POSIX_threads_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.h")
+            coreFiles.add("platform/lf_C11_threads_support.h")
+            coreFiles.add("platform/lf_macos_support.c")            
+            coreFiles.add("platform/lf_macos_support.h")
+            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_macos_support.c")
+        } else if (OS.indexOf("win") >= 0) {
+            // Windows support
+            coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.h")
+            coreFiles.add("platform/lf_windows_support.c")
+            coreFiles.add("platform/lf_windows_support.h")
+            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_windows_support.c")
+        } else if (OS.indexOf("nux") >= 0) {
+            // Linux support
+            coreFiles.add("platform/lf_POSIX_threads_support.c")
+            coreFiles.add("platform/lf_C11_threads_support.c")
+            coreFiles.add("platform/lf_POSIX_threads_support.h")
+            coreFiles.add("platform/lf_C11_threads_support.h")
+            coreFiles.add("platform/lf_linux_support.c")
+            coreFiles.add("platform/lf_linux_support.h")
+            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_linux_support.c")
+        } else {
+            reportError("Platform " + OS + " is not supported")
+        }
+        
         
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
@@ -846,6 +881,11 @@ class CGenerator extends GeneratorBase {
         if (federates.length > 1) {
             pr('''
                 // ***** Start initializing the federated execution. */
+            ''')            
+            pr('''
+                // Initialize the socket mutex
+                lf_mutex_init(&inbound_socket_mutex);
+                lf_mutex_init(&outbound_socket_mutex);
             ''')
             
             if (isFederatedAndDecentralized) {
@@ -935,7 +975,7 @@ class CGenerator extends GeneratorBase {
                     // connect_to_federate for each outbound physical connection at the same
                     // time that the new thread is listening for such connections for inbound
                     // physical connections. The thread will live until termination.
-                    pthread_create(&_fed.inbound_p2p_handling_thread_id, NULL, handle_p2p_connections_from_federates, NULL);
+                    lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
                             
@@ -4291,7 +4331,7 @@ class CGenerator extends GeneratorBase {
         // First, if there are federates, then ensure that threading is enabled.
         if (targetConfig.threads === 0 && federates.length > 1) {
             targetConfig.threads = 1
-        }
+        }        
 
         includeTargetLanguageSourceFiles()
         
@@ -4361,6 +4401,7 @@ class CGenerator extends GeneratorBase {
             }
             pr('#define LINGUA_FRANCA_TRACE ' + filename)
         }
+        
         pr('#include "ctarget.h"')
         if (targetConfig.tracing !== null) {
             pr('#include "core/trace.c"')            
