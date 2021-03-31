@@ -125,6 +125,8 @@ class TypeScriptGenerator extends GeneratorBase {
         
         super.doGenerate(resource, fsa, context)
         
+        if (generatorErrorsOccurred) return;
+        
         // Generate imports for protocol buffer definitions
         // Note that the preamble is generated as part of
         // super.doGenerate.
