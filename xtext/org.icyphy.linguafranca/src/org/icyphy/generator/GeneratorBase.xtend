@@ -159,7 +159,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * This is set to true by the report() method and returned by the
      * errorsOccurred() method.
      */
-    var generatorErrorsOccurred = false
+    protected var generatorErrorsOccurred = false
 
     /**
      * If running in an Eclipse IDE, the iResource refers to the
@@ -402,8 +402,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (mainDef !== null) {
-            for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
-                reportError(this.mainDef, "Conflicting main reactor in " + conflict);
+            val conflicts = new MainConflictChecker(fileConfig).conflicts;
+            for (String conflict : conflicts) {
+                reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
         
