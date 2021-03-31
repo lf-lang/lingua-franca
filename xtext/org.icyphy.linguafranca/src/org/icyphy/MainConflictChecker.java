@@ -16,6 +16,7 @@ import java.util.List;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.icyphy.linguaFranca.Reactor;
 
@@ -39,6 +40,13 @@ public class MainConflictChecker {
      * The current file configuration.
      */
     protected FileConfig fileConfig;
+    
+    /**
+     * Resource set used to obtain resources from.
+     */
+    protected ResourceSet rs = new LinguaFrancaStandaloneSetup()
+            .createInjectorAndDoEMFRegistration()
+            .<LinguaFrancaResourceProvider>getInstance(LinguaFrancaResourceProvider.class).getResourceSet();
     
     /**
      * Create a new instance that walks the file tree of the package to find conflicts.
@@ -74,7 +82,7 @@ public class MainConflictChecker {
         public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
             if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
                 // Parse the file.
-                Resource r = fileConfig.resource.getResourceSet().getResource(
+                Resource r = rs.getResource(
                         URI.createFileURI(path.toFile().getAbsolutePath()),
                         true);
                 if (r.getErrors().isEmpty()) {
