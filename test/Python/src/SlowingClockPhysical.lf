@@ -29,7 +29,7 @@ main reactor SlowingClockPhysical {
         self.interval += MSEC(100)
         self.expected_time = MSEC(100) + self.interval
         a.schedule(self.interval)
-        print("Scheduling next to occur after: {:d} nsec.\n".format(self.interval))
+        print("Scheduling next to occur after: {:d} nsec.".format(self.interval))
     =}
     reaction(shutdown) {=
         if self.expected_time < MSEC(500):
