@@ -332,8 +332,12 @@ public enum TargetProperty {
      */
     public static void update(TargetConfig config,
             List<KeyValuePair> properties) {
-        properties.forEach(property -> forName(property.getName()).setter
-                .accept(config, property.getValue()));
+        properties.forEach(property ->  {
+            TargetProperty p = forName(property.getName());
+            if (p != null) {
+                p.setter.accept(config, property.getValue());
+            }
+        });
     }
 
     /**
