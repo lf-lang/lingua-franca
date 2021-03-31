@@ -47,7 +47,7 @@ reactor Door {
     }
   =}
 }
-main reactor System {
+main reactor {
   controller = new Controller();
   door = new Door();
   train = new Train();

@@ -76,7 +76,7 @@ reactor GetUserInput {
         self->prompt_time = get_physical_time();
     =}
 }
-main reactor ReflexGame {
+main reactor {
     p = new RandomSource();
     g = new GetUserInput();
     p.out -> g.prompt;

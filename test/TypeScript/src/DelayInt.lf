@@ -29,23 +29,17 @@ reactor Test {
         let current_time = util.getCurrentLogicalTime();
         let elapsed = current_time.subtract(start_time); 
         console.log("After " + elapsed + " of logical time.");
-        if ( ! elapsed.isEqualTo(new UnitBasedTimeValue( 100, TimeUnit.msec))) {
-            console.log("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
-            util.failure();
-            //throw new Error( "ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed);
+        if (!elapsed.isEqualTo(TimeValue.msec(100))) {
+            util.requestErrorStop("ERROR: Expected elapsed time to be [0, 100000000]. It was " + elapsed)
         }
-        if ( x != 42) {
-            console.log("ERROR: Expected input value to be 42. It was " + x);
-            util.failure();
-            //throw new Error("ERROR: Expected input value to be 42. It was " + (this.state as any).x);            
+        if (x != 42) {
+            util.requestErrorStop("ERROR: Expected input value to be 42. It was " + x)
         }
     =}
     reaction(shutdown) {=
         console.log("Checking that communication occurred.");
-        if (! received_value) {
-            console.log("ERROR: No communication occurred!");
-            util.failure();
-            //throw new Error("ERROR: No communication occurred!");          
+        if (!received_value) {
+            util.requestErrorStop("ERROR: No communication occurred!")
         }
     =}
 }

@@ -47,8 +47,7 @@ reactor Print {
         console.log("Received: " + x);
         let expected = [0.0, 0.25, 0.75, 1.5, 2.5, 3.5];
         if (x != expected[count]) {
-            console.log("ERROR: Expected " + expected[count]);
-            util.failure();
+            util.requestErrorStop("ERROR: Expected " + expected[count])
         }
         count++;
     =}

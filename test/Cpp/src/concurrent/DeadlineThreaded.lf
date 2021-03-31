@@ -47,7 +47,7 @@ reactor Destination(timeout:time(1 sec)) {
         count++;
     =}
 }
-main reactor Deadline {
+main reactor {
     s = new Source();
     d = new Destination(timeout = 200 msec);
     s.y -> d.x;

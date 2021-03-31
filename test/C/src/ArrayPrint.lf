@@ -36,6 +36,7 @@ reactor Print(scale:int(1)) {
         }
     =}
 }
+
 main reactor ArrayPrint {
     s = new Source();
     p = new Print();

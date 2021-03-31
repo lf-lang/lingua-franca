@@ -1,23 +1,17 @@
 // This tests a reactor that contains another reactor and also
 // has its own reaction that routes inputs to the contained reactor.
 
-// FIXME: Find a way to terminate with failure and address target attributes
-
 target TypeScript{
-    timeout : 2 sec
+    timeout : 10 sec,
+    fast: true
 };
-//(
-//  run = "bin/SendingInside -fast -timeout 10 sec"
-//);
 reactor Printer {
     input x:number;
     state count:number(1);
     reaction(x) {=
         console.log("Inside reactor received: " + x);
         if ((x as number) != count) {
-            console.log("FAILURE: Expected " + count);
-            util.failure();
-            //throw new Error("FAILURE: Expected " + (this.state as any).count);
+            util.requestErrorStop("FAILURE: Expected " + count)
         }
         count++;
     =}

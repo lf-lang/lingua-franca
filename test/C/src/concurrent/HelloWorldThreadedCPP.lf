@@ -23,6 +23,6 @@ reactor HelloWorld {
         }
     =}
 }
-main reactor HelloWorldTest {
+main reactor {
     a = new HelloWorld();
 }

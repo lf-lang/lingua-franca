@@ -37,6 +37,7 @@ reactor Destination {
         }
     =}
 }
+
 federated reactor HelloDistributed at localhost {
     reaction(startup) {=
         info_print("Printing something in top-level federated reactor.");

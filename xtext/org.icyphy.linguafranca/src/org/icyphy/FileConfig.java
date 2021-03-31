@@ -71,6 +71,12 @@ public class FileConfig {
     public final IGeneratorContext context;
     
     /**
+     * The name of the main reactor, which has to match the file name (without
+     * the '.lf' extension).
+     */
+    public final String name;
+    
+    /**
      * The directory that is the root of the package in which the source
      * file resides.
      */
@@ -156,15 +162,19 @@ public class FileConfig {
         this.srcGenRoot = getSrcGenRoot(fsa);
         this.srcGenBasePath = toPath(this.srcGenRoot);
         this.outputRoot = getOutputRoot(this.srcGenRoot);
-        
+        this.name = nameWithoutExtension(this.srcFile);
         this.srcGenPath = getSrcGenPath(this.srcGenBasePath, this.srcPkgPath,
-                this.srcPath, nameWithoutExtension(this.srcFile));
+                this.srcPath, name);
         this.srcGenPkgPath = this.srcGenPath;
         this.outPath = toPath(this.outputRoot);
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
     }
     
     // Getters to be overridden in derived classes.
+    
+    public static String getName(Resource r) throws IOException {
+        return nameWithoutExtension(toPath(r.getURI()).toFile());
+    }
     
     public Path getOutPath() {
         return outPath;
@@ -510,5 +520,9 @@ public class FileConfig {
      
      public File getRTIDistributionScriptFile() {
          return this.binPath.resolve(getRTIDistributionScriptName()).toFile();
+     }
+     
+     public static String nameWithoutExtension(Resource r) throws IOException {
+         return nameWithoutExtension(toPath(r.getURI()).toFile());
      }
 }

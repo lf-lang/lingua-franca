@@ -22,21 +22,16 @@ reactor Destination {
     state s:number(1);
     reaction(x) {=
         if (x != s) {
-            console.log("Error: Expected " + s + " and got " + x + ".")
-            util.failure()
+            util.requestErrorStop("Error: Expected " + s + " and got " + x + ".")
         }
         s++;        
     =}
 }
 
-// FIXME: the TS target is currently too slow for usecs
-// so the period parameter was changed to sec
-
-//main reactor TimeLimit(period:time(1 usec)) {
-main reactor TimeLimit(period:time(1 sec)) {
+main reactor TimeLimit(period:time(1 msec)) { // usecs take a little too long
     timer stop(10 secs);
     reaction(stop) {=
-        util.requestShutdown();
+        util.requestStop()
     =}
 
     c = new Clock(period = period);

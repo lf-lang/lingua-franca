@@ -6,6 +6,6 @@ reactor Foo(bar:number(42)) {
        console.log("Baz: " + baz);
     =}
 }
-main reactor X {
+main reactor {
     a = new Foo();
 }

@@ -42,7 +42,7 @@ reactor Test {
 	    }
 	=}
 }
-main reactor Composition {
+main reactor CompositionInheritance {
 	s = new SourceExtended(period = 2 sec);
 	
 	d = new Test();

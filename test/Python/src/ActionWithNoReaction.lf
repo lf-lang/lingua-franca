@@ -24,7 +24,7 @@ reactor print {
     =}
 }
 
-main reactor top {
+main reactor {
     f = new foo();
     p = new print();
     timer t(0, 1 sec);

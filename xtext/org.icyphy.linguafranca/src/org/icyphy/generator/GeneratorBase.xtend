@@ -56,6 +56,7 @@ import org.eclipse.xtext.validation.CheckMode
 import org.icyphy.ASTUtils
 import org.icyphy.FileConfig
 import org.icyphy.InferredType
+import org.icyphy.MainConflictChecker
 import org.icyphy.Mode
 import org.icyphy.Target
 import org.icyphy.TargetConfig
@@ -68,6 +69,7 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
+import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Model
@@ -158,7 +160,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * This is set to true by the report() method and returned by the
      * errorsOccurred() method.
      */
-    var generatorErrorsOccurred = false
+    protected var generatorErrorsOccurred = false
 
     /**
      * If running in an Eclipse IDE, the iResource refers to the
@@ -393,11 +395,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         setFileConfig(resource, fsa, context)
         
+        ASTUtils.setMainName(resource)
         // The following "analysis" has hidden in it AST transformations.
         // FIXME: We should factor them out and rename the following method
         // parseTargetProperties or something along those lines. 
         analyzeModel(resource, fsa, context)
 
+        // Check if there are any conflicting main reactors elsewhere in the package.
+        if (mainDef !== null) {
+            for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
+                reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
+            }
+        }
+        
         // Process target files. Copy each of them into the src-gen dir.
         copyUserFiles()
 
@@ -418,20 +428,14 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             r.insertGeneratedDelays(this)
 
             if (r !== this.fileConfig.resource) {
-                // FIXME: This is just a proof of concept. What to do instead:
-                // - use reportError
-                // - report at node that represents import through which this resource
-                // was (transitively) reached; we need an ImportGraph for this resource
-                // reached.
-                // Alternatively: only validate the individual reactors that are imported
-                // This would allow importing a reactor from a file that has issues.
-                // Probably not the best idea.
+                // FIXME: create import graph to match import statements to erroneous resources.
+                // The following only works for direct imports...
                 val issues = (r as XtextResource).resourceServiceProvider.resourceValidator.validate(r, CheckMode.ALL,
                     null)
-                if (issues.size > 0) {
-                    println('''Issues found in «r.URI.toFileString».''')
-                    println(issues.join("\n"))
-                    return
+                for (issue : issues) {
+                    val imp = resource.allContents.filter(Import).
+                        findFirst[r.URI.toString().endsWith(it.importURI)] as Import
+                    reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
                 }
             }
         }
@@ -1601,7 +1605,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
             if (myResource !== null) {
                 val marker = myResource.createMarker(IMarker.PROBLEM)
-                marker.setAttribute(IMarker.MESSAGE, toPrint);
+                marker.setAttribute(IMarker.MESSAGE, message);
                 if (line !== null) {
                     marker.setAttribute(IMarker.LINE_NUMBER, line);
                 } else {
@@ -2302,4 +2306,5 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         fOut.write(code)
         fOut.close()
     }
+    
 }

@@ -4,7 +4,7 @@ target TypeScript;
  * Uses another package @ https://github.com/node-influx/node-influx/tree/master/examples/express_response_times
  */
 
-main reactor influxConnector {
+main reactor {
    
     preamble{=
         // @ts-ignore

@@ -39,7 +39,8 @@ reactor print {
         }
     =}
 }
-main reactor top {
+
+main reactor After {
     f = new foo();
     p = new print();
     timer t(0, 1 sec);

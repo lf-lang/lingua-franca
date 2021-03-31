@@ -130,6 +130,9 @@ class CppGenerator extends GeneratorBase {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
         super.doGenerate(resource, fsa, context)
+        
+        if (generatorErrorsOccurred) return;
+        
         mainReactor = this.mainDef?.reactorClass.toDefinition
 
         if (mainReactor === null) {

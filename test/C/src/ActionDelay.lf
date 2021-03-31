@@ -15,7 +15,6 @@ reactor GeneratedDelay {
         SET(y_out, self->y_state);
     =}
 }
-
 reactor Source {
     output out:int;
     reaction(startup) -> out {=
@@ -37,6 +36,7 @@ reactor Sink {
         }
 	=}
 }
+
 main reactor ActionDelay {
     source = new Source();
     sink = new Sink();

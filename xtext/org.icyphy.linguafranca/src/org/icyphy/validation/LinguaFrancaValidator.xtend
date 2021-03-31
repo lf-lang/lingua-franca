@@ -40,6 +40,7 @@ import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
 import org.icyphy.ModelInfo
 import org.icyphy.Target
+import org.icyphy.TargetProperty
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
@@ -77,7 +78,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.TargetProperty
+import org.icyphy.FileConfig
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -668,8 +669,15 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
         }
     }
 
-    @Check(NORMAL)
+    @Check(FAST)
     def checkModel(Model model) {
+        if (!info.updated) {
+            info.update(model)
+        }
+    }
+    
+    @Check(NORMAL)
+    def updateModelInfo(Model model) {
         info.update(model)
     }
 
@@ -883,6 +891,51 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkReactor(Reactor reactor) {
+        val name = FileConfig.nameWithoutExtension(reactor.eResource)
+        if (reactor.name === null) {
+            if (!reactor.isFederated && !reactor.isMain) {
+                error(
+                    "Reactor must be named.",
+                    Literals.REACTOR_DECL__NAME
+                )
+            }
+            // Prevent NPE in tests below.
+            return
+        } else {
+            if (reactor.isFederated || reactor.isMain) {   
+                if(!reactor.name.equals(name)) {
+                    // Make sure that if the name is omitted, the reactor is indeed main.
+                    error(
+                        "Name of main reactor must match the file name (or be omitted).",
+                        Literals.REACTOR_DECL__NAME
+                    )
+                }
+                // Do not allow multiple main/federated reactors.
+                if (reactor.eResource.allContents.filter(Reactor).filter[it.isMain || it.isFederated].size > 1) {
+                    var attribute = Literals.REACTOR__MAIN
+                    if (reactor.isFederated) {
+                       attribute = Literals.REACTOR__FEDERATED
+                    }
+                    if (reactor.isMain || reactor.isFederated) {
+                        error(
+                            "Multiple definitions of main or federated reactor.",
+                            attribute
+                        )
+                    }
+                }
+            } else if (reactor.eResource.allContents.filter(Reactor).exists[it.isMain || it.isFederated] && reactor.name.equals(name)) {
+                // Make sure that if a main reactor is specified, there are no
+                // ordinary reactors that clash with it.
+                error(
+                    "Name conflict with main reactor.",
+                    Literals.REACTOR_DECL__NAME
+                )
+            }
+        }
+        
+        // If there is a main reactor (with no name) then disallow other (non-main) reactors
+        // matching the file name.
+        
         checkName(reactor.name, Literals.REACTOR_DECL__NAME)
         
         // C++ reactors may not be called 'preamble'
@@ -902,8 +955,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 )
             }
         }
-        // FIXME: In TypeScript, there are certain classes that a reactor class should not collide with
-        // (essentially all the classes that are imported by default).
 
         var variables = new ArrayList()
         variables.addAll(reactor.inputs)
@@ -938,19 +989,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 '''Cannot extend «superClass.name» due to the following conflicts: «names.join(',')».''',
                 Literals.REACTOR__SUPER_CLASSES
                 )    
-            }
-        }
-        // Do not allow multiple main/federated reactors.
-        if (this.info.numberOfMainReactors > 1) {
-            var attribute = Literals.REACTOR__MAIN
-            if (reactor.isFederated) {
-               attribute = Literals.REACTOR__FEDERATED
-            }
-            if (reactor.isMain || reactor.isFederated) {
-                error(
-                    "Multiple definitions of main or federated reactor.",
-                    attribute
-                )
             }
         }
     }

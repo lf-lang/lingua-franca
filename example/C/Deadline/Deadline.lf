@@ -74,7 +74,7 @@ reactor Actuator {
     =}
 }
 
-main reactor CPS {
+main reactor {
     sense = new Sensor();
 	analyze = new Analysis();
 	actuate = new Actuator();

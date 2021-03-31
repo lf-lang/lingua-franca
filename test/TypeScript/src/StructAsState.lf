@@ -11,8 +11,7 @@ main reactor StructAsState {
     reaction(startup) {=
         console.log("State s.name=" + s.name + ", s.value=" + s.value);
         if (s.value != 42) {
-            console.log("FAILED: Expected 42.");
-            util.failure();
+            util.requestErrorStop("FAILED: Expected 42.");
         }
     =}
 }

@@ -77,14 +77,15 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     static val DEFAULT_IMPORTS =  '''import commandLineArgs from 'command-line-args'
     import commandLineUsage from 'command-line-usage'
-    import {Args, Present, Parameter, State, Variable, Priority, Mutation, Read, Triggers, ReadWrite, Write, Named, Reaction, Action, Startup, Schedule, Timer, Reactor, Port, OutPort, InPort, App} from './core/reactor'
-    import {FederatedApp} from './core/federation'
-    import {TimeUnit, TimeValue, UnitBasedTimeValue, Tag, Origin} from './core/time'
+    import {Args as __Args, Present, Parameter as __Parameter, State as __State, Variable as __Variable, Read, Triggers as __Triggers, ReadWrite, Write, Action as __Action, Startup as __Startup, Sched, Timer as __Timer, Reactor as __Reactor, Port as __Port, OutPort as __OutPort, InPort as __InPort, App as __App} from './core/reactor'
+    import {Reaction as __Reaction} from './core/reaction'
+    import {FederatedApp as __FederatedApp} from './core/federation'
+    import {TimeUnit, TimeValue, Tag as __Tag, Origin as __Origin} from './core/time'
     import {Log} from './core/util'
-    import {ProcessedCommandLineArgs, CommandLineOptionDefs, CommandLineUsageDefs, CommandLineOptionSpec, unitBasedTimeValueCLAType, booleanCLAType} from './core/cli'
+    import {ProcessedCommandLineArgs as __ProcessedCommandLineArgs, CommandLineOptionDefs as __CommandLineOptionDefs, CommandLineUsageDefs as __CommandLineUsageDefs, CommandLineOptionSpec as __CommandLineOptionSpec, unitBasedTimeValueCLAType as __unitBasedTimeValueCLAType, booleanCLAType as __booleanCLAType} from './core/cli'
     
     '''
-    
+  
     /**
      * Names of the configuration files to check for and copy to the generated 
      * source package root if they cannot be found in the source directory.
@@ -95,8 +96,8 @@ class TypeScriptGenerator extends GeneratorBase {
      * Files to be copied from the reactor-ts submodule into the generated
      * source directory. 
      */
-    static val RUNTIME_FILES = #["reactor.ts", "federation.ts",
-            "cli.ts", "command-line-args.d.ts", "command-line-usage.d.ts", 
+    static val RUNTIME_FILES = #["cli.ts", "command-line-args.d.ts", "command-line-usage.d.ts",
+            "component.ts", "federation.ts", "reaction.ts", "reactor.ts",
             "microtime.d.ts", "nanotimer.d.ts", "time.ts", "ulog.d.ts", "util.ts"]
     
     /**
@@ -123,6 +124,8 @@ class TypeScriptGenerator extends GeneratorBase {
         IGeneratorContext context) {
         
         super.doGenerate(resource, fsa, context)
+        
+        if (generatorErrorsOccurred) return;
         
         // Generate imports for protocol buffer definitions
         // Note that the preamble is generated as part of
@@ -333,11 +336,11 @@ class TypeScriptGenerator extends GeneratorBase {
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
         if (reactor.isMain()) {
-            pr("export class " + reactorName + " extends App {")
+            pr("class " + reactorName + " extends __App {")
         } else if (reactor.isFederated()) {
-            pr("export class " + reactorName + " extends FederatedApp {")
+            pr("class " + reactorName + " extends __FederatedApp {")
         } else {
-            pr("export class " + reactorName + " extends Reactor {")
+            pr("export class " + reactorName + " extends __Reactor {")
         }
         
         indent()
@@ -348,7 +351,7 @@ class TypeScriptGenerator extends GeneratorBase {
             arguments.add("keepAlive: boolean = false")
             arguments.add("fast: boolean = false")
         } else {
-            arguments.add("parent: Reactor")
+            arguments.add("parent: __Reactor")
         }
         
         // For TS, parameters are arguments of the class constructor.
@@ -443,32 +446,32 @@ class TypeScriptGenerator extends GeneratorBase {
 
             }
 
-            pr(timer.getName() + ": Timer;")
+            pr(timer.getName() + ": __Timer;")
             pr(reactorConstructor, "this." + timer.getName()
-                + " = new Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
+                + " = new __Timer(this, " + timerOffset + ", "+ timerPeriod + ");")
             
         }     
 
         // Create properties for parameters
         for (param : reactor.parameters) {
-            pr(param.name + ": Parameter<" + param.targetType + ">;")
+            pr(param.name + ": __Parameter<" + param.targetType + ">;")
             pr(reactorConstructor, "this." + param.name +
-                " = new Parameter(" + param.name + ");" )
+                " = new __Parameter(" + param.name + ");" )
         }
 
         // Next handle states.
         for (stateVar : reactor.stateVars) {
             if (stateVar.isInitialized) {
                 pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
-                    "new State(" + stateVar.targetInitializer + ');');
+                    "new __State(" + stateVar.targetInitializer + ');');
             } else {
                 pr(reactorConstructor, "this." + stateVar.name + ' = ' + 
-                    "new State(undefined);");
+                    "new __State(undefined);");
             }
         }
         
         for (stateVar : reactor.stateVars) {            
-            pr(stateVar.name + ': ' + "State<" + stateVar.getTargetType + '>;');            
+            pr(stateVar.name + ': ' + "__State<" + stateVar.getTargetType + '>;');            
         }
         // Next handle actions.
         for (action : reactor.actions) {
@@ -477,9 +480,9 @@ class TypeScriptGenerator extends GeneratorBase {
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                pr(action.name + ": Action<" + getActionType(action) + ">;")
+                pr(action.name + ": __Action<" + getActionType(action) + ">;")
 
-                var actionArgs = "this, Origin." + action.origin  
+                var actionArgs = "this, __Origin." + action.origin  
                 if (action.minDelay !== null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
@@ -490,22 +493,22 @@ class TypeScriptGenerator extends GeneratorBase {
                     }
                 }
                 pr(reactorConstructor, "this." + 
-                    action.name + " = new Action<" + getActionType(action) +
+                    action.name + " = new __Action<" + getActionType(action) +
                     ">(" + actionArgs  + ");")
             }
         }
         
         // Next handle inputs.
         for (input : reactor.inputs) {
-            pr(input.name + ": " + "InPort<" + getPortType(input) + ">;")
-            pr(reactorConstructor, "this." + input.name + " = new InPort<"
+            pr(input.name + ": " + "__InPort<" + getPortType(input) + ">;")
+            pr(reactorConstructor, "this." + input.name + " = new __InPort<"
                 + getPortType(input) + ">(this);")
         }
         
         // Next handle outputs.
         for (output : reactor.outputs) {
-            pr(output.name + ": " + "OutPort<" + getPortType(output) + ">;")
-            pr(reactorConstructor, "this." + output.name + " = new OutPort<"
+            pr(output.name + ": " + "__OutPort<" + getPortType(output) + ">;")
+            pr(reactorConstructor, "this." + output.name + " = new __OutPort<"
                 + getPortType(output) + ">(this);")
         }
         
@@ -638,7 +641,7 @@ class TypeScriptGenerator extends GeneratorBase {
                     var reactSignatureElementType = "";
                     
                     if (trigOrSource.variable instanceof Timer) {
-                        reactSignatureElementType = "Tag"
+                        reactSignatureElementType = "__Tag"
                     } else if (trigOrSource.variable instanceof Action) {
                         reactSignatureElementType = getActionType(trigOrSource.variable as Action)
                     } else if (trigOrSource.variable instanceof Port) {
@@ -668,7 +671,7 @@ class TypeScriptGenerator extends GeneratorBase {
                 if (effect.variable instanceof Timer) {
                     reportError("A timer cannot be an effect of a reaction")
                 } else if (effect.variable instanceof Action){
-                    reactSignatureElement += ": Schedule<" + getActionType(effect.variable as Action) + ">"
+                    reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                     schedActionSet.add(effect.variable as Action)
                 } else if (effect.variable instanceof Port){
                     reactSignatureElement += ": ReadWrite<" + getPortType(effect.variable as Port) + ">"
@@ -719,7 +722,7 @@ class TypeScriptGenerator extends GeneratorBase {
             for (param : reactor.parameters) {
                 
                 // Underscores are added to parameter names to prevent conflict with prologue
-                reactSignature.add("__" + param.name + ": Parameter<"
+                reactSignature.add("__" + param.name + ": __Parameter<"
                     + param.targetType + ">")
                 reactFunctArgs.add("this." + param.name)
                 
@@ -729,7 +732,7 @@ class TypeScriptGenerator extends GeneratorBase {
             // Add state to the react function
             for (state : reactor.stateVars) {
                 // Underscores are added to state names to prevent conflict with prologue
-                reactSignature.add("__" + state.name + ": State<"
+                reactSignature.add("__" + state.name + ": __State<"
                     + getStateType(state) + ">")
                 reactFunctArgs.add("this." + state.name )
                 
@@ -773,8 +776,8 @@ class TypeScriptGenerator extends GeneratorBase {
             // Write the reaction itself
             pr(reactorConstructor, "this.addReaction(")//new class<T> extends Reaction<T> {")
             reactorConstructor.indent()
-            pr(reactorConstructor, "new Triggers(" + reactionTriggers + "),")
-            pr(reactorConstructor, "new Args(" + reactFunctArgs + "),")
+            pr(reactorConstructor, "new __Triggers(" + reactionTriggers + "),")
+            pr(reactorConstructor, "new __Args(" + reactFunctArgs + "),")
             pr(reactorConstructor, "function (" + reactSignature + ") {")
             reactorConstructor.indent()
             pr(reactorConstructor, "// =============== START react prologue")
@@ -1029,8 +1032,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 customTypeLabel = '[true | false]'
             } else if (paramType == "TimeValue") {
                 mainParameters.add(parameter)
-                //clTypeExtension.add(parameter.name + " : UnitBasedTimeValue | null")
-                customArgType = "unitBasedTimeValueCLAType"
+                //clTypeExtension.add(parameter.name + " : TimeValue | null")
+                customArgType = "__unitBasedTimeValueCLAType"
                 customTypeLabel = "\'<duration> <units>\'"
             }
             // Otherwise don't add the parameter to customCLArgs
@@ -1068,18 +1071,18 @@ class TypeScriptGenerator extends GeneratorBase {
             let __noStart = false; // If set to true, don't start the app.
             
             // ************* Custom Command Line Arguments
-            let __additionalCommandLineArgs : CommandLineOptionSpec = «customArgsList»;
-            let __customCommandLineArgs = CommandLineOptionDefs.concat(__additionalCommandLineArgs);
-            let __customCommandLineUsageDefs = CommandLineUsageDefs;
+            let __additionalCommandLineArgs : __CommandLineOptionSpec = «customArgsList»;
+            let __customCommandLineArgs = __CommandLineOptionDefs.concat(__additionalCommandLineArgs);
+            let __customCommandLineUsageDefs = __CommandLineUsageDefs;
             type __customCLTypeExtension = «clTypeExtensionDef»;
             __customCommandLineUsageDefs[1].optionList = __customCommandLineArgs;
             const __clUsage = commandLineUsage(__customCommandLineUsageDefs);
                          
             // Set App parameters using values from the constructor or command line args.
             // Command line args have precedence over values from the constructor
-            let __processedCLArgs: ProcessedCommandLineArgs & __customCLTypeExtension;
+            let __processedCLArgs: __ProcessedCommandLineArgs & __customCLTypeExtension;
             try {
-                __processedCLArgs =  commandLineArgs(__customCommandLineArgs) as ProcessedCommandLineArgs & __customCLTypeExtension;
+                __processedCLArgs =  commandLineArgs(__customCommandLineArgs) as __ProcessedCommandLineArgs & __customCLTypeExtension;
             } catch (e){
                 Log.global.error(__clUsage);
                 throw new Error("Command line argument parsing failed with: " + e);
@@ -1211,7 +1214,6 @@ class TypeScriptGenerator extends GeneratorBase {
         code.toString()
     }
 
-
     /** Given a representation of time that may possibly include units,
      *  return a string that TypeScript can recognize as a value.
      *  @param time Literal that represents a time value.
@@ -1220,10 +1222,10 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     override timeInTargetLanguage(TimeValue value) {
         if (value.unit != TimeUnit.NONE) {
-            "new UnitBasedTimeValue(" + value.time + ", TimeUnit." + value.unit + ")"
+            '''TimeValue.«value.unit»(«value.time»)'''
         } else {
-            // The default time unit for TypeScript is msec.
-            "new UnitBasedTimeValue(" + value.time + ", TimeUnit.msec)"
+            // The value must be zero.
+            "TimeValue.zero()"
         }
     }
 

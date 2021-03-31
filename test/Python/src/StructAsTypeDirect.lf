@@ -23,7 +23,7 @@ reactor Print(expected(42)) {
             exit(1)
     =}
 }
-main reactor StructAsArrayType {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p._in;

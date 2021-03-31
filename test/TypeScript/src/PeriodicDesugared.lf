@@ -1,5 +1,5 @@
 target TypeScript;
-main reactor Periodic(
+main reactor (
         offset:time(0), 
         period:time(500 msec)) {
     logical action init(offset);
@@ -19,7 +19,7 @@ main reactor Periodic(
         console.log("Hello World!");
         actions.recur.schedule(0, null);
         if (count > 10) {
-            util.requestShutdown();
+            util.requestStop();
         }
         count++;
     =}

@@ -25,7 +25,7 @@ reactor Print(expected:int(42)) {
         }
     =}
 }
-main reactor StructAsArrayType {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p.in;

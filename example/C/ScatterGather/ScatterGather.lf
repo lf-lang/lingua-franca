@@ -37,7 +37,7 @@ reactor Worker(id:int(2)) {
         printf("Worker received second %d\n", worker_in->value);
     =}
 }
-reactor ScatterGather {
+reactor ScatterGather2 {
     input in:int[];
     output out:int[];
     
@@ -119,9 +119,9 @@ reactor Print {
         printf("]\n");
     =}
 }
-main reactor Main {
+main reactor {
     s = new Source();
-    g = new ScatterGather();
+    g = new ScatterGather2();
     p = new Print();
     s.out -> g.in;
     g.out -> p.in;

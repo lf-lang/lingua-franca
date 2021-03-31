@@ -138,7 +138,7 @@ reactor Destination {
     sub.message->dsp.message;
 }
 
-federated reactor MQTTTest {
+federated reactor {
     source = new Source();
     destination = new Destination();
 }

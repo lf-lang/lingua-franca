@@ -19,7 +19,7 @@ reactor Print {
         // Do something
     =}
 }
-main reactor Top {
+main reactor {
     f = new Foo();
     p = new Print();
     timer t(0, 1 sec);

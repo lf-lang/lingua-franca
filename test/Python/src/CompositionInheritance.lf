@@ -40,7 +40,7 @@ reactor Test {
 	        sys.stderr.write("FAILURE: No data received.\n")
 	=}
 }
-main reactor Composition {
+main reactor {
 	s = new SourceExtended();
 	
 	d = new Test();

@@ -42,7 +42,7 @@ reactor Print {
         }
     =}
 }
-main reactor YetAnotherDelayStruct {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p.in after 1500 msec;

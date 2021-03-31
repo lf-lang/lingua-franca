@@ -12,7 +12,7 @@ reactor Deadline(threshold:time(100 msec)) {
         deadline_violation.set(true);
     =}
 }
-main reactor DeadlineHandledAbove {
+main reactor {
     state violation_detected:bool({=false=});
     d = new Deadline(threshold = 10 msec);
     reaction(startup) -> d.x {=
