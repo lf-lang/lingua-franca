@@ -987,12 +987,12 @@ void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
 
     LOG_PRINT("Handling port absent for port %d from federate %d.", port_id, federate_id);
 
-    pthread_mutex_lock(&mutex);
+    lf_mutex_lock(&mutex);
     // Set the mutex status as absent
     _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
     // The last known status tag of the port has changed. Notify any waiting threads.
-    pthread_cond_broadcast(&port_status_changed);
-    pthread_mutex_unlock(&mutex);
+    lf_cond_broadcast(&port_status_changed);
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -1891,11 +1891,11 @@ void send_port_absent_to_federate(unsigned short port_ID,
     socket = _fed.sockets_for_outbound_p2p_connections[fed_ID];
 #endif
 
-    pthread_mutex_lock(&outbound_socket_mutex);
+    lf_mutex_lock(&outbound_socket_mutex);
     write_to_socket_errexit(socket, message_length, buffer,
             "Failed to send port absent message for port %hu to federate %hu.", 
             port_ID, fed_ID);
-    pthread_mutex_unlock(&outbound_socket_mutex);
+    lf_mutex_unlock(&outbound_socket_mutex);
 }
 
 /**
