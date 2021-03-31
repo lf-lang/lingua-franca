@@ -997,16 +997,17 @@ class LinguaFrancaValidationTest {
                 }
             ]
             // Extra checks for filenames.
-            if (prop.type == prop.type == ArrayType.FILE_ARRAY ||
-                prop.type == UnionType.FILE_OR_FILE_ARRAY) {
-                val model = prop.createModel(
-                    synthesizeExamples(ArrayType.FILE_ARRAY, true).get(0))
-                primitiveTypeToKnownGood.get(PrimitiveType.FILE).forEach [
-                    model.assertWarning(
-                        LinguaFrancaPackage::eINSTANCE.keyValuePair,
-                        null, '''Could not find file: '«it.withoutQuotes»'.''')
-                ]
-            }
+            // Temporarily disabled because we need a more sophisticated check that looks for files in different places.
+//            if (prop.type == prop.type == ArrayType.FILE_ARRAY ||
+//                prop.type == UnionType.FILE_OR_FILE_ARRAY) {
+//                val model = prop.createModel(
+//                    synthesizeExamples(ArrayType.FILE_ARRAY, true).get(0))
+//                primitiveTypeToKnownGood.get(PrimitiveType.FILE).forEach [
+//                    model.assertWarning(
+//                        LinguaFrancaPackage::eINSTANCE.keyValuePair,
+//                        null, '''Could not find file: '«it.withoutQuotes»'.''')
+//                ]
+//            }
             
             println("Known bad assignments:") 
             val knownIncorrect = synthesizeExamples(prop.type, false)
