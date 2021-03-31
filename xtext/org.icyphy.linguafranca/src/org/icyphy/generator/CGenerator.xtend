@@ -4218,13 +4218,15 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-        result.append('''
-                _fed.network_input_port_triggers[«receivingPortID»]->status = present;        
-                // Port is now present. Therfore, notify the network input
-                // control reactions to stop waiting and re-check the port
-                // status.
-                lf_cond_broadcast(&port_status_changed);
-        ''')
+        if (receivingFed.networkInputPorts.size > 0) {
+            result.append('''
+                    _fed.network_input_port_triggers[«receivingPortID»]->status = present;        
+                    // Port is now present. Therfore, notify the network input
+                    // control reactions to stop waiting and re-check the port
+                    // status.
+                    lf_cond_broadcast(&port_status_changed);
+            ''')        
+        }
         
         return result.toString
     }
