@@ -194,6 +194,6 @@ void* listen_to_rti_UDP_thread(void* args);
  *
  * @return On success, returns 0; On error, it returns an error number.
  */
-int create_clock_sync_thread(pthread_t* thread_id);
+int create_clock_sync_thread(lf_thread_t* thread_id);
 
 #endif // CLOCK_SYNC_H
