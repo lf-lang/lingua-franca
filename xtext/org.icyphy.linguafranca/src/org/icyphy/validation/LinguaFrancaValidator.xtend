@@ -78,6 +78,7 @@ import org.icyphy.linguaFranca.Visibility
 import org.icyphy.linguaFranca.WidthSpec
 
 import static extension org.icyphy.ASTUtils.*
+import org.icyphy.FileConfig
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -890,6 +891,7 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
 
     @Check(FAST)
     def checkReactor(Reactor reactor) {
+        val name = FileConfig.nameWithoutExtension(reactor.eResource)
         if (reactor.name === null) {
             if (!reactor.isFederated && !reactor.isMain) {
                 error(
@@ -899,16 +901,29 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
             }
             // Prevent NPE in tests below.
             return
-        } else if (info.mainReactorName !== null){
-            if (reactor.isFederated || reactor.isMain) {            
-                if(!reactor.name.equals(info.mainReactorName)) {
+        } else {
+            if (reactor.isFederated || reactor.isMain) {   
+                if(!reactor.name.equals(name)) {
                     // Make sure that if the name is omitted, the reactor is indeed main.
                     error(
                         "Name of main reactor must match the file name (or be omitted).",
                         Literals.REACTOR_DECL__NAME
                     )
                 }
-            } else if (info.numberOfMainReactors > 0 && reactor.name.equals(info.mainReactorName)) {
+                // Do not allow multiple main/federated reactors.
+                if (reactor.eResource.allContents.filter(Reactor).filter[it.isMain || it.isFederated].size > 1) {
+                    var attribute = Literals.REACTOR__MAIN
+                    if (reactor.isFederated) {
+                       attribute = Literals.REACTOR__FEDERATED
+                    }
+                    if (reactor.isMain || reactor.isFederated) {
+                        error(
+                            "Multiple definitions of main or federated reactor.",
+                            attribute
+                        )
+                    }
+                }
+            } else if (reactor.eResource.allContents.filter(Reactor).exists[it.isMain || it.isFederated] && reactor.name.equals(name)) {
                 // Make sure that if a main reactor is specified, there are no
                 // ordinary reactors that clash with it.
                 error(
@@ -974,19 +989,6 @@ class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
                 '''Cannot extend «superClass.name» due to the following conflicts: «names.join(',')».''',
                 Literals.REACTOR__SUPER_CLASSES
                 )    
-            }
-        }
-        // Do not allow multiple main/federated reactors.
-        if (this.info.numberOfMainReactors > 1) {
-            var attribute = Literals.REACTOR__MAIN
-            if (reactor.isFederated) {
-               attribute = Literals.REACTOR__FEDERATED
-            }
-            if (reactor.isMain || reactor.isFederated) {
-                error(
-                    "Multiple definitions of main or federated reactor.",
-                    attribute
-                )
             }
         }
     }

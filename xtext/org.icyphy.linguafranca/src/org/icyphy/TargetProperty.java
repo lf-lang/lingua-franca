@@ -856,13 +856,18 @@ public enum TargetProperty {
             }
             // If this is a file, perform an additional check to make sure
             // the file actually exists.
+            // FIXME: premature because we first need a mechanism for looking up files!
+            // Looking in the same directory is too restrictive. Disabling this check for now.
+            /*
             if (this == FILE) {
                 String file = ASTUtils.toText(e);
-                if (!FileConfig.fileExists(file, v.info.directory)) {
+                 
+                if (!FileConfig.fileExists(file, FileConfig.toPath(e.eResource().getURI()).toFile().getParent())) {
                     v.targetPropertyWarnings
                             .add("Could not find file: '" + file + "'.");
                 }
             }
+            */
         }
     
         /**
