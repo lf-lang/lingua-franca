@@ -118,6 +118,7 @@ class ReactionInstance extends NamedInstance<Reaction> {
                         if (portInstance === null) {
                             throw new Exception("Unexpected effect. Cannot find port within bank: " + effect.variable.name);
                         }
+                        this.effects.add(portInstance)
                         portInstance.dependsOnReactions.add(this);
                     }
                 }
