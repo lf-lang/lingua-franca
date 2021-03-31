@@ -172,6 +172,10 @@ public class FileConfig {
     
     // Getters to be overridden in derived classes.
     
+    public static String getName(Resource r) throws IOException {
+        return nameWithoutExtension(toPath(r.getURI()).toFile());
+    }
+    
     public Path getOutPath() {
         return outPath;
     }
