@@ -1,6 +1,6 @@
 // Test delaying a pointer type.
 target C;
-reactor DelayPointer(delay:time(100 msec)) {
+reactor DelayPointer2(delay:time(100 msec)) {
     input in:int*;
     output out:int*;
     logical action a:int*;
@@ -55,9 +55,9 @@ reactor Test {
     =}
 }
 
-main reactor DelayPointerTest { 
+main reactor  { 
     s = new Source();
-    d = new DelayPointer();
+    d = new DelayPointer2();
     t = new Test();
     s.out -> d.in;
     d.out -> t.in; 

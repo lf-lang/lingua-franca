@@ -19,8 +19,7 @@ reactor Print {
     reaction(x) {=
         console.log("Received: " + x + ".");
         if (x != count) {
-            console.log("ERROR: Expected " + count + ".");
-            util.failure();
+            util.requestErrorStop("ERROR: Expected " + count + ".");
         }
         count++;
     =}

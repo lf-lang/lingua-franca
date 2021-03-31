@@ -224,7 +224,7 @@ public enum Target {
                 "while",
                 "with",
                 
-                //Strict Mode Reserved Words
+                // Strict Mode Reserved Words
                 "as",
                 "implements",
                 "interface",
@@ -250,7 +250,16 @@ public enum Target {
                 "symbol",
                 "type",
                 "from",
-                "of"
+                "of",
+                
+                // Reactor-TS specific keywords (other classes, which are less user-facing, have double underscores)
+                "TimeUnit",
+                "TimeValue",
+                "Present",
+                "Sched",
+                "Read",
+                "Write",
+                "ReadWrite"
                 )
     ), 
     Python("Python", false, Arrays.asList(

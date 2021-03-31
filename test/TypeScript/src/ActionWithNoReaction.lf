@@ -11,7 +11,7 @@ reactor foo {
     logical action a;
     reaction(x) -> y, a {=
         y = 2 * (x as number);
-        actions.a.schedule(new UnitBasedTimeValue(500, TimeUnit.msec), null)
+        actions.a.schedule(TimeValue.msec(500), null)
     =}
 }
 reactor print {
@@ -22,7 +22,7 @@ reactor print {
         console.log("Current physical time is: " + util.getElapsedPhysicalTime());
     =}
 }
-main reactor top {
+main reactor {
     f = new foo();
     p = new print();
     timer t(0, 1 sec);

@@ -7,6 +7,6 @@ reactor Foo(bar:int(42)) {
 		printf("Baz: %d\n", self->baz);
 	=}
 }
-main reactor X {
+main reactor {
 	a = new Foo();
 }

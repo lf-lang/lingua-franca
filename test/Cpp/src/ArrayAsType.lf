@@ -44,7 +44,7 @@ reactor Print {
     =}
 }
 
-main reactor ArrayPrint {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p.in;

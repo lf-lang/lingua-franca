@@ -21,12 +21,11 @@ reactor Test {
 		count++;
 		console.log("Received " + x);
 		if (x != count) { 
-			console.log("FAILURE: Expected " + count);
-			util.failure(); 
+			util.requestErrorStop("FAILURE: Expected " + count); 
 		}
 	=} 
 }
-main reactor Composition(delay:time(5 sec)) {
+main reactor (delay:time(5 sec)) {
 	s = new Source();
 	d = new Test();
 	s.y -> d.x after delay;

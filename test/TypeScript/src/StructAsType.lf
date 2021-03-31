@@ -23,12 +23,11 @@ reactor Print(expected:number(42)) {
         x = x as hello_t;
         console.log("Received: name = " + x.name + ", value = " + x.value);
         if (x.value != expected) {
-            console.log("ERROR: Expected value to be " + expected);
-            util.failure();
+            util.requestErrorStop("ERROR: Expected value to be " + expected)
         }
     =}
 }
-main reactor StructPrint {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p.x;

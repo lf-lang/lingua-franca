@@ -47,7 +47,7 @@ reactor Test {
     =}
 }
 
-main reactor DelayInt { 
+main reactor { 
     d = new Delay();
     t = new Test();
     d.out -> t.in; 

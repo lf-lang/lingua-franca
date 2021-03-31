@@ -12,7 +12,7 @@ public preamble {=
     #include "hello.h"
 =}
 
-main reactor ArrayParallel {
+main reactor {
     s = new Source();
     c1 = new Scale();
     c2 = new Scale(scale = 3);

@@ -38,7 +38,7 @@ reactor Destination {
         info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-main reactor TimeLimit(period:time(1 usec)) {
+main reactor (period:time(1 usec)) {
     timer stop(10 secs);
     reaction(stop) {=
         request_stop();

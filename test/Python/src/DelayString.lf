@@ -1,7 +1,7 @@
 // This tests actions with immutable payloads that are neither malloc'd nor freed.
 target Python;
 
-reactor DelayString(delay(100 msec)) {
+reactor DelayString2(delay(100 msec)) {
     input _in;
     output out;
     logical action a;
@@ -29,8 +29,8 @@ reactor Test {
     =}
 }
 
-main reactor DelayStringTest { 
-    d = new DelayString();
+main reactor { 
+    d = new DelayString2();
     t = new Test();
     d.out -> t._in; 
     reaction(startup) -> d._in {=

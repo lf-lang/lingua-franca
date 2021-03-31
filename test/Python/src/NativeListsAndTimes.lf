@@ -2,7 +2,7 @@ target Python;
 
 // This test passes if it is successfully compiled into valid target code.
 
-main reactor Foo(x(0), 
+main reactor(x(0), 
             y(0),       // Units are missing but not required
             z(1 msec),  // Type is missing but not required
             p(1, 2, 3, 4),      // List of integers 

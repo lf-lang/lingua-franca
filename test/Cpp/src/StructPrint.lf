@@ -31,7 +31,7 @@ reactor Print(expected_value:int(42), expected_name:{=std::string=}("Earth")) {
     =}
 }
 
-main reactor StructAsType {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p.in;

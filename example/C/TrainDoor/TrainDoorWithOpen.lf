@@ -42,7 +42,7 @@ reactor Door {
        self->is_open = true;
   =}
 }
-main reactor System {
+main reactor {
   c = new Controller(); 
   d = new Door();
   c.lock -> d.lock after 5 msec; // |\label{line:unlockafter}|

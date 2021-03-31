@@ -3,12 +3,6 @@
 target TypeScript {
     timeout : 5 sec
 };
-//target TypeScript (
-//    timeout = 5 sec
-//);
-//(
-//  run = "bin/Composition -fast -timeout 10 sec"
-//);
 reactor Source(period:time(2 sec)) {
     output y:number;
     timer t(1 sec, period);
@@ -26,9 +20,7 @@ reactor Test {
         count++;
         console.log("Received " + x);
         if (x != count) { 
-            console.log("FAILURE: Expected " + count);
-            util.failure();
-            //throw new Error("FAILURE: Expected " + (this.state as any).count);
+            util.requestErrorStop("FAILURE: Expected " + count);
         }
     =} 
 }

@@ -22,7 +22,7 @@
 
 target Python {protobufs: Person.proto};
 
-main reactor HelloProtocolBuffers {
+main reactor {
 	reaction(startup) {=
         person = Person.Person()
         

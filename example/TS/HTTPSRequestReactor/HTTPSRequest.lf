@@ -2,7 +2,7 @@ target TypeScript{
     keepalive : true
     //logging : "debug"
 };
-main reactor Requester {
+main reactor {
 	preamble {=
 		import * as https from "https"
 		import * as http from "http"

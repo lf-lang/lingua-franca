@@ -45,7 +45,7 @@ reactor Destination(width:int(1)) {
     =}
 }
 
-main reactor MultiportIn {
+main reactor {
     a = new Source();
     t1 = new Computation();
     t2 = new Computation();

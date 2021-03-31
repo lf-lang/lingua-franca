@@ -45,7 +45,7 @@ reactor Print {
         printf("SUCCESS: Successfully received 1 item.\n");
     =}
 }
-federated reactor DistributedCount at localhost {
+federated reactor at localhost {
     c = new Count();
     p = new Print();
     c.out ~> p.in after 400 msec;    // Indicating a 'physical' connection.

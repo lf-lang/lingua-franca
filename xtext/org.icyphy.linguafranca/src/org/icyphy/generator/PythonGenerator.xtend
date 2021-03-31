@@ -37,6 +37,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.icyphy.InferredType
+import org.icyphy.Target
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
@@ -53,10 +54,6 @@ import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.Target
-import java.nio.file.Path
-import static extension org.icyphy.TargetConfig.*
-import org.icyphy.TargetConfig
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -924,12 +921,15 @@ class PythonGenerator extends CGenerator {
      *  @param context FIXME: Undocumented argument. No idea what this is.
      */
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+        
         // If there are federates, assign the number of threads in the CGenerator to 1        
         if(federates.length > 1) {
             targetConfig.threads = 1;
         }
 
         super.doGenerate(resource, fsa, context)
+
+        if (generatorErrorsOccurred) return;
 
         var baseFileName = topLevelName
         for (federate : federates) {

@@ -40,18 +40,16 @@ import org.icyphy.linguaFranca.Reactor
 import org.icyphy.linguaFranca.TargetDecl
 
 import static extension org.icyphy.ASTUtils.*
-import java.io.File
 
 /**
- * A helper class for analyzing the AST.
+ * A helper class for analyzing the AST. This class is instantiated once for each compilation. 
+ * 
+ * NOTE: the validator used on imported files uses the same instance! Hence, this class should not contain any info
+ * specific to any particular resource that is involved in the compilation.
+ * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class ModelInfo {
-
-    /**
-     * The path to the resource in which the model is found.
-     */
-    public String directory
 
     /**
      * Data structure for tracking dependencies between reactor classes. An 
@@ -60,7 +58,7 @@ class ModelInfo {
     public InstantiationGraph instantiationGraph
 
     /**
-     * The AST that the info gather in this class pertains to.
+     * The AST that the info gathered in this class pertains to.
      */
     public Model model
 
@@ -85,23 +83,22 @@ class ModelInfo {
     public Set<Parameter> overflowingParameters
 
     /**
-     * The number of reactor definitions that are marked with the `main` or 
-     * `federated` keyword.
-     */
-    public int numberOfMainReactors
-
-    /**
      * Data structure for tracking dependencies between reactions.
      */
     public ReactionGraph reactionGraph
+    
+    /**
+     * Whether or not the model information has been updated at least once.
+     */
+    public boolean updated
     
     /**
      * Redo all analysis based on the given model.
      * @param model the model to analyze.
      */
     def update(Model model) {
+        this.updated = true
         this.model = model
-        this.directory = FileConfig.toPath(model.eResource.URI).toFile.parent
         this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {
@@ -116,9 +113,6 @@ class ModelInfo {
         if (target == Target.C) {
             this.collectOverflowingNodes()
         }
-        
-        // Count the number of main/federated reactors.
-         countMainReactors()
     }
 
     /**
@@ -146,13 +140,6 @@ class ModelInfo {
                 this.overflowingDeadlines.add(deadline)
             }
         }
-    }
-
-    private def countMainReactors() {
-        this.numberOfMainReactors = 0
-        model.eAllContents.toIterable.filter(Reactor).filter [
-            it.isMain || it.isFederated
-        ].forEach[this.numberOfMainReactors++]
     }
 
     /**

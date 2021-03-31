@@ -3,7 +3,7 @@ target C {
     logging: error,
     docker: true 
 };
-reactor HelloWorld {
+reactor HelloWorld2 {
     state success:bool(false);
     reaction(startup) {=
         printf("Hello World.\n");
@@ -17,6 +17,7 @@ reactor HelloWorld {
         }
     =}
 }
-main reactor HelloWorldTest {
-    a = new HelloWorld();
+
+main reactor HelloWorld {
+    a = new HelloWorld2();
 }

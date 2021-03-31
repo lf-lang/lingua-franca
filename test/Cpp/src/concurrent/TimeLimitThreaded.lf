@@ -29,7 +29,7 @@ reactor Destination {
 	=}
 }
 
-main reactor TimeLimit(period:time(100 usec)) {
+main reactor (period:time(100 usec)) {
 	timer stop(10 secs);
 	reaction(stop) {=
 		environment()->sync_shutdown();

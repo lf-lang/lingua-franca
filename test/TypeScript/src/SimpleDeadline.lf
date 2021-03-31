@@ -6,8 +6,7 @@ reactor Deadline(threshold:time(100 msec)) {
     input x:number;
     output deadlineViolation:boolean;
     reaction(x) -> deadlineViolation {=
-        console.log("ERROR: Deadline violation was not detected!\n");
-        util.failure();
+        util.requestErrorStop("ERROR: Deadline violation was not detected!")
     =} deadline(threshold) {=
         console.log("Deadline violation detected.");
         deadlineViolation = true;
@@ -27,7 +26,7 @@ main reactor SimpleDeadline {
     p = new Print();
     d.deadlineViolation -> p.x;
     reaction(start) -> d.x {=
-        let sleep_time =  new UnitBasedTimeValue(20, TimeUnit.msec);
+        let sleep_time = TimeValue.msec(20);
         let startTime = util.getCurrentPhysicalTime();
         let finishTime = startTime.add(sleep_time)
         // Busy wait

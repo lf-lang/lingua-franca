@@ -18,7 +18,7 @@ reactor Print(scale(1)) {
             exit(1)
     =}
 }
-main reactor DelayArray {
+main reactor {
     s = new Source();
     p = new Print();
     s.out -> p._in;
