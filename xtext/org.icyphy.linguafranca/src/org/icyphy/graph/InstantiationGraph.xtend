@@ -130,8 +130,11 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
             this.reactorToInstantiation.put(reactor, instantiation)
             this.reactorToDecl.put(reactor, decl)
 
-            this.addEdge(container, reactor)
-            
+            if (container !== null) {
+                this.addEdge(container, reactor)
+            } else {
+                this.addNode(reactor)
+            }
             for (inst : reactor.instantiations) {
                 inst.buildGraph(visited)
             }
