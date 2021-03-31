@@ -22,7 +22,6 @@
 target TypeScript {
     timeout: 10 secs
 };
-
 /**
  * Reactor that generates a sequence of messages, one per second.
  * The message will be a string consisting of a root string followed

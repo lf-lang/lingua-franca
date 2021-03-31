@@ -841,7 +841,9 @@ class TypeScriptGenerator extends GeneratorBase {
      *  @param reactor The parsed reactor data structure.
      */
     def generateReactor(Reactor reactor) {
-        generateReactorFederated(reactor, null)
+        if (!reactor.isFederated && !reactor.isMain) { // NOTE: Just to prevent NPE. This code makes no sense to me at all.
+            generateReactorFederated(reactor, null)
+        }
     }
 
     def generateArg(VarRef v) {
