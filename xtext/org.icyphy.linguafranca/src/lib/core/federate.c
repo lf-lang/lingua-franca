@@ -989,17 +989,9 @@ void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
 
     pthread_mutex_lock(&mutex);
     // Set the mutex status as absent
-    // First, check if the absent message was intended for the current tag
-    // or the future tag.
-    if(compare_tags(intended_tag, get_current_tag()) >= 0 &&
-            _fed.network_input_port_triggers[port_id]->status == unknown) {
-        _fed.network_input_port_triggers[port_id]->status = absent;
-        // Port is now absent. Therfore, notify the network input
-        // control reactions to stop waiting and re-check the port
-        // status.
-        pthread_cond_broadcast(&port_status_changed);
-    }
     _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
+    // The last known status tag of the port has changed. Notify any waiting threads.
+    pthread_cond_broadcast(&port_status_changed);
     pthread_mutex_unlock(&mutex);
 }
 
