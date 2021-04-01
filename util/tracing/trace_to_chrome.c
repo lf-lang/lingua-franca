@@ -40,9 +40,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PID_FOR_WORKER_ADVANCING_TIME 0 // Use 1000002 to show in separate trace.
 #define PID_FOR_UNKNOWN_EVENT 2000000
 
-/** Buffer for reading trace records. */
-trace_record_t trace[TRACE_BUFFER_CAPACITY];
-
 /** Maximum thread ID seen. */
 int max_thread_id = 0;
 
