@@ -1078,7 +1078,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
         // - we have eliminated the possibility to have a negative additional delay; and
         // - we detect the asynchronous use of logical actions
         if (intended_time < current_tag.time) {
-            warning_print("Attempting to schedule an event earlier than current time by %lld nsec!"
+            warning_print("Attempting to schedule an event earlier than current time by %lld nsec! "
                     "Revising to the current time %lld.",
                     current_tag.time - intended_time, current_tag.time);
             intended_time = current_tag.time;
@@ -1194,7 +1194,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
     // FIXME: This is a development assertion and might
     // not be necessary for end-user LF programs
     if (intended_time < current_tag.time) {
-        error_print("Attempting to schedule an event earlier than current time by %lld nsec!"
+        error_print("Attempting to schedule an event earlier than current time by %lld nsec! "
                 "Revising to the current time %lld.",
                 current_tag.time - intended_time, current_tag.time);
         intended_time = current_tag.time;
