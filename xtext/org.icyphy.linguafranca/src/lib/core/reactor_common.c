@@ -485,6 +485,9 @@ lf_token_t* __create_token(size_t element_size) {
  * @param element_size The size of an element carried in the payload or
  *  0 if there is no payload.
  * @return A new or recycled lf_token_t struct.
+ * 
+ * @note For multithreaded applications, the caller must hold
+ *  the mutex lock because it accesses global variables.
  */
 lf_token_t* create_token(size_t element_size) {
     DEBUG_PRINT("create_token: element_size: %zu", element_size);

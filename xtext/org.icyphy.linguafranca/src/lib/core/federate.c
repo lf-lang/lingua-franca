@@ -1133,14 +1133,14 @@ void handle_timed_message(int socket, int fed_id) {
     // The following is only valid for string messages.
     // DEBUG_PRINT("Message received: %s.", message_contents);
 
+    lf_mutex_lock(&mutex);
+
     // Create a token for the message
     lf_token_t* message_token = create_token(action->element_size);
     // Set up the token
 
     message_token->value = message_contents;
     message_token->length = length;
-
-    lf_mutex_lock(&mutex);
 
     if (compare_tags(intended_tag,
             _fed.network_input_port_triggers[port_id]->last_known_status_tag) <= 0) {
