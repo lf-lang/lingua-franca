@@ -635,8 +635,9 @@ void __pop_events() {
         event->trigger->token = token;
         // Prevent this token from being freed. It is the new template.
         // This might be null if there are no reactions to the action.
-        if (token != NULL)
+        if (token != NULL) {
             token->ok_to_free = no;
+        }
 
         // Mark the trigger present.
         event->trigger->status = present;
@@ -1243,7 +1244,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
  * 
  * @param trigger The trigger
  * @param token The token wrapping the payload or NULL for no payload.
- * @return A handle to the event, or 0 if no new event was scheduled because the function
+ * @return 1 if successful, or 0 if no new reaction was scheduled because the function
  *  was called incorrectly.
  */
 handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token) {
@@ -1268,11 +1269,6 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
 	    token->ref_count++;
 	}
 
-#ifdef FEDERATED_DECENTRALIZED
-    // Set the intended tag which is current_tag
-    trigger->intended_tag = current_tag;
-#endif
-
     // Copy the token pointer into the trigger struct so that the
     // reactions can access it. This overwrites the previous template token,
     // for which we decrement the reference count.
@@ -1281,7 +1277,7 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
         trigger->token->ok_to_free = OK_TO_FREE;
         // Free the token if its reference count is zero. Since __done_using
         // decrements the reference count, first increment it here.
-        trigger->token->ref_count++;
+        // trigger->token->ref_count++;
         __done_using(trigger->token);
     }
     trigger->token = token;
@@ -1290,12 +1286,12 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
     if (token != NULL) {
         token->ok_to_free = no;
     }
+
+    // Mark the trigger present.
+    trigger->status = present;
     
     // Push the corresponding reactions for this trigger
     // onto the reaction queue.
-    // NOTE: This is allowed because
-    // when this is called, the execution has not started
-    // and the (0,0) tag has not been acquired yet.
     for (int i = 0; i < trigger->number_of_reactions; i++) {
         reaction_t* reaction = trigger->reactions[i];
         // Do not enqueue this reaction twice.
@@ -1305,15 +1301,7 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
         }
     }
 
-    // FIXME: make a record of handle and implement unschedule.
-    // NOTE: Rather than wrapping around to get a negative number,
-    // we reset the handle on the assumption that much earlier
-    // handles are irrelevant.
-    int return_value = __handle++;
-    if (__handle < 0) { 
-        __handle = 1;
-    }
-    return return_value;
+    return 1;
 }
 
 /**
