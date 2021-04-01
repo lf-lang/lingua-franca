@@ -3,6 +3,8 @@ target C {
     timeout: 1 sec,
     fast: true
 };
+import TestCount from "lib/TestCount.lf";
+
 reactor CountSelf2(delay:time(100 msec)) {
     output out:int;
     logical action a:int;
@@ -15,21 +17,9 @@ reactor CountSelf2(delay:time(100 msec)) {
         schedule_int(a, self->delay, a->value + 1);
     =}
 }
-reactor Test {
-    input in:int;
-    state count:int(0);
-    reaction(in) {=
-        printf("Received: %d.\n", in->value);
-        if (in->value != self->count) {
-            fprintf(stderr, "ERROR: Expected %d.\n", self->count);
-            exit(1);
-        }
-        self->count++;
-    =}
-}
-
 main reactor { 
     d = new CountSelf2();
-    t = new Test();
+    t = new TestCount(num_inputs = 11, start = 0);
     d.out -> t.in; 
 }
+
