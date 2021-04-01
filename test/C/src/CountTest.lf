@@ -5,29 +5,12 @@ target C {
 };
 
 import Count from "lib/Count.lf";
-
-reactor Test {
-    input c:int;
-    state i:int(0);
-    reaction(c) {=
-        printf("Received %d.\n", c->value);
-        (self->i)++;
-        if (c->value != self->i) {
-            printf("ERROR: Expected %d but got %d\n.", self->i, c->value);
-            exit(1);
-        }
-    =}
-    reaction(shutdown) {=
-        if (self->i != 4) {
-            printf("ERROR: Test should have reacted 4 times, but reacted %d times.\n", self->i);
-            exit(2);
-        }
-    =}
-}
+import TestCount from "lib/TestCount.lf";
 
 main reactor CountTest {
     count = new Count();
-    test = new Test();
-    count.out -> test.c;
+    test = new TestCount(num_inputs = 3);
+    count.out -> test.in;
 }
+
 
