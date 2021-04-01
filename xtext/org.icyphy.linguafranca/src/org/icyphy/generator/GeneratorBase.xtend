@@ -1189,11 +1189,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * port if it is absent.
      * 
      * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingChannelIndex The channel if a multiport
      */
     def String generateNetworkOutputControlReactionBody(
         VarRef port,
         int portID,
-        int federateID
+        int receivingFederateID,
+        int sendingChannelIndex
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
     }  

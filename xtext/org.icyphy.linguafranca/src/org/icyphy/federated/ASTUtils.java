@@ -40,7 +40,6 @@ import org.icyphy.generator.GeneratorBase;
 import org.icyphy.linguaFranca.Connection;
 import org.icyphy.linguaFranca.Input;
 import org.icyphy.linguaFranca.LinguaFrancaFactory;
-import org.icyphy.linguaFranca.Port;
 import org.icyphy.linguaFranca.Reaction;
 import org.icyphy.linguaFranca.Reactor;
 import org.icyphy.linguaFranca.Type;
@@ -128,16 +127,8 @@ public class ASTUtils {
                 // Add the port to network input ports
                 instance.networkInputPorts.add((Input) portRef.getVariable());
             }
-        }
-
-        for (Connection connection : connectionsWithPort) {
-            // Add the network input control reaction to all the contained
-            // reactors, if appropriate
-            for (VarRef port : connection.getRightPorts()) {
-                addNetworkInputControlReaction(port, recevingPortID, reactor, instance, generator, false);
-            }
-        }        
-
+        }  
+        
         if (!reactionsWithPort.isEmpty()) {
             // If there are reactions at this level, insert the
             // network input control reaction just before them
@@ -176,7 +167,7 @@ public class ASTUtils {
                     .setVariable(newTriggerForControlReactionVariable);
 
             reaction.getTriggers().add(newTriggerForControlReaction);
-            reaction.getTriggers().add(newPortRef);
+            reaction.getSources().add(newPortRef);
             reaction.setCode(factory.createCode());
 
             reaction.getCode()
@@ -211,6 +202,16 @@ public class ASTUtils {
             newTriggerForControlReactionInput.setType(portType);
             reactor.getInputs().add(newTriggerForControlReactionInput);
         }
+        
+
+
+        for (Connection connection : connectionsWithPort) {
+            // Add the network input control reaction to all the contained
+            // reactors, if appropriate
+            for (VarRef port : connection.getRightPorts()) {
+                addNetworkInputControlReaction(port, recevingPortID, reactor, instance, generator, false);
+            }
+        }
     }
 
     /**
@@ -221,14 +222,16 @@ public class ASTUtils {
      * @note Used in federated execution
      * 
      * @input portRef The output port
-     * @input receivingPortID The ID of the receiving port
      * @input instance The federate instance is used to keep track of all
      *        network input ports globally
+     * @input receivingPortID The ID of the receiving port
+     * @input channelIndex The channel index of the sending port, if it is a multiport.
+     * @input receivingFedID The ID of destination federate.
      * @input generator The GeneratorBase instance used to identify certain
      *        target properties
      */
     public static void addNetworkOutputControlReaction(VarRef portRef,
-            FederateInstance instance, int portID, int receivingFedID,
+            FederateInstance instance, int receivingPortID, int channelIndex, int receivingFedID,
             GeneratorBase generator) {
         LinguaFrancaFactory factory = LinguaFrancaFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
@@ -290,7 +293,7 @@ public class ASTUtils {
 
         reaction.getCode().setBody(
                 generator.generateNetworkOutputControlReactionBody(portRef,
-                        portID, receivingFedID));
+                        receivingPortID, receivingFedID, channelIndex));
 
         // Insert the newly generated reaction after the generated sender and
         // receiver
