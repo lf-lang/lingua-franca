@@ -1277,7 +1277,7 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
         trigger->token->ok_to_free = OK_TO_FREE;
         // Free the token if its reference count is zero. Since __done_using
         // decrements the reference count, first increment it here.
-        // trigger->token->ref_count++;
+        trigger->token->ref_count++;
         __done_using(trigger->token);
     }
     trigger->token = token;

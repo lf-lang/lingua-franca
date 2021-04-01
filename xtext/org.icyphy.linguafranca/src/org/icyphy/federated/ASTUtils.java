@@ -167,7 +167,7 @@ public class ASTUtils {
                     .setVariable(newTriggerForControlReactionVariable);
 
             reaction.getTriggers().add(newTriggerForControlReaction);
-            reaction.getSources().add(newPortRef);
+            reaction.getTriggers().add(newPortRef);
             reaction.setCode(factory.createCode());
 
             reaction.getCode()
