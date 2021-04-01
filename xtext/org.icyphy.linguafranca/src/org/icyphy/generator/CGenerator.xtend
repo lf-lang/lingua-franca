@@ -4160,6 +4160,7 @@ class CGenerator extends GeneratorBase {
      * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
+     * @param isPhysical Indicates whether or not the connection is physical
      */
     override generateNetworkReceiverBody(
         Action action,
@@ -4170,7 +4171,8 @@ class CGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         int receivingBankIndex,
         int receivingChannelIndex,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
         // FIXME: Notify a special type of notification once this reaction is done
         // FIXME: The receiver logic for the ABSENT message should also notify using this
@@ -4218,14 +4220,16 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-
-        result.append('''
-                _fed.network_input_port_triggers[«receivingPortID»]->status = present;        
-                // Port is now present. Therfore, notify the network input
-                // control reactions to stop waiting and re-check the port
-                // status.
-                lf_cond_broadcast(&port_status_changed);
-        ''')
+        // Don't need to update the status for physical connections
+        if (!isPhysical) {
+            result.append('''
+                    _fed.network_input_port_triggers[«receivingPortID»]->status = present;        
+                    // Port is now present. Therfore, notify the network input
+                    // control reactions to stop waiting and re-check the port
+                    // status.
+                    lf_cond_broadcast(&port_status_changed);
+            ''')        
+        }
         
         return result.toString
     }

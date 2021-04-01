@@ -504,7 +504,8 @@ class ASTUtils {
             rightFederate,
             rightBankIndex,
             rightChannelIndex,
-            action.inferredType
+            action.inferredType,
+            connection.isPhysical
         )
 
         // Add the reactions to the parent.

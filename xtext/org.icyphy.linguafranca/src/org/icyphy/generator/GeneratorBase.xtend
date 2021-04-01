@@ -1112,9 +1112,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
 
     /**
-     * Generate code for the body of a reaction that handles input from the network
-     * that is handled by the specified action. This base class throws an exception.
-     * @param action The action that has been created to handle incoming messages.
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
@@ -1123,18 +1124,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
-     * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param isPhysical Indicates whether or not the connection is physical
      */
     def String generateNetworkReceiverBody(
         Action action,
         VarRef sendingPort,
         VarRef receivingPort,
-        int receivingPortID,
+        int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         int receivingBankIndex,
         int receivingChannelIndex,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
