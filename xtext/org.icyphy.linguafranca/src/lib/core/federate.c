@@ -971,8 +971,9 @@ void _lf_close_outbound_socket(int fed_id) {
  * @param buffer The buffer to read
  * @param fed_id The sending federate ID or -1 if the centralized coordination.
  */
-void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
+void handle_port_absent_message(int socket, int fed_id) {
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_read];
     size_t bytes_read = read_from_socket(socket, bytes_to_read, buffer);
     if (bytes_read != bytes_to_read) {
         _lf_close_inbound_socket(fed_id);
@@ -988,6 +989,11 @@ void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
     LOG_PRINT("Handling port absent for port %d from federate %d.", port_id, federate_id);
 
     lf_mutex_lock(&mutex);
+    if (compare_tags(intended_tag,
+            _fed.network_input_port_triggers[port_id]->last_known_status_tag) <= 0) {
+        error_print_and_exit("The following contract was violated: In-order "
+                             "delivery of messages over a TCP socket.");
+    }
     // Set the mutex status as absent
     _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
     // The last known status tag of the port has changed. Notify any waiting threads.
@@ -1003,10 +1009,11 @@ void handle_port_absent_message(int socket, unsigned char* buffer, int fed_id) {
  * @param buffer The buffer to read
  * @param fed_id The sending federate ID or -1 if the centralized coordination.
  */
-void handle_message(int socket, unsigned char* buffer, int fed_id) {
+void handle_message(int socket, int fed_id) {
     // FIXME: Need better error handling?
     // Read the header.
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(int);
+    unsigned char buffer[bytes_to_read];
     // Do not use read_from_socket_errexit() because if the socket needs
     // to be closed, it needs to be closed using _lf_close_inbound_socket().
     size_t bytes_read = read_from_socket(socket, bytes_to_read, buffer);
@@ -1058,11 +1065,12 @@ void handle_message(int socket, unsigned char* buffer, int fed_id) {
  * @param buffer The buffer to read.
  * @param fed_id The sending federate ID or -1 if the centralized coordination.
  */
-void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
+void handle_timed_message(int socket, int fed_id) {
     // FIXME: Need better error handling?
     // Read the header which contains the timestamp.
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(int)
             + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_read];
     // Do not use read_from_socket_errexit() because if the socket needs
     // to be closed, it needs to be closed using _lf_close_inbound_socket().
     size_t bytes_read = read_from_socket(socket, bytes_to_read, buffer);
@@ -1414,15 +1422,15 @@ void* listen_to_federates(void* fed_id_ptr) {
         switch (buffer[0]) {
             case P2P_MESSAGE:
                 LOG_PRINT("Received untimed message from federate %d.", fed_id);
-                handle_message(socket_id, buffer + 1, fed_id);
+                handle_message(socket_id, fed_id);
                 break;
             case P2P_TIMED_MESSAGE:
                 LOG_PRINT("Received timed message from federate %d.", fed_id);
-                handle_timed_message(socket_id, buffer + 1, fed_id);
+                handle_timed_message(socket_id, fed_id);
                 break;
             case PORT_ABSENT:
                 LOG_PRINT("Received port absent message from federate %d.", fed_id);
-                handle_port_absent_message(socket_id, buffer + 1, fed_id);
+                handle_port_absent_message(socket_id, fed_id);
                 break;
             default:
                 bad_message = true;
@@ -1462,7 +1470,7 @@ void* listen_to_rti_TCP(void* args) {
         }
         switch (buffer[0]) {
             case TIMED_MESSAGE:
-                handle_timed_message(_fed.socket_TCP_RTI, &(buffer[1]), -1);
+                handle_timed_message(_fed.socket_TCP_RTI, -1);
                 break;
             case TIME_ADVANCE_GRANT:
                 handle_tag_advance_grant();
@@ -1474,7 +1482,7 @@ void* listen_to_rti_TCP(void* args) {
                 handle_stop_granted_message();
                 break;
             case PORT_ABSENT:
-                handle_port_absent_message(_fed.socket_TCP_RTI, &(buffer[1]), -1);
+                handle_port_absent_message(_fed.socket_TCP_RTI, -1);
                 break;
             case PHYSICAL_CLOCK_SYNC_MESSAGE_T1:
             case PHYSICAL_CLOCK_SYNC_MESSAGE_T4:
