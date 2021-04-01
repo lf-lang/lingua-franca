@@ -167,7 +167,7 @@ class FederateInstance {
      * for a given port is going to be present or absent for a given logical time. The indexes
      * for this list should correspond to the portID of the receiver...
      */
-    public var networkInputPorts = new LinkedHashSet<Port>();
+    public var networkInputPorts = new LinkedList<Port>();
     
     
     /**

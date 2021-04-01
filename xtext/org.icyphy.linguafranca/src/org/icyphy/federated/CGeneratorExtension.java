@@ -1,8 +1,5 @@
 package org.icyphy.federated;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.icyphy.generator.FederateInstance;
 import org.icyphy.generator.ReactorInstance;
 import org.icyphy.linguaFranca.Input;
@@ -15,28 +12,25 @@ public class CGeneratorExtension {
             ReactorInstance instance, FederateInstance federate) {
         StringBuilder builder = new StringBuilder();
 
-        List<Port> networkInputPorts = new ArrayList<Port>(
-                federate.networkInputPorts);
-
         ReactorDecl reactorClass = instance.definition.getReactorClass();
         String nameOfSelfStruct = org.icyphy.generator.CGenerator
                 .selfStructName(instance);
 
         // Initialize triggers for network input control reactions
-        for (Input input : org.icyphy.ASTUtils.toDefinition(reactorClass)
-                .getInputs()) {
-            // Initialize the network_input_port_trigger for the input, if any
-            // exists
-            if (federate.networkInputPorts != null) {
-                if (federate.networkInputPorts.contains(input)) {
-                    builder.append("// Add trigger " + nameOfSelfStruct
-                            + "->___" + input.getName()
-                            + " to the global list of network input ports.\n"
-                            + "_fed.network_input_port_triggers["
-                            + networkInputPorts.indexOf(input) + "]= &"
-                            + nameOfSelfStruct + "" + "->___" + input.getName()
-                            + ";\n");
-                }
+        int index = 0;
+        for (Port input : federate.networkInputPorts) {
+            // Check if the input belongs to this reactor instance
+            if (org.icyphy.ASTUtils.toDefinition(reactorClass).getInputs()
+                    .contains((Input) input)) {
+                // Initialize the network_input_port_trigger for the input, if
+                // any exists
+                builder.append("// Add trigger " + nameOfSelfStruct + "->___"
+                        + input.getName()
+                        + " to the global list of network input ports.\n"
+                        + "_fed.network_input_port_triggers[" + index + "]= &"
+                        + nameOfSelfStruct + "" + "->___" + input.getName()
+                        + ";\n");
+                index++;
             }
         }
 

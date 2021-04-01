@@ -4218,15 +4218,14 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-        if (receivingFed.networkInputPorts.size > 0) {
-            result.append('''
-                    _fed.network_input_port_triggers[«receivingPortID»]->status = present;        
-                    // Port is now present. Therfore, notify the network input
-                    // control reactions to stop waiting and re-check the port
-                    // status.
-                    lf_cond_broadcast(&port_status_changed);
-            ''')        
-        }
+
+        result.append('''
+                _fed.network_input_port_triggers[«receivingPortID»]->status = present;        
+                // Port is now present. Therfore, notify the network input
+                // control reactions to stop waiting and re-check the port
+                // status.
+                lf_cond_broadcast(&port_status_changed);
+        ''')
         
         return result.toString
     }
@@ -4508,23 +4507,32 @@ class CGenerator extends GeneratorBase {
      * port if it is absent.
      * 
      * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingChannelIndex The channel if a multiport
      */
     override generateNetworkOutputControlReactionBody(
         VarRef port,
         int portID,
-        int federateID
+        int receivingFederateID,
+        int sendingChannelIndex
     ) {
         // Store the code
         val result = new StringBuilder();
+        var sendRef = generateVarRef(port)
+        // If the sending port is a multiport, index it.
+        if ((port.variable as Port).getWidthSpec() !== null && sendingChannelIndex >= 0) {
+            sendRef = sendRef + '[' + sendingChannelIndex + ']'
+        }
         
         result.append('''
             // If the output port has not been SET for the current logical time,
             // send an ABSENT message to the receiving federate            
             LOG_PRINT("Contemplating whether to send port "
                        "absent for port %d to federate %d.", 
-                       «portID», «federateID»);
-            if (!«port.container.name».«port.variable.name»->is_present) {
-                send_port_absent_to_federate(«portID», «federateID»);
+                       «portID», «receivingFederateID»);
+            if (!«sendRef»->is_present) {
+                send_port_absent_to_federate(«portID», «receivingFederateID»);
             }
         ''')
         
