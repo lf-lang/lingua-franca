@@ -26,14 +26,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.ASTUtils
 import org.icyphy.TimeValue
+import org.icyphy.linguaFranca.Action
+import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.ActionOrigin
 
 /**
  * Instance of an action.
@@ -41,48 +41,48 @@ import org.icyphy.linguaFranca.ActionOrigin
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class ActionInstance extends TriggerInstance<Variable> {
-    
-    var shutdown = false
-    
+        
     public TimeValue minDelay = new TimeValue(0, TimeUnit.NONE)
     
     public TimeValue minSpacing = null;
     
     public boolean isPhysical = false;
     
+    /**
+     * Create a new timer instance.
+     * If the definition is null, then this is a shutdown action.
+     * @param definition The AST definition, or null for startup.
+     * @param parent The parent reactor.
+     */
     new(Action definition, ReactorInstance parent) {
         super(definition, parent)
         if (parent === null) {
             throw new Exception('Cannot create an ActionInstance with no parent.')
         }
-        if (definition.name.equals(LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name)) {
-            this.shutdown = true
-        }
-        
-        if (definition.minDelay !== null) {
-            if (definition.minDelay.parameter !== null) {
-                val parm = definition.minDelay.parameter
-                this.minDelay = parent.lookupParameterInstance(parm).init.get(0).
-                    getTimeValue
-            } else {
-                this.minDelay = definition.minDelay.timeValue
+        if (definition === null) {
+            this.shutdown = true;
+            // Create an AST node for the definition.
+            this.definition = ASTUtils.makeShutdownAction();
+        } else {
+            if (definition.minDelay !== null) {
+                if (definition.minDelay.parameter !== null) {
+                    val parm = definition.minDelay.parameter
+                    this.minDelay = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
+                } else {
+                    this.minDelay = definition.minDelay.timeValue
+                }
+            }
+            if (definition.minSpacing !== null) {
+                if (definition.minSpacing.parameter !== null) {
+                    val parm = definition.minSpacing.parameter
+                    this.minSpacing = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
+                } else {
+                    this.minSpacing = definition.minSpacing.timeValue
+                }
+            }
+            if (definition.origin === ActionOrigin.PHYSICAL) {
+                isPhysical = true
             }
         }
-        if (definition.minSpacing !== null) {
-            if (definition.minSpacing.parameter !== null) {
-                val parm = definition.minSpacing.parameter
-                this.minSpacing = parent.lookupParameterInstance(parm).init.
-                    get(0).getTimeValue
-            } else {
-                this.minSpacing = definition.minSpacing.timeValue
-            }
-        }
-        if (definition.origin === ActionOrigin.PHYSICAL) {
-            isPhysical = true
-        }
-    }
-    
-    def isShutdown() {
-        this.shutdown
     }
 }
