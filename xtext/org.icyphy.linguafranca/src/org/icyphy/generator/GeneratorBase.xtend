@@ -88,6 +88,7 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
+import org.eclipse.xtext.validation.Issue
 
 /**
  * Generator base class for shared code between code generators.
@@ -413,34 +414,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
-        val reactors = new InstantiationGraph(resource, false).nodes
+        updateResources(context)
+        
+        transformDelays()
 
-        // Add to the known resources the resource that is the main file.
-        this.resources.add(resource)
-        // Add to the known resources all imported files.
-        for (r : reactors) {
-            this.resources.add(r.eResource)
-        }
-
-        for (r : this.resources) {
-            // Replace connections in this resources that are annotated with the 
-            // "after" keyword by ones that go through a delay reactor. 
-            r.insertGeneratedDelays(this)
-
-            if (r !== this.fileConfig.resource) {
-                // FIXME: create import graph to match import statements to erroneous resources.
-                // The following only works for direct imports...
-                val issues = (r as XtextResource).resourceServiceProvider.resourceValidator.validate(r, CheckMode.ALL,
-                    null)
-                for (issue : issues) {
-                    val imp = resource.allContents.filter(Import).
-                        findFirst[r.URI.toString().endsWith(it.importURI)] as Import
-                    reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
-                }
-            }
-        }
-        // Assuming all AST transformations have completed, build the instantiation graph.
-        this.instantiationGraph = new InstantiationGraph(resource, false) // FIXME: obtain this from the validator instead
+        // Assuming all AST transformations have completed, build the instantiation graph. Reactors introduced by
+        // AST transformations have to be included in this graph.
+        this.instantiationGraph = new InstantiationGraph(resource, false)
 
         // Topologically sort the reactors such that all of a reactor's
         // dependencies occur earlier in the sorted list or reactors.
@@ -449,6 +429,49 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere.
+    }
+
+    /**
+     * For each involved resource, replace connections with delays with generated delay reactors.
+     */
+    protected def transformDelays() {
+         for (r : this.resources) {
+             r.insertGeneratedDelays(this)
+        }
+    }
+
+    /**
+     * Update the class variable that lists all the involved resources. Also report validation problems of imported 
+     * resources at the import statements through those failing resources are reached.
+     * 
+     * @param context The context providing the cancel indicator used by the validator.
+     */
+    protected def updateResources(IGeneratorContext context) {
+        val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
+        val instantiationGraph = new InstantiationGraph(this.fileConfig.resource, false)
+        val reactors = this.instantiationGraph.nodesInTopologicalOrder
+        val tainted = newHashSet
+        for (r : reactors) {
+            val res = r.eResource
+            if (!this.resources.contains(res)) {
+                if (res !== this.fileConfig.resource) {
+                    if (tainted.contains(res) ||
+                        (validator.validate(res, CheckMode.ALL, context.cancelIndicator)).size > 0) {
+                        for (inst : instantiationGraph.getDownstreamAdjacentNodes(r)) {
+                            for (i : (inst.eContainer as Model).imports) {
+                                for (decl : i.reactorClasses) {
+                                    if (decl.reactorClass.eResource === res) {
+                                        reportError(i, '''Unresolved compilation issues in '«i.importURI»'.''')
+                                        tainted.add(decl.eResource)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                this.resources.add(res)
+            }
+        }
     }
 
     /**
