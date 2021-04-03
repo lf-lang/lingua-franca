@@ -3431,111 +3431,12 @@ class CGenerator extends GeneratorBase {
         // trigger downstream reactions.
         // Avoid allocating more than once (in case a port is in the
         // effects field of more than once reactor).
-        val portAllocatedAlready = new HashSet<PortInstance>()
+        val portAllocatedAlready = new LinkedHashSet<PortInstance>()
         var reactionCount = 0
         for (reaction : instance.reactions) {
             if (federate === null || federate.containsReaction(reactorClass.toDefinition, reaction.definition)) {
-                // Count the output ports and inputs of contained reactors that
-                // may be set by this reactor. This ignores actions in the effects.
-                // Collect initialization statements for the output_produced array for the reaction
-                // to point to the is_present field of the appropriate output.
-                // These statements must be inserted after the array is malloc'd,
-                // but we construct them while we are counting outputs.
-                var outputCount = 0;
-                val initialization = new StringBuilder()
-                // The reaction.effects does not contain multiports, but rather the individual
-                // ports of the multiport. We handle each multiport only once using this set.
-                val handledMultiports = new LinkedHashSet<MultiportInstance>();
-                for (effect : reaction.effects) {
-                    if (effect instanceof PortInstance) {
-                        // Effect is a port. There are six cases.
-                        // 1. The port is an ordinary port contained by the same reactor that contains this reaction.
-                        // 2. The port is a multiport contained by the same reactor that contains reaction.
-                        // 3. The port is an ordinary input port contained by a contained reactor.
-                        // 4. The port is a multiport input contained by a contained reactor.
-                        // 5. The port is an ordinary port contained by a contained bank of reactors.
-                        // 6. The port is an multiport contained by a contained bank of reactors.
-                        
-                        // Create the entry in the output_produced array for this port.
-                        // If the port is a multiport, then we need to create an entry for each
-                        // individual port.
-                        if (effect.multiport !== null && !handledMultiports.contains(effect.multiport)) {
-                            // The effect is a multiport that has not been handled yet.
-                            handledMultiports.add(effect.multiport);       
-                            var allocate = false
-                            if (!portAllocatedAlready.contains(effect.multiport)) {
-                                // Prevent allocating memory more than once for the same port.
-                                // It may have been allocated by a previous reaction that also
-                                // has this port as an effect.
-                                portAllocatedAlready.add(effect.multiport)
-                                allocate = true
-                            }
-                            // Allocate memory where the data produced by the reaction will be stored
-                            // and made available to the input of the contained reactor.
-                            // This is done differently for ports like "c.in" than "out".
-                            // This has to go at the end of the initialize_trigger_objects() function
-                            // because the self struct of contained reactors has not yet been defined.
-                            // FIXME: The following mallocs are not freed by the destructor!
-                            if (effect.parent === instance) {
-                                // The port belongs to the same reactor as the reaction.
-                                val portStructType = variableStructType(effect.definition, reactorClass)
-                                if (allocate) {
-                                    pr(initializeTriggerObjectsEnd, '''
-                                        «nameOfSelfStruct»->__«effect.name»__width = «effect.multiport.width»;
-                                        // Allocate memory to store output of reaction.
-                                        «nameOfSelfStruct»->__«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
-                                            * «nameOfSelfStruct»->__«effect.name»__width); 
-                                    ''')
-                                }
-                                pr(initialization, '''
-                                    for (int i = 0; i < «effect.multiport.width»; i++) {
-                                        «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«outputCount» + i]
-                                                = &«nameOfSelfStruct»->«getStackPortMember('''__«effect.name»[i]''', "is_present")»;
-                                    }
-                                ''')
-                            } else {
-                                // The port belongs to a contained reactor.
-                                val containerName = effect.parent.name
-                                val portStructType = variableStructType(effect.definition,
-                                    effect.parent.definition.reactorClass)
-                                if (allocate) {
-                                    pr(initializeTriggerObjectsEnd, '''
-                                        «nameOfSelfStruct»->__«containerName».«effect.name»__width = «effect.multiport.width»;
-                                        // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
-                                        «nameOfSelfStruct»->__«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
-                                            * «nameOfSelfStruct»->__«containerName».«effect.name»__width);
-                                        for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«effect.name»__width; i++) {
-                                            «nameOfSelfStruct»->__«containerName».«effect.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
-                                        }
-                                    ''')
-                                }
-                                pr(initialization, '''
-                                    for (int i = 0; i < «effect.multiport.width»; i++) {
-                                        «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«outputCount» + i]
-                                                = &«nameOfSelfStruct»->__«containerName».«effect.name»[i]->is_present;
-                                    }
-                                ''')
-                            }
-                            outputCount += effect.multiport.getWidth();
-                        } else if (effect.multiport === null) {
-                            // The effect is not a multiport.
-                            if (effect.parent === instance) {
-                                // The port belongs to the same reactor as the reaction.
-                                pr(initialization, '''
-                                    «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«outputCount»]
-                                            = &«nameOfSelfStruct»->«getStackPortMember('''__«effect.name»''', "is_present")»;
-                                ''')
-                            } else {
-                                // The port belongs to a contained reactor.
-                                pr(initialization, '''
-                                    «nameOfSelfStruct»->___reaction_«reactionCount».output_produced[«outputCount»]
-                                            = &«nameOfSelfStruct»->«getStackPortMember('''__«effect.parent.name».«effect.name»''', "is_present")»;
-                                ''')
-                            }
-                            outputCount++
-                        }
-                    }
-                }
+                generateReactionOutputs(reaction, portAllocatedAlready);
+
                 // Next handle triggers of the reaction that come from a multiport output
                 // of a contained reactor.  Also, handle startup and shutdown triggers.
                 // FIXME: This does not handle triggers that come from a contained bank of reactors.
@@ -3577,21 +3478,6 @@ class CGenerator extends GeneratorBase {
                         }
                     }
                 }
-                
-                pr(initializeTriggerObjectsEnd, '''
-                    // Total number of outputs produced by the reaction.
-                    «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs = «outputCount»;
-                    // Allocate arrays for triggering downstream reactions.
-                    if («nameOfSelfStruct»->___reaction_«reactionCount».num_outputs > 0) {
-                        «nameOfSelfStruct»->___reaction_«reactionCount».output_produced = (bool**)malloc(sizeof(bool*) * «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs);
-                        «nameOfSelfStruct»->___reaction_«reactionCount».triggers = (trigger_t***)malloc(sizeof(trigger_t**) * «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs);
-                        «nameOfSelfStruct»->___reaction_«reactionCount».triggered_sizes = (int*)malloc(sizeof(int) * «nameOfSelfStruct»->___reaction_«reactionCount».num_outputs);
-                    }
-                ''')
-                pr(initializeTriggerObjectsEnd, '''
-                    // Initialize the output_produced array.
-                    «initialization.toString»
-                ''')
             }
             // Increment the reactionCount even if the reaction is not in the federate
             // so that reaction indices are consistent across federates.
@@ -3793,6 +3679,148 @@ class CGenerator extends GeneratorBase {
         pr(initializeTriggerObjects, "//***** End initializing " + fullName)
     }
     
+    /**
+     * For the specified reaction, for output ports that it writes to,
+     * set up the arrays that store the output values (if necessary) and
+     * that are used to trigger downstream reactions if an output is actually
+     * produced.
+     * 
+     * NOTE: This method is quite complicated because of the possibility that
+     * that the reaction is writing to a multiport output or to an
+     * input port of a contained reactor, and the possibility that that
+     * contained reactor be a bank of reactors and that its input port may
+     * be a multiport.
+     * 
+     * @param The reaction instance.
+     * @param portAllocatedAlready A set of ports that have already had memory allocated by previous reactions.
+     */
+    private def void generateReactionOutputs(
+        ReactionInstance reaction, 
+        LinkedHashSet<PortInstance> portAllocatedAlready
+    ) {
+        val nameOfSelfStruct = selfStructName(reaction.parent);
+
+        // Count the output ports and inputs of contained reactors that
+        // may be set by this reaction. This ignores actions in the effects.
+        // Collect initialization statements for the output_produced array for the reaction
+        // to point to the is_present field of the appropriate output.
+        // These statements must be inserted after the array is malloc'd,
+        // but we construct them while we are counting outputs.
+        var outputCount = 0;
+        val initialization = new StringBuilder()
+        // The reaction.effects does not contain multiports, but rather the individual
+        // ports of the multiport. We handle each multiport only once using this set.
+        val handledMultiports = new LinkedHashSet<MultiportInstance>();
+        for (effect : reaction.effects) {
+            if (effect instanceof PortInstance) {
+                // Effect is a port. There are six cases.
+                // 1. The port is an ordinary port contained by the same reactor that contains this reaction.
+                // 2. The port is a multiport contained by the same reactor that contains reaction.
+                // 3. The port is an ordinary input port contained by a contained reactor.
+                // 4. The port is a multiport input contained by a contained reactor.
+                // 5. The port is an ordinary port contained by a contained bank of reactors.
+                // 6. The port is an multiport contained by a contained bank of reactors.
+                // Create the entry in the output_produced array for this port.
+                // If the port is a multiport, then we need to create an entry for each
+                // individual port.
+                if (effect.multiport !== null && !handledMultiports.contains(effect.multiport)) {
+                    // The effect is a multiport that has not been handled yet.
+                    handledMultiports.add(effect.multiport);
+                    var allocate = false
+                    if (!portAllocatedAlready.contains(effect.multiport)) {
+                        // Prevent allocating memory more than once for the same port.
+                        // It may have been allocated by a previous reaction that also
+                        // has this port as an effect.
+                        portAllocatedAlready.add(effect.multiport)
+                        allocate = true
+                    }
+                    // Allocate memory where the data produced by the reaction will be stored
+                    // and made available to the input of the contained reactor.
+                    // This is done differently for ports like "c.in" than "out".
+                    // This has to go at the end of the initialize_trigger_objects() function
+                    // because the self struct of contained reactors has not yet been defined.
+                    // FIXME: The following mallocs are not freed by the destructor!
+                    if (effect.parent === reaction.parent) {
+                        // The port belongs to the same reactor as the reaction.
+                        val portStructType = variableStructType(
+                            effect.definition,
+                            reaction.parent.definition.reactorClass
+                        )
+                        if (allocate) {
+                            pr(initializeTriggerObjectsEnd, '''
+                                «nameOfSelfStruct»->__«effect.name»__width = «effect.multiport.width»;
+                                // Allocate memory to store output of reaction.
+                                «nameOfSelfStruct»->__«effect.name» = («portStructType»*)malloc(sizeof(«portStructType») 
+                                    * «nameOfSelfStruct»->__«effect.name»__width); 
+                            ''')
+                        }
+                        pr(initialization, '''
+                            for (int i = 0; i < «effect.multiport.width»; i++) {
+                                «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
+                                        = &«nameOfSelfStruct»->«getStackPortMember('''__«effect.name»[i]''', "is_present")»;
+                            }
+                        ''')
+                    } else {
+                        // The port belongs to a contained reactor.
+                        val containerName = effect.parent.name
+                        val portStructType = variableStructType(effect.definition,
+                            effect.parent.definition.reactorClass)
+                        if (allocate) {
+                            pr(initializeTriggerObjectsEnd, '''
+                                «nameOfSelfStruct»->__«containerName».«effect.name»__width = «effect.multiport.width»;
+                                // Allocate memory for to store output of reaction feeding a multiport input of a contained reactor.
+                                «nameOfSelfStruct»->__«containerName».«effect.name» = («portStructType»**)malloc(sizeof(«portStructType»*) 
+                                    * «nameOfSelfStruct»->__«containerName».«effect.name»__width);
+                                for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«effect.name»__width; i++) {
+                                    «nameOfSelfStruct»->__«containerName».«effect.name»[i] = («portStructType»*)malloc(sizeof(«portStructType»));
+                                }
+                            ''')
+                        }
+                        pr(initialization, '''
+                            for (int i = 0; i < «effect.multiport.width»; i++) {
+                                «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
+                                        = &«nameOfSelfStruct»->__«containerName».«effect.name»[i]->is_present;
+                            }
+                        ''')
+                    }
+                    outputCount += effect.multiport.getWidth();
+                } else if (effect.multiport === null) {
+                    // The effect is not a multiport.
+                    if (effect.parent === reaction.parent) {
+                        // The port belongs to the same reactor as the reaction.
+                        pr(initialization, '''
+                            «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».output_produced[«outputCount»]
+                                    = &«nameOfSelfStruct»->«getStackPortMember('''__«effect.name»''', "is_present")»;
+                        ''')
+                    } else {
+                        // The port belongs to a contained reactor.
+                        pr(initialization, '''
+                            «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».output_produced[«outputCount»]
+                                    = &«nameOfSelfStruct»->«getStackPortMember('''__«effect.parent.name».«effect.name»''', "is_present")»;
+                        ''')
+                    }
+                    outputCount++
+                }
+            }
+        }
+        pr(initializeTriggerObjectsEnd, '''
+            // Total number of outputs produced by the reaction.
+            «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».num_outputs = «outputCount»;
+            // Allocate arrays for triggering downstream reactions.
+            if («nameOfSelfStruct»->___reaction_«reaction.reactionIndex».num_outputs > 0) {
+                «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».output_produced 
+                        = (bool**)malloc(sizeof(bool*) * «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».num_outputs);
+                «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».triggers 
+                        = (trigger_t***)malloc(sizeof(trigger_t**) * «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».num_outputs);
+                «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».triggered_sizes 
+                        = (int*)malloc(sizeof(int) * «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».num_outputs);
+            }
+        ''')
+        pr(initializeTriggerObjectsEnd, '''
+            // Initialize the output_produced array.
+            «initialization.toString»
+        ''')
+    } 
     
     /**
      * Generate code that is executed while the reactor instance is being initialized
