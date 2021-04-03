@@ -147,13 +147,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected var Model model
     
-    /**
-     * The name of the top-level reactor.
-     */
-    protected var String topLevelName;
-    
     def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         this.fileConfig = new FileConfig(resource, fsa, context);
+        this.topLevelName = fileConfig.name
     }
 
     /**
@@ -263,6 +259,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected String targetBankIndexType = "int"
 
+    /**
+     * The name of the top-level reactor.
+     */
+    protected var String topLevelName;
+
+
+
     // //////////////////////////////////////////
     // // Private fields.
     /**
@@ -294,7 +297,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Record this class, so it can be reused.
         this.delayClasses.add(generatedDelay)
         // And hook it into the AST.
-        this.model.reactors.add(generatedDelay)
+        (fileConfig.resource.allContents.findFirst[it|it instanceof Model] as Model).reactors.add(generatedDelay)
     }
 
     /**
@@ -306,35 +309,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
 
     /**
-     * Analyze the model, setting target variables, filenames,
-     * working directory, and federates. This also performs any
-     * transformations that are needed on the AST of the model,
-     * including handling delays on connections and communication
-     * between federates.
-     * @param resource The resource containing the source code.
-     * @param fsa The file system access (used to write the result).
-     * @param context Context relating to invocation of the code generator.
-     * In stand alone mode, this object is also used to relay CLI arguments.
+     * 
      */
-    def void analyzeModel(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-
-        this.model = (resource.allContents.findFirst[it|it instanceof Model] as Model)
-        // Clear any markers that may have been created by a previous build.
-        // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        clearMarkers()
-
-        generatorErrorsOccurred = false // FIXME: do this in clearMarkers?
-        // Figure out the file name for the target code from the source file name.
-        resource.analyzeResource
-
+    def void setTargetConfig(IGeneratorContext context) {
         // If there are any physical actions, ensure the threaded engine is used.
-        for (action : resource.allContents.toIterable.filter(Action)) {
+        for (action : fileConfig.resource.allContents.toIterable.filter(Action)) {
             if (action.origin == ActionOrigin.PHYSICAL) {
                 targetConfig.threads = 1
             }
         }
 
-        var target = resource.findTarget
+        val target = fileConfig.resource.findTarget
         if (target.config !== null) {
             // Update the configuration according to the set target properties.
             TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList)
@@ -358,11 +343,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 }
             }
         }
+    }
 
-        println("Generating code for: " + resource.getURI.toString)
-
+    def createMainInstance() {
         // Find the main reactor and create an AST node for its instantiation.
-        for (reactor : resource.allContents.toIterable.filter(Reactor)) {
+        for (reactor : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
             if (reactor.isMain || reactor.isFederated) {
                 // Creating an definition for the main reactor because there isn't one.
                 this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
@@ -370,13 +355,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 this.mainDef.setReactorClass(reactor)
             }
         }
-
-        // If federates are specified in the target, create a mapping
-        // from Instantiations in the main reactor to federate names.
-        // Also create a list of federate names or a list with a single
-        // empty name if there are no federates specified.
-        // This must be done before desugaring delays below.
-        resource.analyzeFederates
     }
 
     /**
@@ -396,11 +374,17 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         
         setFileConfig(resource, fsa, context)
         
+        setMode()
+        
+        printInfo()
+        
+        // Clear any markers that may have been created by a previous build.
+        // Markers mark problems in the Eclipse IDE when running in integrated mode.
+        clearMarkers()
+        
+        createMainInstance()
+        
         ASTUtils.setMainName(resource)
-        // The following "analysis" has hidden in it AST transformations.
-        // FIXME: We should factor them out and rename the following method
-        // parseTargetProperties or something along those lines. 
-        analyzeModel(resource, fsa, context)
 
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (mainDef !== null) {
@@ -409,12 +393,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             }
         }
         
+        setTargetConfig(context)
+        
+        // If federates are specified in the target, create a mapping
+        // from Instantiations in the main reactor to federate names.
+        // Also create a list of federate names or a list with a single
+        // empty name if there are no federates specified.
+        // This must be done before desugaring delays below.
+        analyzeFederates()
+        
         // Process target files. Copy each of them into the src-gen dir.
         copyUserFiles()
 
         // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
-        updateResources(context)
+        setResources(context)
         
         transformDelays()
 
@@ -446,7 +439,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * 
      * @param context The context providing the cancel indicator used by the validator.
      */
-    protected def updateResources(IGeneratorContext context) {
+    protected def setResources(IGeneratorContext context) {
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
         val instantiationGraph = new InstantiationGraph(this.fileConfig.resource, false)
         val reactors = instantiationGraph.nodesInTopologicalOrder
@@ -624,7 +617,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     def createFederateRTI() {
         // Derive target filename from the .lf filename.
-        var cFilename = this.topLevelName + "_RTI.c"
+        var cFilename = fileConfig.name + "_RTI.c"
 
         // Delete source previously produced by the LF compiler.
         // 
@@ -639,7 +632,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         // Delete binary previously produced by the C compiler.
-        file = fileConfig.RTIBinPath.resolve(topLevelName).toFile
+        file = fileConfig.RTIBinPath.resolve(fileConfig.name).toFile
         if (file.exists) {
             file.delete
         }
@@ -751,7 +744,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * it from GeneratorBase. 
      */
     def compileRTI() {
-        var fileToCompile = this.topLevelName + '_RTI'
+        var fileToCompile = fileConfig.name + '_RTI'
         runCCompiler(fileToCompile, false)
     }
 
@@ -898,7 +891,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * Clear markers in the IDE if running in integrated mode.
      * This has the side effect of setting the iResource variable to point to
-     * the IFile for the Lingua Franca program.
+     * the IFile for the Lingua Franca program. 
+     * Also reset the flag indicating that generator errors occurred.
      */
     protected def clearMarkers() {
         if (mode == Mode.INTEGRATED) {
@@ -913,6 +907,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 println("Warning: Deleting markers in the IDE failed: " + e)
             }
         }
+        generatorErrorsOccurred = false
     }
 
     /**
@@ -1928,7 +1923,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      *  information between federates. See the C target
      *  for a reference implementation.
      */
-    private def analyzeFederates(Resource resource) {
+    private def analyzeFederates() {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
@@ -2126,12 +2121,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
 
     /**
-     * Analyze the resource (the .lf file) that is being parsed
-     * to generate code to set the following variables:
-     * directory, filename, mode, sourceFile.
+     * Determine which mode the compiler is running in.
      */
-    private def analyzeResource(Resource resource) {
-        
+    private def setMode() {
+        val resource = fileConfig.resource
         if (resource.URI.isPlatform) {
             mode = Mode.INTEGRATED
         } else if (resource.URI.isFile) {
@@ -2140,13 +2133,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
             mode = Mode.UNDEFINED
             System.err.println("ERROR: Source file protocol is not recognized: " + resource.URI);
         }
-        
-        this.topLevelName = FileConfig.nameWithoutExtension(fileConfig.srcFile)
-        
-        printInfo()
     }
 
     def printInfo() {
+        println("Generating code for: " + fileConfig.resource.getURI.toString)
         println('******** mode: ' + mode)
         println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
         println('******** generated sources: ' + fileConfig.getSrcGenPath)

@@ -1922,6 +1922,10 @@ class ASTUtils {
         return n.findAnnotationInComments("@label")
     }
     
+    /**
+     * Find the main reactor and set its name if none was defined.
+     * @param resource The resource to find the main reactor in.
+     */
     def static setMainName(Resource resource) {
         val main = resource.allContents.filter(Reactor).findFirst[it.isMain || it.isFederated]
         if (main !== null && main.name === null) {
