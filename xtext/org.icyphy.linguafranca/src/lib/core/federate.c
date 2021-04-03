@@ -78,6 +78,8 @@ federate_instance_t _fed = {
         .min_delay_from_physical_action_to_federate_output = NEVER,
         .network_input_port_triggers = NULL,
         .network_input_port_triggers_size = 0,
+        .triggers_for_network_input_control_reactions = NULL,
+        .triggers_for_network_input_control_reactions_size = 0,
         .trigger_for_network_output_control_reactions = NULL
 };
 
@@ -1827,12 +1829,14 @@ void reset_status_fields_on_input_port_triggers() {
  * given network input port is going to be present at the current logical time
  * or absent.
  */
-void enqueue_network_input_control_reactions(pqueue_t* reaction_q){
-    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-       reaction_t* reaction = _fed.network_input_port_triggers[i]->reactions[0];
-       if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-           pqueue_insert(reaction_q, reaction);
-       }
+void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        for (int j = 0; j < _fed.triggers_for_network_input_control_reactions[i]->number_of_reactions; j++) {
+            reaction_t *reaction = _fed.triggers_for_network_input_control_reactions[i]->reactions[j];
+            if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                pqueue_insert(reaction_q, reaction);
+            }
+        }
     }
 }
 

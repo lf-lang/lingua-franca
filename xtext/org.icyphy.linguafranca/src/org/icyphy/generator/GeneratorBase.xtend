@@ -109,6 +109,19 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
     
+    /**
+     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
+     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
+     * if it is being called from the Eclipse IDE, and 
+     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
+     */
+    public var Mode mode = Mode.UNDEFINED
+
+    /** 
+     * The main (top-level) reactor instance.
+     */
+    public ReactorInstance main
+    
     ////////////////////////////////////////////
     //// Protected fields.
         
@@ -127,14 +140,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * invocation of doGenerate, which calls setFileConfig.
      */
     protected var FileConfig fileConfig
-    
-    /**
-     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
-     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
-     * if it is being called from the Eclipse IDE, and 
-     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
-     */
-    public var Mode mode = Mode.UNDEFINED
 
     /**
      * Collection of generated delay classes.
@@ -169,11 +174,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * from the Eclipse eCore view of the file and the OS view of the file.
      */
     protected var iResource = null as IResource
-
-    /** 
-     * The main (top-level) reactor instance.
-     */
-    protected ReactorInstance main
 
     /**
      * Definition of the main (top-level) reactor.
@@ -217,7 +217,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Indicates whether or not the current Lingua Franca program
      * contains a federation.
      */
-    protected var boolean isFederated = false
+    public var boolean isFederated = false
 
     // //////////////////////////////////////////
     // // Target properties, if they are included.
@@ -417,10 +417,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
 
         for (r : this.resources) {
-            // Replace connections in this resources that are annotated with the 
-            // "after" keyword by ones that go through a delay reactor. 
-            r.insertGeneratedDelays(this)
-
             if (r !== this.fileConfig.resource) {
                 // FIXME: create import graph to match import statements to erroneous resources.
                 // The following only works for direct imports...
@@ -432,15 +428,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
                 }
             }
-        }        
+        }
         
-
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.
         // Also create a list of federate names or a list with a single
         // empty name if there are no federates specified.
         // This must be done before desugaring delays below.
         resource.analyzeFederates
+        
+        for (r : this.resources) {
+            // Replace connections in this resources that are annotated with the 
+            // "after" keyword by ones that go through a delay reactor. 
+            r.insertGeneratedDelays(this)
+            
+        }
         
         // Assuming all AST transformations have completed, build the instantiation graph.
         this.instantiationGraph = new InstantiationGraph(resource, false) // FIXME: obtain this from the validator instead
