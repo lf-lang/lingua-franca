@@ -502,8 +502,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * 
      * @return The full name of this instance.
      */
-    override String getFullName() {
-        var result = super.getFullName()
+    override String getName() {
+        var result = this.definition.name
         if (this.bankIndex >= 0) {
             result += "[" + this.bankIndex + "]"
         }
@@ -554,17 +554,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         null
-    }
-
-    /** 
-     * Return the name of this instance as given by the definition.
-     * Note that is unique only relative to other instances with the same
-     * parent.
-     * 
-     * @return The name of this instance.
-     */
-    override String getName() {
-        this.definition.name
     }
 
     /** 
