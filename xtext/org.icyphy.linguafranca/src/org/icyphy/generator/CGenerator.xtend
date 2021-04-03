@@ -2887,14 +2887,14 @@ class CGenerator extends GeneratorBase {
                             pr(startTimeStep, '''
                                 // Add port «sourcePort.getFullName» to array of is_present fields.
                                 __is_present_fields[«startTimeStepIsPresentCount»] 
-                                        = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»is_present;
+                                        = &«containerSelfStructName»->__«sourcePort.parent.name».«sourcePort.name»«multiportIndex»is_present;
                             ''')
                             if (isFederatedAndDecentralized) {
                                 // Intended_tag is only applicable to ports in federated execution.
                                 pr(startTimeStep, '''
                                     // Add port «sourcePort.getFullName» to array of is_present fields.
                                     __intended_tag_fields[«startTimeStepIsPresentCount»] 
-                                            = &«containerSelfStructName»->__«sourcePort.parent.definition.name».«sourcePort.definition.name»«multiportIndex»intended_tag;
+                                            = &«containerSelfStructName»->__«sourcePort.parent.name».«sourcePort.name»«multiportIndex»intended_tag;
                                 ''')
                             }
                             startTimeStepIsPresentCount++
