@@ -55,7 +55,7 @@ reactor ImageObjectDetection {
     pthread_t threadId;
 	=}
 
-    logical action CUDA(100 msec);
+    physical action CUDA(100 msec);
     reaction(image) -> CUDA {=
         // cudaMalloc(&y_state_d, SIZE);
         // cudaMemcpy(&y_state_d, y_state, SIZE, cudaMemcpyHosttoDevice);
