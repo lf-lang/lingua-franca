@@ -306,7 +306,7 @@ class CGenerator extends GeneratorBase {
     /** Count of the number of is_present fields of the self struct that
      *  need to be reinitialized in __start_time_step().
      */
-    var startTimeStepIsPresentCount = 0
+    public var startTimeStepIsPresentCount = 0
     
     /** Count of the number of token pointers that need to have their
      *  reference count decremented in __start_time_step().
@@ -614,30 +614,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 
-                // Create the table to initialize intended tag fields to 0 between time steps.
-                if (isFederatedAndDecentralized && startTimeStepIsPresentCount > 0) {
-                    // Allocate the initial (before mutations) array of pointers to intended_tag fields.
-                    // There is a 1-1 map between structs containing is_present and intended_tag fields,
-                    // thus, we reuse startTimeStepIsPresentCount as the counter.
-                    pr('''
-                        // Create the array that will contain pointers to intended_tag fields to reset on each step.
-                        __intended_tag_fields_size = «startTimeStepIsPresentCount»;
-                        __intended_tag_fields = (tag_t**)malloc(«startTimeStepIsPresentCount» * sizeof(tag_t*));
-                    ''')
-                }
-                
-                if (isFederated) {
-                    if (federate.networkInputPorts.size > 0) {
-                        // Proliferate the network input port array
-                        pr('''
-                            // Initialize the array of pointers to network input port triggers
-                            _fed.network_input_port_triggers_size = «federate.networkInputPorts.size»;
-                            _fed.network_input_port_triggers = (trigger_t**)malloc(
-                                    _fed.network_input_port_triggers_size * sizeof(trigger_t*)
-                                );
-                        ''')
-                    }
-                }
+                pr(org.icyphy.federated.CGeneratorExtension.allocateTriggersForFederate(federate, this));
                 
                 pr(initializeTriggerObjects.toString)
                 pr('// Populate arrays of trigger pointers.')
@@ -3590,7 +3567,7 @@ class CGenerator extends GeneratorBase {
         }
 
         pr(initializeTriggerObjectsEnd,
-            org.icyphy.federated.CGeneratorExtension.initializeTriggerForControlReactions(instance, federate));
+            org.icyphy.federated.CGeneratorExtension.initializeTriggerForControlReactions(instance, federate, this));
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.        
         generateStateVariableInitializations(instance)

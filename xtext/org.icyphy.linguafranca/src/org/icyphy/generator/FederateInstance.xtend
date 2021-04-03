@@ -65,7 +65,12 @@ class FederateInstance {
      * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
      * @param generator The generator (for reporting errors).
      */
-    protected new(Instantiation instantiation, int id, int bankIndex, GeneratorBase generator) {
+    protected new(
+        Instantiation instantiation, 
+        int id, 
+        int bankIndex, 
+        GeneratorBase generator
+    ) {
         this.instantiation = instantiation;
         this.id = id;
         this.generator = generator;
@@ -169,6 +174,12 @@ class FederateInstance {
      */
     public var networkInputPorts = new LinkedList<Port>();
     
+    /**
+     * A list of triggers for network input control reactions. This is used to trigger
+     * all the input network control reactions that might be nested in a hierarchy.
+     */
+    public var networkInputControlReactionsTriggers = new LinkedList<Port>();
+    
     
     /**
      * A list of network trigger ports that trigger the output control reaction of this 
@@ -242,8 +253,9 @@ class FederateInstance {
         // Construct the set of excluded reactions for this federate.
         for (react : reactor.allReactions) {
             // If the reaction is triggered by an output of a contained
-            // reactor that is not in the federate, or the reaction
-            // sends to an input of a contained reactor that is not
+            // reactor or has the output in its sources and the trigger/source
+            // is not in the federate,
+            // or the reaction sends to an input of a contained reactor that is not
             // in the federate, then do not generate code for the reaction.
             // If the reaction mixes ports across federates, then report
             // an error and do not generate code.
@@ -265,6 +277,21 @@ class FederateInstance {
                         }
                     }
                 }
+            }
+            for (VarRef source : react.sources ?: emptyList) {
+                    if (source.variable instanceof Output) {
+                        // The trigger is an output port of a contained reactor.
+                        if (source.container === this.instantiation) {
+                            referencesFederate = true;
+                        } else {
+                            if (referencesFederate) {
+                                generator.reportError(react, 
+                                "Reaction mixes triggers and effects from" +
+                                " different federates. This is not permitted")
+                            }
+                            inFederate = false;
+                        }
+                    }
             }
             for (effect : react.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
