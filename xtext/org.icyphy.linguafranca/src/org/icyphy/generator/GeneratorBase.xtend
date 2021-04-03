@@ -382,9 +382,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
         clearMarkers()
         
+        ASTUtils.setMainName(resource)
+        
         createMainInstance()
         
-        ASTUtils.setMainName(resource)
 
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (mainDef !== null) {
