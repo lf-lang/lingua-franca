@@ -449,7 +449,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def updateResources(IGeneratorContext context) {
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
         val instantiationGraph = new InstantiationGraph(this.fileConfig.resource, false)
-        val reactors = this.instantiationGraph.nodesInTopologicalOrder
+        val reactors = instantiationGraph.nodesInTopologicalOrder
         val tainted = newHashSet
         for (r : reactors) {
             val res = r.eResource
