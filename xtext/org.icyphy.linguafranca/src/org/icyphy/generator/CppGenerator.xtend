@@ -139,8 +139,6 @@ class CppGenerator extends GeneratorBase {
             // No main reactor. Nothing to do.
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
             return
-        } else {
-            reactors.add(mainReactor)
         }
 
         val relativePath = this.fileConfig.srcGenBasePath.relativize(this.fileConfig.getSrcGenPath);
@@ -163,7 +161,7 @@ class CppGenerator extends GeneratorBase {
             fsa.generateFile('''«relativePath»/«implFile»''',
                 r.toDefinition.generateReactorSource)
         }
-
+        
         for (r : this.resources ?: emptyList) {
             fsa.generateFile('''«relativePath»/«r.preambleSourceFile»''',
                 r.generatePreambleSource)

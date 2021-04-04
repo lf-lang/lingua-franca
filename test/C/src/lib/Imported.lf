@@ -3,10 +3,9 @@
 target C;
 import ImportedAgain from "./ImportedAgain.lf"
 reactor Imported {
-    
     input x:int;
-	a = new ImportedAgain();
-	reaction(x) -> a.x {=
+    a = new ImportedAgain();
+    reaction(x) -> a.x {=
 		SET(a.x, x->value); 
 	=} 
 }
