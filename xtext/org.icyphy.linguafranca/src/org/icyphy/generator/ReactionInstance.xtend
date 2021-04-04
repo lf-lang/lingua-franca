@@ -115,7 +115,12 @@ class ReactionInstance extends NamedInstance<Reaction> {
                     }
                     for (bankElement : bank.bankMembers) {
                         portInstance = bankElement.lookupPortInstance(effect.variable as Port);
-                        if (portInstance === null) {
+                        if (portInstance instanceof MultiportInstance) {
+                            for (multiportInstance : portInstance.instances) {
+                                this.effects.add(multiportInstance)
+                                multiportInstance.dependsOnReactions.add(this)
+                            } 
+                        } else if (portInstance === null) {
                             throw new Exception("Unexpected effect. Cannot find port within bank: " + effect.variable.name);
                         }
                         this.effects.add(portInstance)
