@@ -159,13 +159,13 @@ class TypeScriptGenerator extends GeneratorBase {
             
             // Only generate one output if there is no federation.
             if (!federate.isSingleton) {
-                federateFilename = topLevelName + '_' + federate.name
+                federateFilename = fileConfig.name + '_' + federate.name
                 // Clear out previously generated code,
                 // but keep the reactor class definitions
                 // and the preamble.
                 code = new StringBuilder(commonCode)
             } else {
-                federateFilename = topLevelName
+                federateFilename = fileConfig.name
             }
         
             // Build the instantiation tree if a main reactor is present.
@@ -248,12 +248,14 @@ class TypeScriptGenerator extends GeneratorBase {
 
             val returnCode = protoc.executeCommand()
             if (returnCode == 0) {
-                val nameSansProto = topLevelName.substring(0, topLevelName.length - 6)
-                targetConfig.compileAdditionalSources.add(
-                this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
-
-                targetConfig.compileLibraries.add('-l')
-                targetConfig.compileLibraries.add('protobuf-c')
+                // FIXME: this code makes no sense. It is removing 6 chars from a file with a 3-char extension
+//                val nameSansProto = fileConfig.name.substring(0, fileConfig.name.length - 6)
+//               
+//                targetConfig.compileAdditionalSources.add(
+//                this.fileConfig.getSrcGenPath.resolve(nameSansProto + ".pb-c.c").toString)
+//
+//                targetConfig.compileLibraries.add('-l')
+//                targetConfig.compileLibraries.add('protobuf-c')
             } else {
                 reportError("protoc returns error code " + returnCode)    
             }

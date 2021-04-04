@@ -35,6 +35,7 @@ reactor Test {
         }
     =}
 }
+
 main reactor AfterOverlapped {
     count = new Count();
     test = new Test();
