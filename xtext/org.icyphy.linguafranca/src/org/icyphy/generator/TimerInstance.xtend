@@ -26,11 +26,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.icyphy.generator
 
-import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Variable
-import org.icyphy.linguaFranca.LinguaFrancaPackage
+import org.icyphy.ASTUtils
 import org.icyphy.TimeValue
 import org.icyphy.linguaFranca.TimeUnit
+import org.icyphy.linguaFranca.Timer
+import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
 
@@ -42,42 +42,42 @@ import static extension org.icyphy.ASTUtils.*
  */
 class TimerInstance extends TriggerInstance<Variable> {
 	
-	var startup = false
-	
 	public TimeValue offset = new TimeValue(0, TimeUnit.NONE)
     
     public TimeValue period = new TimeValue(0, TimeUnit.NONE)
 	
+	/**
+	 * Create a new timer instance.
+	 * If the definition is null, then this is a startup timer.
+	 * @param definition The AST definition, or null for startup.
+	 * @param parent The parent reactor.
+	 */
 	new(Timer definition, ReactorInstance parent) {
 		super(definition, parent)
         if (parent === null) {
-            throw new Exception('Cannot create a TimerInstance with no parent.')
+            throw new Exception('Cannot create an TimerInstance with no parent.')
         }
-        if (definition.name.equals(LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name)) {
-        	this.startup = true
-        }
-        
-        if (definition.offset !== null) {
-            if (definition.offset.parameter !== null) {
-                val parm = definition.offset.parameter
-                this.offset = parent.lookupParameterInstance(parm).init.get(0).
-                    getTimeValue
-            } else {
-                this.offset = definition.offset.timeValue
+        if (definition === null) {
+            this.startup = true;
+            // Create an AST node for the definition.
+            this.definition = ASTUtils.makeStartupTimer();
+        } else {
+            if (definition.offset !== null) {
+                if (definition.offset.parameter !== null) {
+                    val parm = definition.offset.parameter
+                    this.offset = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
+                } else {
+                    this.offset = definition.offset.timeValue
+                }
+            }
+            if (definition.period !== null) {
+                if (definition.period.parameter !== null) {
+                    val parm = definition.period.parameter
+                    this.period = parent.lookupParameterInstance(parm).init.get(0).getTimeValue
+                } else {
+                    this.period = definition.period.timeValue
+                }
             }
         }
-        if (definition.period !== null) {
-            if (definition.period.parameter !== null) {
-                val parm = definition.period.parameter
-                this.period = parent.lookupParameterInstance(parm).init.get(0).
-                    getTimeValue
-            } else {
-                this.period = definition.period.timeValue
-            }
-        }
-    }
-	
-	def isStartup() {
-    	this.startup
     }
 }

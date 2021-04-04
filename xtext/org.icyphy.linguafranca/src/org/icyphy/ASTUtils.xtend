@@ -55,6 +55,7 @@ import org.icyphy.linguaFranca.ImportedReactor
 import org.icyphy.linguaFranca.Input
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
+import org.icyphy.linguaFranca.LinguaFrancaPackage
 import org.icyphy.linguaFranca.Output
 import org.icyphy.linguaFranca.Parameter
 import org.icyphy.linguaFranca.Port
@@ -85,6 +86,24 @@ class ASTUtils {
      * The Lingua Franca factory for creating new AST nodes.
      */
     public static val factory = LinguaFrancaFactory.eINSTANCE
+    
+    /**
+     * Make a Timer with name "startup" and default parameters.
+     */
+    static def makeStartupTimer() {
+        val startupTimer = factory.createTimer();
+        startupTimer.name = LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name;
+        return startupTimer;
+    }
+    
+    /**
+     * Make an Action with name "shutdown" and default parameters.
+     */
+    static def makeShutdownAction() {
+        val shutdownAction = factory.createAction();
+        shutdownAction.name = LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name;
+        return shutdownAction;
+    }
     
     /**
      * Find connections in the given resource that have a delay associated with them, 
