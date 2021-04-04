@@ -269,7 +269,8 @@ void send_message(int socket,
  *  federates.
  * @param port The ID of the destination port.
  * @param federate The ID of the destination federate.
- * @param next_destination_str The name of the next destination in string format
+ * @param next_destination_str The next destination in string format (RTI or federate)
+ *  (used for reporting errors).
  * @param length The message length.
  * @param message The message.
  */
