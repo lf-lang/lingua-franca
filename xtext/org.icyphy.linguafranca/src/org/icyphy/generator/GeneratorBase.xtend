@@ -400,10 +400,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph()
 
-        // Collect the reactors defined in this resource and (non-main)
+        // Collect the reactors defined in this resource (i.e., file in Eclipse speak) and (non-main)
         // reactors defined in imported resources.
         setResources(context)
         
+        // Reroute connections that have delays associated with them via generated delay reactors.
         transformDelays()
 
         // Invoke this function a second time because transformations may have introduced new reactors!
@@ -411,21 +412,26 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
-        generatePreamble() // FIXME: Move this elsewhere.
+        generatePreamble() // FIXME: Move this elsewhere. See awkwardness with CppGenerator because it will not even
+        // use the result.
     }
 
-
+    /**
+     * Create a new instantiation graph (i.e., a graph with in it dependencies between reactor definitions, which exist
+     * between a reactor Foo that has a statement like `bar = new Bar()` and Bar, because Foo creates in instance of bar
+     * and therefore depends on it) and assign it to the instantiationGraph class variable. After creating the graph, 
+     * sort the reactors in topological order and assign them to the reactors class variable. 
+     */
     protected def setReactorsAndInstantiationGraph() {
-        // Assuming all AST transformations have completed, build the instantiation graph. Reactors introduced by
-        // AST transformations have to be included in this graph.
+        // Build the instantiation graph . 
         this.instantiationGraph = new InstantiationGraph(fileConfig.resource, false)
 
-        // Topologically sort the reactors such that all of a reactor's
-        // dependencies occur earlier in the sorted list or reactors.
+        // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur earlier in 
+        // the sorted list of reactors. This helps the code generator output code in the correct order.
+        // For example if `reactor Foo {bar = new Bar()}` then the definition of `Bar` has to be generated before
+        // the definition of `Foo`.
         this.reactors = this.instantiationGraph.nodesInTopologicalOrder
-        
-        // Add the main instance because it cannot be hooked into the model (syntax does not allow for it).
-        // this.reactors.add(mainDef.reactorClass as Reactor)
+
     }
 
     /**
