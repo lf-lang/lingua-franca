@@ -425,7 +425,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         this.reactors = this.instantiationGraph.nodesInTopologicalOrder
         
         // Add the main instance because it cannot be hooked into the model (syntax does not allow for it).
-        this.reactors.add(mainDef.reactorClass as Reactor)
+        // this.reactors.add(mainDef.reactorClass as Reactor)
     }
 
     /**

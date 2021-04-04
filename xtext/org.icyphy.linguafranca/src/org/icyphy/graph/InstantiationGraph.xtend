@@ -98,18 +98,14 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
     new (Resource resource, boolean detectCycles) {
         val instantiations = resource.allContents.toIterable.filter(
             Instantiation)
+        val main = resource.allContents.toIterable.filter(Reactor).findFirst[it.isMain || it.isFederated]
+        if (main !== null) {
+            this.addNode(main)
+        }
         for (i : instantiations) {
             i.buildGraph(newHashSet)
         }
         detectCycles? this.detectCycles()
-    }
-    
-    new (Model model) {
-        val instantiations = model.eAllContents.toIterable.filter(
-            Instantiation)
-        for (i : instantiations) {
-            i.buildGraph(newHashSet)
-        }
     }
     
     /**
