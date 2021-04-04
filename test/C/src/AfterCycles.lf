@@ -9,7 +9,6 @@ reactor Source {
         SET(out, 1);
     =}
 }
-
 reactor Work {
     input in:unsigned;
     output out:unsigned;

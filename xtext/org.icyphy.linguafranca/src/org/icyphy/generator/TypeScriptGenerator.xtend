@@ -177,8 +177,8 @@ class TypeScriptGenerator extends GeneratorBase {
             }
         
             // Derive target filename from the .lf filename.
-            val tsFilename = federateFilename + ".ts";
-            val jsFilename = federateFilename + ".js";
+            val tsFilename = fileConfig.name + ".ts";
+            val jsFilename = fileConfig.name + ".js";
 
             // Delete source previously produced by the LF compiler.
             val generated = fileConfig.getSrcGenPath.resolve(tsFilename).toFile
