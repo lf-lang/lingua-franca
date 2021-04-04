@@ -632,13 +632,17 @@ class PythonGenerator extends CGenerator {
      * Generate the setup.py required to compile and install the module.
      * Currently, the package name is based on filename which does not support sharing the setup.py for multiple .lf files.
      * TODO: use an alternative package name (possibly based on folder name)
+     * 
+     * If the LF program itself is threaded or if tracing is enabled, NUMBER_OF_WORKERS is added as a macro
+     * so that platform-specific C files will contain the appropriate functions.
      */
     def generatePythonSetupFile() '''
     from setuptools import setup, Extension
     
     linguafranca«topLevelName»module = Extension("LinguaFranca«topLevelName»",
-                                               sources = ["«topLevelName».c"],
-                                               define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')])
+                                               sources = ["«topLevelName».c", «FOR src : targetConfig.compileAdditionalSources SEPARATOR ", "» "«src»"«ENDFOR»],
+                                               define_macros=[('MODULE_NAME', 'LinguaFranca«topLevelName»')«IF (targetConfig.threads !== 0 || (targetConfig.tracing !== null))», 
+                                                              ('NUMBER_OF_WORKERS', '«targetConfig.threads»')«ENDIF»])
     
     setup(name="LinguaFranca«topLevelName»", version="1.0",
             ext_modules = [linguafranca«topLevelName»module],
@@ -713,8 +717,8 @@ class PythonGenerator extends CGenerator {
         if(targetConfig.threads > 0)
         {
             switch(state){
-                case 0: return '''pthread_mutex_lock(&py_«reactor.name»_reaction_mutex);'''
-                case 1: return '''pthread_mutex_unlock(&py_«reactor.name»_reaction_mutex);'''
+                case 0: return '''lf_mutex_lock(&py_«reactor.name»_reaction_mutex);'''
+                case 1: return '''lf_mutex_unlock(&py_«reactor.name»_reaction_mutex);'''
                 default: return ''''''
             }
         }
@@ -785,13 +789,21 @@ class PythonGenerator extends CGenerator {
         if (targetConfig.threads > 0) {
             for (r : this.reactors ?: emptyList) {
                 pr('''
-                    pthread_mutex_t py_«r.toDefinition.name»_reaction_mutex = PTHREAD_MUTEX_INITIALIZER;
+                    lf_mutex_t py_«r.toDefinition.name»_reaction_mutex;
+                ''')
+                pr(super.initializeTriggerObjects, '''
+                    // Initialize reaction mutex for «r.toDefinition.name»
+                    lf_mutex_init(&py_«r.toDefinition.name»_reaction_mutex);
                 ''')
             }
             // Add mutex for the main reactor
             if (this.mainDef !== null) {
                 pr('''
-                    pthread_mutex_t py_«this.mainDef.name»_reaction_mutex = PTHREAD_MUTEX_INITIALIZER;
+                    lf_mutex_t py_«this.mainDef.name»_reaction_mutex;
+                ''')                
+                pr(super.initializeTriggerObjects, '''
+                    // Initialize reaction mutex for «this.mainDef.name»
+                    lf_mutex_init(&py_«this.mainDef.name»_reaction_mutex);
                 ''')
             }
         }

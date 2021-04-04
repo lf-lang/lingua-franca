@@ -502,8 +502,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * 
      * @return The full name of this instance.
      */
-    override String getFullName() {
-        var result = super.getFullName()
+    override String getName() {
+        var result = this.definition.name
         if (this.bankIndex >= 0) {
             result += "[" + this.bankIndex + "]"
         }
@@ -554,17 +554,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         null
-    }
-
-    /** 
-     * Return the name of this instance as given by the definition.
-     * Note that is unique only relative to other instances with the same
-     * parent.
-     * 
-     * @return The name of this instance.
-     */
-    override String getName() {
-        this.definition.name
     }
 
     /** 
@@ -871,6 +860,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             
             var count = 0
 
+            // Check for startup and shutdown triggers.
             for (Reaction reaction : reactions) {
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this,
@@ -879,6 +869,35 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
                 this.reactions.add(reactionInstance);
+                
+                // Check for startup and shutdown triggers.
+                var startupTrigger = null as TimerInstance;
+                var shutdownTrigger = null as ActionInstance;
+                for (trigger : reaction.triggers) {
+                    if (trigger.isStartup) {
+                        if (startupTrigger === null) {
+                            // Null argument to TimerInstance makes this a startup trigger.
+                            startupTrigger = new TimerInstance(null, this);
+                            // Although this is a TimerInstance, it is treated differently from other timers.
+                            // Do not add it to the list of timers.
+                            // this.timers.add(startupTrigger);
+                        }
+                    } else if (trigger.isShutdown) {
+                        if (shutdownTrigger === null) {
+                             // Null argument to ActionInstance makes this a shutdown trigger.
+                            shutdownTrigger = new ActionInstance(null, this);
+                            // Although this is an ActionInstance, it is treated differently from other actions.
+                            // Do not add it to the list of actions.
+                            // this.actions.add(shutdownTrigger);
+                        }
+                    }
+                }
+                if (startupTrigger !== null) {
+                    reactionInstance.triggers.add(startupTrigger);
+                }
+                if (shutdownTrigger !== null) {
+                    reactionInstance.triggers.add(shutdownTrigger);
+                }
             }
         }
     }
