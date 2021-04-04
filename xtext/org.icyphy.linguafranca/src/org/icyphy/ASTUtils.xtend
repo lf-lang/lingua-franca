@@ -71,6 +71,7 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
+import org.icyphy.linguaFranca.Model
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -1941,10 +1942,14 @@ class ASTUtils {
         return n.findAnnotationInComments("@label")
     }
     
-    def static setMainName(Resource resource) {
+    /**
+     * Find the main reactor and set its name if none was defined.
+     * @param resource The resource to find the main reactor in.
+     */
+    def static setMainName(Resource resource, String name) {
         val main = resource.allContents.filter(Reactor).findFirst[it.isMain || it.isFederated]
-        if (main !== null && main.name === null) {
-            main.name = FileConfig.nameWithoutExtension(resource)
+        if (main !== null && main.name.isNullOrEmpty) {
+            main.name = name
         }
     }
     

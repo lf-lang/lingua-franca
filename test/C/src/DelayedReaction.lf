@@ -8,7 +8,6 @@ reactor Source {
         SET(out, 1);
     =} 
 } 
-
 reactor Sink {
 	input in:int;
 	reaction(in) {=

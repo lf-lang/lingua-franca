@@ -15,6 +15,7 @@ reactor foo {
     =}
     // reaction(a) {= =}
 }
+
 reactor print {
     input x:int;
     reaction(x) {=
