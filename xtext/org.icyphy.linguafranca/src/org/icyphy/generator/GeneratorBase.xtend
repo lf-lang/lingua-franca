@@ -1246,11 +1246,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         if (prefix === null) {
             prefix = ""
         }
-        val buffer = new StringBuffer(prefix)
-        for (var i = 0; i < 4; i++) {
-            buffer.append(' ');
-        }
-        indentation.put(builder, buffer.toString)
+        prefix += "    ";
+        indentation.put(builder, prefix)
     }
 
     /**
