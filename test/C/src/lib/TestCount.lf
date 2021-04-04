@@ -1,0 +1,32 @@
+/**
+ * Test that a counting sequence of inputs starts with the specified start
+ * parameter value, increments by the specified stride, and receives the
+ * specified number of inputs.
+ * 
+ * @param start The starting value for the expected inputs. Default is 1.
+ * @param stride The increment for the inputs. Default is 1.
+ * @param num_inputs The number of inputs expected. Default is 1.
+ */
+target C;
+reactor TestCount(start:int(1), stride:int(1), num_inputs:int(1)) {
+    state count:int(start);
+    state inputs_received:int(0);
+    input in:int;
+    reaction(in) {=
+        info_print("Received %d.", in->value);
+        if (in->value != self->count) {
+            error_print_and_exit("Expected %d.", self->count);
+        }
+        self->count += self->stride;
+        self->inputs_received++;
+    =}
+    reaction(shutdown) {=
+        info_print("Shutdown invoked.");
+        if (self->inputs_received != self->num_inputs) {
+            error_print_and_exit("Expected to receive %d inputs, but only got %d.",
+                self->num_inputs,
+                self->inputs_received
+            );
+        }
+    =}
+}

@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "tag.h"
+#include "platform.h"
 
 /**
  * Offset to _LF_CLOCK that would convert it
@@ -179,7 +180,7 @@ instant_t _lf_last_reported_physical_time_ns = 0LL;
  * Records the most recent time reported by the physical clock
  * when accessed by get_physical_time(). This will be an epoch time
  * (number of nanoseconds since Jan. 1, 1970), as reported when
- * you call clock_gettime(CLOCK_REALTIME, ...). This differs from
+ * you call lf_clock_gettime(CLOCK_REALTIME, ...). This differs from
  * _lf_last_reported_physical_time_ns by _lf_global_physical_clock_offset
  * plus any calculated drift adjustement, which are adjustments made
  * by clock synchronization.
@@ -193,7 +194,7 @@ instant_t _lf_last_reported_unadjusted_physical_time_ns = NEVER;
 instant_t get_physical_time() {
     // Get the current clock value
     struct timespec physicalTime;
-    clock_gettime(_LF_CLOCK, &physicalTime);
+    lf_clock_gettime(_LF_CLOCK, &physicalTime);
     _lf_last_reported_unadjusted_physical_time_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec)
             + _lf_epoch_offset;
     

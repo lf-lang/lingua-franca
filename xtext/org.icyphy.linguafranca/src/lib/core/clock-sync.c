@@ -550,10 +550,10 @@ void* listen_to_rti_UDP_thread(void* args) {
  * 
  * @return On success, returns 0; On error, it returns an error number.
  */
-int create_clock_sync_thread(pthread_t* thread_id) {
+int create_clock_sync_thread(lf_thread_t* thread_id) {
 #ifdef _LF_CLOCK_SYNC_ON
     // One for UDP messages if clock synchronization is enabled for this federate
-    return pthread_create(thread_id, NULL, listen_to_rti_UDP_thread, NULL);
+    return lf_thread_create(thread_id, listen_to_rti_UDP_thread, NULL);
 #endif // _LF_CLOCK_SYNC_ON
     return 0;
 }
