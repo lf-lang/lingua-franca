@@ -69,7 +69,6 @@ import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Delay
-import org.icyphy.linguaFranca.Import
 import org.icyphy.linguaFranca.Instantiation
 import org.icyphy.linguaFranca.LinguaFrancaFactory
 import org.icyphy.linguaFranca.Model
@@ -88,7 +87,6 @@ import org.icyphy.linguaFranca.Variable
 import org.icyphy.validation.AbstractLinguaFrancaValidator
 
 import static extension org.icyphy.ASTUtils.*
-import org.eclipse.xtext.validation.Issue
 
 /**
  * Generator base class for shared code between code generators.
@@ -141,11 +139,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Collection of generated delay classes.
      */
     val delayClasses = new LinkedHashSet<Reactor>()
-
-    /**
-     * The top-level AST node.
-     */
-    protected var Model model
     
     def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         this.fileConfig = new FileConfig(resource, fsa, context);
@@ -179,21 +172,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected Instantiation mainDef
 
-
     /**
      * A list of Reactor definitions in the main resource, including non-main 
      * reactors defined in imported resources.
      */
-    protected var List<Reactor> reactors = newLinkedList // FIXME: derived from instantiationGraph 
+    protected var List<Reactor> reactors = newLinkedList
+    
     /**
      * The set of resources referenced reactor classes reside in.
      */
-    protected var Set<Resource> resources = newLinkedHashSet // FIXME: derived from instantiationGraph
+    protected var Set<Resource> resources = newLinkedHashSet
+    
     /**
      * Graph that tracks dependencies between instantiations.
      */
     protected var InstantiationGraph instantiationGraph
-
 
 
     /**
@@ -263,8 +256,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * The name of the top-level reactor.
      */
     protected var String topLevelName;
-
-
 
     // //////////////////////////////////////////
     // // Private fields.
@@ -382,10 +373,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
         clearMarkers()
         
-        ASTUtils.setMainName(resource)
+        ASTUtils.setMainName(fileConfig.resource, fileConfig.name)
         
         createMainInstance()
-        
 
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (mainDef !== null) {
@@ -406,23 +396,36 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // Process target files. Copy each of them into the src-gen dir.
         copyUserFiles()
 
+        // Collect reactors and create an instantiation graph. These are needed to figure out which resources we need
+        // to validate, which happens in setResources().
+        setReactorsAndInstantiationGraph()
+
         // Collect the reactors defined in this resource and (non-main)
         // reactors defined in imported resources.
         setResources(context)
         
         transformDelays()
 
-        // Assuming all AST transformations have completed, build the instantiation graph. Reactors introduced by
-        // AST transformations have to be included in this graph.
-        this.instantiationGraph = new InstantiationGraph(resource, false)
-
-        // Topologically sort the reactors such that all of a reactor's
-        // dependencies occur earlier in the sorted list or reactors.
-        this.reactors = this.instantiationGraph.nodesInTopologicalOrder
+        // Invoke this function a second time because transformations may have introduced new reactors!
+        setReactorsAndInstantiationGraph()
 
         // First, produce any preamble code that the code generator needs
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere.
+    }
+
+
+    protected def setReactorsAndInstantiationGraph() {
+        // Assuming all AST transformations have completed, build the instantiation graph. Reactors introduced by
+        // AST transformations have to be included in this graph.
+        this.instantiationGraph = new InstantiationGraph(fileConfig.resource, false)
+
+        // Topologically sort the reactors such that all of a reactor's
+        // dependencies occur earlier in the sorted list or reactors.
+        this.reactors = this.instantiationGraph.nodesInTopologicalOrder
+        
+        // Add the main instance because it cannot be hooked into the model (syntax does not allow for it).
+        this.reactors.add(mainDef.reactorClass as Reactor)
     }
 
     /**
@@ -442,20 +445,21 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def setResources(IGeneratorContext context) {
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
-        val instantiationGraph = new InstantiationGraph(this.fileConfig.resource, false)
-        val reactors = instantiationGraph.nodesInTopologicalOrder
+        reactors.add(mainDef.reactorClass as Reactor)
+        // Iterate over reactors and mark their resources as tainted if they import resources that are either marked
+        // as tainted or fail to validate.
         val tainted = newHashSet
-        for (r : reactors) {
+        for (r : this.reactors) {
             val res = r.eResource
             if (!this.resources.contains(res)) {
                 if (res !== this.fileConfig.resource) {
                     if (tainted.contains(res) ||
                         (validator.validate(res, CheckMode.ALL, context.cancelIndicator)).size > 0) {
-                        for (inst : instantiationGraph.getDownstreamAdjacentNodes(r)) {
-                            for (i : (inst.eContainer as Model).imports) {
-                                for (decl : i.reactorClasses) {
+                        for (inst : this.instantiationGraph.getDownstreamAdjacentNodes(r)) {
+                            for (imp : (inst.eContainer as Model).imports) {
+                                for (decl : imp.reactorClasses) {
                                     if (decl.reactorClass.eResource === res) {
-                                        reportError(i, '''Unresolved compilation issues in '«i.importURI»'.''')
+                                        reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
                                         tainted.add(decl.eResource)
                                     }
                                 }

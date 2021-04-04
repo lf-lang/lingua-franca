@@ -96,6 +96,14 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
         detectCycles? this.detectCycles()
     }
     
+    new (Model model) {
+        val instantiations = model.eAllContents.toIterable.filter(
+            Instantiation)
+        for (i : instantiations) {
+            i.buildGraph(newHashSet)
+        }
+    }
+    
     /**
      * Construct an instantiation graph based on the given AST and, if the
      * detectCycles argument is true, run Tarjan's algorithm to detect cyclic
