@@ -40,7 +40,15 @@ import java.util.List
 
 /**
  * A graph with vertices that are instantiations and edges that denote
- * dependencies between them.
+ * dependencies between them. A "dependency" from reactor class A to 
+ * reactor class B (A depends on B) means that A instantiates within 
+ * it at least one instance of B. Note that there a potentially 
+ * confusing and subtle distinction here between an "instantiation" 
+ * and an "instance". They are not the same thing at all. An
+ * "instantiation" is an AST node representing a statement like
+ * `a = new A();`. This can result in many instances of reactor 
+ * class A (if the containing reactor class is instantiated multiple times).
+ * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 class InstantiationGraph extends PrecedenceGraph<Reactor> {
