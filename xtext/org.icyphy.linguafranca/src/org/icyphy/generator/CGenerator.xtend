@@ -31,7 +31,6 @@ import java.io.FileOutputStream
 import java.math.BigInteger
 import java.util.ArrayList
 import java.util.Collection
-import java.util.HashSet
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
@@ -43,6 +42,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.icyphy.ASTUtils
+import org.icyphy.FileConfig
 import org.icyphy.InferredType
 import org.icyphy.Target
 import org.icyphy.TargetProperty.ClockSyncMode
@@ -67,7 +67,6 @@ import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.FileConfig
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -1840,13 +1839,62 @@ class CGenerator extends GeneratorBase {
         // the contained reactors.
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
-        val portsReferencedInContainedReactors = new PortsReferencedInContainedReactors(reactor, federate)
-
-        for (containedReactor : portsReferencedInContainedReactors.containedReactors) {
-            
+        val contained = new InteractingContainedReactors(reactor, federate);
+        // Next generate the relevant code.
+        generateInteractingContainedReactors(contained, body, constructorCode, destructorCode);
+                
+        // Next, generate the fields needed for each reaction.
+        generateReactionAndTriggerStructs(body, decl, constructorCode, destructorCode, federate)
+        if (body.length > 0) {
+            pr('''
+                typedef struct {
+                    «body.toString»
+                } «selfType»;
+            ''')
+        } else {
+            // There are no fields for the self struct.
+            // C compilers complain about empty structs, so we generate a placeholder.
+            pr('''
+                typedef struct {
+                    bool hasContents;
+                } «selfType»;
+            ''')
+        }
+    }
+    
+    /**
+     * Generate structs and associated code for contained reactors that
+     * send or receive data to or from the container's reactions.
+     * 
+     * If there are contained reactors that either receive inputs
+     * from reactions of this reactor or produce outputs that trigger
+     * reactions of this reactor, then we need to create a struct
+     * inside the self struct of the container for each contained reactor.
+     * That struct has a place to hold the data produced by the container reactor's
+     * reactions and a place to put pointers to data produced by
+     * the contained reactors.
+     * 
+     * To use this, first construct an instance of the inner class
+     * PortsReferencedInContainedReactors. The constructor for that class
+     * figures out which contained reactors are relevant and which ports
+     * and reactions interact.
+     * 
+     * @param contained An instance of PortsReferencedInContainedReactors.
+     * @param body The place to put the struct definition for the contained reactors.
+     * @param constructorCode The place to put matching code that goes in the container's constructor.
+     * @param destructorCode The place to put matching code that goes in the container's destructor.
+     */
+    private def generateInteractingContainedReactors(
+        InteractingContainedReactors contained,
+        StringBuilder body,
+        StringBuilder constructorCode,
+        StringBuilder destructorCode
+    ) {
+        for (containedReactor : contained.containedReactors) {
+            // Generate one struct for each contained reactor that interacts.
             pr(body, "struct {")
             indent(body)
-            for (port : portsReferencedInContainedReactors.portsOfInstance(containedReactor)) {
+            for (port : contained.portsOfInstance(containedReactor)) {
                 if (port instanceof Input) {
                     // If the variable is a multiport, then the place to store the data has
                     // to be malloc'd at initialization.
@@ -1893,7 +1941,7 @@ class CGenerator extends GeneratorBase {
                             self->__«containedReactor.name».«port.name»_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
                         ''')
                     }
-                    val triggered = portsReferencedInContainedReactors.reactionsTriggered(containedReactor, port)
+                    val triggered = contained.reactionsTriggered(containedReactor, port)
                     if (triggered.size > 0) {
                         pr(port, body, '''
                             reaction_t* «port.name»_reactions[«triggered.size»];
@@ -1946,25 +1994,6 @@ class CGenerator extends GeneratorBase {
                 self->__«containedReactor.name»_width = «width»;
             ''')
         }
-        
-        // Next, generate the fields needed for each reaction.
-        generateReactionAndTriggerStructs(body, decl, constructorCode, destructorCode, federate)
-        if (body.length > 0) {
-            pr('''
-                typedef struct {
-                    «body.toString»
-                } «selfType»;
-            ''')
-        } else {
-            // There are no fields for the self struct.
-            // C compilers complain about empty structs, so we generate a placeholder.
-            pr('''
-                typedef struct {
-                    bool hasContents;
-                } «selfType»;
-            ''')
-        }
-        
     }
     
     /**
@@ -5298,7 +5327,7 @@ class CGenerator extends GeneratorBase {
      * @param federate The federate (used to determine whether a
      *  reaction belongs to the federate).
      */
-    private static class PortsReferencedInContainedReactors {
+    private static class InteractingContainedReactors {
         // This horrible data structure is a collection, indexed by instantiation
         // of a contained reactor, of lists, indexed by ports of the contained reactor
         // that are referenced by reactions of the container, of reactions that are
