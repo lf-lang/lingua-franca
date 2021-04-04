@@ -255,7 +255,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     /**
      * The name of the top-level reactor.
      */
-    protected var String topLevelName;
+    protected var String topLevelName; // FIXME: remove and use fileConfig.name instead
 
     // //////////////////////////////////////////
     // // Private fields.
