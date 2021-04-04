@@ -988,7 +988,12 @@ void handle_port_absent_message(int socket, int fed_id) {
     intended_tag.time = extract_ll(&(buffer[sizeof(ushort)+sizeof(ushort)]));
     intended_tag.microstep = extract_int(&(buffer[sizeof(ushort)+sizeof(ushort)+sizeof(instant_t)])); 
 
-    LOG_PRINT("Handling port absent for port %d from federate %d.", port_id, federate_id);
+    LOG_PRINT("Handling port absent for tag (%lld, %u) for port %d from federate %d.",
+            intended_tag.time - start_time,
+            intended_tag.microstep,
+            port_id, 
+            fed_id
+    );
 
     lf_mutex_lock(&mutex);
     if (compare_tags(intended_tag,
@@ -1878,14 +1883,16 @@ bool all_network_inputs_are_accounted_for() {
  */
 void send_port_absent_to_federate(unsigned short port_ID, 
                                   unsigned short fed_ID) {
-     LOG_PRINT("Sending port "
-                "absent for port %d to federate %d.", 
-                port_ID, fed_ID);
-
     // Construct the message
     int message_length = 1 + sizeof(port_ID) + sizeof(fed_ID) + sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[message_length];
     tag_t current_tag = get_current_tag();
+
+    LOG_PRINT("Sending port "
+            "absent for tag (%lld, %u) for port %d to federate %d.",
+            current_tag.time - start_time,
+            current_tag.microstep,
+            port_ID, fed_ID);
 
     buffer[0] = PORT_ABSENT;
     encode_ushort(port_ID, &(buffer[1]));
