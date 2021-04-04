@@ -60,11 +60,26 @@ class TriggerInstance<T extends Variable> extends NamedInstance<Variable> {
     /////////////////////////////////////////////
     //// Public Methods
 
-    /** Return the name of this trigger. 
-     *  @return The name of this trigger.
+    /** 
+     * Return the name of this trigger. 
+     * @return The name of this trigger.
      */
     override getName() {
         this.definition.name
+    }
+
+    /**
+     * Return true if this trigger is "shutdown"./
+     */
+    def isShutdown() {
+        this.shutdown
+    }
+
+    /**
+     * Return true if this trigger is "startup"./
+     */
+    def isStartup() {
+        this.startup
     }
 
     /** Return the main reactor, which is the top-level parent.
@@ -72,5 +87,15 @@ class TriggerInstance<T extends Variable> extends NamedInstance<Variable> {
      */
     override ReactorInstance main() {
         this.parent.main
-    }   
+    }
+    
+    /**
+     * Return true if this trigger is "startup".
+     */
+
+    /////////////////////////////////////////////
+    //// Protected Fields
+    
+    protected var startup = false;
+    protected var shutdown = false;
 }
