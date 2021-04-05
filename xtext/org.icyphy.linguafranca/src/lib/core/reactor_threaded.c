@@ -913,17 +913,28 @@ void _lf_initialize_start_tag() {
     // w.r.t. logical time.
     physical_start_time = start_time;
 
-    // At this time, reactions (startup, etc.) are added to the 
-    // reaction queue that will be executed at tag (0,0).
-    // Before we can execute those, if using centralized coordination,
-    // we need to ask the RTI if it is okay.  The following function is
-    // empty if this program is not federated or is using decentralized coordination.
-    tag_t grant_tag = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
-    if (grant_tag.time < start_time) {
-        // This is a critical condition
-        error_print_and_exit("Federate received a grant tag earlier than start time: "
-                "(%lld, %u).",
-                grant_tag.time - start_time, grant_tag.microstep);
+    // Check if we have any reactions to execute at (0,0).
+    // If we do, we need to ask the RTI for permission to execute
+    // these reactions
+    if (pqueue_size(reaction_q) != 0) {
+        // At this time, reactions (startup, etc.) are added to the 
+        // reaction queue that will be executed at tag (0,0).
+        // Before we can execute those, if using centralized coordination,
+        // we need to ask the RTI if it is okay.  The following function is
+        // empty if this program is not federated or is using decentralized coordination.
+        tag_t grant_tag = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
+        if (grant_tag.time < start_time) {
+            // This is a critical condition
+            error_print_and_exit("Federate received a grant tag earlier than start time: "
+                    "(%lld, %u).",
+                    grant_tag.time - start_time, grant_tag.microstep);
+        }
+
+        // Insert network dependant reactions for network input ports into
+        // the reaction queue to prevent reactions from executing at (0,0)
+        // incorrectly.
+        enqueue_network_input_control_reactions(reaction_q);
+        enqueue_network_output_control_reactions(reaction_q);
     }
 #endif
 
@@ -937,13 +948,6 @@ void _lf_initialize_start_tag() {
     // to be removed, if appropriate before proceeding to executing tag (0,0).
     _lf_wait_on_global_tag_barrier((tag_t){.time=start_time,.microstep=0});
 #endif // FEDERATED_DECENTRALIZED
-
-#ifdef FEDERATED
-    // Insert network dependant reactions for network input ports into
-    // the reaction queue
-    enqueue_network_input_control_reactions(reaction_q);
-    enqueue_network_output_control_reactions(reaction_q);
-#endif
     
     // Set the following boolean so that other thread(s), including federated threads,
     // know that the execution has started
