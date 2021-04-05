@@ -566,7 +566,6 @@ bool _lf_is_tag_after_stop_tag(tag_t tag) {
  * queue.
  */
 void __pop_events() {
-    bool reactions_added = false;
     event_t* event = (event_t*)pqueue_peek(event_q);
     while(event != NULL && event->time == current_tag.time) {
         event = (event_t*)pqueue_pop(event_q);
@@ -609,7 +608,6 @@ void __pop_events() {
 #endif
                 DEBUG_PRINT("Enqueing reaction %p.", reaction);
                 pqueue_insert(reaction_q, reaction);
-                reactions_added = true;
             }
         }
 
@@ -658,14 +656,12 @@ void __pop_events() {
     };
 
     
-    #ifdef FEDERATED
-    if(reactions_added) {
-        // Insert network dependant reactions for network input ports into
-        // the reaction queue
-        enqueue_network_input_control_reactions(reaction_q);
-        enqueue_network_output_control_reactions(reaction_q);
-    }
-    #endif
+#ifdef FEDERATED
+    // Insert network dependant reactions for network input ports into
+    // the reaction queue
+    enqueue_network_input_control_reactions(reaction_q);
+    enqueue_network_output_control_reactions(reaction_q);
+#endif
 
     // After populating the reaction queue, see if there are things on the
     // next queue to put back into the event queue.

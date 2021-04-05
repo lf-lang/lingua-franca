@@ -1916,7 +1916,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @param port The port.
      * @return True if the port is a multiport.
      */
-    protected def boolean isMultiport(Port port) {
+    def boolean isMultiport(Port port) {
         port.widthSpec !== null
     }
 

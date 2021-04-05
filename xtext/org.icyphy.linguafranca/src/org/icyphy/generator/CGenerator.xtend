@@ -2317,6 +2317,13 @@ class CGenerator extends GeneratorBase {
             pr(constructorCode, '''
                 self->___«variable.name».element_size = «size»;
             ''')
+        
+            if (isFederated) {
+                pr(body,
+                    org.icyphy.federated.CGeneratorExtension.createPortStatusFieldForInput(variable, this)                    
+                );
+            }
+        
         }
     }    
     

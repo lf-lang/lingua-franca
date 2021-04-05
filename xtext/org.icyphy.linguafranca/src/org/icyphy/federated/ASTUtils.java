@@ -147,8 +147,8 @@ public class ASTUtils {
             // If there are reactions at this level, insert the
             // network input control reaction just before them
 
-            String triggerName = "inputControlReactionTriggerFor"
-                    + newPortRef.getVariable().getName();
+            String triggerName = "inputControlReactionTriggerForPort"
+                    + recevingPortID;
             
             // Create a new Input port for the reaction trigger if it doesn't already exist.
             Input newTriggerForControlReactionInput;

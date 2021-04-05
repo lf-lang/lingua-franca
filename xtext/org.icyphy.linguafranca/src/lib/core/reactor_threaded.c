@@ -929,13 +929,13 @@ void _lf_initialize_start_tag() {
                     "(%lld, %u).",
                     grant_tag.time - start_time, grant_tag.microstep);
         }
-
-        // Insert network dependant reactions for network input ports into
-        // the reaction queue to prevent reactions from executing at (0,0)
-        // incorrectly.
-        enqueue_network_input_control_reactions(reaction_q);
-        enqueue_network_output_control_reactions(reaction_q);
     }
+
+    // Insert network dependant reactions for network input ports into
+    // the reaction queue to prevent reactions from executing at (0,0)
+    // incorrectly.
+    enqueue_network_input_control_reactions(reaction_q);
+    enqueue_network_output_control_reactions(reaction_q);
 #endif
 
 #ifdef FEDERATED_DECENTRALIZED
