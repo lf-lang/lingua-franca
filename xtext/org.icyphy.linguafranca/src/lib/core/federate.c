@@ -988,7 +988,7 @@ void handle_port_absent_message(int socket, int fed_id) {
     intended_tag.time = extract_ll(&(buffer[sizeof(ushort)+sizeof(ushort)]));
     intended_tag.microstep = extract_int(&(buffer[sizeof(ushort)+sizeof(ushort)+sizeof(instant_t)])); 
 
-    LOG_PRINT("Handling port absent for tag (%lld, %u) for port %d from federate %d.",
+    LOG_PRINT("Handling port absent for tag (%lld, %u) for port %d.",
             intended_tag.time - start_time,
             intended_tag.microstep,
             port_id, 
