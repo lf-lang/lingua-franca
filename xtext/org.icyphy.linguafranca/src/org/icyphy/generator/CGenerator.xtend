@@ -444,7 +444,7 @@ class CGenerator extends GeneratorBase {
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             if (!federate.isSingleton) {
-                topLevelName = baseFilename + '_' + federate.name // FIXME: don't reassign a class variable for this
+                topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
