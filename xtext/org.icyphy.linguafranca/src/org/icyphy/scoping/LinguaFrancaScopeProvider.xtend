@@ -32,8 +32,9 @@ import java.util.ArrayList
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EReference
 import org.eclipse.xtext.naming.SimpleNameProvider
+import org.eclipse.xtext.scoping.IScope
 import org.eclipse.xtext.scoping.Scopes
-import org.eclipse.xtext.scoping.impl.FilteringScope
+import org.eclipse.xtext.scoping.impl.SelectableBasedScope
 import org.icyphy.linguaFranca.Assignment
 import org.icyphy.linguaFranca.Connection
 import org.icyphy.linguaFranca.Deadline
@@ -65,6 +66,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
     
     @Inject
     LinguaFrancaGlobalScopeProvider scopeProvider;
+    
     /**
      * Enumerate of the kinds of references.
      */
@@ -104,12 +106,12 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
         val importedURI = scopeProvider.resolve(
             (context.eContainer as Import).importURI ?: "", context.eResource)
         if (importedURI !== null) {
-            // Filter out candidates that originate from a different resource.
-            return new FilteringScope(
-                super.getScope(context, reference), [ iod |
-                    iod.EObjectURI.toString.split('#').get(0).equals(
-                        importedURI.toString)
-                ])
+            
+            val uniqueImportURIs = scopeProvider.getImportedUris(context.eResource)
+            val descriptions = scopeProvider.getResourceDescriptions(context.eResource, uniqueImportURIs);
+            val uri = uniqueImportURIs.findFirst[it.equals(importedURI)]
+            val description = descriptions.getResourceDescription(uri);
+            return SelectableBasedScope.createScope(IScope.NULLSCOPE, description, null, reference.EReferenceType, false);
         }
         return Scopes.scopeFor(newLinkedList)
     }
