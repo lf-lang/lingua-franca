@@ -48,6 +48,7 @@ import org.icyphy.Target
 import org.icyphy.TargetProperty.ClockSyncMode
 import org.icyphy.TargetProperty.CoordinationType
 import org.icyphy.TimeValue
+import org.icyphy.federated.CGeneratorExtension
 import org.icyphy.linguaFranca.Action
 import org.icyphy.linguaFranca.ActionOrigin
 import org.icyphy.linguaFranca.Code
@@ -63,12 +64,11 @@ import org.icyphy.linguaFranca.StateVar
 import org.icyphy.linguaFranca.Timer
 import org.icyphy.linguaFranca.TriggerRef
 import org.icyphy.linguaFranca.TypedVariable
+import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.Variable
 
 import static extension org.icyphy.ASTUtils.*
-import org.icyphy.FileConfig
-import org.icyphy.linguaFranca.Value
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -423,7 +423,7 @@ class CGenerator extends GeneratorBase {
         
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
-        if (federates.length > 1) {
+        if (isFederated) {
             coreFiles.addAll("rti.c", "rti.h", "federate.c", "federate.h", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
             createLauncher(coreFiles)
@@ -614,7 +614,7 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 
-                pr(org.icyphy.federated.CGeneratorExtension.allocateTriggersForFederate(federate, this));
+                pr(CGeneratorExtension.allocateTriggersForFederate(federate, this));
                 
                 pr(initializeTriggerObjects.toString)
                 pr('// Populate arrays of trigger pointers.')
@@ -688,7 +688,7 @@ class CGenerator extends GeneratorBase {
                 // that the specified logical time is complete.
                 pr('''
                     void logical_tag_complete(tag_t tag_to_send) {
-                        «IF federates.length > 1 && targetConfig.coordination == CoordinationType.CENTRALIZED»
+                        «IF isFederatedAndCentralized»
                             _lf_logical_tag_complete(tag_to_send);
                         «ENDIF»
                     }
@@ -725,7 +725,7 @@ class CGenerator extends GeneratorBase {
                 // execution. For federated execution, an implementation is
                 // provided in federate.c.  That implementation will resign
                 // from the federation and close any open sockets.
-                if (federates.length <= 1) {
+                if (!isFederated) {
                     pr("void terminate_execution() {}");
                 }
             }
@@ -754,7 +754,7 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand()
-            } else if (federates.length > 1) {
+            } else if (isFederated) {
                 // Compile the RTI files if there is more than one federate.
                 compileRTI()
             }
@@ -871,7 +871,7 @@ class CGenerator extends GeneratorBase {
      * @param federate The federate instance.
      */
     protected def void initializeFederate(FederateInstance federate) {
-        if (federates.length > 1) {
+        if (isFederated) {
             pr('''
                 // ***** Start initializing the federated execution. */
             ''')            
@@ -3541,7 +3541,7 @@ class CGenerator extends GeneratorBase {
         }
 
         pr(initializeTriggerObjectsEnd,
-            org.icyphy.federated.CGeneratorExtension.initializeTriggerForControlReactions(instance, federate, this));
+            CGeneratorExtension.initializeTriggerForControlReactions(instance, federate, this));
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.        
         generateStateVariableInitializations(instance)
@@ -4579,7 +4579,7 @@ class CGenerator extends GeneratorBase {
                         
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (federates.length > 1) {
+        if (isFederated) {
             for (federate : federates) {
                 // The number of threads needs to be at least one larger than the input ports
                 // to allow the federate to wait on all input ports while allowing an additional
@@ -4679,7 +4679,7 @@ class CGenerator extends GeneratorBase {
         } else {
             pr("#include \"core/reactor.c\"")
         }
-        if (federates.length > 1) {
+        if (isFederated) {
             pr("#include \"core/federate.c\"")
         }
     }
