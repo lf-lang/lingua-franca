@@ -447,7 +447,7 @@ class CGenerator extends GeneratorBase {
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
             if (!federate.isSingleton) {
-                topLevelName = baseFilename + '_' + federate.name
+                topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
                 initializeTriggerObjects = new StringBuilder()
@@ -1462,7 +1462,8 @@ class CGenerator extends GeneratorBase {
      * * A "self" struct type definition (see the class documentation above).
      * * A function for each reaction.
      * * A constructor for creating an instance.
-     * * A destructor for deleting an instance.
+     * * A destructor
+     *  for deleting an instance.
      * 
      * If the reactor is the main reactor, then
      * the generated code may be customized. Specifically,
@@ -1904,9 +1905,12 @@ class CGenerator extends GeneratorBase {
                             int «port.name»__width;
                         ''')
                         // Add to the destructor code to free the malloc'd memory.
+                        // FIXME: Refactor so there is an array of pointers to free on the self struct.
+                        /* Following isn't right for multiports in banks.
                         pr(port, destructorCode, '''
                             free(self->__«containedReactor.name».«port.name»);
                         ''')
+                        */
                     }
                 } else {
                     // Must be an output entry.
@@ -2350,7 +2354,7 @@ class CGenerator extends GeneratorBase {
     }
     
     /** Generate a reaction function definition for a reactor.
-     *  This function has a single argument that is a void* pointing to
+     *  This function will have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
@@ -2691,21 +2695,22 @@ class CGenerator extends GeneratorBase {
         return -2;
     }
 
-    /** Generate code to create the trigger table for each reaction of the
-     *  specified reactor.  Each table lists the triggers that the reaction's
-     *  execution may trigger. Each table is an array of arrays
-     *  of pointers to the trigger_t structs representing the downstream inputs
-     *  (or outputs of the container reactor) that are triggered by the reaction.
-     *  Each trigger table goes into the reaction's reaction_t triggers field.
-     *  That reaction_t struct is assumed to be on the self struct of the reactor
-     *  instance with name "___reaction_i", where i is the index of the reaction.
-     *  The generated code will also set the values of the triggered_sizes array
-     *  on the reaction_t struct to indicate the size of each array of trigger_t
-     *  pointers. The generated code will malloc each of these arrays, and the
-     *  destructor for the reactor instance will free them.
-     *  The generated code goes into the __initialize_trigger_objects() function.
-     *  @param reactorIntance The reactor instance.
-     *  @param federate The federate name or null if no federation.
+    /** 
+     * Generate code to create the trigger table for each reaction of the
+     * specified reactor.  Each table lists the triggers that the reaction's
+     * execution may trigger. Each table is an array of arrays
+     * of pointers to the trigger_t structs representing the downstream inputs
+     * (or outputs of the container reactor) that are triggered by the reaction.
+     * Each trigger table goes into the reaction's reaction_t triggers field.
+     * That reaction_t struct is assumed to be on the self struct of the reactor
+     * instance with name "___reaction_i", where i is the index of the reaction.
+     * The generated code will also set the values of the triggered_sizes array
+     * on the reaction_t struct to indicate the size of each array of trigger_t
+     * pointers. The generated code will malloc each of these arrays, and the
+     * destructor for the reactor instance will free them.
+     * The generated code goes into the __initialize_trigger_objects() function.
+     * @param reactorIntance The reactor instance.
+     * @param federate The federate name or null if no federation.
      */
     def generateRemoteTriggerTable(ReactorInstance reactorInstance, FederateInstance federate) {
         val selfStruct = selfStructName(reactorInstance)
@@ -2736,113 +2741,119 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 for (port : reaction.effects.filter(PortInstance)) {
-                    // The port to which the reaction writes may have dependent
-                    // reactions in the container. If so, we list that port here.
-                    var portsWithDependentReactions = new LinkedHashSet<PortInstance>()
+                    // Skip multiports and handle the component ports instead.
+                    if (!(port instanceof MultiportInstance)) {
+                        // Port is not within a multiport.
+                        // The port to which the reaction writes may have dependent
+                        // reactions in the container. If so, we list that port here.
+                        var portsWithDependentReactions = new LinkedHashSet<PortInstance>()
 
-                    // The size of the array to be inserted into the triggers array of
-                    // the reaction is the sum of the number of destination ports and
-                    // the number of destination reactions (reactions of the container
-                    // sensitive to this port.
-                    var numberOfTriggerTObjects = 0
+                        // The size of the array to be inserted into the triggers array of
+                        // the reaction is the sum of the number of destination ports and
+                        // the number of destination reactions (reactions of the container
+                        // sensitive to this port.
+                        var numberOfTriggerTObjects = 0
 
-                    // Collect the destinations for each output port.
-                    if (port.definition instanceof Output) {
-                        // For each output, obtain the destinations from the parent.
-                        // Pointers to the destination trigger_t objects will be collected into
-                        // an array. 
-                        var parent = reactorInstance.parent
-                        if (parent !== null) {
-                            destinationPorts = parent.transitiveClosure(port)
+                        // Collect the destinations for each output port.
+                        if (port.definition instanceof Output) {
+                            // For each output, obtain the destinations from the parent.
+                            // Pointers to the destination trigger_t objects will be collected into
+                            // an array. 
+                            var parent = reactorInstance.parent
+                            if (parent !== null) {
+                                destinationPorts = parent.transitiveClosure(port)
+                            } else {
+                                // At the top level, where there cannot be any destinations
+                                // for an output port.
+                                destinationPorts = new LinkedList<PortInstance>()
+                            }
+
+                            // The port may also have dependent reactions, which are
+                            // reactions in the container of this port's container.
+                            if (port.dependentReactions.size > 0) {
+                                portsWithDependentReactions.add(port)
+                                numberOfTriggerTObjects += port.dependentReactions.size
+                            }
                         } else {
-                            // At the top level, where there cannot be any destinations
-                            // for an output port.
-                            destinationPorts = new LinkedList<PortInstance>()
+                            // The port is the input port of a contained reactor,
+                            // use that reactor instance to compute the transitive closure.
+                            destinationPorts = port.parent.transitiveClosure(port)
                         }
 
-                        // The port may also have dependent reactions, which are
-                        // reactions in the container of this port's container.
-                        if (port.dependentReactions.size > 0) {
-                            portsWithDependentReactions.add(port)
-                            numberOfTriggerTObjects += port.dependentReactions.size
-                        }
-                    } else {
-                        // The port is the input port of a contained reactor,
-                        // use that reactor instance to compute the transitive closure.
-                        destinationPorts = port.parent.transitiveClosure(port)
-                    }
+                        numberOfTriggerTObjects += destinationPorts.size
 
-                    numberOfTriggerTObjects += destinationPorts.size
-
-                    // Record this array size in reaction's reaction_t triggered_sizes array.
-                    pr(initializeTriggerObjectsEnd, '''
-                        // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects» downstream reactions through port «port.getFullName».
-                        «selfStruct»->___reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
-                    ''')
-                    if (numberOfTriggerTObjects > 0) {
-                        // Next, malloc the memory for the trigger array and record its location.
-                        // NOTE: Need a unique name for the pointer to the malloc'd array because some of the
-                        // initialization has to occur at the end of __initialize_trigger_objects(), after
-                        // all reactor instances have been created.
-                        var bankIndex = ""
-                        if (reactorInstance.bankIndex >= 0) {
-                            bankIndex = '_' + reactorInstance.bankIndex + '_'
-                        }
-                        val triggerArray = '''«reactorInstance.uniqueID»«bankIndex»_«reaction.reactionIndex»_«portCount»'''
+                        // Record this array size in reaction's reaction_t triggered_sizes array.
                         pr(initializeTriggerObjectsEnd, '''
-                            // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
-                            // array of trigger pointers for downstream reactions through port «port.getFullName»
-                            trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
-                            «selfStruct»->___reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
+                            // Reaction «reactionCount» of «reactorInstance.getFullName» triggers «numberOfTriggerTObjects»
+                            // downstream reactions through port «port.getFullName».
+                            «selfStruct»->___reaction_«reactionCount».triggered_sizes[«portCount»] = «numberOfTriggerTObjects»;
                         ''')
+                        if (numberOfTriggerTObjects > 0) {
+                            // Next, malloc the memory for the trigger array and record its location.
+                            // NOTE: Need a unique name for the pointer to the malloc'd array because some of the
+                            // initialization has to occur at the end of __initialize_trigger_objects(), after
+                            // all reactor instances have been created.
+                            var bankIndex = ""
+                            if (reactorInstance.bankIndex >= 0) {
+                                bankIndex = '_' + reactorInstance.bankIndex + '_'
+                            }
+                            val triggerArray = '''«reactorInstance.uniqueID»«bankIndex»_«reaction.reactionIndex»_«portCount»'''
+                            pr(initializeTriggerObjectsEnd, '''
+                                // For reaction «reactionCount» of «reactorInstance.getFullName», allocate an
+                                // array of trigger pointers for downstream reactions through port «port.getFullName»
+                                trigger_t** «triggerArray» = (trigger_t**)malloc(«numberOfTriggerTObjects» * sizeof(trigger_t*));
+                                «selfStruct»->___reaction_«reactionCount».triggers[«portCount»] = «triggerArray»;
+                            ''')
 
-                        // Next, initialize the newly created array.
-                        var destinationCount = 0;
-                        for (destination : destinationPorts) {
-                            // If the destination of a connection is an input
-                            // port of a reactor that has no reactions to that input,
-                            // then this trigger struct will not have been created.
-                            // In that case, we want NULL.
-                            // If the destination is an output port, however, then
-                            // the dependentReactions.size reflects the number of downstream
-                            // reactions, including possible reactions in the container.
-                            if (destination.isOutput) {
-                                if (destination.dependentReactions.size === 0) {
+                            // Next, initialize the newly created array.
+                            var destinationCount = 0;
+                            for (destination : destinationPorts) {
+                                // If the destination of a connection is an input
+                                // port of a reactor that has no reactions to that input,
+                                // then this trigger struct will not have been created.
+                                // In that case, we want NULL.
+                                // If the destination is an output port, however, then
+                                // the dependentReactions.size reflects the number of downstream
+                                // reactions, including possible reactions in the container.
+                                if (destination.isOutput) {
+                                    if (destination.dependentReactions.size === 0) {
+                                        pr(initializeTriggerObjectsEnd, '''
+                                            // Destination port «destination.getFullName» itself has no reactions.
+                                            «triggerArray»[«destinationCount++»] = NULL;
+                                        ''')
+                                    } else {
+                                        // Add to portsWithDependentReactions. This occurs if the destination is
+                                        // output port of the container, and that output port triggers reactions in
+                                        // its container.
+                                        portsWithDependentReactions.add(destination)
+                                    }
+                                } else if (destination.dependentReactions.size === 0) {
                                     pr(initializeTriggerObjectsEnd, '''
                                         // Destination port «destination.getFullName» itself has no reactions.
                                         «triggerArray»[«destinationCount++»] = NULL;
                                     ''')
-                                } else {
-                                    // Add to portsWithDependentReactions. This occurs if the destination is
-                                    // output port of the container, and that output port triggers reactions in
-                                    // its container.
-                                    portsWithDependentReactions.add(destination)
-                                }
-                            } else if (destination.dependentReactions.size === 0) {
-                                pr(initializeTriggerObjectsEnd, '''
-                                    // Destination port «destination.getFullName» itself has no reactions.
-                                    «triggerArray»[«destinationCount++»] = NULL;
-                                ''')
-                            } else {
-                                pr(initializeTriggerObjectsEnd, '''
-                                    // Point to destination port «destination.getFullName»'s trigger struct.
-                                    «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
-                                ''')
-                            }
-                        }
-                        for (portWithDependentReactions : portsWithDependentReactions) {
-                            for (destinationReaction : portWithDependentReactions.dependentReactions) {
-                                if (reactorBelongsToFederate(destinationReaction.parent, federate)) {
+                                } else if (!(destination instanceof MultiportInstance)) { // Skip multiports.
+                                                                        // Instead, the component ports are handled.
                                     pr(initializeTriggerObjectsEnd, '''
-                                        // Port «port.getFullName» has reactions in its parent's parent.
-                                        // Point to the trigger struct for those reactions.
-                                        «triggerArray»[«destinationCount++»] = &«triggerStructName(portWithDependentReactions, destinationReaction)»;
+                                        // Point to destination port «destination.getFullName»'s trigger struct.
+                                        «triggerArray»[«destinationCount++»] = &«triggerStructName(destination)»;
                                     ''')
                                 }
                             }
+                            for (portWithDependentReactions : portsWithDependentReactions) {
+                                for (destinationReaction : portWithDependentReactions.dependentReactions) {
+                                    if (reactorBelongsToFederate(destinationReaction.parent, federate)) {
+                                        pr(initializeTriggerObjectsEnd, '''
+                                            // Port «port.getFullName» has reactions in its parent's parent.
+                                            // Point to the trigger struct for those reactions.
+                                            «triggerArray»[«destinationCount++»] = &«triggerStructName(portWithDependentReactions, destinationReaction)»;
+                                        ''')
+                                    }
+                                }
+                            }
                         }
+                        portCount++
                     }
-                    portCount++
                 }
             }
             // Increment reaction count even if it is not in the federate for consistency.
@@ -2901,7 +2912,8 @@ class CGenerator extends GeneratorBase {
                 reaction.definition
             )) {
                 for (port : reaction.effects.filter(PortInstance)) {
-                    if (port.definition instanceof Input) {
+                    // Skip any actual multiports if they are listed. Only count the individual ports.
+                    if (port.definition instanceof Input  && !(port instanceof MultiportInstance)) {
                         // This reaction is sending to an input. Must be
                         // the input of a contained reactor in the federate.
                         val sourcePort = sourcePort(port)
@@ -3584,7 +3596,8 @@ class CGenerator extends GeneratorBase {
                 // of contained reactors.  An input port can have only
                 // one source, so we can immediately generate the initialization.
                 for (port : reaction.effects.filter(PortInstance)) {
-                    if (port.isInput) {
+                    // Skip multiport destinations and instead handle the ports within the multiport.
+                    if (port.isInput && !(port instanceof MultiportInstance)) {
                         var numDestinations = 0
                         if(!port.dependentReactions.isEmpty) numDestinations = 1
                         numDestinations += port.dependentPorts.size
@@ -3720,7 +3733,7 @@ class CGenerator extends GeneratorBase {
      * NOTE: This method is quite complicated because of the possibility that
      * that the reaction is writing to a multiport output or to an
      * input port of a contained reactor, and the possibility that that
-     * contained reactor be a bank of reactors and that its input port may
+     * the contained reactor is a bank of reactors and that its input port may
      * be a multiport.
      * 
      * @param The reaction instance.
@@ -3756,7 +3769,7 @@ class CGenerator extends GeneratorBase {
                 // If the port is a multiport, then we need to create an entry for each
                 // individual port.
                 if (effect.multiport !== null && !handledMultiports.contains(effect.multiport)) {
-                    // The effect is a multiport that has not been handled yet.
+                    // The effect is a port within a multiport that has not been handled yet.
                     handledMultiports.add(effect.multiport);
                     var allocate = false
                     if (!portAllocatedAlready.contains(effect.multiport)) {
@@ -3809,15 +3822,15 @@ class CGenerator extends GeneratorBase {
                             ''')
                         }
                         pr(initialization, '''
-                            for (int i = 0; i < «effect.multiport.width»; i++) {
+                            for (int i = 0; i < «nameOfSelfStruct»->__«containerName».«effect.name»__width; i++) {
                                 «nameOfSelfStruct»->___reaction_«reaction.reactionIndex».output_produced[«outputCount» + i]
                                         = &«nameOfSelfStruct»->__«containerName».«effect.name»[i]->is_present;
                             }
                         ''')
                     }
                     outputCount += effect.multiport.getWidth();
-                } else if (effect.multiport === null) {
-                    // The effect is not a multiport.
+                } else if (effect.multiport === null && !(effect instanceof MultiportInstance)) {
+                    // The effect is not a multiport nor a port contained by a multiport.
                     if (effect.parent === reaction.parent) {
                         // The port belongs to the same reactor as the reaction.
                         pr(initialization, '''
@@ -4916,12 +4929,13 @@ class CGenerator extends GeneratorBase {
         // output of a contained reactor.
         for (reaction : instance.reactions) {
             for (port : reaction.effects.filter(PortInstance)) {
-                if (port.definition instanceof Input) {
+                if (port.definition instanceof Input && !(port instanceof MultiportInstance)) {
                     // This reaction is sending to an input. Must be
                     // the input of a contained reactor.
                     // It may be deeply contained, however, in which case
                     // we have to trace back to where the data and is_present
                     // variables are.
+                    // Skip multiport instances and connect the contained individual ports instead.
                     var sourcePort = sourcePort(port)
                     if (reactorBelongsToFederate(sourcePort.parent, federate)) {
                         val destStructType = variableStructType(
@@ -5248,16 +5262,19 @@ class CGenerator extends GeneratorBase {
         }
     }
 
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for sending data to an input
-     *  of a contained reactor (e.g. for a deadline violation).
-     *  The code goes into two builders because some of it has to
-     *  collected into a single struct definition.
-     *  @param builder The string builder.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param definition AST node defining the reactor within which this occurs
-     *  @param input Input of the contained reactor.
+    /** 
+     * Generate into the specified string builder the code to
+     * initialize local variables for sending data to an input
+     * of a contained reactor. This will also, if necessary,
+     * generate entries for local struct definitions into the
+     * struct argument. These entries point to where the data
+     * is stored.
+     * 
+     * @param builder The string builder.
+     * @param structs A map from reactor instantiations to a place to write
+     *  struct fields.
+     * @param definition AST node defining the reactor within which this occurs
+     * @param input Input of the contained reactor.
      */
     private def generateVariablesForSendingToContainedReactors(
         StringBuilder builder,
@@ -5298,10 +5315,21 @@ class CGenerator extends GeneratorBase {
                 «inputStructType»** «input.name»;
                 int «input.name»_width;
             ''')
-            pr(builder, '''
-                «definition.name».«input.name» = self->__«definition.name».«input.name»;
-                «definition.name».«input.name»_width = self->__«definition.name».«input.name»__width;
-            ''')
+            // If the contained reactor is a bank, then we have set the
+            // pointer for each element of the bank.
+            if (definition.widthSpec !== null) {
+                pr(builder, '''
+                    for (int _i = 0; _i < self->__«definition.name»_width; _i++) {
+                        «definition.name»[_i].«input.name» = self->__«definition.name»[_i].«input.name»;
+                        «definition.name»[_i].«input.name»_width = self->__«definition.name»[_i].«input.name»__width;
+                    }
+                ''')
+            } else {
+                pr(builder, '''
+                    «definition.name».«input.name» = self->__«definition.name».«input.name»;
+                    «definition.name».«input.name»_width = self->__«definition.name».«input.name»__width;
+                ''')
+            }
         }
     }
 
