@@ -1223,6 +1223,8 @@ void handle_tag_advance_grant() {
     TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
     lf_mutex_lock(&mutex);
+    // FIXME: In rare cases, it is possible for the RTI to send a PTAG(stop_time) and then
+    // send a TAG(requested_NET).
     if (compare_tags(_fed.last_TAG, TAG) >= 0 && _fed.is_last_TAG_provisional == true) {
         // A provisional TAG (PTAG) has already been granted. Therefore, we only need
         // to release network input control reactions.
