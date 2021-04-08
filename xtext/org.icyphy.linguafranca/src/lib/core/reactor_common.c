@@ -661,7 +661,7 @@ void __pop_events() {
     // the reaction queue
     enqueue_network_input_control_reactions(reaction_q);
     enqueue_network_output_control_reactions(reaction_q);
-#endif
+#endif // FEDERATED
 
     // After populating the reaction queue, see if there are things on the
     // next queue to put back into the event queue.

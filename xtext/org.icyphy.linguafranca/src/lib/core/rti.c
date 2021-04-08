@@ -406,6 +406,37 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
 }
 
 /** 
+ * Send a provisional tag advance grant (PTAG) message to the specified federate.
+ * @param fed The federate.
+ * @param tag The tag to grant.
+ */
+void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
+    if (fed->state == NOT_CONNECTED) {
+        return;
+    }
+    int message_length = 1 + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[message_length];
+    buffer[0] = PROVISIONAL_TIME_ADVANCE_GRANT;
+    encode_ll(tag.time, &(buffer[1]));
+    encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
+    // This function is called in send_tag_advance_if_appropriate(), which is a long
+    // function. During this call, the socket might close, causing the following write_to_socket
+    // to fail. Consider a failure here a soft failure and update the federate's status.
+    int bytes_written = write_to_socket(fed->socket, message_length, buffer);
+    if (bytes_written < message_length) {
+        error_print("RTI failed to send time advance grant to federate %d.", fed->id);
+        if (bytes_written < 0) {
+            fed->state = NOT_CONNECTED;
+            // FIXME: We need better error handling, but don't stop other execution here.
+            // _lf_rti_mark_federate_requesting_stop(fed);
+        }
+    } else {
+        LOG_PRINT("RTI sent to federate %d the Provisional Time Advance Grant (PTAG) (%lld, %u).",
+                fed->id, tag.time - start_time, tag.microstep);
+    }
+}
+
+/** 
  * Find the earliest tag at which the specified federate may
  * experience its next event. This is the least next event tag (NET)
  * or time advance notice (TAN)
@@ -558,18 +589,31 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
             min_upstream_completed.time - start_time, min_upstream_completed.microstep,
             t_d.time - start_time, t_d.microstep);
 
-    // If the earliest event time of the upstream federates (adjusted by
-    // delays) is greater than the NET reported by the federate,
-    // then grant a new TAG to the federate with payload equal to NET.
-    // Otherwise, do not send a reply now.  A TAG will presumably later
-    // be sent when one of the upstream federates makes progress.
-    if (t_d.time == FOREVER || compare_tags(t_d, fed->next_event) >= 0) {
+    // - If the earliest event time of the upstream federates (adjusted by
+    //   delays) is greater than the NET reported by the federate,
+    //   then grant a new TAG to the federate with payload equal to NET.
+    // 
+    // - If the earliest event time of the upstream federates (
+    //   adjusted by delays) is equal to the NET reported by the federate,
+    //   grant a Provisional TAG (PTAG) that will prompt the federate to
+    //   insert network input control reactions that will block execution
+    //   of reactions selectively. This PTAG can be followed eventually
+    //   by a TAG for the same tag that will unblock the network input
+    //   control reactions.
+    //
+    // - Otherwise, do not send a reply now.  A TAG will presumably later
+    //   be sent when one of the upstream federates makes progress.
+    if (t_d.time == FOREVER || compare_tags(t_d, fed->next_event) > 0) {
         // Send TAG to federate.
         send_tag_advance_grant(fed, fed->next_event);
         return true;
     } else if (compare_tags(min_upstream_completed, fed->completed) > 0) {
         // Upstream federates have completed a tag greater than this federate.
         send_tag_advance_grant(fed, min_upstream_completed);
+        return true;
+    } else if(compare_tags(t_d, fed->next_event) == 0) {
+        // Send PTAG to federate.
+        send_provisional_tag_advance_grant(fed, fed->next_event);
         return true;
     }
     return false;

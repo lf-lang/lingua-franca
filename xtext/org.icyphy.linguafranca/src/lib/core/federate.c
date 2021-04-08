@@ -69,6 +69,7 @@ federate_instance_t _fed = {
         .server_socket = -1,
         .server_port = -1,
         .last_TAG = {.time = NEVER, .microstep = 0u},
+        .is_last_TAG_provisional = false,
         .waiting_for_TAG = false,
         .has_upstream = false,
         .has_downstream = false,
@@ -967,6 +968,17 @@ void _lf_close_outbound_socket(int fed_id) {
     lf_mutex_unlock(&outbound_socket_mutex);
 }
 
+/**
+ * Mark all status fields of unknown network input ports to absent
+ */
+void mark_all_unknown_ports_as_absent() {
+    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
+        if (_fed.network_input_port_triggers[i]->status == unknown) {
+            _fed.network_input_port_triggers[i]->status = absent;
+        }
+    }
+}
+
 /** 
  * Handle a port absent message received from a remote federate.
  * @param socket The socket to read the message from
@@ -1197,8 +1209,44 @@ void handle_timed_message(int socket, int fed_id) {
  *  This function assumes the caller does not hold the mutex lock,
  *  which it acquires to interact with the main thread, which may
  *  be waiting for a TAG (this broadcasts a condition signal).
+ * 
+ *  * @note This function is very similar to handle_provisinal_tag_advance_grant() except that
+ *  it sets last_TAG_was_provisional to false.
  */
 void handle_tag_advance_grant() {
+    unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
+    read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(instant_t) + sizeof(microstep_t), buffer,
+                     "Failed to read the time advance grant from the RTI.");
+    tag_t TAG;
+    TAG.time = extract_ll(buffer);
+    TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+
+    lf_mutex_lock(&mutex);
+    if (compare_tags(_fed.last_TAG, TAG) >= 0 && _fed.is_last_TAG_provisional == true) {
+        mark_all_unknown_ports_as_absent();
+        lf_cond_broadcast(&port_status_changed);
+    } else {
+        _fed.last_TAG.time = TAG.time;
+        _fed.last_TAG.microstep = TAG.microstep;
+        _fed.waiting_for_TAG = false;
+        // Notify everything that is blocked.
+        lf_cond_broadcast(&event_q_changed);
+    }
+    _fed.is_last_TAG_provisional = false;
+    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    lf_mutex_unlock(&mutex);
+}
+
+
+/** Handle a provisional time advance grant (TAG) message from the RTI.
+ *  This function assumes the caller does not hold the mutex lock,
+ *  which it acquires to interact with the main thread, which may
+ *  be waiting for a TAG (this broadcasts a condition signal).
+ * 
+ * @note This function is very similar to handle_tag_advance_grant() except that
+ *  it sets last_TAG_was_provisional to true.
+ */
+void handle_provisional_tag_advance_grant() {
     unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
     read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(instant_t) + sizeof(microstep_t), buffer,
                      "Failed to read the time advance grant from the RTI.");
@@ -1207,7 +1255,8 @@ void handle_tag_advance_grant() {
     _fed.last_TAG.time = extract_ll(buffer);
     _fed.last_TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     _fed.waiting_for_TAG = false;
-    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    _fed.is_last_TAG_provisional = true;
+    LOG_PRINT("Received Provisional Tag Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     // Notify everything that is blocked.
     lf_cond_broadcast(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -1481,6 +1530,9 @@ void* listen_to_rti_TCP(void* args) {
                 break;
             case TIME_ADVANCE_GRANT:
                 handle_tag_advance_grant();
+                break;
+            case PROVISIONAL_TIME_ADVANCE_GRANT:
+                handle_provisional_tag_advance_grant();
                 break;
             case STOP_REQUEST:
                 handle_stop_request_message();
@@ -1835,6 +1887,11 @@ void reset_status_fields_on_input_port_triggers() {
  * or absent.
  */
 void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
+#ifdef FEDERATED_CENTRALIZED
+    if (_fed.is_last_TAG_provisional != true) {
+        return;
+    }
+#endif
     for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
         for (int j = 0; j < _fed.triggers_for_network_input_control_reactions[i]->number_of_reactions; j++) {
             reaction_t *reaction = _fed.triggers_for_network_input_control_reactions[i]->reactions[j];
@@ -1846,6 +1903,11 @@ void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
 }
 
 void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
+#ifdef FEDERATED_CENTRALIZED
+    if (_fed.is_last_TAG_provisional != true) {
+        return;
+    }
+#endif
     if (_fed.trigger_for_network_output_control_reactions == NULL) {
         // There are no network output control reactions
         return;
