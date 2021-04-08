@@ -1142,8 +1142,9 @@ void* worker(void* arg) {
                 pqueue_remove(executing_q, current_reaction_to_execute);
             } else {
                 // Invoke the reaction function.
-                LOG_PRINT("Worker %d: Invoking reaction at elapsed tag (%lld, %d).",
+                LOG_PRINT("Worker %d: Invoking reaction %p at elapsed tag (%lld, %d).",
                         worker_number,
+						current_reaction_to_execute,
                         current_tag.time - start_time,
                         current_tag.microstep);
                 tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
