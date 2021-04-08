@@ -614,7 +614,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     } else if(compare_tags(t_d, fed->next_event) == 0) {
         // Send PTAG to federate.
         send_provisional_tag_advance_grant(fed, fed->next_event);
-        return true;
+        return false;
     }
     return false;
 }

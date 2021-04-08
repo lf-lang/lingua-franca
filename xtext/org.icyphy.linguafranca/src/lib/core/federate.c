@@ -1233,7 +1233,7 @@ void handle_tag_advance_grant() {
         lf_cond_broadcast(&event_q_changed);
     }
     _fed.is_last_TAG_provisional = false;
-    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    info_print("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     lf_mutex_unlock(&mutex);
 }
 
@@ -1256,7 +1256,7 @@ void handle_provisional_tag_advance_grant() {
     _fed.last_TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     _fed.waiting_for_TAG = false;
     _fed.is_last_TAG_provisional = true;
-    LOG_PRINT("Received Provisional Tag Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    info_print("Received Provisional Tag Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     // Notify everything that is blocked.
     lf_cond_broadcast(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -1888,7 +1888,7 @@ void reset_status_fields_on_input_port_triggers() {
  */
 void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
 #ifdef FEDERATED_CENTRALIZED
-    if (_fed.is_last_TAG_provisional != true) {
+    if (_fed.is_last_TAG_provisional == false) {
         return;
     }
 #endif
@@ -1904,7 +1904,7 @@ void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
 
 void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
 #ifdef FEDERATED_CENTRALIZED
-    if (_fed.is_last_TAG_provisional != true) {
+    if (_fed.is_last_TAG_provisional == false) {
         return;
     }
 #endif
