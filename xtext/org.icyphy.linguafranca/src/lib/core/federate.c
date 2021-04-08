@@ -1233,7 +1233,7 @@ void handle_tag_advance_grant() {
         lf_cond_broadcast(&event_q_changed);
     }
     _fed.is_last_TAG_provisional = false;
-    info_print("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     lf_mutex_unlock(&mutex);
 }
 
@@ -1256,7 +1256,7 @@ void handle_provisional_tag_advance_grant() {
     _fed.last_TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     _fed.waiting_for_TAG = false;
     _fed.is_last_TAG_provisional = true;
-    info_print("Received Provisional Tag Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    LOG_PRINT("Received Provisional Tag Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     // Notify everything that is blocked.
     lf_cond_broadcast(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -1887,11 +1887,6 @@ void reset_status_fields_on_input_port_triggers() {
  * or absent.
  */
 void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
-#ifdef FEDERATED_CENTRALIZED
-    if (_fed.is_last_TAG_provisional == false) {
-        return;
-    }
-#endif
     for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
         for (int j = 0; j < _fed.triggers_for_network_input_control_reactions[i]->number_of_reactions; j++) {
             reaction_t *reaction = _fed.triggers_for_network_input_control_reactions[i]->reactions[j];
@@ -1902,12 +1897,11 @@ void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
     }
 }
 
+/**
+ * Enqueue network output control reactions that will send a PORT_ABSENT
+ * message to downstream federates if a given network output port is not present.
+ */
 void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
-#ifdef FEDERATED_CENTRALIZED
-    if (_fed.is_last_TAG_provisional == false) {
-        return;
-    }
-#endif
     if (_fed.trigger_for_network_output_control_reactions == NULL) {
         // There are no network output control reactions
         return;
@@ -1918,6 +1912,20 @@ void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
            pqueue_insert(reaction_q, reaction);
        }
     }
+}
+
+
+/**
+ * Enqueue network control reactions.
+ */
+void enqueue_network_control_reactions(pqueue_t* reaction_q) {
+#ifdef FEDERATED_CENTRALIZED
+    if (_fed.is_last_TAG_provisional == false) {
+        return;
+    }
+#endif
+    enqueue_network_input_control_reactions(reaction_q);
+    enqueue_network_output_control_reactions(reaction_q);
 }
 
 /**
