@@ -123,6 +123,14 @@ typedef struct federate_instance_t {
 	tag_t last_TAG;
 
 	/**
+	 * Indicates whether the last TAG received is provisional or an ordinary
+	 * TAG. 
+	 * If the last TAG has been provisional, network control reactions must be inserted.
+	 * This variable should only be accessed while holding the mutex lock.
+	 */
+	bool is_last_TAG_provisional;
+
+	/**
 	 * Indicator of whether a NET has been sent to the RTI and no TAG
 	 * yet received in reply.
 	 * This variable should only be accessed while holding the mutex lock.
