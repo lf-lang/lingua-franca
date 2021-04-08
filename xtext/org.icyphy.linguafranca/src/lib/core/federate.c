@@ -969,7 +969,7 @@ void _lf_close_outbound_socket(int fed_id) {
 }
 
 /**
- * Mark all status fields of unknown network input ports to absent
+ * Mark all status fields of unknown network input ports as absent.
  */
 void mark_all_unknown_ports_as_absent() {
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
@@ -1210,7 +1210,7 @@ void handle_timed_message(int socket, int fed_id) {
  *  which it acquires to interact with the main thread, which may
  *  be waiting for a TAG (this broadcasts a condition signal).
  * 
- *  * @note This function is very similar to handle_provisinal_tag_advance_grant() except that
+ *  @note This function is very similar to handle_provisinal_tag_advance_grant() except that
  *  it sets last_TAG_was_provisional to false.
  */
 void handle_tag_advance_grant() {
@@ -1223,6 +1223,8 @@ void handle_tag_advance_grant() {
 
     lf_mutex_lock(&mutex);
     if (compare_tags(_fed.last_TAG, TAG) >= 0 && _fed.is_last_TAG_provisional == true) {
+        // A provisional TAG (PTAG) has already been granted. Therefore, we only need
+        // to release network input control reactions.
         mark_all_unknown_ports_as_absent();
         lf_cond_broadcast(&port_status_changed);
     } else {
@@ -1920,6 +1922,8 @@ void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
  */
 void enqueue_network_control_reactions(pqueue_t* reaction_q) {
 #ifdef FEDERATED_CENTRALIZED
+    // The granted tag is not provisional, therefore there is no
+    // need for network control reactions
     if (_fed.is_last_TAG_provisional == false) {
         return;
     }
