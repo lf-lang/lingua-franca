@@ -2491,12 +2491,6 @@ class CGenerator extends GeneratorBase {
                         // All effects inherit the minimum intended tag of input triggers
                         «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
                     ''')                    
-                } else if (effect.variable instanceof Output) {
-                    // Everything else
-                    pr(intendedTagInheritenceCode, '''
-                        // All effects inherit the minimum intended tag of input triggers
-                        «effect.variable.name»->intended_tag = inherited_min_intended_tag;
-                    ''')                    
                 }
             }
             unindent(intendedTagInheritenceCode);
