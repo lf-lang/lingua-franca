@@ -1230,13 +1230,13 @@ void handle_tag_advance_grant() {
         // to release network input control reactions.
         mark_all_unknown_ports_as_absent();
         lf_cond_broadcast(&port_status_changed);
-    } else {
-        _fed.last_TAG.time = TAG.time;
-        _fed.last_TAG.microstep = TAG.microstep;
-        _fed.waiting_for_TAG = false;
-        // Notify everything that is blocked.
-        lf_cond_broadcast(&event_q_changed);
     }
+
+    _fed.last_TAG.time = TAG.time;
+    _fed.last_TAG.microstep = TAG.microstep;
+    _fed.waiting_for_TAG = false;
+    // Notify everything that is blocked.
+    lf_cond_broadcast(&event_q_changed);
     _fed.is_last_TAG_provisional = false;
     LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     lf_mutex_unlock(&mutex);
