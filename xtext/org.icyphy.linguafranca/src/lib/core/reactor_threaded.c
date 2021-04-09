@@ -433,6 +433,17 @@ bool wait_until(instant_t logical_time_ns, lf_cond_t* condition) {
     DEBUG_PRINT("-------- Waiting until physical time matches logical time %lld", logical_time_ns);
     bool return_value = true;
     interval_t wait_until_time_ns = logical_time_ns;
+#ifdef FEDERATED_DECENTRALIZED // Only apply the STP offset if coordination is decentralized
+    // Apply the STP offset to the logical time
+    // Prevent an overflow
+    if (wait_until_time_ns < FOREVER - _lf_global_time_STP_offset) {
+        // If wait_time is not forever
+        DEBUG_PRINT("Adding STP offset %lld to wait until time %lld.",
+                _lf_global_time_STP_offset,
+                wait_until_time_ns - start_time);
+        wait_until_time_ns += _lf_global_time_STP_offset;
+    }
+#endif
     if (!fast) {
         // Get physical time as adjusted by clock synchronization offset.
         instant_t current_physical_time = get_physical_time();
