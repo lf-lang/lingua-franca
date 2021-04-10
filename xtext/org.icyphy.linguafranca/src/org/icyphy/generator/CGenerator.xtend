@@ -4517,11 +4517,8 @@ class CGenerator extends GeneratorBase {
     ) {
         // Store the code
         val result = new StringBuilder();
-        var sendRef = generateVarRef(port)
-        // If the sending port is a multiport, index it.
-        if ((port.variable as Port).getWidthSpec() !== null && sendingChannelIndex >= 0) {
-            sendRef = sendRef + '[' + sendingChannelIndex + ']'
-        }
+        // FIXME: What about bank index?
+        var sendRef = generatePortRef(port, null, sendingChannelIndex);
         
         result.append('''
             // If the output port has not been SET for the current logical time,
