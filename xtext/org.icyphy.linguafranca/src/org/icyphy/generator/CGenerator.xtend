@@ -4193,12 +4193,8 @@ class CGenerator extends GeneratorBase {
             (receivingPort.variable as Port).type.id = "char*"
         }
 
-        val sendRef = generateVarRef(sendingPort)
-        var receiveRef = generateVarRef(receivingPort)
-        // If the receiving port is a multiport, index it.
-        if ((receivingPort.variable as Port).widthSpec !== null && receivingChannelIndex >= 0) {
-            receiveRef = receiveRef + '[' + receivingChannelIndex + ']'
-        }
+        val sendRef = generateVarRef(sendingPort) // Used for comments only, so no bank or multiport index.
+        var receiveRef = generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
         if (isFederatedAndDecentralized) {
             result.append('''
@@ -4262,12 +4258,8 @@ class CGenerator extends GeneratorBase {
         boolean isPhysical,
         Delay delay
     ) { 
-        var sendRef = generateVarRef(sendingPort)
-        // If the sending port is a multiport, index it.
-        if ((sendingPort.variable as Port).getWidthSpec() !== null && sendingChannelIndex >= 0) {
-            sendRef = sendRef + '[' + sendingChannelIndex + ']'
-        }
-        val receiveRef = generateVarRef(receivingPort)
+        var sendRef = generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
+        val receiveRef = generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         val result = new StringBuilder()
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
