@@ -282,8 +282,10 @@ int next() {
  * Stop execution at the conclusion of the next microstep.
  */
 void request_stop() {
-    stop_tag = current_tag;
-    stop_tag.microstep++;
+	tag_t new_stop_tag;
+	new_stop_tag.time = current_tag.time;
+	new_stop_tag.microstep = current_tag.microstep + 1;
+	_lf_set_stop_tag(new_stop_tag);
 }
 
 /**
