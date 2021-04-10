@@ -1238,11 +1238,12 @@ class CGenerator extends GeneratorBase {
             
             # Set a trap to kill all background jobs on error or control-C
             cleanup() {
-                echo "#### Received signal."
+                echo "#### Received signal. Invoking cleanup()."
                 printf "Killing federate %s.\n" ${pids[*]}
-                kill ${pids[@]}
+                # The || true clause means this is not an error if kill fails.
+                kill ${pids[@]} || true
                 printf "#### Killing RTI %s.\n" ${RTI}
-                kill ${RTI}
+                kill ${RTI} || true
                 exit 1
             }
             trap cleanup ERR
