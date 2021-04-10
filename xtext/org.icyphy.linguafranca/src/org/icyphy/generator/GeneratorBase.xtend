@@ -31,7 +31,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
-import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -460,7 +459,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def setResources(IGeneratorContext context) {
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
-        reactors.add(mainDef.reactorClass as Reactor)
+        if (mainDef !== null) {
+            reactors.add(mainDef.reactorClass as Reactor);
+        }
         // Iterate over reactors and mark their resources as tainted if they import resources that are either marked
         // as tainted or fail to validate.
         val tainted = newHashSet
@@ -1415,6 +1416,23 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var message = new StringBuilder()
         var lineNumber = null as Integer
         var resource = iResource // Default resource.
+        // For some peculiar reason known only to Eclipse developers,
+        // the resource cannot be used directly but has to be converted
+        // a resource relative to the workspace root.
+        val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+        // The following yields a java.net.URI, which,
+        // pathetically, cannot be distinguished in xtend from a org.eclipse.emf.common.util.URI.
+        val srcUri = fileConfig.srcFile.toURI();
+        if (srcUri !== null) {
+             // Pathetically, Eclipse requires a java.net.uri, not a org.eclipse.emf.common.util.URI.
+             val files = workspaceRoot.findFilesForLocationURI(srcUri);
+             if (files !== null && files.length > 0 && files.get(0) !== null) {
+                 resource = files.get(0)
+             }
+        }
+        // In case errors occur within an imported file, record the original resource.
+        val originalResource = resource;
+        
         var severity = IMarker.SEVERITY_ERROR
         for (line : lines) {
             val parsed = parseCommandOutput(line)
@@ -1423,7 +1441,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // If there is a previously accumulated message, report it.
                 if (message.length > 0) {
                     report(message.toString(), severity, lineNumber, resource)
-                    if (iResource != resource) {
+                    if (originalResource != resource) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
@@ -1432,7 +1450,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             "Error in imported file: " + resource.fullPath,
                             IMarker.SEVERITY_ERROR,
                             null,
-                            iResource
+                            originalResource
                         )
                     }
                 }
@@ -1456,10 +1474,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 }
                 // FIXME: Ignoring the position within the line.
                 // Determine the resource within which the error occurred.
-                val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
-                val uri = new URI(parsed.filepath)
+                val uri = new java.net.URI(parsed.filepath)
                 val files = workspaceRoot.findFilesForLocationURI(uri)
                 // No idea why there might be more than one file matching the URI,
                 // but Eclipse seems to think there might be. We will just use the
@@ -1469,7 +1486,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     lineNumber = null
                 } else if (files.get(0) != resource) {
                     // The resource has changed, which means that the error
-                    // occurred in imported code.
+                    // occurred in imported code or the resource is now
+                    // referenced relative to the project base directory
+                    // instead of the root of the file system.
                     resource = files.get(0)
                 }
             } else {
@@ -1481,12 +1500,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         severity = IMarker.SEVERITY_WARNING
                     }
                 }
-                message.append(line)
+                message.append(line);
             }
         }
         if (message.length > 0) {
             report(message.toString, severity, lineNumber, resource)
-            if (iResource != resource) {
+            if (originalResource != resource) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
@@ -1495,7 +1514,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     "Error in imported file: " + resource.fullPath,
                     IMarker.SEVERITY_ERROR,
                     null,
-                    iResource
+                    originalResource
                 )
             }
         }
@@ -1628,7 +1647,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = new URI("file:/" + FileConfig.toPathString(eResource))
+                    val uri = new java.net.URI("file:/" + FileConfig.toPathString(eResource))
                     val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                     val files = workspaceRoot.findFilesForLocationURI(uri)
                     if (files !== null && files.length > 0 && files.get(0) !== null) {
