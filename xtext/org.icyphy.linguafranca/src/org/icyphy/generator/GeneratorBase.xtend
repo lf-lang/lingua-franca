@@ -174,7 +174,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /**
      * A list of Reactor definitions in the main resource, including non-main 
-     * reactors defined in imported resources.
+     * reactors defined in imported resources. These are ordered in the list in
+     * such a way that each reactor is preceded by any reactor that it instantiates
+     * using a command like `foo = new Foo();`
      */
     protected var List<Reactor> reactors = newLinkedList
     
@@ -184,10 +186,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var Set<Resource> resources = newLinkedHashSet
     
     /**
-     * Graph that tracks dependencies between instantiations.
+     * Graph that tracks dependencies between instantiations. 
+     * This is a graph where each node is a Reactor (not a ReactorInstance)
+     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
+     * like `a = new A();`  After creating the graph, 
+     * sort the reactors in topological order and assign them to the reactors class variable. 
+     * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
+     * reactor is preceded in the list by reactors that it instantiates.
      */
     protected var InstantiationGraph instantiationGraph
-
 
     /**
      * The set of unordered reactions. An unordered reaction is one that does
@@ -417,10 +424,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
 
     /**
-     * Create a new instantiation graph (i.e., a graph with in it dependencies between reactor definitions, which exist
-     * between a reactor Foo that has a statement like `bar = new Bar()` and Bar, because Foo creates in instance of bar
-     * and therefore depends on it) and assign it to the instantiationGraph class variable. After creating the graph, 
+     * Create a new instantiation graph. This is a graph where each node is a Reactor (not a ReactorInstance)
+     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
+     * like `a = new A();`  After creating the graph, 
      * sort the reactors in topological order and assign them to the reactors class variable. 
+     * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
+     * reactor is preceded in the list by reactors that it instantiates.
      */
     protected def setReactorsAndInstantiationGraph() {
         // Build the instantiation graph . 
