@@ -139,6 +139,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     val delayClasses = new LinkedHashSet<Reactor>()
     
+    /**
+     * Set the fileConfig field to point to the specified resource using the specified
+     * file-system access and context.
+     * @param resource The resource (Eclipse-speak for a file).
+     * @param fsa The Xtext abstraction for the file system.
+     * @param context The generator context (whatever that is).
+     */
     def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         this.fileConfig = new FileConfig(resource, fsa, context);
         this.topLevelName = fileConfig.name
@@ -342,6 +349,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
 
+    /**
+     * If there is a main or federated reactor, then create a synthetic Instantiation
+     * for that top-level reactor and set the field mainDef to refer to it.
+     */
     def createMainInstance() {
         // Find the main reactor and create an AST node for its instantiation.
         for (reactor : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
@@ -2161,6 +2172,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /**
      * Determine which mode the compiler is running in.
+     * Integrated mode means that it is running within an Eclipse IDE.
+     * Standalone mode means that it is running on the command line.
      */
     private def setMode() {
         val resource = fileConfig.resource
@@ -2174,6 +2187,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
 
+    /**
+     * Print to stdout information about what source file is being generated,
+     * what mode the generator is in, and where the generated sources are to be put.
+     */
     def printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
         println('******** mode: ' + mode)
