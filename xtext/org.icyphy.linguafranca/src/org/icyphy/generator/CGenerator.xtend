@@ -36,6 +36,7 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
 import java.util.regex.Pattern
+import org.eclipse.emf.common.CommonPlugin
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -749,7 +750,8 @@ class CGenerator extends GeneratorBase {
                 if (!runCCompiler(topLevelName, true)) {
                     compilationSucceeded = false
                 }
-                writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
+                // FIXME FIXME
+                // writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
             }
         }
         // Restore the base filename.
@@ -5208,7 +5210,10 @@ class CGenerator extends GeneratorBase {
             if (eObject instanceof Code) {
                 offset += 1
             }
-            pr(output, "#line " + (node.getStartLine() + offset) + ' "' + FileConfig.toFileURI(fileConfig.srcFile) + '"')
+            // Extract the filename from eResource, an astonishingly difficult thing to do.
+            val resolvedURI = CommonPlugin.resolve(eObject.eResource.URI)
+            // pr(output, "#line " + (node.getStartLine() + offset) + ' "' + FileConfig.toFileURI(fileConfig.srcFile) + '"')
+            pr(output, "#line " + (node.getStartLine() + offset) + ' "' + resolvedURI + '"')
         }
     }
 
