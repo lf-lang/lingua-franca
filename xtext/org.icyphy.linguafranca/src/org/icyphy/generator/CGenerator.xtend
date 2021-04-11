@@ -357,12 +357,21 @@ class CGenerator extends GeneratorBase {
         // Generate code for each reactor.
         val names = newLinkedHashSet
         for (r : reactors) {
-            for (d : this.instantiationGraph.getDeclarations(r)) {
+            // Get the declarations for reactors that are instantiated somewhere.
+            // A declaration is either a reactor definition or an import statement.
+            val declarations = this.instantiationGraph.getDeclarations(r);
+            for (d : declarations) {
                 if (!names.add(d.name)) {
                     // Report duplicate declaration.
                     reportError("Multiple declarations for reactor class '" + d.name + "'.")
                 }
-                d.generateReactorFederated(null)
+                generateReactorFederated(d, null)
+            }
+            // If the reactor has no instantiations and there is no main reactor, then
+            // generate code for it anyway (at a minimum, this means that the compiler is invoked
+            // so that reaction bodies are checked).
+            if (mainDef === null && declarations.isEmpty()) {
+                generateReactorFederated(r, null)
             }
         }
         
@@ -398,14 +407,20 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_macos_support.c")            
             coreFiles.add("platform/lf_macos_support.h")
-            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_macos_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            if (mainDef !== null) {
+                targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_macos_support.c")
+            }
         } else if (OS.indexOf("win") >= 0) {
             // Windows support
             coreFiles.add("platform/lf_C11_threads_support.c")
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_windows_support.c")
             coreFiles.add("platform/lf_windows_support.h")
-            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_windows_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            if (mainDef !== null) {
+                targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_windows_support.c")
+            }
         } else if (OS.indexOf("nux") >= 0) {
             // Linux support
             coreFiles.add("platform/lf_POSIX_threads_support.c")
@@ -414,7 +429,10 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_linux_support.c")
             coreFiles.add("platform/lf_linux_support.h")
-            targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_linux_support.c")
+            // If there is no main reactor, then compilation will produce a .o file requiring further linking.
+            if (mainDef !== null) {
+                targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_linux_support.c")
+            }
         } else {
             reportError("Platform " + OS + " is not supported")
         }
