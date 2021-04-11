@@ -77,7 +77,8 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
     }
     
     /**
-     * Return the instantiations that point to a given reactor definition.
+     * Return the declarations that point to a given reactor definition.
+     * A declaration is either a reactor definition or an import statement.
      */
     def Set<ReactorDecl> getDeclarations(Reactor definition) {
         return this.reactorToDecl.get(definition)
