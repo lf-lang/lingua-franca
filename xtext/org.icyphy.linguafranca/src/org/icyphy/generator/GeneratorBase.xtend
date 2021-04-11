@@ -31,7 +31,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
-import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -145,6 +144,13 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     val delayClasses = new LinkedHashSet<Reactor>()
     
+    /**
+     * Set the fileConfig field to point to the specified resource using the specified
+     * file-system access and context.
+     * @param resource The resource (Eclipse-speak for a file).
+     * @param fsa The Xtext abstraction for the file system.
+     * @param context The generator context (whatever that is).
+     */
     def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         this.fileConfig = new FileConfig(resource, fsa, context);
         this.topLevelName = fileConfig.name
@@ -174,7 +180,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /**
      * A list of Reactor definitions in the main resource, including non-main 
-     * reactors defined in imported resources.
+     * reactors defined in imported resources. These are ordered in the list in
+     * such a way that each reactor is preceded by any reactor that it instantiates
+     * using a command like `foo = new Foo();`
      */
     protected var List<Reactor> reactors = newLinkedList
     
@@ -184,10 +192,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected var Set<Resource> resources = newLinkedHashSet
     
     /**
-     * Graph that tracks dependencies between instantiations.
+     * Graph that tracks dependencies between instantiations. 
+     * This is a graph where each node is a Reactor (not a ReactorInstance)
+     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
+     * like `a = new A();`  After creating the graph, 
+     * sort the reactors in topological order and assign them to the reactors class variable. 
+     * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
+     * reactor is preceded in the list by reactors that it instantiates.
      */
     protected var InstantiationGraph instantiationGraph
-
 
     /**
      * The set of unordered reactions. An unordered reaction is one that does
@@ -337,6 +350,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
 
+    /**
+     * If there is a main or federated reactor, then create a synthetic Instantiation
+     * for that top-level reactor and set the field mainDef to refer to it.
+     */
     def createMainInstance() {
         // Find the main reactor and create an AST node for its instantiation.
         for (reactor : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
@@ -418,10 +435,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     }
 
     /**
-     * Create a new instantiation graph (i.e., a graph with in it dependencies between reactor definitions, which exist
-     * between a reactor Foo that has a statement like `bar = new Bar()` and Bar, because Foo creates in instance of bar
-     * and therefore depends on it) and assign it to the instantiationGraph class variable. After creating the graph, 
+     * Create a new instantiation graph. This is a graph where each node is a Reactor (not a ReactorInstance)
+     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
+     * like `a = new A();`  After creating the graph, 
      * sort the reactors in topological order and assign them to the reactors class variable. 
+     * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
+     * reactor is preceded in the list by reactors that it instantiates.
      */
     protected def setReactorsAndInstantiationGraph() {
         // Build the instantiation graph . 
@@ -433,6 +452,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // the definition of `Foo`.
         this.reactors = this.instantiationGraph.nodesInTopologicalOrder
 
+        // If there is no main reactor, then make sure the reactors list includes
+        // even reactors that are not instantiated anywhere.
+        if (mainDef === null) {
+            for (r : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
+                if (!this.reactors.contains(r)) {
+                    this.reactors.add(r);
+                }
+            }
+        }
     }
 
     /**
@@ -452,7 +480,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      */
     protected def setResources(IGeneratorContext context) {
         val validator = (this.fileConfig.resource as XtextResource).resourceServiceProvider.resourceValidator
-        reactors.add(mainDef.reactorClass as Reactor)
+        if (mainDef !== null) {
+            reactors.add(mainDef.reactorClass as Reactor);
+        }
         // Iterate over reactors and mark their resources as tainted if they import resources that are either marked
         // as tainted or fail to validate.
         val tainted = newHashSet
@@ -882,6 +912,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var relSrcPathString = FileConfig.toUnixPath(relativeSrcPath)
         var relBinPathString = FileConfig.toUnixPath(relativeBinPath)
         
+        // If there is no main reactor, then generate a .o file not an executable.
+        if (mainDef === null) {
+            relBinPathString += ".o";
+        }
+        
         var compileArgs = newArrayList
         compileArgs.add(relSrcPathString)
         compileArgs.addAll(targetConfig.compileAdditionalSources)
@@ -931,6 +966,35 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def clearCode() {
         code = new StringBuilder
     }
+    
+    /**
+     * Get the specified file as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
+     * system, and when running in INTEGRATED mode, for some things, you cannot access
+     * files by referring to their file system location. Instead, you have to refer
+     * to them relative the workspace root. This is required, for example, when marking
+     * the file with errors or warnings or when deleting those marks. 
+     * 
+     * @param uri A java.net.uri of the form "file://path".
+     */
+    protected def getEclipseResource(java.net.URI uri) {
+        var resource = iResource // Default resource.
+        // For some peculiar reason known only to Eclipse developers,
+        // the resource cannot be used directly but has to be converted
+        // a resource relative to the workspace root.
+        val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+        // The following uses a java.net.URI, which,
+        // pathetically, cannot be distinguished in xtend from a org.eclipse.emf.common.util.URI.
+        if (uri !== null) {
+             // Pathetically, Eclipse requires a java.net.uri, not a org.eclipse.emf.common.util.URI.
+             val files = workspaceRoot.findFilesForLocationURI(uri);
+             if (files !== null && files.length > 0 && files.get(0) !== null) {
+                 resource = files.get(0)
+             }
+        }
+        return resource;
+    }
 
     /**
      * Clear markers in the IDE if running in integrated mode.
@@ -941,11 +1005,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def clearMarkers() {
         if (mode == Mode.INTEGRATED) {
             try {
-                iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(
-                FileConfig.toIPath(fileConfig.resource.URI))
+                val resource = getEclipseResource(fileConfig.srcFile.toURI());
                 // First argument can be null to delete all markers.
                 // But will that delete xtext markers too?
-                iResource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
+                resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
             } catch (Exception e) {
                 // Ignore, but print a warning.
                 println("Warning: Deleting markers in the IDE failed: " + e)
@@ -1484,7 +1547,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Parse the specified string for command errors that can be reported
      * using marks in the Eclipse IDE. In this class, we attempt to parse
      * the messages to look for file and line information, thereby generating
-     * marks on the appropriate lines.
+     * marks on the appropriate lines.  This should only be called if
+     * mode == INTEGRATED.
+     * 
      * @param stderr The output on standard error of executing a command.
      */
     protected def reportCommandErrors(String stderr) {
@@ -1492,7 +1557,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
         var lineNumber = null as Integer
-        var resource = iResource // Default resource.
+        var resource = getEclipseResource(fileConfig.srcFile.toURI());
+        // In case errors occur within an imported file, record the original resource.
+        val originalResource = resource;
+        
         var severity = IMarker.SEVERITY_ERROR
         for (line : lines) {
             val parsed = parseCommandOutput(line)
@@ -1501,7 +1569,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // If there is a previously accumulated message, report it.
                 if (message.length > 0) {
                     report(message.toString(), severity, lineNumber, resource)
-                    if (iResource != resource) {
+                    if (originalResource != resource) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
@@ -1510,7 +1578,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             "Error in imported file: " + resource.fullPath,
                             IMarker.SEVERITY_ERROR,
                             null,
-                            iResource
+                            originalResource
                         )
                     }
                 }
@@ -1534,22 +1602,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 }
                 // FIXME: Ignoring the position within the line.
                 // Determine the resource within which the error occurred.
-                val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
-                val uri = new URI(parsed.filepath)
-                val files = workspaceRoot.findFilesForLocationURI(uri)
-                // No idea why there might be more than one file matching the URI,
-                // but Eclipse seems to think there might be. We will just use the
-                // first one. If there is no such file, then reset the line to
-                // unknown and keep the resource as before.
-                if (files === null || files.length === 0 || files.get(0) === null) {
-                    lineNumber = null
-                } else if (files.get(0) != resource) {
-                    // The resource has changed, which means that the error
-                    // occurred in imported code.
-                    resource = files.get(0)
-                }
+                val uri = new java.net.URI(parsed.filepath);
+                resource = getEclipseResource(uri);
             } else {
                 // No line designator.
                 if (message.length > 0) {
@@ -1559,12 +1615,12 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                         severity = IMarker.SEVERITY_WARNING
                     }
                 }
-                message.append(line)
+                message.append(line);
             }
         }
         if (message.length > 0) {
             report(message.toString, severity, lineNumber, resource)
-            if (iResource != resource) {
+            if (originalResource != resource) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
@@ -1573,7 +1629,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                     "Error in imported file: " + resource.fullPath,
                     IMarker.SEVERITY_ERROR,
                     null,
-                    iResource
+                    originalResource
                 )
             }
         }
@@ -1706,12 +1762,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = new URI("file:/" + FileConfig.toPathString(eResource))
-                    val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
-                    val files = workspaceRoot.findFilesForLocationURI(uri)
-                    if (files !== null && files.length > 0 && files.get(0) !== null) {
-                        myResource = files.get(0)
-                    }
+                    val uri = new java.net.URI("file:/" + FileConfig.toPathString(eResource));
+                    myResource = getEclipseResource(uri);
                 }
             }
             // If the resource is still null, use the resource associated with
@@ -2190,7 +2242,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             }
                         }
                     }
-//>>>>>>> master
                 }
                 // To avoid concurrent modification exception, collect a list
                 // of connections to remove.
@@ -2205,6 +2256,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
 
     /**
      * Determine which mode the compiler is running in.
+     * Integrated mode means that it is running within an Eclipse IDE.
+     * Standalone mode means that it is running on the command line.
      */
     private def setMode() {
         val resource = fileConfig.resource
@@ -2218,6 +2271,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         }
     }
 
+    /**
+     * Print to stdout information about what source file is being generated,
+     * what mode the generator is in, and where the generated sources are to be put.
+     */
     def printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
         println('******** mode: ' + mode)

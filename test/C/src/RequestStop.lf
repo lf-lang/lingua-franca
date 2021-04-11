@@ -1,0 +1,11 @@
+// Test verifying that request_stop() called in a shutdown reaction is ignored.
+target C;
+main reactor {
+    reaction(shutdown) {=
+        tag_t current_time = get_current_tag();
+        info_print("Shutdown invoked at tag (%lld, %d). Calling request_stop(), which should have no effect.",
+            current_tag.time - get_start_time(), current_tag.microstep
+        );
+        request_stop();
+    =}
+}

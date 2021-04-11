@@ -39,7 +39,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import java.util.List
 
 /**
- * A graph with vertices that are instantiations and edges that denote
+ * A graph with vertices that are Reactors (not ReactorInstances) and edges that denote
  * dependencies between them. A "dependency" from reactor class A to 
  * reactor class B (A depends on B) means that A instantiates within 
  * it at least one instance of B. Note that there a potentially 
@@ -48,6 +48,10 @@ import java.util.List
  * "instantiation" is an AST node representing a statement like
  * `a = new A();`. This can result in many instances of reactor 
  * class A (if the containing reactor class is instantiated multiple times).
+ * 
+ * In addition to the graph, this class keeps track of the instantiations
+ * that induce the dependencies. These can be retrieved using the method
+ * `getInstantiations(Reactor)`.
  * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
@@ -73,7 +77,8 @@ class InstantiationGraph extends PrecedenceGraph<Reactor> {
     }
     
     /**
-     * Return the instantiations that point to a given reactor definition.
+     * Return the declarations that point to a given reactor definition.
+     * A declaration is either a reactor definition or an import statement.
      */
     def Set<ReactorDecl> getDeclarations(Reactor definition) {
         return this.reactorToDecl.get(definition)
