@@ -451,6 +451,15 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         // the definition of `Foo`.
         this.reactors = this.instantiationGraph.nodesInTopologicalOrder
 
+        // If there is no main reactor, then make sure the reactors list includes
+        // even reactors that are not instantiated anywhere.
+        if (mainDef === null) {
+            for (r : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
+                if (!this.reactors.contains(r)) {
+                    this.reactors.add(r);
+                }
+            }
+        }
     }
 
     /**
@@ -873,6 +882,11 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var relSrcPathString = FileConfig.toUnixPath(relativeSrcPath)
         var relBinPathString = FileConfig.toUnixPath(relativeBinPath)
         
+        // If there is no main reactor, then generate a .o file not an executable.
+        if (mainDef === null) {
+            relBinPathString += ".o";
+        }
+        
         var compileArgs = newArrayList
         compileArgs.add(relSrcPathString)
         compileArgs.addAll(targetConfig.compileAdditionalSources)
@@ -922,6 +936,35 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def clearCode() {
         code = new StringBuilder
     }
+    
+    /**
+     * Get the specified file as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
+     * system, and when running in INTEGRATED mode, for some things, you cannot access
+     * files by referring to their file system location. Instead, you have to refer
+     * to them relative the workspace root. This is required, for example, when marking
+     * the file with errors or warnings or when deleting those marks. 
+     * 
+     * @param uri A java.net.uri of the form "file://path".
+     */
+    protected def getEclipseResource(java.net.URI uri) {
+        var resource = iResource // Default resource.
+        // For some peculiar reason known only to Eclipse developers,
+        // the resource cannot be used directly but has to be converted
+        // a resource relative to the workspace root.
+        val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+        // The following uses a java.net.URI, which,
+        // pathetically, cannot be distinguished in xtend from a org.eclipse.emf.common.util.URI.
+        if (uri !== null) {
+             // Pathetically, Eclipse requires a java.net.uri, not a org.eclipse.emf.common.util.URI.
+             val files = workspaceRoot.findFilesForLocationURI(uri);
+             if (files !== null && files.length > 0 && files.get(0) !== null) {
+                 resource = files.get(0)
+             }
+        }
+        return resource;
+    }
 
     /**
      * Clear markers in the IDE if running in integrated mode.
@@ -932,11 +975,10 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
     protected def clearMarkers() {
         if (mode == Mode.INTEGRATED) {
             try {
-                iResource = ResourcesPlugin.getWorkspace().getRoot().getFile(
-                FileConfig.toIPath(fileConfig.resource.URI))
+                val resource = getEclipseResource(fileConfig.srcFile.toURI());
                 // First argument can be null to delete all markers.
                 // But will that delete xtext markers too?
-                iResource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
+                resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
             } catch (Exception e) {
                 // Ignore, but print a warning.
                 println("Warning: Deleting markers in the IDE failed: " + e)
@@ -1418,7 +1460,9 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * Parse the specified string for command errors that can be reported
      * using marks in the Eclipse IDE. In this class, we attempt to parse
      * the messages to look for file and line information, thereby generating
-     * marks on the appropriate lines.
+     * marks on the appropriate lines.  This should only be called if
+     * mode == INTEGRATED.
+     * 
      * @param stderr The output on standard error of executing a command.
      */
     protected def reportCommandErrors(String stderr) {
@@ -1426,21 +1470,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
         var lineNumber = null as Integer
-        var resource = iResource // Default resource.
-        // For some peculiar reason known only to Eclipse developers,
-        // the resource cannot be used directly but has to be converted
-        // a resource relative to the workspace root.
-        val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-        // The following yields a java.net.URI, which,
-        // pathetically, cannot be distinguished in xtend from a org.eclipse.emf.common.util.URI.
-        val srcUri = fileConfig.srcFile.toURI();
-        if (srcUri !== null) {
-             // Pathetically, Eclipse requires a java.net.uri, not a org.eclipse.emf.common.util.URI.
-             val files = workspaceRoot.findFilesForLocationURI(srcUri);
-             if (files !== null && files.length > 0 && files.get(0) !== null) {
-                 resource = files.get(0)
-             }
-        }
+        var resource = getEclipseResource(fileConfig.srcFile.toURI());
         // In case errors occur within an imported file, record the original resource.
         val originalResource = resource;
         
@@ -1487,21 +1517,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Determine the resource within which the error occurred.
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
-                val uri = new java.net.URI(parsed.filepath)
-                val files = workspaceRoot.findFilesForLocationURI(uri)
-                // No idea why there might be more than one file matching the URI,
-                // but Eclipse seems to think there might be. We will just use the
-                // first one. If there is no such file, then reset the line to
-                // unknown and keep the resource as before.
-                if (files === null || files.length === 0 || files.get(0) === null) {
-                    lineNumber = null
-                } else if (files.get(0) != resource) {
-                    // The resource has changed, which means that the error
-                    // occurred in imported code or the resource is now
-                    // referenced relative to the project base directory
-                    // instead of the root of the file system.
-                    resource = files.get(0)
-                }
+                val uri = new java.net.URI(parsed.filepath);
+                resource = getEclipseResource(uri);
             } else {
                 // No line designator.
                 if (message.length > 0) {
@@ -1658,12 +1675,8 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = new java.net.URI("file:/" + FileConfig.toPathString(eResource))
-                    val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot()
-                    val files = workspaceRoot.findFilesForLocationURI(uri)
-                    if (files !== null && files.length > 0 && files.get(0) !== null) {
-                        myResource = files.get(0)
-                    }
+                    val uri = new java.net.URI("file:/" + FileConfig.toPathString(eResource));
+                    myResource = getEclipseResource(uri);
                 }
             }
             // If the resource is still null, use the resource associated with
@@ -2157,7 +2170,6 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                             }
                         }
                     }
-//>>>>>>> master
                 }
                 // To avoid concurrent modification exception, collect a list
                 // of connections to remove.
