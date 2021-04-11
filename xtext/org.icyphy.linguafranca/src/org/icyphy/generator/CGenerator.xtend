@@ -750,8 +750,7 @@ class CGenerator extends GeneratorBase {
                 if (!runCCompiler(topLevelName, true)) {
                     compilationSucceeded = false
                 }
-                // FIXME FIXME
-                // writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
+                writeSourceCodeToFile(getCode.removeLineDirectives.getBytes(), targetFile)
             }
         }
         // Restore the base filename.
