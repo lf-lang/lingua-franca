@@ -150,7 +150,7 @@ tag_t get_current_tag();
 /**
  * Return the current microstep.
  */
-unsigned int get_microstep();
+microstep_t get_microstep();
 
 /**
  * Global physical clock offset.
@@ -203,7 +203,7 @@ instant_t get_elapsed_physical_time();
 void set_physical_clock_offset(interval_t offset);
 
 /**
- * Return the physical time of the start of execution in nanoseconds.
+ * Return the physical and logical time of the start of execution in nanoseconds.
  * On many platforms, this is the number of nanoseconds
  * since January 1, 1970, but it is actually platform dependent. 
  * @return A time instant.

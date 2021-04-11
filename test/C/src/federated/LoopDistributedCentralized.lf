@@ -9,7 +9,8 @@ target C {
     coordination: centralized,
     coordination-options: {advance-message-interval: 100 msec}, 
     threads: 2,
-    timeout: 5 sec
+    timeout: 5 sec,
+    logging: LOG
 }
 preamble {=
     #include <unistd.h> // Defines sleep()
