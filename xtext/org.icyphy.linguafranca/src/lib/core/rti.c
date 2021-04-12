@@ -266,13 +266,13 @@ void handle_port_absent_message(federate_t* sending_federate, unsigned char* buf
                             " RTI failed ot read port absent message from federate %u.", 
                             sending_federate->id);
 
-    unsigned short port_id = extract_ushort(&(buffer[1]));
-    unsigned short federate_id = extract_ushort(&(buffer[1 + sizeof(unsigned short)]));
-
     // Need to acquire the mutex lock to ensure that the thread handling
     // messages coming from the socket connected to the destination does not
     // issue a TAG before this message has been forwarded.
     pthread_mutex_lock(&rti_mutex);
+
+    unsigned short port_id = extract_ushort(&(buffer[1]));
+    unsigned short federate_id = extract_ushort(&(buffer[1 + sizeof(unsigned short)]));
 
     // If the destination federate is no longer connected, issue a warning
     // and return.
