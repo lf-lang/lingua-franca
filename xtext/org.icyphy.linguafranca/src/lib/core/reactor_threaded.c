@@ -958,8 +958,7 @@ void _lf_initialize_start_tag() {
     // Insert network dependant reactions for network input ports into
     // the reaction queue to prevent reactions from executing at (0,0)
     // incorrectly.
-    enqueue_network_input_control_reactions(reaction_q);
-    enqueue_network_output_control_reactions(reaction_q);
+    enqueue_network_control_reactions(reaction_q);
 #endif
 
 #ifdef FEDERATED_DECENTRALIZED
