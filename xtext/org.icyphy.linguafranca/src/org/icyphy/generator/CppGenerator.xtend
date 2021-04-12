@@ -979,7 +979,8 @@ class CppGenerator extends GeneratorBase {
         endif()
         
         if (APPLE)
-          set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
+          file(RELATIVE_PATH REL_LIB_PATH "${REACTOR_CPP_BIN_DIR}" "${REACTOR_CPP_LIB_DIR}")
+          set(CMAKE_INSTALL_RPATH "@executable_path/${REL_LIB_PATH}")
         else ()
           set(CMAKE_INSTALL_RPATH "${REACTOR_CPP_LIB_DIR}")
         endif ()
