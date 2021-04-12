@@ -117,9 +117,9 @@ class CppGenerator extends GeneratorBase {
         println('******** generated binaries: ' + fileConfig.binPath)
     }
 
-    def preambleHeaderFile(Resource r) '''«r.toDir»/preamble.hh'''
+    def preambleHeaderFile(Resource r) '''«r.toDir»/_lf_preamble.hh'''
 
-    def preambleSourceFile(Resource r) '''«r.toDir»/preamble.cc'''
+    def preambleSourceFile(Resource r) '''«r.toDir»/_lf_preamble.cc'''
 
     def headerFile(Reactor r) '''«r.eResource.toDir»/«r.name».hh'''
 
