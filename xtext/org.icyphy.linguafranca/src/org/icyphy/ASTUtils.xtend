@@ -542,6 +542,7 @@ class ASTUtils {
                 connection.leftPorts.get(0), 
                 leftFederate,
                 receivingPortID,
+                leftBankIndex,
                 leftChannelIndex,
                 rightFederate.id,
                 generator
