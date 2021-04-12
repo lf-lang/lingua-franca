@@ -954,6 +954,7 @@ class CppGenerator extends GeneratorBase {
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+            -DCMAKE_INSTALL_BINDIR:PATH=${CMAKE_INSTALL_BINDIR}
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
             -DREACTOR_CPP_VALIDATE=«IF targetConfig.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
             -DREACTOR_CPP_TRACE=«IF targetConfig.tracing !== null»ON«ELSE»OFF«ENDIF»
@@ -1002,7 +1003,7 @@ class CppGenerator extends GeneratorBase {
         )
         target_link_libraries(«topLevelName» reactor-cpp)
         
-        install(TARGETS «topLevelName» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+        install(TARGETS «topLevelName»)
         
         «IF !targetConfig.cmakeInclude.isNullOrEmpty»
             include("«topLevelName»/«targetConfig.cmakeInclude»")
