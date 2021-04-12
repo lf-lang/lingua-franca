@@ -104,7 +104,7 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
             }
             return more;
         } else if (more == 0) {
-            info_print("Peer sent EOF on socket %d.", socket);
+            info_print("Received EOF on socket %d.", socket);
             if (format != NULL) {
                 close(socket);
                 error_print_and_exit(format, args);
