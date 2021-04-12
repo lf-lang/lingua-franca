@@ -996,7 +996,8 @@ void handle_port_absent_message(int socket, int fed_id) {
     }
     // Extract the header information.
     unsigned short port_id = extract_ushort(buffer);
-    unsigned short federate_id = extract_ushort(&(buffer[sizeof(ushort)]));
+    // The next part of the message is the federate_id, but we don't need it.
+    // unsigned short federate_id = extract_ushort(&(buffer[sizeof(ushort)]));
     tag_t intended_tag;
     intended_tag.time = extract_ll(&(buffer[sizeof(ushort)+sizeof(ushort)]));
     intended_tag.microstep = extract_int(&(buffer[sizeof(ushort)+sizeof(ushort)+sizeof(instant_t)])); 
