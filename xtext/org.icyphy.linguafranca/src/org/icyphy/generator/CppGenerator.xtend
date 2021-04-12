@@ -108,8 +108,15 @@ class CppGenerator extends GeneratorBase {
     /** Path to the Cpp lib directory (relative to class path)  */
     val libDir = "/lib/Cpp"
 
+    /** Get a target path representing a source file
+     *
+     * For instance a resource pointing to file foo/bar/baz.lf is represented by the target path foo/bar/baz.
+     */
     def toDir(Resource r) {
-        r.toPathString.getFilename // FIXME: do not convert to string first.
+        val resourcePath = r.toPath
+        val fileName = resourcePath.fileName.toFile().nameWithoutExtension
+        val subPkgPath = getSubPkgPath(fileConfig.srcPkgPath, resourcePath.parent)
+        return subPkgPath.resolve(fileName)
     }
 
     override printInfo() {
@@ -117,15 +124,15 @@ class CppGenerator extends GeneratorBase {
         println('******** generated binaries: ' + fileConfig.binPath)
     }
 
-    def preambleHeaderFile(Resource r) '''«r.toDir»/_lf_preamble.hh'''
+    def preambleHeaderFile(Resource r) { r.toDir.resolve("_lf_preamble.hh") }
 
-    def preambleSourceFile(Resource r) '''«r.toDir»/_lf_preamble.cc'''
+    def preambleSourceFile(Resource r) { r.toDir.resolve("_lf_preamble.cc") }
 
-    def headerFile(Reactor r) '''«r.eResource.toDir»/«r.name».hh'''
+    def headerFile(Reactor r) { r.eResource.toDir.resolve('''«r.name».hh''') }
 
-    def headerImplFile(Reactor r) '''«r.eResource.toDir»/«r.name»_impl.hh'''
+    def headerImplFile(Reactor r) { r.eResource.toDir.resolve('''«r.name»_impl.hh''') }
 
-    def sourceFile(Reactor r) '''«r.eResource.toDir»/«r.name».cc'''
+    def sourceFile(Reactor r) { r.eResource.toDir.resolve('''«r.name».cc''') }
 
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
@@ -141,32 +148,28 @@ class CppGenerator extends GeneratorBase {
             return
         }
 
-        val relativePath = this.fileConfig.srcGenBasePath.relativize(this.fileConfig.getSrcGenPath);
+        val srcGenPath = this.fileConfig.getSrcGenPath();
+        val relSrcGenPath = this.fileConfig.srcGenBasePath.relativize(srcGenPath);
 
-        fsa.generateFile('''«relativePath»/main.cc''',
-            mainReactor.generateMain)
-        fsa.generateFile('''«relativePath»/CMakeLists.txt''',
-            generateCmake)
-        copyFileFromClassPath('''«libDir»/lfutil.hh''',
-            fsa.getAbsolutePath('''/«relativePath»/__include__/lfutil.hh'''))
-        copyFileFromClassPath('''«libDir»/time_parser.hh''',
-            fsa.getAbsolutePath('''/«relativePath»/__include__/time_parser.hh'''))
-        copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''',
-            fsa.getAbsolutePath('''/«relativePath»/__include__/CLI/CLI11.hpp'''))
+        fsa.generateFile(relSrcGenPath.resolve("main.cc").toString(), mainReactor.generateMain)
+        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), generateCmake)
+        val genIncludeDir = srcGenPath.resolve("__include__")
+        copyFileFromClassPath('''«libDir»/lfutil.hh''', genIncludeDir.resolve("lfutil.hh").toString)
+        copyFileFromClassPath('''«libDir»/time_parser.hh''', genIncludeDir.resolve("time_parser.hh").toString)
+        copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''', 
+            genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString
+        )
 
         for (r : reactors) {
-            fsa.generateFile('''«relativePath»/«r.toDefinition.headerFile»''',
+            fsa.generateFile(relSrcGenPath.resolve(r.toDefinition.headerFile).toString(),
                 r.toDefinition.generateReactorHeader)
             val implFile = r.toDefinition.isGeneric ? r.toDefinition.headerImplFile : r.toDefinition.sourceFile
-            fsa.generateFile('''«relativePath»/«implFile»''',
-                r.toDefinition.generateReactorSource)
+            fsa.generateFile(relSrcGenPath.resolve(implFile).toString(), r.toDefinition.generateReactorSource)
         }
         
         for (r : this.resources ?: emptyList) {
-            fsa.generateFile('''«relativePath»/«r.preambleSourceFile»''',
-                r.generatePreambleSource)
-            fsa.generateFile('''«relativePath»/«r.preambleHeaderFile»''',
-                r.generatePreambleHeader)
+            fsa.generateFile(relSrcGenPath.resolve(r.preambleSourceFile).toString(), r.generatePreambleSource)
+            fsa.generateFile(relSrcGenPath.resolve(r.preambleHeaderFile).toString(), r.generatePreambleHeader)
         }
 
         if (!targetConfig.noCompile && !errorsOccurred()) {

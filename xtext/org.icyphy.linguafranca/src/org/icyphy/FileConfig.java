@@ -255,7 +255,7 @@ public class FileConfig {
      * @param srcPath The path to the source.
      * @return
      */
-    private static Path getSubPkgPath(Path pkgPath, Path srcPath) {
+    public static Path getSubPkgPath(Path pkgPath, Path srcPath) {
         Path relSrcPath = pkgPath.relativize(srcPath);
         if (relSrcPath.startsWith(DEFAULT_SRC_DIR)) {
             int segments = relSrcPath.getNameCount(); 
@@ -346,6 +346,14 @@ public class FileConfig {
      */
     public static Path toPath(URI uri) throws IOException {
         return Paths.get(toIPath(uri).toFile().getAbsolutePath());
+    }
+
+    /**
+     * Return a java.nio.Path object corresponding to the given Resource.
+     * @throws IOException 
+     */
+    public static Path toPath(Resource resource) throws IOException {
+        return FileConfig.toPath(resource.getURI());
     }
     
     public static String toPathString(URI uri) throws IOException { // FIXME: maybe not even have this?
