@@ -51,12 +51,12 @@ import org.icyphy.linguaFranca.Variable;
  * @author Soroush Bateni {soroush@utdallas.edu}
  *
  */
-public class ASTUtils {
+public class FedASTUtils {
 
     /**
      * Return a null-safe List
      * 
-     * @param <E>
+     * @param <E> The type of the list
      * @param list The potentially null List
      * @return Empty list or the original list
      */
