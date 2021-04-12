@@ -4527,18 +4527,20 @@ class CGenerator extends GeneratorBase {
      * @param port The port to generate the control reaction for
      * @param portID The ID assigned to the port in the AST transformation
      * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
      * @param sendingChannelIndex The channel if a multiport
      */
     override generateNetworkOutputControlReactionBody(
         VarRef port,
         int portID,
         int receivingFederateID,
+        int sendingBankIndex,
         int sendingChannelIndex
     ) {
         // Store the code
         val result = new StringBuilder();
         // FIXME: What about bank index?
-        var sendRef = generatePortRef(port, null, sendingChannelIndex);
+        var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
         
         result.append('''
             // If the output port has not been SET for the current logical time,

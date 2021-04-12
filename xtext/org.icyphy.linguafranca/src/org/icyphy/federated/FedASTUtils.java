@@ -72,12 +72,12 @@ public class FedASTUtils {
      * 
      * @note Used in federated execution
      * 
-     * @input portRef The input port
-     * @input instance The federate instance is used to keep track of all
+     * @param portRef The input port
+     * @param instance The federate instance is used to keep track of all
      *  network input ports globally
-     * @input generator The GeneratorBase instance used to identify certain
+     * @param generator The GeneratorBase instance used to identify certain
      *  target properties
-     * @input isTopLevel indicates whether this reaction is being produced in the top-level
+     * @param isTopLevel indicates whether this reaction is being produced in the top-level
      *  federated reactor or not
      */
     public static void addNetworkInputControlReaction(VarRef portRef, int recevingPortID, Reactor reactor,
@@ -236,18 +236,25 @@ public class FedASTUtils {
      * 
      * @note Used in federated execution
      * 
-     * @input portRef The output port
-     * @input instance The federate instance is used to keep track of all
+     * @param portRef The output port
+     * @param instance The federate instance is used to keep track of all
      *        network input ports globally
-     * @input receivingPortID The ID of the receiving port
-     * @input channelIndex The channel index of the sending port, if it is a multiport.
-     * @input receivingFedID The ID of destination federate.
-     * @input generator The GeneratorBase instance used to identify certain
+     * @param receivingPortID The ID of the receiving port
+     * @param channelIndex The channel index of the sending port, if it is a multiport.
+     * @param bankIndex The bank index of the sending federate, if it is a bank.
+     * @param receivingFedID The ID of destination federate.
+     * @param generator The GeneratorBase instance used to identify certain
      *        target properties
      */
-    public static void addNetworkOutputControlReaction(VarRef portRef,
-            FederateInstance instance, int receivingPortID, int channelIndex, int receivingFedID,
-            GeneratorBase generator) {
+    public static void addNetworkOutputControlReaction(
+            VarRef portRef,
+            FederateInstance instance,
+            int receivingPortID, 
+            int channelIndex, 
+            int bankIndex, 
+            int receivingFedID,
+            GeneratorBase generator
+    ) {
         LinguaFrancaFactory factory = LinguaFrancaFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         Reactor reactor = (Reactor) portRef.eContainer().eContainer();
@@ -313,7 +320,7 @@ public class FedASTUtils {
 
         reaction.getCode().setBody(
                 generator.generateNetworkOutputControlReactionBody(portRef,
-                        receivingPortID, receivingFedID, channelIndex));
+                        receivingPortID, receivingFedID, bankIndex, channelIndex));
 
         // Insert the newly generated reaction after the generated sender and
         // receiver
