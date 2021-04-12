@@ -1,8 +1,6 @@
 package org.icyphy.federated;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.List;
 
 import org.icyphy.generator.CGenerator;
 import org.icyphy.generator.FederateInstance;
@@ -12,11 +10,99 @@ import org.icyphy.linguaFranca.Port;
 import org.icyphy.linguaFranca.Reactor;
 import org.icyphy.linguaFranca.ReactorDecl;
 import org.icyphy.linguaFranca.VarRef;
-import org.icyphy.linguaFranca.Variable;
-import org.icyphy.linguaFranca.TriggerRef;
 
 public class CGeneratorExtension {
 
+    /**
+     * Generate C code that allocates sufficient memory for the following three critical 
+     * data structures that support network control reactions:
+     *  - triggers_for_network_input_control_reactions: These are triggers that are used
+     *     at runtime to insert network input control reactions into the reaction queue.
+     *     There could be multiple network input control reactions for one network input
+     *     at multiple levels in the hierarchy.
+     *  - network_input_port_triggers: These triggers are exclusively used to communicate
+     *     the status of network ports between the receiver logic (in federate.c) and the
+     *     network input control reactions at any level in the hierarchy.
+     *  - trigger_for_network_output_control_reactions: Triggers for network output control
+     *     reactions, which are unique per each output port. There could be multiple network
+     *     output control reactions for each network output port if it is connected to multiple
+     *     downstream federates.
+     * @param federate The top-level federate instance
+     * @param generator The instance of the CGenerator passed to keep this extension function
+     *  static.
+     * @return A string that allocates memory for the aforementioned three structures.
+     */
+    public static String allocateTriggersForFederate(FederateInstance federate,
+            CGenerator generator) {
+
+        StringBuilder builder = new StringBuilder();
+
+        // Create the table to initialize intended tag fields to 0 between time
+        // steps.
+        if (generator.isFederatedAndDecentralized()
+                && generator.startTimeStepIsPresentCount > 0) {
+            // Allocate the initial (before mutations) array of pointers to
+            // intended_tag fields.
+            // There is a 1-1 map between structs containing is_present and
+            // intended_tag fields,
+            // thus, we reuse startTimeStepIsPresentCount as the counter.
+            builder.append(
+                    "// Create the array that will contain pointers to intended_tag fields to reset on each step.\n"
+                            + "__intended_tag_fields_size = "
+                            + generator.startTimeStepIsPresentCount + ";\n"
+                            + "__intended_tag_fields = (tag_t**)malloc(__intended_tag_fields_size * sizeof(tag_t*));\n");
+        }
+
+        if (generator.isFederated) {
+            if (federate.networkInputPorts.size() > 0) {
+                // Proliferate the network input port array
+                builder.append(
+                        "// Initialize the array of pointers to network input port triggers\n"
+                                + "_fed.network_input_port_triggers_size = "
+                                + federate.networkInputPorts.size() + ";\n"
+                                + "_fed.network_input_port_triggers = (trigger_t**)malloc("
+                                + "_fed.network_input_port_triggers_size * sizeof(trigger_t*));\n");
+            }
+
+            if (federate.networkInputControlReactionsTriggers.size() > 0) {
+                // Proliferate the network input control reaction trigger array
+                builder.append(
+                        "// Initialize the array of pointers to network input port triggers\n"
+                                + "_fed.triggers_for_network_input_control_reactions_size = "
+                                + federate.networkInputControlReactionsTriggers
+                                .size()
+                                + ";\n"
+                                + "_fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc("
+                                + "_fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*)"
+                                + ");\n");
+
+            }
+        }
+
+        return builder.toString();
+    }
+    
+    /**
+     * Generate C code that initializes three critical structures that support network 
+     * control reactions:
+     *  - triggers_for_network_input_control_reactions: These are triggers that are used
+     *     at runtime to insert network input control reactions into the reaction queue.
+     *     There could be multiple network input control reactions for one network input
+     *     at multiple levels in the hierarchy.
+     *  - network_input_port_triggers: These triggers are exclusively used to communicate
+     *     the status of network ports between the receiver logic (in federate.c) and the
+     *     network input control reactions at any level in the hierarchy.
+     *  - trigger_for_network_output_control_reactions: Triggers for network output control
+     *     reactions, which are unique per each output port. There could be multiple network
+     *     output control reactions for each network output port if it is connected to multiple
+     *     downstream federates.
+     * @param instance The reactor instance that is at any level of the hierarchy within the
+     *  federate.
+     * @param federate The top-level federate
+     * @param generator The instance of the CGenerator passed to keep this extension function
+     *  static.
+     * @return A string that initializes the aforementioned three structures.
+     */
     public static StringBuilder initializeTriggerForControlReactions(
             ReactorInstance instance, FederateInstance federate,
             CGenerator generator) {
@@ -122,56 +208,6 @@ public class CGeneratorExtension {
         }
 
         return builder;
-    }
-
-    public static String allocateTriggersForFederate(FederateInstance instance,
-            CGenerator generator) {
-
-        StringBuilder builder = new StringBuilder();
-
-        // Create the table to initialize intended tag fields to 0 between time
-        // steps.
-        if (generator.isFederatedAndDecentralized()
-                && generator.startTimeStepIsPresentCount > 0) {
-            // Allocate the initial (before mutations) array of pointers to
-            // intended_tag fields.
-            // There is a 1-1 map between structs containing is_present and
-            // intended_tag fields,
-            // thus, we reuse startTimeStepIsPresentCount as the counter.
-            builder.append(
-                    "// Create the array that will contain pointers to intended_tag fields to reset on each step.\n"
-                            + "__intended_tag_fields_size = "
-                            + generator.startTimeStepIsPresentCount + ";\n"
-                            + "__intended_tag_fields = (tag_t**)malloc(__intended_tag_fields_size * sizeof(tag_t*));\n");
-        }
-
-        if (generator.isFederated) {
-            if (instance.networkInputPorts.size() > 0) {
-                // Proliferate the network input port array
-                builder.append(
-                        "// Initialize the array of pointers to network input port triggers\n"
-                                + "_fed.network_input_port_triggers_size = "
-                                + instance.networkInputPorts.size() + ";\n"
-                                + "_fed.network_input_port_triggers = (trigger_t**)malloc("
-                                + "_fed.network_input_port_triggers_size * sizeof(trigger_t*));\n");
-            }
-
-            if (instance.networkInputControlReactionsTriggers.size() > 0) {
-                // Proliferate the network input control reaction trigger array
-                builder.append(
-                        "// Initialize the array of pointers to network input port triggers\n"
-                                + "_fed.triggers_for_network_input_control_reactions_size = "
-                                + instance.networkInputControlReactionsTriggers
-                                .size()
-                                + ";\n"
-                                + "_fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc("
-                                + "_fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*)"
-                                + ");\n");
-
-            }
-        }
-
-        return builder.toString();
     }
 
     /**

@@ -71,6 +71,7 @@ import org.icyphy.linguaFranca.TypeParm
 import org.icyphy.linguaFranca.Value
 import org.icyphy.linguaFranca.VarRef
 import org.icyphy.linguaFranca.WidthSpec
+import org.icyphy.federated.FedASTUtils
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -527,7 +528,7 @@ class ASTUtils {
         if (!connection.physical) {
             // Add the network control reactions for the ports
             // Only for logical connections
-            org.icyphy.federated.ASTUtils.addNetworkInputControlReaction(
+            FedASTUtils.addNetworkInputControlReaction(
                 connection.rightPorts.get(0),
                 receivingPortID,         
                 connection.rightPorts.get(0).variable.eContainer as Reactor,
@@ -537,7 +538,7 @@ class ASTUtils {
             );
             
             
-            org.icyphy.federated.ASTUtils.addNetworkOutputControlReaction(
+            FedASTUtils.addNetworkOutputControlReaction(
                 connection.leftPorts.get(0), 
                 leftFederate,
                 receivingPortID,
