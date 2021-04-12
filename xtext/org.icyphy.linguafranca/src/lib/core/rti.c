@@ -287,6 +287,12 @@ void handle_port_absent_message(federate_t* sending_federate, unsigned char* buf
                 port_id,
                 federate_id);
 
+    // Need to make sure that the destination federate's thread has already
+    // sent the starting TIMESTAMP message.
+    while (federates[federate_id].state == PENDING) {
+        // Need to wait here.
+        pthread_cond_wait(&sent_start_time, &rti_mutex);
+    }
 
     // Forward the message.
     int destination_socket = federates[federate_id].socket;
@@ -347,7 +353,7 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
     DEBUG_PRINT("RTI forwarding message to port %d of federate %d of length %d.", port_id, federate_id, length);
     // Need to make sure that the destination federate's thread has already
     // sent the starting TIMESTAMP message.
-    while (federates[federate_id].state == NOT_CONNECTED) {
+    while (federates[federate_id].state == PENDING) {
         // Need to wait here.
         pthread_cond_wait(&sent_start_time, &rti_mutex);
     }
@@ -933,7 +939,7 @@ void handle_address_ad(ushort federate_id) {
     pthread_mutex_lock(&rti_mutex);
     federates[federate_id].server_port = server_port;
      LOG_PRINT("Received address advertisement from federate %d.", federate_id);
-   pthread_mutex_unlock(&rti_mutex);
+    pthread_mutex_unlock(&rti_mutex);
 }
 
 /**
