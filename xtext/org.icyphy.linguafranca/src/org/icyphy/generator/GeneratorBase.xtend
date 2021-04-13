@@ -996,7 +996,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
      * @return the commands return code
      */
     protected def executeCommand(ProcessBuilder cmd, OutputStream errStream, OutputStream outStream) {
-        println('''--- Current working directory: «FileConfig.toFileURI(cmd.directory)»''')
+        println('''--- Current working directory: «cmd.directory.toString()»''')
         println('''--- Executing command: «cmd.command.join(" ")»''')
 
         var List<OutputStream> outStreams = newArrayList
@@ -1654,7 +1654,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         var fullPath = resource?.fullPath?.toString
         if (fullPath === null) {
             if (object !== null && object.eResource !== null) {
-                fullPath = FileConfig.toPathString(object.eResource)
+                fullPath = FileConfig.toPath(object.eResource).toString()
             } 
         }
         if (fullPath === null) {
@@ -1675,7 +1675,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = new java.net.URI("file:/" + FileConfig.toPathString(eResource));
+                    val uri = FileConfig.toPath(eResource).toUri();
                     myResource = getEclipseResource(uri);
                 }
             }

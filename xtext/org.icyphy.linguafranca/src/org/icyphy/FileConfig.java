@@ -399,14 +399,6 @@ public class FileConfig {
         return path.toString().replace('\\', '/');
     }
     
-    public static String toFileURI(Path path) {
-        return "file:/" + FileConfig.toUnixString(path);
-    }
-    
-    public static String toFileURI(File file) {
-        return "file:/" + FileConfig.toUnixString(file.toPath());
-    }
-    
     /**
      * Check whether a given file (i.e., a relative path) exists in the given
      *directory.
