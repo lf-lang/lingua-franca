@@ -108,14 +108,13 @@ class CppGenerator extends GeneratorBase {
     /** Path to the Cpp lib directory (relative to class path)  */
     val libDir = "/lib/Cpp"
 
-    /** Get a target path representing a source file
+    /**
+     * Get a directory for code generation that corresponds to the given resource (source file)
      *
      * For instance a resource pointing to file foo/bar/baz.lf is represented by the target path foo/bar/baz.
      */
     def toDir(Resource r) {
-        val fileName = r.getName
-        val subPkgPath = getSubPkgPath(fileConfig.srcPkgPath, r.toPath.parent)
-        return subPkgPath.resolve(fileName)
+        fileConfig.getDirectory(r).resolve(r.name)
     }
 
     override printInfo() {

@@ -172,8 +172,18 @@ public class FileConfig {
     
     // Getters to be overridden in derived classes.
     
+    /** 
+     * Get the file name of a resource without file extension
+     */
     public static String getName(Resource r) throws IOException {
         return nameWithoutExtension(toPath(r).toFile());
+    }
+    
+    /**
+     * Get the directory a resource is located in relative to the root package
+     */
+    public Path getDirectory(Resource r) throws IOException {
+        return getSubPkgPath(this.srcPkgPath, toPath(r).getParent());
     }
     
     public Path getOutPath() {
@@ -255,7 +265,7 @@ public class FileConfig {
      * @param srcPath The path to the source.
      * @return
      */
-    public static Path getSubPkgPath(Path pkgPath, Path srcPath) {
+    private static Path getSubPkgPath(Path pkgPath, Path srcPath) {
         Path relSrcPath = pkgPath.relativize(srcPath);
         if (relSrcPath.startsWith(DEFAULT_SRC_DIR)) {
             int segments = relSrcPath.getNameCount(); 
