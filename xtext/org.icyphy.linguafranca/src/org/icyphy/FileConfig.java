@@ -391,20 +391,20 @@ public class FileConfig {
     }
 
     /**
+     * Convert a given path to a unix-style string.
      * 
-     * @param path
-     * @return
+     * This ensures that '/' is used instead of '\' as file separator.
      */
-    public static String toUnixPath(Path path) {
+    public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
     }
     
     public static String toFileURI(Path path) {
-        return "file:/" + FileConfig.toUnixPath(path);
+        return "file:/" + FileConfig.toUnixString(path);
     }
     
     public static String toFileURI(File file) {
-        return "file:/" + FileConfig.toUnixPath(file.toPath());
+        return "file:/" + FileConfig.toUnixString(file.toPath());
     }
     
     /**

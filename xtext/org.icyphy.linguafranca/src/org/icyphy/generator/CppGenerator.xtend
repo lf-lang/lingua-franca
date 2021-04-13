@@ -1034,9 +1034,9 @@ class CppGenerator extends GeneratorBase {
             '''«IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»'''],
             outPath)
         val cmakeBuilder = createCommand("cmake", #[
-            '''-DCMAKE_INSTALL_PREFIX=«FileConfig.toUnixPath(outPath)»''',
-            '''-DREACTOR_CPP_BUILD_DIR=«FileConfig.toUnixPath(reactorCppPath)»''',
-            '''-DCMAKE_INSTALL_BINDIR=«FileConfig.toUnixPath(outPath.relativize(fileConfig.binPath))»''',
+            '''-DCMAKE_INSTALL_PREFIX=«FileConfig.toUnixString(outPath)»''',
+            '''-DREACTOR_CPP_BUILD_DIR=«FileConfig.toUnixString(reactorCppPath)»''',
+            '''-DCMAKE_INSTALL_BINDIR=«FileConfig.toUnixString(outPath.relativize(fileConfig.binPath))»''',
             fileConfig.getSrcGenPath.toString],
             fileConfig.getSrcGenPath)
         if (makeBuilder === null || cmakeBuilder === null) {
