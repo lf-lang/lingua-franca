@@ -1007,7 +1007,7 @@ class CppGenerator extends GeneratorBase {
         install(TARGETS «topLevelName»)
         
         «IF !targetConfig.cmakeInclude.isNullOrEmpty»
-            include("«topLevelName»/«targetConfig.cmakeInclude»")
+            include("«fileConfig.srcPath.resolve(targetConfig.cmakeInclude).toUnixString»")
         «ENDIF»
     '''
 
