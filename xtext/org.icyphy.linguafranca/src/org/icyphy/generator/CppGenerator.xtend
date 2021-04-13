@@ -988,7 +988,9 @@ class CppGenerator extends GeneratorBase {
         endif ()
         set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
         
-        add_executable(«topLevelName»
+        set(LF_MAIN_TARGET «topLevelName»)
+        
+        add_executable(${LF_MAIN_TARGET}
           main.cc
           «FOR r : reactors»
               «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile.toUnixString»«ENDIF»
@@ -997,14 +999,14 @@ class CppGenerator extends GeneratorBase {
               «r.preambleSourceFile.toUnixString»
           «ENDFOR»
         )
-        target_include_directories(«topLevelName» PUBLIC
+        target_include_directories(${LF_MAIN_TARGET} PUBLIC
             "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}"
             "${PROJECT_SOURCE_DIR}"
             "${PROJECT_SOURCE_DIR}/__include__"
         )
-        target_link_libraries(«topLevelName» reactor-cpp)
+        target_link_libraries(${LF_MAIN_TARGET} reactor-cpp)
         
-        install(TARGETS «topLevelName»)
+        install(TARGETS ${LF_MAIN_TARGET})
         
         «IF !targetConfig.cmakeInclude.isNullOrEmpty»
             include("«fileConfig.srcPath.resolve(targetConfig.cmakeInclude).toUnixString»")
