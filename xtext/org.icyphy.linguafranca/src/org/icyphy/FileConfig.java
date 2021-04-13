@@ -154,7 +154,7 @@ public class FileConfig {
         this.fsa = fsa;
         this.context = context;
         
-        this.srcFile = toPath(this.resource.getURI()).toFile();
+        this.srcFile = toPath(this.resource).toFile();
         
         this.srcPath = srcFile.toPath().getParent();
         this.srcPkgPath = getPkgPath(resource, context);
@@ -173,7 +173,7 @@ public class FileConfig {
     // Getters to be overridden in derived classes.
     
     public static String getName(Resource r) throws IOException {
-        return nameWithoutExtension(toPath(r.getURI()).toFile());
+        return nameWithoutExtension(toPath(r).toFile());
     }
     
     public Path getOutPath() {
@@ -325,7 +325,7 @@ public class FileConfig {
     
     private static Path getPkgPath(Resource resource, IGeneratorContext context) throws IOException {
         if (resource.getURI().isPlatform()) {
-            File srcFile = toPath(resource.getURI()).toFile();
+            File srcFile = toPath(resource).toFile();
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
                 Path f = Paths.get(srcFile.getAbsolutePath());

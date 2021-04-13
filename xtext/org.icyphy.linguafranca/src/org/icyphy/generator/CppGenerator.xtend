@@ -113,9 +113,8 @@ class CppGenerator extends GeneratorBase {
      * For instance a resource pointing to file foo/bar/baz.lf is represented by the target path foo/bar/baz.
      */
     def toDir(Resource r) {
-        val resourcePath = r.toPath
-        val fileName = resourcePath.fileName.toFile().nameWithoutExtension
-        val subPkgPath = getSubPkgPath(fileConfig.srcPkgPath, resourcePath.parent)
+        val fileName = r.getName
+        val subPkgPath = getSubPkgPath(fileConfig.srcPkgPath, r.toPath.parent)
         return subPkgPath.resolve(fileName)
     }
 
