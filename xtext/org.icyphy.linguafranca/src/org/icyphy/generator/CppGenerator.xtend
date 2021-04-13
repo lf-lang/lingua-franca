@@ -338,7 +338,7 @@ class CppGenerator extends GeneratorBase {
 
     def includeInstances(Reactor r) '''
         «FOR i : r.instantiations AFTER '\n'»
-            #include "«i.reactorClass.toDefinition.headerFile»"
+            #include "«i.reactorClass.toDefinition.headerFile.toUnixString»"
         «ENDFOR»
     '''
 
@@ -613,7 +613,7 @@ class CppGenerator extends GeneratorBase {
 
         #include "reactor-cpp/reactor-cpp.hh"
         «FOR i : scopeProvider?.getImportedResources(r) ?: emptyList BEFORE "// include the preambles from imported resource \n"»
-            #include "«i.preambleHeaderFile»"
+            #include "«i.preambleHeaderFile.toUnixString»"
         «ENDFOR»
         
         «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
@@ -626,7 +626,7 @@ class CppGenerator extends GeneratorBase {
         
         #include "reactor-cpp/reactor-cpp.hh"
         
-        #include "«r.preambleHeaderFile»"
+        #include "«r.preambleHeaderFile.toUnixString»"
         
         using namespace std::chrono_literals;
         using namespace reactor::operators;
@@ -643,7 +643,7 @@ class CppGenerator extends GeneratorBase {
         
         #include "reactor-cpp/reactor-cpp.hh"
         
-        #include "«r.eResource.preambleHeaderFile»"
+        #include "«r.eResource.preambleHeaderFile.toUnixString»"
         
         «r.includeInstances»
         «r.publicPreamble»
@@ -667,7 +667,7 @@ class CppGenerator extends GeneratorBase {
         };
         «IF r.isGeneric»
         
-        #include "«r.headerImplFile»"
+        #include "«r.headerImplFile.toUnixString»"
         «ENDIF»
     '''
 
@@ -806,7 +806,7 @@ class CppGenerator extends GeneratorBase {
         using namespace std::chrono_literals;
         using namespace reactor::operators;
 
-        «IF !r.isGeneric»#include "«r.headerFile»"«ENDIF»
+        «IF !r.isGeneric»#include "«r.headerFile.toUnixString»"«ENDIF»
         #include "lfutil.hh"
 
         «r.privatePreamble»
@@ -856,7 +856,7 @@ class CppGenerator extends GeneratorBase {
         
         #include "CLI/CLI11.hpp"
         
-        #include "«main.headerFile»"
+        #include "«main.headerFile.toUnixString»"
         
         class Timeout : public reactor::Reactor {
          private:
@@ -991,10 +991,10 @@ class CppGenerator extends GeneratorBase {
         add_executable(«topLevelName»
           main.cc
           «FOR r : reactors»
-              «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile»«ENDIF»
+              «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile.toUnixString»«ENDIF»
           «ENDFOR»
           «FOR r : resources»
-              «r.preambleSourceFile»
+              «r.preambleSourceFile.toUnixString»
           «ENDFOR»
         )
         target_include_directories(«topLevelName» PUBLIC
