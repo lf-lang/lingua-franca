@@ -366,10 +366,6 @@ public class FileConfig {
         return FileConfig.toPath(resource.getURI());
     }
     
-    public static String toPathString(URI uri) throws IOException { // FIXME: maybe not even have this?
-        return toIPath(uri).toOSString();
-    }
-    
     /**
      * Return an org.eclipse.core.runtime.Path object corresponding to the
      * given URI.
@@ -466,47 +462,6 @@ public class FileConfig {
         // Not found.
         return null;
     }
-
-     /**
-      * Create a string representing the absolute file path of a resource.
-      * @throws IOException
-      * @deprecated 
-      */
-     public static String toPathString(Resource resource) throws IOException {
-         return toPathString(resource.getURI());
-     }
-
-     /**
-      * Create a string representing the absolute file path of a file relative to a file system access object.
-     * @throws IOException
-     * @deprecated 
-      */
-     public static String getAbsolutePath(IFileSystemAccess2 fsa, String file) throws IOException {
-         return toPathString(fsa.getURI(file));
-     }
-
-     /**
-      * Extract the name of a file from a path represented as a string.
-      * If the file ends with '.lf', the extension is removed.
-      * @deprecated
-      */
-     public static String getFilename(String path) {
-         File f = new File(path);
-         String name = f.getName();
-         if (name.endsWith(".lf")) {
-             name = name.substring(0, name.length() - 3); // FIXME: code duplication (see analuzeResource in GeneratorBase)
-         }
-         return name;
-     }
-
-     /**
-      * Extract the directory from a path represented as a string.
-      * @deprecated
-      */
-     public static String getDirectory(String path) {
-         File f = new File(path);
-         return f.getParent();
-     }
      
      /**
       * Return the name of the RTI executable.
