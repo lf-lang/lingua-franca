@@ -108,8 +108,13 @@ class CppGenerator extends GeneratorBase {
     /** Path to the Cpp lib directory (relative to class path)  */
     val libDir = "/lib/Cpp"
 
+    /**
+     * Get a directory for code generation that corresponds to the given resource (source file)
+     *
+     * For instance a resource pointing to file foo/bar/baz.lf is represented by the target path foo/bar/baz.
+     */
     def toDir(Resource r) {
-        r.toPathString.getFilename // FIXME: do not convert to string first.
+        fileConfig.getDirectory(r).resolve(r.name)
     }
 
     override printInfo() {
@@ -117,15 +122,15 @@ class CppGenerator extends GeneratorBase {
         println('******** generated binaries: ' + fileConfig.binPath)
     }
 
-    def preambleHeaderFile(Resource r) '''«r.toDir»/preamble.hh'''
+    def preambleHeaderFile(Resource r) { r.toDir.resolve("_lf_preamble.hh") }
 
-    def preambleSourceFile(Resource r) '''«r.toDir»/preamble.cc'''
+    def preambleSourceFile(Resource r) { r.toDir.resolve("_lf_preamble.cc") }
 
-    def headerFile(Reactor r) '''«r.eResource.toDir»/«r.name».hh'''
+    def headerFile(Reactor r) { r.eResource.toDir.resolve('''«r.name».hh''') }
 
-    def headerImplFile(Reactor r) '''«r.eResource.toDir»/«r.name»_impl.hh'''
+    def headerImplFile(Reactor r) { r.eResource.toDir.resolve('''«r.name»_impl.hh''') }
 
-    def sourceFile(Reactor r) '''«r.eResource.toDir»/«r.name».cc'''
+    def sourceFile(Reactor r) { r.eResource.toDir.resolve('''«r.name».cc''') }
 
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
@@ -141,32 +146,28 @@ class CppGenerator extends GeneratorBase {
             return
         }
 
-        val relativePath = this.fileConfig.srcGenBasePath.relativize(this.fileConfig.getSrcGenPath);
+        val srcGenPath = this.fileConfig.getSrcGenPath();
+        val relSrcGenPath = this.fileConfig.srcGenBasePath.relativize(srcGenPath);
 
-        fsa.generateFile('''«relativePath»/main.cc''',
-            mainReactor.generateMain)
-        fsa.generateFile('''«relativePath»/CMakeLists.txt''',
-            generateCmake)
-        copyFileFromClassPath('''«libDir»/lfutil.hh''',
-            fsa.getAbsolutePath('''/«relativePath»/__include__/lfutil.hh'''))
-        copyFileFromClassPath('''«libDir»/time_parser.hh''',
-            fsa.getAbsolutePath('''/«relativePath»/__include__/time_parser.hh'''))
-        copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''',
-            fsa.getAbsolutePath('''/«relativePath»/__include__/CLI/CLI11.hpp'''))
+        fsa.generateFile(relSrcGenPath.resolve("main.cc").toString(), mainReactor.generateMain)
+        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), generateCmake)
+        val genIncludeDir = srcGenPath.resolve("__include__")
+        copyFileFromClassPath('''«libDir»/lfutil.hh''', genIncludeDir.resolve("lfutil.hh").toString)
+        copyFileFromClassPath('''«libDir»/time_parser.hh''', genIncludeDir.resolve("time_parser.hh").toString)
+        copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''', 
+            genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString
+        )
 
         for (r : reactors) {
-            fsa.generateFile('''«relativePath»/«r.toDefinition.headerFile»''',
+            fsa.generateFile(relSrcGenPath.resolve(r.toDefinition.headerFile).toString(),
                 r.toDefinition.generateReactorHeader)
             val implFile = r.toDefinition.isGeneric ? r.toDefinition.headerImplFile : r.toDefinition.sourceFile
-            fsa.generateFile('''«relativePath»/«implFile»''',
-                r.toDefinition.generateReactorSource)
+            fsa.generateFile(relSrcGenPath.resolve(implFile).toString(), r.toDefinition.generateReactorSource)
         }
         
         for (r : this.resources ?: emptyList) {
-            fsa.generateFile('''«relativePath»/«r.preambleSourceFile»''',
-                r.generatePreambleSource)
-            fsa.generateFile('''«relativePath»/«r.preambleHeaderFile»''',
-                r.generatePreambleHeader)
+            fsa.generateFile(relSrcGenPath.resolve(r.preambleSourceFile).toString(), r.generatePreambleSource)
+            fsa.generateFile(relSrcGenPath.resolve(r.preambleHeaderFile).toString(), r.generatePreambleHeader)
         }
 
         if (!targetConfig.noCompile && !errorsOccurred()) {
@@ -337,7 +338,7 @@ class CppGenerator extends GeneratorBase {
 
     def includeInstances(Reactor r) '''
         «FOR i : r.instantiations AFTER '\n'»
-            #include "«i.reactorClass.toDefinition.headerFile»"
+            #include "«i.reactorClass.toDefinition.headerFile.toUnixString»"
         «ENDFOR»
     '''
 
@@ -612,7 +613,7 @@ class CppGenerator extends GeneratorBase {
 
         #include "reactor-cpp/reactor-cpp.hh"
         «FOR i : scopeProvider?.getImportedResources(r) ?: emptyList BEFORE "// include the preambles from imported resource \n"»
-            #include "«i.preambleHeaderFile»"
+            #include "«i.preambleHeaderFile.toUnixString»"
         «ENDFOR»
         
         «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
@@ -625,7 +626,7 @@ class CppGenerator extends GeneratorBase {
         
         #include "reactor-cpp/reactor-cpp.hh"
         
-        #include "«r.preambleHeaderFile»"
+        #include "«r.preambleHeaderFile.toUnixString»"
         
         using namespace std::chrono_literals;
         using namespace reactor::operators;
@@ -642,7 +643,7 @@ class CppGenerator extends GeneratorBase {
         
         #include "reactor-cpp/reactor-cpp.hh"
         
-        #include "«r.eResource.preambleHeaderFile»"
+        #include "«r.eResource.preambleHeaderFile.toUnixString»"
         
         «r.includeInstances»
         «r.publicPreamble»
@@ -666,7 +667,7 @@ class CppGenerator extends GeneratorBase {
         };
         «IF r.isGeneric»
         
-        #include "«r.headerImplFile»"
+        #include "«r.headerImplFile.toUnixString»"
         «ENDIF»
     '''
 
@@ -805,7 +806,7 @@ class CppGenerator extends GeneratorBase {
         using namespace std::chrono_literals;
         using namespace reactor::operators;
 
-        «IF !r.isGeneric»#include "«r.headerFile»"«ENDIF»
+        «IF !r.isGeneric»#include "«r.headerFile.toUnixString»"«ENDIF»
         #include "lfutil.hh"
 
         «r.privatePreamble»
@@ -855,7 +856,7 @@ class CppGenerator extends GeneratorBase {
         
         #include "CLI/CLI11.hpp"
         
-        #include "«main.headerFile»"
+        #include "«main.headerFile.toUnixString»"
         
         class Timeout : public reactor::Reactor {
          private:
@@ -954,6 +955,7 @@ class CppGenerator extends GeneratorBase {
           CMAKE_ARGS
             -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+            -DCMAKE_INSTALL_BINDIR:PATH=${CMAKE_INSTALL_BINDIR}
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
             -DREACTOR_CPP_VALIDATE=«IF targetConfig.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
             -DREACTOR_CPP_TRACE=«IF targetConfig.tracing !== null»ON«ELSE»OFF«ENDIF»
@@ -979,32 +981,35 @@ class CppGenerator extends GeneratorBase {
         endif()
         
         if (APPLE)
-          set(CMAKE_INSTALL_RPATH "@executable_path/../lib")
+          file(RELATIVE_PATH REL_LIB_PATH "${REACTOR_CPP_BIN_DIR}" "${REACTOR_CPP_LIB_DIR}")
+          set(CMAKE_INSTALL_RPATH "@executable_path/${REL_LIB_PATH}")
         else ()
           set(CMAKE_INSTALL_RPATH "${REACTOR_CPP_LIB_DIR}")
         endif ()
         set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
         
-        add_executable(«topLevelName»
+        set(LF_MAIN_TARGET «topLevelName»)
+        
+        add_executable(${LF_MAIN_TARGET}
           main.cc
           «FOR r : reactors»
-              «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile»«ENDIF»
+              «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile.toUnixString»«ENDIF»
           «ENDFOR»
           «FOR r : resources»
-              «r.preambleSourceFile»
+              «r.preambleSourceFile.toUnixString»
           «ENDFOR»
         )
-        target_include_directories(«topLevelName» PUBLIC
+        target_include_directories(${LF_MAIN_TARGET} PUBLIC
             "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}"
             "${PROJECT_SOURCE_DIR}"
             "${PROJECT_SOURCE_DIR}/__include__"
         )
-        target_link_libraries(«topLevelName» reactor-cpp)
+        target_link_libraries(${LF_MAIN_TARGET} reactor-cpp)
         
-        install(TARGETS «topLevelName» RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+        install(TARGETS ${LF_MAIN_TARGET})
         
         «IF !targetConfig.cmakeInclude.isNullOrEmpty»
-            include("«topLevelName»/«targetConfig.cmakeInclude»")
+            include("«fileConfig.srcPath.resolve(targetConfig.cmakeInclude).toUnixString»")
         «ENDIF»
     '''
 
@@ -1031,9 +1036,9 @@ class CppGenerator extends GeneratorBase {
             '''«IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»'''],
             outPath)
         val cmakeBuilder = createCommand("cmake", #[
-            '''-DCMAKE_INSTALL_PREFIX=«FileConfig.toUnixPath(outPath)»''',
-            '''-DREACTOR_CPP_BUILD_DIR=«FileConfig.toUnixPath(reactorCppPath)»''',
-            '''-DCMAKE_INSTALL_BINDIR=«FileConfig.toUnixPath(outPath.relativize(fileConfig.binPath))»''',
+            '''-DCMAKE_INSTALL_PREFIX=«FileConfig.toUnixString(outPath)»''',
+            '''-DREACTOR_CPP_BUILD_DIR=«FileConfig.toUnixString(reactorCppPath)»''',
+            '''-DCMAKE_INSTALL_BINDIR=«FileConfig.toUnixString(outPath.relativize(fileConfig.binPath))»''',
             fileConfig.getSrcGenPath.toString],
             fileConfig.getSrcGenPath)
         if (makeBuilder === null || cmakeBuilder === null) {

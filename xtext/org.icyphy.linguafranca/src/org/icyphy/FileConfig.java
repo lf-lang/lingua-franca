@@ -154,7 +154,7 @@ public class FileConfig {
         this.fsa = fsa;
         this.context = context;
         
-        this.srcFile = toPath(this.resource.getURI()).toFile();
+        this.srcFile = toPath(this.resource).toFile();
         
         this.srcPath = srcFile.toPath().getParent();
         this.srcPkgPath = getPkgPath(resource, context);
@@ -172,8 +172,18 @@ public class FileConfig {
     
     // Getters to be overridden in derived classes.
     
+    /** 
+     * Get the file name of a resource without file extension
+     */
     public static String getName(Resource r) throws IOException {
-        return nameWithoutExtension(toPath(r.getURI()).toFile());
+        return nameWithoutExtension(toPath(r).toFile());
+    }
+    
+    /**
+     * Get the directory a resource is located in relative to the root package
+     */
+    public Path getDirectory(Resource r) throws IOException {
+        return getSubPkgPath(this.srcPkgPath, toPath(r).getParent());
     }
     
     public Path getOutPath() {
@@ -325,7 +335,7 @@ public class FileConfig {
     
     private static Path getPkgPath(Resource resource, IGeneratorContext context) throws IOException {
         if (resource.getURI().isPlatform()) {
-            File srcFile = toPath(resource.getURI()).toFile();
+            File srcFile = toPath(resource).toFile();
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
                 Path f = Paths.get(srcFile.getAbsolutePath());
@@ -347,9 +357,13 @@ public class FileConfig {
     public static Path toPath(URI uri) throws IOException {
         return Paths.get(toIPath(uri).toFile().getAbsolutePath());
     }
-    
-    public static String toPathString(URI uri) throws IOException { // FIXME: maybe not even have this?
-        return toIPath(uri).toOSString();
+
+    /**
+     * Return a java.nio.Path object corresponding to the given Resource.
+     * @throws IOException 
+     */
+    public static Path toPath(Resource resource) throws IOException {
+        return FileConfig.toPath(resource.getURI());
     }
     
     /**
@@ -373,20 +387,12 @@ public class FileConfig {
     }
 
     /**
+     * Convert a given path to a unix-style string.
      * 
-     * @param path
-     * @return
+     * This ensures that '/' is used instead of '\' as file separator.
      */
-    public static String toUnixPath(Path path) {
+    public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
-    }
-    
-    public static String toFileURI(Path path) {
-        return "file:/" + FileConfig.toUnixPath(path);
-    }
-    
-    public static String toFileURI(File file) {
-        return "file:/" + FileConfig.toUnixPath(file.toPath());
     }
     
     /**
@@ -456,47 +462,6 @@ public class FileConfig {
         // Not found.
         return null;
     }
-
-     /**
-      * Create a string representing the absolute file path of a resource.
-      * @throws IOException
-      * @deprecated 
-      */
-     public static String toPathString(Resource resource) throws IOException {
-         return toPathString(resource.getURI());
-     }
-
-     /**
-      * Create a string representing the absolute file path of a file relative to a file system access object.
-     * @throws IOException
-     * @deprecated 
-      */
-     public static String getAbsolutePath(IFileSystemAccess2 fsa, String file) throws IOException {
-         return toPathString(fsa.getURI(file));
-     }
-
-     /**
-      * Extract the name of a file from a path represented as a string.
-      * If the file ends with '.lf', the extension is removed.
-      * @deprecated
-      */
-     public static String getFilename(String path) {
-         File f = new File(path);
-         String name = f.getName();
-         if (name.endsWith(".lf")) {
-             name = name.substring(0, name.length() - 3); // FIXME: code duplication (see analuzeResource in GeneratorBase)
-         }
-         return name;
-     }
-
-     /**
-      * Extract the directory from a path represented as a string.
-      * @deprecated
-      */
-     public static String getDirectory(String path) {
-         File f = new File(path);
-         return f.getParent();
-     }
      
      /**
       * Return the name of the RTI executable.
