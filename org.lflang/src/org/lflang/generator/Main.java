@@ -5,6 +5,9 @@ package org.lflang.generator;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,33 +45,15 @@ import com.google.inject.Provider;
  * Standalone version of the Lingua Franca compiler (lfc).
  * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Christian Menard <christian.menard@tu-dresden.de>}
  */
 public class Main {
     
     /**
      * The location of the class file of this class inside of the jar.
      */
-    private static String MAIN_PATH_IN_JAR = String.join(File.separator,
+    private static String MAIN_PATH_IN_JAR = String.join("/",
             new String[] { "!", "org", "lflang", "generator", "Main.class" });
-    
-    /**
-     * The location of the the jar relative to the root of the source tree.
-     */
-    private static String JAR_PATH_IN_SRC_TREE = String.join(File.separator,
-            new String[] { "org.lflang.linguafranca", "build", "libs",
-                    "org.lflang.linguafranca-1.0.0-SNAPSHOT-all.jar" });
-    /**
-     * The location of the jar relative to the root of the file system. 
-     */
-    private static String JAR_PATH = Main.class.getResource("Main.class")
-            .toString().replace("jar:file:", "").replace(MAIN_PATH_IN_JAR, "");
-    
-    /**
-     * The root of the source tree relative to the root of the file system.
-     */
-    private static String SRC_PATH = JAR_PATH.replace(
-            "build/libs/org.lflang.linguafranca-1.0.0-SNAPSHOT-all.jar", "")
-            + "src"; // FIXME: use Path
     
     /**
      * ANSI sequence color escape sequence for red bold font.
@@ -99,9 +84,24 @@ public class Main {
      * Object for interpreting command line arguments.
      */
     protected CommandLine cmd;
-    
+
     /**
-     * Injected resource provider. 
+     * Path to the jar.
+     */
+    protected Path jarPath;
+
+    /**
+     * Path to the root of the org.lflang source tree.
+     */
+    protected Path srcPath;
+
+    /**
+     * Path to the project root.
+     */
+    protected Path rootPath;
+
+    /**
+     * Injected resource provider.
      */
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
@@ -313,7 +313,20 @@ public class Main {
          * Helper object for printing "help" menu.
          */
         HelpFormatter formatter = new HelpFormatter();
-        
+
+        try {
+            String mainClassUrl = Main.class.getResource("Main.class").toString();
+            String jarUrl = mainClassUrl.replace("jar:", "").replace(MAIN_PATH_IN_JAR, "");
+
+            main.jarPath = Paths.get(new URL(jarUrl).toURI());
+            main.srcPath = main.jarPath.getParent().resolve(Paths.get("..", "..", "src")).normalize();
+            main.rootPath = main.jarPath.getParent().resolve(Paths.get("..", "..", "..")).normalize();
+        } catch (MalformedURLException | URISyntaxException e) {
+            printFatalError("An unexpected error occurred:");
+            e.printStackTrace();
+            System.exit(1);
+        }
+
         try {
             main.cmd = parser.parse(options, args, true);
             
@@ -358,7 +371,7 @@ public class Main {
         LinkedList<String> cmdList = new LinkedList<String>();
         cmdList.add("java");
         cmdList.add("-jar");
-        cmdList.add(JAR_PATH);
+        cmdList.add(jarPath.toString());
         for (Option o : cmd.getOptions()) {
             if (!CLIOption.REBUILD.option.equals(o)
                     && !CLIOption.UPDATE.option.equals(o)) {
@@ -393,11 +406,11 @@ public class Main {
      * @return True if a rebuild is necessary, false otherwise.
      */
     private boolean needsUpdate() {
-        File jar = new File(JAR_PATH);
+        File jar = jarPath.toFile();
         boolean outOfDate = false;
         try {
             outOfDate = (!jar.exists() || modifiedFilesExist(
-                    Paths.get(SRC_PATH), jar.lastModified()));
+                    srcPath, jar.lastModified()));
 
         } catch (IOException e) {
             printFatalError("Rebuild unsuccessful. Reason:");
@@ -411,16 +424,18 @@ public class Main {
      * Rebuild and return. If the rebuilding failed, exit.
      */
     private void rebuildOrExit() {
-        String root = JAR_PATH.replace(JAR_PATH_IN_SRC_TREE, "");
-        ProcessBuilder build;
-        if (this.mustUpdate()) {
-            build = new ProcessBuilder("./gradlew",
-                    "generateStandaloneCompiler");
+        LinkedList<String> cmdList = new LinkedList<String>();
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            cmdList.add(".\\gradlew.bat");
         } else {
-            build = new ProcessBuilder("./gradlew",
-                    "generateStandaloneCompiler", "--offline");
+            cmdList.add("./gradlew");
         }
-        build.directory(new File(root));
+        cmdList.add("generateStandaloneCompiler");
+        if (!this.mustUpdate()) {
+            cmdList.add("--offline");
+        }
+        ProcessBuilder build = new ProcessBuilder(cmdList);
+        build.directory(rootPath.toFile());
     
         try {
             Process p = build.start();
