@@ -253,10 +253,10 @@
           xsi:type="predicates:OrPredicate">
         <operand
             xsi:type="predicates:LocationPredicate"
-            pattern=".*/xtext/.*"/>
+            pattern=".*/org.lflang*/.*"/>
         <operand
             xsi:type="predicates:LocationPredicate"
-            pattern=".*\xtext\.*"/>
+            pattern=".*\org.lflang*\.*"/>
         <operand
             xsi:type="predicates:LocationPredicate"
             pattern=".*/oomph"/>
