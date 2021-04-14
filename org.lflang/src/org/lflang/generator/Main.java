@@ -49,7 +49,7 @@ public class Main {
      * The location of the class file of this class inside of the jar.
      */
     private static String MAIN_PATH_IN_JAR = String.join(File.separator,
-            new String[] { "!", "org", "icyphy", "generator", "Main.class" });
+            new String[] { "!", "org", "lflang", "generator", "Main.class" });
     
     /**
      * The location of the the jar relative to the root of the source tree.
