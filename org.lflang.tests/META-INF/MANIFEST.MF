@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Automatic-Module-Name: org.lflang.tests
+Bundle-ManifestVersion: 2
+Bundle-Name: Lingua Franca Tests
+Bundle-Vendor: University of California, Berkeley
+Bundle-Version: 1.0.0.qualifier
+Bundle-SymbolicName: org.lflang.tests; singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.lflang,
+ org.junit.jupiter.api;bundle-version="[5.0.0,6.0.0)",
+ org.eclipse.xtext.testing,
+ org.eclipse.xtext.xbase.testing,
+ org.eclipse.xtext.xbase.lib;bundle-version="2.14.0",
+ javax.annotation;bundle-version="1.2.0",
+ org.eclipse.core.jobs
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Export-Package: org.lflang.tests;x-internal=true
