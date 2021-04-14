@@ -5,12 +5,12 @@
 
   <parent>
     <relativePath>../pom.xml</relativePath>
-    <groupId>org.icyphy.linguafranca</groupId>
+    <groupId>org.lflang</groupId>
     <artifactId>parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>org.icyphy.linguafranca.ui</artifactId>
+  <artifactId>org.lflang.ui</artifactId>
   <packaging>eclipse-plugin</packaging>
 
   <name>Lingua-Franca UI</name>
