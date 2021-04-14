@@ -3,8 +3,8 @@
 <plugin>
 	<extension point="org.eclipse.emf.ecore.generated_package">
 		<package 
-			uri = "http://www.icyphy.org/LinguaFranca"
-			class = "org.icyphy.linguaFranca.LinguaFrancaPackage"
+			uri = "https://www.lf-lang.org/"
+			class = "org.lflang.linguaFranca.LinguaFrancaPackage"
 			genModel = "model/generated/LinguaFranca.genmodel" />
 	</extension>
 </plugin>
