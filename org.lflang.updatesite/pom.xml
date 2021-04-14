@@ -5,15 +5,15 @@
 
   <parent>
     <relativePath>../pom.xml</relativePath>
-    <groupId>org.icyphy.linguafranca</groupId>
+    <groupId>org.lflang</groupId>
     <artifactId>parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>org.icyphy.linguafranca.updatesite</artifactId>
+  <artifactId>org.lflang.updatesite</artifactId>
   <packaging>eclipse-repository</packaging>
 
-  <name>Lingua-Franca Update Site</name>
+  <name>Lingua Franca Update Site</name>
 
   <build>
     <plugins>

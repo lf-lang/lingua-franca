@@ -6,19 +6,19 @@
    -->
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.icyphy.linguafranca</groupId>
+  <groupId>org.lflang</groupId>
   <artifactId>parent</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
-    <module>org.icyphy.linguafranca</module>
-    <module>org.icyphy.linguafranca.ide</module>
-    <module>org.icyphy.linguafranca.ui</module>
-    <module>org.icyphy.linguafranca.tests</module>
-    <module>org.icyphy.linguafranca.ui.tests</module>
-    <module>org.icyphy.linguafranca.sdk</module>
-    <module>org.icyphy.linguafranca.updatesite</module>
+    <module>org.lflang</module>
+    <module>org.lflang.ide</module>
+    <module>org.lflang.ui</module>
+    <module>org.lflang.tests</module>
+    <module>org.lflang.ui.tests</module>
+    <module>org.lflang.sdk</module>
+    <module>org.lflang.updatesite</module>
   </modules>
   
   <properties>
@@ -44,8 +44,8 @@
       <layout>p2</layout>
       <!-- If you update the Eclipse release, you may need to also update the xtext.version above
            and some version numbers in
-           org.icyphy.linguafranca/pom.xml and
-           org.icyphy.linguafranca.tests/pom.xml -->
+           org.lflang/pom.xml and
+           org.lflang.tests/pom.xml -->
       <url>https://download.eclipse.org/releases/2020-03/</url>
     </repository>
     <repository>
