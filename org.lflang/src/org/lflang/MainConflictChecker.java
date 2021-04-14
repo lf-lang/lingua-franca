@@ -80,6 +80,7 @@ public class MainConflictChecker {
          */
         @Override
         public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
+            path = path.normalize();
             if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
                 // Parse the file.
                 Resource r = rs.getResource(
