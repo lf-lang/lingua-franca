@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="de.cau.cs.kieler.klighd.diagramSyntheses">
+      <diagramSynthesis
+            class="de.cau.cs.kieler.klighd.syntheses.GuiceBasedSynthesisFactory:org.lflang.diagram.synthesis.LinguaFrancaSynthesis"
+            id="org.lflang.diagram.synthesis.LinguaFrancaSynthesis">
+      </diagramSynthesis>
+   </extension>
+   <extension
+         point="de.cau.cs.kieler.klighd.extensions">
+      <action
+            class="org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction"
+            id="org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction">
+      </action>
+      <action
+            class="org.lflang.diagram.synthesis.action.ExpandAllReactorsAction"
+            id="org.lflang.diagram.synthesis.action.ExpandAllReactorsAction">
+      </action>
+      <action
+            class="org.lflang.diagram.synthesis.action.CollapseAllReactorsAction"
+            id="org.lflang.diagram.synthesis.action.CollapseAllReactorsAction">
+      </action>
+      <action
+            class="org.lflang.diagram.synthesis.action.ShowCycleAction"
+            id="org.lflang.diagram.synthesis.action.ShowCycleAction">
+      </action>
+      <action
+            class="org.lflang.diagram.synthesis.action.FilterCycleAction"
+            id="org.lflang.diagram.synthesis.action.FilterCycleAction">
+      </action>
+      <styleModifier
+            class="org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment"
+            id="org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment">
+      </styleModifier>
+   </extension>
+</plugin>
