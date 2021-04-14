@@ -10,7 +10,7 @@ Workflow {
     component = XtextGenerator {
         configuration = {
             project = StandardProjectConfig {
-                baseName = "org.lflang.linguafranca"
+                baseName = "org.lflang"
                 rootPath = rootPath
                 runtimeTest = {
                     enabled = true

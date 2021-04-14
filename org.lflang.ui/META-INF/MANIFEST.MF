@@ -20,6 +20,6 @@ Require-Bundle: org.lflang,
 Import-Package: org.apache.log4j
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang.ui.internal,
- org.icyphy.ui.contentassist,
- org.icyphy.ui.quickfix
+ org.lflang.ui.contentassist,
+ org.lflang.ui.quickfix
 Bundle-Activator: org.lflang.ui.internal.LinguafrancaActivator
