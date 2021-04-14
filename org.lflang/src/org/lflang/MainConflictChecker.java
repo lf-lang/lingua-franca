@@ -18,7 +18,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.linguaFranca.Reactor;
+import org.lflang.meta.Reactor;
 
 import com.google.common.collect.Iterables;
 
@@ -44,7 +44,7 @@ public class MainConflictChecker {
     /**
      * Resource set used to obtain resources from.
      */
-    protected ResourceSet rs = new LinguaFrancaStandaloneSetup()
+    protected ResourceSet rs = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration()
             .<LinguaFrancaResourceProvider>getInstance(LinguaFrancaResourceProvider.class).getResourceSet();
     

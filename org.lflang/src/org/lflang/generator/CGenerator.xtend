@@ -49,23 +49,23 @@ import org.lflang.Target
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.ActionOrigin
-import org.lflang.linguaFranca.Code
-import org.lflang.linguaFranca.Delay
-import org.lflang.linguaFranca.Input
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Output
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.ReactorDecl
-import org.lflang.linguaFranca.StateVar
-import org.lflang.linguaFranca.Timer
-import org.lflang.linguaFranca.TriggerRef
-import org.lflang.linguaFranca.TypedVariable
-import org.lflang.linguaFranca.VarRef
-import org.lflang.linguaFranca.Variable
+import org.lflang.meta.Action
+import org.lflang.meta.ActionOrigin
+import org.lflang.meta.Code
+import org.lflang.meta.Delay
+import org.lflang.meta.Input
+import org.lflang.meta.Instantiation
+import org.lflang.meta.Output
+import org.lflang.meta.Port
+import org.lflang.meta.Reaction
+import org.lflang.meta.Reactor
+import org.lflang.meta.ReactorDecl
+import org.lflang.meta.StateVar
+import org.lflang.meta.Timer
+import org.lflang.meta.TriggerRef
+import org.lflang.meta.TypedVariable
+import org.lflang.meta.VarRef
+import org.lflang.meta.Variable
 
 import static extension org.lflang.ASTUtils.*
 

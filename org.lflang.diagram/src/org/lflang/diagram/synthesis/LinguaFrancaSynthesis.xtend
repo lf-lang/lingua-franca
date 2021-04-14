@@ -1,4 +1,4 @@
-package org.lflang.linguafranca.diagram.synthesis
+package org.lflang.diagram.synthesis
 
 import com.google.common.collect.HashBasedTable
 import com.google.common.collect.HashMultimap
@@ -47,30 +47,30 @@ import org.eclipse.elk.graph.properties.Property
 import org.eclipse.emf.ecore.EObject
 import org.lflang.ASTUtils
 import org.lflang.graph.BreadCrumbTrail
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.ActionOrigin
-import org.lflang.linguaFranca.Connection
-import org.lflang.linguaFranca.Input
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.Output
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.Timer
-import org.lflang.linguaFranca.TriggerRef
-import org.lflang.linguaFranca.VarRef
-import org.lflang.linguafranca.diagram.synthesis.action.CollapseAllReactorsAction
-import org.lflang.linguafranca.diagram.synthesis.action.ExpandAllReactorsAction
-import org.lflang.linguafranca.diagram.synthesis.action.FilterCycleAction
-import org.lflang.linguafranca.diagram.synthesis.action.ShowCycleAction
-import org.lflang.linguafranca.diagram.synthesis.styles.LinguaFrancaShapeExtensions
-import org.lflang.linguafranca.diagram.synthesis.styles.LinguaFrancaStyleExtensions
-import org.lflang.linguafranca.diagram.synthesis.styles.ReactorFigureComponents
-import org.lflang.linguafranca.diagram.synthesis.util.CycleVisualization
-import org.lflang.linguafranca.diagram.synthesis.util.InterfaceDependenciesVisualization
-import org.lflang.linguafranca.diagram.synthesis.util.UtilityExtensions
+import org.lflang.meta.Action
+import org.lflang.meta.ActionOrigin
+import org.lflang.meta.Connection
+import org.lflang.meta.Input
+import org.lflang.meta.Instantiation
+import org.lflang.meta.Model
+import org.lflang.meta.Output
+import org.lflang.meta.Parameter
+import org.lflang.meta.Port
+import org.lflang.meta.Reaction
+import org.lflang.meta.Reactor
+import org.lflang.meta.Timer
+import org.lflang.meta.TriggerRef
+import org.lflang.meta.VarRef
+import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction
+import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction
+import org.lflang.diagram.synthesis.action.FilterCycleAction
+import org.lflang.diagram.synthesis.action.ShowCycleAction
+import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions
+import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
+import org.lflang.diagram.synthesis.styles.ReactorFigureComponents
+import org.lflang.diagram.synthesis.util.CycleVisualization
+import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization
+import org.lflang.diagram.synthesis.util.UtilityExtensions
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.lflang.ASTUtils.*

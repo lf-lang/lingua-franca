@@ -30,14 +30,14 @@ import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.Target
-import org.lflang.linguaFranca.TargetDecl
+import org.lflang.meta.TargetDecl
 
 /**
  * Generates code from your model files on save.
  * 
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
-class LinguaFrancaGenerator extends AbstractGenerator {
+class LFGenerator extends AbstractGenerator {
 
     // Indicator of whether generator errors occurred.
     protected var generatorErrorsOccurred = false

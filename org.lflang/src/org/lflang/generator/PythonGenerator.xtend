@@ -38,22 +38,22 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.InferredType
 import org.lflang.Target
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.Input
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.Output
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.ReactorDecl
-import org.lflang.linguaFranca.StateVar
-import org.lflang.linguaFranca.TriggerRef
-import org.lflang.linguaFranca.Value
-import org.lflang.linguaFranca.VarRef
+import org.lflang.meta.Action
+import org.lflang.meta.Input
+import org.lflang.meta.Model
+import org.lflang.meta.Output
+import org.lflang.meta.Parameter
+import org.lflang.meta.Port
+import org.lflang.meta.Reaction
+import org.lflang.meta.Reactor
+import org.lflang.meta.ReactorDecl
+import org.lflang.meta.StateVar
+import org.lflang.meta.TriggerRef
+import org.lflang.meta.Value
+import org.lflang.meta.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.meta.Instantiation
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor

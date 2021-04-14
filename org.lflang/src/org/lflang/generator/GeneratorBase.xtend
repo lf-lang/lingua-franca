@@ -63,29 +63,29 @@ import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.graph.InstantiationGraph
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.ActionOrigin
-import org.lflang.linguaFranca.Code
-import org.lflang.linguaFranca.Connection
-import org.lflang.linguaFranca.Delay
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.LinguaFrancaFactory
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.StateVar
-import org.lflang.linguaFranca.TargetDecl
-import org.lflang.linguaFranca.Time
-import org.lflang.linguaFranca.TimeUnit
-import org.lflang.linguaFranca.Type
-import org.lflang.linguaFranca.Value
-import org.lflang.linguaFranca.VarRef
-import org.lflang.linguaFranca.Variable
-import org.lflang.validation.AbstractLinguaFrancaValidator
+import org.lflang.meta.Action
+import org.lflang.meta.ActionOrigin
+import org.lflang.meta.Code
+import org.lflang.meta.Connection
+import org.lflang.meta.Delay
+import org.lflang.meta.Instantiation
+import org.lflang.meta.MetaFactory
+import org.lflang.meta.Model
+import org.lflang.meta.Parameter
+import org.lflang.meta.Port
+import org.lflang.meta.Reaction
+import org.lflang.meta.Reactor
+import org.lflang.meta.StateVar
+import org.lflang.meta.Time
+import org.lflang.meta.TimeUnit
+import org.lflang.meta.Type
+import org.lflang.meta.Value
+import org.lflang.meta.VarRef
+import org.lflang.meta.Variable
+import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.meta.TargetDecl
 
 /**
  * Generator base class for shared code between code generators.
@@ -97,7 +97,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
+abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -358,7 +358,7 @@ abstract class GeneratorBase extends AbstractLinguaFrancaValidator {
         for (reactor : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
             if (reactor.isMain || reactor.isFederated) {
                 // Creating an definition for the main reactor because there isn't one.
-                this.mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
+                this.mainDef = MetaFactory.eINSTANCE.createInstantiation()
                 this.mainDef.setName(reactor.name)
                 this.mainDef.setReactorClass(reactor)
             }

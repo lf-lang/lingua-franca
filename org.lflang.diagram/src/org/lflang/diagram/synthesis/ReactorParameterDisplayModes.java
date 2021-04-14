@@ -1,4 +1,4 @@
-package org.lflang.linguafranca.diagram.synthesis;
+package org.lflang.diagram.synthesis;
 
 /**
  * Enumeration of different display options for reactor parameters.

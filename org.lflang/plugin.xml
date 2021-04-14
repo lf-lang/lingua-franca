@@ -4,7 +4,7 @@
 	<extension point="org.eclipse.emf.ecore.generated_package">
 		<package 
 			uri = "https://www.lf-lang.org/"
-			class = "org.lflang.linguaFranca.LinguaFrancaPackage"
-			genModel = "model/generated/LinguaFranca.genmodel" />
+			class = "org.lflang.meta.MetaPackage"
+			genModel = "model/generated/LF.genmodel" />
 	</extension>
 </plugin>

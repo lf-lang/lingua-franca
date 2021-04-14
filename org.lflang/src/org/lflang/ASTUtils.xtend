@@ -43,35 +43,34 @@ import org.eclipse.xtext.resource.XtextResource
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.ActionOrigin
-import org.lflang.linguaFranca.ArraySpec
-import org.lflang.linguaFranca.Assignment
-import org.lflang.linguaFranca.Code
-import org.lflang.linguaFranca.Connection
-import org.lflang.linguaFranca.Delay
-import org.lflang.linguaFranca.Element
-import org.lflang.linguaFranca.ImportedReactor
-import org.lflang.linguaFranca.Input
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.LinguaFrancaFactory
-import org.lflang.linguaFranca.LinguaFrancaPackage
-import org.lflang.linguaFranca.Output
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.ReactorDecl
-import org.lflang.linguaFranca.StateVar
-import org.lflang.linguaFranca.Time
-import org.lflang.linguaFranca.TimeUnit
-import org.lflang.linguaFranca.Timer
-import org.lflang.linguaFranca.Type
-import org.lflang.linguaFranca.TypeParm
-import org.lflang.linguaFranca.Value
-import org.lflang.linguaFranca.VarRef
-import org.lflang.linguaFranca.WidthSpec
-import org.lflang.linguaFranca.Model
+import org.lflang.meta.Action
+import org.lflang.meta.ActionOrigin
+import org.lflang.meta.ArraySpec
+import org.lflang.meta.Assignment
+import org.lflang.meta.Code
+import org.lflang.meta.Connection
+import org.lflang.meta.Delay
+import org.lflang.meta.Element
+import org.lflang.meta.ImportedReactor
+import org.lflang.meta.Input
+import org.lflang.meta.Instantiation
+import org.lflang.meta.MetaFactory
+import org.lflang.meta.MetaPackage
+import org.lflang.meta.Output
+import org.lflang.meta.Parameter
+import org.lflang.meta.Port
+import org.lflang.meta.Reaction
+import org.lflang.meta.Reactor
+import org.lflang.meta.ReactorDecl
+import org.lflang.meta.StateVar
+import org.lflang.meta.Time
+import org.lflang.meta.TimeUnit
+import org.lflang.meta.Timer
+import org.lflang.meta.Type
+import org.lflang.meta.TypeParm
+import org.lflang.meta.Value
+import org.lflang.meta.VarRef
+import org.lflang.meta.WidthSpec
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -84,14 +83,14 @@ class ASTUtils {
     /**
      * The Lingua Franca factory for creating new AST nodes.
      */
-    public static val factory = LinguaFrancaFactory.eINSTANCE
+    public static val factory = MetaFactory.eINSTANCE
     
     /**
      * Make a Timer with name "startup" and default parameters.
      */
     static def makeStartupTimer() {
         val startupTimer = factory.createTimer();
-        startupTimer.name = LinguaFrancaPackage.Literals.TRIGGER_REF__STARTUP.name;
+        startupTimer.name = MetaPackage.Literals.TRIGGER_REF__STARTUP.name;
         return startupTimer;
     }
     
@@ -100,7 +99,7 @@ class ASTUtils {
      */
     static def makeShutdownAction() {
         val shutdownAction = factory.createAction();
-        shutdownAction.name = LinguaFrancaPackage.Literals.TRIGGER_REF__SHUTDOWN.name;
+        shutdownAction.name = MetaPackage.Literals.TRIGGER_REF__SHUTDOWN.name;
         return shutdownAction;
     }
     
@@ -420,7 +419,7 @@ class ASTUtils {
         GeneratorBase generator,
         CoordinationType coordination
     ) {
-        val factory = LinguaFrancaFactory.eINSTANCE
+        val factory = MetaFactory.eINSTANCE
         // Assume all the types are the same, so just use the first on the right.
         var type = (connection.rightPorts.get(0).variable as Port).type.copy
         val action = factory.createAction

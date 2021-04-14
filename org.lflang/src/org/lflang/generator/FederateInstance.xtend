@@ -30,18 +30,18 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.Input
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Output
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.TriggerRef
-import org.lflang.linguaFranca.VarRef
+import org.lflang.meta.Action
+import org.lflang.meta.Input
+import org.lflang.meta.Instantiation
+import org.lflang.meta.Output
+import org.lflang.meta.Reaction
+import org.lflang.meta.Reactor
+import org.lflang.meta.TriggerRef
+import org.lflang.meta.VarRef
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.linguaFranca.Delay
-import org.lflang.linguaFranca.ActionOrigin
+import org.lflang.meta.Delay
+import org.lflang.meta.ActionOrigin
 import org.lflang.TimeValue
 
 /** 

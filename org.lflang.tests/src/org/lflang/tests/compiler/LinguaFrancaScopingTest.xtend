@@ -30,17 +30,17 @@ import com.google.inject.Inject
 import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
-import org.lflang.linguaFranca.Model
+import org.lflang.meta.Model
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.^extension.ExtendWith
 import org.eclipse.xtext.testing.validation.ValidationTestHelper
-import org.lflang.linguaFranca.LinguaFrancaPackage
+import org.lflang.meta.MetaPackage
 import org.eclipse.xtext.linking.impl.XtextLinkingDiagnostic
-import org.lflang.tests.LinguaFrancaInjectorProvider
+import org.lflang.tests.LFInjectorProvider
 
 @ExtendWith(InjectionExtension)
-@InjectWith(LinguaFrancaInjectorProvider)
+@InjectWith(LFInjectorProvider)
 
 /**
  * Test harness for ensuring that cross-references are 
@@ -74,10 +74,10 @@ class LinguaFrancaScopingTest {
         Assertions.assertNotNull(model)
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing.")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.varRef,
+        model.assertError(MetaPackage::eINSTANCE.varRef,
             XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
             "Couldn't resolve reference to Instantiation 's'")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.varRef,
+        model.assertError(MetaPackage::eINSTANCE.varRef,
             XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
             "Couldn't resolve reference to Variable 'y'")
     }
@@ -108,10 +108,10 @@ class LinguaFrancaScopingTest {
         Assertions.assertNotNull(model)
         Assertions.assertTrue(model.eResource.errors.isEmpty,
             "Encountered unexpected error while parsing.")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.varRef,
+        model.assertError(MetaPackage::eINSTANCE.varRef,
             XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
             "Couldn't resolve reference to Variable 'x'")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.varRef,
+        model.assertError(MetaPackage::eINSTANCE.varRef,
             XtextLinkingDiagnostic.LINKING_DIAGNOSTIC,
             "Couldn't resolve reference to Variable 'y'")
     }

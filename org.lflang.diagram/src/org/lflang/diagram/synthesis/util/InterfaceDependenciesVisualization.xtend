@@ -1,4 +1,4 @@
-package org.lflang.linguafranca.diagram.synthesis.util
+package org.lflang.diagram.synthesis.util
 
 import com.google.common.collect.Sets
 import com.google.inject.Inject

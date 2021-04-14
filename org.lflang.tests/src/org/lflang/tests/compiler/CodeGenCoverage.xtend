@@ -24,7 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-package org.lflang.compiler
+package org.lflang.tests.compiler
 
 import org.lflang.Target
 import org.junit.jupiter.api.Test

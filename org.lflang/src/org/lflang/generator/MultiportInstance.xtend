@@ -26,7 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import java.util.ArrayList
-import org.lflang.linguaFranca.Port
+import org.lflang.meta.Port
 
 /** Representation of a runtime instance of a multiport.
  *  This contains an array of ports.

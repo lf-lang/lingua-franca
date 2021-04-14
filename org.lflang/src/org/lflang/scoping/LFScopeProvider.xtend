@@ -35,17 +35,17 @@ import org.eclipse.xtext.naming.SimpleNameProvider
 import org.eclipse.xtext.scoping.IScope
 import org.eclipse.xtext.scoping.Scopes
 import org.eclipse.xtext.scoping.impl.SelectableBasedScope
-import org.lflang.linguaFranca.Assignment
-import org.lflang.linguaFranca.Connection
-import org.lflang.linguaFranca.Deadline
-import org.lflang.linguaFranca.Import
-import org.lflang.linguaFranca.ImportedReactor
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.LinguaFrancaPackage
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.VarRef
+import org.lflang.meta.Assignment
+import org.lflang.meta.Connection
+import org.lflang.meta.Deadline
+import org.lflang.meta.Import
+import org.lflang.meta.ImportedReactor
+import org.lflang.meta.Instantiation
+import org.lflang.meta.MetaPackage
+import org.lflang.meta.Model
+import org.lflang.meta.Reaction
+import org.lflang.meta.Reactor
+import org.lflang.meta.VarRef
 
 import static extension org.lflang.ASTUtils.*
 
@@ -59,7 +59,7 @@ import static extension org.lflang.ASTUtils.*
  * on how and when to use it.
  * @author Marten Lohstroh
  */
-class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
+class LFScopeProvider extends AbstractLFScopeProvider {
 
     @Inject
     SimpleNameProvider nameProvider
@@ -153,14 +153,14 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
     protected def getScopeForAssignment(Assignment assignment,
         EReference reference) {
         
-        if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__LHS) {
+        if (reference == MetaPackage.Literals.ASSIGNMENT__LHS) {
             val defn = (assignment.eContainer as Instantiation).reactorClass.toDefinition
             if (defn !== null) {
                 return Scopes.scopeFor(defn.allParameters)
             }
             
         }
-        if (reference == LinguaFrancaPackage.Literals.ASSIGNMENT__RHS) {
+        if (reference == MetaPackage.Literals.ASSIGNMENT__RHS) {
             return Scopes.scopeFor(
                 (assignment.eContainer.eContainer as Reactor).parameters)
         }
@@ -171,7 +171,7 @@ class LinguaFrancaScopeProvider extends AbstractLinguaFrancaScopeProvider {
      * 
      */
     protected def getScopeForVarRef(VarRef variable, EReference reference) {
-        if (reference == LinguaFrancaPackage.Literals.VAR_REF__VARIABLE) {
+        if (reference == MetaPackage.Literals.VAR_REF__VARIABLE) {
             // Resolve hierarchical reference
             val candidates = new ArrayList<EObject>()
             var type = RefType.NULL

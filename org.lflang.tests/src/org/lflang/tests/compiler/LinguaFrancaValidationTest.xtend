@@ -38,10 +38,10 @@ import org.lflang.TargetProperty.DictionaryType
 import org.lflang.TargetProperty.PrimitiveType
 import org.lflang.TargetProperty.TargetPropertyType
 import org.lflang.TimeValue
-import org.lflang.linguaFranca.LinguaFrancaPackage
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.TimeUnit
-import org.lflang.linguaFranca.Visibility
+import org.lflang.meta.MetaPackage
+import org.lflang.meta.Model
+import org.lflang.meta.TimeUnit
+import org.lflang.meta.Visibility
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
@@ -52,10 +52,10 @@ import static org.junit.Assert.assertTrue
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetProperty.UnionType
 import org.lflang.TargetProperty.ArrayType
-import org.lflang.tests.LinguaFrancaInjectorProvider
+import org.lflang.tests.LFInjectorProvider
 
 @ExtendWith(InjectionExtension)
-@InjectWith(LinguaFrancaInjectorProvider)
+@InjectWith(LFInjectorProvider)
 /**
  * Collection of unit tests to ensure validation is done correctly.
  * 
@@ -103,7 +103,7 @@ class LinguaFrancaValidationTest {
                 logical action bar;
                 physical action bar;
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.action, null,
+        ''').assertError(MetaPackage::eINSTANCE.action, null,
         "Duplicate Variable 'bar' in Reactor 'Foo'")
     }
     
@@ -143,9 +143,9 @@ class LinguaFrancaValidationTest {
             "Encountered unexpected error while parsing: " + model_error_2.eResource.errors)
 
         model_no_errors.assertNoIssues
-        model_error_1.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+        model_error_1.assertError(MetaPackage::eINSTANCE.reactor, null,
             "Reactor cannot be named 'Preamble'")
-        model_error_2.assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+        model_error_2.assertError(MetaPackage::eINSTANCE.reactor, null,
             "Reactor cannot be named 'Preamble'")
     }
  
@@ -159,7 +159,7 @@ class LinguaFrancaValidationTest {
             main reactor {
                 input __bar;
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.input, null,
+        ''').assertError(MetaPackage::eINSTANCE.input, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -171,7 +171,7 @@ class LinguaFrancaValidationTest {
         parseWithoutError('''
             target C;
             main reactor Foo {}
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+        ''').assertError(MetaPackage::eINSTANCE.reactor, null,
             "Name of main reactor must match the file name (or be omitted)")
     }
     
@@ -185,7 +185,7 @@ class LinguaFrancaValidationTest {
             main reactor Foo {
                 output __bar;
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.output, null,
+        ''').assertError(MetaPackage::eINSTANCE.output, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -199,7 +199,7 @@ class LinguaFrancaValidationTest {
             main reactor Foo {
                 logical action __bar;
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.action, null,
+        ''').assertError(MetaPackage::eINSTANCE.action, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -213,7 +213,7 @@ class LinguaFrancaValidationTest {
             main reactor Foo {
                 timer __bar(0);
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.timer, null,
+        ''').assertError(MetaPackage::eINSTANCE.timer, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -226,7 +226,7 @@ class LinguaFrancaValidationTest {
             target TypeScript;
             main reactor Foo(__bar) {
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+        ''').assertError(MetaPackage::eINSTANCE.parameter, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -240,7 +240,7 @@ class LinguaFrancaValidationTest {
             main reactor Foo {
                 state __bar;
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.stateVar, null,
+        ''').assertError(MetaPackage::eINSTANCE.stateVar, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar")
     }
     
@@ -253,7 +253,7 @@ class LinguaFrancaValidationTest {
             target TypeScript;
             main reactor __Foo {
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.reactor, null,
+        ''').assertError(MetaPackage::eINSTANCE.reactor, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __Foo")
     }
     
@@ -269,7 +269,7 @@ class LinguaFrancaValidationTest {
             main reactor Bar {
                 __x = new Foo();
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.instantiation, null,
+        ''').assertError(MetaPackage::eINSTANCE.instantiation, null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __x")
     }
     
@@ -290,7 +290,7 @@ class LinguaFrancaValidationTest {
                 reaction(startup) -> out {=                    
                 =}
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+        ''').assertError(MetaPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'out' is already effect of a reaction.")
     }
     
@@ -314,7 +314,7 @@ class LinguaFrancaValidationTest {
                 reaction(startup) -> x.inp {=                    
                 =}
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+        ''').assertError(MetaPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'inp' is already effect of a reaction.")
     }
     
@@ -358,7 +358,7 @@ class LinguaFrancaValidationTest {
                 reaction(startup) -> x1.in {=
                 =}
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+        ''').assertError(MetaPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'in' is already effect of a reaction.")
     }
 	
@@ -385,7 +385,7 @@ class LinguaFrancaValidationTest {
                 in -> sink.in;
                 src.out -> sink.in;
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.connection, null,
+        ''').assertError(MetaPackage::eINSTANCE.connection, null,
             "Cannot connect: Port named 'in' may only appear once on the right side of a connection.")
     }
     
@@ -400,7 +400,7 @@ class LinguaFrancaValidationTest {
             reactor Contained {
                 x = new Contained();
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+        ''').assertError(MetaPackage::eINSTANCE.instantiation,
             null, 'Instantiation is part of a cycle: Contained')
     }
     
@@ -420,9 +420,9 @@ class LinguaFrancaValidationTest {
                 x = new Intermediate();
             }
         ''')
-        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+        model.assertError(MetaPackage::eINSTANCE.instantiation,
             null, 'Instantiation is part of a cycle: Contained, Intermediate.')
-        model.assertError(LinguaFrancaPackage::eINSTANCE.instantiation,
+        model.assertError(MetaPackage::eINSTANCE.instantiation,
             null, 'Instantiation is part of a cycle: Contained, Intermediate.')
     }
     
@@ -439,7 +439,7 @@ class LinguaFrancaValidationTest {
                       printf("Hello World.\n");
                   =}
              }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.value,
+        ''').assertError(MetaPackage::eINSTANCE.value,
             null, "Missing time units. Should be one of " +
             TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }    
@@ -457,7 +457,7 @@ class LinguaFrancaValidationTest {
                       printf("Hello World.\n");
                   =}
              }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.value,
+        ''').assertError(MetaPackage::eINSTANCE.value,
             null, 'Parameter is not of time type')
         
     }
@@ -475,7 +475,7 @@ class LinguaFrancaValidationTest {
                     printf("Hello World.\n");
                 =}
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.value,
+        ''').assertError(MetaPackage::eINSTANCE.value,
             null, 'Invalid time literal')
     }  
     
@@ -494,7 +494,7 @@ class LinguaFrancaValidationTest {
                 =} deadline (40 hours) {=
                 =}
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.deadline, null,
+        ''').assertError(MetaPackage::eINSTANCE.deadline, null,
             "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE +
                 " nanoseconds.")
     }  
@@ -514,7 +514,7 @@ class LinguaFrancaValidationTest {
                 =} deadline (d) {=
                 =}
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+        ''').assertError(MetaPackage::eINSTANCE.parameter, null,
             "Time value used to specify a deadline exceeds the maximum of " +
                 TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
     }  
@@ -537,7 +537,7 @@ class LinguaFrancaValidationTest {
             main reactor {
                 p = new Print(d=40 hours);
             }
-        ''').assertError(LinguaFrancaPackage::eINSTANCE.assignment, null,
+        ''').assertError(MetaPackage::eINSTANCE.assignment, null,
             "Time value used to specify a deadline exceeds the maximum of " +
                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.")
     }  
@@ -554,7 +554,7 @@ class LinguaFrancaValidationTest {
 		   		//
 		   	=}
 		}
-        ''').assertWarning(LinguaFrancaPackage::eINSTANCE.reaction, null,
+        ''').assertWarning(MetaPackage::eINSTANCE.reaction, null,
             "Reaction has no trigger.")
     }
         
@@ -589,9 +589,9 @@ class LinguaFrancaValidationTest {
                 
                 if (target == Target.CPP) {
                     if (visibility == Visibility.NONE) {
-                        model_file_scope.assertError(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                        model_file_scope.assertError(MetaPackage::eINSTANCE.preamble, null,
                             "Preambles for the C++ target need a visibility qualifier (private or public)!")
-                        model_reactor_scope.assertError(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                        model_reactor_scope.assertError(MetaPackage::eINSTANCE.preamble, null,
                             "Preambles for the C++ target need a visibility qualifier (private or public)!")        
                     } else {
                         model_file_scope.assertNoIssues
@@ -602,9 +602,9 @@ class LinguaFrancaValidationTest {
                         model_file_scope.assertNoIssues
                         model_reactor_scope.assertNoIssues        
                     } else {
-                        model_file_scope.assertWarning(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                        model_file_scope.assertWarning(MetaPackage::eINSTANCE.preamble, null,
                             '''The «visibility» qualifier has no meaning for the «target.name» target. It should be removed.''')
-                        model_reactor_scope.assertWarning(LinguaFrancaPackage::eINSTANCE.preamble, null,
+                        model_reactor_scope.assertWarning(MetaPackage::eINSTANCE.preamble, null,
                             '''The «visibility» qualifier has no meaning for the «target.name» target. It should be removed.''')
                     }
                 }
@@ -635,24 +635,24 @@ class LinguaFrancaValidationTest {
 			}
         ''')
 
-		model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+		model.assertError(MetaPackage::eINSTANCE.parameter, null,
             "Type declaration missing.")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+        model.assertError(MetaPackage::eINSTANCE.parameter, null,
             "Missing time units. Should be one of " +
             	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
-        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+        model.assertError(MetaPackage::eINSTANCE.parameter, null,
             "Invalid time literal.")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+        model.assertError(MetaPackage::eINSTANCE.parameter, null,
             "Time parameter cannot be initialized using a list.")    
-        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+        model.assertError(MetaPackage::eINSTANCE.parameter, null,
             "Parameter cannot be initialized using parameter.")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.stateVar, null,
+        model.assertError(MetaPackage::eINSTANCE.stateVar, null,
             "Referenced parameter does not denote a time.")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.stateVar, null,
+        model.assertError(MetaPackage::eINSTANCE.stateVar, null,
             "Invalid time literal.")
-        model.assertError(LinguaFrancaPackage::eINSTANCE.parameter, null,
+        model.assertError(MetaPackage::eINSTANCE.parameter, null,
             "Uninitialized parameter.")
-       	model.assertError(LinguaFrancaPackage::eINSTANCE.value, null,
+       	model.assertError(MetaPackage::eINSTANCE.value, null,
             "Missing time units. Should be one of " +
             	TimeUnit.VALUES.filter[it != TimeUnit.NONE])
     }  
@@ -699,7 +699,7 @@ class LinguaFrancaValidationTest {
                 federated reactor X at foo@«addr»:4242 {
                     y = new Y() at «addr»:2424; 
                 }
-            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
+            ''').assertWarning(MetaPackage::eINSTANCE.host, null,
                 "Invalid IP address.")
         ]
     }
@@ -760,7 +760,7 @@ class LinguaFrancaValidationTest {
                 federated reactor at [foo@«addr»]:4242 {
                     y = new Y() at [«addr»]:2424; 
                 }
-            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
+            ''').assertWarning(MetaPackage::eINSTANCE.host, null,
                 "Invalid IP address.")
         ]
     }
@@ -807,7 +807,7 @@ class LinguaFrancaValidationTest {
                 federated reactor at foo@«addr»:4242 {
                     y = new Y() at «addr»:2424; 
                 }
-            ''').assertWarning(LinguaFrancaPackage::eINSTANCE.host, null,
+            ''').assertWarning(MetaPackage::eINSTANCE.host, null,
                 "Invalid host name or fully qualified domain name.")
         ]
     }
@@ -992,7 +992,7 @@ class LinguaFrancaValidationTest {
                 // Also make sure warnings are produced when files are not present.
                 if (prop.type == PrimitiveType.FILE) {
                     model.assertWarning(
-                        LinguaFrancaPackage::eINSTANCE.keyValuePair,
+                        MetaPackage::eINSTANCE.keyValuePair,
                         null, '''Could not find file: '«it.withoutQuotes»'.''')
                 }
             ]
@@ -1004,7 +1004,7 @@ class LinguaFrancaValidationTest {
 //                    synthesizeExamples(ArrayType.FILE_ARRAY, true).get(0))
 //                primitiveTypeToKnownGood.get(PrimitiveType.FILE).forEach [
 //                    model.assertWarning(
-//                        LinguaFrancaPackage::eINSTANCE.keyValuePair,
+//                        MetaPackage::eINSTANCE.keyValuePair,
 //                        null, '''Could not find file: '«it.withoutQuotes»'.''')
 //                ]
 //            }
@@ -1014,7 +1014,7 @@ class LinguaFrancaValidationTest {
             if (!knownIncorrect.isNullOrEmpty) {
                 knownIncorrect.forEach [
                     prop.createModel(it).assertError(
-                        LinguaFrancaPackage::eINSTANCE.keyValuePair,
+                        MetaPackage::eINSTANCE.keyValuePair,
                         null, '''Target property '«prop.toString»' is required to be «prop.type».''')
                 ]
             } else {
@@ -1027,7 +1027,7 @@ class LinguaFrancaValidationTest {
                     list.forEach [
                         prop.createModel(it.get(0).toString).
                             assertError(
-                                LinguaFrancaPackage::eINSTANCE.keyValuePair,
+                                MetaPackage::eINSTANCE.keyValuePair,
                                 null, '''Target property '«prop.toString»«it.get(1)»' is required to be «it.get(2)».''')
                     ]
                 }

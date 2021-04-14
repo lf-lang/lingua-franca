@@ -35,7 +35,7 @@ import org.eclipse.xtext.resource.impl.DefaultResourceDescriptionStrategy
 import org.eclipse.xtext.scoping.impl.ImportUriResolver
 import org.eclipse.xtext.util.IAcceptor
 import org.eclipse.emf.ecore.EObject
-import org.lflang.linguaFranca.Model
+import org.lflang.meta.Model
 
 /**
  * Resource description strategy designed to limit global scope to only those

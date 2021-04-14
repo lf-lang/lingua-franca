@@ -29,8 +29,8 @@ package org.lflang.generator
 
 import java.util.List
 import org.lflang.InferredType
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.Value
+import org.lflang.meta.Parameter
+import org.lflang.meta.Value
 
 import static extension org.lflang.ASTUtils.*
 

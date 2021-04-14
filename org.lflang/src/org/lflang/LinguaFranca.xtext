@@ -37,9 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 
-grammar org.lflang.LinguaFranca with org.eclipse.xtext.common.Terminals
+grammar org.lflang.LF with org.eclipse.xtext.common.Terminals
 
-generate linguaFranca "http://www.icyphy.org/LinguaFranca"
+generate meta "http://www.icyphy.org/LinguaFranca"
 
 /////////// Overall file
 

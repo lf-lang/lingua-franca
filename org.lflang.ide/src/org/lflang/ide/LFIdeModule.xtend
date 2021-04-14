@@ -7,5 +7,5 @@ package org.lflang.ide
 /**
  * Use this class to register ide components.
  */
-class LinguaFrancaIdeModule extends AbstractLinguaFrancaIdeModule {
+class LFIdeModule extends AbstractLFIdeModule {
 }
