@@ -32,19 +32,19 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import org.lflang.ASTUtils
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.Connection
-import org.lflang.linguaFranca.Input
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Output
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Timer
-import org.lflang.linguaFranca.Value
-import org.lflang.linguaFranca.VarRef
-import org.lflang.linguaFranca.Variable
-import org.lflang.linguaFranca.WidthSpec
+import org.lflang.meta.Action
+import org.lflang.meta.Connection
+import org.lflang.meta.Input
+import org.lflang.meta.Instantiation
+import org.lflang.meta.Output
+import org.lflang.meta.Parameter
+import org.lflang.meta.Port
+import org.lflang.meta.Reaction
+import org.lflang.meta.Timer
+import org.lflang.meta.Value
+import org.lflang.meta.VarRef
+import org.lflang.meta.Variable
+import org.lflang.meta.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
 

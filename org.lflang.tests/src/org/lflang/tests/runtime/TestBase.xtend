@@ -24,7 +24,7 @@ import org.lflang.Target
 import org.lflang.generator.StandaloneContext
 import org.lflang.tests.LFTest
 import org.lflang.tests.LFTest.Result
-import org.lflang.tests.LinguaFrancaInjectorProvider
+import org.lflang.tests.LFInjectorProvider
 import org.lflang.tests.TestRegistry
 import org.lflang.tests.TestRegistry.TestCategory
 import org.junit.jupiter.api.Test
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.^extension.ExtendWith
 import static extension org.junit.Assert.assertTrue
 
 @ExtendWith(InjectionExtension)
-@InjectWith(LinguaFrancaInjectorProvider)
+@InjectWith(LFInjectorProvider)
 
 abstract class TestBase {
     

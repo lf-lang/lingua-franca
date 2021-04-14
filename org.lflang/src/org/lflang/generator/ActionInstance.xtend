@@ -28,10 +28,10 @@ package org.lflang.generator
 
 import org.lflang.ASTUtils
 import org.lflang.TimeValue
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.ActionOrigin
-import org.lflang.linguaFranca.TimeUnit
-import org.lflang.linguaFranca.Variable
+import org.lflang.meta.Action
+import org.lflang.meta.ActionOrigin
+import org.lflang.meta.TimeUnit
+import org.lflang.meta.Variable
 
 import static extension org.lflang.ASTUtils.*
 

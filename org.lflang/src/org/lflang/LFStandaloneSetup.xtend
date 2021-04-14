@@ -7,9 +7,9 @@ package org.lflang
 /**
  * Initialization support for running Xtext languages without Equinox extension registry.
  */
-class LinguaFrancaStandaloneSetup extends LinguaFrancaStandaloneSetupGenerated {
+class LFStandaloneSetup extends LFStandaloneSetupGenerated {
 
 	def static void doSetup() {
-		new LinguaFrancaStandaloneSetup().createInjectorAndDoEMFRegistration()
+		new LFStandaloneSetup().createInjectorAndDoEMFRegistration()
 	}
 }

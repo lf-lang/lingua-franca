@@ -35,7 +35,7 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
 import org.lflang.ASTUtils;
-import org.lflang.LinguaFrancaStandaloneSetup;
+import org.lflang.LFStandaloneSetup;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -290,7 +290,7 @@ public class Main {
         /**
          * Injector used to obtain Main instance.
          */
-        final Injector injector = new LinguaFrancaStandaloneSetup()
+        final Injector injector = new LFStandaloneSetup()
                 .createInjectorAndDoEMFRegistration();
         
         /**

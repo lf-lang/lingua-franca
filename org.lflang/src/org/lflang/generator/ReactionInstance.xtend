@@ -28,14 +28,14 @@ package org.lflang.generator
 
 import java.util.LinkedHashSet
 import org.lflang.TimeValue
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.TimeUnit
-import org.lflang.linguaFranca.Timer
-import org.lflang.linguaFranca.TriggerRef
-import org.lflang.linguaFranca.VarRef
-import org.lflang.linguaFranca.Variable
+import org.lflang.meta.Action
+import org.lflang.meta.Port
+import org.lflang.meta.Reaction
+import org.lflang.meta.TimeUnit
+import org.lflang.meta.Timer
+import org.lflang.meta.TriggerRef
+import org.lflang.meta.VarRef
+import org.lflang.meta.Variable
 
 /**
  * Representation of a runtime instance of a reaction.

@@ -31,13 +31,13 @@ import java.util.HashSet
 import java.util.Set
 import org.lflang.graph.InstantiationGraph
 import org.lflang.graph.ReactionGraph
-import org.lflang.linguaFranca.Assignment
-import org.lflang.linguaFranca.Deadline
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.TargetDecl
+import org.lflang.meta.Assignment
+import org.lflang.meta.Deadline
+import org.lflang.meta.Instantiation
+import org.lflang.meta.Model
+import org.lflang.meta.Parameter
+import org.lflang.meta.Reactor
+import org.lflang.meta.TargetDecl
 
 import static extension org.lflang.ASTUtils.*
 

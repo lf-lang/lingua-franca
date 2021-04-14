@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang
 
-import org.lflang.linguaFranca.Type
+import org.lflang.meta.Type
 
 import static extension org.lflang.ASTUtils.*
 

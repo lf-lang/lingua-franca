@@ -30,14 +30,14 @@ import com.google.inject.Inject
 import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
-import org.lflang.linguaFranca.Model
+import org.lflang.meta.Model
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.^extension.ExtendWith
-import org.lflang.tests.LinguaFrancaInjectorProvider
+import org.lflang.tests.LFInjectorProvider
 
 @ExtendWith(InjectionExtension)
-@InjectWith(LinguaFrancaInjectorProvider)
+@InjectWith(LFInjectorProvider)
 
 /**
  * Test harness for ensuring that grammar captures

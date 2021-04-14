@@ -38,47 +38,47 @@ import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
+import org.lflang.FileConfig
 import org.lflang.ModelInfo
 import org.lflang.Target
 import org.lflang.TargetProperty
 import org.lflang.TimeValue
-import org.lflang.linguaFranca.Action
-import org.lflang.linguaFranca.ActionOrigin
-import org.lflang.linguaFranca.Assignment
-import org.lflang.linguaFranca.Connection
-import org.lflang.linguaFranca.Deadline
-import org.lflang.linguaFranca.Host
-import org.lflang.linguaFranca.IPV4Host
-import org.lflang.linguaFranca.IPV6Host
-import org.lflang.linguaFranca.Import
-import org.lflang.linguaFranca.ImportedReactor
-import org.lflang.linguaFranca.Input
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.KeyValuePair
-import org.lflang.linguaFranca.KeyValuePairs
-import org.lflang.linguaFranca.LinguaFrancaPackage.Literals
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.NamedHost
-import org.lflang.linguaFranca.Output
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Preamble
-import org.lflang.linguaFranca.Reaction
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.StateVar
-import org.lflang.linguaFranca.TargetDecl
-import org.lflang.linguaFranca.TimeUnit
-import org.lflang.linguaFranca.Timer
-import org.lflang.linguaFranca.Type
-import org.lflang.linguaFranca.TypedVariable
-import org.lflang.linguaFranca.Value
-import org.lflang.linguaFranca.VarRef
-import org.lflang.linguaFranca.Variable
-import org.lflang.linguaFranca.Visibility
-import org.lflang.linguaFranca.WidthSpec
+import org.lflang.meta.Action
+import org.lflang.meta.ActionOrigin
+import org.lflang.meta.Assignment
+import org.lflang.meta.Connection
+import org.lflang.meta.Deadline
+import org.lflang.meta.Host
+import org.lflang.meta.IPV4Host
+import org.lflang.meta.IPV6Host
+import org.lflang.meta.Import
+import org.lflang.meta.ImportedReactor
+import org.lflang.meta.Input
+import org.lflang.meta.Instantiation
+import org.lflang.meta.KeyValuePair
+import org.lflang.meta.KeyValuePairs
+import org.lflang.meta.MetaPackage.Literals
+import org.lflang.meta.Model
+import org.lflang.meta.NamedHost
+import org.lflang.meta.Output
+import org.lflang.meta.Parameter
+import org.lflang.meta.Port
+import org.lflang.meta.Preamble
+import org.lflang.meta.Reaction
+import org.lflang.meta.Reactor
+import org.lflang.meta.StateVar
+import org.lflang.meta.TargetDecl
+import org.lflang.meta.TimeUnit
+import org.lflang.meta.Timer
+import org.lflang.meta.Type
+import org.lflang.meta.TypedVariable
+import org.lflang.meta.Value
+import org.lflang.meta.VarRef
+import org.lflang.meta.Variable
+import org.lflang.meta.Visibility
+import org.lflang.meta.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.FileConfig
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -91,7 +91,7 @@ import org.lflang.FileConfig
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
  * 
  */
-class LinguaFrancaValidator extends AbstractLinguaFrancaValidator {
+class LFValidator extends AbstractLFValidator {
 
     var Target target
     public var info = new ModelInfo()

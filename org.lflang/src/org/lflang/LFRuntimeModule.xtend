@@ -11,7 +11,7 @@ import org.lflang.validation.LinguaFrancaNamesAreUniqueValidationHelper
  * This class is used to register components to be used at runtime 
  * / without the Equinox extension registry.
  */
-class LinguaFrancaRuntimeModule extends AbstractLinguaFrancaRuntimeModule {
+class LFRuntimeModule extends AbstractLFRuntimeModule {
     /** Establish a binding to our custom resource description strategy. */
     def Class<? extends IDefaultResourceDescriptionStrategy> bindIDefaultResourceDescriptionStrategy() {
         LinguaFrancaResourceDescriptionStrategy

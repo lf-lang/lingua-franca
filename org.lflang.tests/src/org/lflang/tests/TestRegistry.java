@@ -27,11 +27,11 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.LinguaFrancaStandaloneSetup;
+import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.Main;
-import org.lflang.linguaFranca.Reactor;
-import org.lflang.linguaFranca.TargetDecl;
+import org.lflang.meta.Reactor;
+import org.lflang.meta.TargetDecl;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.runtime.TestBase;
 
@@ -176,7 +176,7 @@ public class TestRegistry {
     // all .lf files to be included in the registry.
     static {
         System.out.println("Indexing...");
-        ResourceSet rs = new LinguaFrancaStandaloneSetup()
+        ResourceSet rs = new LFStandaloneSetup()
                 .createInjectorAndDoEMFRegistration()
                 .<Main>getInstance(Main.class).getResourceSet();
 

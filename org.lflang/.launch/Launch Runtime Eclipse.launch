@@ -4,7 +4,7 @@
     <booleanAttribute key="askclear" value="true"/>
     <booleanAttribute key="automaticAdd" value="true"/>
     <booleanAttribute key="automaticValidate" value="false"/>
-    <stringAttribute key="bad_container_name" value="/org.icyphy.linguafranca/.launch/"/>
+    <stringAttribute key="bad_container_name" value="/org.lflang/.launch/"/>
     <stringAttribute key="bootstrap" value=""/>
     <stringAttribute key="checked" value="[NONE]"/>
     <booleanAttribute key="clearConfig" value="false"/>

@@ -26,10 +26,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import java.util.LinkedHashSet
-import org.lflang.linguaFranca.Input
-import org.lflang.linguaFranca.Output
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Variable
+import org.lflang.meta.Input
+import org.lflang.meta.Output
+import org.lflang.meta.Port
+import org.lflang.meta.Variable
 
 /** Representation of a runtime instance of a port.
  *  

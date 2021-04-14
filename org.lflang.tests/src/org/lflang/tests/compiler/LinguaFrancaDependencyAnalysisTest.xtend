@@ -32,18 +32,18 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.lflang.generator.CGenerator
 import org.lflang.generator.ReactorInstance
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.LinguaFrancaFactory
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.Reactor
+import org.lflang.meta.Instantiation
+import org.lflang.meta.MetaFactory
+import org.lflang.meta.Model
+import org.lflang.meta.Reactor
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 import org.lflang.ModelInfo
-import org.lflang.tests.LinguaFrancaInjectorProvider
+import org.lflang.tests.LFInjectorProvider
 
 @ExtendWith(InjectionExtension)
-@InjectWith(LinguaFrancaInjectorProvider)
+@InjectWith(LFInjectorProvider)
 
 /**
  * A collection of tests to ensure dependency analysis is done correctly.
@@ -94,7 +94,7 @@ class LinguaFrancaDependencyAnalysisTest {
             if (reactor.isMain) {
                 // Creating an definition for the main reactor because 
                 // there isn't one.
-                mainDef = LinguaFrancaFactory.eINSTANCE.createInstantiation()
+                mainDef = MetaFactory.eINSTANCE.createInstantiation()
                 mainDef.setName(reactor.name)
                 mainDef.setReactorClass(reactor)
             }

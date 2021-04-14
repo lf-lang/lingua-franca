@@ -27,7 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import java.util.LinkedHashSet
-import org.lflang.linguaFranca.Variable
+import org.lflang.meta.Variable
 
 /** Instance of a trigger (port, action, or timer).
  * 

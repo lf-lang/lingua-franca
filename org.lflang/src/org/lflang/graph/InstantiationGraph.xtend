@@ -29,10 +29,10 @@ package org.lflang.graph
 
 import com.google.common.collect.HashMultimap
 import java.util.Set
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.ReactorDecl
+import org.lflang.meta.Instantiation
+import org.lflang.meta.Model
+import org.lflang.meta.Reactor
+import org.lflang.meta.ReactorDecl
 
 import static extension org.lflang.ASTUtils.*
 import org.eclipse.emf.ecore.resource.Resource

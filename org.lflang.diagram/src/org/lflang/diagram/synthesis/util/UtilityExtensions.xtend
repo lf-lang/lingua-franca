@@ -1,4 +1,4 @@
-package org.lflang.linguafranca.diagram.synthesis.util
+package org.lflang.diagram.synthesis.util
 
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
@@ -10,15 +10,15 @@ import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.util.IndividualSpacings
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.ASTUtils
-import org.lflang.linguaFranca.Code
-import org.lflang.linguaFranca.Host
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Port
-import org.lflang.linguaFranca.Reactor
-import org.lflang.linguaFranca.Value
-import org.lflang.linguaFranca.VarRef
-import org.lflang.linguaFranca.WidthSpec
-import org.lflang.linguafranca.diagram.synthesis.AbstractSynthesisExtensions
+import org.lflang.meta.Code
+import org.lflang.meta.Host
+import org.lflang.meta.Instantiation
+import org.lflang.meta.Port
+import org.lflang.meta.Reactor
+import org.lflang.meta.Value
+import org.lflang.meta.VarRef
+import org.lflang.meta.WidthSpec
+import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 
 import static extension org.lflang.ASTUtils.*
 

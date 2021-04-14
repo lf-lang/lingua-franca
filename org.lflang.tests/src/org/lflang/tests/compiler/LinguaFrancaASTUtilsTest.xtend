@@ -33,11 +33,11 @@ import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.lflang.ASTUtils
-import org.lflang.linguaFranca.Instantiation
-import org.lflang.linguaFranca.Model
-import org.lflang.linguaFranca.Parameter
-import org.lflang.linguaFranca.StateVar
-import org.lflang.tests.LinguaFrancaInjectorProvider
+import org.lflang.meta.Instantiation
+import org.lflang.meta.Model
+import org.lflang.meta.Parameter
+import org.lflang.meta.StateVar
+import org.lflang.tests.LFInjectorProvider
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
@@ -50,7 +50,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Christian Menard <christian.menard@tu-dresden.de>}
  */
 @ExtendWith(InjectionExtension)
-@InjectWith(LinguaFrancaInjectorProvider)
+@InjectWith(LFInjectorProvider)
 class LinguaFrancaASTUtilsTest {
     @Inject extension ParseHelper<Model>
     
