@@ -197,15 +197,13 @@ void create_server(int specified_port) {
  * Send a message to another federate directly or via the RTI.
  * This method assumes that the caller does not hold the outbound_socket_mutex lock,
  * which it acquires to perform the send.
+ *
+ * If the socket connection to the remote federate or the RTI has been broken,
+ * then this returns 0 without sending. Otherwise, it returns 1.
  * 
  * @note This function is similar to send_timed_message() except that it
  *  does not deal with time and timed_messages.
  * 
- * @param additional_delay The offset applied to the timestamp
- *  using after. The additional delay will be greater or equal to zero
- *  if an after is used on the connection. If no after is given in the
- *  program, -1 is passed.
- * @param socket The socket to send the message on
  * @param message_type The type of the message being sent. 
  *  Currently can be TIMED_MESSAGE for messages sent via
  *  RTI or P2P_TIMED_MESSAGE for messages sent between
@@ -215,12 +213,12 @@ void create_server(int specified_port) {
  * @param next_destination_str The name of the next destination in string format
  * @param length The message length.
  * @param message The message.
+ * @return 1 if the message has been sent, 0 otherwise.
  */
-void send_message(int socket,
-                  int message_type,
+int send_message(int message_type,
                   unsigned short port,
                   unsigned short federate,
-                  const char next_destination_str[],
+                  const char* next_destination_str,
                   size_t length,
                   unsigned char* message) {
     unsigned char header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)];
@@ -242,11 +240,24 @@ void send_message(int socket,
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     lf_mutex_lock(&outbound_socket_mutex);
+    // First, check that the socket is still connected. This must done
+    // while holding the mutex lock.
+    int socket = -1;
+    if (message_type == P2P_MESSAGE || message_type == P2P_TIMED_MESSAGE) {
+        socket = _fed.sockets_for_outbound_p2p_connections[federate];
+    } else {
+        socket = _fed.socket_TCP_RTI;
+    }
+    if (socket < 0) {
+    	warning_print("Socket is no longer connected. Dropping message.");
+    	return 0;
+    }
     write_to_socket_errexit(socket, header_length, header_buffer,
             "Failed to send message header to to %s.", next_destination_str);
     write_to_socket_errexit(socket, length, message,
             "Failed to send message body to to %s.", next_destination_str);
     lf_mutex_unlock(&outbound_socket_mutex);
+    return 1;
 }
 
 /** 
@@ -257,6 +268,10 @@ void send_message(int socket,
  * The port should be an input port of a reactor in 
  * the destination federate. This version does include the timestamp 
  * in the message. The caller can reuse or free the memory after this returns.
+ *
+ * If the socket connection to the remote federate or the RTI has been broken,
+ * then this returns 0 without sending. Otherwise, it returns 1.
+ *
  * This method assumes that the caller does not hold the outbound_socket_mutex lock,
  * which it acquires to perform the send.
  * 
@@ -267,7 +282,6 @@ void send_message(int socket,
  *  using after. The additional delay will be greater or equal to zero
  *  if an after is used on the connection. If no after is given in the
  *  program, -1 is passed.
- * @param socket The socket to send the message on
  * @param message_type The type of the message being sent. 
  *  Currently can be TIMED_MESSAGE for messages sent via
  *  RTI or P2P_TIMED_MESSAGE for messages sent between
@@ -278,18 +292,15 @@ void send_message(int socket,
  *  (used for reporting errors).
  * @param length The message length.
  * @param message The message.
+ * @return 1 if the message has been sent, 0 otherwise.
  */
-void send_timed_message(interval_t additional_delay,
-                        int socket,
+int send_timed_message(interval_t additional_delay,
                         int message_type,
                         unsigned short port,
                         unsigned short federate,
-                        const char next_destination_str[],
+                        const char* next_destination_str,
                         size_t length,
                         unsigned char* message) {
-    if (socket < 0) {
-        return;
-    }
     unsigned char header_buffer[1 + sizeof(ushort) + sizeof(ushort)
              + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t)];
     // First byte identifies this as a timed message.
@@ -347,16 +358,29 @@ void send_timed_message(interval_t additional_delay,
     if (_lf_is_tag_after_stop_tag((tag_t){.time=current_message_timestamp,.microstep=current_message_microstep})) {
         // Message tag is past the timeout time (the stop time) so it should
         // not be sent.
-        return;
+        return 0;
     }
 
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     lf_mutex_lock(&outbound_socket_mutex);
+    // First, check that the socket is still connected. This must done
+    // while holding the mutex lock.
+    int socket = -1;
+    if (message_type == P2P_MESSAGE || message_type == P2P_TIMED_MESSAGE) {
+        socket = _fed.sockets_for_outbound_p2p_connections[federate];
+    } else {
+        socket = _fed.socket_TCP_RTI;
+    }
+    if (socket < 0) {
+    	warning_print("Socket is no longer connected. Dropping message.");
+    	return 0;
+    }
     write_to_socket_errexit(socket, header_length, header_buffer,
             "Failed to send timed message header to %s.", next_destination_str);
     write_to_socket_errexit(socket, length, message,
-            "Federate %d failed to send timed message body to %s.", next_destination_str);
+            "Failed to send timed message body to %s.", next_destination_str);
     lf_mutex_unlock(&outbound_socket_mutex);
+    return 1;
 }
 
 /** 
@@ -490,6 +514,58 @@ void* handle_p2p_connections_from_federates(void* ignored) {
     }
 
     LOG_PRINT("All remote federates are connected.");
+    return NULL;
+}
+
+/**
+ * Close the socket that sends outgoing messages to the
+ * specified federate ID. This function assumes the caller holds
+ * the outbound_socket_mutex mutex lock.
+ * @param The ID of the peer federate receiving messages from this
+ *  federate, or -1 if the RTI (centralized coordination).
+ */
+void _lf_close_outbound_socket(int fed_id) {
+	assert (fed_id >= 0 && fed_id < NUMBER_OF_FEDERATES);
+	if (_fed.sockets_for_outbound_p2p_connections[fed_id] >= 0) {
+        shutdown(_fed.sockets_for_outbound_p2p_connections[fed_id], SHUT_RDWR);
+        close(_fed.sockets_for_outbound_p2p_connections[fed_id]);
+        _fed.sockets_for_outbound_p2p_connections[fed_id] = -1;
+    }
+}
+
+/**
+ * For each incoming message socket, we create this thread that listens
+ * for upstream messages. Currently, the only possible upstream message
+ * is CLOSE_REQUEST.  If this thread receives that message, then closes
+ * the socket.  The idea here is that a peer-to-peer socket connection
+ * is always closed from the sending end, never from the receiving end.
+ * This way, any sends in progress complete before the socket is actually
+ * closed.
+ */
+void* listen_for_upstream_messages_from_downstream_federates(void* fed_id_ptr) {
+    ushort fed_id = *((ushort*)fed_id_ptr);
+    unsigned char message;
+
+    lf_mutex_lock(&outbound_socket_mutex);
+    while(_fed.sockets_for_outbound_p2p_connections[fed_id] >= 0) {
+    	// Unlock the mutex before performing a blocking read.
+    	// Note that there is a race condition here, but the read will return
+    	// a failure if the socket gets closed.
+        lf_mutex_unlock(&outbound_socket_mutex);
+
+        DEBUG_PRINT("Thread listening for CLOSE_REQUEST from federate %d", fed_id);
+    	int bytes_read = read_from_socket(
+    			_fed.sockets_for_outbound_p2p_connections[fed_id], 1, &message);
+    	// Reacquire the mutex lock before closing or reading the socket again.
+        lf_mutex_lock(&outbound_socket_mutex);
+
+        if (bytes_read == 1 && message == CLOSE_REQUEST) {
+    		// Received a request to close the socket.
+    		DEBUG_PRINT("Received CLOSE_REQUEST from federate %d.", fed_id);
+    		_lf_close_outbound_socket(fed_id);
+    	}
+    }
+    lf_mutex_unlock(&outbound_socket_mutex);
     return NULL;
 }
 
@@ -657,6 +733,26 @@ void connect_to_federate(ushort remote_federate_id) {
     // Once we set this variable, then all future calls to close() on this
     // socket ID should reset it to -1 within a critical section.
     _fed.sockets_for_outbound_p2p_connections[remote_federate_id] = socket_id;
+
+    // Start a thread to listen for upstream messages (CLOSE_REQUEST) from
+    // this downstream federate.
+    ushort* remote_fed_id_copy = (ushort*)malloc(sizeof(ushort));
+    if (remote_fed_id_copy == NULL) {
+        error_print_and_exit("malloc failed.");
+    }
+    *remote_fed_id_copy = remote_federate_id;
+    lf_thread_t thread_id;
+    result = lf_thread_create(
+    		&thread_id,
+			listen_for_upstream_messages_from_downstream_federates,
+			remote_fed_id_copy);
+    if (result != 0) {
+        // Failed to create a listening thread.
+        error_print_and_exit(
+                "Failed to create a thread to listen for upstream message. Error code: %d.",
+                result
+        );
+    }
 }
 
 /**
@@ -926,8 +1022,44 @@ handle_t schedule_message_received_from_network_already_locked(
 }
 
 /**
+ * Request to close the socket that receives incoming messages from the
+ * specified federate ID. This sends a message to the upstream federate
+ * requesting that it close the socket. If the message is sent successfully,
+ * this returns 1. Otherwise it returns 0, which presumably means that the
+ * socket is already closed.
+ *
+ * This function assumes the caller holds the inbound_socket_mutex.
+ *
+ * @param The ID of the peer federate sending messages to this federate.
+ *
+ * @return 1 if the CLOSE_REQUEST message is sent successfully, 0 otherwise.
+ */
+int _lf_request_close_inbound_socket(int fed_id) {
+	assert(fed_id >= 0 && fed_id < NUMBER_OF_FEDERATES);
+
+ 	if (_fed.sockets_for_inbound_p2p_connections[fed_id] < 1) return 0;
+
+   	// Send a CLOSE_REQUEST message.
+    unsigned char message_marker = CLOSE_REQUEST;
+    int written = write_to_socket(
+     		_fed.sockets_for_inbound_p2p_connections[fed_id],
+			1, &message_marker);
+    _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
+    if (written == 1) {
+       	LOG_PRINT("Sent CLOSE_REQUEST message to upstream federate.");
+       	return 1;
+    } else {
+    	return 0;
+    }
+}
+
+/**
  * Close the socket that receives incoming messages from the
- * specified federate ID. This function assumes the caller does
+ * specified federate ID. This function should be called when a read
+ * of incoming socket fails.  Call _lf_close_inbound_socket() instead
+ * to request an orderly close if the socket is still expected to be open.
+ *
+ * This function assumes the caller does
  * not hold ANY mutex lock. This function acquires a mutex lock
  * that is used exlusively for closing these sorts of sockets.
  * @param The ID of the peer federate sending messages to this
@@ -939,34 +1071,13 @@ void _lf_close_inbound_socket(int fed_id) {
         // socket connection is to the RTI.
         shutdown(_fed.socket_TCP_RTI, SHUT_RDWR);
         close(_fed.socket_TCP_RTI);
+        _fed.socket_TCP_RTI = -1;
     } else if (_fed.sockets_for_inbound_p2p_connections[fed_id] >= 0) {
         shutdown(_fed.sockets_for_inbound_p2p_connections[fed_id], SHUT_RDWR);
         close(_fed.sockets_for_inbound_p2p_connections[fed_id]);
         _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
     }
     lf_mutex_unlock(&inbound_socket_mutex);
-}
-
-/**
- * Close the socket that sends outgoing messages to the
- * specified federate ID. This function assumes the caller does
- * not hold ANY mutex lock. This function acquires a mutex lock
- * that is used exlusively for closing these sorts of sockets.
- * @param The ID of the peer federate receiving messages from this
- *  federate, or -1 if the RTI (centralized coordination).
- */
-void _lf_close_outbound_socket(int fed_id) {
-    lf_mutex_lock(&outbound_socket_mutex);
-    if (fed_id < 0) {
-        // socket connection is to the RTI.
-        shutdown(_fed.socket_TCP_RTI, SHUT_RDWR);
-        close(_fed.socket_TCP_RTI);
-    } else if (_fed.sockets_for_outbound_p2p_connections[fed_id] != -1) {
-        shutdown(_fed.sockets_for_outbound_p2p_connections[fed_id], SHUT_RDWR);
-        close(_fed.sockets_for_outbound_p2p_connections[fed_id]);
-        _fed.sockets_for_outbound_p2p_connections[fed_id] = -1;
-    }
-    lf_mutex_unlock(&outbound_socket_mutex);
 }
 
 /**
@@ -1183,8 +1294,13 @@ void handle_timed_message(int socket, int fed_id) {
         DEBUG_PRINT("Broadcasting notification that reaction queue changed.");
         lf_cond_signal(&reaction_q_changed);
     } else {
-        // Acquire the one mutex lock to prevent logical time from advancing
-        // during the call to schedule().
+        // If the current time >= stop time, discard the message.
+        // But only if the stop time is not equal to the start time!
+        if (compare_tags(current_tag, stop_tag) >= 0) {
+            lf_mutex_unlock(&mutex);
+            warning_print("Received message too late. Already at stopping time. Discarding message.");
+            return;
+        }
 
         LOG_PRINT("Calling schedule with tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         schedule_message_received_from_network_already_locked(action, intended_tag, message_token);
@@ -1412,31 +1528,33 @@ void terminate_execution() {
     // NOTE: It is dangerous to acquire a mutex in a termination
     // process because it can block program exit if a deadlock occurs.
     // Hence, it is paramount that these mutexes not allow for any
-    // possibility of deadlock. To ensure this, the above two close
-    // functions should NEVER be called while holding any mutex lock.
+    // possibility of deadlock. To ensure this, this
+    // function should NEVER be called while holding any mutex lock.
+    lf_mutex_lock(&outbound_socket_mutex);
     for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
         // Close outbound connections, in case they have not closed themselves.
         // This will result in EOF being sent to the remote federate, I think.
         _lf_close_outbound_socket(i);
     }
-    /* NOTE: The following attempts to close the incoming P2P sockets
-     * result in a race condition that intermittently gives
-     * spurious errors on shutdown. The mutex locks used in
-     * the function _lf_close_inbound_socket() should, in theory, prevent
-     * this, but for some reason, it does not. Since this federate is exiting,
-     * however, any upstream federate that attempts to send data to this
-     * federate will discover that the socket is broken and can react
-     * accordingly, presumably by exiting. So I don't think it is necessary
-     * to close these sockets here.
+    lf_mutex_unlock(&outbound_socket_mutex);
+
+    // Close the incoming P2P sockets.
+    lf_mutex_lock(&inbound_socket_mutex);
     for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
-        // Close inbound connections, in case they have not closed themselves.
-        _lf_close_inbound_socket(i);
+        _lf_request_close_inbound_socket(i);
     }
-     */
-    unsigned char message_marker = RESIGN;
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1, &message_marker,
-            "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
-    LOG_PRINT("Resigned.");
+
+    // Resign the federation, which will close the socket to the RTI.
+   	if (_fed.socket_TCP_RTI >= 0) {
+        unsigned char message_marker = RESIGN;
+        int written = write_to_socket(_fed.socket_TCP_RTI, 1, &message_marker);
+        if (written == 1) {
+        	LOG_PRINT("Resigned.");
+        }
+        _fed.socket_TCP_RTI = -1;
+    }
+    lf_mutex_unlock(&inbound_socket_mutex);
+
 }
 
 /** 
@@ -1500,7 +1618,14 @@ void* listen_to_federates(void* fed_id_ptr) {
         if (bad_message) {
             error_print("Received erroneous message type: %d. Closing the socket.", buffer[0]);
             // FIXME: Better error handling needed.
-            _lf_close_inbound_socket(fed_id);
+            lf_mutex_lock(&inbound_socket_mutex);
+            if (!_lf_request_close_inbound_socket(fed_id)) {
+                error_print_and_exit(
+                		"Federate %d failed to close incoming socket.",
+						_lf_my_fed_id
+                );
+            }
+            lf_mutex_unlock(&inbound_socket_mutex);
             break;
         }
     }
@@ -1800,7 +1925,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
             if (!_fed.has_upstream) {
                 return tag;
             }
-            // Fed has upstream federates. Have to wait for a TAG.
+            // Fed has upstream federates. Have to wait for a TAG or PTAG.
             _fed.waiting_for_TAG = true;
 
             // Wait until a TAG is received from the RTI.
@@ -1811,7 +1936,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
                 if (lf_cond_wait(&event_q_changed, &mutex) != 0) {
                     error_print("Wait error.");
                 }
-                // Either there is a new event on the event queue or a TAG arrived.
+                // Either a TAG or PTAG arrived.
                 if (!_fed.waiting_for_TAG) {
                     // _fed.last_TAG will have been set by the thread receiving the TAG message that
                     // set _fed.waiting_for_TAG to false.
@@ -1978,20 +2103,20 @@ void send_port_absent_to_federate(unsigned short port_ID,
     encode_ll(current_tag.time, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
     encode_int(current_tag.microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
 
-    int socket = -1;
-
+    lf_mutex_lock(&outbound_socket_mutex);
 #ifdef FEDERATED_CENTRALIZED
     // Send the absent message through the RTI
-    socket = _fed.socket_TCP_RTI;
+    int socket = _fed.socket_TCP_RTI;
 #else
     // Send the absent message directly to the federate
-    socket = _fed.sockets_for_outbound_p2p_connections[fed_ID];
+    int socket = _fed.sockets_for_outbound_p2p_connections[fed_ID];
 #endif
-
-    lf_mutex_lock(&outbound_socket_mutex);
-    write_to_socket_errexit(socket, message_length, buffer,
-            "Failed to send port absent message for port %hu to federate %hu.", 
-            port_ID, fed_ID);
+    // Do not write if the socket is closed.
+    if (socket >= 0) {
+    	write_to_socket_errexit(socket, message_length, buffer,
+    			"Failed to send port absent message for port %hu to federate %hu.",
+				port_ID, fed_ID);
+    }
     lf_mutex_unlock(&outbound_socket_mutex);
 }
 

@@ -144,8 +144,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * number and IP address in reply, it will establish a socket connection
  * to that remote federate.
  *
- * FIXME: Don't physical connections also use the above P2P sockets between
- * federates? Even if the coordination is centralized...
+ * Physical connections also use the above P2P sockets between
+ * federates even if the coordination is centralized.
+ *
+ * Peer-to-peer sockets can be closed by the downstream federate.
+ * For example, when a downstream federate reaches its stop time, then
+ * it will stop accepting physical messages. To achieve an orderly shutdown,
+ * the downstream federate sends a CLOSE_REQUEST message to the upstream
+ * one and the upstream federate handles closing the socket. This way, any
+ * messages that are in the middle of being sent while the downstream
+ * federate shuts down will successfully traverse the socket, even if
+ * only to be ignored by the downstream federate.  It is valid to ignore
+ * such messages if the connection is physical or if the coordination is
+ * decentralized and the messages arrive after the STP offset of the
+ * downstream federate (i.e., they are "tardy").
  *
  * FIXME: What happens after this?
  *
@@ -468,6 +480,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The ramaining bytes are the message.
  */
 #define P2P_TIMED_MESSAGE 17
+
+/**
+ * Byte identifying a message that a downstream federate sends to its
+ * upstream counterpart to request that the socket connection be closed.
+ * This is the only message that should flow upstream on such socket
+ * connections.
+ */
+#define CLOSE_REQUEST 18
 
 ////////////////////////////////////////////////
 /**
