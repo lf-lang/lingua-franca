@@ -1251,8 +1251,8 @@ class CGenerator extends GeneratorBase {
             shopt -s huponexit
             
             # Set a trap to kill all background jobs on error or control-C
+            # Use two distinct traps so we can see which signal causes this.
             cleanup() {
-                echo "#### Received signal. Invoking cleanup()."
                 printf "Killing federate %s.\n" ${pids[*]}
                 # The || true clause means this is not an error if kill fails.
                 kill ${pids[@]} || true
@@ -1260,8 +1260,17 @@ class CGenerator extends GeneratorBase {
                 kill ${RTI} || true
                 exit 1
             }
-            trap cleanup ERR
-            trap cleanup SIGINT
+            cleanup_err() {
+                echo "#### Received ERR signal on line $1. Invoking cleanup()."
+                cleanup
+            }
+            cleanup_sigint() {
+                echo "#### Received SIGINT signal on line $1. Invoking cleanup()."
+                cleanup
+            }
+            
+            trap 'cleanup_err $LINENO' ERR
+            trap 'cleanup_sigint $LINENO' SIGINT
 
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
@@ -1428,20 +1437,20 @@ class CGenerator extends GeneratorBase {
         if (host == 'localhost' || host == '0.0.0.0') {
             // Local PID managements
             pr(shCode, '''
-                echo "#### Bringing the RTI back to foreground"
-                fg 1
-                RTI=$! # Store the new pid of the RTI
+                echo "#### Bringing the RTI back to foreground so it can receive Control-C."
+                fg %1
             ''')
         }
         // Wait for launched processes to finish
         pr(shCode, '''
-                
+            echo "RTI has exited. Wait for federates to exit."
             # Wait for launched processes to finish.
             # The errors are handled separately via trap.
-            for pid in ${pids[*]}; do
+            for pid in "${pids[@]}"
+            do
                 wait $pid
             done
-            wait $RTI
+            echo "All done."
         ''')
 
         // Write the launcher file.
@@ -4285,10 +4294,8 @@ class CGenerator extends GeneratorBase {
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
         // If the connection is physical and the receiving federate is remote, send it directly on a socket.
-        // If the connection is physical and the receiving federate is local, send it via shared memory. FIXME: not implemented yet
         // If the connection is logical and the coordination mode is centralized, send via RTI.
         // If the connection is logical and the coordination mode is decentralized, send directly
-        var String socket;
         var String messageType;
         
         // The additional delay in absence of after
@@ -4329,35 +4336,19 @@ class CGenerator extends GeneratorBase {
             }
         }
         if (isPhysical) {
-            socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_MESSAGE"
-            // Check if the socket is still valid first
-            result.append('''
-                if (_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»] == -1) {
-                    return;
-                }
-            ''')
         } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-            socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
-            // Check if the socket is still valid first
-            result.append('''
-                if (_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»] == -1) {
-                    return;
-                }
-            ''')
         } else {
             // Logical connection
             // Send the message via rti
-            socket = '''_fed.socket_TCP_RTI'''
             messageType = "TIMED_MESSAGE"
-            next_destination_name = '''"the RTI"'''
+            next_destination_name = '''"federate «receivingFed.id» via the RTI"'''
         }
         
         
         var String sendingFunction = '''send_timed_message'''
         var String commonArgs = '''«additionalDelayString», 
-                   «socket»,
                    «messageType»,
                    «receivingPortID»,
                    «receivingFed.id»,
@@ -4367,7 +4358,7 @@ class CGenerator extends GeneratorBase {
             // Messages going on a physical connection do not
             // carry a timestamp or require the delay;
             sendingFunction = '''send_message'''            
-            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id»,
+            commonArgs = '''«messageType», «receivingPortID», «receivingFed.id»,
                    «next_destination_name», message_length'''
         }
         
