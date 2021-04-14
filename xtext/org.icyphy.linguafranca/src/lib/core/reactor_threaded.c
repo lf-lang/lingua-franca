@@ -632,7 +632,7 @@ void __next() {
     next_tag = get_next_event_tag();
 
     // If this (possibly new) next tag is past the stop time, return.
-    if (_lf_is_tag_after_stop_tag(next_tag)) {
+    if (_lf_is_tag_after_stop_tag(next_tag)) { // compare_tags(tag, stop_tag) > 0
         return;
     }
 
@@ -885,6 +885,8 @@ void _lf_notify_workers() {
  * 
  * This includes injecting any reactions triggered at (0,0), initializing timers,
  * and for the federated execution, waiting for a proper coordinated start.
+ *
+ * This assumes the mutex lock is held by the caller.
  */
 void _lf_initialize_start_tag() {
     // Add reactions invoked at tag (0,0) (including startup reactions) to the reaction queue
