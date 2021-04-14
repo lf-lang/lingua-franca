@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<psf version="2.0">
+<provider id="org.eclipse.egit.core.GitProvider">
+<project reference="1.0,git@github.com:icyphy/lingua-franca.git,master,org.lflang"/>
+<project reference="1.0,git@github.com:icyphy/lingua-franca.git,master,org.lflang.ide"/>
+<project reference="1.0,git@github.com:icyphy/lingua-franca.git,master,org.lflang.tests"/>
+<project reference="1.0,git@github.com:icyphy/lingua-franca.git,master,org.lflang.diagram"/>
+<project reference="1.0,git@github.com:icyphy/lingua-franca.git,master,org.lflang.ui"/>
+<project reference="1.0,git@github.com:icyphy/lingua-franca.git,master,org.lflang.ui.tests"/>
+</provider>
+</psf>

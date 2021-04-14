@@ -1,0 +1,60 @@
+dependencies {
+	implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
+	implementation "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextVersion}"
+	// https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.runtime
+    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.runtime', version: '3.20.0'
+    // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.resources
+    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.resources', version: '3.13.900'
+    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch
+    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe2.launch', version: '2.12.0'
+}
+configurations {
+	mwe2 {
+		extendsFrom implementation
+	}
+}
+
+dependencies {
+	mwe2 'org.eclipse.emf:org.eclipse.emf.mwe2.launch'
+	mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:${xtextVersion}"
+	mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${xtextVersion}"
+}
+
+task generateXtextLanguage(type: JavaExec) {
+	main = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
+	classpath = configurations.mwe2
+	inputs.file "src/org/lflang/GenerateLinguaFranca.mwe2"
+	inputs.file "src/org/lflang/LinguaFranca.xtext"
+	outputs.dir "src-gen"
+	args += "src/org/lflang/GenerateLinguaFranca.mwe2"
+	args += "-p"
+	args += "rootPath=/${projectDir}/.."
+}
+
+generateXtext.dependsOn(generateXtextLanguage)
+clean.dependsOn(cleanGenerateXtextLanguage)
+eclipse.classpath.plusConfigurations += [configurations.mwe2]
+
+task generateStandaloneCompiler() {
+	apply plugin: 'java'
+	apply plugin: 'application'
+	apply plugin: 'com.github.johnrengelman.shadow'
+	mainClassName = 'org.lflang.generator.Main'
+	
+    shadowJar {
+        exclude 'test/*'
+        minimize() {
+            exclude(dependency('log4j:log4j:.*'))
+            exclude(dependency('com.google.inject:guice:.*'))
+        }
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+            resource = 'plugin.properties'
+        }
+    }
+    
+    compileJava {
+                options.compilerArgs << '-Xlint:unchecked'
+	}
+}
+
+generateStandaloneCompiler.finalizedBy shadowJar

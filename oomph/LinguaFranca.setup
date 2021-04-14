@@ -205,42 +205,42 @@
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.ide/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ide/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.ui/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.web/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.web/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.tests/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.tests/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.ui.tests/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui.tests/src-gen/.dummy">
       <content></content>
     </setupTask>
     <description>The git repository does not contain the required src-gen and xtend-gen folders, hence they are created here.</description>
@@ -273,7 +273,7 @@
         id="${scope.project.name}">
       <predicate
           xsi:type="predicates:NamePredicate"
-          pattern="org\.icyphy\.linguafranca.*"/>
+          pattern="org\.lflang.*"/>
     </workingSet>
     <description>The dynamic working sets for ${scope.project.label}</description>
   </setupTask>
