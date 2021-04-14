@@ -243,6 +243,13 @@
         targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui.tests/src-gen/.dummy">
       <content></content>
     </setupTask>
+    <setupTask
+        xsi:type="setup:ResourceCreationTask"
+        excludedTriggers="BOOTSTRAP"
+        predecessor="git.clone.lingua.franca"
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui.tests/xtend-gen/.dummy">
+      <content></content>
+    </setupTask>
     <description>The git repository does not contain the required src-gen and xtend-gen folders, hence they are created here.</description>
   </setupTask>
   <setupTask
