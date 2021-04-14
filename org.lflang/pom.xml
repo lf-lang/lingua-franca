@@ -5,12 +5,12 @@
 
   <parent>
     <relativePath>../pom.xml</relativePath>
-    <groupId>org.icyphy.linguafranca</groupId>
+    <groupId>org.lflang</groupId>
     <artifactId>parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>org.icyphy.linguafranca</artifactId>
+  <artifactId>org.lflang</artifactId>
   <packaging>eclipse-plugin</packaging>
 
   <name>Lingua-Franca Core</name>
@@ -86,31 +86,31 @@
 	<configuration>
 	  <filesets combine.children="append">
 	    <fileset>
-	      <directory>${basedir}/../org.icyphy.linguafranca/src-gen/</directory>
+	      <directory>${basedir}/../org.lflang/src-gen/</directory>
 	      <includes>
 		<include>**/*</include>
 	      </includes>
 	    </fileset>
 	    <fileset>
-	      <directory>${basedir}/../org.icyphy.linguafranca.tests/src-gen/</directory>
+	      <directory>${basedir}/../org.lflang.tests/src-gen/</directory>
 	      <includes>
 		<include>**/*</include>
 	      </includes>
 	    </fileset>
 	    <fileset>
-	      <directory>${basedir}/../org.icyphy.linguafranca.ide/src-gen/</directory>
+	      <directory>${basedir}/../org.lflang.ide/src-gen/</directory>
 	      <includes>
 		<include>**/*</include>
 	      </includes>
 	    </fileset>
 	    <fileset>
-	      <directory>${basedir}/../org.icyphy.linguafranca.ui/src-gen/</directory>
+	      <directory>${basedir}/../org.lflang.ui/src-gen/</directory>
 	      <includes>
 		<include>**/*</include>
 	      </includes>
 	    </fileset>
 	    <fileset>
-	      <directory>${basedir}/../org.icyphy.linguafranca.ui.tests/src-gen/</directory>
+	      <directory>${basedir}/../org.lflang.ui.tests/src-gen/</directory>
 	      <includes>
 		<include>**/*</include>
 	      </includes>
