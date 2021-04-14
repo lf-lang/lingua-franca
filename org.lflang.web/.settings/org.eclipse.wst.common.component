@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-modules id="moduleCoreId" project-version="1.5.0">
+	<wb-module deploy-name="org.lflang.web">
+		<property name="context-root" value="org.lflang.web"/>
+		<wb-resource deploy-path="/WEB-INF/classes" source-path="src"/>
+		<wb-resource deploy-path="/WEB-INF/classes" source-path="src-gen"/>
+		<wb-resource deploy-path="/" source-path="WebRoot"/>
+		<dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/org.lflang.ide/org.lflang.ide">
+			<dependency-type>uses</dependency-type>
+		</dependent-module>
+		<dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/org.lflang/org.lflang">
+			<dependency-type>uses</dependency-type>
+		</dependent-module>
+	</wb-module>
+</project-modules>

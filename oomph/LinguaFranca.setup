@@ -16,25 +16,6 @@
     name="lingua.franca"
     label="Lingua Franca">
   <setupTask
-      xsi:type="setup:CompoundTask"
-      name="Installer Adjustment">
-    <setupTask
-        xsi:type="setup:VariableTask"
-        name="github.remoteURIs"
-        label="Github repository">
-      <choice
-          value="https://${github.user.id|username}@github.com/@{remoteURI}.git"
-          label="HTTPS (read-write)"/>
-      <choice
-          value="https://github.com/@{remoteURI}.git"
-          label="HTTPS (read-only, anonymous)"/>
-      <choice
-          value="git@github.com:@{remoteURI}.git"
-          label="Git (read-write)"/>
-      <description>Choose from the available Github URIs</description>
-    </setupTask>
-  </setupTask>
-  <setupTask
       xsi:type="jdt:JRETask"
       version="JavaSE-11"
       location="${jre.location-11}">
@@ -224,42 +205,49 @@
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.ide/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ide/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.ui/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.web/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.web/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.tests/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.tests/src-gen/.dummy">
       <content></content>
     </setupTask>
     <setupTask
         xsi:type="setup:ResourceCreationTask"
         excludedTriggers="BOOTSTRAP"
         predecessor="git.clone.lingua.franca"
-        targetURL="${git.clone.lingua.franca.location|uri}/xtext/org.icyphy.linguafranca.ui.tests/src-gen/.dummy">
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui.tests/src-gen/.dummy">
+      <content></content>
+    </setupTask>
+    <setupTask
+        xsi:type="setup:ResourceCreationTask"
+        excludedTriggers="BOOTSTRAP"
+        predecessor="git.clone.lingua.franca"
+        targetURL="${git.clone.lingua.franca.location|uri}/org.lflang.ui.tests/xtend-gen/.dummy">
       <content></content>
     </setupTask>
     <description>The git repository does not contain the required src-gen and xtend-gen folders, hence they are created here.</description>
@@ -272,10 +260,10 @@
           xsi:type="predicates:OrPredicate">
         <operand
             xsi:type="predicates:LocationPredicate"
-            pattern=".*/xtext/.*"/>
+            pattern=".*/org\.lflang.*"/>
         <operand
             xsi:type="predicates:LocationPredicate"
-            pattern=".*\xtext\.*"/>
+            pattern=".*\org\.lflang.*"/>
         <operand
             xsi:type="predicates:LocationPredicate"
             pattern=".*/oomph"/>
@@ -292,7 +280,7 @@
         id="${scope.project.name}">
       <predicate
           xsi:type="predicates:NamePredicate"
-          pattern="org\.icyphy\.linguafranca.*"/>
+          pattern="org\.lflang.*"/>
     </workingSet>
     <description>The dynamic working sets for ${scope.project.label}</description>
   </setupTask>

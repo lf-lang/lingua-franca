@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Automatic-Module-Name: org.lflang.ide
+Bundle-ManifestVersion: 2
+Bundle-Name: Lingua Franca IDE
+Bundle-Vendor: University of California, Berkeley
+Bundle-Version: 1.0.0.qualifier
+Bundle-SymbolicName: org.lflang.ide; singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.lflang,
+ org.eclipse.xtext.ide,
+ org.eclipse.xtext.xbase.ide,
+ org.antlr.runtime;bundle-version="[3.2.0,3.2.1)"
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Export-Package: org.lflang.ide.contentassist.antlr.internal,
+ org.lflang.ide.contentassist.antlr
