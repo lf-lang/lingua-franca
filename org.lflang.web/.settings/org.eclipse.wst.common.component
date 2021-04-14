@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project-modules id="moduleCoreId" project-version="1.5.0">
-	<wb-module deploy-name="org.icyphy.linguafranca.web">
-		<property name="context-root" value="org.icyphy.linguafranca.web"/>
+	<wb-module deploy-name="org.lflang.web">
+		<property name="context-root" value="org.lflang.web"/>
 		<wb-resource deploy-path="/WEB-INF/classes" source-path="src"/>
 		<wb-resource deploy-path="/WEB-INF/classes" source-path="src-gen"/>
 		<wb-resource deploy-path="/" source-path="WebRoot"/>
-		<dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/org.icyphy.linguafranca.ide/org.icyphy.linguafranca.ide">
+		<dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/org.lflang.ide/org.lflang.ide">
 			<dependency-type>uses</dependency-type>
 		</dependent-module>
-		<dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/org.icyphy.linguafranca/org.icyphy.linguafranca">
+		<dependent-module deploy-path="/WEB-INF/lib" handle="module:/resource/org.lflang/org.lflang">
 			<dependency-type>uses</dependency-type>
 		</dependent-module>
 	</wb-module>
