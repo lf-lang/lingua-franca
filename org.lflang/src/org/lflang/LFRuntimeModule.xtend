@@ -3,9 +3,9 @@ package org.lflang
 
 import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy
 import org.eclipse.xtext.scoping.IGlobalScopeProvider
-import org.lflang.scoping.LinguaFrancaGlobalScopeProvider
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper
-import org.lflang.validation.LinguaFrancaNamesAreUniqueValidationHelper
+import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.validation.LFNamesAreUniqueValidationHelper
 
 /**
  * This class is used to register components to be used at runtime 
@@ -14,16 +14,16 @@ import org.lflang.validation.LinguaFrancaNamesAreUniqueValidationHelper
 class LFRuntimeModule extends AbstractLFRuntimeModule {
     /** Establish a binding to our custom resource description strategy. */
     def Class<? extends IDefaultResourceDescriptionStrategy> bindIDefaultResourceDescriptionStrategy() {
-        LinguaFrancaResourceDescriptionStrategy
+        LFResourceDescriptionStrategy
     }
     
     /** Establish a binding to our custom global scope provider. */
     override Class<? extends IGlobalScopeProvider> bindIGlobalScopeProvider() {
-        LinguaFrancaGlobalScopeProvider;
+        LFGlobalScopeProvider;
     }
     
     /** Establish a binding to a helper that checks that names are unique. */
     def Class<? extends INamesAreUniqueValidationHelper> bindNamesAreUniqueValidationHelper() {
-        LinguaFrancaNamesAreUniqueValidationHelper;
+        LFNamesAreUniqueValidationHelper;
     }
 }

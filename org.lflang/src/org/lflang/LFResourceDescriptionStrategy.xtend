@@ -45,7 +45,7 @@ import org.lflang.lf.Model
  * @see https://blogs.itemis.com/en/in-five-minutes-to-transitive-imports-within-a-dsl-with-xtext
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class LinguaFrancaResourceDescriptionStrategy extends DefaultResourceDescriptionStrategy {
+class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStrategy {
     
     /**
      * Key used in user data attached to description of a Model.

@@ -11,7 +11,7 @@ import com.google.inject.Provider;
  * @author Marten Lohstroh <marten@berkeley.edu>
  *
  */
-public class LinguaFrancaResourceProvider {
+public class LFResourceProvider {
     /**
      * Injected resource set provider.
      */
