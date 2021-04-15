@@ -506,6 +506,8 @@ struct trigger_t {
                                  // This will be compared for each tag to decide whether to wait for the port or not (because the status of the port is
                                  // known for an equal or greater tag).
 #ifdef FEDERATED
+    bool is_a_control_reaction_waiting; // Indicates whether at least one control reaction is waiting for this trigger
+                                        // if it belongs to a network input port. Must be false by default.
     tag_t intended_tag;       // The amount of discrepency in logical time between the original intended
                               // trigger time of this trigger and the actual trigger time. This currently
                               // can only happen when logical connections are used using a decentralized coordination

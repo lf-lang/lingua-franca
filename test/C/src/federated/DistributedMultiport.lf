@@ -1,6 +1,7 @@
 // Check multiport connections between federates.
 target C {
     timeout: 1 sec,
+    logging: LOG,
     coordination: centralized
 };
 

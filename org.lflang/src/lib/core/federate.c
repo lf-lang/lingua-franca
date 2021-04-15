@@ -1279,19 +1279,29 @@ void handle_timed_message(int socket, int fed_id) {
         error_print_and_exit("The following contract was violated: In-order "
                              "delivery of messages over a TCP socket.");
     }
+
+    // FIXME: It might be enough to just check this field and not the status at all
     _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
 
     // Check if reactions need to be inserted directly into the reaction
     // queue or a call to schedule is needed. This checks whether the status
     // of the port is unkown for the current tag.
+    // FIXME: check for the existance of control reaction
+    // -> status should be control_reaction_is_blocked
     if (compare_tags(intended_tag, get_current_tag()) == 0 &&
-        _fed.network_input_port_triggers[port_id]->status == unknown) {
+        _fed.network_input_port_triggers[port_id]->is_a_control_reaction_waiting) {
 
         LOG_PRINT("Inserting reactions directly at tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         action->intended_tag = intended_tag;
         _lf_insert_reactions_for_trigger(action, message_token);
+
+        _fed.network_input_port_triggers[port_id]->status = present;    
+        // Notify any control reaction that a future event has been produced for a port
+        lf_cond_broadcast(&port_status_changed);
+
         // Notify the main thread in case it is waiting for reactions.
         DEBUG_PRINT("Broadcasting notification that reaction queue changed.");
+        lf_cond_signal(&event_q_changed);
         lf_cond_signal(&reaction_q_changed);
     } else {
         // If the current time >= stop time, discard the message.
@@ -1301,6 +1311,7 @@ void handle_timed_message(int socket, int fed_id) {
             warning_print("Received message too late. Already at stopping time. Discarding message.");
             return;
         }
+        // FIXME: more comment
 
         LOG_PRINT("Calling schedule with tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         schedule_message_received_from_network_already_locked(action, intended_tag, message_token);
@@ -1323,6 +1334,34 @@ void handle_timed_message(int socket, int fed_id) {
     lf_mutex_unlock(&mutex);
 }
 
+/**
+ * Update the last known status tag of all network input ports
+ * to the value of tag
+ */
+void update_last_known_status_on_input_ports(tag_t tag) {
+    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
+        if (compare_tags(tag,
+                _fed.network_input_port_triggers[i]->last_known_status_tag) > 0) {
+            _fed.network_input_port_triggers[i]->last_known_status_tag = tag;
+        }
+    }
+}
+
+/**
+ * Check if any network input control reaction is waiting at the current
+ * tag.
+ * 
+ * @return true if any network input control reaction is waiting. False otherwise.
+ */
+bool any_control_reaction_is_waiting() {
+    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
+        if (_fed.network_input_port_triggers[i]->is_a_control_reaction_waiting) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** Handle a time advance grant (TAG) message from the RTI.
  *  This function assumes the caller does not hold the mutex lock,
  *  which it acquires to interact with the main thread, which may
@@ -1340,9 +1379,13 @@ void handle_tag_advance_grant() {
     TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
     lf_mutex_lock(&mutex);
-    // FIXME: In rare cases, it is possible for the RTI to send a PTAG(stop_time) and then
-    // send a TAG(requested_NET).
-    if (compare_tags(_fed.last_TAG, TAG) >= 0 && _fed.is_last_TAG_provisional == true) {
+    // Update the last known status tag of ports to the TAG
+    // received from the RTI.
+    update_last_known_status_on_input_ports(TAG);
+    // Also, check if any control reaction is waiting.
+    // If so, mark any unknown ports as absent and notify
+    // the control reactions.
+    if (any_control_reaction_is_waiting()) {
         // A provisional TAG (PTAG) has already been granted. Therefore, we only need
         // to release network input control reactions.
         mark_all_unknown_ports_as_absent();
@@ -2013,6 +2056,20 @@ void reset_status_fields_on_input_port_triggers() {
 
 
 /**
+ * Indicate that one or more control reactions are waiting for portID
+ */
+void mark_control_reaction_waiting(int portID) {
+    _fed.network_input_port_triggers[portID]->is_a_control_reaction_waiting = true;
+}
+
+/**
+ * Indicate that no control reactions are waiting for portID
+ */
+void mark_control_reaction_not_waiting(int portID) {
+    _fed.network_input_port_triggers[portID]->is_a_control_reaction_waiting = false;
+}
+
+/**
  * Enqueue network input control reactions that determine if the trigger for a
  * given network input port is going to be present at the current logical time
  * or absent.
@@ -2025,6 +2082,11 @@ void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
                 pqueue_insert(reaction_q, reaction);
             }
         }
+    }
+
+    // Mark that the federate has a control reaction for all the network input ports
+    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
+        mark_control_reaction_waiting(i);
     }
 }
 

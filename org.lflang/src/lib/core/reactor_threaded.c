@@ -960,7 +960,22 @@ void _lf_initialize_start_tag() {
     // Insert network dependant reactions for network input ports into
     // the reaction queue to prevent reactions from executing at (0,0)
     // incorrectly.
-    enqueue_network_control_reactions(reaction_q);
+    // At (0,0), events are not currently handled through the event_q.
+    // Instead, any reaction triggered by an event at (0,0) (e.g., by
+    // a startup event) is directly inserted into the reaction_q. 
+    // On the other hand, the typical NET/TAG procedure of the centralized
+    // coordination uses events coming off of the event queue. With the
+    // current implementation, therefore, federates will send a NET(0,0)
+    // only if they have timers and startup events. If a federate has no
+    // initial event at (0,0), and later receives a message with intended
+    // tag of (0,0), it will not send a NET. For now, the best remedy for
+    // this seems to be to insert control reactions for all federates at
+    // (0,0), which causes all federates, even those without any startup
+    // or timer events at (0,0) to wait on all of their input ports and send
+    // an absent message on all of their output ports. This inadvertantly causes
+    // extra messages going back and forth for (0,0).
+    enqueue_network_input_control_reactions(reaction_q);
+    enqueue_network_output_control_reactions(reaction_q);
 #endif
 
 #ifdef FEDERATED_DECENTRALIZED

@@ -9,11 +9,12 @@
  */
 target C {
     timeout: 900 msec,
+    logging: LOG,
     coordination: centralized
 };
 
 reactor Foo {
-    timer t(0, 500 usec);
+    timer t(0, 700 usec);
     output out:int;
     reaction(t) -> out {=
         SET(out, 0);
@@ -27,11 +28,14 @@ reactor Count {
     input in3:int
     output out1:int;
     output out2:int;
-    timer t(0, 1 msec);    
+    timer t(0, 1 msec);
     reaction(in1) -> out1 {=
         
     =}
-    reaction(in2, t) -> out2 {=
+    // in2 is not connected to anything.
+    // Consequently, the control reaction
+    // for in2 waits forever.
+    reaction(in2,t) -> out2 {=
         SET(out2, self->count++);
     =}
     reaction(in3) {=

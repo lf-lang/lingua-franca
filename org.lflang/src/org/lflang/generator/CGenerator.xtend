@@ -4446,6 +4446,7 @@ class CGenerator extends GeneratorBase {
                 // The status of the trigger is known. No need to wait.
                 LOG_PRINT("------ Not waiting for network input port «receivingPortID»: "
                            "Status of the port is known already.");
+                mark_control_reaction_not_waiting(«receivingPortID»);
                 lf_mutex_unlock(&mutex);
                 return;
             }            
@@ -4466,6 +4467,7 @@ class CGenerator extends GeneratorBase {
                                 // The status of the trigger is known. No need to wait.
                                 LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
                                            "Status of the port has changed.");
+                                mark_control_reaction_not_waiting(«receivingPortID»);
                                 lf_mutex_unlock(&mutex);
                                 return;
                             }
@@ -4486,6 +4488,7 @@ class CGenerator extends GeneratorBase {
                             // The status of the trigger is known. No need to wait.
                             LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
                                        "Status of the port has changed.");
+                            mark_control_reaction_not_waiting(«receivingPortID»);
                             lf_mutex_unlock(&mutex);
                             return;
                         }
@@ -4503,6 +4506,7 @@ class CGenerator extends GeneratorBase {
                     // insert any further reaction
                     _fed.network_input_port_triggers[«receivingPortID»]->status = absent;
                 }
+                mark_control_reaction_not_waiting(«receivingPortID»);
                 lf_mutex_unlock(&mutex);
                 LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
                           "Wait timed out without a port status change.");
