@@ -1336,7 +1336,10 @@ void handle_timed_message(int socket, int fed_id) {
 
 /**
  * Update the last known status tag of all network input ports
- * to the value of tag
+ * to the value of tag.
+ * 
+ * @param tag The tag on which the latest status of network input
+ *  ports is known.
  */
 void update_last_known_status_on_input_ports(tag_t tag) {
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
@@ -1379,11 +1382,15 @@ void handle_tag_advance_grant() {
     TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
     lf_mutex_lock(&mutex);
-    // Update the last known status tag of ports to the TAG
-    // received from the RTI.
+    // Update the last known status tag of all network input ports
+    // to the TAG received from the RTI. Here we assume that the RTI
+    // knows the values of ports up to and including the granted tag,
+    // so by extension, we assume that the federate can safely rely
+    // on the RTI to handle port statuses up until the granted tag.
     update_last_known_status_on_input_ports(TAG);
-    // Also, check if any control reaction is waiting.
-    // If so, mark any unknown ports as absent and notify
+    // Then, check if any control reaction is waiting.
+    // If so, a PTAG has been granted before.
+    // Mark any unknown ports as absent and notify
     // the control reactions.
     if (any_control_reaction_is_waiting()) {
         // A provisional TAG (PTAG) has already been granted. Therefore, we only need
