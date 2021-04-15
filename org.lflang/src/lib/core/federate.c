@@ -1352,7 +1352,7 @@ void handle_timed_message(int socket, int fed_id) {
 void update_last_known_status_on_input_ports(tag_t tag) {
     for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
         if (compare_tags(tag,
-                _fed.network_input_port_triggers[i]->last_known_status_tag) > 0) {
+                _fed.network_input_port_triggers[i]->last_known_status_tag) >= 0) {
             _fed.network_input_port_triggers[i]->last_known_status_tag = tag;
         } else {
             warning_print("Attempt to update the last known status tag " 
@@ -1388,11 +1388,12 @@ void handle_tag_advance_grant() {
     unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
     read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(instant_t) + sizeof(microstep_t), buffer,
                      "Failed to read the time advance grant from the RTI.");
+
+    lf_mutex_lock(&mutex);
     tag_t TAG;
     TAG.time = extract_ll(buffer);
     TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
-    lf_mutex_lock(&mutex);
     // Update the last known status tag of all network input ports
     // to the TAG received from the RTI. Here we assume that the RTI
     // knows the status of network ports up to and including the granted tag,
