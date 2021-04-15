@@ -118,16 +118,17 @@ public class FedASTUtils {
                         return s.getVariable() == portRef.getVariable();
                     }));
                 }).collect(Collectors.toList());
+        
+
+        // Only add the port for the top-level federate.
+        if (isTopLevel) {
+            // Add the port to network input ports
+            instance.networkInputPorts.add((Input) portRef.getVariable());
+        }
 
         if (reactionsWithPort.isEmpty() && connectionsWithPort.isEmpty()) {
             // Nothing to do here
             return;
-        } else {
-            // Only add the port for the top-level federate.
-            if (isTopLevel) {
-                // Add the port to network input ports
-                instance.networkInputPorts.add((Input) portRef.getVariable());
-            }
         }
 
         for (Connection connection : connectionsWithPort) {
