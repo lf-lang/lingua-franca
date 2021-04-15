@@ -1355,7 +1355,7 @@ void update_last_known_status_on_input_ports(tag_t tag) {
                 _fed.network_input_port_triggers[i]->last_known_status_tag) >= 0) {
             _fed.network_input_port_triggers[i]->last_known_status_tag = tag;
         } else {
-            warning_print("Attempt to update the last known status tag " 
+            DEBUG_PRINT("Attempt to update the last known status tag " 
                            "of network input port %d to an earlier tag was ignored.", i);
         }
     }
