@@ -1284,40 +1284,48 @@ void handle_timed_message(int socket, int fed_id) {
     _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
 
     // Check if reactions need to be inserted directly into the reaction
-    // queue or a call to schedule is needed. This checks whether the status
-    // of the port is unkown for the current tag.
-    // FIXME: check for the existance of control reaction
-    // -> status should be control_reaction_is_blocked
+    // queue or a call to schedule is needed. This checks if the intended
+    // tag of the message is for the current tag and if any control reaction
+    // is waiting.
     if (compare_tags(intended_tag, get_current_tag()) == 0 &&
         _fed.network_input_port_triggers[port_id]->is_a_control_reaction_waiting) {
-
+        // Since the message is intended for the current tag and a control reaction
+        // was waiting for the message, trigger the corresponding reactions for this
+        // message.
         LOG_PRINT("Inserting reactions directly at tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         action->intended_tag = intended_tag;
         _lf_insert_reactions_for_trigger(action, message_token);
 
+        // Update the status of the port to present and notify all the control reactions.
         _fed.network_input_port_triggers[port_id]->status = present;    
         // Notify any control reaction that a future event has been produced for a port
         lf_cond_broadcast(&port_status_changed);
 
         // Notify the main thread in case it is waiting for reactions.
         DEBUG_PRINT("Broadcasting notification that reaction queue changed.");
-        lf_cond_signal(&event_q_changed);
         lf_cond_signal(&reaction_q_changed);
+        // Notify the main thread in case it is waiting for events. FIXME
+        DEBUG_PRINT("Broadcasting notification that event queue changed.");
+        lf_cond_signal(&event_q_changed);
     } else {
-        // If the current time >= stop time, discard the message.
+        // If no control reaction is waiting for this message, or if the intended
+        // tag is in the future, use schedule functions to process the message.
+
+        // Before that, if the current time >= stop time, discard the message.
         // But only if the stop time is not equal to the start time!
         if (compare_tags(current_tag, stop_tag) >= 0) {
             lf_mutex_unlock(&mutex);
             warning_print("Received message too late. Already at stopping time. Discarding message.");
             return;
         }
-        // FIXME: more comment
-
+        
         LOG_PRINT("Calling schedule with tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         schedule_message_received_from_network_already_locked(action, intended_tag, message_token);
-    
-        // Notify any control reaction that a future event has been produced for a port
-        lf_cond_broadcast(&port_status_changed);
+
+        if (_fed.network_input_port_triggers[port_id]->is_a_control_reaction_waiting) {
+            // Notify the waiting control reaction that a future event has been produced for the port
+            lf_cond_broadcast(&port_status_changed);
+        }
     }
 
 
