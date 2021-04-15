@@ -5,6 +5,7 @@ package org.lflang.generator;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -439,7 +440,20 @@ public class Main {
     
         try {
             Process p = build.start();
-            String result = new String(p.getInputStream().readAllBytes());
+            // Read the output from the build.
+            // FIXME: It would be nice to use Java 9's InputStream.readAllBytes()
+            // here, but we have been unable to get our Oomph setup to use anything
+            // higher than Java 8, so we have more work to do.
+            // String result = new String(p.getInputStream().readAllBytes());
+            byte[] buffer = new byte[1000];
+            InputStream stream = p.getInputStream();
+            StringBuilder result = new StringBuilder();
+            int bytesRead = stream.read(buffer);
+            while (bytesRead > 0) {
+                String segment = new String(buffer, 0, bytesRead);
+                result.append(segment);
+            }
+            
             p.waitFor();
             if (p.exitValue() == 0) {
                 printInfo("Rebuild successful; forking off updated version of lfc.");
