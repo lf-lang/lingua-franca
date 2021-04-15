@@ -28,14 +28,14 @@ package org.lflang
 
 import com.google.inject.Inject
 import java.util.HashMap
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.naming.QualifiedName
 import org.eclipse.xtext.resource.EObjectDescription
 import org.eclipse.xtext.resource.IEObjectDescription
 import org.eclipse.xtext.resource.impl.DefaultResourceDescriptionStrategy
 import org.eclipse.xtext.scoping.impl.ImportUriResolver
 import org.eclipse.xtext.util.IAcceptor
-import org.eclipse.emf.ecore.EObject
-import org.lflang.meta.Model
+import org.lflang.lf.Model
 
 /**
  * Resource description strategy designed to limit global scope to only those

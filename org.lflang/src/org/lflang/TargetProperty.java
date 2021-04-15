@@ -7,11 +7,11 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.lflang.meta.Array;
-import org.lflang.meta.Element;
-import org.lflang.meta.KeyValuePair;
-import org.lflang.meta.KeyValuePairs;
-import org.lflang.meta.TimeUnit;
+import org.lflang.lf.Array;
+import org.lflang.lf.Element;
+import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.TimeUnit;
 import org.lflang.validation.LFValidator;
 
 /**

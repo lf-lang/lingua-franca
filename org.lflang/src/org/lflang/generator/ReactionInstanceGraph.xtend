@@ -26,10 +26,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import org.lflang.graph.DirectedGraph
 import java.util.ArrayList
 import java.util.LinkedHashSet
 import java.util.Set
+import org.lflang.graph.DirectedGraph
 
 /**
  * This graph represents the dependencies between reaction instances.

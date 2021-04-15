@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.graph
 
 import org.eclipse.emf.ecore.EObject
-import org.lflang.meta.Instantiation
-import org.lflang.meta.Model
-import org.lflang.meta.Port
-import org.lflang.meta.Reaction
-import org.lflang.meta.Reactor
-import org.lflang.meta.VarRef
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Model
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 

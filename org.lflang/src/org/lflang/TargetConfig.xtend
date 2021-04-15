@@ -25,7 +25,7 @@ import org.lflang.TargetProperty.BuildType
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TargetProperty.LogLevel
-import org.lflang.meta.TimeUnit
+import org.lflang.lf.TimeUnit
 
 /** 
  * A class for keeping the current target configuration.

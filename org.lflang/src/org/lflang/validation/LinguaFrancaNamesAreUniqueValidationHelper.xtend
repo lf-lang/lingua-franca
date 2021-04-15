@@ -1,8 +1,8 @@
 package org.lflang.validation;
 
-import org.eclipse.emf.ecore.EClass;
-import org.eclipse.xtext.validation.NamesAreUniqueValidationHelper;
-import org.lflang.meta.MetaPackage
+import org.eclipse.emf.ecore.EClass
+import org.eclipse.xtext.validation.NamesAreUniqueValidationHelper
+import org.lflang.lf.LfPackage
 
 class LinguaFrancaNamesAreUniqueValidationHelper extends
         NamesAreUniqueValidationHelper {
@@ -13,14 +13,14 @@ class LinguaFrancaNamesAreUniqueValidationHelper extends
      * names amongst them are checked for uniqueness.
      */
     override getAssociatedClusterType(EClass eClass) {
-        if (MetaPackage.Literals.INPUT == eClass || 
-            MetaPackage.Literals.OUTPUT == eClass ||
-            MetaPackage.Literals.TIMER == eClass ||
-            MetaPackage.Literals.ACTION == eClass ||
-            MetaPackage.Literals.PARAMETER == eClass ||
-            MetaPackage.Literals.INSTANTIATION == eClass
+        if (LfPackage.Literals.INPUT == eClass || 
+            LfPackage.Literals.OUTPUT == eClass ||
+            LfPackage.Literals.TIMER == eClass ||
+            LfPackage.Literals.ACTION == eClass ||
+            LfPackage.Literals.PARAMETER == eClass ||
+            LfPackage.Literals.INSTANTIATION == eClass
         )  {
-            return MetaPackage.Literals.VARIABLE;
+            return LfPackage.Literals.VARIABLE;
         }
         return super.getAssociatedClusterType(eClass);
     }

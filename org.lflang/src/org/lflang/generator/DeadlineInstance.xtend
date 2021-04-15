@@ -27,9 +27,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import org.lflang.meta.Deadline
 import org.lflang.TimeValue
-import org.lflang.meta.TimeUnit
+import org.lflang.lf.Deadline
+import org.lflang.lf.TimeUnit
 
 import static extension org.lflang.ASTUtils.*
 

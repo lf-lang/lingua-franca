@@ -28,9 +28,9 @@ package org.lflang.generator
 
 import org.lflang.ASTUtils
 import org.lflang.TimeValue
-import org.lflang.meta.TimeUnit
-import org.lflang.meta.Timer
-import org.lflang.meta.Variable
+import org.lflang.lf.TimeUnit
+import org.lflang.lf.Timer
+import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 
