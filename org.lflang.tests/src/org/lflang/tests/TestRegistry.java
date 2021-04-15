@@ -30,8 +30,8 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.Main;
-import org.lflang.meta.Reactor;
-import org.lflang.meta.TargetDecl;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.runtime.TestBase;
 

@@ -32,10 +32,10 @@ import java.util.ArrayList
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.meta.ReactorDecl
+import org.lflang.Target
+import org.lflang.lf.ReactorDecl
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.Target
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor

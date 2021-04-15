@@ -36,7 +36,7 @@ import org.eclipse.xtext.resource.IResourceDescription
 import org.eclipse.xtext.scoping.impl.ImportUriGlobalScopeProvider
 import org.eclipse.xtext.util.IResourceScopeCache
 import org.lflang.LinguaFrancaResourceDescriptionStrategy
-import org.lflang.meta.MetaPackage
+import org.lflang.lf.LfPackage
 
 /**
  * Global scope provider that limits access to only those files that were
@@ -148,7 +148,7 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         val resourceDescription = descriptionManager.
             getResourceDescription(resource)
         val models = resourceDescription.getExportedObjectsByType(
-            MetaPackage.Literals.MODEL)
+            LfPackage.Literals.MODEL)
         val resources = new LinkedHashSet<Resource>()
         models.forEach [
             val userData = getUserData(

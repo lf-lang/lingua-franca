@@ -35,17 +35,17 @@ import org.eclipse.xtext.naming.SimpleNameProvider
 import org.eclipse.xtext.scoping.IScope
 import org.eclipse.xtext.scoping.Scopes
 import org.eclipse.xtext.scoping.impl.SelectableBasedScope
-import org.lflang.meta.Assignment
-import org.lflang.meta.Connection
-import org.lflang.meta.Deadline
-import org.lflang.meta.Import
-import org.lflang.meta.ImportedReactor
-import org.lflang.meta.Instantiation
-import org.lflang.meta.MetaPackage
-import org.lflang.meta.Model
-import org.lflang.meta.Reaction
-import org.lflang.meta.Reactor
-import org.lflang.meta.VarRef
+import org.lflang.lf.Assignment
+import org.lflang.lf.Connection
+import org.lflang.lf.Deadline
+import org.lflang.lf.Import
+import org.lflang.lf.ImportedReactor
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Model
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.VarRef
+import org.lflang.lf.LfPackage
 
 import static extension org.lflang.ASTUtils.*
 
@@ -153,14 +153,14 @@ class LFScopeProvider extends AbstractLFScopeProvider {
     protected def getScopeForAssignment(Assignment assignment,
         EReference reference) {
         
-        if (reference == MetaPackage.Literals.ASSIGNMENT__LHS) {
+        if (reference == LfPackage.Literals.ASSIGNMENT__LHS) {
             val defn = (assignment.eContainer as Instantiation).reactorClass.toDefinition
             if (defn !== null) {
                 return Scopes.scopeFor(defn.allParameters)
             }
             
         }
-        if (reference == MetaPackage.Literals.ASSIGNMENT__RHS) {
+        if (reference == LfPackage.Literals.ASSIGNMENT__RHS) {
             return Scopes.scopeFor(
                 (assignment.eContainer.eContainer as Reactor).parameters)
         }
@@ -171,7 +171,7 @@ class LFScopeProvider extends AbstractLFScopeProvider {
      * 
      */
     protected def getScopeForVarRef(VarRef variable, EReference reference) {
-        if (reference == MetaPackage.Literals.VAR_REF__VARIABLE) {
+        if (reference == LfPackage.Literals.VAR_REF__VARIABLE) {
             // Resolve hierarchical reference
             val candidates = new ArrayList<EObject>()
             var type = RefType.NULL

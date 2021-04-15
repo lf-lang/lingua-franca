@@ -28,15 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.graph
 
 import com.google.common.collect.HashMultimap
+import java.util.List
 import java.util.Set
-import org.lflang.meta.Instantiation
-import org.lflang.meta.Model
-import org.lflang.meta.Reactor
-import org.lflang.meta.ReactorDecl
+import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Model
+import org.lflang.lf.Reactor
+import org.lflang.lf.ReactorDecl
 
 import static extension org.lflang.ASTUtils.*
-import org.eclipse.emf.ecore.resource.Resource
-import java.util.List
 
 /**
  * A graph with vertices that are Reactors (not ReactorInstances) and edges that denote

@@ -16,7 +16,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.lflang.generator.StandaloneContext;
-import org.lflang.meta.Reactor;
+import org.lflang.lf.Reactor;
 
 /**
  * Base class that governs the interactions between code generators and the file system.

@@ -36,31 +36,30 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.ASTUtils
+import org.lflang.FileConfig
 import org.lflang.Target
 import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
-import org.lflang.meta.Action
-import org.lflang.meta.ActionOrigin
-import org.lflang.meta.Connection
-import org.lflang.meta.Instantiation
-import org.lflang.meta.MetaPackage
-import org.lflang.meta.Model
-import org.lflang.meta.Parameter
-import org.lflang.meta.Port
-import org.lflang.meta.Preamble
-import org.lflang.meta.Reaction
-import org.lflang.meta.Reactor
-import org.lflang.meta.StateVar
-import org.lflang.meta.TimeUnit
-import org.lflang.meta.Timer
-import org.lflang.meta.TriggerRef
-import org.lflang.meta.VarRef
-import org.lflang.meta.Visibility
+import org.lflang.lf.Action
+import org.lflang.lf.ActionOrigin
+import org.lflang.lf.Connection
+import org.lflang.lf.Instantiation
+import org.lflang.lf.LfPackage
+import org.lflang.lf.Model
+import org.lflang.lf.Parameter
+import org.lflang.lf.Port
+import org.lflang.lf.Preamble
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.StateVar
+import org.lflang.lf.TimeUnit
+import org.lflang.lf.Timer
+import org.lflang.lf.TriggerRef
+import org.lflang.lf.VarRef
+import org.lflang.lf.Visibility
 import org.lflang.scoping.LinguaFrancaGlobalScopeProvider
 
 import static extension org.lflang.ASTUtils.*
-
-import org.lflang.FileConfig
 import static extension org.lflang.FileConfig.*
 
 /** Generator for C++ target.
@@ -292,8 +291,8 @@ class CppGenerator extends GeneratorBase {
             «a.implementationType» «a.name»;
         «ENDFOR»
         // default actions
-        reactor::StartupAction «MetaPackage.Literals.TRIGGER_REF__STARTUP.name» {"startup", this};
-        reactor::ShutdownAction «MetaPackage.Literals.TRIGGER_REF__SHUTDOWN.name» {"shutdown", this};
+        reactor::StartupAction «LfPackage.Literals.TRIGGER_REF__STARTUP.name» {"startup", this};
+        reactor::ShutdownAction «LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name» {"shutdown", this};
     '''
 
     def implementationType(Action a) {
@@ -406,9 +405,9 @@ class CppGenerator extends GeneratorBase {
             t.name
         } else {
             if (t.isShutdown) {
-                MetaPackage.Literals.TRIGGER_REF__SHUTDOWN.name
+                LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
             } else if (t.isStartup) {
-                MetaPackage.Literals.TRIGGER_REF__STARTUP.name
+                LfPackage.Literals.TRIGGER_REF__STARTUP.name
             }
         }
     }

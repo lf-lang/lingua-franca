@@ -31,6 +31,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -63,29 +64,29 @@ import org.lflang.TargetProperty
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
 import org.lflang.graph.InstantiationGraph
-import org.lflang.meta.Action
-import org.lflang.meta.ActionOrigin
-import org.lflang.meta.Code
-import org.lflang.meta.Connection
-import org.lflang.meta.Delay
-import org.lflang.meta.Instantiation
-import org.lflang.meta.MetaFactory
-import org.lflang.meta.Model
-import org.lflang.meta.Parameter
-import org.lflang.meta.Port
-import org.lflang.meta.Reaction
-import org.lflang.meta.Reactor
-import org.lflang.meta.StateVar
-import org.lflang.meta.Time
-import org.lflang.meta.TimeUnit
-import org.lflang.meta.Type
-import org.lflang.meta.Value
-import org.lflang.meta.VarRef
-import org.lflang.meta.Variable
+import org.lflang.lf.Action
+import org.lflang.lf.ActionOrigin
+import org.lflang.lf.Code
+import org.lflang.lf.Connection
+import org.lflang.lf.Delay
+import org.lflang.lf.Instantiation
+import org.lflang.lf.LfFactory
+import org.lflang.lf.Model
+import org.lflang.lf.Parameter
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.StateVar
+import org.lflang.lf.TargetDecl
+import org.lflang.lf.Time
+import org.lflang.lf.TimeUnit
+import org.lflang.lf.Type
+import org.lflang.lf.Value
+import org.lflang.lf.VarRef
+import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.meta.TargetDecl
 
 /**
  * Generator base class for shared code between code generators.
@@ -358,7 +359,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         for (reactor : fileConfig.resource.allContents.toIterable.filter(Reactor)) {
             if (reactor.isMain || reactor.isFederated) {
                 // Creating an definition for the main reactor because there isn't one.
-                this.mainDef = MetaFactory.eINSTANCE.createInstantiation()
+                this.mainDef = LfFactory.eINSTANCE.createInstantiation()
                 this.mainDef.setName(reactor.name)
                 this.mainDef.setReactorClass(reactor)
             }
@@ -948,7 +949,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @param uri A java.net.uri of the form "file://path".
      */
-    protected def getEclipseResource(java.net.URI uri) {
+    protected def getEclipseResource(URI uri) {
         var resource = iResource // Default resource.
         // For some peculiar reason known only to Eclipse developers,
         // the resource cannot be used directly but has to be converted
@@ -1517,7 +1518,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 // Determine the resource within which the error occurred.
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
-                val uri = new java.net.URI(parsed.filepath);
+                val uri = new URI(parsed.filepath);
                 resource = getEclipseResource(uri);
             } else {
                 // No line designator.

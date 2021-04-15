@@ -32,10 +32,10 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.lflang.generator.CGenerator
 import org.lflang.generator.ReactorInstance
-import org.lflang.meta.Instantiation
-import org.lflang.meta.MetaFactory
-import org.lflang.meta.Model
-import org.lflang.meta.Reactor
+import org.lflang.lf.Instantiation
+import org.lflang.lf.LfFactory
+import org.lflang.lf.Model
+import org.lflang.lf.Reactor
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
@@ -94,7 +94,7 @@ class LinguaFrancaDependencyAnalysisTest {
             if (reactor.isMain) {
                 // Creating an definition for the main reactor because 
                 // there isn't one.
-                mainDef = MetaFactory.eINSTANCE.createInstantiation()
+                mainDef = LfFactory.eINSTANCE.createInstantiation()
                 mainDef.setName(reactor.name)
                 mainDef.setReactorClass(reactor)
             }
