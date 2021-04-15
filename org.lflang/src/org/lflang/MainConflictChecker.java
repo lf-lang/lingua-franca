@@ -46,7 +46,7 @@ public class MainConflictChecker {
      */
     protected ResourceSet rs = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration()
-            .<LinguaFrancaResourceProvider>getInstance(LinguaFrancaResourceProvider.class).getResourceSet();
+            .<LFResourceProvider>getInstance(LFResourceProvider.class).getResourceSet();
     
     /**
      * Create a new instance that walks the file tree of the package to find conflicts.

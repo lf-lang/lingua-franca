@@ -12,7 +12,6 @@
 !./bin/
 **/build/
 **/test-bin/
-**/generated/
 **/src-gen/
 **/xtend-gen/
 **/.vscode/

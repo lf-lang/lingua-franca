@@ -65,7 +65,7 @@ class LFScopeProvider extends AbstractLFScopeProvider {
     SimpleNameProvider nameProvider
     
     @Inject
-    LinguaFrancaGlobalScopeProvider scopeProvider;
+    LFGlobalScopeProvider scopeProvider;
     
     /**
      * Enumerate of the kinds of references.

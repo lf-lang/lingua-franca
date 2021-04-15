@@ -57,10 +57,10 @@ import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 import org.lflang.lf.Visibility
-import org.lflang.scoping.LinguaFrancaGlobalScopeProvider
 
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.FileConfig.*
+import org.lflang.scoping.LFGlobalScopeProvider
 
 /** Generator for C++ target.
  * 
@@ -71,7 +71,7 @@ import static extension org.lflang.FileConfig.*
 class CppGenerator extends GeneratorBase {
 
     @Inject
-    LinguaFrancaGlobalScopeProvider scopeProvider;
+    LFGlobalScopeProvider scopeProvider;
     
 
     static public var timeUnitsToCppUnits = #{

@@ -4,7 +4,7 @@ import org.eclipse.emf.ecore.EClass
 import org.eclipse.xtext.validation.NamesAreUniqueValidationHelper
 import org.lflang.lf.LfPackage
 
-class LinguaFrancaNamesAreUniqueValidationHelper extends
+class LFNamesAreUniqueValidationHelper extends
         NamesAreUniqueValidationHelper {
 
     /**
