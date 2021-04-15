@@ -26,7 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.icyphy.federated;
+package org.lflang.federated;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,17 +35,18 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
-import org.icyphy.generator.FederateInstance;
-import org.icyphy.generator.GeneratorBase;
-import org.icyphy.linguaFranca.Connection;
-import org.icyphy.linguaFranca.Input;
-import org.icyphy.linguaFranca.LinguaFrancaFactory;
-import org.icyphy.linguaFranca.Reaction;
-import org.icyphy.linguaFranca.Reactor;
-import org.icyphy.linguaFranca.Type;
-import org.icyphy.linguaFranca.Value;
-import org.icyphy.linguaFranca.VarRef;
-import org.icyphy.linguaFranca.Variable;
+import org.lflang.ASTUtils;
+import org.lflang.generator.FederateInstance;
+import org.lflang.generator.GeneratorBase;
+import org.lflang.meta.Connection;
+import org.lflang.meta.Input;
+import org.lflang.meta.MetaFactory;
+import org.lflang.meta.Reaction;
+import org.lflang.meta.Reactor;
+import org.lflang.meta.Type;
+import org.lflang.meta.Value;
+import org.lflang.meta.VarRef;
+import org.lflang.meta.Variable;
 
 /**
  * @author Soroush Bateni {soroush@utdallas.edu}
@@ -82,7 +83,7 @@ public class FedASTUtils {
      */
     public static void addNetworkInputControlReaction(VarRef portRef, int recevingPortID, Reactor reactor,
             FederateInstance instance, GeneratorBase generator, boolean isTopLevel) {
-        LinguaFrancaFactory factory = LinguaFrancaFactory.eINSTANCE;
+        MetaFactory factory = MetaFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         VarRef newPortRef = factory.createVarRef();
 
@@ -91,7 +92,7 @@ public class FedASTUtils {
 
         // First, check if there are any connections to contained reactors that
         // need to be handled
-        List<Connection> connectionsWithPort = org.icyphy.ASTUtils
+        List<Connection> connectionsWithPort = ASTUtils
                 .allConnections(reactor).stream().filter(c -> {
                     return c.getLeftPorts().stream().anyMatch((VarRef v) -> {
                         return v.getVariable().equals(portRef.getVariable());
@@ -100,7 +101,7 @@ public class FedASTUtils {
 
         // Find the list of reactions that have the port as trigger or source
         // (could be a variable name)
-        List<Reaction> reactionsWithPort = org.icyphy.ASTUtils
+        List<Reaction> reactionsWithPort = ASTUtils
                 .allReactions(reactor).stream().filter(r -> {
                     return (// Check the triggers of reaction r first
                     r.getTriggers().stream().anyMatch(t -> {
@@ -215,7 +216,7 @@ public class FedASTUtils {
                 int firstIndex = 0;
                 // Find the index of the first reaction that has portRef as its
                 // trigger or source
-                firstIndex = org.icyphy.ASTUtils.allReactions(reactor)
+                firstIndex = ASTUtils.allReactions(reactor)
                         .indexOf(reactionsWithPort.get(0));
 
                 // Insert the newly generated reaction before the first reaction
@@ -255,7 +256,7 @@ public class FedASTUtils {
             int receivingFedID,
             GeneratorBase generator
     ) {
-        LinguaFrancaFactory factory = LinguaFrancaFactory.eINSTANCE;
+        MetaFactory factory = MetaFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         Reactor reactor = (Reactor) portRef.eContainer().eContainer();
         // Output

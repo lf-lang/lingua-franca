@@ -30,27 +30,20 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
+import org.lflang.TimeValue
 import org.lflang.meta.Action
+import org.lflang.meta.ActionOrigin
+import org.lflang.meta.Delay
 import org.lflang.meta.Input
 import org.lflang.meta.Instantiation
 import org.lflang.meta.Output
+import org.lflang.meta.Port
 import org.lflang.meta.Reaction
 import org.lflang.meta.Reactor
 import org.lflang.meta.TriggerRef
 import org.lflang.meta.VarRef
 
-<<<<<<< HEAD:xtext/org.icyphy.linguafranca/src/org/icyphy/generator/FederateInstance.xtend
-import static extension org.icyphy.ASTUtils.*
-import org.icyphy.linguaFranca.Delay
-import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.TimeValue
-import org.icyphy.linguaFranca.Port
-=======
 import static extension org.lflang.ASTUtils.*
-import org.lflang.meta.Delay
-import org.lflang.meta.ActionOrigin
-import org.lflang.TimeValue
->>>>>>> master:org.lflang/src/org/lflang/generator/FederateInstance.xtend
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
