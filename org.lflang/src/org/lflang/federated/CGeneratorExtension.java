@@ -1,15 +1,16 @@
-package org.icyphy.federated;
+package org.lflang.federated;
 
 import java.util.LinkedHashSet;
 
-import org.icyphy.generator.CGenerator;
-import org.icyphy.generator.FederateInstance;
-import org.icyphy.generator.ReactorInstance;
-import org.icyphy.linguaFranca.Input;
-import org.icyphy.linguaFranca.Port;
-import org.icyphy.linguaFranca.Reactor;
-import org.icyphy.linguaFranca.ReactorDecl;
-import org.icyphy.linguaFranca.VarRef;
+import org.lflang.ASTUtils;
+import org.lflang.generator.CGenerator;
+import org.lflang.generator.FederateInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.meta.Input;
+import org.lflang.meta.Port;
+import org.lflang.meta.Reactor;
+import org.lflang.meta.ReactorDecl;
+import org.lflang.meta.VarRef;
 
 public class CGeneratorExtension {
 
@@ -109,14 +110,13 @@ public class CGeneratorExtension {
         StringBuilder builder = new StringBuilder();
 
         ReactorDecl reactorClass = instance.definition.getReactorClass();
-        Reactor reactor = org.icyphy.ASTUtils.toDefinition(reactorClass);
-        String nameOfSelfStruct = org.icyphy.generator.CGenerator
-                .selfStructName(instance);
+        Reactor reactor = ASTUtils.toDefinition(reactorClass);
+        String nameOfSelfStruct = CGenerator.selfStructName(instance);
 
         // Initialize triggers for network input control reactions
         for (Port trigger : federate.networkInputControlReactionsTriggers) {
             // Check if the trigger belongs to this reactor instance
-            if (org.icyphy.ASTUtils.allReactions(reactor).stream()
+            if (ASTUtils.allReactions(reactor).stream()
                     .anyMatch(r -> {
                         return r.getTriggers().stream().anyMatch(t -> {
                             if (t instanceof VarRef) {
@@ -154,7 +154,7 @@ public class CGeneratorExtension {
             if (!alreadyProcessedPorts.contains(input)) {
                 alreadyProcessedPorts.add(input);
                 // Check if the input belongs to this reactor instance
-                if (org.icyphy.ASTUtils.toDefinition(reactorClass).getInputs()
+                if (ASTUtils.toDefinition(reactorClass).getInputs()
                         .contains((Input) input)) {
                     if (generator.isMultiport(input)) {
                         // Initialize the network_input_port_trigger for the
@@ -193,8 +193,7 @@ public class CGeneratorExtension {
         // The network output control reactions are always in the main federated
         // reactor
         if (instance == generator.main) {
-            nameOfSelfStruct = org.icyphy.generator.CGenerator
-                    .selfStructName(instance);
+            nameOfSelfStruct = CGenerator.selfStructName(instance);
 
             // Initialize triggers for network output control reactions
             // Initialize the triggerForNetworkOutputControlReactions for the

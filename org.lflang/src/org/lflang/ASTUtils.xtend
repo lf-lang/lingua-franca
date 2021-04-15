@@ -40,41 +40,8 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
-<<<<<<< HEAD:xtext/org.icyphy.linguafranca/src/org/icyphy/ASTUtils.xtend
-import org.icyphy.TargetProperty.CoordinationType
-import org.icyphy.generator.FederateInstance
-import org.icyphy.generator.GeneratorBase
-import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.ArraySpec
-import org.icyphy.linguaFranca.Assignment
-import org.icyphy.linguaFranca.Code
-import org.icyphy.linguaFranca.Connection
-import org.icyphy.linguaFranca.Delay
-import org.icyphy.linguaFranca.Element
-import org.icyphy.linguaFranca.ImportedReactor
-import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.LinguaFrancaFactory
-import org.icyphy.linguaFranca.LinguaFrancaPackage
-import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Parameter
-import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.ReactorDecl
-import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.Time
-import org.icyphy.linguaFranca.TimeUnit
-import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.Type
-import org.icyphy.linguaFranca.TypeParm
-import org.icyphy.linguaFranca.Value
-import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.WidthSpec
-import org.icyphy.federated.FedASTUtils
-=======
 import org.lflang.TargetProperty.CoordinationType
+import org.lflang.federated.FedASTUtils
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.meta.Action
@@ -105,7 +72,6 @@ import org.lflang.meta.TypeParm
 import org.lflang.meta.Value
 import org.lflang.meta.VarRef
 import org.lflang.meta.WidthSpec
->>>>>>> master:org.lflang/src/org/lflang/ASTUtils.xtend
 
 /**
  * A helper class for modifying and analyzing the AST.

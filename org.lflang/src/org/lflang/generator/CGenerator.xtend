@@ -42,36 +42,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-<<<<<<< HEAD:xtext/org.icyphy.linguafranca/src/org/icyphy/generator/CGenerator.xtend
-import org.icyphy.ASTUtils
-import org.icyphy.FileConfig
-import org.icyphy.InferredType
-import org.icyphy.Target
-import org.icyphy.TargetProperty.ClockSyncMode
-import org.icyphy.TargetProperty.CoordinationType
-import org.icyphy.TimeValue
-import org.icyphy.federated.CGeneratorExtension
-import org.icyphy.linguaFranca.Action
-import org.icyphy.linguaFranca.ActionOrigin
-import org.icyphy.linguaFranca.Code
-import org.icyphy.linguaFranca.Delay
-import org.icyphy.linguaFranca.Input
-import org.icyphy.linguaFranca.Instantiation
-import org.icyphy.linguaFranca.Output
-import org.icyphy.linguaFranca.Port
-import org.icyphy.linguaFranca.Reaction
-import org.icyphy.linguaFranca.Reactor
-import org.icyphy.linguaFranca.ReactorDecl
-import org.icyphy.linguaFranca.StateVar
-import org.icyphy.linguaFranca.Timer
-import org.icyphy.linguaFranca.TriggerRef
-import org.icyphy.linguaFranca.TypedVariable
-import org.icyphy.linguaFranca.Value
-import org.icyphy.linguaFranca.VarRef
-import org.icyphy.linguaFranca.Variable
-
-import static extension org.icyphy.ASTUtils.*
-=======
 import org.lflang.ASTUtils
 import org.lflang.FileConfig
 import org.lflang.InferredType
@@ -79,6 +49,7 @@ import org.lflang.Target
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
+import org.lflang.federated.CGeneratorExtension
 import org.lflang.meta.Action
 import org.lflang.meta.ActionOrigin
 import org.lflang.meta.Code
@@ -94,11 +65,11 @@ import org.lflang.meta.StateVar
 import org.lflang.meta.Timer
 import org.lflang.meta.TriggerRef
 import org.lflang.meta.TypedVariable
+import org.lflang.meta.Value
 import org.lflang.meta.VarRef
 import org.lflang.meta.Variable
 
 import static extension org.lflang.ASTUtils.*
->>>>>>> master:org.lflang/src/org/lflang/generator/CGenerator.xtend
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -2382,7 +2353,7 @@ class CGenerator extends GeneratorBase {
         
             if (isFederated) {
                 pr(body,
-                    org.icyphy.federated.CGeneratorExtension.createPortStatusFieldForInput(variable, this)                    
+                    org.lflang.federated.CGeneratorExtension.createPortStatusFieldForInput(variable, this)                    
                 );
             }
         
