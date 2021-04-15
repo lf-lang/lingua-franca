@@ -1286,7 +1286,7 @@ void handle_timed_message(int socket, int fed_id) {
     // Check if reactions need to be inserted directly into the reaction
     // queue or a call to schedule is needed. This checks if the intended
     // tag of the message is for the current tag and if any control reaction
-    // is waiting.
+    // is waiting on this port.
     if (compare_tags(intended_tag, get_current_tag()) == 0 &&
         _fed.network_input_port_triggers[port_id]->is_a_control_reaction_waiting) {
         // Since the message is intended for the current tag and a control reaction
@@ -1354,6 +1354,9 @@ void update_last_known_status_on_input_ports(tag_t tag) {
         if (compare_tags(tag,
                 _fed.network_input_port_triggers[i]->last_known_status_tag) > 0) {
             _fed.network_input_port_triggers[i]->last_known_status_tag = tag;
+        } else {
+            warning_print("Attempt to update the last known status tag " 
+                           "of network input port %d to an earlier tag was ignored.", i);
         }
     }
 }
@@ -1392,7 +1395,7 @@ void handle_tag_advance_grant() {
     lf_mutex_lock(&mutex);
     // Update the last known status tag of all network input ports
     // to the TAG received from the RTI. Here we assume that the RTI
-    // knows the values of ports up to and including the granted tag,
+    // knows the status of network ports up to and including the granted tag,
     // so by extension, we assume that the federate can safely rely
     // on the RTI to handle port statuses up until the granted tag.
     update_last_known_status_on_input_ports(TAG);
