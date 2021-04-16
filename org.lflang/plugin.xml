@@ -2,8 +2,8 @@
 <?eclipse version="3.0"?>
 <plugin>
 	<extension point="org.eclipse.emf.ecore.generated_package">
-		<package 
-			uri = "https://www.lf-lang.org/"
+		<package
+			uri = "https://lf-lang.org"
 			class = "org.lflang.lf.LfPackage"
 			genModel = "model/generated/LF.genmodel" />
 	</extension>
