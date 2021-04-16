@@ -255,23 +255,7 @@
   <setupTask
       xsi:type="projects:ProjectsImportTask">
     <sourceLocator
-        rootFolder="${git.clone.lingua.franca.location}">
-      <predicate
-          xsi:type="predicates:OrPredicate">
-        <operand
-            xsi:type="predicates:LocationPredicate"
-            pattern=".*/org\.lflang.*"/>
-        <operand
-            xsi:type="predicates:LocationPredicate"
-            pattern=".*\org\.lflang.*"/>
-        <operand
-            xsi:type="predicates:LocationPredicate"
-            pattern=".*/oomph"/>
-        <operand
-            xsi:type="predicates:LocationPredicate"
-            pattern=".*\oomph"/>
-      </predicate>
-    </sourceLocator>
+        rootFolder="${git.clone.lingua.franca.location}"/>
   </setupTask>
   <setupTask
       xsi:type="setup.workingsets:WorkingSetTask">

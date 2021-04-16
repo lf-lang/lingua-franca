@@ -10,9 +10,9 @@ import java.util.function.Consumer
 import org.eclipse.elk.graph.properties.Property
 import org.lflang.graph.BreadCrumbTrail
 import org.lflang.graph.ReactionGraph
-import org.lflang.meta.Connection
-import org.lflang.meta.Instantiation
-import org.lflang.meta.Reactor
+import org.lflang.lf.Connection
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Reactor
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
 

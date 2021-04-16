@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang
 
-import org.lflang.meta.Type
+import org.lflang.lf.Type
 
 import static extension org.lflang.ASTUtils.*
 

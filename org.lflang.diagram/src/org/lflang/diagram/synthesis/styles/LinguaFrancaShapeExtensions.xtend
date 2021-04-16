@@ -32,10 +32,10 @@ import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.xtend.lib.annotations.Data
-import org.lflang.meta.Instantiation
-import org.lflang.meta.Reaction
-import org.lflang.meta.Reactor
-import org.lflang.meta.Timer
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.Timer
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment
 import org.lflang.diagram.synthesis.util.UtilityExtensions

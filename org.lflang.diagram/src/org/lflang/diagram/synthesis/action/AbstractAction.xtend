@@ -4,7 +4,7 @@ import de.cau.cs.kieler.klighd.IAction
 import de.cau.cs.kieler.klighd.internal.util.KlighdInternalProperties
 import de.cau.cs.kieler.klighd.kgraph.KGraphElement
 import de.cau.cs.kieler.klighd.kgraph.KNode
-import org.lflang.meta.Reactor
+import org.lflang.lf.Reactor
 
 /**
  * Abstract super class for diagram actions that provides some convince methods.

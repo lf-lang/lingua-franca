@@ -33,10 +33,10 @@ import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
 import org.lflang.ASTUtils
-import org.lflang.meta.Instantiation
-import org.lflang.meta.Model
-import org.lflang.meta.Parameter
-import org.lflang.meta.StateVar
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Model
+import org.lflang.lf.Parameter
+import org.lflang.lf.StateVar
 import org.lflang.tests.LFInjectorProvider
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test

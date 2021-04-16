@@ -31,17 +31,16 @@ import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.Set
 import org.lflang.TimeValue
-import org.lflang.meta.Action
-import org.lflang.meta.ActionOrigin
-import org.lflang.meta.Delay
-import org.lflang.meta.Input
-import org.lflang.meta.Instantiation
-import org.lflang.meta.Output
-import org.lflang.meta.Port
-import org.lflang.meta.Reaction
-import org.lflang.meta.Reactor
-import org.lflang.meta.TriggerRef
-import org.lflang.meta.VarRef
+import org.lflang.lf.Action
+import org.lflang.lf.ActionOrigin
+import org.lflang.lf.Delay
+import org.lflang.lf.Input
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Output
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.TriggerRef
+import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 

@@ -39,7 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 grammar org.lflang.LF with org.eclipse.xtext.common.Terminals
 
-generate meta "http://www.icyphy.org/LinguaFranca"
+// Use the package name "lf" for generated files defining the classes
+// in the metamodel (i.e., the classes representing nodes in the
+// abstract syntax tree (AST), i.e., the eCore model). 
+generate lf "https://lflang.org/"
 
 /////////// Overall file
 

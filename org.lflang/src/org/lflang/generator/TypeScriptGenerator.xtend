@@ -28,6 +28,8 @@ package org.lflang.generator
 
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.HashMap
 import java.util.HashSet
 import java.util.LinkedList
@@ -39,23 +41,21 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
-import org.lflang.meta.Action
-import org.lflang.meta.Delay
-import org.lflang.meta.Input
-import org.lflang.meta.Instantiation
-import org.lflang.meta.Parameter
-import org.lflang.meta.Port
-import org.lflang.meta.Reaction
-import org.lflang.meta.Reactor
-import org.lflang.meta.StateVar
-import org.lflang.meta.TimeUnit
-import org.lflang.meta.Timer
-import org.lflang.meta.VarRef
-import org.lflang.meta.Variable
+import org.lflang.lf.Action
+import org.lflang.lf.Delay
+import org.lflang.lf.Input
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Parameter
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.StateVar
+import org.lflang.lf.TimeUnit
+import org.lflang.lf.Timer
+import org.lflang.lf.VarRef
+import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 
 /** Generator for TypeScript target.
  *
@@ -199,7 +199,7 @@ class TypeScriptGenerator extends GeneratorBase {
             fOut.close()
         }
     
-        for (file : org.lflang.generator.TypeScriptGenerator.RUNTIME_FILES) {
+        for (file : TypeScriptGenerator.RUNTIME_FILES) {
             copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file, fileConfig.getSrcGenPath.resolve("core").resolve(file).toString)
         }
 
@@ -993,7 +993,7 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     override generatePreamble() {
         super.generatePreamble
-        pr(org.lflang.generator.TypeScriptGenerator.DEFAULT_IMPORTS) 
+        pr(TypeScriptGenerator.DEFAULT_IMPORTS) 
         pr("") 
     }
     

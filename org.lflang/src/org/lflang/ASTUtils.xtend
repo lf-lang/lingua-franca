@@ -44,34 +44,34 @@ import org.lflang.TargetProperty.CoordinationType
 import org.lflang.federated.FedASTUtils
 import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
-import org.lflang.meta.Action
-import org.lflang.meta.ActionOrigin
-import org.lflang.meta.ArraySpec
-import org.lflang.meta.Assignment
-import org.lflang.meta.Code
-import org.lflang.meta.Connection
-import org.lflang.meta.Delay
-import org.lflang.meta.Element
-import org.lflang.meta.ImportedReactor
-import org.lflang.meta.Input
-import org.lflang.meta.Instantiation
-import org.lflang.meta.MetaFactory
-import org.lflang.meta.MetaPackage
-import org.lflang.meta.Output
-import org.lflang.meta.Parameter
-import org.lflang.meta.Port
-import org.lflang.meta.Reaction
-import org.lflang.meta.Reactor
-import org.lflang.meta.ReactorDecl
-import org.lflang.meta.StateVar
-import org.lflang.meta.Time
-import org.lflang.meta.TimeUnit
-import org.lflang.meta.Timer
-import org.lflang.meta.Type
-import org.lflang.meta.TypeParm
-import org.lflang.meta.Value
-import org.lflang.meta.VarRef
-import org.lflang.meta.WidthSpec
+import org.lflang.lf.Action
+import org.lflang.lf.ActionOrigin
+import org.lflang.lf.ArraySpec
+import org.lflang.lf.Assignment
+import org.lflang.lf.Code
+import org.lflang.lf.Connection
+import org.lflang.lf.Delay
+import org.lflang.lf.Element
+import org.lflang.lf.ImportedReactor
+import org.lflang.lf.Input
+import org.lflang.lf.Instantiation
+import org.lflang.lf.LfFactory
+import org.lflang.lf.LfPackage
+import org.lflang.lf.Output
+import org.lflang.lf.Parameter
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.ReactorDecl
+import org.lflang.lf.StateVar
+import org.lflang.lf.Time
+import org.lflang.lf.TimeUnit
+import org.lflang.lf.Timer
+import org.lflang.lf.Type
+import org.lflang.lf.TypeParm
+import org.lflang.lf.Value
+import org.lflang.lf.VarRef
+import org.lflang.lf.WidthSpec
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -84,14 +84,14 @@ class ASTUtils {
     /**
      * The Lingua Franca factory for creating new AST nodes.
      */
-    public static val factory = MetaFactory.eINSTANCE
+    public static val factory = LfFactory.eINSTANCE
     
     /**
      * Make a Timer with name "startup" and default parameters.
      */
     static def makeStartupTimer() {
         val startupTimer = factory.createTimer();
-        startupTimer.name = MetaPackage.Literals.TRIGGER_REF__STARTUP.name;
+        startupTimer.name = LfPackage.Literals.TRIGGER_REF__STARTUP.name;
         return startupTimer;
     }
     
@@ -100,7 +100,7 @@ class ASTUtils {
      */
     static def makeShutdownAction() {
         val shutdownAction = factory.createAction();
-        shutdownAction.name = MetaPackage.Literals.TRIGGER_REF__SHUTDOWN.name;
+        shutdownAction.name = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name;
         return shutdownAction;
     }
     
@@ -420,7 +420,7 @@ class ASTUtils {
         GeneratorBase generator,
         CoordinationType coordination
     ) {
-        val factory = MetaFactory.eINSTANCE
+        val factory = LfFactory.eINSTANCE
         // Assume all the types are the same, so just use the first on the right.
         var type = (connection.rightPorts.get(0).variable as Port).type.copy
         val action = factory.createAction

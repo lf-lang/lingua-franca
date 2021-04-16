@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang
 
 import java.math.BigInteger
-import org.lflang.meta.TimeUnit
+import org.lflang.lf.TimeUnit
 
 /**
  * A helper class that represents of a time value.

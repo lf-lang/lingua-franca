@@ -1,9 +1,9 @@
 package org.lflang.generator
 
-import org.eclipse.xtext.generator.GeneratorContext
+import java.nio.file.Path
 import java.util.Properties
 import org.eclipse.xtend.lib.annotations.Accessors
-import java.nio.file.Path
+import org.eclipse.xtext.generator.GeneratorContext
 
 @Accessors
 class StandaloneContext extends GeneratorContext {
