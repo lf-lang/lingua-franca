@@ -29,8 +29,8 @@ if (-not (Test-Path $java_cmd)) {
 
 # check for correct java version
 $java_version = (Get-Command java | Select-Object -ExpandProperty Version).toString()
-if ([version]$java_version -lt [version]"8.0") {
-    throw "JRE $java_version found but 8.0 or greater is required."
+if ([version]$java_version -lt [version]"11.0") {
+    throw "JRE $java_version found but 11.0 or greater is required."
 }
 
 # invoke lfc
