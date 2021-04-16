@@ -22,4 +22,4 @@ Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang.ui.internal,
  org.lflang.ui.contentassist,
  org.lflang.ui.quickfix
-Bundle-Activator: org.lflang.ui.internal.LinguafrancaActivator
+Bundle-Activator: org.lflang.ui.internal.LflangActivator
