@@ -1,0 +1,731 @@
+/**
+ * Micro-benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * @author Hannes Klein
+ */
+
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numReactors=10
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'numReactors' in globals():
+    numReactors = int(numReactors)
+  else:
+    globals()['numReactors'] = 10
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numReactors = {numReactors}')
+]]] */
+// Generated file with the following parameters:
+// numReactors = 15
+// [[[end]]]
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "../IncludeHeaders.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+public preamble {=
+    enum MsgType {
+      StartMsg,
+      PingMsg,
+      PongMsg,
+      ExitMsg
+    };
+=}
+
+reactor SinkReactor(numWorkers:int(120)) {
+    
+    // number of exit messages received
+    state numMessages:int(0);
+    
+    // collections for inputs for easier access
+    state inputs:{=std::vector<reactor::Input<void>*>=};
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    /* [[[cog
+      for i in range(numReactors):
+        cog.outl(f'input inBig{str(i)}:void;')
+    ]]] */
+    input inBig0:void;
+    input inBig1:void;
+    input inBig2:void;
+    input inBig3:void;
+    input inBig4:void;
+    input inBig5:void;
+    input inBig6:void;
+    input inBig7:void;
+    input inBig8:void;
+    input inBig9:void;
+    input inBig10:void;
+    input inBig11:void;
+    input inBig12:void;
+    input inBig13:void;
+    input inBig14:void;
+    // [[[end]]]
+    
+    // only one output needed to send start msg to all reactors
+    output outBig:void;
+    
+    reaction(startup) {=
+        
+        // Initialize collection of ports for easier handling
+        
+        inputs.reserve(numWorkers);
+        /* [[[cog
+          for i in range(numReactors):
+            cog.outl(f'inputs.push_back(&inBig{i});')
+        ]]] */
+        inputs.push_back(&inBig0);
+        inputs.push_back(&inBig1);
+        inputs.push_back(&inBig2);
+        inputs.push_back(&inBig3);
+        inputs.push_back(&inBig4);
+        inputs.push_back(&inBig5);
+        inputs.push_back(&inBig6);
+        inputs.push_back(&inBig7);
+        inputs.push_back(&inBig8);
+        inputs.push_back(&inBig9);
+        inputs.push_back(&inBig10);
+        inputs.push_back(&inBig11);
+        inputs.push_back(&inBig12);
+        inputs.push_back(&inBig13);
+        inputs.push_back(&inBig14);
+        // [[[end]]]
+        
+    =}
+    
+    reaction(inStart) -> outBig {=
+        // reset state
+        numMessages = 0;
+        
+        outBig.set();
+    =}
+    
+    reaction(
+        /* [[[cog
+          for i in range(numReactors):
+            cog.out(f'inBig{i}')
+            if i < numReactors-1:
+              cog.outl(',')
+            else:
+              cog.outl('')
+        ]]] */
+        inBig0,
+        inBig1,
+        inBig2,
+        inBig3,
+        inBig4,
+        inBig5,
+        inBig6,
+        inBig7,
+        inBig8,
+        inBig9,
+        inBig10,
+        inBig11,
+        inBig12,
+        inBig13,
+        inBig14
+        // [[[end]]]
+    ) -> outFinished {=
+        
+        // collect all exit messages
+        for(int i = 0; i < inputs.size(); i++) {
+            if(inputs[i]->is_present()) {
+                numMessages += 1;
+                if(numMessages == numWorkers) {
+                    outFinished.set();
+                    return;
+                }
+            }
+        }
+    =}
+}
+
+reactor BigReactor(id:int(-1), numMessages:int(20000), numWorkers:int(120)) {
+    
+    public preamble {=
+        #include "PseudoRandom.hh"
+    =}
+    
+    state numPings:int(0);
+    state random:PseudoRandom;
+    state pongsToSend:{=std::vector<int>=};
+    state receivedPong:bool;
+    state sendNextPingTo:int(-1);
+    
+    state inputs:{=std::vector<reactor::Input<MsgType>*>=};
+    state outputs:{=std::vector<reactor::Output<MsgType>*>=};
+    
+    input inSink:void;
+    output outSink:void;
+    
+    logical action send:void; //send both pings and pongs
+    
+    /* [[[cog
+      for i in range(numReactors):
+        cog.outl(f'input inBig{str(i)}:{{=MsgType=}};')
+    ]]] */
+    input inBig0:{=MsgType=};
+    input inBig1:{=MsgType=};
+    input inBig2:{=MsgType=};
+    input inBig3:{=MsgType=};
+    input inBig4:{=MsgType=};
+    input inBig5:{=MsgType=};
+    input inBig6:{=MsgType=};
+    input inBig7:{=MsgType=};
+    input inBig8:{=MsgType=};
+    input inBig9:{=MsgType=};
+    input inBig10:{=MsgType=};
+    input inBig11:{=MsgType=};
+    input inBig12:{=MsgType=};
+    input inBig13:{=MsgType=};
+    input inBig14:{=MsgType=};
+    // [[[end]]]
+
+    /* [[[cog
+      for i in range(numReactors):
+        cog.outl(f'output outBig{i}:{{=MsgType=}};')
+    ]]] */
+    output outBig0:{=MsgType=};
+    output outBig1:{=MsgType=};
+    output outBig2:{=MsgType=};
+    output outBig3:{=MsgType=};
+    output outBig4:{=MsgType=};
+    output outBig5:{=MsgType=};
+    output outBig6:{=MsgType=};
+    output outBig7:{=MsgType=};
+    output outBig8:{=MsgType=};
+    output outBig9:{=MsgType=};
+    output outBig10:{=MsgType=};
+    output outBig11:{=MsgType=};
+    output outBig12:{=MsgType=};
+    output outBig13:{=MsgType=};
+    output outBig14:{=MsgType=};
+    // [[[end]]]
+    
+    reaction(startup) {=
+        
+        // Initialize collection of ports for easier handling
+        
+        inputs.reserve(numWorkers);
+        /* [[[cog
+          for i in range(numReactors):
+            cog.outl(f'inputs.push_back(&inBig{i});')
+        ]]] */
+        inputs.push_back(&inBig0);
+        inputs.push_back(&inBig1);
+        inputs.push_back(&inBig2);
+        inputs.push_back(&inBig3);
+        inputs.push_back(&inBig4);
+        inputs.push_back(&inBig5);
+        inputs.push_back(&inBig6);
+        inputs.push_back(&inBig7);
+        inputs.push_back(&inBig8);
+        inputs.push_back(&inBig9);
+        inputs.push_back(&inBig10);
+        inputs.push_back(&inBig11);
+        inputs.push_back(&inBig12);
+        inputs.push_back(&inBig13);
+        inputs.push_back(&inBig14);
+        // [[[end]]]
+
+        outputs.reserve(numWorkers);
+        /* [[[cog
+          for i in range(numReactors):
+            cog.outl(f'outputs.push_back(&outBig{i});')
+        ]]] */
+        outputs.push_back(&outBig0);
+        outputs.push_back(&outBig1);
+        outputs.push_back(&outBig2);
+        outputs.push_back(&outBig3);
+        outputs.push_back(&outBig4);
+        outputs.push_back(&outBig5);
+        outputs.push_back(&outBig6);
+        outputs.push_back(&outBig7);
+        outputs.push_back(&outBig8);
+        outputs.push_back(&outBig9);
+        outputs.push_back(&outBig10);
+        outputs.push_back(&outBig11);
+        outputs.push_back(&outBig12);
+        outputs.push_back(&outBig13);
+        outputs.push_back(&outBig14);
+        // [[[end]]]
+    =}
+    
+    reaction(send) -> outSink,
+      /* [[[cog
+        for i in range(numReactors):
+          cog.out(f'outBig{i}')
+          if i < numReactors-1:
+            cog.outl(',')
+          else:
+            cog.outl('')
+      ]]] */
+      outBig0,
+      outBig1,
+      outBig2,
+      outBig3,
+      outBig4,
+      outBig5,
+      outBig6,
+      outBig7,
+      outBig8,
+      outBig9,
+      outBig10,
+      outBig11,
+      outBig12,
+      outBig13,
+      outBig14
+      // [[[end]]]
+    {=
+        
+        //send ping
+        if(numPings < numMessages && receivedPong) {
+            if(sendNextPingTo == -1) {
+                sendNextPingTo = random.nextInt(inputs.size());
+            }
+            // We can only send a new ping message to reactor sendNextPingTo if
+            // we do not already send a pong message to that exact same reactor. 
+            if(find(pongsToSend.begin(), pongsToSend.end(), sendNextPingTo) ==  pongsToSend.end()) {
+                // Send ping now.
+                outputs[sendNextPingTo]->set(PingMsg);
+                sendNextPingTo = -1;
+                receivedPong = false;
+                numPings += 1;
+                if(numPings == numMessages) {
+                    //send exit msg one time
+                    outSink.set();
+                }
+            } else {
+                // Send ping later
+                send.schedule();
+            }
+        }
+        
+        // Send pongs.
+        for(int i = 0; i < pongsToSend.size(); i++) {
+            outputs[pongsToSend[i]]->set(PongMsg);
+        }
+        pongsToSend.clear();
+    =}
+    
+    reaction(
+        /* [[[cog
+          for i in range(numReactors):
+            cog.out(f'inBig{i}')
+            if i < numReactors-1:
+              cog.outl(',')
+            else:
+              cog.outl('')
+        ]]] */
+        inBig0,
+        inBig1,
+        inBig2,
+        inBig3,
+        inBig4,
+        inBig5,
+        inBig6,
+        inBig7,
+        inBig8,
+        inBig9,
+        inBig10,
+        inBig11,
+        inBig12,
+        inBig13,
+        inBig14
+        // [[[end]]]
+    ) -> send {=
+        
+        // list incoming pings
+        for(int i = 0; i < inputs.size(); i++) {
+            if(inputs[i]->is_present()) {
+                if(*(inputs[i]->get()) == PingMsg) {
+                    pongsToSend.push_back(i);
+                } else {
+                    // message type == PongMsg
+                    receivedPong = true;
+                }
+            }
+        }
+        
+        send.schedule();
+    =}
+    
+    reaction(inSink) -> send {=
+        
+        // reset local state
+        numPings = 0;
+        random = PseudoRandom(id);
+        pongsToSend.clear();
+        pongsToSend.reserve(numWorkers);
+        receivedPong = true;
+        sendNextPingTo = -1;
+        
+        // start execution
+        send.schedule();
+    =}
+}
+
+main reactor (numIterations:int(12), numPingsPerReactor:int(20000)) {
+    
+    /* [[[cog
+      cog.outl(f'sink = new SinkReactor(numWorkers={numReactors});')
+    ]]] */
+    sink = new SinkReactor(numWorkers=15);
+    // [[[end]]]
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> sink.inStart;
+    sink.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("BigReactorLFCppBenchmark");
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "numPingsPerReactor", numPingsPerReactor, "numReactors", {numReactors});')
+        ]]] */
+        printArgs("numIterations", numIterations, "numPingsPerReactor", numPingsPerReactor, "numReactors", 15);
+        // [[[end]]]
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      for i in range(numReactors):
+        cog.outl(f'big{i} = new BigReactor(id={i}, numMessages=numPingsPerReactor, numWorkers={numReactors});')
+    ]]] */
+    big0 = new BigReactor(id=0, numMessages=numPingsPerReactor, numWorkers=15);
+    big1 = new BigReactor(id=1, numMessages=numPingsPerReactor, numWorkers=15);
+    big2 = new BigReactor(id=2, numMessages=numPingsPerReactor, numWorkers=15);
+    big3 = new BigReactor(id=3, numMessages=numPingsPerReactor, numWorkers=15);
+    big4 = new BigReactor(id=4, numMessages=numPingsPerReactor, numWorkers=15);
+    big5 = new BigReactor(id=5, numMessages=numPingsPerReactor, numWorkers=15);
+    big6 = new BigReactor(id=6, numMessages=numPingsPerReactor, numWorkers=15);
+    big7 = new BigReactor(id=7, numMessages=numPingsPerReactor, numWorkers=15);
+    big8 = new BigReactor(id=8, numMessages=numPingsPerReactor, numWorkers=15);
+    big9 = new BigReactor(id=9, numMessages=numPingsPerReactor, numWorkers=15);
+    big10 = new BigReactor(id=10, numMessages=numPingsPerReactor, numWorkers=15);
+    big11 = new BigReactor(id=11, numMessages=numPingsPerReactor, numWorkers=15);
+    big12 = new BigReactor(id=12, numMessages=numPingsPerReactor, numWorkers=15);
+    big13 = new BigReactor(id=13, numMessages=numPingsPerReactor, numWorkers=15);
+    big14 = new BigReactor(id=14, numMessages=numPingsPerReactor, numWorkers=15);
+    // [[[end]]]
+    
+    // connect sink
+
+    /* [[[cog
+      for i in range(numReactors):
+        cog.outl(f'sink.outBig -> big{i}.inSink;')
+    ]]] */
+    sink.outBig -> big0.inSink;
+    sink.outBig -> big1.inSink;
+    sink.outBig -> big2.inSink;
+    sink.outBig -> big3.inSink;
+    sink.outBig -> big4.inSink;
+    sink.outBig -> big5.inSink;
+    sink.outBig -> big6.inSink;
+    sink.outBig -> big7.inSink;
+    sink.outBig -> big8.inSink;
+    sink.outBig -> big9.inSink;
+    sink.outBig -> big10.inSink;
+    sink.outBig -> big11.inSink;
+    sink.outBig -> big12.inSink;
+    sink.outBig -> big13.inSink;
+    sink.outBig -> big14.inSink;
+    // [[[end]]]
+    
+    /* [[[cog
+      for i in range(numReactors):
+        cog.outl(f'big{i}.outSink -> sink.inBig{i};')
+    ]]] */
+    big0.outSink -> sink.inBig0;
+    big1.outSink -> sink.inBig1;
+    big2.outSink -> sink.inBig2;
+    big3.outSink -> sink.inBig3;
+    big4.outSink -> sink.inBig4;
+    big5.outSink -> sink.inBig5;
+    big6.outSink -> sink.inBig6;
+    big7.outSink -> sink.inBig7;
+    big8.outSink -> sink.inBig8;
+    big9.outSink -> sink.inBig9;
+    big10.outSink -> sink.inBig10;
+    big11.outSink -> sink.inBig11;
+    big12.outSink -> sink.inBig12;
+    big13.outSink -> sink.inBig13;
+    big14.outSink -> sink.inBig14;
+    // [[[end]]]
+    
+    /* [[[cog
+      for i in range(numReactors):
+        for j in range(numReactors):
+          cog.outl(f'big{i}.outBig{j} -> big{j}.inBig{i};')
+        cog.outl('')
+    ]]] */
+    big0.outBig0 -> big0.inBig0;
+    big0.outBig1 -> big1.inBig0;
+    big0.outBig2 -> big2.inBig0;
+    big0.outBig3 -> big3.inBig0;
+    big0.outBig4 -> big4.inBig0;
+    big0.outBig5 -> big5.inBig0;
+    big0.outBig6 -> big6.inBig0;
+    big0.outBig7 -> big7.inBig0;
+    big0.outBig8 -> big8.inBig0;
+    big0.outBig9 -> big9.inBig0;
+    big0.outBig10 -> big10.inBig0;
+    big0.outBig11 -> big11.inBig0;
+    big0.outBig12 -> big12.inBig0;
+    big0.outBig13 -> big13.inBig0;
+    big0.outBig14 -> big14.inBig0;
+
+    big1.outBig0 -> big0.inBig1;
+    big1.outBig1 -> big1.inBig1;
+    big1.outBig2 -> big2.inBig1;
+    big1.outBig3 -> big3.inBig1;
+    big1.outBig4 -> big4.inBig1;
+    big1.outBig5 -> big5.inBig1;
+    big1.outBig6 -> big6.inBig1;
+    big1.outBig7 -> big7.inBig1;
+    big1.outBig8 -> big8.inBig1;
+    big1.outBig9 -> big9.inBig1;
+    big1.outBig10 -> big10.inBig1;
+    big1.outBig11 -> big11.inBig1;
+    big1.outBig12 -> big12.inBig1;
+    big1.outBig13 -> big13.inBig1;
+    big1.outBig14 -> big14.inBig1;
+
+    big2.outBig0 -> big0.inBig2;
+    big2.outBig1 -> big1.inBig2;
+    big2.outBig2 -> big2.inBig2;
+    big2.outBig3 -> big3.inBig2;
+    big2.outBig4 -> big4.inBig2;
+    big2.outBig5 -> big5.inBig2;
+    big2.outBig6 -> big6.inBig2;
+    big2.outBig7 -> big7.inBig2;
+    big2.outBig8 -> big8.inBig2;
+    big2.outBig9 -> big9.inBig2;
+    big2.outBig10 -> big10.inBig2;
+    big2.outBig11 -> big11.inBig2;
+    big2.outBig12 -> big12.inBig2;
+    big2.outBig13 -> big13.inBig2;
+    big2.outBig14 -> big14.inBig2;
+
+    big3.outBig0 -> big0.inBig3;
+    big3.outBig1 -> big1.inBig3;
+    big3.outBig2 -> big2.inBig3;
+    big3.outBig3 -> big3.inBig3;
+    big3.outBig4 -> big4.inBig3;
+    big3.outBig5 -> big5.inBig3;
+    big3.outBig6 -> big6.inBig3;
+    big3.outBig7 -> big7.inBig3;
+    big3.outBig8 -> big8.inBig3;
+    big3.outBig9 -> big9.inBig3;
+    big3.outBig10 -> big10.inBig3;
+    big3.outBig11 -> big11.inBig3;
+    big3.outBig12 -> big12.inBig3;
+    big3.outBig13 -> big13.inBig3;
+    big3.outBig14 -> big14.inBig3;
+
+    big4.outBig0 -> big0.inBig4;
+    big4.outBig1 -> big1.inBig4;
+    big4.outBig2 -> big2.inBig4;
+    big4.outBig3 -> big3.inBig4;
+    big4.outBig4 -> big4.inBig4;
+    big4.outBig5 -> big5.inBig4;
+    big4.outBig6 -> big6.inBig4;
+    big4.outBig7 -> big7.inBig4;
+    big4.outBig8 -> big8.inBig4;
+    big4.outBig9 -> big9.inBig4;
+    big4.outBig10 -> big10.inBig4;
+    big4.outBig11 -> big11.inBig4;
+    big4.outBig12 -> big12.inBig4;
+    big4.outBig13 -> big13.inBig4;
+    big4.outBig14 -> big14.inBig4;
+
+    big5.outBig0 -> big0.inBig5;
+    big5.outBig1 -> big1.inBig5;
+    big5.outBig2 -> big2.inBig5;
+    big5.outBig3 -> big3.inBig5;
+    big5.outBig4 -> big4.inBig5;
+    big5.outBig5 -> big5.inBig5;
+    big5.outBig6 -> big6.inBig5;
+    big5.outBig7 -> big7.inBig5;
+    big5.outBig8 -> big8.inBig5;
+    big5.outBig9 -> big9.inBig5;
+    big5.outBig10 -> big10.inBig5;
+    big5.outBig11 -> big11.inBig5;
+    big5.outBig12 -> big12.inBig5;
+    big5.outBig13 -> big13.inBig5;
+    big5.outBig14 -> big14.inBig5;
+
+    big6.outBig0 -> big0.inBig6;
+    big6.outBig1 -> big1.inBig6;
+    big6.outBig2 -> big2.inBig6;
+    big6.outBig3 -> big3.inBig6;
+    big6.outBig4 -> big4.inBig6;
+    big6.outBig5 -> big5.inBig6;
+    big6.outBig6 -> big6.inBig6;
+    big6.outBig7 -> big7.inBig6;
+    big6.outBig8 -> big8.inBig6;
+    big6.outBig9 -> big9.inBig6;
+    big6.outBig10 -> big10.inBig6;
+    big6.outBig11 -> big11.inBig6;
+    big6.outBig12 -> big12.inBig6;
+    big6.outBig13 -> big13.inBig6;
+    big6.outBig14 -> big14.inBig6;
+
+    big7.outBig0 -> big0.inBig7;
+    big7.outBig1 -> big1.inBig7;
+    big7.outBig2 -> big2.inBig7;
+    big7.outBig3 -> big3.inBig7;
+    big7.outBig4 -> big4.inBig7;
+    big7.outBig5 -> big5.inBig7;
+    big7.outBig6 -> big6.inBig7;
+    big7.outBig7 -> big7.inBig7;
+    big7.outBig8 -> big8.inBig7;
+    big7.outBig9 -> big9.inBig7;
+    big7.outBig10 -> big10.inBig7;
+    big7.outBig11 -> big11.inBig7;
+    big7.outBig12 -> big12.inBig7;
+    big7.outBig13 -> big13.inBig7;
+    big7.outBig14 -> big14.inBig7;
+
+    big8.outBig0 -> big0.inBig8;
+    big8.outBig1 -> big1.inBig8;
+    big8.outBig2 -> big2.inBig8;
+    big8.outBig3 -> big3.inBig8;
+    big8.outBig4 -> big4.inBig8;
+    big8.outBig5 -> big5.inBig8;
+    big8.outBig6 -> big6.inBig8;
+    big8.outBig7 -> big7.inBig8;
+    big8.outBig8 -> big8.inBig8;
+    big8.outBig9 -> big9.inBig8;
+    big8.outBig10 -> big10.inBig8;
+    big8.outBig11 -> big11.inBig8;
+    big8.outBig12 -> big12.inBig8;
+    big8.outBig13 -> big13.inBig8;
+    big8.outBig14 -> big14.inBig8;
+
+    big9.outBig0 -> big0.inBig9;
+    big9.outBig1 -> big1.inBig9;
+    big9.outBig2 -> big2.inBig9;
+    big9.outBig3 -> big3.inBig9;
+    big9.outBig4 -> big4.inBig9;
+    big9.outBig5 -> big5.inBig9;
+    big9.outBig6 -> big6.inBig9;
+    big9.outBig7 -> big7.inBig9;
+    big9.outBig8 -> big8.inBig9;
+    big9.outBig9 -> big9.inBig9;
+    big9.outBig10 -> big10.inBig9;
+    big9.outBig11 -> big11.inBig9;
+    big9.outBig12 -> big12.inBig9;
+    big9.outBig13 -> big13.inBig9;
+    big9.outBig14 -> big14.inBig9;
+
+    big10.outBig0 -> big0.inBig10;
+    big10.outBig1 -> big1.inBig10;
+    big10.outBig2 -> big2.inBig10;
+    big10.outBig3 -> big3.inBig10;
+    big10.outBig4 -> big4.inBig10;
+    big10.outBig5 -> big5.inBig10;
+    big10.outBig6 -> big6.inBig10;
+    big10.outBig7 -> big7.inBig10;
+    big10.outBig8 -> big8.inBig10;
+    big10.outBig9 -> big9.inBig10;
+    big10.outBig10 -> big10.inBig10;
+    big10.outBig11 -> big11.inBig10;
+    big10.outBig12 -> big12.inBig10;
+    big10.outBig13 -> big13.inBig10;
+    big10.outBig14 -> big14.inBig10;
+
+    big11.outBig0 -> big0.inBig11;
+    big11.outBig1 -> big1.inBig11;
+    big11.outBig2 -> big2.inBig11;
+    big11.outBig3 -> big3.inBig11;
+    big11.outBig4 -> big4.inBig11;
+    big11.outBig5 -> big5.inBig11;
+    big11.outBig6 -> big6.inBig11;
+    big11.outBig7 -> big7.inBig11;
+    big11.outBig8 -> big8.inBig11;
+    big11.outBig9 -> big9.inBig11;
+    big11.outBig10 -> big10.inBig11;
+    big11.outBig11 -> big11.inBig11;
+    big11.outBig12 -> big12.inBig11;
+    big11.outBig13 -> big13.inBig11;
+    big11.outBig14 -> big14.inBig11;
+
+    big12.outBig0 -> big0.inBig12;
+    big12.outBig1 -> big1.inBig12;
+    big12.outBig2 -> big2.inBig12;
+    big12.outBig3 -> big3.inBig12;
+    big12.outBig4 -> big4.inBig12;
+    big12.outBig5 -> big5.inBig12;
+    big12.outBig6 -> big6.inBig12;
+    big12.outBig7 -> big7.inBig12;
+    big12.outBig8 -> big8.inBig12;
+    big12.outBig9 -> big9.inBig12;
+    big12.outBig10 -> big10.inBig12;
+    big12.outBig11 -> big11.inBig12;
+    big12.outBig12 -> big12.inBig12;
+    big12.outBig13 -> big13.inBig12;
+    big12.outBig14 -> big14.inBig12;
+
+    big13.outBig0 -> big0.inBig13;
+    big13.outBig1 -> big1.inBig13;
+    big13.outBig2 -> big2.inBig13;
+    big13.outBig3 -> big3.inBig13;
+    big13.outBig4 -> big4.inBig13;
+    big13.outBig5 -> big5.inBig13;
+    big13.outBig6 -> big6.inBig13;
+    big13.outBig7 -> big7.inBig13;
+    big13.outBig8 -> big8.inBig13;
+    big13.outBig9 -> big9.inBig13;
+    big13.outBig10 -> big10.inBig13;
+    big13.outBig11 -> big11.inBig13;
+    big13.outBig12 -> big12.inBig13;
+    big13.outBig13 -> big13.inBig13;
+    big13.outBig14 -> big14.inBig13;
+
+    big14.outBig0 -> big0.inBig14;
+    big14.outBig1 -> big1.inBig14;
+    big14.outBig2 -> big2.inBig14;
+    big14.outBig3 -> big3.inBig14;
+    big14.outBig4 -> big4.inBig14;
+    big14.outBig5 -> big5.inBig14;
+    big14.outBig6 -> big6.inBig14;
+    big14.outBig7 -> big7.inBig14;
+    big14.outBig8 -> big8.inBig14;
+    big14.outBig9 -> big9.inBig14;
+    big14.outBig10 -> big10.inBig14;
+    big14.outBig11 -> big11.inBig14;
+    big14.outBig12 -> big12.inBig14;
+    big14.outBig13 -> big13.inBig14;
+    big14.outBig14 -> big14.inBig14;
+
+    // [[[end]]]
+}

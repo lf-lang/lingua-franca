@@ -1,0 +1,286 @@
+/**
+ * Concurrency benchmark from the Savina benchmark suite. Intended
+ * to measure reader-writer concurrency support.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * To break the causality loop the dictionary reactor contains a logical
+ * action.
+ * 
+ * @author Hannes Klein
+ */
+
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numWorkers=20
+# 
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'numWorkers' in globals():
+    numWorkers = int(numWorkers)
+  else:
+    globals()['numWorkers'] = 20
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numWorkers = {numWorkers}')
+]]] */
+// Generated file with the following parameters:
+// numWorkers = 20
+// [[[end]]]
+
+target Cpp {
+    build-type : RelWithDebInfo
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+public preamble {=
+    enum MsgType {
+      DoWorkMsg,
+      EndWorkMsg,
+      ResultMsg,
+      ReadMsg,
+      WriteMsg
+    };
+    
+    struct Message {
+    
+      MsgType type;
+      int key;
+      int value;
+    
+      Message() {}
+    
+      Message(MsgType _type, int _key, int _value):
+        type(_type), key(_key), value(_value) {}
+    
+      Message(MsgType _type):
+        type(_type) {}
+    
+      Message(MsgType _type, int _key):
+        type(_type), key(_key) {}
+    };
+=}
+
+
+reactor Master(numWorkers:int(20)) {
+    
+    public preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state numWorkersTerminated:int(0);
+    
+    input inStart:void;
+    output outFinished:void;
+    
+    /* [[[cog
+      cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
+      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
+    ]]] */
+    output[20] outWorkers:{=Message=};
+    input[20] inWorkers:{=Message=};
+    // [[[end]]]
+    output outDictionary:void;
+    
+    reaction(inStart) -> outWorkers {=
+        
+        // reset local state
+        numWorkersTerminated = 0;
+        
+        // start execution
+        auto msg = reactor::make_immutable_value<Message>(Message{DoWorkMsg});
+        for(int i = 0; i < outWorkers.size(); i++) {
+            outWorkers[i].set(msg);
+        }
+    =}
+    
+    reaction(inWorkers) -> outFinished {=
+        
+        for(int i = 0; i < inWorkers.size(); i++) {
+            numWorkersTerminated += 1;
+        }
+        if(numWorkersTerminated == numWorkers) {
+            reactor::log::Debug() << numWorkersTerminated << " workers terminated.";
+            outFinished.set();
+        }
+    =}
+}
+
+reactor DictionaryImpl(numWorkers:int(20), initialState:{=std::map<int,int>=}({=std::map<int,int>()=})) {
+    
+    public preamble {=
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state dataMap:{=std::map<int,int>=}(initialState);
+    state answersToSend:{=std::vector<reactor::ImmutableValuePtr<Message>>=};
+    
+    logical action sendAnswers:void;
+    
+    /* [[[cog
+      cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
+      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
+    ]]] */
+    output[20] outWorkers:{=Message=};
+    input[20] inWorkers:{=Message=};
+    // [[[end]]] 
+    input inMaster:void;
+    
+    reaction(startup) {=
+        // first time init
+        answersToSend =  std::vector<reactor::ImmutableValuePtr<Message>>(numWorkers);
+    =}
+    
+    reaction(inMaster) {=
+        
+        // reset local state
+        dataMap = initialState;
+        answersToSend = std::vector<reactor::ImmutableValuePtr<Message>>(numWorkers);
+    =}
+    
+    reaction(sendAnswers) -> outWorkers {=
+        
+        for(int i = 0; i < outWorkers.size(); i++) {
+            if(answersToSend[i] != nullptr) {
+                outWorkers[i].set(answersToSend[i]);
+                answersToSend[i] = nullptr;
+            }
+        }
+    =}
+    
+    reaction(inWorkers) -> sendAnswers {=
+        
+        //TODO The order of messages to read is relevant, it effectively
+        // assigns priorities to the workers.
+        for(int i = 0; i < inWorkers.size(); i++) {
+            if(inWorkers[i].is_present()) {
+                reactor::ImmutableValuePtr<Message> msg = inWorkers[i].get();
+                
+                if(msg->type == WriteMsg) {
+                    
+                    dataMap.emplace(msg->key, msg->value);
+                    // Savina sends ResultMsg always independently if adding (key,value)
+                    // to the map was successful.
+                    answersToSend[i] = reactor::make_immutable_value<Message>(ResultMsg, -1, msg->value);
+                    
+                } else if(msg->type == ReadMsg) {
+                    
+                    int value = dataMap[msg->key];
+                    // Savina does not handle what happens if the key is not present.
+                    answersToSend[i] = reactor::make_immutable_value<Message>(ResultMsg, -1, value);
+                }
+            }
+        }
+        
+        sendAnswers.schedule();
+    =}
+}
+
+reactor Worker(instance:int(0), numMessagesPerWorker:int(10000), writePercentage:int(10)) {
+    
+    public preamble {=
+        #include <random>
+    =}
+    
+    state messageCount:int(0);
+    state id:int(instance);
+    state random:{=std::minstd_rand=};
+    
+    input inMaster:{=Message=};
+    output outMaster:{=Message=};
+    
+    input inDict:{=Message=};
+    output outDict:{=Message=};
+    
+    reaction(inMaster) -> outDict {=
+        
+        if(inMaster.get()->type == DoWorkMsg) {
+            //reset local state
+            random.seed(id + numMessagesPerWorker + writePercentage);
+            messageCount = 0;
+            
+            messageCount += 1; // as in original Savina implementation
+            int anInt = static_cast<int>(random()) % 100;
+            if(anInt < writePercentage) {
+                outDict.set(Message{WriteMsg, static_cast<int>(random()), static_cast<int>(random())});
+            } else {
+                outDict.set(Message{ReadMsg, static_cast<int>(random())});
+            }
+        }
+    =}
+    
+    reaction(inDict) -> outDict, outMaster {=
+        
+        messageCount += 1;
+        
+        if(messageCount <= numMessagesPerWorker) {
+            int anInt = static_cast<int>(random()) % 100;
+            if(anInt < writePercentage) {
+                outDict.set(Message{WriteMsg, static_cast<int>(random()), static_cast<int>(random())});
+            } else {
+                outDict.set(Message{ReadMsg, static_cast<int>(random())});
+            }
+        } else {
+            outMaster.set(Message{EndWorkMsg, -1, -1});
+        }
+    =}
+}
+
+main reactor (numIterations:int(12), numMessagesPerWorker:int(10000), writePercentage:int(10)) {
+    
+    /* [[[cog
+      cog.outl(f'master = new Master(numWorkers={numWorkers});')
+    ]]] */
+    master = new Master(numWorkers=20);
+    // [[[end]]]
+    runner = new BenchmarkRunner(numIterations=numIterations);
+    
+    runner.outIterationStart -> master.inStart;
+    master.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        printBenchmarkInfo("DictionaryReactorLFCppBenchmark");
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker, "writePercentage", writePercentage, "numWorkers", {numWorkers});')
+        ]]] */
+        printArgs("numIterations", numIterations, "numMessagesPerWorker", numMessagesPerWorker, "writePercentage", writePercentage, "numWorkers", 20);
+        /// [[[end]]]
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      cog.outl(f'dict = new DictionaryImpl(numWorkers={numWorkers});')
+      cog.outl(f'workers = new[{numWorkers}] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);')
+    ]]] */
+    dict = new DictionaryImpl(numWorkers=20);
+    workers = new[20] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);
+    // [[[end]]]
+    
+    dict.outWorkers -> workers.inDict;
+    workers.outDict -> dict.inWorkers;
+    workers.outMaster -> master.inWorkers;
+    master.outWorkers -> workers.inMaster;
+    master.outDictionary -> dict.inMaster;
+    
+}
