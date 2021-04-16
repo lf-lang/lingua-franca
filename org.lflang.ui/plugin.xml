@@ -4,48 +4,48 @@
 	<extension
 		point="org.eclipse.ui.editors">
 		<editor
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.XtextEditor"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.XtextEditor"
 			contributorClass="org.eclipse.ui.editors.text.TextEditorActionContributor"
 			default="true"
 			extensions="lf"
-			id="org.lflang.LinguaFranca"
-			name="LinguaFranca Editor">
+			id="org.lflang.LF"
+			name="LF Editor">
 		</editor>
 	</extension>
 	<extension
 		point="org.eclipse.ui.handlers">
 		<handler
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.hyperlinking.OpenDeclarationHandler"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.hyperlinking.OpenDeclarationHandler"
 			commandId="org.eclipse.xtext.ui.editor.hyperlinking.OpenDeclaration">
 			<activeWhen>
 				<reference
-					definitionId="org.lflang.LinguaFranca.Editor.opened">
+					definitionId="org.lflang.LF.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
 		<handler
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.handler.ValidateActionHandler"
-			commandId="org.lflang.LinguaFranca.validate">
-		<activeWhen>
-			<reference
-					definitionId="org.lflang.LinguaFranca.Editor.opened">
-			</reference>
-		</activeWhen>
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.handler.ValidateActionHandler"
+			commandId="org.lflang.LF.validate">
+			<activeWhen>
+				<reference
+					definitionId="org.lflang.LF.Editor.opened">
+				</reference>
+			</activeWhen>
 		</handler>
 		<!-- copy qualified name -->
 		<handler
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedNameHandler"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedNameHandler"
 			commandId="org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedName">
 			<activeWhen>
-				<reference definitionId="org.lflang.LinguaFranca.Editor.opened" />
+				<reference definitionId="org.lflang.LF.Editor.opened" />
 			</activeWhen>
 		</handler>
 		<handler
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.copyqualifiedname.OutlineCopyQualifiedNameHandler"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.copyqualifiedname.OutlineCopyQualifiedNameHandler"
 			commandId="org.eclipse.xtext.ui.editor.copyqualifiedname.OutlineCopyQualifiedName">
 			<activeWhen>
 				<and>
-					<reference definitionId="org.lflang.LinguaFranca.XtextEditor.opened" />
+					<reference definitionId="org.lflang.LF.XtextEditor.opened" />
 					<iterate>
 						<adapt type="org.eclipse.xtext.ui.editor.outline.IOutlineNode" />
 					</iterate>
@@ -54,22 +54,22 @@
 		</handler>
 	</extension>
 	<extension point="org.eclipse.core.expressions.definitions">
-		<definition id="org.lflang.LinguaFranca.Editor.opened">
+		<definition id="org.lflang.LF.Editor.opened">
 			<and>
 				<reference definitionId="isActiveEditorAnInstanceOfXtextEditor"/>
 				<with variable="activeEditor">
 					<test property="org.eclipse.xtext.ui.editor.XtextEditor.languageName"
-						value="org.lflang.LinguaFranca"
+						value="org.lflang.LF"
 						forcePluginActivation="true"/>
 				</with>
 			</and>
 		</definition>
-		<definition id="org.lflang.LinguaFranca.XtextEditor.opened">
+		<definition id="org.lflang.LF.XtextEditor.opened">
 			<and>
 				<reference definitionId="isXtextEditorActive"/>
 				<with variable="activeEditor">
 					<test property="org.eclipse.xtext.ui.editor.XtextEditor.languageName"
-						value="org.lflang.LinguaFranca"
+						value="org.lflang.LF"
 						forcePluginActivation="true"/>
 				</with>
 			</and>
@@ -78,33 +78,33 @@
 	<extension
 			point="org.eclipse.ui.preferencePages">
 		<page
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.preferences.LanguageRootPreferencePage"
-			id="org.lflang.LinguaFranca"
-			name="LinguaFranca">
-			<keywordReference id="org.lflang.ui.keyword_LinguaFranca"/>
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.preferences.LanguageRootPreferencePage"
+			id="org.lflang.LF"
+			name="LF">
+			<keywordReference id="org.lflang.ui.keyword_LF"/>
 		</page>
 		<page
-			category="org.lflang.LinguaFranca"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.syntaxcoloring.SyntaxColoringPreferencePage"
-			id="org.lflang.LinguaFranca.coloring"
+			category="org.lflang.LF"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.syntaxcoloring.SyntaxColoringPreferencePage"
+			id="org.lflang.LF.coloring"
 			name="Syntax Coloring">
-			<keywordReference id="org.lflang.ui.keyword_LinguaFranca"/>
+			<keywordReference id="org.lflang.ui.keyword_LF"/>
 		</page>
 		<page
-			category="org.lflang.LinguaFranca"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.templates.XtextTemplatePreferencePage"
-			id="org.lflang.LinguaFranca.templates"
+			category="org.lflang.LF"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.templates.XtextTemplatePreferencePage"
+			id="org.lflang.LF.templates"
 			name="Templates">
-			<keywordReference id="org.lflang.ui.keyword_LinguaFranca"/>
+			<keywordReference id="org.lflang.ui.keyword_LF"/>
 		</page>
 	</extension>
 	<extension
 			point="org.eclipse.ui.propertyPages">
 		<page
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.preferences.LanguageRootPreferencePage"
-			id="org.lflang.LinguaFranca"
-			name="LinguaFranca">
-			<keywordReference id="org.lflang.ui.keyword_LinguaFranca"/>
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.preferences.LanguageRootPreferencePage"
+			id="org.lflang.LF"
+			name="LF">
+			<keywordReference id="org.lflang.ui.keyword_LF"/>
 			<enabledWhen>
 				<adapt type="org.eclipse.core.resources.IProject"/>
 			</enabledWhen>
@@ -114,50 +114,50 @@
 	<extension
 		point="org.eclipse.ui.keywords">
 		<keyword
-			id="org.lflang.ui.keyword_LinguaFranca"
-			label="LinguaFranca"/>
+			id="org.lflang.ui.keyword_LF"
+			label="LF"/>
 	</extension>
 	<extension
 		point="org.eclipse.ui.commands">
-	<command
+		<command
 			description="Trigger expensive validation"
-			id="org.lflang.LinguaFranca.validate"
+			id="org.lflang.LF.validate"
 			name="Validate">
-	</command>
-	<!-- copy qualified name -->
-	<command
+		</command>
+		<!-- copy qualified name -->
+		<command
 			id="org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedName"
 			categoryId="org.eclipse.ui.category.edit"
 			description="Copy the qualified name for the selected element"
 			name="Copy Qualified Name">
-	</command>
-	<command
+		</command>
+		<command
 			id="org.eclipse.xtext.ui.editor.copyqualifiedname.OutlineCopyQualifiedName"
 			categoryId="org.eclipse.ui.category.edit"
 			description="Copy the qualified name for the selected element"
 			name="Copy Qualified Name">
-	</command>
+		</command>
 	</extension>
 	<extension point="org.eclipse.ui.menus">
 		<menuContribution
 			locationURI="popup:#TextEditorContext?after=group.edit">
-			 <command
-				 commandId="org.lflang.LinguaFranca.validate"
-				 style="push"
-				 tooltip="Trigger expensive validation">
-			<visibleWhen checkEnabled="false">
-				<reference
-					definitionId="org.lflang.LinguaFranca.Editor.opened">
-				</reference>
-			</visibleWhen>
-		</command>
+			<command
+				commandId="org.lflang.LF.validate"
+				style="push"
+				tooltip="Trigger expensive validation">
+				<visibleWhen checkEnabled="false">
+					<reference
+						definitionId="org.lflang.LF.Editor.opened">
+					</reference>
+				</visibleWhen>
+			</command>
 		</menuContribution>
 		<!-- copy qualified name -->
 		<menuContribution locationURI="popup:#TextEditorContext?after=copy">
 			<command commandId="org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedName"
 				style="push" tooltip="Copy Qualified Name">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.lflang.LinguaFranca.Editor.opened" />
+					<reference definitionId="org.lflang.LF.Editor.opened" />
 				</visibleWhen>
 			</command>
 		</menuContribution>
@@ -165,7 +165,7 @@
 			<command commandId="org.eclipse.xtext.ui.editor.copyqualifiedname.EditorCopyQualifiedName"
 				style="push" tooltip="Copy Qualified Name">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.lflang.LinguaFranca.Editor.opened" />
+					<reference definitionId="org.lflang.LF.Editor.opened" />
 				</visibleWhen>
 			</command>
 		</menuContribution>
@@ -174,7 +174,7 @@
 				style="push" tooltip="Copy Qualified Name">
 				<visibleWhen checkEnabled="false">
 					<and>
-						<reference definitionId="org.lflang.LinguaFranca.XtextEditor.opened" />
+						<reference definitionId="org.lflang.LF.XtextEditor.opened" />
 						<iterate>
 							<adapt type="org.eclipse.xtext.ui.editor.outline.IOutlineNode" />
 						</iterate>
@@ -187,7 +187,7 @@
 		<menuContribution locationURI="popup:#TextEditorContext?endof=group.find">
 			<command commandId="org.eclipse.xtext.ui.editor.FindReferences">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.lflang.LinguaFranca.Editor.opened">
+					<reference definitionId="org.lflang.LF.Editor.opened">
 					</reference>
 				</visibleWhen>
 			</command>
@@ -195,11 +195,11 @@
 	</extension>
 	<extension point="org.eclipse.ui.handlers">
 		<handler
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.findrefs.FindReferencesHandler"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.findrefs.FindReferencesHandler"
 			commandId="org.eclipse.xtext.ui.editor.FindReferences">
 			<activeWhen>
 				<reference
-					definitionId="org.lflang.LinguaFranca.Editor.opened">
+					definitionId="org.lflang.LF.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
@@ -208,8 +208,8 @@
 		<content-type
 			base-type="org.eclipse.core.runtime.text"
 			file-extensions="lf"
-			id="org.lflang.LinguaFranca.contenttype"
-			name="LinguaFranca File"
+			id="org.lflang.LF.contenttype"
+			name="LF File"
 			priority="normal">
 		</content-type>
 	</extension>
@@ -217,68 +217,68 @@
 	<extension
 		point="org.eclipse.emf.ecore.extension_parser">
 		<parser
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.resource.IResourceFactory"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.resource.IResourceFactory"
 			type="lf">
 		</parser>
 	</extension>
 	<extension point="org.eclipse.xtext.extension_resourceServiceProvider">
 		<resourceServiceProvider
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.resource.IResourceUIServiceProvider"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.resource.IResourceUIServiceProvider"
 			uriExtension="lf">
 		</resourceServiceProvider>
 	</extension>
-	<!-- marker definitions for org.lflang.LinguaFranca -->
+	<!-- marker definitions for org.lflang.LF -->
 	<extension
-			id="linguafranca.check.fast"
-			name="LinguaFranca Problem"
+			id="lf.check.fast"
+			name="LF Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.fast"/>
 		<persistent value="true"/>
 	</extension>
 	<extension
-			id="linguafranca.check.normal"
-			name="LinguaFranca Problem"
+			id="lf.check.normal"
+			name="LF Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.normal"/>
 		<persistent value="true"/>
 	</extension>
 	<extension
-			id="linguafranca.check.expensive"
-			name="LinguaFranca Problem"
+			id="lf.check.expensive"
+			name="LF Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.expensive"/>
 		<persistent value="true"/>
 	</extension>
 	<extension point="org.eclipse.ui.preferencePages">
 		<page
-			category="org.lflang.LinguaFranca"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.validation.ValidatorPreferencePage"
-			id="org.lflang.LinguaFranca.validator.preferencePage"
+			category="org.lflang.LF"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.validation.ValidatorPreferencePage"
+			id="org.lflang.LF.validator.preferencePage"
 			name="Errors/Warnings">
-			<keywordReference id="org.lflang.ui.keyword_LinguaFranca"/>
+			<keywordReference id="org.lflang.ui.keyword_LF"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.xtext.builder.participant">
 		<participant
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.builder.IXtextBuilderParticipant"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.builder.IXtextBuilderParticipant"
 			fileExtensions="lf"/>
 	</extension>
 	<extension point="org.eclipse.ui.preferencePages">
 		<page
-			category="org.lflang.LinguaFranca"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.builder.preferences.BuilderPreferencePage"
-			id="org.lflang.LinguaFranca.compiler.preferencePage"
+			category="org.lflang.LF"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.builder.preferences.BuilderPreferencePage"
+			id="org.lflang.LF.compiler.preferencePage"
 			name="Compiler">
-			<keywordReference id="org.lflang.ui.keyword_LinguaFranca"/>
+			<keywordReference id="org.lflang.ui.keyword_LF"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.ui.propertyPages">
 		<page
-			category="org.lflang.LinguaFranca"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.builder.preferences.BuilderPreferencePage"
-			id="org.lflang.LinguaFranca.compiler.propertyPage"
+			category="org.lflang.LF"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.builder.preferences.BuilderPreferencePage"
+			id="org.lflang.LF.compiler.propertyPage"
 			name="Compiler">
-			<keywordReference id="org.lflang.ui.keyword_LinguaFranca"/>
+			<keywordReference id="org.lflang.ui.keyword_LF"/>
 			<enabledWhen>
 				<adapt type="org.eclipse.core.resources.IProject"/>
 			</enabledWhen>
@@ -289,32 +289,32 @@
 		<menuContribution locationURI="popup:#TextEditorContext?after=xtext.ui.openDeclaration">
 			<command
 				commandId="org.eclipse.xtext.ui.OpenGeneratedFileCommand"
-				id="org.lflang.LinguaFranca.OpenGeneratedCode"
+				id="org.lflang.LF.OpenGeneratedCode"
 				style="push">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.lflang.LinguaFranca.Editor.opened" />
+					<reference definitionId="org.lflang.LF.Editor.opened" />
 				</visibleWhen>
 			</command>
 		</menuContribution>
 	</extension>
 	<extension point="org.eclipse.ui.handlers">
 		<handler
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.generator.trace.OpenGeneratedFileHandler"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.generator.trace.OpenGeneratedFileHandler"
 			commandId="org.eclipse.xtext.ui.OpenGeneratedFileCommand">
 			<activeWhen>
-				<reference definitionId="org.lflang.LinguaFranca.Editor.opened" />
+				<reference definitionId="org.lflang.LF.Editor.opened" />
 			</activeWhen>
 		</handler>
 	</extension>
 	<!-- Quick Outline -->
 	<extension
 		point="org.eclipse.ui.handlers">
-		<handler 
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.outline.quickoutline.ShowQuickOutlineActionHandler"
+		<handler
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.outline.quickoutline.ShowQuickOutlineActionHandler"
 			commandId="org.eclipse.xtext.ui.editor.outline.QuickOutline">
 			<activeWhen>
 				<reference
-					definitionId="org.lflang.LinguaFranca.Editor.opened">
+					definitionId="org.lflang.LF.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
@@ -334,33 +334,33 @@
 				style="push"
 				tooltip="Open Quick Outline">
 				<visibleWhen checkEnabled="false">
-					<reference definitionId="org.lflang.LinguaFranca.Editor.opened"/>
+					<reference definitionId="org.lflang.LF.Editor.opened"/>
 				</visibleWhen>
 			</command>
 		</menuContribution>
 	</extension>
-	<!-- quickfix marker resolution generator for org.lflang.LinguaFranca -->
+	<!-- quickfix marker resolution generator for org.lflang.LF -->
 	<extension
 			point="org.eclipse.ui.ide.markerResolution">
 		<markerResolutionGenerator
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.lflang.linguafranca.ui.linguafranca.check.fast">
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
+			markerType="org.lflang.ui.lf.check.fast">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
 			</attribute>
 		</markerResolutionGenerator>
 		<markerResolutionGenerator
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.lflang.linguafranca.ui.linguafranca.check.normal">
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
+			markerType="org.lflang.ui.lf.check.normal">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
 			</attribute>
 		</markerResolutionGenerator>
 		<markerResolutionGenerator
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.lflang.linguafranca.ui.linguafranca.check.expensive">
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
+			markerType="org.lflang.ui.lf.check.expensive">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
@@ -369,12 +369,12 @@
 	</extension>
 	<!-- Rename Refactoring -->
 	<extension point="org.eclipse.ui.handlers">
-		<handler 
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.refactoring.ui.DefaultRenameElementHandler"
+		<handler
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.refactoring.ui.DefaultRenameElementHandler"
 			commandId="org.eclipse.xtext.ui.refactoring.RenameElement">
 			<activeWhen>
 				<reference
-					definitionId="org.lflang.LinguaFranca.Editor.opened">
+					definitionId="org.lflang.LF.Editor.opened">
 				</reference>
 			</activeWhen>
 		</handler>
@@ -386,7 +386,7 @@
 				style="push">
 				<visibleWhen checkEnabled="false">
 					<reference
-						definitionId="org.lflang.LinguaFranca.Editor.opened">
+						definitionId="org.lflang.LF.Editor.opened">
 					</reference>
 				</visibleWhen>
 			</command>
@@ -394,34 +394,34 @@
 	</extension>
 	<extension point="org.eclipse.ui.preferencePages">
 		<page
-			category="org.lflang.LinguaFranca"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.refactoring.ui.RefactoringPreferencePage"
-			id="org.lflang.LinguaFranca.refactoring"
+			category="org.lflang.LF"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.refactoring.ui.RefactoringPreferencePage"
+			id="org.lflang.LF.refactoring"
 			name="Refactoring">
-			<keywordReference id="org.lflang.ui.keyword_LinguaFranca"/>
+			<keywordReference id="org.lflang.ui.keyword_LF"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.compare.contentViewers">
-		<viewer id="org.lflang.LinguaFranca.compare.contentViewers"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.compare.InjectableViewerCreator"
+		<viewer id="org.lflang.LF.compare.contentViewers"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.compare.InjectableViewerCreator"
 			extensions="lf">
 		</viewer>
 		<contentTypeBinding
-			contentTypeId="org.lflang.LinguaFranca.contenttype"
-			contentViewerId="org.lflang.LinguaFranca.compare.contentViewers" />
+			contentTypeId="org.lflang.LF.contenttype"
+			contentViewerId="org.lflang.LF.compare.contentViewers" />
 	</extension>
 	<extension point="org.eclipse.compare.contentMergeViewers">
-		<viewer id="org.lflang.LinguaFranca.compare.contentMergeViewers"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.compare.InjectableViewerCreator"
-			extensions="lf" label="LinguaFranca Compare">
+		<viewer id="org.lflang.LF.compare.contentMergeViewers"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.compare.InjectableViewerCreator"
+			extensions="lf" label="LF Compare">
 		</viewer>
 		<contentTypeBinding
-			contentTypeId="org.lflang.LinguaFranca.contenttype"
-			contentMergeViewerId="org.lflang.LinguaFranca.compare.contentMergeViewers" />
+			contentTypeId="org.lflang.LF.contenttype"
+			contentMergeViewerId="org.lflang.LF.compare.contentMergeViewers" />
 	</extension>
 	<extension point="org.eclipse.ui.editors.documentProviders">
-		<provider id="org.lflang.LinguaFranca.editors.documentProviders"
-			class="org.lflang.ui.LinguaFrancaExecutableExtensionFactory:org.eclipse.xtext.ui.editor.model.XtextDocumentProvider"
+		<provider id="org.lflang.LF.editors.documentProviders"
+			class="org.lflang.ui.LFExecutableExtensionFactory:org.eclipse.xtext.ui.editor.model.XtextDocumentProvider"
 			extensions="lf">
 		</provider>
 	</extension>
