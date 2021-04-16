@@ -38,15 +38,15 @@ import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.lflang.ASTUtils;
 import org.lflang.generator.FederateInstance;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.meta.Connection;
-import org.lflang.meta.Input;
-import org.lflang.meta.MetaFactory;
-import org.lflang.meta.Reaction;
-import org.lflang.meta.Reactor;
-import org.lflang.meta.Type;
-import org.lflang.meta.Value;
-import org.lflang.meta.VarRef;
-import org.lflang.meta.Variable;
+import org.lflang.lf.Connection;
+import org.lflang.lf.Input;
+import org.lflang.lf.LfFactory;
+import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.Type;
+import org.lflang.lf.Value;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 
 /**
  * @author Soroush Bateni {soroush@utdallas.edu}
@@ -83,7 +83,7 @@ public class FedASTUtils {
      */
     public static void addNetworkInputControlReaction(VarRef portRef, int recevingPortID, Reactor reactor,
             FederateInstance instance, GeneratorBase generator, boolean isTopLevel) {
-        MetaFactory factory = MetaFactory.eINSTANCE;
+        LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         VarRef newPortRef = factory.createVarRef();
 
@@ -257,7 +257,7 @@ public class FedASTUtils {
             int receivingFedID,
             GeneratorBase generator
     ) {
-        MetaFactory factory = MetaFactory.eINSTANCE;
+        LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         Reactor reactor = (Reactor) portRef.eContainer().eContainer();
         // Output

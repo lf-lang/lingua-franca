@@ -43,6 +43,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.lf.Port
 
 /** 
  * Instance of a federate, or marker that no federation has been defined

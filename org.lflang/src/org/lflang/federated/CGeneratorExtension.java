@@ -6,11 +6,11 @@ import org.lflang.ASTUtils;
 import org.lflang.generator.CGenerator;
 import org.lflang.generator.FederateInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.meta.Input;
-import org.lflang.meta.Port;
-import org.lflang.meta.Reactor;
-import org.lflang.meta.ReactorDecl;
-import org.lflang.meta.VarRef;
+import org.lflang.lf.Input;
+import org.lflang.lf.Port;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.VarRef;
 
 public class CGeneratorExtension {
 
