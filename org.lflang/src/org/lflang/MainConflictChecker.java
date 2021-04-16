@@ -18,7 +18,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.meta.Reactor;
+import org.lflang.lf.Reactor;
 
 import com.google.common.collect.Iterables;
 
@@ -46,7 +46,7 @@ public class MainConflictChecker {
      */
     protected ResourceSet rs = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration()
-            .<LinguaFrancaResourceProvider>getInstance(LinguaFrancaResourceProvider.class).getResourceSet();
+            .<LFResourceProvider>getInstance(LFResourceProvider.class).getResourceSet();
     
     /**
      * Create a new instance that walks the file tree of the package to find conflicts.

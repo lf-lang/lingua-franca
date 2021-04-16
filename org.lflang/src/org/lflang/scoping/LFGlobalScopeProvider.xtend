@@ -35,8 +35,8 @@ import org.eclipse.xtext.EcoreUtil2
 import org.eclipse.xtext.resource.IResourceDescription
 import org.eclipse.xtext.scoping.impl.ImportUriGlobalScopeProvider
 import org.eclipse.xtext.util.IResourceScopeCache
-import org.lflang.LinguaFrancaResourceDescriptionStrategy
-import org.lflang.meta.MetaPackage
+import org.lflang.lf.LfPackage
+import org.lflang.LFResourceDescriptionStrategy
 
 /**
  * Global scope provider that limits access to only those files that were
@@ -46,13 +46,13 @@ import org.lflang.meta.MetaPackage
  * @see https://www.eclipse.org/Xtext/documentation/2.6.0/Xtext%20Documentation.pdf
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
+class LFGlobalScopeProvider extends ImportUriGlobalScopeProvider {
 
     /**
      * Splitter used to process user-data annotations of Model nodes.
      */
     static final Splitter SPLITTER = Splitter.on(
-        LinguaFrancaResourceDescriptionStrategy.DELIMITER);
+        org.lflang.LFResourceDescriptionStrategy.DELIMITER);
 
     static final String IMPORTED_URIS = "IMPORTED_URIS"
     
@@ -148,11 +148,11 @@ class LinguaFrancaGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         val resourceDescription = descriptionManager.
             getResourceDescription(resource)
         val models = resourceDescription.getExportedObjectsByType(
-            MetaPackage.Literals.MODEL)
+            LfPackage.Literals.MODEL)
         val resources = new LinkedHashSet<Resource>()
         models.forEach [
             val userData = getUserData(
-                LinguaFrancaResourceDescriptionStrategy.INCLUDES)
+                LFResourceDescriptionStrategy.INCLUDES)
             if (userData !== null) {
                 SPLITTER.split(userData).forEach [ uri |
                     // Attempt to resolve the URI

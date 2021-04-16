@@ -10,14 +10,14 @@ import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.util.IndividualSpacings
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.ASTUtils
-import org.lflang.meta.Code
-import org.lflang.meta.Host
-import org.lflang.meta.Instantiation
-import org.lflang.meta.Port
-import org.lflang.meta.Reactor
-import org.lflang.meta.Value
-import org.lflang.meta.VarRef
-import org.lflang.meta.WidthSpec
+import org.lflang.lf.Code
+import org.lflang.lf.Host
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Port
+import org.lflang.lf.Reactor
+import org.lflang.lf.Value
+import org.lflang.lf.VarRef
+import org.lflang.lf.WidthSpec
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 
 import static extension org.lflang.ASTUtils.*
