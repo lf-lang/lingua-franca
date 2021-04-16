@@ -195,11 +195,11 @@ public class Main {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
-        COMPILER("c", "target-compiler", true, false, "Target compuler to invoke.", true),
+        COMPILER("c", "target-compiler", true, false, "Target compiler to invoke.", true),
         HELP("h", "help", false, false, "Display this information.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
-        REBUILD("r", "rebuild", false, false, "Rebuild the compiler first.", false),
-        UPDATE("u", "update-deps", false, false, "Update dependencies and rebuild the compiler (requires Internet connection).", false),
+        REBUILD("r", "rebuild", false, false, "Rebuild the LF compiler first.", false),
+        UPDATE("u", "update-deps", false, false, "Update dependencies and rebuild the LF compiler (requires Internet connection).", false),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         THREADS("t", "threads", false, false, "Specify the default number of threads.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false);
