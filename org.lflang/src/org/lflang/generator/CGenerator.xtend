@@ -49,6 +49,7 @@ import org.lflang.Target
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
+import org.lflang.federated.CGeneratorExtension
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code
@@ -64,12 +65,11 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
+import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.federated.CGeneratorExtension
-import org.lflang.lf.Value
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -2353,7 +2353,7 @@ class CGenerator extends GeneratorBase {
         
             if (isFederated) {
                 pr(body,
-                    org.lflang.federated.CGeneratorExtension.createPortStatusFieldForInput(variable, this)                    
+                    CGeneratorExtension.createPortStatusFieldForInput(variable, this)                    
                 );
             }
         
