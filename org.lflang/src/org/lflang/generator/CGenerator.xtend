@@ -68,6 +68,8 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.CGeneratorExtension
+import org.lflang.lf.Value
 
 /** 
  * Generator for C target. This class generates C code definining each reactor

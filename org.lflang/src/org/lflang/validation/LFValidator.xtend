@@ -79,6 +79,7 @@ import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.lf.LfPackage.Literals
+import org.lflang.lf.STP
 
 /**
  * Custom validation checks for Lingua Franca programs.
