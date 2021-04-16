@@ -2,8 +2,6 @@
  * Parallelism benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
- * This version manually connects the reactors.
- * 
  * @author Hannes Klein
  */
 
@@ -45,22 +43,20 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "NQueens.cmake"
+    cmake-include: "MatMul.cmake"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-reactor Master(numWorkers:int(20), priorities:int(10), solutionsLimit:int(1500000), size:int(12)) {
+reactor Master(numWorkers:int(20), dataLength:int(1024)) {
     
     public preamble {=
-        #include "NQueensCommon.hh"
+        #include "MatMulCommon.hh"
         #include "reactor-cpp/logging.hh"
         #include <bitset>
         #include <list>
     =}
     
-    state resultCounter:long(0);
-    state messageCounter:int(0);
     state numWorkersTerminated:int(0);
     state numWorkSent:int(0);
     state numWorkCompleted:int(0);
@@ -74,6 +70,8 @@ reactor Master(numWorkers:int(20), priorities:int(10), solutionsLimit:int(150000
     
     input inStart:void;
     output outFinished:void;
+    input inInitializeStart:void;
+    output outInitializeFinished:void;
     input inCleanupIterationStart:void;
     output outCleanupIterationFinished:void;
     
@@ -92,33 +90,37 @@ reactor Master(numWorkers:int(20), priorities:int(10), solutionsLimit:int(150000
     logical action sendWork:void;
     logical action shutdownWorkers:void;
     
+    reaction(inInitializeStart) -> outInitializeFinished {=
+        initializeData(dataLength);
+        outInitializeFinished.set();
+    =}
+    
     reaction(inCleanupIterationStart) -> outCleanupIterationFinished {=
-        long expSolution = SOLUTIONS[size-1];
-        long actSolution = resultCounter;
-        bool valid = actSolution >= solutionsLimit && actSolution <= expSolution;
-        reactor::log::Info() << std::boolalpha << "Result valid = " << valid << std::noboolalpha;
+        bool isValid = valid(dataLength);
+        reactor::log::Info() << std::boolalpha << "Result valid = " << isValid << std::noboolalpha;
+        initializeData(dataLength);
         outCleanupIterationFinished.set();
     =}
     
     reaction(inStart) -> sendWork {=
         
         // reset local state
-        resultCounter = 0l;
-        messageCounter = 0;
         numWorkersTerminated = 0;
         numWorkSent = 0;
         numWorkCompleted = 0;
         workersWorking.reset();
         workList.clear();
         problemSolved = false;
-        
+    
         // start execution
-        workList.emplace_back(priorities, std::vector<int>(), 0);
+        int numBlocks = dataLength * dataLength;
+        workList.emplace_back(0, 0, 0, 0, 0, 0, 0, numBlocks, dataLength);
         sendWork.schedule();
     =}
     
     reaction(sendWork) -> outWorkersWork, shutdownWorkers {=
         
+        reactor::log::Debug() << "sending work. I have currently " << workList.size() << " pieces of work and " << workersWorking.count() << " workers are working.";
         if(problemSolved) return;
         if(workList.empty()) {
             // Assuming that no worker is working in parallel.
@@ -129,21 +131,39 @@ reactor Master(numWorkers:int(20), priorities:int(10), solutionsLimit:int(150000
             return;
         }
         
-        while(!workList.empty() && !workersWorking.all()) {
-            numWorkSent += 1;
-            int workerIndex = 0;
-            while(workersWorking[workerIndex]) ++workerIndex;
-            workersWorking[workerIndex] = true;
-            outWorkersWork[workerIndex].set(workList.front());
-            workList.pop_front();
-            reactor::log::Debug() << "Giving work to worker " << workerIndex;
+        // The scheduling here has to make sure that no two reactors
+        // are accessing the same entries in C at the same time,
+        // otherwise we have race conditions and potentially lost updates.
+        if(workersWorking.all()) return;
+        if(workList.empty()) return;
+        auto compare = [](const WorkMessage& w1, const WorkMessage& w2) -> bool {
+            return w1.dim > w2.dim;
+        };
+        workList.sort(compare); // sort for efficiency: generate new pieces of work first
+        //int dimToSchedule = begin(workList)->dim;
+        std::set<std::pair<int,int>> partsGivenOut;
+        int freeWorkerIndex = 0;
+        while(workersWorking[freeWorkerIndex]) ++freeWorkerIndex; // out of bounds ruled out
+        
+        for(auto work = begin(workList); work != end(workList); work++) {
+            //if(work->dim != dimToSchedule) break; //only schedule work of the same dim in one run
+            bool inserted = partsGivenOut.emplace(std::pair<int,int>(work->srC,work->scC)).second;
+            
+            if(inserted) {
+                outWorkersWork[freeWorkerIndex].set(*work);
+                work = workList.erase(work);
+                workersWorking[freeWorkerIndex] = true;
+                numWorkSent += 1;
+                if(workersWorking.all()) break;
+                while(workersWorking[freeWorkerIndex]) ++freeWorkerIndex; // out of bounds ruled out
+            }
         }
     =}
     
     reaction(shutdownWorkers) -> outWorkers {=
         
         // Assuming that it is safe to shut down the workers
-        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg, -1});
+        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg});
         for(int i = 0; i < outWorkers.size(); i++) {
             outWorkers[i].set(msg);
         }
@@ -167,22 +187,12 @@ reactor Master(numWorkers:int(20), priorities:int(10), solutionsLimit:int(150000
         for(int i = 0; i < inWorkers.size(); i++) {
             if(inWorkers[i].is_present()) {
                 
-                if(inWorkers[i].get()->type == ResultMsg) {
-                    
-                    resultCounter += inWorkers[i].get()->numResults;
-                    reactor::log::Debug() << "Results found. Total numResults = " << resultCounter;
-                    if(resultCounter >= solutionsLimit) {
-                        reactor::log::Debug() << " Solutions limit reached. Shutdown." << resultCounter;
-                        problemSolved = true;
-                        shutdownWorkers.schedule();
-                    }
-                    // Do not schedule new work here.
-                    
-                } else if(inWorkers[i].get()->type == DoneMsg) {
+                if(inWorkers[i].get()->type == DoneMsg) {
                     
                     numWorkCompleted += 1;
                     workersWorking[i] = false;
                     sendWork.schedule();
+                    reactor::log::Debug() << "Received DoneMsg from worker " << i;
                     
                 } else if(inWorkers[i].get()->type == StopMsg) {
                     
@@ -198,10 +208,11 @@ reactor Master(numWorkers:int(20), priorities:int(10), solutionsLimit:int(150000
 }
 
 
-reactor Worker(instance:int(0), size:int(12), threshold:int(4)) {
+reactor Worker(instance:int(0), threshold:int(16384)) {
     
     public preamble {=
-        #include "NQueensCommon.hh"
+        #include "MatMulCommon.hh"
+        #include "reactor-cpp/logging.hh"
         #include <list>
     =}
     
@@ -212,7 +223,6 @@ reactor Worker(instance:int(0), size:int(12), threshold:int(4)) {
     input inMaster:{=Message=}; // control messages from the master
     output outMaster:{=Message=}; // control messages to the master
     
-    logical action sendResultMsg:int;
     logical action sendDoneMsg:void;
     logical action returnWorkToMaster:void; // execution threshold exceeded, return new work
     logical action sendStop:void;
@@ -222,57 +232,68 @@ reactor Worker(instance:int(0), size:int(12), threshold:int(4)) {
     =}
     
     reaction(sendDoneMsg) -> outMaster {=
-        outMaster.set(Message{DoneMsg, -1});
+        outMaster.set(Message{DoneMsg});
     =}
     
-    reaction(sendResultMsg) -> outMaster, sendDoneMsg {=
-        outMaster.set(Message{ResultMsg, *sendResultMsg.get()});
-        sendDoneMsg.schedule();
-    =}
-    
-    reaction(returnWorkToMaster) -> outWork, sendDoneMsg {=
+    reaction(returnWorkToMaster) -> outWork, outMaster, sendDoneMsg {=
         
-        outWork.set(*(workQueue.release()));
-        sendDoneMsg.schedule();
+        outWork.set(*workQueue);
+        outMaster.set(Message{DoneMsg});
     =}
     
-    reaction(inWork) -> sendResultMsg, returnWorkToMaster {=
+    reaction(inWork) -> sendDoneMsg, returnWorkToMaster {=
         
         workQueue = std::make_unique<std::list<WorkMessage>>();
         WorkMessage workMessage = *(inWork.get());
-        std::vector<int> a = workMessage.data;
-        int depth = inWork.get()->depth;
         
-        if(size == depth) {
-            //TODO what situation triggers this?
-            sendResultMsg.schedule(1);
+        int srA = workMessage.srA;
+        int scA = workMessage.scA;
+        int srB = workMessage.srB;
+        int scB = workMessage.scB;
+        int srC = workMessage.srC;
+        int scC = workMessage.scC;
+        int numBlocks = workMessage.numBlocks;
+        int dim = workMessage.dim;
+        int newPriority = workMessage.priority + 1;
+        
+        if (numBlocks > threshold) {
+            
+            int zerDim = 0;
+            int newDim = dim / 2;
+            int newNumBlocks = numBlocks / 4;
+            
+            workQueue->emplace_back(newPriority, srA + zerDim, scA + zerDim, srB + zerDim, scB + zerDim, srC + zerDim, scC + zerDim, newNumBlocks, newDim);
+            workQueue->emplace_back(newPriority, srA + zerDim, scA + newDim, srB + newDim, scB + zerDim, srC + zerDim, scC + zerDim, newNumBlocks, newDim);
+            workQueue->emplace_back(newPriority, srA + zerDim, scA + zerDim, srB + zerDim, scB + newDim, srC + zerDim, scC + newDim, newNumBlocks, newDim);
+            workQueue->emplace_back(newPriority, srA + zerDim, scA + newDim, srB + newDim, scB + newDim, srC + zerDim, scC + newDim, newNumBlocks, newDim);
+            workQueue->emplace_back(newPriority, srA + newDim, scA + zerDim, srB + zerDim, scB + zerDim, srC + newDim, scC + zerDim, newNumBlocks, newDim);
+            workQueue->emplace_back(newPriority, srA + newDim, scA + newDim, srB + newDim, scB + zerDim, srC + newDim, scC + zerDim, newNumBlocks, newDim);
+            workQueue->emplace_back(newPriority, srA + newDim, scA + zerDim, srB + zerDim, scB + newDim, srC + newDim, scC + newDim, newNumBlocks, newDim);
+            workQueue->emplace_back(newPriority, srA + newDim, scA + newDim, srB + newDim, scB + newDim, srC + newDim, scC + newDim, newNumBlocks, newDim);
+            
+            returnWorkToMaster.schedule();
             return;
         }
         
-        if(depth >= threshold) {
-            // Search for solutions.
-            int numSolutions = nqueensKernelSeq(a, depth, size);
-            sendResultMsg.schedule(numSolutions);
-            return;
-        }
-            
-        // Generate new work
-            
-        int newPriority = workMessage.priority - 1;
-        int newDepth = depth + 1;
-        int i = 0;
-        while(i < size) {
-            
-            std::vector<int> b(newDepth, 0);
-            b.insert(begin(b), begin(a), begin(a) + depth);
-            b[depth] = i;
-            
-            if(boardValid(newDepth, b)) {
-                workQueue->emplace_back(newPriority, b, newDepth);
+        int endR = srC + dim;
+        int endC = scC + dim;
+        
+        int i = srC;
+        while(i < endR) {
+            int j = scC;
+            while(j < endC) {
+                int k = 0;
+                while(k < dim) {
+                    reactor::log::Debug() << i << " " << j << " " << scA + k << " " << srB + k << " ";
+                    C->at(i)[j] += A->at(i)[scA + k] * B->at(srB + k)[j];
+                    k += 1;
+                }
+                j += 1;
             }
             i += 1;
         }
-        returnWorkToMaster.schedule();
+        
+        sendDoneMsg.schedule();
     =}
     
     reaction(inMaster) -> sendStop {=
@@ -283,18 +304,17 @@ reactor Worker(instance:int(0), size:int(12), threshold:int(4)) {
     =}
 }
 
-main reactor NQueensBenchmark(numIterations:int(12), size:int(12), threshold:int(4), solutionsLimit:int(1500000), priorities:int(10)) {
-    
-    private preamble {=
-        #include "NQueensCommon.hh"
-    =}
+main reactor (numIterations:int(12), dataLength:int(1024), blockThreshold:int(16384), priorities:int(10)) {
     
     /* [[[cog
-      cog.outl(f'master = new Master(numWorkers={numWorkers}, priorities=priorities, solutionsLimit=solutionsLimit, size=size);')
+      cog.outl(f'master = new Master(numWorkers={numWorkers}, dataLength=dataLength);')
     ]]] */
-    master = new Master(numWorkers=20, priorities=priorities, solutionsLimit=solutionsLimit, size=size);
+    master = new Master(numWorkers=20, dataLength=dataLength);
     // [[[end]]]
-    runner = new BenchmarkRunner(numIterations=numIterations, useCleanupIteration=true);
+    runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
+    
+    runner.outInitializeStart -> master.inInitializeStart;
+    master.outInitializeFinished -> runner.inInitializeFinish;
     
     runner.outCleanupIterationStart -> master.inCleanupIterationStart;
     master.outCleanupIterationFinished -> runner.inCleanupIterationFinish;
@@ -304,37 +324,24 @@ main reactor NQueensBenchmark(numIterations:int(12), size:int(12), threshold:int
     
     reaction(startup) -> runner.inStart {=
         
-        // initializations of global variables that are not states in a reactor
-        // those variables are global to be used in the helper functions
+        printBenchmarkInfo("MatMulBenchmark");
         /* [[[cog
-          cog.outl(f'NUM_WORKERS = {numWorkers};')
+          cog.outl(f'printArgs("numIterations", numIterations, "dataLength", dataLength, "blockThreshold", blockThreshold, "priorities", priorities, "numWorkers", {numWorkers});')
         ]]] */
-        NUM_WORKERS = 20;
-        // [[[end]]]
-        SIZE = size;
-        THRESHOLD = threshold;
-        PRIORITIES = priorities;
-        SOLUTIONS_LIMIT = solutionsLimit;
-        
-        printBenchmarkInfo("NQueensKSolutionsBenchmark");
-        /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "size", size, "threshold", threshold, "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", {numWorkers});')
-        ]]] */
-        printArgs("numIterations", numIterations, "size", size, "threshold", threshold, "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", 20);
+        printArgs("numIterations", numIterations, "dataLength", dataLength, "blockThreshold", blockThreshold, "priorities", priorities, "numWorkers", 20);
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
     =}
     
     /* [[[cog
-      cog.outl(f'workers = new[{numWorkers}] Worker(size=size, threshold=threshold);')
+      cog.outl(f'workers = new[{numWorkers}] Worker();')
     ]]] */
-    workers = new[20] Worker(size=size, threshold=threshold);
+    workers = new[20] Worker();
     // [[[end]]]
     
-    master.outWorkers -> workers.inMaster;
-    master.outWorkersWork -> workers.inWork;
     workers.outMaster -> master.inWorkers;
     workers.outWork -> master.inWorkersWork;
-    
+    master.outWorkers -> workers.inMaster;
+    master.outWorkersWork -> workers.inWork;
 }

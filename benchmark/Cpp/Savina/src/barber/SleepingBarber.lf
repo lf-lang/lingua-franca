@@ -387,7 +387,7 @@ reactor WaitingRoomReactor(capacity:int(1000), numCustomers:int(2000)) {
     =}
 }
 
-main reactor SleepingBarberBenchmark(numIterations:int(12), waitingRoomSize:int(1000), averageProductionRate:int(1000), averageHaircutRate:int(1000)) {
+main reactor (numIterations:int(12), waitingRoomSize:int(1000), averageProductionRate:int(1000), averageHaircutRate:int(1000)) {
     
     /* [[[cog
       cog.outl(f'controller = new CustomerControllerReactor(numHaircuts={numHaircuts}, averageProductionRate=averageProductionRate);')

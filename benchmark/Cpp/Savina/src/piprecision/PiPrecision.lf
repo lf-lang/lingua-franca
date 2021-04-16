@@ -206,7 +206,7 @@ reactor Worker {
 }
 
 
-main reactor ProdConsBenchmark(numIterations:int(12), precision:int(5000)) {
+main reactor (numIterations:int(12), precision:int(5000)) {
     
     /* [[[cog
       cog.outl(f'master = new Master(numWorkers={numWorkers}, scale=precision);')

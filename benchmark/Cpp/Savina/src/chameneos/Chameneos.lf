@@ -1702,7 +1702,7 @@ reactor ChameneosChameneoReactor(startColor:{=Color=}({=RED=}), id:int(-1), numC
 
 
 
-main reactor ChameneosBenchmark(numIterations:int(12), numMeetings:int(200000)) {
+main reactor (numIterations:int(12), numMeetings:int(200000)) {
     
     /* [[[cog
       cog.outl('mall = new ChameneosMallReactor(numMeetings=numMeetings, numChameneos='+str(numChameneos)+');')

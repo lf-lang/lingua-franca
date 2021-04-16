@@ -399,7 +399,7 @@ reactor MatrixInitializerReactor(graphSize:int(300), blockSize:int(50), maxEdgeW
 }
 
 
-main reactor ApspFloydWarshallReactor(numIterations:int(12), maxEdgeWeight:int(100)) {
+main reactor (numIterations:int(12), maxEdgeWeight:int(100)) {
     
     /* [[[cog
       cog.outl(f'init = new MatrixInitializerReactor(graphSize={numNodes}, maxEdgeWeight=maxEdgeWeight);')

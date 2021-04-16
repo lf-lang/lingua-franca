@@ -393,7 +393,7 @@ reactor BigReactor(id:int(-1), numMessages:int(20000), numWorkers:int(120)) {
     =}
 }
 
-main reactor BigBenchmark(numIterations:int(12), numPingsPerReactor:int(20000)) {
+main reactor (numIterations:int(12), numPingsPerReactor:int(20000)) {
     
     /* [[[cog
       cog.outl(f'sink = new SinkReactor(numWorkers={numReactors});')

@@ -312,7 +312,7 @@ reactor ConsumerReactor(consCost:int(25)) {
     =}
 }
 
-main reactor ProdConsBenchmark(numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
+main reactor (numIterations:int(12), bufferSize:int(50), prodCost:int(25), consCost:int(25), numItemsPerProducer:int(1000)) {
     
     /* [[[cog
       cog.outl(f'manager = new ManagerReactor(bufferSize=bufferSize, numProducers={numProducers}, numConsumers={numConsumers});')

@@ -162,7 +162,7 @@ reactor Initializer(numReactors:int(100), numPings:int(100000)) {
     =}
 }
 
-main reactor ThreadRingBenchmark(numIterations:int(12), numPings:int(100000)) {
+main reactor (numIterations:int(12), numPings:int(100000)) {
     
     /* [[[cog
       cog.outl(f'init = new Initializer(numReactors={numReactors}, numPings=numPings);')

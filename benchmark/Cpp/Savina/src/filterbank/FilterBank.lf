@@ -531,7 +531,7 @@ reactor SinkReactor(printRate:int(100)) {
     =}
 }
 
-main reactor FilterBankBenchmark(numIterations:int(12), numSimulations:int(34816), numColumns:int(16384)) {
+main reactor (numIterations:int(12), numSimulations:int(34816), numColumns:int(16384)) {
     
     /* [[[cog
       cog.outl(f'producer = new ProducerReactor(numSimulations=numSimulations, numChannels={numChannels}, numColumns=numColumns);')

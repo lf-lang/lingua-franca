@@ -156,7 +156,7 @@ reactor ValidationReactor(numValues:int(100000)) {
     =}
 }
 
-main reactor RadixSortBenchmark(numIterations:int(12), dataSize:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}({=2048l=})) {
+main reactor (numIterations:int(12), dataSize:int(100000), maxValue:{=long=}({=1l << 60=}), seed:{=long=}({=2048l=})) {
     
     source = new IntSourceReactor(numValues=dataSize, maxValue=maxValue, seed=seed);
     validator = new ValidationReactor(numValues=dataSize);

@@ -214,7 +214,7 @@ reactor Master(numSeries:int(10), numTerms:int(25000)) {
 }
 
 
-main reactor DictionaryBenchmark(numIterations:int(12), numTerms:int(25000), startRate:double(3.46)) {
+main reactor (numIterations:int(12), numTerms:int(25000), startRate:double(3.46)) {
     
     /* [[[cog
       cog.outl(f'master = new Master(numSeries={numSeries}, numTerms=numTerms);')
