@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-java@v1.4.3
         with:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 14
+          java-version: 11
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       - name: Run compiler tests
@@ -56,7 +56,7 @@ jobs:
         uses: actions/setup-java@v1.4.3
         with:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 14
+          java-version: 11
       - uses: actions/checkout@v2
       # - name: Cache protobuf library # Thanks to https://lukasjoswiak.com/github-actions-protobuf/
       #   id: cache-protobuf
@@ -109,7 +109,7 @@ jobs:
         uses: actions/setup-java@v1.4.3
         with:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 14
+          java-version: 11
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Install Dependencies OS X
         run: brew install coreutils
@@ -129,7 +129,7 @@ jobs:
         uses: actions/setup-java@v1.4.3
         with:
           # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
-          java-version: 14
+          java-version: 11
       - name: Setup Node.js environment
         uses: actions/setup-node@v2.1.2
       - name: Cache .pnpm-store
