@@ -126,7 +126,7 @@ reactor Master(numWorkers:int(20)) {
     =}
 }
 
-reactor Dictionary(numWorkers:int(20), initialState:{=std::map<int,int>=}({=std::map<int,int>()=})) {
+reactor DictionaryImpl(numWorkers:int(20), initialState:{=std::map<int,int>=}({=std::map<int,int>()=})) {
     
     public preamble {=
         #include "reactor-cpp/logging.hh"
@@ -246,7 +246,7 @@ reactor Worker(instance:int(0), numMessagesPerWorker:int(10000), writePercentage
     =}
 }
 
-main reactor DictionaryBenchmark(numIterations:int(12), numMessagesPerWorker:int(10000), writePercentage:int(10)) {
+main reactor (numIterations:int(12), numMessagesPerWorker:int(10000), writePercentage:int(10)) {
     
     /* [[[cog
       cog.outl(f'master = new Master(numWorkers={numWorkers});')
@@ -270,10 +270,10 @@ main reactor DictionaryBenchmark(numIterations:int(12), numMessagesPerWorker:int
     =}
     
     /* [[[cog
-      cog.outl(f'dict = new Dictionary(numWorkers={numWorkers});')
+      cog.outl(f'dict = new DictionaryImpl(numWorkers={numWorkers});')
       cog.outl(f'workers = new[{numWorkers}] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);')
     ]]] */
-    dict = new Dictionary(numWorkers=20);
+    dict = new DictionaryImpl(numWorkers=20);
     workers = new[20] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage);
     // [[[end]]]
     

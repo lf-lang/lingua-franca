@@ -2,6 +2,8 @@
  * Parallelism benchmark from the Savina benchmark suite.
  * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  * 
+ * This version manually connects the reactors.
+ * 
  * @author Hannes Klein
  */
 
@@ -43,22 +45,22 @@
 
 target Cpp {
     build-type : RelWithDebInfo,
-    cmake-include: "GuidedSearch.cmake"
+    cmake-include: "NQueens.cmake"
 };
 
 import BenchmarkRunner from "../BenchmarkRunner.lf";
 
-
-reactor Master(numWorkers:int(20), gridSize:int(30)) {
+reactor Master(numWorkers:int(20), priorities:int(10), solutionsLimit:int(1500000), size:int(12)) {
     
     public preamble {=
+        #include "NQueensCommon.hh"
+        #include "reactor-cpp/logging.hh"
         #include <bitset>
         #include <list>
-        #include "GuidedSearchCommon.hh"
-        #include "GridNode.hh"
-        #include "reactor-cpp/logging.hh"
     =}
     
+    state resultCounter:long(0);
+    state messageCounter:int(0);
     state numWorkersTerminated:int(0);
     state numWorkSent:int(0);
     state numWorkCompleted:int(0);
@@ -68,13 +70,11 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
     state workersWorking:{=std::bitset<20>=};
     // [[[end]]]
     state workList:{=std::list<WorkMessage>=};
-    state shortestPathIsFound:bool(false);
+    state problemSolved:bool(false);
     
     input inStart:void;
     output outFinished:void;
-    input inInitializeStart:void;
-    output outInitializeFinished:void;
-    input inCleanupIteration:void;
+    input inCleanupIterationStart:void;
     output outCleanupIterationFinished:void;
     
     /* [[[cog
@@ -92,41 +92,39 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
     logical action sendWork:void;
     logical action shutdownWorkers:void;
     
-    reaction(inInitializeStart) -> outInitializeFinished {=
-        initializeData();
-        outInitializeFinished.set();
-    =}
-    
-    reaction(inCleanupIteration) -> outCleanupIterationFinished {=
-        bool valid = validate();
-        reactor::log::Info() << std::boolalpha << "Result valid: " << valid << std::noboolalpha;
-        initializeData(); // reset graph for next iteration
+    reaction(inCleanupIterationStart) -> outCleanupIterationFinished {=
+        long expSolution = SOLUTIONS[size-1];
+        long actSolution = resultCounter;
+        bool valid = actSolution >= solutionsLimit && actSolution <= expSolution;
+        reactor::log::Info() << std::boolalpha << "Result valid = " << valid << std::noboolalpha;
         outCleanupIterationFinished.set();
     =}
     
     reaction(inStart) -> sendWork {=
         
         // reset local state
+        resultCounter = 0l;
+        messageCounter = 0;
         numWorkersTerminated = 0;
         numWorkSent = 0;
         numWorkCompleted = 0;
-        srand(100); // arbitrary seed
         workersWorking.reset();
-        workList = std::list<WorkMessage>();
-        shortestPathIsFound = false;
+        workList.clear();
+        problemSolved = false;
         
         // start execution
-        workList.emplace_back(originNode(), targetNode());
+        workList.emplace_back(priorities, std::vector<int>(), 0);
         sendWork.schedule();
     =}
     
     reaction(sendWork) -> outWorkersWork, shutdownWorkers {=
         
-        if(shortestPathIsFound) return;
+        if(problemSolved) return;
         if(workList.empty()) {
             // Assuming that no worker is working in parallel.
             // Shutdown because with no work left,
             // there is no shortest path to be found.
+            problemSolved = true;
             shutdownWorkers.schedule();
             return;
         }
@@ -138,17 +136,16 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
             workersWorking[workerIndex] = true;
             outWorkersWork[workerIndex].set(workList.front());
             workList.pop_front();
+            reactor::log::Debug() << "Giving work to worker " << workerIndex;
         }
     =}
     
     reaction(shutdownWorkers) -> outWorkers {=
         
         // Assuming that it is safe to shut down the workers
-        int i = 0;
-        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg});
-        while(i < numWorkers) {
+        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg, -1});
+        for(int i = 0; i < outWorkers.size(); i++) {
             outWorkers[i].set(msg);
-            i += 1;
         }
     =}
     
@@ -165,31 +162,27 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
         // We assume that ReceivedMsg arrives after this reaction is executed.
     =}
     
-    reaction(inWorkers) -> outWorkers, outFinished, sendWork {=
+    reaction(inWorkers) -> outFinished, sendWork {=
         
         for(int i = 0; i < inWorkers.size(); i++) {
             if(inWorkers[i].is_present()) {
                 
-                if(inWorkers[i].get()->type == ReceivedMsg) {
+                if(inWorkers[i].get()->type == ResultMsg) {
                     
-                    numWorkCompleted += 1;
-                    workersWorking[i] = false;
-//                    if(numWorkCompleted == numWorkSent) {
-//                        //stop because no path found
-//                        int j = 0;
-//                        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg});
-//                        while(j < numWorkers) {
-//                            outWorkers[j].set(msg);
-//                            j += 1;
-//                        }
-//                    } else {
-                        sendWork.schedule();
-//                    }
+                    resultCounter += inWorkers[i].get()->numResults;
+                    reactor::log::Debug() << "Results found. Total numResults = " << resultCounter;
+                    if(resultCounter >= solutionsLimit) {
+                        reactor::log::Debug() << " Solutions limit reached. Shutdown." << resultCounter;
+                        problemSolved = true;
+                        shutdownWorkers.schedule();
+                    }
+                    // Do not schedule new work here.
                     
                 } else if(inWorkers[i].get()->type == DoneMsg) {
                     
-                    shortestPathIsFound = true;
-                    shutdownWorkers.schedule();
+                    numWorkCompleted += 1;
+                    workersWorking[i] = false;
+                    sendWork.schedule();
                     
                 } else if(inWorkers[i].get()->type == StopMsg) {
                     
@@ -205,96 +198,81 @@ reactor Master(numWorkers:int(20), gridSize:int(30)) {
 }
 
 
-reactor Worker(instance:int(0), priorities:int(30)) {
+reactor Worker(instance:int(0), size:int(12), threshold:int(4)) {
     
     public preamble {=
+        #include "NQueensCommon.hh"
         #include <list>
-        #include "GridNode.hh"
-        #include "GuidedSearchCommon.hh"
     =}
     
-    state workQueue:{=std::unique_ptr<std::list<GridNode*>>=}; // linked list
-    state targetNode:{=GridNode*=};
+    state workQueue:{=std::unique_ptr<std::list<WorkMessage>>=}; // linked list
     
     input inWork:{=WorkMessage=}; // work from the master
     output outWork:{=std::list<WorkMessage>=}; // work back to the master to distribute
     input inMaster:{=Message=}; // control messages from the master
     output outMaster:{=Message=}; // control messages to the master
     
-    logical action messageToMaster:{=Message=};
-    logical action sendStop:void;
-    logical action confirmReceiving:void; // confirm receiving work
-    logical action success:void; // found solution
+    logical action sendResultMsg:int;
+    logical action sendDoneMsg:void;
     logical action returnWorkToMaster:void; // execution threshold exceeded, return new work
+    logical action sendStop:void;
     
-    reaction(messageToMaster) -> outMaster {=
-        outMaster.set(messageToMaster.get());
+    reaction(sendStop) -> outMaster {=
+        outMaster.set(Message{StopMsg});
     =}
     
-    reaction(sendStop) -> messageToMaster {=
-        messageToMaster.schedule(Message{StopMsg});
+    reaction(sendDoneMsg) -> outMaster {=
+        outMaster.set(Message{DoneMsg, -1});
     =}
     
-    reaction(confirmReceiving) -> messageToMaster {=
-        messageToMaster.schedule(Message{ReceivedMsg});
+    reaction(sendResultMsg) -> outMaster, sendDoneMsg {=
+        outMaster.set(Message{ResultMsg, *sendResultMsg.get()});
+        sendDoneMsg.schedule();
     =}
     
-    reaction(success) -> outMaster, confirmReceiving {=
-        outMaster.set(Message{DoneMsg});
-        confirmReceiving.schedule();
-    =}
-    
-    reaction(returnWorkToMaster) -> outWork, confirmReceiving {=
-        std::list<WorkMessage> newWork;
-        while(!workQueue->empty()) {
-            GridNode * loopNode = workQueue->front();
-            workQueue->pop_front();
-            newWork.emplace_back(loopNode, targetNode);
-        }
-        outWork.set(newWork);
-        confirmReceiving.schedule();
-    =}
-    
-    reaction(inWork) -> success,returnWorkToMaster,confirmReceiving {=
+    reaction(returnWorkToMaster) -> outWork, sendDoneMsg {=
         
-        // do the work inline instead of in an external thread
+        outWork.set(*(workQueue.release()));
+        sendDoneMsg.schedule();
+    =}
+    
+    reaction(inWork) -> sendResultMsg, returnWorkToMaster {=
         
+        workQueue = std::make_unique<std::list<WorkMessage>>();
         WorkMessage workMessage = *(inWork.get());
-        targetNode = workMessage.target;
-        workQueue = std::make_unique<std::list<GridNode*>>();
-        workQueue->push_front(workMessage.node);
+        std::vector<int> a = workMessage.data;
+        int depth = inWork.get()->depth;
         
-        int nodesProcessed = 0;
-        while(!workQueue->empty() && nodesProcessed < THRESHOLD) {
+        if(size == depth) {
+            //TODO what situation triggers this?
+            sendResultMsg.schedule(1);
+            return;
+        }
+        
+        if(depth >= threshold) {
+            // Search for solutions.
+            int numSolutions = nqueensKernelSeq(a, depth, size);
+            sendResultMsg.schedule(numSolutions);
+            return;
+        }
             
-            nodesProcessed += 1;
-            busyWait();
+        // Generate new work
             
-            GridNode * loopNode = workQueue->front();
-            workQueue->pop_front();
-            int numNeighbors = loopNode->numNeighbors();
+        int newPriority = workMessage.priority - 1;
+        int newDepth = depth + 1;
+        int i = 0;
+        while(i < size) {
             
-            int i = 0;
-            while(i < numNeighbors) {
-                GridNode * loopNeighbor = loopNode->neighbor(i);
-                bool success = loopNeighbor->setParent(loopNode);
-                if(success) {
-                    if(loopNeighbor == targetNode) {
-                        (this->success).schedule();
-                        return;
-                    } else {
-                        workQueue->push_back(loopNeighbor);
-                    }
-                }
-                i += 1;
+            std::vector<int> b(newDepth, 0);
+            b.insert(begin(b), begin(a), begin(a) + depth);
+            b[depth] = i;
+            
+            if(boardValid(newDepth, b)) {
+                workQueue->emplace_back(newPriority, b, newDepth);
             }
+            i += 1;
         }
-        
-        if(!workQueue->empty()) {
-            returnWorkToMaster.schedule();
-        } else {
-            confirmReceiving.schedule(); // found only dead end
-        }
+        returnWorkToMaster.schedule();
     =}
     
     reaction(inMaster) -> sendStop {=
@@ -305,24 +283,20 @@ reactor Worker(instance:int(0), priorities:int(30)) {
     =}
 }
 
-
-main reactor DictionaryBenchmark(numIterations:int(12), threshold:int(1024), gridSize:int(30), priorities:int(30)) {
+main reactor (numIterations:int(12), size:int(12), threshold:int(4), solutionsLimit:int(1500000), priorities:int(10)) {
     
     private preamble {=
-        #include "GuidedSearchCommon.hh"
+        #include "NQueensCommon.hh"
     =}
     
     /* [[[cog
-      cog.outl(f'master = new Master(numWorkers={numWorkers}, gridSize=gridSize);')
+      cog.outl(f'master = new Master(numWorkers={numWorkers}, priorities=priorities, solutionsLimit=solutionsLimit, size=size);')
     ]]] */
-    master = new Master(numWorkers=20, gridSize=gridSize);
+    master = new Master(numWorkers=20, priorities=priorities, solutionsLimit=solutionsLimit, size=size);
     // [[[end]]]
-    runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
+    runner = new BenchmarkRunner(numIterations=numIterations, useCleanupIteration=true);
     
-    runner.outInitializeStart -> master.inInitializeStart;
-    master.outInitializeFinished -> runner.inInitializeFinish;
-    
-    runner.outCleanupIterationStart -> master.inCleanupIteration;
+    runner.outCleanupIterationStart -> master.inCleanupIterationStart;
     master.outCleanupIterationFinished -> runner.inCleanupIterationFinish;
     
     runner.outIterationStart -> master.inStart;
@@ -332,37 +306,35 @@ main reactor DictionaryBenchmark(numIterations:int(12), threshold:int(1024), gri
         
         // initializations of global variables that are not states in a reactor
         // those variables are global to be used in the helper functions
-        std::map<int,GridNode*> * allNodes = nullptr;
-        PRIORITY_GRANULARITY = 8; // hard coded
         /* [[[cog
           cog.outl(f'NUM_WORKERS = {numWorkers};')
         ]]] */
         NUM_WORKERS = 20;
         // [[[end]]]
-        GRID_SIZE = gridSize;
-        PRIORITIES = priorities;
+        SIZE = size;
         THRESHOLD = threshold;
+        PRIORITIES = priorities;
+        SOLUTIONS_LIMIT = solutionsLimit;
         
-        
-        printBenchmarkInfo("GuidedSearchBenchmark");
+        printBenchmarkInfo("NQueensKSolutionsBenchmark");
         /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", {numWorkers});')
+          cog.outl(f'printArgs("numIterations", numIterations, "size", size, "threshold", threshold, "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", {numWorkers});')
         ]]] */
-        printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", 20);
+        printArgs("numIterations", numIterations, "size", size, "threshold", threshold, "solutionsLimit", solutionsLimit, "priorities", priorities, "numWorkers", 20);
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
     =}
     
     /* [[[cog
-      cog.outl(f'workers = new[{numWorkers}] Worker();')
+      cog.outl(f'workers = new[{numWorkers}] Worker(size=size, threshold=threshold);')
     ]]] */
-    workers = new[20] Worker();
+    workers = new[20] Worker(size=size, threshold=threshold);
     // [[[end]]]
     
-    workers.outMaster -> master.inWorkers;
-    workers.outWork -> master.inWorkersWork;
     master.outWorkers -> workers.inMaster;
     master.outWorkersWork -> workers.inWork;
+    workers.outMaster -> master.inWorkers;
+    workers.outWork -> master.inWorkersWork;
     
 }

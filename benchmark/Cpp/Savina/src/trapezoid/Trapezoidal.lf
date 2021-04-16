@@ -168,7 +168,7 @@ reactor Worker(instance:int(0)) {
 }
 
 
-main reactor ProdConsBenchmark(numIterations:int(12), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0)) {
+main reactor (numIterations:int(12), numPieces:int(10000000), leftEndPoint:double(1.0), rightEndPoint:double(5.0)) {
     
     /* [[[cog
       cog.outl(f'master = new Master(numWorkers={numWorkers}, L=leftEndPoint, R=rightEndPoint, N=numPieces);')

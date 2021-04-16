@@ -77,7 +77,7 @@ reactor Pong {
 }
 
 
-main reactor PingPong(numIterations:int(12), count:unsigned(40000)) {
+main reactor (numIterations:int(12), count:unsigned(40000)) {
     
     ping = new Ping(count=count);
     runner = new BenchmarkRunner(numIterations=numIterations);

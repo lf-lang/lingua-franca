@@ -636,7 +636,7 @@ reactor Account(id:int(-1), initialBalance:double(0.0)) {
 }
 
 
-main reactor BankingBenchmark(numIterations:int(12), numTransactions:int(50000)) {
+main reactor (numIterations:int(12), numTransactions:int(50000)) {
     
     /* [[[cog
       cog.outl(f'teller = new Teller(numAccounts={numAccounts}, numBankings=numTransactions);')

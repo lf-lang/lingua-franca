@@ -202,7 +202,7 @@ reactor SmokerReactor(instance:int(0)) {
     =}
 }
 
-main reactor CigaretteSmokerBenchmark(numIterations:int(12), numRounds:int(1000)) {
+main reactor (numIterations:int(12), numRounds:int(1000)) {
     
     arbiter = new ArbiterReactor(numRounds=numRounds, numSmokers=200);
     runner = new BenchmarkRunner(numIterations=numIterations);

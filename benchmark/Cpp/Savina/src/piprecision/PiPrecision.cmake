@@ -1,11 +1,2 @@
-
-if(TARGET PiPrecisionBenchmark)
-  target_link_libraries(PiPrecisionBenchmark gmpxx gmp)
-endif()
-
-if(TARGET PiPrecisionBenchmarkGenerator)
-  target_link_libraries(PiPrecisionBenchmarkGenerator gmpxx gmp)
-endif()
-
+target_link_libraries(${LF_MAIN_TARGET} gmpxx gmp)
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/..)
-

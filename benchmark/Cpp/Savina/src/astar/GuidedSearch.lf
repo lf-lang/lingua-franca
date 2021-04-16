@@ -1,0 +1,368 @@
+/**
+ * Parallelism benchmark from the Savina benchmark suite.
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * 
+ * @author Hannes Klein
+ */
+
+/* [[[cog
+# This file is a code generator using the python module cog:
+# See https://nedbatchelder.com/code/cog/
+#
+# All instructions for code  generation are in-lined in comments
+# like this one. With that you can use this file as a normal source file
+# but also to generate code.
+# 
+# To change the generated code in-line within this file run:
+# $ python -m cog -r this-file.lf
+# To generate a new file from this file stripping the generator code in the process run:
+# $ python -m cog -d -o output-file.lf this-file.lf
+#
+# Use the command line option -D to specify generator parameters, for example:
+# $ python -m cog -r -D parameter=100 this-file.lf
+#
+# Generator parameters used in this file:
+# -D numWorkers=20
+]]] */
+// [[[end]]]
+
+/* [[[cog
+  # force existence, type and default values of generator parameters
+  if 'numWorkers' in globals():
+    numWorkers = int(numWorkers)
+  else:
+    globals()['numWorkers'] = 20
+  
+  # output the current value of the generator parameters used in the last generation run
+  cog.outl(f'// Generated file with the following parameters:')
+  cog.outl(f'// numWorkers = {numWorkers}')
+]]] */
+// Generated file with the following parameters:
+// numWorkers = 20
+// [[[end]]]
+
+target Cpp {
+    build-type : RelWithDebInfo,
+    cmake-include: "GuidedSearch.cmake"
+};
+
+import BenchmarkRunner from "../BenchmarkRunner.lf";
+
+
+reactor Master(numWorkers:int(20), gridSize:int(30)) {
+    
+    public preamble {=
+        #include <bitset>
+        #include <list>
+        #include "GuidedSearchCommon.hh"
+        #include "GridNode.hh"
+        #include "reactor-cpp/logging.hh"
+    =}
+    
+    state numWorkersTerminated:int(0);
+    state numWorkSent:int(0);
+    state numWorkCompleted:int(0);
+    /* [[[cog
+      cog.outl(f'state workersWorking:{{=std::bitset<{numWorkers}>=}};')
+    ]]] */
+    state workersWorking:{=std::bitset<20>=};
+    // [[[end]]]
+    state workList:{=std::list<WorkMessage>=};
+    state shortestPathIsFound:bool(false);
+    
+    input inStart:void;
+    output outFinished:void;
+    input inInitializeStart:void;
+    output outInitializeFinished:void;
+    input inCleanupIteration:void;
+    output outCleanupIterationFinished:void;
+    
+    /* [[[cog
+      cog.outl(f'output[{numWorkers}] outWorkersWork:{{=WorkMessage=}};')
+      cog.outl(f'input[{numWorkers}] inWorkersWork:{{=std::list<WorkMessage>=}};')
+      cog.outl(f'output[{numWorkers}] outWorkers:{{=Message=}};')
+      cog.outl(f'input[{numWorkers}] inWorkers:{{=Message=}};')
+    ]]] */
+    output[20] outWorkersWork:{=WorkMessage=};
+    input[20] inWorkersWork:{=std::list<WorkMessage>=};
+    output[20] outWorkers:{=Message=};
+    input[20] inWorkers:{=Message=};
+    // [[[end]]]
+    
+    logical action sendWork:void;
+    logical action shutdownWorkers:void;
+    
+    reaction(inInitializeStart) -> outInitializeFinished {=
+        initializeData();
+        outInitializeFinished.set();
+    =}
+    
+    reaction(inCleanupIteration) -> outCleanupIterationFinished {=
+        bool valid = validate();
+        reactor::log::Info() << std::boolalpha << "Result valid: " << valid << std::noboolalpha;
+        initializeData(); // reset graph for next iteration
+        outCleanupIterationFinished.set();
+    =}
+    
+    reaction(inStart) -> sendWork {=
+        
+        // reset local state
+        numWorkersTerminated = 0;
+        numWorkSent = 0;
+        numWorkCompleted = 0;
+        srand(100); // arbitrary seed
+        workersWorking.reset();
+        workList = std::list<WorkMessage>();
+        shortestPathIsFound = false;
+        
+        // start execution
+        workList.emplace_back(originNode(), targetNode());
+        sendWork.schedule();
+    =}
+    
+    reaction(sendWork) -> outWorkersWork, shutdownWorkers {=
+        
+        if(shortestPathIsFound) return;
+        if(workList.empty()) {
+            // Assuming that no worker is working in parallel.
+            // Shutdown because with no work left,
+            // there is no shortest path to be found.
+            shutdownWorkers.schedule();
+            return;
+        }
+        
+        while(!workList.empty() && !workersWorking.all()) {
+            numWorkSent += 1;
+            int workerIndex = 0;
+            while(workersWorking[workerIndex]) ++workerIndex;
+            workersWorking[workerIndex] = true;
+            outWorkersWork[workerIndex].set(workList.front());
+            workList.pop_front();
+        }
+    =}
+    
+    reaction(shutdownWorkers) -> outWorkers {=
+        
+        // Assuming that it is safe to shut down the workers
+        int i = 0;
+        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg});
+        while(i < numWorkers) {
+            outWorkers[i].set(msg);
+            i += 1;
+        }
+    =}
+    
+    reaction(inWorkersWork) {=
+        
+        for(int i = 0; i < inWorkersWork.size(); i++) {
+            if(inWorkersWork[i].is_present()) {
+                
+                workList.insert( end(workList), begin(*(inWorkersWork[i].get())), end(*(inWorkersWork[i].get())) );
+            }
+        }
+        // Do not schedule work here.
+        // Trigger work only after confirmation ReceivedMsg.
+        // We assume that ReceivedMsg arrives after this reaction is executed.
+    =}
+    
+    reaction(inWorkers) -> outWorkers, outFinished, sendWork {=
+        
+        for(int i = 0; i < inWorkers.size(); i++) {
+            if(inWorkers[i].is_present()) {
+                
+                if(inWorkers[i].get()->type == ReceivedMsg) {
+                    
+                    numWorkCompleted += 1;
+                    workersWorking[i] = false;
+//                    if(numWorkCompleted == numWorkSent) {
+//                        //stop because no path found
+//                        int j = 0;
+//                        auto msg = reactor::make_immutable_value<Message>(Message{StopMsg});
+//                        while(j < numWorkers) {
+//                            outWorkers[j].set(msg);
+//                            j += 1;
+//                        }
+//                    } else {
+                        sendWork.schedule();
+//                    }
+                    
+                } else if(inWorkers[i].get()->type == DoneMsg) {
+                    
+                    shortestPathIsFound = true;
+                    shutdownWorkers.schedule();
+                    
+                } else if(inWorkers[i].get()->type == StopMsg) {
+                    
+                    // Confirmation that worker shut down.
+                    numWorkersTerminated += 1;
+                    if(numWorkersTerminated == numWorkers) {
+                        outFinished.set();
+                    }
+                }
+            }
+        }
+    =}
+}
+
+
+reactor Worker(instance:int(0), priorities:int(30)) {
+    
+    public preamble {=
+        #include <list>
+        #include "GridNode.hh"
+        #include "GuidedSearchCommon.hh"
+    =}
+    
+    state workQueue:{=std::unique_ptr<std::list<GridNode*>>=}; // linked list
+    state targetNode:{=GridNode*=};
+    
+    input inWork:{=WorkMessage=}; // work from the master
+    output outWork:{=std::list<WorkMessage>=}; // work back to the master to distribute
+    input inMaster:{=Message=}; // control messages from the master
+    output outMaster:{=Message=}; // control messages to the master
+    
+    logical action messageToMaster:{=Message=};
+    logical action sendStop:void;
+    logical action confirmReceiving:void; // confirm receiving work
+    logical action success:void; // found solution
+    logical action returnWorkToMaster:void; // execution threshold exceeded, return new work
+    
+    reaction(messageToMaster) -> outMaster {=
+        outMaster.set(messageToMaster.get());
+    =}
+    
+    reaction(sendStop) -> messageToMaster {=
+        messageToMaster.schedule(Message{StopMsg});
+    =}
+    
+    reaction(confirmReceiving) -> messageToMaster {=
+        messageToMaster.schedule(Message{ReceivedMsg});
+    =}
+    
+    reaction(success) -> outMaster, confirmReceiving {=
+        outMaster.set(Message{DoneMsg});
+        confirmReceiving.schedule();
+    =}
+    
+    reaction(returnWorkToMaster) -> outWork, confirmReceiving {=
+        std::list<WorkMessage> newWork;
+        while(!workQueue->empty()) {
+            GridNode * loopNode = workQueue->front();
+            workQueue->pop_front();
+            newWork.emplace_back(loopNode, targetNode);
+        }
+        outWork.set(newWork);
+        confirmReceiving.schedule();
+    =}
+    
+    reaction(inWork) -> success,returnWorkToMaster,confirmReceiving {=
+        
+        // do the work inline instead of in an external thread
+        
+        WorkMessage workMessage = *(inWork.get());
+        targetNode = workMessage.target;
+        workQueue = std::make_unique<std::list<GridNode*>>();
+        workQueue->push_front(workMessage.node);
+        
+        int nodesProcessed = 0;
+        while(!workQueue->empty() && nodesProcessed < THRESHOLD) {
+            
+            nodesProcessed += 1;
+            busyWait();
+            
+            GridNode * loopNode = workQueue->front();
+            workQueue->pop_front();
+            int numNeighbors = loopNode->numNeighbors();
+            
+            int i = 0;
+            while(i < numNeighbors) {
+                GridNode * loopNeighbor = loopNode->neighbor(i);
+                bool success = loopNeighbor->setParent(loopNode);
+                if(success) {
+                    if(loopNeighbor == targetNode) {
+                        (this->success).schedule();
+                        return;
+                    } else {
+                        workQueue->push_back(loopNeighbor);
+                    }
+                }
+                i += 1;
+            }
+        }
+        
+        if(!workQueue->empty()) {
+            returnWorkToMaster.schedule();
+        } else {
+            confirmReceiving.schedule(); // found only dead end
+        }
+    =}
+    
+    reaction(inMaster) -> sendStop {=
+        
+        if(inMaster.get()->type == StopMsg) {
+            sendStop.schedule();
+        }
+    =}
+}
+
+
+main reactor (numIterations:int(12), threshold:int(1024), gridSize:int(30), priorities:int(30)) {
+    
+    private preamble {=
+        #include "GuidedSearchCommon.hh"
+    =}
+    
+    /* [[[cog
+      cog.outl(f'master = new Master(numWorkers={numWorkers}, gridSize=gridSize);')
+    ]]] */
+    master = new Master(numWorkers=20, gridSize=gridSize);
+    // [[[end]]]
+    runner = new BenchmarkRunner(numIterations=numIterations, useInit=true, useCleanupIteration=true);
+    
+    runner.outInitializeStart -> master.inInitializeStart;
+    master.outInitializeFinished -> runner.inInitializeFinish;
+    
+    runner.outCleanupIterationStart -> master.inCleanupIteration;
+    master.outCleanupIterationFinished -> runner.inCleanupIterationFinish;
+    
+    runner.outIterationStart -> master.inStart;
+    master.outFinished -> runner.inIterationFinish;
+    
+    reaction(startup) -> runner.inStart {=
+        
+        // initializations of global variables that are not states in a reactor
+        // those variables are global to be used in the helper functions
+        std::map<int,GridNode*> * allNodes = nullptr;
+        PRIORITY_GRANULARITY = 8; // hard coded
+        /* [[[cog
+          cog.outl(f'NUM_WORKERS = {numWorkers};')
+        ]]] */
+        NUM_WORKERS = 20;
+        // [[[end]]]
+        GRID_SIZE = gridSize;
+        PRIORITIES = priorities;
+        THRESHOLD = threshold;
+        
+        
+        printBenchmarkInfo("GuidedSearchBenchmark");
+        /* [[[cog
+          cog.outl(f'printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", {numWorkers});')
+        ]]] */
+        printArgs("numIterations", numIterations, "threshold", threshold, "gridSize", gridSize, "priorities", priorities, "numWorkers", 20);
+        /// [[[end]]]
+        printSystemInfo();
+        runner.inStart.set();
+    =}
+    
+    /* [[[cog
+      cog.outl(f'workers = new[{numWorkers}] Worker();')
+    ]]] */
+    workers = new[20] Worker();
+    // [[[end]]]
+    
+    workers.outMaster -> master.inWorkers;
+    workers.outWork -> master.inWorkersWork;
+    master.outWorkers -> workers.inMaster;
+    master.outWorkersWork -> workers.inWork;
+    
+}

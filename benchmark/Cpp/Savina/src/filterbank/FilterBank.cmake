@@ -1,11 +1,2 @@
-
-if(TARGET FilterBankBenchmark)
-  target_sources(FilterBankBenchmark PUBLIC ${CMAKE_CURRENT_LIST_DIR}/FilterBankCommon.cc)
-endif()
-
-if(TARGET FilterBankBenchmarkGenerator)
-  target_sources(FilterBankBenchmarkGenerator PUBLIC ${CMAKE_CURRENT_LIST_DIR}/FilterBankCommon.cc)
-endif()
-
+target_sources(${LF_MAIN_TARGET} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/FilterBankCommon.cc)
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/..)
-

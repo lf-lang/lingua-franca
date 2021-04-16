@@ -164,7 +164,7 @@ reactor Worker(instance:int(0), numMessagesPerWorker:int(8000), writePercentage:
 }
 
 
-reactor SortedList {
+reactor SortedListImpl {
     
     public preamble {=
         #include "reactor-cpp/logging.hh"
@@ -405,7 +405,7 @@ reactor SortedList {
 }
 
 
-main reactor SortedListBenchmark(numIterations:int(12), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1)) {
+main reactor (numIterations:int(12), numMessagesPerWorker:int(8000), writePercentage:int(10), sizePercentage:int(1)) {
     
     /* [[[cog
       cog.outl(f'master = new Master(numWorkers={numWorkers});')
@@ -433,7 +433,7 @@ main reactor SortedListBenchmark(numIterations:int(12), numMessagesPerWorker:int
     ]]] */
     workers = new[20] Worker(numMessagesPerWorker=numMessagesPerWorker, writePercentage=writePercentage, sizePercentage=sizePercentage);
     // [[[end]]]
-    sortedList = new SortedList();
+    sortedList = new SortedListImpl();
     
     master.outSortedList -> sortedList.inMaster;
     master.outWorkers -> workers.inMaster;
