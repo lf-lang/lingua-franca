@@ -912,6 +912,8 @@ void _lf_initialize_start_tag() {
     }
 
 #ifdef FEDERATED
+    // Get the size of the reaction queue before adding any
+    // network control reactions.
     int init_reaction_queue_size = pqueue_size(reaction_q);
 
     // Insert network dependant reactions for network input ports into
