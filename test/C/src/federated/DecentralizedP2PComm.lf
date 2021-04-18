@@ -2,7 +2,8 @@ target C {
     timeout: 1 sec,
     tracing: true,
     clock-sync: off,
-    coordination: decentralized 
+    coordination: decentralized,
+    logging: LOG
 }
 
 reactor Platform(start:int(0), expected_start:int(0), stp_offset_param:time(0)) {
