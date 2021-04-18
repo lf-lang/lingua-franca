@@ -498,19 +498,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 8 bytes will be a timestamp sent according to
  * PTP.
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T1 18
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T1 19
 
 /*
  * Prompts the master to send a T4.
  * The next four bytes will be the sendin federate's id
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T3 19
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T3 20
 
 /*
  * The next 8 bytes will be a timestamp sent according to
  * PTP.
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4 20
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4 21
 
 /**
  * Coded probe message.
@@ -522,7 +522,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @see Geng, Yilong, et al.
  * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 21
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 22
 
 
 /**
@@ -536,7 +536,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 8 bytes are the intended time of the absent message
  * The next 4 bytes are the intended microstep of the absent message
  */
-#define PORT_ABSENT 22
+#define PORT_ABSENT 23
 
 
 /////////////////////////////////////////////
