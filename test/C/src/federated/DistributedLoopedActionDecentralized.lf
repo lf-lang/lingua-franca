@@ -102,6 +102,7 @@ reactor STPReceiver(take_a_break_after:int(10), break_interval:time(400 msec), s
         if (current_tag.time != self->last_time_updated_stp) {
             printf("Raising the STP offset by %lld.\n", MSEC(5));
 	        self->stp_offset += MSEC(50);
+	        set_stp_offset(MSEC(50));
 	        self->last_time_updated_stp = current_tag.time;
         }
     =}
