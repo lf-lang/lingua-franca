@@ -4247,20 +4247,6 @@ class CGenerator extends GeneratorBase {
             ''')
         }
         
-        // Don't need to update the status for physical connections
-        if (!isPhysical) {
-            result.append('''
-                    // Need to lock the mutex before performing the following operations
-                    lf_mutex_lock(&mutex);
-                    _fed.network_input_port_triggers[«receivingPortID»]->status = present;        
-                    // Port is now present. Therfore, notify the network input
-                    // control reactions to stop waiting and re-check the port
-                    // status.
-                    lf_cond_broadcast(&port_status_changed);
-                    lf_mutex_unlock(&mutex);
-            ''')        
-        }
-        
         return result.toString
     }
 

@@ -1296,10 +1296,14 @@ void handle_timed_message(int socket, int fed_id) {
         action->intended_tag = intended_tag;
         _lf_insert_reactions_for_trigger(action, message_token);
 
-        // We do not set the status of the port to present here because the _lf_insert_reactions_for_trigger
-        // will actually trigger the receiver reaction in the top-level container in the federate. This message
-        // will reach the actual reactor after that reaction is done. The top-level receiver reaction will set
-        // the port trigger status to present and notify any control reactions waiting.
+        // Set the status of the port as present here to inform the network input
+        // control reactions know that they no longer need to block. The reason for
+        // that is because the network receiver reaction is now in the reaction queue
+        // keeping the precedence order intact.
+        _fed.network_input_port_triggers[port_id]->status = present;        
+        // Port is now present. Therfore, notify the network input control reactions to 
+        // stop waiting and re-check the port status.
+        lf_cond_broadcast(&port_status_changed);
 
         // Notify the main thread in case it is waiting for reactions.
         DEBUG_PRINT("Broadcasting notification that reaction queue changed.");
