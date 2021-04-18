@@ -1389,9 +1389,27 @@ bool any_control_reaction_is_waiting() {
  *  it sets last_TAG_was_provisional to false.
  */
 void handle_tag_advance_grant() {
-    unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
-    read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(instant_t) + sizeof(microstep_t), buffer,
-                     "Failed to read the time advance grant from the RTI.");
+    int bytes_to_read = sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_read];
+    lf_mutex_lock(&inbound_socket_mutex);
+    // Check if the RTI socket is still valid
+    if (_fed.socket_TCP_RTI < 0) {
+        warning_print("Socket to the RTI is no longer connected.");
+        lf_mutex_unlock(&inbound_socket_mutex);
+        return;
+    }
+    int bytes_read = read_from_socket(_fed.socket_TCP_RTI, bytes_to_read, buffer);
+    if (bytes_read != bytes_to_read) {
+        _lf_close_inbound_socket(-1);
+        tag_t current_tag = get_current_tag();
+        error_print_and_exit("Failed to read time advance grant from the RTI."
+                    " Last NET: (%lld, %u). Current tag: (%lld, %u)",
+                    _fed.last_sent_NET.time - get_start_time(),
+                    _fed.last_sent_NET.microstep,
+                    current_tag.time - get_start_time(),
+                    current_tag.microstep);
+    }
+    lf_mutex_unlock(&inbound_socket_mutex);
 
     lf_mutex_lock(&mutex);
     tag_t TAG;
@@ -1435,9 +1453,27 @@ void handle_tag_advance_grant() {
  *  it sets last_TAG_was_provisional to true.
  */
 void handle_provisional_tag_advance_grant() {
-    unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
-    read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(instant_t) + sizeof(microstep_t), buffer,
-                     "Failed to read the time advance grant from the RTI.");
+    int bytes_to_read = sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_read];
+    lf_mutex_lock(&inbound_socket_mutex);
+    // Check if the RTI socket is still valid
+    if (_fed.socket_TCP_RTI < 0) {
+        warning_print("Socket to the RTI is no longer connected.");
+        lf_mutex_unlock(&inbound_socket_mutex);
+        return;
+    }
+    int bytes_read = read_from_socket(_fed.socket_TCP_RTI, sizeof(instant_t) + sizeof(microstep_t), buffer);
+    if (bytes_read != bytes_to_read) {
+        _lf_close_inbound_socket(-1);
+        tag_t current_tag = get_current_tag();
+        error_print("Failed to read provisional time advance grant from the RTI."
+                    " Last NET: (%lld, %u). Current tag: (%lld, %u)",
+                    _fed.last_sent_NET.time - get_start_time(),
+                    _fed.last_sent_NET.microstep,
+                    current_tag.time - get_start_time(),
+                    current_tag.microstep);
+    }
+    lf_mutex_unlock(&inbound_socket_mutex);
 
     lf_mutex_lock(&mutex);
     _fed.last_TAG.time = extract_ll(buffer);
