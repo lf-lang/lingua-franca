@@ -1779,8 +1779,10 @@ void synchronize_with_other_federates() {
        stop_tag = ((tag_t) {.time = start_time + duration, .microstep = 0});
     }
     
-    // Start two threads to listen for incoming messages from the RTI.
-    // One for TCP messages:
+    // Start a thread to listen for incoming TCP messages from the RTI.
+    // @note Up until this point, the federate has been listenting for messages
+    //  from the RTI in a sequential manner in the main thread. From now on, a
+    //  separate thread is created to allow for asynchronous communication.
     lf_thread_t thread_id;
     lf_thread_create(&thread_id, listen_to_rti_TCP, NULL);
 
