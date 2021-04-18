@@ -1399,6 +1399,7 @@ void handle_tag_advance_grant() {
         return;
     }
     int bytes_read = read_from_socket(_fed.socket_TCP_RTI, bytes_to_read, buffer);
+    lf_mutex_unlock(&inbound_socket_mutex);
     if (bytes_read != bytes_to_read) {
         _lf_close_inbound_socket(-1);
         tag_t current_tag = get_current_tag();
@@ -1409,7 +1410,6 @@ void handle_tag_advance_grant() {
                     current_tag.time - get_start_time(),
                     current_tag.microstep);
     }
-    lf_mutex_unlock(&inbound_socket_mutex);
 
     lf_mutex_lock(&mutex);
     tag_t TAG;
@@ -1463,6 +1463,7 @@ void handle_provisional_tag_advance_grant() {
         return;
     }
     int bytes_read = read_from_socket(_fed.socket_TCP_RTI, sizeof(instant_t) + sizeof(microstep_t), buffer);
+    lf_mutex_unlock(&inbound_socket_mutex);
     if (bytes_read != bytes_to_read) {
         _lf_close_inbound_socket(-1);
         tag_t current_tag = get_current_tag();
@@ -1473,7 +1474,6 @@ void handle_provisional_tag_advance_grant() {
                     current_tag.time - get_start_time(),
                     current_tag.microstep);
     }
-    lf_mutex_unlock(&inbound_socket_mutex);
 
     lf_mutex_lock(&mutex);
     _fed.last_TAG.time = extract_ll(buffer);
