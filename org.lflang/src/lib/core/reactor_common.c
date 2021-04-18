@@ -1272,6 +1272,22 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
 	    token->ref_count++;
 	}
 
+    // Check if the trigger has violated the STP offset
+    bool is_STP_violated = false;
+#ifdef FEDERATED
+    if (compare_tags(trigger->intended_tag, get_current_tag()) < 0) {
+        is_STP_violated = true;
+    }
+#ifdef FEDERATED_CENTRALIZED
+    // Check for STP violation in the centralized coordination, which is a 
+    // critical error.
+    if (is_STP_violated) {
+        error_print_and_exit("Attempted to insert reactions for a trigger that had violated the STP offset"
+                             " in centralized coordination.");
+    }
+#endif
+#endif
+
     // Copy the token pointer into the trigger struct so that the
     // reactions can access it. This overwrites the previous template token,
     // for which we decrement the reference count.
@@ -1299,6 +1315,7 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
         reaction_t* reaction = trigger->reactions[i];
         // Do not enqueue this reaction twice.
         if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+            reaction->is_STP_violated = is_STP_violated;
             pqueue_insert(reaction_q, reaction);
             LOG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
         }
