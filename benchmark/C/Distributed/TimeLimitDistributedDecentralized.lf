@@ -6,7 +6,7 @@
 target C {
     flags: ["-O2", "-Wall", "-g", "-rdynamic"],
     coordination: decentralized,
-    timeout: 4 secs
+    timeout: 4 sec
 };
 reactor Clock(offset:time(0), period:time(1 sec)) {
 	output y:int;
@@ -38,7 +38,7 @@ reactor Destination {
         info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-federated reactor TimeLimitDistributedDecentralized(period:time(1 usec)) {
+federated reactor (period:time(3 usec)) {
 	c = new Clock(period = period);
 	d = new Destination();
 	c.y -> d.x after period;
