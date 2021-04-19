@@ -1,7 +1,5 @@
-/* A helper class for analyzing the AST. */
-
 /*************
- * Copyright (c) 2020, The University of California at Berkeley.
+ * Copyright (c) 2021, The University of California at Berkeley.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -53,6 +51,9 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
 /**
+ * A helper class for AST transformations needed for federated
+ * execution.
+ * 
  * @author Soroush Bateni {soroush@utdallas.edu}
  *
  */
