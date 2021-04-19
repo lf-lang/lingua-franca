@@ -1328,7 +1328,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }  
     
     /**
-     * 
+     * Returns true if the program is federated and uses the decentralized
+     * coordination mechanism.
      */
     def isFederatedAndDecentralized() {
         if (isFederated &&
@@ -1339,7 +1340,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
     
     /**
-     * 
+     * Returns true if the program is federated and uses the centralized
+     * coordination mechanism.
      */
     def isFederatedAndCentralized() {
         if (isFederated &&
