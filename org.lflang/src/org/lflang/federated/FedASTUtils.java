@@ -36,11 +36,15 @@ import java.util.stream.Collectors;
 
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.lflang.ASTUtils;
+import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.FederateInstance;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Input;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
@@ -328,6 +332,154 @@ public class FedASTUtils {
         // receiver
         // top-level reactions
         reactor.getReactions().add(reaction);
+    }
+    
+    /** 
+     * Replace the specified connection with a communication between federates.
+     * @param connection The connection.
+     * @param leftFederate The source federate.
+     * @param rightFederate The destination federate.
+     */
+    public static void makeCommunication(
+        Connection connection, 
+        FederateInstance leftFederate,
+        int leftBankIndex,
+        int leftChannelIndex,
+        FederateInstance rightFederate,
+        int rightBankIndex,
+        int rightChannelIndex,
+        GeneratorBase generator,
+        CoordinationType coordination
+    ) {
+        LfFactory factory = LfFactory.eINSTANCE;
+        // Assume all the types are the same, so just use the first on the right.
+        Type type = ASTUtils.getCopy(((Port)connection.getRightPorts().get(0).getVariable()).getType());
+        Action action = factory.createAction();
+        VarRef triggerRef = factory.createVarRef();
+        VarRef inRef = factory.createVarRef();
+        VarRef outRef = factory.createVarRef();
+        Reactor parent = (Reactor)connection.eContainer();
+        Reaction r1 = factory.createReaction();
+        Reaction r2 = factory.createReaction();
+        
+        // These reactions do not require any dependency relationship
+        // to other reactions in the container.
+        generator.makeUnordered(r1);
+        generator.makeUnordered(r2);
+
+        // Name the newly created action; set its delay and type.
+        action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
+        action.setType(type);
+        
+        // The connection is 'physical' if it uses the ~> notation.
+        if (connection.isPhysical()) {
+            leftFederate.outboundP2PConnections.add(rightFederate);
+            rightFederate.inboundP2PConnections.add(leftFederate);
+            action.setOrigin(ActionOrigin.PHYSICAL);
+            // Messages sent on physical connections do not
+            // carry a timestamp, or a delay. The delay
+            // provided using after is enforced by setting
+            // the minDelay.
+            if (connection.getDelay() != null) {
+                action.setMinDelay(factory.createValue());
+                action.getMinDelay().setTime(factory.createTime());
+                action.getMinDelay().getTime().setInterval(connection.getDelay().getInterval());
+                action.getMinDelay().getTime().setUnit(connection.getDelay().getUnit());
+            }
+        } else {
+            // If the connection is logical but coordination
+            // is decentralized, we would need
+            // to make P2P connections
+            if (coordination == CoordinationType.DECENTRALIZED) {
+                leftFederate.outboundP2PConnections.add(rightFederate);
+                rightFederate.inboundP2PConnections.add(leftFederate);               
+            }            
+            action.setOrigin(ActionOrigin.LOGICAL);
+        }
+        
+        // Record this action in the right federate.
+        // The ID of the receiving port (rightPort) is the position
+        // of the action in this list.
+        int receivingPortID = rightFederate.networkMessageActions.size();
+        rightFederate.networkMessageActions.add(action);
+
+        // Establish references to the action.
+        triggerRef.setVariable(action);
+
+        // Establish references to the involved ports.
+        // FIXME: This does not support parallel connections yet!!
+        if (connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1) {
+            throw new UnsupportedOperationException("FIXME: " +
+                                                    "Parallel connections are not yet supported between federates.");
+        }
+        inRef.setContainer(connection.getLeftPorts().get(0).getContainer());
+        inRef.setVariable(connection.getLeftPorts().get(0).getVariable());
+        outRef.setContainer(connection.getRightPorts().get(0).getContainer());
+        outRef.setVariable(connection.getRightPorts().get(0).getVariable());
+
+        // Add the action to the reactor.
+        parent.getActions().add(action);
+        
+        // Configure the sending reaction.
+        r1.getTriggers().add(inRef);
+        r1.setCode(factory.createCode());
+        r1.getCode().setBody(generator.generateNetworkSenderBody(
+            inRef,
+            outRef,
+            receivingPortID,
+            leftFederate,
+            leftBankIndex,
+            leftChannelIndex,
+            rightFederate,
+            ASTUtils.getInferredType(action),
+            connection.isPhysical(),
+            connection.getDelay()
+        ));
+
+        // Configure the receiving reaction.
+        r2.getTriggers().add(triggerRef);
+        r2.getEffects().add(outRef);
+        r2.setCode(factory.createCode());
+        r2.getCode().setBody(generator.generateNetworkReceiverBody(
+            action,
+            inRef,
+            outRef,
+            receivingPortID,
+            leftFederate,
+            rightFederate,
+            rightBankIndex,
+            rightChannelIndex,
+            ASTUtils.getInferredType(action),
+            connection.isPhysical()
+        ));
+
+        // Add the reactions to the parent.
+        parent.getReactions().add(r1);
+        parent.getReactions().add(r2);       
+        
+        if (!connection.isPhysical()) {
+            // Add the network control reactions for the ports
+            // Only for logical connections
+            FedASTUtils.addNetworkInputControlReaction(
+                connection.getRightPorts().get(0),
+                receivingPortID,         
+                (Reactor)connection.getRightPorts().get(0).getVariable().eContainer(),
+                rightFederate,
+                generator,
+                true
+            );
+            
+            
+            FedASTUtils.addNetworkOutputControlReaction(
+                connection.getLeftPorts().get(0), 
+                leftFederate,
+                receivingPortID,
+                leftBankIndex,
+                leftChannelIndex,
+                rightFederate.id,
+                generator
+            );
+        }
     }
 
 }

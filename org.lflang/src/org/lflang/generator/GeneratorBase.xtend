@@ -87,6 +87,7 @@ import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.FedASTUtils
 
 /**
  * Generator base class for shared code between code generators.
@@ -2215,7 +2216,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                                     }
                                 }
                                                                 
-                                ASTUtils.makeCommunication(
+                                FedASTUtils.makeCommunication(
                                     connection, 
                                     leftFederate, leftBankIndex, leftChannelIndex,
                                     rightFederate, rightBankIndex, rightChannelIndex,
