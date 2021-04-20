@@ -1,0 +1,27 @@
+# @package benchmark
+name: "Concurrent Dictionary"
+params:
+  workers: 20
+  messages_per_worker: 10000
+  write_percentage: 10
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.concdict.DictionaryAkkaActorBenchmark"
+    run_args:
+      workers: ["-e", "<value>"]
+      messages_per_worker: ["-m", "<value>"]
+      write_percentage: ["-w", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/concdict"
+    lf_file: "concdict/Dictionary.lf"
+    binary: "Dictionary"
+    gen_args:
+      workers: ["-D", "numWorkers=<value>"]
+    run_args:
+      messages_per_worker: ["--numMessagesPerWorker", "<value>"]
+      write_percentage: ["--writePercentage", "<value>"]

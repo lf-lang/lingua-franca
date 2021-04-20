@@ -1,0 +1,38 @@
+# @package benchmark
+name: "Producer-Consumer with Bounded Buffer"
+params:
+  buffer_size: 50
+  consumers: 40
+  producers: 40
+  items_per_producer: 1000
+  produce_cost: 25
+  consume_cost: 25
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.bndbuffer.ProdConsAkkaActorBenchmark"
+    run_args:
+      buffer_size: ["-bb", "<value>"]
+      producers: ["-np", "<value>"]
+      consumers: ["-nc", "<value>"]
+      items_per_producer: ["-ipp", "<value>"]
+      produce_cost: ["-pc", "<value>"]
+      consume_cost: ["-cc", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/bndbuffer"
+      - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
+      - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
+    lf_file: "bndbuffer/ProdCons.lf"
+    binary: "ProdCons"
+    gen_args:
+      producers: ["-D", "numProducers=<value>"]
+      consumers: ["-D", "numConsumers=<value>"]
+    run_args:
+      buffer_size: ["--bufferSize", "<value>"]
+      items_per_producer: ["--numItemsPerProducer", "<value>"]
+      produce_cost: ["--prodCost", "<value>"]
+      consume_cost: ["--consCost", "<value>"]
