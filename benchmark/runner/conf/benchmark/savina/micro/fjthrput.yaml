@@ -14,10 +14,10 @@ targets:
       actors: ["-a", "<value>"]
   lf-cpp:
     copy_sources:
-      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/fjthrput"
-    lf_file: "fjthrput/ThroughputBenchmarkGenerator.lf"
-    binary: "ThroughputBenchmarkGenerator"
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/fjthrput"
+    lf_file: "fjthrput/Throughput.lf"
+    binary: "Throughput"
     gen_args:
       actors: ["-D", "numWorkers=<value>"]
     run_args:

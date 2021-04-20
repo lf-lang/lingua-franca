@@ -14,10 +14,10 @@ targets:
       eating_rounds: ["-m", "<value>"]
   lf-cpp:
     copy_sources:
-      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/philosopher"
-    lf_file: "philosopher/PhilosopherBenchmarkGenerator.lf"
-    binary: "PhilosopherBenchmarkGenerator"
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/philosopher"
+    lf_file: "philosopher/Philosopher.lf"
+    binary: "Philosopher"
     gen_args:
       philosophers: ["-D", "numPhilosophers=<value>"]
     run_args:
