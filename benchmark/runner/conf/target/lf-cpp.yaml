@@ -1,9 +1,10 @@
 # @package _group_
 name: lf-cpp
-copy: ["cp", "-r", "${benchmark.targets.lf-cpp.copy_sources}", "."]
+prepare: ["mkdir", "src"]
+copy: ["cp", "-r", "${benchmark.targets.lf-cpp.copy_sources}", "src"]
 gen: ["cog", "-r", "${args:benchmark.targets.lf-cpp.gen_args}",
-      "${benchmark.targets.lf-cpp.lf_file}"]
-compile: ["${lf_path}/bin/lfc", "${benchmark.targets.lf-cpp.lf_file}"]
+      "src/${benchmark.targets.lf-cpp.lf_file}"]
+compile: ["${lf_path}/bin/lfc", "src/${benchmark.targets.lf-cpp.lf_file}"]
 run: ["bin/${benchmark.targets.lf-cpp.binary}",
       "--threads", "${threads}",
       "--numIterations", "${iterations}",
