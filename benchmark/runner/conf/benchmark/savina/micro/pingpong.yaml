@@ -12,10 +12,10 @@ targets:
       pings: ["-n", "<value>"]
   lf-cpp:
     copy_sources:
-      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/pingpong"
-    lf_file: "pingpong/PingPongBenchmark.lf"
-    binary: "PingPongBenchmark"
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/pingpong"
+    lf_file: "pingpong/PingPong.lf"
+    binary: "PingPong"
     gen_args: null
     run_args:
       pings: ["--count", "<value>"]

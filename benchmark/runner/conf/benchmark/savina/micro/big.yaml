@@ -14,12 +14,12 @@ targets:
       actors: ["-w", "<value>"]
   lf-cpp:
     copy_sources:
-      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/IncludeHeaders.cmake"
-      - "${lf_path}/benchmark/Cpp/Savina/PseudoRandom.hh"
-      - "${lf_path}/benchmark/Cpp/Savina/big"
-    lf_file: "big/BigBenchmarkGenerator.lf"
-    binary: "BigBenchmarkGenerator"
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
+      - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
+      - "${lf_path}/benchmark/Cpp/Savina/src/big"
+    lf_file: "big/Big.lf"
+    binary: "Big"
     gen_args:
       actors: ["-D", "numReactors=<value>"]
     run_args:

@@ -14,10 +14,10 @@ targets:
       chameneos: ["-c", "<value>"]
   lf-cpp:
     copy_sources:
-      - "${lf_path}/benchmark/Cpp/Savina/BenchmarkRunner.lf"
-      - "${lf_path}/benchmark/Cpp/Savina/chameneos"
-    lf_file: "chameneos/ChameneosBenchmarkGenerator.lf"
-    binary: "ChameneosBenchmarkGenerator"
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/chameneos"
+    lf_file: "chameneos/Chameneos.lf"
+    binary: "Chameneos"
     gen_args:
       chameneos: ["-D", "numChameneos=<value>"]
     run_args:
