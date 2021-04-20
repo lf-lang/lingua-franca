@@ -89,7 +89,7 @@ reactor Pong(expected:int(1000000)) {
     =}
 }
 
-main reactor PingPong {
+main reactor {
 /* [[[cog
   cog.outl(f"ping = new Ping(count={count});")
   cog.outl(f"pong = new Pong(expected={count});")
