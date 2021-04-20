@@ -18,6 +18,7 @@ def main(cfg):
     target = cfg["target"]
     benchmark_name = benchmark["name"]
     target_name = target["name"]
+    continue_on_error = cfg["continue_on_error"]
 
     # initialize the thread number if not specified
     if cfg["threads"] is None:
@@ -64,11 +65,11 @@ def main(cfg):
     # prepare the benchmark
     for step in ["prepare", "copy", "gen", "compile"]:
         if target[step] is not None:
-            execute_command(target[step])
+            execute_command(target[step], continue_on_error)
 
     # run the benchmark
     if target["run"] is not None:
-        output = execute_command(target["run"])
+        output = execute_command(target["run"], continue_on_error)
         times = hydra.utils.call(target["parser"], output)
         write_results(times, cfg)
     else:
@@ -99,7 +100,7 @@ def check_benchmark_target_config(benchmark, target_name):
             log.warning(f"The benchmark parameter {param} is not used in any command")
 
 
-def execute_command(command):
+def execute_command(command, continue_on_error):
     # the command can be a list of lists due to the way we use an omegaconf
     # resolver to determine the arguments. We need to flatten the command list
     # first. We also need to touch each element individually to make sure that
@@ -128,10 +129,16 @@ def execute_command(command):
                 output.append(nextline)
                 cmd_log.info(nextline.rstrip())
 
-        if process.returncode != 0:
-            raise RuntimeError(
-                f"Command returned with non-zero exit code ({process.returncode})"
-            )
+        code = process.returncode
+        if code != 0:
+            if continue_on_error:
+                log.error(
+                    f"Command returned with non-zero exit code ({code})"
+                )
+            else:
+                raise RuntimeError(
+                    f"Command returned with non-zero exit code ({code})"
+                )
 
     return output
 
