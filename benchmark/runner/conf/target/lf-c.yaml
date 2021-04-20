@@ -1,10 +1,11 @@
 # @package _group_
 name: lf-c
-copy: ["cp", "-r", "${benchmark.targets.lf-c.copy_sources}", "."]
+prepare: ["mkdir", "src"]
+copy: ["cp", "-r", "${benchmark.targets.lf-c.copy_sources}", "src"]
 gen: ["cog", "-r", "${args:benchmark.targets.lf-c.gen_args}",
       "-D", "threads=${threads}",
-      "${benchmark.targets.lf-c.lf_file}"]
-compile: ["${lf_path}/bin/lfc", "${benchmark.targets.lf-c.lf_file}"]
+      "src/${benchmark.targets.lf-c.lf_file}"]
+compile: ["${lf_path}/bin/lfc", "src/${benchmark.targets.lf-c.lf_file}"]
 run: ["bash", "-c", "seq ${iterations} | xargs -I{} bin/${benchmark.targets.lf-c.binary}"]
 parser:
   _target_: "parser.parse_lfc_output"

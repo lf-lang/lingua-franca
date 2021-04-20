@@ -62,7 +62,7 @@ def main(cfg):
     check_benchmark_target_config(benchmark, target_name)
 
     # prepare the benchmark
-    for step in ["copy", "gen", "compile"]:
+    for step in ["prepare", "copy", "gen", "compile"]:
         if target[step] is not None:
             execute_command(target[step])
 
