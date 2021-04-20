@@ -206,7 +206,7 @@ reactor ApspFloydWarshallBlockReactor(myBlockId:int(-1), graphSize:int(300), blo
         if(k == graphSize - 1) {
             if(doPrint && !printed && myBlockId == 0) {
                 // debugging and result checking
-                print(*currentIterData);
+                // print(*currentIterData);
                 printed = 1;
             }
             return;
