@@ -1634,6 +1634,7 @@ void wait_for_federates(int socket_descriptor) {
     // Wait for federate threads to exit.
     void* thread_exit_status;
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+        info_print("RTI: Waiting for thread handling federate %d.", federates[i].id);
         pthread_join(federates[i].thread_id, &thread_exit_status);
         info_print("RTI: Federate %d thread exited.", federates[i].id);
     }

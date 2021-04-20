@@ -1,13 +1,13 @@
 /**
  * Test a source-destination scenario where the source falls behind real-time, and reaches the
  * timeout much later than the destination. In this test, the destination closes the connection
- * early, causing the transmission to fail.
+ * early, causing the transmission to fail.  Warnings will be printed.
  * 
  * The test fails if the federation does not exit amenably.
  * This variant has a physical connection between source and destination. 
  */
 target C {
-    timeout: 30 msec,
+    timeout: 1 msec,
     coordination: decentralized
 }
 
@@ -39,7 +39,7 @@ reactor Destination {
         info_print("Approx. time per reaction: %lldns", get_elapsed_physical_time()/(self->s+1));
     =}
 }
-federated reactor (period:time(1 usec)) {
+federated reactor (period:time(10 usec)) {
     c = new Clock(period = period);
     d = new Destination();
     c.y ~> d.x;
