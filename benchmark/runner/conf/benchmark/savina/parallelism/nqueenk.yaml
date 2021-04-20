@@ -5,7 +5,7 @@ params:
   size: 12
   threshold: 4
   priorities: 10
-  solutuion_limit: 1500000
+  solution_limit: 1500000
 
 # target specific configuration
 targets:
