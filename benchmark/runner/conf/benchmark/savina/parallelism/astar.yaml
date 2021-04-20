@@ -1,0 +1,30 @@
+# @package benchmark
+name: "A-Star Search"
+params:
+  num_workers: 20
+  grid_size: 30
+  priorities: 30
+  threshold: 2014
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.astar.GuidedSearchAkkaActorBenchmark"
+    run_args:
+      num_workers: ["-w", "<value>"]
+      threshold: ["-t", "<value>"]
+      grid_size: ["-g", "<value>"]
+      priorities: ["-p", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/astar"
+    lf_file: "astar/GuidedSearch.lf"
+    binary: "GuidedSearch"
+    gen_args:
+      num_workers: ["-D", "numWorkers=<value>"]
+    run_args:
+      threshold: ["--threshold", "<value>"]
+      grid_size: ["--gridSize", "<value>"]
+      priorities: ["--priorities", "<value>"]
