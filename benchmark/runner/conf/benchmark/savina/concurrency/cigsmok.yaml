@@ -1,0 +1,26 @@
+# @package benchmark
+name: "Cigarette Smokers"
+params:
+  rounds: 1000
+  smokers: 200
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.cigsmok.CigaretteSmokerAkkaActorBenchmark"
+    run_args:
+      rounds: ["-r", "<value>"]
+      smokers: ["-s", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/cigsmok"
+      - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
+      - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
+    lf_file: "cigsmok/CigaretteSmoker.lf"
+    binary: "CigaretteSmoker"
+    gen_args:
+      smokers: ["-D", "numSmokers=<value>"]
+    run_args:
+      rounds: ["--numRounds", "<value>"]
