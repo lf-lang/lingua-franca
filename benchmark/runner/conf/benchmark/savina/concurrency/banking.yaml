@@ -1,0 +1,26 @@
+# @package benchmark
+name: "Bank Transaction"
+params:
+  accounts: 20
+  transactions: 50000
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.banking.BankingAkkaActorBenchmark"
+    run_args:
+      accounts: ["-a", "<value>"]
+      transactions: ["-n", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/banking"
+      - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
+      - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
+    lf_file: "banking/Banking.lf"
+    binary: "Banking"
+    gen_args:
+      accounts: ["-D", "numAccounts=<value>"]
+    run_args:
+      transactions: ["--numTransactions", "<value>"]

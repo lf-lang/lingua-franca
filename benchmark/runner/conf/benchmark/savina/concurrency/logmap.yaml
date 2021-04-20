@@ -1,0 +1,27 @@
+# @package benchmark
+name: "Logistic Map Series"
+params:
+  terms: 25000
+  series: 10
+  start_rate: 3.46
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.logmap.LogisticMapAkkaManualStashActorBenchmark"
+    run_args:
+      terms: ["-t", "<value>"]
+      series: ["-s", "<value>"]
+      start_rate: ["-r", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/logmap"
+    lf_file: "logmap/LogisticMap.lf"
+    binary: "LogisticMap"
+    gen_args:
+      series: ["-D", "numSeries=<value>"]
+    run_args:
+      terms: ["--numTerms", "<value>"]
+      start_rate: ["--startRate", "<value>"]
