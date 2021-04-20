@@ -42,7 +42,6 @@
 // [[[end]]]
 
 target Cpp {
-    tracing: true,
     build-type : RelWithDebInfo,
     cmake-include: "FilterBank.cmake"
 };
