@@ -1,0 +1,29 @@
+# @package benchmark
+name: "Radix Sort"
+params:
+  data_size: 100000
+  max_value: 1152921504606846976  # 2^60
+  seed: 2048
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.radixsort.RadixSortAkkaActorBenchmark"
+    run_args:
+      data_size: ["-n", "<value>"]
+      max_value: ["-m", "<value>"]
+      seed: ["-s", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/radixsort"
+      - "${lf_path}/benchmark/Cpp/Savina/src/IncludeHeaders.cmake"
+      - "${lf_path}/benchmark/Cpp/Savina/src/PseudoRandom.hh"
+    lf_file: "radixsort/RadixSort.lf"
+    binary: "RadixSort"
+    gen_args: null
+    run_args:
+      data_size: ["--dataSize", "<value>"]
+      max_value: ["--maxValue", "<value>"]
+      seed: ["--seed", "<value>"]

@@ -1,0 +1,30 @@
+# @package benchmark
+name: "Trapezoidal Approximation"
+params:
+  pieces: 10000000
+  workers: 100
+  left: 1
+  right: 5
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.trapezoid.TrapezoidalAkkaActorBenchmark"
+    run_args:
+      pieces: ["-n", "<value>"]
+      workers: ["-w", "<value>"]
+      left: ["-l", "<value>"]
+      right: ["-r", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/trapezoid"
+    lf_file: "trapezoid/Trapezoidal.lf"
+    binary: "Trapezoidal"
+    gen_args:
+      workers: ["-D", "numWorkers=<value>"]
+    run_args:
+      pieces: ["--numPieces", "<value>"]
+      left: ["--leftEndPoint", "<value>"]
+      right: ["--rightEndPoint", "<value>"]

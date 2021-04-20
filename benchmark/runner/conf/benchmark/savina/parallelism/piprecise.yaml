@@ -1,0 +1,24 @@
+# @package benchmark
+name: "Precise Pi Computation"
+params:
+  workers: 20
+  precision: 5000
+
+# target specific configuration
+targets:
+  akka:
+    jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
+    class: "edu.rice.habanero.benchmarks.piprecision.PiPrecisionAkkaActorBenchmark"
+    run_args:
+      workers: ["-w", "<value>"]
+      precision: ["-p", "<value>"]
+  lf-cpp:
+    copy_sources:
+      - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
+      - "${lf_path}/benchmark/Cpp/Savina/src/piprecision"
+    lf_file: "piprecision/PiPrecision.lf"
+    binary: "PiPrecision"
+    gen_args:
+      workers: ["-D", "numWorkers=<value>"]
+    run_args:
+      precision: ["--precision", "<value>"]
