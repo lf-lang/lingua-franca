@@ -81,12 +81,18 @@ int host_is_big_endian() {
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to read.
  * @param buffer The buffer into which to put the bytes.
+ * @param mutex If non-NULL, the mutex to unlock before exiting.
  * @param format A printf-style format string, followed by arguments to
  *  fill the string, or NULL to not exit with an error message.
  * @return The number of bytes read, or 0 if an EOF is received, or
  *  a negative number for an error.
  */
-int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, char* format, ...) {
+int read_from_socket_errexit_with_mutex(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		lf_mutex_t* mutex,
+		char* format, ...) {
     int bytes_read = 0;
     va_list args;
     while (bytes_read < num_bytes) {
@@ -100,6 +106,9 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
             error_print("Socket read failed on socket %d: %s:", socket, strerror(errno));
             if (format != NULL) {
                 close(socket);
+            	if (mutex != NULL) {
+            		lf_mutex_unlock(mutex);
+            	}
                 error_print_and_exit(format, args);
             }
             return more;
@@ -107,6 +116,9 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
             info_print("Received EOF on socket %d.", socket);
             if (format != NULL) {
                 close(socket);
+            	if (mutex != NULL) {
+            		lf_mutex_unlock(mutex);
+            	}
                 error_print_and_exit(format, args);
             }
             return more;
@@ -114,6 +126,34 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
         bytes_read += more;
     }
     return bytes_read;
+}
+
+/**
+ * Read the specified number of bytes from the specified socket into the
+ * specified buffer. If an error or an EOF occurs during this
+ * reading, then if format is non-null, close the socket,
+ * report an error and exit.
+ * If format is null, then report the error, but do not exit or close
+ * the socket.
+ *
+ * This function takes a formatted
+ * string and additional optional arguments similar to printf(format, ...)
+ * that is appended to the error messages.
+ *
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to read.
+ * @param buffer The buffer into which to put the bytes.
+ * @param format A printf-style format string, followed by arguments to
+ *  fill the string, or NULL to not exit with an error message.
+ * @return The number of bytes read, or 0 if an EOF is received, or
+ *  a negative number for an error.
+ */
+int read_from_socket_errexit(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		char* format, ...) {
+	return read_from_socket_errexit_with_mutex(socket, num_bytes, buffer, NULL, format);
 }
 
 /**
@@ -130,7 +170,69 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
  * @return The number of bytes read or 0 when EOF is received or negative for an error.
  */
 int read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
-    return read_from_socket_errexit(socket, num_bytes, buffer, NULL);
+    return read_from_socket_errexit_with_mutex(socket, num_bytes, buffer, NULL, NULL);
+}
+
+/**
+ * Write the specified number of bytes to the specified socket from the
+ * specified buffer. If an error or an EOF occurs during this
+ * reading, then if the format string is non-null, close the socket,
+ * report an error, and exit. If the format string is null,
+ * report an error or EOF and return.
+ *
+ * This function takes a formatted
+ * string and additional optional arguments similar to printf(format, ...)
+ * that is appended to the error messages.
+ *
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to write.
+ * @param buffer The buffer from which to get the bytes.
+ * @param mutex If non-NULL, the mutex to unlock before exiting.
+ * @param format A format string for error messages, followed by any number of
+ *  fields that will be used to fill the format string as in printf, or NULL
+ *  to prevent exit on error.
+ * @return The number of bytes written, or 0 if an EOF was received, or a negative
+ *  number if an error occurred.
+ */
+int write_to_socket_errexit_with_mutex(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		lf_mutex_t* mutex,
+		char* format, ...) {
+    int bytes_written = 0;
+    va_list args;
+    while (bytes_written < num_bytes) {
+        int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
+        if (more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+                    // The error code set by the socket indicates
+                    // that we should try again (@see man errno).
+            DEBUG_PRINT("Writing to socket was blocked. Will try again.");
+            continue;
+        } else if (more < 0) {
+            error_print("Socket write failed: %s:", strerror(errno));
+            if (format != NULL) {
+            	close(socket);
+            	if (mutex != NULL) {
+            		lf_mutex_unlock(mutex);
+            	}
+                error_print_and_exit(format, args);
+            }
+            return more;
+        } else if (more == 0) {
+            error_print("Peer sent EOF. ");
+            if (format != NULL) {
+                close(socket);
+            	if (mutex != NULL) {
+            		lf_mutex_unlock(mutex);
+            	}
+                error_print_and_exit(format, args);
+            }
+            return more;
+        }
+        bytes_written += more;
+    }
+    return bytes_written;
 }
 
 /**
@@ -153,34 +255,12 @@ int read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, char* format, ...) {
-    int bytes_written = 0;
-    va_list args;
-    while (bytes_written < num_bytes) {
-        int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
-        if (more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-                    // The error code set by the socket indicates
-                    // that we should try again (@see man errno).
-            DEBUG_PRINT("Writing to socket was blocked. Will try again.");
-            continue;
-        } else if (more < 0) {
-            error_print("Socket write failed: %s:", strerror(errno));
-            if (format != NULL) {
-            	close(socket);
-                error_print_and_exit(format, args);
-            }
-            return more;
-        } else if (more == 0) {
-            error_print("Peer sent EOF. ");
-            if (format != NULL) {
-                close(socket);
-                error_print_and_exit(format, args);
-            }
-            return more;
-        }
-        bytes_written += more;
-    }
-    return bytes_written;
+int write_to_socket_errexit(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		char* format, ...) {
+	return write_to_socket_errexit_with_mutex(socket, num_bytes, buffer, NULL, format);
 }
 
 /**
@@ -198,7 +278,7 @@ int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, ch
  *  number if an error occurred.
  */
 int write_to_socket(int socket, int num_bytes, unsigned char* buffer) {
-    return write_to_socket_errexit(socket, num_bytes, buffer, NULL);
+    return write_to_socket_errexit_with_mutex(socket, num_bytes, buffer, NULL, NULL);
 }
 
 /** Write the specified data as a sequence of bytes starting

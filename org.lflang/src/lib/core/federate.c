@@ -250,11 +250,12 @@ int send_message(int message_type,
     }
     if (socket < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
     	return 0;
     }
-    write_to_socket_errexit(socket, header_length, header_buffer,
+    write_to_socket_errexit_with_mutex(socket, header_length, header_buffer, &outbound_socket_mutex,
             "Failed to send message header to to %s.", next_destination_str);
-    write_to_socket_errexit(socket, length, message,
+    write_to_socket_errexit_with_mutex(socket, length, message, &outbound_socket_mutex,
             "Failed to send message body to to %s.", next_destination_str);
     lf_mutex_unlock(&outbound_socket_mutex);
     return 1;
@@ -373,11 +374,12 @@ int send_timed_message(interval_t additional_delay,
     }
     if (socket < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
     	return 0;
     }
-    write_to_socket_errexit(socket, header_length, header_buffer,
+    write_to_socket_errexit_with_mutex(socket, header_length, header_buffer, &outbound_socket_mutex,
             "Failed to send timed message header to %s.", next_destination_str);
-    write_to_socket_errexit(socket, length, message,
+    write_to_socket_errexit_with_mutex(socket, length, message, &outbound_socket_mutex,
             "Failed to send timed message body to %s.", next_destination_str);
     lf_mutex_unlock(&outbound_socket_mutex);
     return 1;
@@ -398,9 +400,10 @@ void _lf_send_time(unsigned char type, instant_t time) {
     lf_mutex_lock(&outbound_socket_mutex);
     if (_fed.socket_TCP_RTI < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
     	return;
     }
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), buffer,
+    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), buffer, &outbound_socket_mutex,
             "Failed to send time to the RTI.");
     lf_mutex_unlock(&outbound_socket_mutex);
 }
@@ -421,9 +424,11 @@ void _lf_send_tag(unsigned char type, tag_t tag) {
     lf_mutex_lock(&outbound_socket_mutex);
     if (_fed.socket_TCP_RTI < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
     	return;
     }
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer,
+    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, 1 + sizeof(instant_t) + sizeof(microstep_t),
+    		buffer, &outbound_socket_mutex,
             "Failed to send tag (%lld, %u) to the RTI.", tag.time - start_time, tag.microstep);
     lf_mutex_unlock(&outbound_socket_mutex);
 }
@@ -1538,9 +1543,10 @@ void _lf_fd_send_stop_request_to_rti() {
     lf_mutex_lock(&outbound_socket_mutex);
     if (_fed.socket_TCP_RTI < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
     	return;
     }
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), buffer,
+    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), buffer, &outbound_socket_mutex,
             "Failed to send stop time %lld to the RTI.", current_tag.time - start_time);
     lf_mutex_unlock(&outbound_socket_mutex);
     _fed.sent_a_stop_request_to_rti = true;
@@ -1640,11 +1646,12 @@ void handle_stop_request_message() {
     lf_mutex_lock(&outbound_socket_mutex);
     if (_fed.socket_TCP_RTI < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
     	return;
     }
     // Send the current logical time to the RTI. This message does not have an identifying byte since
     // since the RTI is waiting for a response from this federate.
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), outgoing_buffer,
+    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), outgoing_buffer, &outbound_socket_mutex,
             "Failed to send the answer to STOP_REQUEST to RTI.");
     lf_mutex_unlock(&outbound_socket_mutex);
 
@@ -1764,6 +1771,7 @@ void* listen_to_federates(void* fed_id_ptr) {
             // FIXME: Better error handling needed.
             lf_mutex_lock(&inbound_socket_mutex);
             if (!_lf_request_close_inbound_socket(fed_id)) {
+                lf_mutex_unlock(&inbound_socket_mutex);
                 error_print_and_exit(
                 		"Federate %d failed to close incoming socket.",
 						_lf_my_fed_id
@@ -2287,7 +2295,7 @@ void send_port_absent_to_federate(unsigned short port_ID,
 #endif
     // Do not write if the socket is closed.
     if (socket >= 0) {
-    	write_to_socket_errexit(socket, message_length, buffer,
+    	write_to_socket_errexit_with_mutex(socket, message_length, buffer, &outbound_socket_mutex,
     			"Failed to send port absent message for port %hu to federate %hu.",
 				port_ID, fed_ID);
     }
