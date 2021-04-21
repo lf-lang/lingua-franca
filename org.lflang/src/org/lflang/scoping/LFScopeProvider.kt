@@ -21,9 +21,6 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/**
- * Scope provider for Lingua Franca.
- */
 package org.lflang.scoping
 
 import com.google.inject.Inject
@@ -38,9 +35,7 @@ import org.eclipse.xtext.scoping.impl.SelectableBasedScope
 import org.eclipse.xtext.xbase.lib.CollectionLiterals
 import org.lflang.ASTUtils
 import org.lflang.lf.*
-import java.util.*
 import java.util.Collections.emptyList
-import kotlin.collections.*
 
 /**
  * This class enforces custom rules. In particular, it resolves references to
@@ -48,8 +43,7 @@ import kotlin.collections.*
  * most one level of hierarchy. Parameters, actions, and timers can be
  * referenced locally, within the reactor.
  *
- * @see https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html.scoping
- * on how and when to use it.
+ * @see "https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html.scoping on how and when to use it."
  *
  * @author Marten Lohstroh
  */
@@ -76,6 +70,7 @@ class LFScopeProvider : DelegatingScopeProvider() {
     override fun getScope(context: EObject, reference: EReference): IScope {
         return when (context) {
             is VarRef          -> getScopeForVarRef(context, reference)
+            is Assignment      -> getScopeForAssignment(context, reference)
             is Instantiation   -> getScopeForReactorDecl(context, reference)
             is Reactor         -> getScopeForReactorDecl(context, reference)
             is ImportedReactor -> getScopeForImportedReactor(context, reference)
@@ -87,7 +82,7 @@ class LFScopeProvider : DelegatingScopeProvider() {
      * Filter out candidates that do not originate from the file listed in
      * this particular import statement.
      */
-    protected fun getScopeForImportedReactor(context: ImportedReactor, reference: EReference): IScope {
+    private fun getScopeForImportedReactor(context: ImportedReactor, reference: EReference): IScope {
         val importURI = (context.eContainer() as Import).importURI ?: ""
         val importedURI = scopeProvider!!.resolve(importURI, context.eResource())
         if (importedURI != null) {
