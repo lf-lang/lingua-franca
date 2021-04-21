@@ -28,7 +28,8 @@ import org.lflang.lf.*
 import java.lang.AssertionError
 
 
-fun ReactorDecl.toDefinition(): Reactor = when (this) {
+fun ReactorDecl?.toDefinition(): Reactor? = when (this) {
+    null               -> null
     is Reactor         -> this
     is ImportedReactor -> this.reactorClass
     else               -> throw AssertionError("unreachable")
@@ -89,4 +90,4 @@ val Reactor.allStateVars: List<StateVar> get() = superClassRecursor { stateVars 
 val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
 
 private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): List<T> =
-    superClasses.orEmpty().flatMap { it.toDefinition().collector() } + this.collector()
+    superClasses.orEmpty().mapNotNull { it.toDefinition()?.collector() }.flatten() + this.collector()
