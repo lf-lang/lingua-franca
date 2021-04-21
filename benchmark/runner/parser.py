@@ -11,8 +11,6 @@ def parse_caf_output(lines):
     times = []
     for line in lines:
         line_split = line.split()
-        if "iteration-" in line:
-            print(line_split)
         if "iteration-" in line and len(line_split) == 4 and line_split[3] == "ms":
             times.append(float(line.split()[2]))
     return times
