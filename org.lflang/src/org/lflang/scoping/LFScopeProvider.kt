@@ -33,7 +33,7 @@ import org.eclipse.xtext.scoping.Scopes
 import org.eclipse.xtext.scoping.impl.DelegatingScopeProvider
 import org.eclipse.xtext.scoping.impl.SelectableBasedScope
 import org.eclipse.xtext.xbase.lib.CollectionLiterals
-import org.lflang.ASTUtils
+import org.lflang.*
 import org.lflang.lf.*
 import java.util.Collections.emptyList
 
@@ -123,9 +123,9 @@ class LFScopeProvider : DelegatingScopeProvider() {
     private fun getScopeForAssignment(assignment: Assignment, reference: EReference?): IScope {
 
         if (reference == LfPackage.Literals.ASSIGNMENT__LHS) {
-            val defn = ASTUtils.toDefinition((assignment.eContainer() as Instantiation).reactorClass)
+            val defn = ((assignment.eContainer() as Instantiation).reactorClass).toDefinition()
             if (defn != null) {
-                return Scopes.scopeFor(ASTUtils.allParameters(defn))
+                return Scopes.scopeFor(defn.allParameters)
             }
         }
         if (reference == LfPackage.Literals.ASSIGNMENT__RHS) {
@@ -164,11 +164,11 @@ class LFScopeProvider : DelegatingScopeProvider() {
             val instances = reactor.instantiations
 
             for (instance in instances) {
-                val defn = ASTUtils.toDefinition(instance.reactorClass)
-                if (defn !== null && instanceName !== null && instance.name == instanceName.toString()) {
+                val defn = instance.reactorClass.toDefinition()
+                if (defn != null && instanceName != null && instance.name == instanceName.toString()) {
                     return when (type) {
-                        RefType.TRIGGER, RefType.SOURCE, RefType.CLEFT   -> Scopes.scopeFor(ASTUtils.allOutputs(defn))
-                        RefType.EFFECT, RefType.DEADLINE, RefType.CRIGHT -> Scopes.scopeFor(ASTUtils.allInputs(defn))
+                        RefType.TRIGGER, RefType.SOURCE, RefType.CLEFT   -> Scopes.scopeFor(defn.allOutputs)
+                        RefType.EFFECT, RefType.DEADLINE, RefType.CRIGHT -> Scopes.scopeFor(defn.allInputs)
                         else                                             -> Scopes.scopeFor(emptyList())
                     }
                 }
@@ -179,14 +179,14 @@ class LFScopeProvider : DelegatingScopeProvider() {
 
         val candidates: List<EObject> = when (type) {
             RefType.TRIGGER  -> mutableListOf<EObject>().apply {
-                this += ASTUtils.allInputs(reactor)
-                this += ASTUtils.allActions(reactor)
-                this += ASTUtils.allTimers(reactor)
+                this += reactor.allInputs
+                this += reactor.allActions
+                this += reactor.allTimers
             }
-            RefType.EFFECT   -> ASTUtils.allOutputs(reactor) + ASTUtils.allActions(reactor)
-            RefType.DEADLINE -> ASTUtils.allInputs(reactor)
-            RefType.CLEFT    -> ASTUtils.allInputs(reactor)
-            RefType.CRIGHT   -> ASTUtils.allOutputs(reactor)
+            RefType.EFFECT   -> reactor.allOutputs + reactor.allActions
+            RefType.DEADLINE -> reactor.allInputs
+            RefType.CLEFT    -> reactor.allInputs
+            RefType.CRIGHT   -> reactor.allOutputs
             else             -> emptyList()
         }
 
