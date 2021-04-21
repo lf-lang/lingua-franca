@@ -10,6 +10,10 @@ targets:
     class: "edu.rice.habanero.benchmarks.pingpong.PingPongAkkaActorBenchmark"
     run_args:
       pings: ["-n", "<value>"]
+  caf:
+    bin: "caf_01_pingpong"
+    run_args:
+      pings: ["-n", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

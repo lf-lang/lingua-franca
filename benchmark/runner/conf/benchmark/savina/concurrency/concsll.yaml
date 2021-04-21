@@ -16,6 +16,13 @@ targets:
       messages_per_worker: ["-m", "<value>"]
       write_percentage: ["-w", "<value>"]
       size_percentage: ["-s", "<value>"]
+  caf:
+    bin: "caf_09_concsll"
+    run_args:
+      workers: ["-e", "<value>"]
+      messages_per_worker: ["-m", "<value>"]
+      write_percentage: ["-w", "<value>"]
+      size_percentage: ["-s", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

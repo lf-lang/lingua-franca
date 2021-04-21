@@ -16,6 +16,13 @@ targets:
       data_length: ["-n", "<value>"]
       block_threshold: ["-t", "<value>"]
       priorities: ["-p", "<value>"]
+  caf:
+    bin: "caf_23_recmatmul"
+    run_args:
+      workers: ["-w", "<value>"]
+      data_length: ["-n", "<value>"]
+      block_threshold: ["-t", "<value>"]
+      priorities: ["-p", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
