@@ -16,6 +16,13 @@ targets:
       workers: ["-w", "<value>"]
       left: ["-l", "<value>"]
       right: ["-r", "<value>"]
+  caf:
+    bin: "caf_21_trapezoid"
+    run_args:
+      pieces: ["-n", "<value>"]
+      workers: ["-w", "<value>"]
+      left: ["-l", "<value>"]
+      right: ["-r", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

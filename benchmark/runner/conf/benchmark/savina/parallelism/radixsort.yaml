@@ -14,6 +14,12 @@ targets:
       data_size: ["-n", "<value>"]
       max_value: ["-m", "<value>"]
       seed: ["-s", "<value>"]
+  caf:
+    bin: "caf_16_radixsort"
+    run_args:
+      data_size: ["-n", "<value>"]
+      max_value: ["-m", "<value>"]
+      seed: ["-s", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
