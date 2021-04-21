@@ -48,30 +48,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 int host_is_big_endian();
 
-/** 
- * Read the specified number of bytes from the specified socket into the
- * specified buffer. If a disconnect or an EOF occurs during this
- * reading, then if format is non-null, report an error and exit.
- * If format is null, then report the error, but do not exit.
- * This function takes a formatted
- * string and additional optional arguments similar to printf(format, ...)
- * that is appended to the error messages.
- * @param socket The socket ID.
- * @param num_bytes The number of bytes to read.
- * @param buffer The buffer into which to put the bytes.
- * @param mutex If non-NULL, the mutex to unlock before exiting.
- * @param format A printf-style format string, followed by arguments to
- *  fill the string, or NULL to not exit with an error message.
- * @return The number of bytes read, or 0 if an EOF is received, or
- *  a negative number for an error.
- */
-int read_from_socket_errexit_with_mutex(
-		int socket,
-		int num_bytes,
-		unsigned char* buffer,
-		lf_mutex_t* mutex,
-		char* format, ...);
-
 /**
  * Read the specified number of bytes from the specified socket into the
  * specified buffer. If a disconnect or an EOF occurs during this
