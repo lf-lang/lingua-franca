@@ -25,7 +25,8 @@
 package org.lflang
 
 import org.lflang.lf.*
-import java.lang.AssertionError
+import java.lang.Exception
+import kotlin.reflect.KClass
 
 
 fun ReactorDecl?.toDefinition(): Reactor? = when (this) {
@@ -91,3 +92,6 @@ val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
 
 private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): List<T> =
     superClasses.orEmpty().mapNotNull { it.toDefinition()?.collector() }.flatten() + this.collector()
+
+
+fun <T> List<T>.tail() = subList(1, size)
