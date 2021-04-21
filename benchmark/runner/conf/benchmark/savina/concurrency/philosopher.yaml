@@ -12,6 +12,11 @@ targets:
     run_args:
       philosophers: ["-n", "<value>"]
       eating_rounds: ["-m", "<value>"]
+  caf:
+    bin: "caf_11_philosopher"
+    run_args:
+      philosophers: ["-n", "<value>"]
+      eating_rounds: ["-m", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

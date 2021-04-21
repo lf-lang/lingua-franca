@@ -14,6 +14,12 @@ targets:
       terms: ["-t", "<value>"]
       series: ["-s", "<value>"]
       start_rate: ["-r", "<value>"]
+  caf:
+    bin: "caf_14_logmap_request_await_infinite"
+    run_args:
+      terms: ["-t", "<value>"]
+      series: ["-s", "<value>"]
+      start_rate: ["-r", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

@@ -12,6 +12,11 @@ targets:
     run_args:
       messages: ["-n", "<value>"]
       actors: ["-a", "<value>"]
+  caf:
+    bin: "caf_03_fjthrput"
+    run_args:
+      messages: ["-n", "<value>"]
+      actors: ["-a", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
