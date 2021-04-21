@@ -38,7 +38,10 @@ subprojects {
 	apply plugin: 'org.xtext.xtend'
 	apply from: "${rootDir}/gradle/source-layout.gradle"
 	apply plugin: 'eclipse'
-	
+
+	// generate xtend sources before kotlin compilation
+	compileKotlin.dependsOn("generateXtext")
+
 	group = 'org.lflang'
 	version = '1.0.0-SNAPSHOT'
 	
