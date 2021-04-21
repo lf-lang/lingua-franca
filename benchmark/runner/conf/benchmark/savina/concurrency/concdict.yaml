@@ -14,6 +14,12 @@ targets:
       workers: ["-e", "<value>"]
       messages_per_worker: ["-m", "<value>"]
       write_percentage: ["-w", "<value>"]
+  caf:
+    bin: "caf_08_concdict"
+    run_args:
+      workers: ["-e", "<value>"]
+      messages_per_worker: ["-m", "<value>"]
+      write_percentage: ["-w", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

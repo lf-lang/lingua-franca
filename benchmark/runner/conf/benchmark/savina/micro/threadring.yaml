@@ -12,6 +12,11 @@ targets:
     run_args:
       pings: ["-n", "<value>"]
       actors: ["-r", "<value>"]
+  caf:
+    bin: "caf_05_threadring"
+    run_args:
+      pings: ["-n", "<value>"]
+      actors: ["-r", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
