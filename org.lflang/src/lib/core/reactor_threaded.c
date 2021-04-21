@@ -1299,22 +1299,26 @@ int main(int argc, char* argv[]) {
         DEBUG_PRINT("Waiting for worker threads to exit.");
 
         // Wait for the worker threads to exit.
-        void* worker_thread_exit_status;
+        void* worker_thread_exit_status = NULL;
         DEBUG_PRINT("Number of threads: %d.", _lf_number_of_threads);
-        
         int ret = 0;
         for (int i = 0; i < _lf_number_of_threads; i++) {
-            ret = MAX(lf_thread_join(__thread_ids[i], &worker_thread_exit_status), ret);
+        	int failure = lf_thread_join(__thread_ids[i], &worker_thread_exit_status);
+        	if (failure) {
+        		error_print("Failed to join thread listening for incoming messages: %s", strerror(failure));
+        	}
+        	if (worker_thread_exit_status != NULL) {
+                error_print("---- Worker %d reports error code %p", worker_thread_exit_status);
+                ret = 1;
+        	}
         }
 
         if (ret == 0) {
             LOG_PRINT("---- All worker threads exited successfully.");
-        } else {
-            error_print("Unable to successfully join worker threads: %s", strerror(ret));
         }
         
         free(__thread_ids);
-        return 0;
+        return ret;
     } else {
         return -1;
     }

@@ -52,6 +52,13 @@ typedef struct federate_instance_t {
 	int number_of_inbound_p2p_connections;
 
 	/**
+	 * Array of thread IDs for threads that listen for incoming messages.
+	 * This is NULL if there are none and otherwise has size given by
+	 * number_of_inbound_p2p_connections.
+	 */
+	lf_thread_t *inbound_socket_listeners;
+
+	/**
 	 * Number of outbound peer-to-peer connections from the federate.
 	 * This can be either physical connections, or logical connections
 	 * in the decentralized coordination, or both.

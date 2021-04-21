@@ -51,8 +51,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via RTI";
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
 
-// Mutex locks held while performing socket operations.
-lf_mutex_t inbound_socket_mutex;
+// Mutex lock held while performing socket write and close operations.
 lf_mutex_t outbound_socket_mutex;
 lf_cond_t port_status_changed;
 
@@ -62,6 +61,7 @@ lf_cond_t port_status_changed;
 federate_instance_t _fed = {
         .socket_TCP_RTI = -1,
         .number_of_inbound_p2p_connections = 0,
+		.inbound_socket_listeners = NULL,
         .number_of_outbound_p2p_connections = 0,
         .sockets_for_inbound_p2p_connections = { -1 },
         .sockets_for_outbound_p2p_connections = { -1 },
@@ -442,7 +442,8 @@ void _lf_send_tag(unsigned char type, tag_t tag) {
  */
 void* handle_p2p_connections_from_federates(void* ignored) {
     int received_federates = 0;
-    lf_thread_t thread_ids[_fed.number_of_inbound_p2p_connections];
+    // Allocate memory to store thread IDs.
+    _fed.inbound_socket_listeners = (lf_thread_t*)calloc(_fed.number_of_inbound_p2p_connections, sizeof(lf_thread_t));
     while (received_federates < _fed.number_of_inbound_p2p_connections) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
@@ -516,7 +517,10 @@ void* handle_p2p_connections_from_federates(void* ignored) {
             error_print_and_exit("malloc failed.");
         }
         *remote_fed_id_copy = remote_fed_id;
-        int result = lf_thread_create(&thread_ids[received_federates], listen_to_federates, remote_fed_id_copy);
+        int result = lf_thread_create(
+        		&_fed.inbound_socket_listeners[received_federates],
+				listen_to_federates,
+				remote_fed_id_copy);
         if (result != 0) {
             // Failed to create a listening thread.
             close(socket_id);
@@ -1045,8 +1049,6 @@ handle_t schedule_message_received_from_network_already_locked(
  * this returns 1. Otherwise it returns 0, which presumably means that the
  * socket is already closed.
  *
- * This function assumes the caller holds the inbound_socket_mutex.
- *
  * @param The ID of the peer federate sending messages to this federate.
  *
  * @return 1 if the CLOSE_REQUEST message is sent successfully, 0 otherwise.
@@ -1058,6 +1060,7 @@ int _lf_request_close_inbound_socket(int fed_id) {
 
    	// Send a CLOSE_REQUEST message.
     unsigned char message_marker = CLOSE_REQUEST;
+   	LOG_PRINT("Sending CLOSE_REQUEST message to upstream federate.");
     int written = write_to_socket(
      		_fed.sockets_for_inbound_p2p_connections[fed_id],
 			1, &message_marker);
@@ -1072,18 +1075,13 @@ int _lf_request_close_inbound_socket(int fed_id) {
 
 /**
  * Close the socket that receives incoming messages from the
- * specified federate ID. This function should be called when a read
- * of incoming socket fails.  Call _lf_close_inbound_socket() instead
- * to request an orderly close if the socket is still expected to be open.
+ * specified federate ID or RTI. This function should be called when a read
+ * of incoming socket fails or when an EOF is received.
  *
- * This function assumes the caller does
- * not hold ANY mutex lock. This function acquires a mutex lock
- * that is used exlusively for closing these sorts of sockets.
  * @param The ID of the peer federate sending messages to this
- *  federate, or -1 if the RTI (centralized coordination).
+ *  federate, or -1 if the RTI.
  */
 void _lf_close_inbound_socket(int fed_id) {
-    lf_mutex_lock(&inbound_socket_mutex);
     if (fed_id < 0) {
         // socket connection is to the RTI.
         shutdown(_fed.socket_TCP_RTI, SHUT_RDWR);
@@ -1094,7 +1092,6 @@ void _lf_close_inbound_socket(int fed_id) {
         close(_fed.sockets_for_inbound_p2p_connections[fed_id]);
         _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
     }
-    lf_mutex_unlock(&inbound_socket_mutex);
 }
 
 /**
@@ -1144,60 +1141,6 @@ bool any_control_reaction_is_waiting() {
     return false;
 }
 
-/**
- * Read message "message_name" of size bytes_to_read from socket into buffer.
- * 
- * Will print an error and exit if the read fails.
- * This function assumes that the holder does not hold any mutexes. It will
- * acquire the inbound_socket_mutex to read the message.
- * @param fed_id The id of the federate to read from (-1 for the RTI)
- * @param socket The socket to read from
- * @param bytes_to_read How many bytes to read
- * @param buffer The buffer to red into
- * @param message_name The name of the message for logging purposes.
- */
-void read_message_errexit(int fed_id, int socket, int bytes_to_read, unsigned char* buffer, char* message_name) {
-    lf_mutex_lock(&inbound_socket_mutex);
-    // Check if the socket is still valid
-    if (socket < 0) {
-        warning_print("Socket is no longer connected.");
-        lf_mutex_unlock(&inbound_socket_mutex);
-        return;
-    }
-    // Read the data
-    int bytes_read = read_from_socket(socket, bytes_to_read, buffer);
-    lf_mutex_unlock(&inbound_socket_mutex);
-    // Check if the read data is valid
-    if (bytes_read != bytes_to_read) {
-        _lf_close_inbound_socket(fed_id);
-        // FIXME: unprotected call to get_current_tag(). But it is just for
-        // informational purposes
-        tag_t current_tag = get_current_tag();
-        error_print_and_exit("Failed to read %s."
-                    " Last NET: (%lld, %u). Current tag: (%lld, %u)",
-                    message_name,
-                    _fed.last_sent_NET.time - get_start_time(),
-                    _fed.last_sent_NET.microstep,
-                    current_tag.time - get_start_time(),
-                    current_tag.microstep);
-    }
-}
-
-/**
- * Read the requested bytes from the RTI into the buffer.
- * 
- * Will print an error and exit if the read fails.
- * This function assumes that the holder does not hold any mutexes. It will
- * acquire the inbound_socket_mutex to read the message.
- * @param socket The socket to read from
- * @param bytes_to_read How many bytes to read
- * @param buffer The buffer to red into
- * @param message_name The name of the message for logging purposes.
- */
-void read_from_RTI_errexit(int bytes_to_read, unsigned char* buffer, char* message_name) {
-    read_message_errexit(-1, _fed.socket_TCP_RTI, bytes_to_read, buffer, message_name);
-}
-
 /** 
  * Handle a port absent message received from a remote federate.
  * @param socket The socket to read the message from
@@ -1207,7 +1150,8 @@ void read_from_RTI_errexit(int bytes_to_read, unsigned char* buffer, char* messa
 void handle_port_absent_message(int socket, int fed_id) {
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[bytes_to_read];
-    read_message_errexit(fed_id, socket, bytes_to_read, buffer, "port absent");
+    read_from_socket_errexit(socket, bytes_to_read, buffer,
+    		"Failed to read port absent message.");
 
     // Extract the header information.
     unsigned short port_id = extract_ushort(buffer);
@@ -1250,9 +1194,8 @@ void handle_message(int socket, int fed_id) {
     // Read the header.
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(int);
     unsigned char buffer[bytes_to_read];
-    // Do not use read_from_socket_errexit() because if the socket needs
-    // to be closed, it needs to be closed using _lf_close_inbound_socket().
-    read_message_errexit(fed_id, socket, bytes_to_read, buffer, "message header");
+    read_from_socket_errexit(socket, bytes_to_read, buffer,
+    		"Failed to read message header.");
 
     // Extract the header information.
     unsigned short port_id;
@@ -1269,9 +1212,8 @@ void handle_message(int socket, int fed_id) {
     // Read the payload.
     // Allocate memory for the message contents.
     unsigned char* message_contents = (unsigned char*)malloc(length);
-    // Do not use read_from_socket_errexit() because if the socket needs
-    // to be closed, it needs to be closed using _lf_close_inbound_socket().
-    read_message_errexit(fed_id, socket, length, message_contents, "message body");
+    read_from_socket_errexit(socket, length, message_contents,
+    		"Failed to read message body.");
 
     LOG_PRINT("Message received by federate: %s. Length: %d.", message_contents, length);
 
@@ -1301,9 +1243,8 @@ void handle_timed_message(int socket, int fed_id) {
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(int)
             + sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[bytes_to_read];
-    // Do not use read_from_socket_errexit() because if the socket needs
-    // to be closed, it needs to be closed using _lf_close_inbound_socket().    
-    read_message_errexit(fed_id, socket, bytes_to_read, buffer, "timed message header");
+    read_from_socket_errexit(socket, bytes_to_read, buffer,
+    		"Failed to read timed message header");
 
     // Extract the header information.
     unsigned short port_id;
@@ -1344,7 +1285,8 @@ void handle_timed_message(int socket, int fed_id) {
     // Read the payload.
     // Allocate memory for the message contents.
     unsigned char* message_contents = (unsigned char*)malloc(length);
-    read_message_errexit(fed_id, socket, length, message_contents, "message body");
+    read_from_socket_errexit(socket, length, message_contents,
+    		"Failed to read message body.");
 
     // The following is only valid for string messages.
     // DEBUG_PRINT("Message received: %s.", message_contents);
@@ -1462,7 +1404,8 @@ void handle_timed_message(int socket, int fed_id) {
 void handle_tag_advance_grant() {
     int bytes_to_read = sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[bytes_to_read];
-    read_from_RTI_errexit(bytes_to_read, buffer, "tag advance grant");
+    read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
+    		"Failed to read tag advance grant from RTI.");
 
     lf_mutex_lock(&mutex);
     tag_t TAG;
@@ -1508,7 +1451,8 @@ void handle_tag_advance_grant() {
 void handle_provisional_tag_advance_grant() {
     int bytes_to_read = sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[bytes_to_read];    
-    read_from_RTI_errexit(bytes_to_read, buffer, "provisional tag advance grant");
+    read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
+    		"Failed to read provisional tag advance grant from RTI.");
 
     lf_mutex_lock(&mutex);
     _fed.last_TAG.time = extract_ll(buffer);
@@ -1569,7 +1513,8 @@ void _lf_fd_send_stop_request_to_rti() {
 void handle_stop_granted_message() {
     int bytes_to_read = sizeof(instant_t);
     unsigned char buffer[bytes_to_read];    
-    read_from_RTI_errexit(bytes_to_read, buffer, "stop granted");            
+    read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
+    		"Failed to read stop granted from RTI.");
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
@@ -1620,7 +1565,8 @@ void handle_stop_granted_message() {
 void handle_stop_request_message() {
     int bytes_to_read = sizeof(instant_t);
     unsigned char buffer[bytes_to_read];    
-    read_from_RTI_errexit(bytes_to_read, buffer, "stop request");
+    read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
+    		"Failed to read stop request from RTI.");
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
@@ -1687,13 +1633,6 @@ void terminate_execution() {
         // This will result in EOF being sent to the remote federate, I think.
         _lf_close_outbound_socket(i);
     }
-
-    // Close the incoming P2P sockets.
-    lf_mutex_lock(&inbound_socket_mutex);
-    for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
-        _lf_request_close_inbound_socket(i);
-    }
-
     // Resign the federation, which will close the socket to the RTI.
    	if (_fed.socket_TCP_RTI >= 0) {
         unsigned char message_marker = RESIGN;
@@ -1703,16 +1642,34 @@ void terminate_execution() {
         }
         _fed.socket_TCP_RTI = -1;
     }
-    lf_mutex_unlock(&inbound_socket_mutex);
     lf_mutex_unlock(&outbound_socket_mutex);
 
+    // Request closing the incoming P2P sockets.
+    for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+        if (_lf_request_close_inbound_socket(i) == 0) {
+        	// Sending the close request failed. Mark the socket closed.
+        	_fed.sockets_for_inbound_p2p_connections[i] = -1;
+        }
+    }
+
+    // Wait for each inbound socket listener thread to close.
+    if (_fed.number_of_inbound_p2p_connections > 0) {
+    	LOG_PRINT("Waiting for %d threads listening for incoming messages to exit.",
+    			_fed.number_of_inbound_p2p_connections);
+    	for (int i=0; i < _fed.number_of_inbound_p2p_connections; i++) {
+    		// Ignoring errors here.
+    		lf_thread_join(_fed.inbound_socket_listeners[i], NULL);
+    	}
+    }
+    free(_fed.inbound_socket_listeners);
 }
 
 /** 
  * Thread that listens for inputs from other federates.
- * This thread listens for messages of type P2P_TIMED_MESSAGE 
- * (@see rti.h) from the specified peer federate and calls schedule to 
- * schedule an event. If an error occurs or an EOF is received 
+ * This thread listens for messages of type P2P_MESSAGE,
+ * P2P_TIMED_MESSAGE, or PORT_ABSENT (@see rti.h) from the specified
+ * peer federate and calls the appropriate handling function for
+ * each message type. If an error occurs or an EOF is received
  * from the peer, then this procedure sets the corresponding 
  * socket in _fed.sockets_for_inbound_p2p_connections
  * to -1 and returns, terminating the thread.
@@ -1767,17 +1724,8 @@ void* listen_to_federates(void* fed_id_ptr) {
                 bad_message = true;
         }
         if (bad_message) {
-            error_print("Received erroneous message type: %d. Closing the socket.", buffer[0]);
             // FIXME: Better error handling needed.
-            lf_mutex_lock(&inbound_socket_mutex);
-            if (!_lf_request_close_inbound_socket(fed_id)) {
-                lf_mutex_unlock(&inbound_socket_mutex);
-                error_print_and_exit(
-                		"Federate %d failed to close incoming socket.",
-						_lf_my_fed_id
-                );
-            }
-            lf_mutex_unlock(&inbound_socket_mutex);
+            error_print_and_exit("Received erroneous message type: %d. Closing the socket.", buffer[0]);
             break;
         }
     }
@@ -1797,23 +1745,20 @@ void* listen_to_rti_TCP(void* args) {
 
     // Listen for messages from the federate.
     while (1) {
-        // Check if the RTI socket is still valid
-        lf_mutex_lock(&inbound_socket_mutex);
+        // Check whether the RTI socket is still valid
         if (_fed.socket_TCP_RTI < 0) {
-            warning_print("Socket to the RTI was closed asynchronously.");
-            lf_mutex_unlock(&inbound_socket_mutex);
+            warning_print("Socket to the RTI unexpectedly closed.");
             return NULL;
         }
-        lf_mutex_unlock(&inbound_socket_mutex);
         // Read one byte to get the message type.
         // This will exit if the read fails.
-        // FIXME: Should we lock the inbound_socket_mutex here?
         int bytes_read = read_from_socket(_fed.socket_TCP_RTI, 1, buffer);
         if (bytes_read < 0) {
             error_print_and_exit("Socket connection to the RTI has been broken.");
-        } else if (bytes_read < 1) {
+        } else if (bytes_read == 0) {
             // EOF received.
             info_print("Connection to the RTI closed with an EOF.");
+            _fed.socket_TCP_RTI = -1;
             return NULL;
         }
         switch (buffer[0]) {

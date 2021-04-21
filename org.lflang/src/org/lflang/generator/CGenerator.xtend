@@ -896,7 +896,6 @@ class CGenerator extends GeneratorBase {
             ''')            
             pr('''
                 // Initialize the socket mutex
-                lf_mutex_init(&inbound_socket_mutex);
                 lf_mutex_init(&outbound_socket_mutex);
                 lf_cond_init(&port_status_changed);
             ''')
@@ -987,7 +986,8 @@ class CGenerator extends GeneratorBase {
                     // This is done in a separate thread because this thread will call
                     // connect_to_federate for each outbound physical connection at the same
                     // time that the new thread is listening for such connections for inbound
-                    // physical connections. The thread will live until termination.
+                    // physical connections. The thread will live until all connections
+                    // have been established.
                     lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
