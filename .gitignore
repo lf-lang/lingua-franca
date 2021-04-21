@@ -15,3 +15,7 @@
 **/src-gen/
 **/xtend-gen/
 **/.vscode/
+.idea
+test/Cpp/include
+test/Cpp/share
+test/Cpp/lib
