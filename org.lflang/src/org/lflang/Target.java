@@ -22,6 +22,9 @@ package org.lflang;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
+
+import org.jetbrains.annotations.Nullable;
 
 /** 
  * Enumeration of targets and their associated properties. These classes are
@@ -390,7 +393,7 @@ public enum Target {
      * @return The matching target (or null if there is none).
      */
     public static Target forName(String name) {
-        return (Target)Target.match(name, Target.values());
+        return Target.match(name, Target.values());
     }
 
     /**
@@ -400,17 +403,34 @@ public enum Target {
     public String toString() {
         return this.description;
     }
-    
+
     /**
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
-     * 
+     *
      * @param string     The string to match against candidates.
      * @param candidates The candidates to match the string against.
      */
-    public static Object match(final String string, final Object[] candidates) {
-        return Arrays.stream(candidates)
-                .filter(e -> (e.toString().equalsIgnoreCase(string)))
-                .findAny().orElse(null);
+    @Nullable
+    public static <T> T match(final String string, final Iterable<T> candidates) {
+        // kotlin: candidates.firstOrNull { it.toString().equalsIgnoreCase(string) }
+        for (T candidate : candidates) {
+            if (candidate.toString().equalsIgnoreCase(string)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Given a string and a list of candidate objects, return the first
+     * candidate that matches, or null if no candidate matches.
+     *
+     * @param string     The string to match against candidates.
+     * @param candidates The candidates to match the string against.
+     */
+    @Nullable
+    public static <T> T match(final String string, final T[] candidates) {
+        return match(string, Arrays.asList(candidates));
     }
 }

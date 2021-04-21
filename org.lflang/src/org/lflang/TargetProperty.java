@@ -345,7 +345,7 @@ public enum TargetProperty {
      * @param name The string to match against.
      */
     public static TargetProperty forName(String name) {
-        return (TargetProperty)Target.match(name, TargetProperty.values());
+        return Target.match(name, TargetProperty.values());
     }
 
     /**
@@ -378,7 +378,7 @@ public enum TargetProperty {
      * A dictionary type with a predefined set of possible keys and assignable
      * types.
      * 
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author {Marten Lohstroh <marten@berkeley.edu>}
      *
      */
     public enum DictionaryType implements TargetPropertyType {
@@ -410,7 +410,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public DictionaryElement forName(String name) {
-            return (DictionaryElement) Target.match(name, options.toArray());
+            return Target.match(name, options);
         }
         
         /**
@@ -515,7 +515,7 @@ public enum TargetProperty {
          * @return The matching dictionary element (or null if there is none).
          */
         public Enum<?> forName(String name) {
-            return (Enum<?>) Target.match(name, options.toArray());
+            return Target.match(name, options);
         }
         
         /**
