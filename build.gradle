@@ -4,11 +4,12 @@ buildscript {
 	}
 	dependencies {
 		classpath 'org.xtext:xtext-gradle-plugin:2.0.8'
+		classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.32'
 	}
 }
 
 plugins {
-    id "com.github.johnrengelman.shadow" version "6.0.0"
+	id 'com.github.johnrengelman.shadow' version '6.0.0'
 	id 'java'
 	id 'jacoco'
 }
@@ -19,7 +20,13 @@ subprojects {
 		mavenCentral()
 	}
 	
+	apply plugin: 'kotlin'
 	apply plugin: 'java'
+	compileJava.dependsOn(compileKotlin)
+	compileKotlin {
+		destinationDir = compileJava.destinationDir
+	}
+
 	dependencies {
 		implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
 		// https://mvnrepository.com/artifact/com.google.inject/guice
