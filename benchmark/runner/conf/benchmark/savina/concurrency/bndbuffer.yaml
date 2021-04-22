@@ -23,12 +23,12 @@ targets:
   caf:
     bin: "caf_10_bndbuffer"
     run_args:
-      buffer_size: ["-bb", "<value>"]
-      producers: ["-np", "<value>"]
-      consumers: ["-nc", "<value>"]
-      items_per_producer: ["-ipp", "<value>"]
-      produce_cost: ["-pc", "<value>"]
-      consume_cost: ["-cc", "<value>"]
+      buffer_size: ["-b", "<value>"]
+      producers: ["-p", "<value>"]
+      consumers: ["-c", "<value>"]
+      items_per_producer: ["-i", "<value>"]
+      produce_cost: ["-x", "<value>"]
+      consume_cost: ["-y", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
