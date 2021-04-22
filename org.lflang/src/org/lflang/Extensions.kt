@@ -24,13 +24,11 @@
 
 package org.lflang
 
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.lf.*
-import java.lang.Exception
-import kotlin.reflect.KClass
 
 
-fun ReactorDecl?.toDefinition(): Reactor? = when (this) {
-    null               -> null
+fun ReactorDecl.toDefinition(): Reactor = when (this) {
     is Reactor         -> this
     is ImportedReactor -> this.reactorClass
     else               -> throw AssertionError("unreachable")
@@ -93,5 +91,47 @@ val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
 private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): List<T> =
     superClasses.orEmpty().mapNotNull { it.toDefinition()?.collector() }.flatten() + this.collector()
 
+val Parameter.isOfTimeType: Boolean
+    get() {
+        // Either the type has to be declared as a time.
+        if (type?.isTime == true) {
+            return true
+        }
+        // Or it has to be initialized as a proper time with units.
+        init?.singleOrNull()
+            ?.time
+            ?.takeIf { it.unit != TimeUnit.NONE }
+            ?.let {
+                return true
+            }
+        // In other words, one can write:
+        // - `x:time(0)` -OR- 
+        // - `x:(0 msec)`, `x:(0 sec)`, etc.     
+        return false
+    }
 
 fun <T> List<T>.tail() = subList(1, size)
+fun <T> List<T>.headAndTail() = Pair(first(), tail())
+
+
+fun Code?.toText(): String {
+    this ?: return ""
+    val node = NodeModelUtils.getNode(this)
+    return if (node != null) {
+        val str = node.leafNodes
+            .joinToString { it.text }.trim()
+            .removeSurrounding("{=", "=}")
+
+        if ('\n' in str) str.trimIndent() else str.trim()
+    } else if (body != null) {
+        // Code must have been added as a simple string.
+        body.toString()
+    } else {
+        ""
+    }
+}
+
+fun TypeParm.toText(): String =
+    if (!literal.isNullOrEmpty()) literal
+    else code.toText()
+

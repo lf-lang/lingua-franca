@@ -24,55 +24,18 @@
 
 package org.lflang.generator
 
-import org.lflang.ASTUtils
-import org.lflang.InferredType
 import org.lflang.Target
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.Reactor
+import org.lflang.lf.VarRef
 
 /**
  *
  */
-class CppGenerator2 : GeneratorBase() {
-
-
-    /**
-     * Return a string representing the specified type in the target language.
-     * @param type The type.
-     */
-    private fun getTargetType(type: InferredType, undefinedType ): String {
-        val _isUndefined = type.isUndefined
-        if (_isUndefined) {
-            return this.getTargetUndefinedType()
-        } else {
-            if (type.isTime.toBoolean()) {
-                return if (type.isFixedSizeList.toBoolean()) {
-                    this.getTargetFixedSizeListType(this.getTargetTimeType(), type.listSize)
-                } else {
-                    if (type.isVariableSizeList.toBoolean()) {
-                        this.getTargetVariableSizeListType(this.getTargetTimeType())
-                    } else {
-                        this.getTargetTimeType()
-                    }
-                }
-            } else {
-                if (type.isFixedSizeList.toBoolean()) {
-                    return this.getTargetFixedSizeListType(type.baseType(), type.listSize)
-                } else {
-                    if (type.isVariableSizeList.toBoolean()) {
-                        return this.getTargetVariableSizeListType(type.baseType())
-                    }
-                }
-            }
-        }
-        return type.toText()
-    }
-
-    fun StateVar.getTargetType(): String = getTargetType(ASTUtils.getInferredType(this))
-    fun Action.getTargetType(): String = getTargetType(ASTUtils.getInferredType(this))
-    fun Port.getTargetType(): String = getTargetType(ASTUtils.getInferredType(this))
-    fun Type.getTargetType(): String = getTargetType(ASTUtils.getInferredType(this))
-    fun Parameter.getTargetType(): String = getTargetType(ASTUtils.getInferredType(this))
-
+class CppGenerator2 : KtGeneratorBase(
+    Target.CPP,
+    supportsGenerics = true
+) {
 
 
 /*
@@ -89,48 +52,32 @@ class CppGenerator2 : GeneratorBase() {
             "std::add_const<${it.targetType}>::type ${it.name};"
         }
 
-
-    override fun generateDelayBody(action: Action?, port: VarRef?): String {
+    override fun generateDelayBody(action: Action, port: VarRef): String? {
         TODO("Not yet implemented")
     }
 
-    override fun generateForwardBody(action: Action?, port: VarRef?): String {
+    override fun generateForwardBody(action: Action, port: VarRef): String? {
         TODO("Not yet implemented")
     }
 
-    override fun generateDelayGeneric(): String {
+    override fun generateDelayGeneric(): String? {
         TODO("Not yet implemented")
     }
 
-    override fun supportsGenerics(): Boolean {
+    override val targetTimeType: String
+        get() = TODO("Not yet implemented")
+    override val targetTagType: String
+        get() = TODO("Not yet implemented")
+    override val targetTagIntervalType: String
+        get() = TODO("Not yet implemented")
+    override val targetUndefinedType: String
+        get() = TODO("Not yet implemented")
+
+    override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
         TODO("Not yet implemented")
     }
 
-    override fun getTargetTimeType(): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun getTargetTagType(): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun getTargetTagIntervalType(): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun getTargetUndefinedType(): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun getTargetFixedSizeListType(baseType: String?, size: Int?): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun getTargetVariableSizeListType(baseType: String?): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun getTarget(): Target {
+    override fun getTargetVariableSizeListType(baseType: String): String {
         TODO("Not yet implemented")
     }
 

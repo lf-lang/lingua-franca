@@ -47,19 +47,14 @@ import java.util.Collections.emptyList
  *
  * @author Marten Lohstroh
  */
-class LFScopeProvider : DelegatingScopeProvider() {
+class LFScopeProviderImpl(val nameProvider: SimpleNameProvider,
+                          val scopeProvider: LFGlobalScopeProvider) : DelegatingScopeProvider() {
     /**
      * Enumerate of the kinds of references.
      */
     private enum class RefType {
         NULL, TRIGGER, SOURCE, EFFECT, DEADLINE, CLEFT, CRIGHT
     }
-
-    @Inject
-    private val nameProvider: SimpleNameProvider? = null
-
-    @Inject
-    private val scopeProvider: LFGlobalScopeProvider? = null
 
     /**
      * Depending on the provided context, construct the appropriate scope
