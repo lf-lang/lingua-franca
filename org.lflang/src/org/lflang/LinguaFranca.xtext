@@ -197,7 +197,7 @@ Deadline:
     'deadline' '(' delay=Value ')' code=Code;
     
 STP:
-    'STP' '(' offset=Value ')' code=Code;
+    'STP' '(' value=Value ')' code=Code;
 
 Mutation:
     ('mutation')

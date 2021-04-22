@@ -528,7 +528,7 @@ class LFValidator extends AbstractLFValidator {
         if (this.target == Target.C &&
             this.info.overflowingDeadlines.contains(stp)) {
             error(
-                "Deadline exceeds the maximum of " +
+                "STP offset exceeds the maximum of " +
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY)
         }
