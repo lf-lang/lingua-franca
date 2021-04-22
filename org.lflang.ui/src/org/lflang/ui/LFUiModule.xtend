@@ -30,7 +30,7 @@ import org.eclipse.xtext.resource.containers.IAllContainersState
  * subclassing, and the code has no comments in it at all.
  */
 @FinalFieldsConstructor
-class LFUiModule extends AbstractLFUiModule {
+class LFUiModuleImpl extends AbstractLFUiModule {
     
     // Instead of classpath, use Properties -> Project Reference
     override Provider<IAllContainersState> provideIAllContainersState() {
