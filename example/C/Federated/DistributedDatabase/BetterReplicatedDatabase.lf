@@ -15,7 +15,7 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 10 sec
+    timeout: 5 sec
 }
 
 /**
@@ -42,8 +42,10 @@ target C {
  * @output update Issue an update.
  */
 reactor Server(
+    name:char*("unnamed server"),
     query_period:time(150 msec),
     update_period:time(100 msec),
+    update_deadline:time(200 msec), 
     update_amount:int(0),
     server_name:char*("unnamed server")
 ) {
@@ -60,6 +62,14 @@ reactor Server(
     
     reaction(update_trigger) -> update {=
         SET(update, self->update_amount);
+    =} deadline(update_deadline) {=
+        error_print("At tag (%lld, %u), deadline missed at database \"%s\". Rejecting update.\n"
+                "     Elapsed physical time is %lld.",
+                get_logical_time() - start_time, 
+                get_microstep(),
+                self->name,
+                get_elapsed_physical_time()
+        );
     =}
     
     reaction(reply) {=
@@ -123,41 +133,25 @@ reactor Server(
  * @output balance The time value of the record.
  */
 reactor Database(
-    update_deadline:time(200 msec), 
     name:char*("unnamed database"),
     num_remote_inputs:int(1)
 ) {
     input local_update:int;
     input[num_remote_inputs] remote_update:int;
     input query:bool;
-    output publish:int;
     output balance:int;
     state record:int(0);
     
-    reaction(local_update) -> publish {=
+    reaction(local_update, remote_update) {=
         if (local_update->is_present) {
             self->record += local_update->value;
-            SET(publish, local_update->value);
-            info_print("At tag (%lld, %u), database \"%s\" locally updated balance to %d.",
-                get_logical_time() - start_time, get_microstep(), self->name, self->record
-            );
         }
-    =} deadline(update_deadline) {=
-        error_print("At tag (%lld, %u), deadline missed at database \"%s\". Rejecting update.\n"
-                "     Elapsed physical time is %lld.",
-                get_logical_time() - start_time, get_microstep(),
-                self->name,
-                self->record,
-                get_elapsed_physical_time()
-        );
-    =}
-    reaction(remote_update) {=
         for (int i = 0; i < remote_update_width; i++) {
             if (remote_update[i]->is_present) {
                 self->record += remote_update[i]->value;
             }
         }
-        info_print("At tag (%lld, %u), database \"%s\" updated balance to %d to match upstream remote update(s).\n"
+        info_print("At tag (%lld, %u), database \"%s\" updated balance to %d.\n"
                 "     Elapsed physical time is %lld.",
                 get_logical_time() - start_time, get_microstep(),
                 self->name,
@@ -223,6 +217,7 @@ reactor Platform(
     input[num_remote_inputs] update:int;
     output publish:int;
     server = new Server(
+        name = name,
         query_period = query_period,
         update_period = update_period,
         update_amount = update_amount,
@@ -235,7 +230,7 @@ reactor Platform(
     server.query -> database.query;
     server.update -> database.local_update;
     database.balance -> server.reply;
-    database.publish -> publish;
+    server.update -> publish;
     update -> database.remote_update;
 }
 
