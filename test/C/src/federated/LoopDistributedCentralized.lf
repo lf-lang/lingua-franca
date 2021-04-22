@@ -4,7 +4,7 @@
  * 
  * @author Edward A. Lee
  */
-target C { 
+target C {
     flags: "-Wall",
     coordination: centralized,
     coordination-options: {advance-message-interval: 100 msec}, 

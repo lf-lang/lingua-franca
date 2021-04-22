@@ -1297,12 +1297,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * of the trigger for the given port becomes known for the current logical time.
      * 
      * @param port The port to generate the control reaction for
-     * @param STPList The list of STP values/parameters that are assigned to reactions (if any)
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
     def String generateNetworkInputControlReactionBody(
         int receivingPortID,
-        Set<Value> STPList
+        TimeValue maxSTP
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
     }    

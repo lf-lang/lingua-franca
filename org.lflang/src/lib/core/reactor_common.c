@@ -616,6 +616,8 @@ void __pop_events() {
             }
         }
 
+        event->trigger->status = present;
+
         // If the trigger is a periodic timer, create a new event for its next execution.
         if (event->trigger->is_timer && event->trigger->period > 0LL) {
             // Reschedule the trigger.

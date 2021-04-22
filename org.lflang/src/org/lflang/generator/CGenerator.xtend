@@ -633,7 +633,11 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 
+                // Allocate the memory for triggers used in federated execution
                 pr(CGeneratorExtension.allocateTriggersForFederate(federate, this));
+                // Assign appropriate pointers to the triggers
+                pr(initializeTriggerObjectsEnd,
+                    CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this));
                 
                 pr(initializeTriggerObjects.toString)
                 pr('// Populate arrays of trigger pointers.')
@@ -3575,8 +3579,6 @@ class CGenerator extends GeneratorBase {
             }            
         }
 
-        pr(initializeTriggerObjectsEnd,
-            CGeneratorExtension.initializeTriggerForControlReactions(instance, federate, this));
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.        
         generateStateVariableInitializations(instance)
@@ -4388,12 +4390,12 @@ class CGenerator extends GeneratorBase {
      * reactors, in the top-level reactor.
      * 
      * @param port The port to generate the control reaction for
-     * @param STPList The list of STP values/parameters that are assigned to reactions (if any)
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
     override generateNetworkInputControlReactionBody(
         int receivingPortID,
-        Set<Value> STPList
+        TimeValue maxSTP
     ) {
         // Store the code
         val result = new StringBuilder()
@@ -4401,25 +4403,8 @@ class CGenerator extends GeneratorBase {
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
             result.append('''
-                interval_t max_STP = 0LL;
-            ''')
-            
-            // First find the maximum value
-            // The maximum STP is found this way because
-            // the STP offset could be a variable that could
-            // possibly be overridden on the command line with
-            // unknown values during code generation.
-            for (stp : STPList ?: emptyList) {
-                var String stpString = stp.targetValue
-                if (stp.parameter !== null) {
-                    stpString = '''self->«stp.targetValue»'''
-                }
-                result.append('''
-                    if («stpString» > max_STP) {
-                        max_STP = «stpString»;
-                    }
-                ''')
-            }   
+                interval_t max_STP = «maxSTP.timeInTargetLanguage»;
+            ''')  
         }
         
         result.append('''            
@@ -4493,7 +4478,7 @@ class CGenerator extends GeneratorBase {
                     // value of the trigger accordingly
                     // so that the receiving logic cannot
                     // insert any further reaction
-                    _fed.network_input_port_triggers[«receivingPortID»]->status = absent;
+                    set_network_port_status(«receivingPortID», absent);
                 }
                 mark_control_reaction_not_waiting(«receivingPortID»);
                 lf_mutex_unlock(&mutex);
@@ -4586,8 +4571,8 @@ class CGenerator extends GeneratorBase {
                 // The number of threads needs to be at least one larger than the input ports
                 // to allow the federate to wait on all input ports while allowing an additional
                 // worker thread to process incoming messages.
-                if (targetConfig.threads < federate.networkInputPorts.size + 1) {
-                    targetConfig.threads = federate.networkInputPorts.size + 1;
+                if (targetConfig.threads < federate.networkMessageActions.size + 1) {
+                    targetConfig.threads = federate.networkMessageActions.size + 1;
                 }            
             }
         }

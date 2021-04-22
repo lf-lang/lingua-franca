@@ -165,15 +165,7 @@ class FederateInstance {
      */
     public var outboundP2PConnections = new LinkedHashSet<FederateInstance>()
     
-    
-    /**
-     * A list of network input ports for the federate. This list is kept because the
-     * receiver logic in a separate thread (e.g., in federate.c) needs to know if the trigger
-     * for a given port is going to be present or absent for a given logical time. The indexes
-     * for this list should correspond to the portID of the receiver...
-     */
-    public var networkInputPorts = new LinkedList<Port>();
-    
+        
     /**
      * A list of triggers for network input control reactions. This is used to trigger
      * all the input network control reactions that might be nested in a hierarchy.

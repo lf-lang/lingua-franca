@@ -77,8 +77,6 @@ federate_instance_t _fed = {
         .last_sent_LTC = (tag_t) {.time = NEVER, .microstep = 0u},
         .last_sent_NET = (tag_t) {.time = NEVER, .microstep = 0u},
         .min_delay_from_physical_action_to_federate_output = NEVER,
-        .network_input_port_triggers = NULL,
-        .network_input_port_triggers_size = 0,
         .triggers_for_network_input_control_reactions = NULL,
         .triggers_for_network_input_control_reactions_size = 0,
         .trigger_for_network_output_control_reactions = NULL
@@ -964,6 +962,8 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     return timestamp;
 }
 
+////////////////////////////////Port Status  Handling///////////////////////////////////////
+
 /**
  * Placeholder for a generated function that returns a pointer to the
  * trigger_t struct for the action corresponding to the specified port ID.
@@ -971,6 +971,218 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
  * @return A pointer to a trigger_t struct or null if the ID is out of range.
  */
 trigger_t* __action_for_port(int port_id);
+
+
+/**
+ * Set the status of network port with id portID.
+ * 
+ * @param portID The network port ID
+ * @param status The network port status (port_status_t)
+ */
+void set_network_port_status(int portID, port_status_t status) {
+    trigger_t* network_input_port_action = __action_for_port(portID);
+    network_input_port_action->status = status;
+}
+
+
+/**
+ * Mark all status fields of unknown network input ports as absent.
+ */
+void mark_all_unknown_ports_as_absent() {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        trigger_t* input_port_action = __action_for_port(i);
+        if (input_port_action->status == unknown) {
+            set_network_port_status(i, absent);
+        }
+    }
+}
+
+/**
+ * Update the last known status tag of all network input ports
+ * to the value of tag.
+ * 
+ * @param tag The tag on which the latest status of network input
+ *  ports is known.
+ */
+void update_last_known_status_on_input_ports(tag_t tag) {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        trigger_t* input_port_action = __action_for_port(i);
+        if (compare_tags(tag,
+                input_port_action->last_known_status_tag) >= 0) {
+            input_port_action->last_known_status_tag = tag;
+        } else {
+            DEBUG_PRINT("Attempt to update the last known status tag " 
+                           "of network input port %d to an earlier tag was ignored.", i);
+        }
+    }
+}
+
+/**
+ * Check if any network input control reaction is waiting at the current
+ * tag.
+ * 
+ * @return true if any network input control reaction is waiting. False otherwise.
+ */
+bool any_control_reaction_is_waiting() {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        trigger_t* input_port_action = __action_for_port(i);
+        if (input_port_action->is_a_control_reaction_waiting) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Reset the status fields on network input ports to unknown.
+ * 
+ * @note This function must be called at the beginning of each
+ *  logical time.
+ */
+void reset_status_fields_on_input_port_triggers() {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        set_network_port_status(i, unknown);
+    }
+}
+
+/**
+ * Indicate that one or more control reactions are waiting for portID
+ */
+void mark_control_reaction_waiting(int portID) {
+    trigger_t* network_input_port_action = __action_for_port(portID);
+    network_input_port_action->is_a_control_reaction_waiting = true;
+}
+
+/**
+ * Indicate that no control reactions are waiting for portID
+ */
+void mark_control_reaction_not_waiting(int portID) {
+    trigger_t* network_input_port_action = __action_for_port(portID);
+    network_input_port_action->is_a_control_reaction_waiting = false;
+}
+
+/**
+ * Enqueue network input control reactions that determine if the trigger for a
+ * given network input port is going to be present at the current logical time
+ * or absent.
+ */
+void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        // Reaction 0 should always be the network input control reaction
+        if (determine_port_status_if_possible(i) == unknown) {
+            reaction_t *reaction = _fed.triggers_for_network_input_control_reactions[i]->reactions[0];
+            if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                pqueue_insert(reaction_q, reaction);
+                mark_control_reaction_waiting(i);
+            }
+        }
+    }
+}
+
+/**
+ * Enqueue network output control reactions that will send a PORT_ABSENT
+ * message to downstream federates if a given network output port is not present.
+ */
+void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
+    if (_fed.trigger_for_network_output_control_reactions == NULL) {
+        // There are no network output control reactions
+        return;
+    }
+    for (int i = 0; i < _fed.trigger_for_network_output_control_reactions->number_of_reactions; i++) {
+       reaction_t* reaction = _fed.trigger_for_network_output_control_reactions->reactions[i];
+       if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+           pqueue_insert(reaction_q, reaction);
+       }
+    }
+}
+
+
+/**
+ * Enqueue network control reactions.
+ */
+void enqueue_network_control_reactions(pqueue_t* reaction_q) {
+#ifdef FEDERATED_CENTRALIZED
+    // The granted tag is not provisional, therefore there is no
+    // need for network control reactions
+    if (_fed.is_last_TAG_provisional == false) {
+        return;
+    }
+#endif
+    enqueue_network_input_control_reactions(reaction_q);
+    enqueue_network_output_control_reactions(reaction_q);
+}
+
+/**
+ * Send a port absent message to federate with fed_ID, informing the
+ * remote federate that the current federate will not produce an event
+ * on this network port at the current logical time.
+ */
+void send_port_absent_to_federate(unsigned short port_ID, 
+                                  unsigned short fed_ID) {
+    // Construct the message
+    int message_length = 1 + sizeof(port_ID) + sizeof(fed_ID) + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[message_length];
+    tag_t current_tag = get_current_tag();
+
+    LOG_PRINT("Sending port "
+            "absent for tag (%lld, %u) for port %d to federate %d.",
+            current_tag.time - start_time,
+            current_tag.microstep,
+            port_ID, fed_ID);
+
+    buffer[0] = PORT_ABSENT;
+    encode_ushort(port_ID, &(buffer[1]));
+    encode_ushort(fed_ID, &(buffer[1+sizeof(port_ID)]));
+    encode_ll(current_tag.time, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
+    encode_int(current_tag.microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
+
+    lf_mutex_lock(&outbound_socket_mutex);
+#ifdef FEDERATED_CENTRALIZED
+    // Send the absent message through the RTI
+    int socket = _fed.socket_TCP_RTI;
+#else
+    // Send the absent message directly to the federate
+    int socket = _fed.sockets_for_outbound_p2p_connections[fed_ID];
+#endif
+    // Do not write if the socket is closed.
+    if (socket >= 0) {
+    	write_to_socket_errexit_with_mutex(socket, message_length, buffer, &outbound_socket_mutex,
+    			"Failed to send port absent message for port %hu to federate %hu.",
+				port_ID, fed_ID);
+    }
+    lf_mutex_unlock(&outbound_socket_mutex);
+}
+
+/**
+ * Determine the status of the port at the current logical time.
+ * If successful, return true. If the status cannot be determined
+ * at this moment, return false.
+ * 
+ * @param portID the ID of the port to determine status for
+ */
+port_status_t determine_port_status_if_possible(int portID) {
+    // Check if the status of the port is known
+    trigger_t* network_input_port_action = __action_for_port(portID);
+    if (network_input_port_action->status == present) {
+        LOG_PRINT("------ Not waiting for network input port %d"
+                    "because it is already present.", portID);
+        // The status of the trigger is present.
+        return present;
+    } else if (network_input_port_action->status == unknown && 
+                        compare_tags(network_input_port_action->last_known_status_tag, 
+                        get_current_tag()) > 0) {
+        // We have a known status for this port in a future tag. Therefore, no event is going
+        // to be present for this port at the current tag.
+        set_network_port_status(portID, absent);
+        return absent;
+    } else if (network_input_port_action->status == absent) {
+        // The status of the trigger is absent.
+        return absent;
+    }
+    return unknown;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Version of schedule_value() similar to that in reactor_common.c
@@ -1094,53 +1306,6 @@ void _lf_close_inbound_socket(int fed_id) {
     }
 }
 
-/**
- * Mark all status fields of unknown network input ports as absent.
- */
-void mark_all_unknown_ports_as_absent() {
-    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-        if (_fed.network_input_port_triggers[i]->status == unknown) {
-            _fed.network_input_port_triggers[i]->status = absent;
-        }
-    }
-}
-
-
-
-/**
- * Update the last known status tag of all network input ports
- * to the value of tag.
- * 
- * @param tag The tag on which the latest status of network input
- *  ports is known.
- */
-void update_last_known_status_on_input_ports(tag_t tag) {
-    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-        if (compare_tags(tag,
-                _fed.network_input_port_triggers[i]->last_known_status_tag) >= 0) {
-            _fed.network_input_port_triggers[i]->last_known_status_tag = tag;
-        } else {
-            DEBUG_PRINT("Attempt to update the last known status tag " 
-                           "of network input port %d to an earlier tag was ignored.", i);
-        }
-    }
-}
-
-/**
- * Check if any network input control reaction is waiting at the current
- * tag.
- * 
- * @return true if any network input control reaction is waiting. False otherwise.
- */
-bool any_control_reaction_is_waiting() {
-    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-        if (_fed.network_input_port_triggers[i]->is_a_control_reaction_waiting) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /** 
  * Handle a port absent message received from a remote federate.
  * @param socket The socket to read the message from
@@ -1169,15 +1334,25 @@ void handle_port_absent_message(int socket, int fed_id) {
     );
 
     lf_mutex_lock(&mutex);
+    trigger_t* network_input_port_action = __action_for_port(port_id);
     if (compare_tags(intended_tag,
-            _fed.network_input_port_triggers[port_id]->last_known_status_tag) <= 0) {
+            network_input_port_action->last_known_status_tag) <= 0) {
         error_print_and_exit("The following contract was violated: In-order "
                              "delivery of messages over a TCP socket.");
     }
     // Set the mutex status as absent
-    _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
-    // The last known status tag of the port has changed. Notify any waiting threads.
-    lf_cond_broadcast(&port_status_changed);
+    network_input_port_action->last_known_status_tag = intended_tag;
+    // If any control reaction is waiting, notify them that the status has changed
+    if (network_input_port_action->is_a_control_reaction_waiting) {
+        if (compare_tags(intended_tag, get_current_tag()) == 0) {
+            // If the intended tag for the absent message is the current tag
+            // and there is a control reaction waiting, we need to set the port
+            // status to absent
+            set_network_port_status(port_id, absent);
+        }
+        // The last known status tag of the port has changed. Notify any waiting threads.
+        lf_cond_broadcast(&port_status_changed);
+    }
     lf_mutex_unlock(&mutex);
 }
 
@@ -1302,18 +1477,18 @@ void handle_timed_message(int socket, int fed_id) {
 
     // Sanity checks
     if (compare_tags(intended_tag,
-            _fed.network_input_port_triggers[port_id]->last_known_status_tag) <= 0) {
+            action->last_known_status_tag) <= 0) {
         error_print_and_exit("The following contract was violated: In-order "
                              "delivery of messages over a TCP socket.");
     }
-    if (_fed.network_input_port_triggers[port_id]->is_a_control_reaction_waiting && 
+    if (action->is_a_control_reaction_waiting && 
             __advancing_time) {
         error_print_and_exit("Federate was attempting to advance time "
                              "while control reactions are still present.");
     }
 
     // FIXME: It might be enough to just check this field and not the status at all
-    _fed.network_input_port_triggers[port_id]->last_known_status_tag = intended_tag;
+    action->last_known_status_tag = intended_tag;
 
     // Check if reactions need to be inserted directly into the reaction
     // queue or a call to schedule is needed. This checks if the intended
@@ -1333,8 +1508,8 @@ void handle_timed_message(int socket, int fed_id) {
     // can be checked in this scenario without this race condition. The message with 
     // intended_tag of 9 in this case needs to wait one microstep to be processed.
     if (compare_tags(intended_tag, get_current_tag()) <= 0 &&                           
-            _fed.network_input_port_triggers[port_id]->is_a_control_reaction_waiting && // Check if a control reaction is waiting
-            _fed.network_input_port_triggers[port_id]->status == unknown                // Check if the status of the port is still unknown
+            action->is_a_control_reaction_waiting && // Check if a control reaction is waiting
+            action->status == unknown                // Check if the status of the port is still unknown
             ) {
         // Since the message is intended for the current tag and a control reaction
         // was waiting for the message, trigger the corresponding reactions for this
@@ -1347,7 +1522,7 @@ void handle_timed_message(int socket, int fed_id) {
         // control reactions know that they no longer need to block. The reason for
         // that is because the network receiver reaction is now in the reaction queue
         // keeping the precedence order intact.
-        _fed.network_input_port_triggers[port_id]->status = present;        
+        set_network_port_status(port_id, present);        
         // Port is now present. Therfore, notify the network input control reactions to 
         // stop waiting and re-check the port status.
         lf_cond_broadcast(&port_status_changed);
@@ -1373,7 +1548,7 @@ void handle_timed_message(int socket, int fed_id) {
         LOG_PRINT("Calling schedule with tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
         schedule_message_received_from_network_already_locked(action, intended_tag, message_token);
 
-        if (_fed.network_input_port_triggers[port_id]->is_a_control_reaction_waiting) {
+        if (action->is_a_control_reaction_waiting) {
             // Notify the waiting control reaction that a future event has been produced for the port
             lf_cond_broadcast(&port_status_changed);
         }
@@ -2105,172 +2280,4 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
         // TAN should be sent or a NET.
         tag = get_next_event_tag();
     }
-}
-
-/**
- * Reset the status fields on network input ports to unknown.
- * 
- * @note This function must be called at the beginning of each
- *  logical time.
- */
-void reset_status_fields_on_input_port_triggers() {
-    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-        _fed.network_input_port_triggers[i]->status = unknown;
-    }
-}
-
-
-/**
- * Indicate that one or more control reactions are waiting for portID
- */
-void mark_control_reaction_waiting(int portID) {
-    _fed.network_input_port_triggers[portID]->is_a_control_reaction_waiting = true;
-}
-
-/**
- * Indicate that no control reactions are waiting for portID
- */
-void mark_control_reaction_not_waiting(int portID) {
-    _fed.network_input_port_triggers[portID]->is_a_control_reaction_waiting = false;
-}
-
-/**
- * Enqueue network input control reactions that determine if the trigger for a
- * given network input port is going to be present at the current logical time
- * or absent.
- */
-void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
-    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
-        for (int j = 0; j < _fed.triggers_for_network_input_control_reactions[i]->number_of_reactions; j++) {
-            reaction_t *reaction = _fed.triggers_for_network_input_control_reactions[i]->reactions[j];
-            if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-                pqueue_insert(reaction_q, reaction);
-            }
-        }
-    }
-
-    // Mark that the federate has a control reaction for all the network input ports
-    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-        mark_control_reaction_waiting(i);
-    }
-}
-
-/**
- * Enqueue network output control reactions that will send a PORT_ABSENT
- * message to downstream federates if a given network output port is not present.
- */
-void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
-    if (_fed.trigger_for_network_output_control_reactions == NULL) {
-        // There are no network output control reactions
-        return;
-    }
-    for (int i = 0; i < _fed.trigger_for_network_output_control_reactions->number_of_reactions; i++) {
-       reaction_t* reaction = _fed.trigger_for_network_output_control_reactions->reactions[i];
-       if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-           pqueue_insert(reaction_q, reaction);
-       }
-    }
-}
-
-
-/**
- * Enqueue network control reactions.
- */
-void enqueue_network_control_reactions(pqueue_t* reaction_q) {
-#ifdef FEDERATED_CENTRALIZED
-    // The granted tag is not provisional, therefore there is no
-    // need for network control reactions
-    if (_fed.is_last_TAG_provisional == false) {
-        return;
-    }
-#endif
-    enqueue_network_input_control_reactions(reaction_q);
-    enqueue_network_output_control_reactions(reaction_q);
-}
-
-/**
- * Check that all network input ports are either present or absent. In other
- * words, check if all network input ports are accounted for.
- */
-bool all_network_inputs_are_accounted_for() {
-    for (int i = 0; i < _fed.network_input_port_triggers_size; i++) {
-        if (_fed.network_input_port_triggers[i]->status == unknown) {
-                LOG_PRINT("Not all network input ports are accounted for at tag (%lld, %u). "
-                            "Will not advance time.",
-                            current_tag.time - start_time,
-                            current_tag.microstep);
-                return false;
-            }
-    }
-    return true;
-}
-
-
-/**
- * Send a port absent message to federate with fed_ID, informing the
- * remote federate that the current federate will not produce an event
- * on this network port at the current logical time.
- */
-void send_port_absent_to_federate(unsigned short port_ID, 
-                                  unsigned short fed_ID) {
-    // Construct the message
-    int message_length = 1 + sizeof(port_ID) + sizeof(fed_ID) + sizeof(instant_t) + sizeof(microstep_t);
-    unsigned char buffer[message_length];
-    tag_t current_tag = get_current_tag();
-
-    LOG_PRINT("Sending port "
-            "absent for tag (%lld, %u) for port %d to federate %d.",
-            current_tag.time - start_time,
-            current_tag.microstep,
-            port_ID, fed_ID);
-
-    buffer[0] = PORT_ABSENT;
-    encode_ushort(port_ID, &(buffer[1]));
-    encode_ushort(fed_ID, &(buffer[1+sizeof(port_ID)]));
-    encode_ll(current_tag.time, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
-    encode_int(current_tag.microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
-
-    lf_mutex_lock(&outbound_socket_mutex);
-#ifdef FEDERATED_CENTRALIZED
-    // Send the absent message through the RTI
-    int socket = _fed.socket_TCP_RTI;
-#else
-    // Send the absent message directly to the federate
-    int socket = _fed.sockets_for_outbound_p2p_connections[fed_ID];
-#endif
-    // Do not write if the socket is closed.
-    if (socket >= 0) {
-    	write_to_socket_errexit_with_mutex(socket, message_length, buffer, &outbound_socket_mutex,
-    			"Failed to send port absent message for port %hu to federate %hu.",
-				port_ID, fed_ID);
-    }
-    lf_mutex_unlock(&outbound_socket_mutex);
-}
-
-/**
- * Determine the status of the port at the current logical time.
- * If successful, return true. If the status cannot be determined
- * at this moment, return false.
- * 
- * @param portID the ID of the port to determine status for
- */
-port_status_t determine_port_status_if_possible(int portID) {
-    // Check if the status of the port is known
-    if (_fed.network_input_port_triggers[portID]->status == present) {
-        LOG_PRINT("------ Not waiting for network input port %d"
-                    "because it is already present.", portID);
-        // The status of the trigger is present.
-        return present;
-    } else if (_fed.network_input_port_triggers[portID]->status == unknown && 
-                        compare_tags(_fed.network_input_port_triggers[portID]->last_known_status_tag, 
-                        get_current_tag()) >= 0) {
-        // We have a known status for this port in a future tag. Therefore, no event is going
-        // to be present for this port at the current tag.
-        _fed.network_input_port_triggers[portID]->status = absent;
-        return absent;
-    } else if (_fed.network_input_port_triggers[portID]->status == absent) {
-        // The status of the trigger is absent.
-        return absent;
-    }
-    return unknown;
 }

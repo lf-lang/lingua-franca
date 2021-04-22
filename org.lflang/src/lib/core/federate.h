@@ -191,11 +191,8 @@ typedef struct federate_instance_t {
 	 */
 	instant_t min_delay_from_physical_action_to_federate_output;
 
-
 	/**
-	 * A record of triggers for all network input ports to the federate. 
-	 * 
-	 * At the moment, this list is primarily used to determine the status of a given network 
+	 * This list is also used to determine the status of a given network 
 	 * input port at a given logical time. The status of the port (trigger->status) can be: 
 	 * present, absent, or unknown. To determine the status of that port, for a given trigger 
 	 * 't' in this list, a (number of) network input control reactions are inserted into the 
@@ -203,18 +200,7 @@ typedef struct federate_instance_t {
 	 * status of the port becomes known. In the centralized coordination, this wait is until 
 	 * the RTI informs the reaction of the status of the port. In the decentralized coordination,
 	 * this wait is until the STP offset expires (or the status is somehow becomes known sooner).
-	 * 
-	 * @note This list only contains ports that are triggers or sources to reactions 
-	 * in the federate or are connected directly to contained reactors. Therefore, 
-	 * dangling, unconnected inputs are not included in this array.
 	 */
-	trigger_t** network_input_port_triggers;
-
-	/**
-	 * Number of network input ports that are triggers or sources to reactions in the federate
-	 * or are connected directly to contained reactors.
-	 */
-	int network_input_port_triggers_size;
 
 	/**
 	 * List of triggers for network input control reactions, used

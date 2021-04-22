@@ -26,25 +26,29 @@
 
 package org.lflang.federated;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TimeValue;
 import org.lflang.generator.FederateInstance;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.TimeUnit;
 import org.lflang.lf.Type;
 import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
@@ -72,37 +76,103 @@ public class FedASTUtils {
 
     /**
      * Add a network control reaction for a given input port "portRef" to the
-     * reaction queue of its containing reactor. This reaction will block for
-     * any valid logical time until it is known whether the trigger of that
-     * given port is present or absent.
+     * reaction queue of the federated reactor. This reaction will block for
+     * any valid logical time until it is known whether the trigger for the
+     * action corresponding to the given port is present or absent.
      * 
      * @note Used in federated execution
      * 
-     * @param portRef The input port
+     * @param portRef The network input port
+     * @param receivingPortID The ID of the receiving port
      * @param instance The federate instance is used to keep track of all
      *  network input ports globally
+     * @param parent The federated reactor
      * @param generator The GeneratorBase instance used to identify certain
      *  target properties
-     * @param isTopLevel indicates whether this reaction is being produced in the top-level
-     *  federated reactor or not
      */
-    public static void addNetworkInputControlReaction(VarRef portRef, int recevingPortID, Reactor reactor,
-            FederateInstance instance, GeneratorBase generator, boolean isTopLevel) {
+    public static void addNetworkInputControlReaction(
+            VarRef port,
+            int recevingPortID,
+            FederateInstance instance,
+            Reactor parent,
+            GeneratorBase generator
+        ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
-        VarRef newPortRef = factory.createVarRef();
+        VarRef newPortRef = factory.createVarRef();        
+        Type portType = ASTUtils.getCopy(((Port)port.getVariable()).getType());
+        
+        // Create a new Input port for the reaction trigger.
+        Input newTriggerForControlReactionInput = factory.createInput();       
 
-        newPortRef.setContainer(null);
-        newPortRef.setVariable((Input) portRef.getVariable());
+        // Set the container and variable according to the network port
+        newPortRef.setContainer(port.getContainer());
+        newPortRef.setVariable(port.getVariable());
+        
+        newTriggerForControlReactionInput.setName(ASTUtils.getUniqueIdentifier(parent, "inputControlReactionTrigger"));
+        newTriggerForControlReactionInput.setType(portType);         
 
+        // Add the newly created Input to the input list of inputs of the federated reactor
+        parent.getInputs().add(newTriggerForControlReactionInput);
+
+        // Create the trigger for the reaction
+        VarRef newTriggerForControlReaction = (VarRef) factory
+                .createVarRef();
+        newTriggerForControlReaction
+                .setVariable(newTriggerForControlReactionInput);
+        
+        // Add the trigger to the list of triggers of the reaction
+        reaction.getTriggers().add(newTriggerForControlReaction);
+        // Add the network port as an effect of the reaction
+        reaction.getEffects().add(newPortRef);
+        reaction.setCode(factory.createCode());
+
+        TimeValue maxSTP = findMaxSTP(
+                newPortRef.getVariable(),
+                instance,
+                generator, 
+                (Reactor)newPortRef.getVariable().eContainer()
+                );
+
+        reaction.getCode()
+                .setBody(generator.generateNetworkInputControlReactionBody(
+                        recevingPortID, maxSTP));
+        
+        generator.makeUnordered(reaction);
+
+        // Insert the reaction
+        parent.getReactions().add(reaction);
+        
+        // Add the trigger for this reaction to the list of triggers, used to actually
+        // trigger the reaction at the beginning of each logical time.
+        instance.networkInputControlReactionsTriggers.add(newTriggerForControlReactionInput);
+    }
+
+    /**
+     * Find the maximum STP offset for the given port.
+     * 
+     * An STP offset predicate can be nested in contained reactors in
+     * the federate.
+     * @param port The port to generate the STP list for.
+     * @param generator The instance of GeneratorBase
+     * @param reactor The top-level reactor (not the federate reactor)
+     * @return
+     */
+    private static TimeValue findMaxSTP(Variable port,
+            FederateInstance instance,
+            GeneratorBase generator, Reactor reactor) {
+        // Find a list of STP offsets (if any exists)
+        List<Value> STPList = new LinkedList<Value>();
+        
         // First, check if there are any connections to contained reactors that
         // need to be handled
         List<Connection> connectionsWithPort = ASTUtils
                 .allConnections(reactor).stream().filter(c -> {
                     return c.getLeftPorts().stream().anyMatch((VarRef v) -> {
-                        return v.getVariable().equals(portRef.getVariable());
+                        return v.getVariable().equals(port);
                     });
                 }).collect(Collectors.toList());
+
 
         // Find the list of reactions that have the port as trigger or source
         // (could be a variable name)
@@ -112,128 +182,88 @@ public class FedASTUtils {
                     r.getTriggers().stream().anyMatch(t -> {
                         if (t instanceof VarRef) {
                             // Check if the variables match
-                            return ((VarRef) t).getVariable() == portRef
-                                    .getVariable();
+                            return ((VarRef) t).getVariable() == port;
                         } else {
                             // Not a network port (startup or shutdown)
                             return false;
                         }
                     }) || // Then check the sources of reaction r
                     r.getSources().stream().anyMatch(s -> {
-                        return s.getVariable() == portRef.getVariable();
+                        return s.getVariable() == port;
                     }));
                 }).collect(Collectors.toList());
         
-
-        // Only add the port for the top-level federate.
-        if (isTopLevel) {
-            // Add the port to network input ports
-            instance.networkInputPorts.add((Input) portRef.getVariable());
-        }
-
-        if (reactionsWithPort.isEmpty() && connectionsWithPort.isEmpty()) {
-            // Nothing to do here
-            return;
-        }
-
-        for (Connection connection : connectionsWithPort) {
-            // Add the network input control reaction to all the contained
-            // reactors, if appropriate
-            for (VarRef port : connection.getRightPorts()) {
-                addNetworkInputControlReaction(
-                        port, 
-                        recevingPortID, 
-                        (Reactor) port.getVariable().eContainer(), 
-                        instance, 
-                        generator, 
-                        false);
+        // Find a list of STP offsets (if any exists)
+        if (generator.isFederatedAndDecentralized()) {
+            for (Reaction r : safe(reactionsWithPort)) {
+                if (!instance.containsReaction(reactor, r)) {
+                    continue;
+                }
+                // If STP offset is determined, add it
+                // If not, assume it is zero
+                if (r.getStp() != null) {
+                    if (r.getStp().getValue().getParameter() != null) {
+                        List<Instantiation> instantList = new ArrayList<Instantiation>();
+                        instantList.add(instance.instantiation);
+                        STPList.addAll(ASTUtils.initialValue((Parameter)r.getStp().getValue().getParameter(), instantList));
+                    } else {
+                        STPList.add(r.getStp().getValue());
+                    }
+                }
             }
-        }
-        
-        if (!reactionsWithPort.isEmpty()) {
-            // If there are reactions at this level, insert the
-            // network input control reaction just before them
+         // Check the children for STPs as well
+            for (Connection c : safe(connectionsWithPort)) {
+                VarRef childPort = c.getRightPorts().get(0);
+                Reactor childReactor = (Reactor) childPort.getVariable()
+                        .eContainer();
+                // Find the list of reactions that have the port as trigger or
+                // source (could be a variable name)
+                List<Reaction> childReactionsWithPort = ASTUtils
+                        .allReactions(childReactor).stream().filter(r -> {
+                            return (r.getTriggers().stream().anyMatch(t -> {
+                                if (t instanceof VarRef) {
+                                    // Check if the variables match
+                                    return ((VarRef) t)
+                                            .getVariable() == childPort
+                                                    .getVariable();
+                                } else {
+                                    // Not a network port (startup or shutdown)
+                                    return false;
+                                }
+                            }) || r.getSources().stream().anyMatch(s -> {
+                                return s.getVariable() == childPort
+                                        .getVariable();
+                            }));
+                        }).collect(Collectors.toList());
 
-            String triggerName = "inputControlReactionTriggerForPort"
-                    + recevingPortID;
-            
-            // Create a new Input port for the reaction trigger if it doesn't already exist.
-            Input newTriggerForControlReactionInput;
-
-            // Avoid duplicate reactions
-            if (reactor.getInputs().stream().anyMatch(i -> {
-                return i.getName().equals(triggerName);
-            })) {
-                newTriggerForControlReactionInput = reactor.getInputs().stream().filter(i -> {
-                    return i.getName().equals(triggerName);
-                }).findFirst().get();
-            } else {
-                // Create a new Input port for the reaction trigger
-                newTriggerForControlReactionInput = factory.createInput();
-                newTriggerForControlReactionInput
-                        .setName(triggerName);
-                Type portType = factory.createType();
-                portType.setId(generator.getTargetTimeType());
-                newTriggerForControlReactionInput.setType(portType);         
-
-                reactor.getInputs().add(newTriggerForControlReactionInput);
-                
-
-
-                // The trigger for the reaction
-                VarRef newTriggerForControlReaction = (VarRef) factory
-                        .createVarRef();
-                newTriggerForControlReaction
-                        .setVariable(newTriggerForControlReactionInput);
-                
-
-
-                reaction.getTriggers().add(newTriggerForControlReaction);
-                reaction.getSources().add(newPortRef);
-                reaction.setCode(factory.createCode());
-
-                // Find a list of STP offsets (if any exists)
-                Set<Value> STPList = CollectionLiterals.<Value>newLinkedHashSet();
-                if (generator.isFederatedAndDecentralized()) {
-                    for (Reaction r : safe(reactionsWithPort)) {
-                        // If STP offset is determined, add it
-                        // If not, assume it is zero
-                        if (r.getStp() != null) {
-                            if (r.getStp().getOffset() != null) {
-                                STPList.add(r.getStp().getOffset());
-                            }
+                for (Reaction r : safe(childReactionsWithPort)) {
+                    if (!instance.containsReaction(childReactor, r)) {
+                        continue;
+                    }
+                    // If STP offset is determined, add it
+                    // If not, assume it is zero
+                    if (r.getStp() != null) {
+                        if (r.getStp().getValue() instanceof Parameter) {
+                            List<Instantiation> instantList = new ArrayList<Instantiation>();
+                            instantList.add(childPort.getContainer());
+                            STPList.addAll(ASTUtils.initialValue((Parameter)r.getStp().getValue().getParameter(), instantList));
+                        } else {
+                            STPList.add(r.getStp().getValue());
                         }
                     }
                 }
-
-                reaction.getCode()
-                        .setBody(generator.generateNetworkInputControlReactionBody(
-                                recevingPortID, STPList));
-
-                // If there are no top-level reactions in this federate that has
-                // this
-                // port
-                // as its trigger or source, there must be a connection to a
-                // contained
-                // reactor
-                // We still take care of the network dependency at this level by
-                // injecting
-                // a reaction even if there are no other reactions
-                int firstIndex = 0;
-                // Find the index of the first reaction that has portRef as its
-                // trigger or source
-                firstIndex = ASTUtils.allReactions(reactor)
-                        .indexOf(reactionsWithPort.get(0));
-
-                // Insert the newly generated reaction before the first reaction
-                /// that has the port as its trigger or source
-                reactor.getReactions().add(firstIndex, reaction);
             }
-            
-            // Add the trigger for this reaction to the list of triggers, used to actually
-            // trigger the reaction at the beginning of each logical time.
-            instance.networkInputControlReactionsTriggers.add(newTriggerForControlReactionInput);
         }
+        
+        TimeValue maxSTP = new TimeValue(0, TimeUnit.NONE);
+        for (Value value : safe(STPList)) {
+            TimeValue tValue = ASTUtils.getTimeValue(value);
+            if(maxSTP.isEarlierThan(tValue)) {
+                maxSTP = tValue;
+            }
+        }
+        
+        return maxSTP;
     }
 
     /**
@@ -265,9 +295,8 @@ public class FedASTUtils {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
         Reactor reactor = (Reactor) portRef.eContainer().eContainer();
-        // Output
         VarRef newPortRef = factory.createVarRef();
-
+        
         newPortRef.setContainer(portRef.getContainer());
         newPortRef.setVariable(portRef.getVariable());
 
@@ -326,8 +355,10 @@ public class FedASTUtils {
         reaction.setCode(factory.createCode());
 
         reaction.getCode().setBody(
-                generator.generateNetworkOutputControlReactionBody(portRef,
+                generator.generateNetworkOutputControlReactionBody(newPortRef,
                         receivingPortID, receivingFedID, bankIndex, channelIndex));
+        
+        generator.makeUnordered(reaction);
 
         // Insert the newly generated reaction after the generated sender and
         // receiver
@@ -436,6 +467,32 @@ public class FedASTUtils {
             connection.isPhysical(),
             connection.getDelay()
         ));
+              
+        // Add the sending reaction to the parent.
+        parent.getReactions().add(r1);
+        
+        if (!connection.isPhysical()) {           
+            // Add the network output control reaction to the parent
+            FedASTUtils.addNetworkOutputControlReaction(
+                connection.getLeftPorts().get(0), 
+                leftFederate,
+                receivingPortID,
+                leftBankIndex,
+                leftChannelIndex,
+                rightFederate.id,
+                generator
+            );
+            
+            // Add the network input control reaction to the parent
+            FedASTUtils.addNetworkInputControlReaction(
+                connection.getRightPorts().get(0),
+                receivingPortID,
+                rightFederate,
+                parent,
+                generator
+            );
+        }        
+
 
         // Configure the receiving reaction.
         r2.getTriggers().add(triggerRef);
@@ -453,34 +510,9 @@ public class FedASTUtils {
             ASTUtils.getInferredType(action),
             connection.isPhysical()
         ));
-
-        // Add the reactions to the parent.
-        parent.getReactions().add(r1);
-        parent.getReactions().add(r2);       
         
-        if (!connection.isPhysical()) {
-            // Add the network control reactions for the ports
-            // Only for logical connections
-            FedASTUtils.addNetworkInputControlReaction(
-                connection.getRightPorts().get(0),
-                receivingPortID,         
-                (Reactor)connection.getRightPorts().get(0).getVariable().eContainer(),
-                rightFederate,
-                generator,
-                true
-            );
-            
-            
-            FedASTUtils.addNetworkOutputControlReaction(
-                connection.getLeftPorts().get(0), 
-                leftFederate,
-                receivingPortID,
-                leftBankIndex,
-                leftChannelIndex,
-                rightFederate.id,
-                generator
-            );
-        }
+        // Add the receiver reaction to the parent
+        parent.getReactions().add(r2);
     }
 
 }
