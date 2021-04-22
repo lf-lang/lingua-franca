@@ -410,7 +410,7 @@ abstract class KtGeneratorBase(
      */
     protected fun transformDelays() {
         for (r in resources) {
-            ASTUtils.insertGeneratedDelays(r, this)
+            insertGeneratedDelays(r, this)
         }
     }
 
@@ -1321,7 +1321,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      *
      * @param stderr The output on standard error of executing a command.
      */
-    protected fun reportCommandErrors(stderr: String): String? {
+    protected fun reportCommandErrors(stderr: String) {
         val message = StringBuilder()
         var lineNumber: Int? = null
         var resource: IResource? = this.getEclipseResource(this.fileConfig!!.srcFile.toURI())
@@ -2083,7 +2083,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
     abstract fun getTargetVariableSizeListType(baseType: String): String
 
     /** Return a string representing the specified type in the target language. */
-    protected fun getTargetType(type: InferredType): String = when {
+    fun getTargetType(type: InferredType): String = when {
         type.isUndefined        -> this.targetUndefinedType
         type.isTime             -> when {
             type.isFixedSizeList    -> this.getTargetFixedSizeListType(this.targetTimeType, type.listSize)
