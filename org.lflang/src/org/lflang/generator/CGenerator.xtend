@@ -49,6 +49,7 @@ import org.lflang.Target
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
 import org.lflang.TimeValue
+import org.lflang.federated.CGeneratorExtension
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Code
@@ -64,6 +65,7 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
+import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
@@ -305,7 +307,7 @@ class CGenerator extends GeneratorBase {
     /** Count of the number of is_present fields of the self struct that
      *  need to be reinitialized in __start_time_step().
      */
-    var startTimeStepIsPresentCount = 0
+    public var startTimeStepIsPresentCount = 0
     
     /** Count of the number of token pointers that need to have their
      *  reference count decremented in __start_time_step().
@@ -440,7 +442,7 @@ class CGenerator extends GeneratorBase {
         
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
-        if (federates.length > 1) {
+        if (isFederated) {
             coreFiles.addAll("rti.c", "rti.h", "federate.c", "federate.h", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
             createLauncher(coreFiles)
@@ -459,6 +461,7 @@ class CGenerator extends GeneratorBase {
         for (federate : federates) {
             startTimeStepIsPresentCount = 0
             startTimeStepTokens = 0
+            
             
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
@@ -536,6 +539,7 @@ class CGenerator extends GeneratorBase {
                 pr('''
                     int __timer_triggers_size = «timerCount»;
                 ''')
+                
                 // If there are startup reactions, store them in an array.
                 if (startupReactionCount > 0) {
                     pr('''
@@ -629,17 +633,11 @@ class CGenerator extends GeneratorBase {
                     ''')
                 }
                 
-                // Create the table to initialize intended tag fields to 0 between time steps.
-                if (isFederatedAndDecentralized && startTimeStepIsPresentCount > 0) {
-                    // Allocate the initial (before mutations) array of pointers to intended_tag fields.
-                    // There is a 1-1 map between structs containing is_present and intended_tag fields,
-                    // thus, we reuse startTimeStepIsPresentCount as the counter.
-                    pr('''
-                        // Create the array that will contain pointers to intended_tag fields to reset on each step.
-                        __intended_tag_fields_size = «startTimeStepIsPresentCount»;
-                        __intended_tag_fields = (tag_t**)malloc(«startTimeStepIsPresentCount» * sizeof(tag_t*));
-                    ''')
-                }
+                // Allocate the memory for triggers used in federated execution
+                pr(CGeneratorExtension.allocateTriggersForFederate(federate, this));
+                // Assign appropriate pointers to the triggers
+                pr(initializeTriggerObjectsEnd,
+                    CGeneratorExtension.initializeTriggerForControlReactions(this.main, federate, this));
                 
                 pr(initializeTriggerObjects.toString)
                 pr('// Populate arrays of trigger pointers.')
@@ -713,7 +711,7 @@ class CGenerator extends GeneratorBase {
                 // that the specified logical time is complete.
                 pr('''
                     void logical_tag_complete(tag_t tag_to_send) {
-                        «IF federates.length > 1 && targetConfig.coordination == CoordinationType.CENTRALIZED»
+                        «IF isFederatedAndCentralized»
                             _lf_logical_tag_complete(tag_to_send);
                         «ENDIF»
                     }
@@ -750,7 +748,7 @@ class CGenerator extends GeneratorBase {
                 // execution. For federated execution, an implementation is
                 // provided in federate.c.  That implementation will resign
                 // from the federation and close any open sockets.
-                if (federates.length <= 1) {
+                if (!isFederated) {
                     pr("void terminate_execution() {}");
                 }
             }
@@ -779,7 +777,7 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand()
-            } else if (federates.length > 1) {
+            } else if (isFederated) {
                 // Compile the RTI files if there is more than one federate.
                 compileRTI()
             }
@@ -896,20 +894,20 @@ class CGenerator extends GeneratorBase {
      * @param federate The federate instance.
      */
     protected def void initializeFederate(FederateInstance federate) {
-        if (federates.length > 1) {
+        if (isFederated) {
             pr('''
                 // ***** Start initializing the federated execution. */
             ''')            
             pr('''
                 // Initialize the socket mutex
-                lf_mutex_init(&inbound_socket_mutex);
                 lf_mutex_init(&outbound_socket_mutex);
+                lf_cond_init(&port_status_changed);
             ''')
             
             if (isFederatedAndDecentralized) {
                 val reactorInstance = main.getChildReactorInstance(federate.instantiation)
                 for (param : reactorInstance.parameters) {
-                    if (param.name.equalsIgnoreCase("STP") && param.type.isTime) {
+                    if (param.name.equalsIgnoreCase("STP_offset") && param.type.isTime) {
                         val stp = param.init.get(0).getTimeValue
                         if (stp !== null) {                        
                             pr('''
@@ -992,7 +990,8 @@ class CGenerator extends GeneratorBase {
                     // This is done in a separate thread because this thread will call
                     // connect_to_federate for each outbound physical connection at the same
                     // time that the new thread is listening for such connections for inbound
-                    // physical connections. The thread will live until termination.
+                    // physical connections. The thread will live until all connections
+                    // have been established.
                     lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);
                 ''')
             }
@@ -1256,8 +1255,8 @@ class CGenerator extends GeneratorBase {
             shopt -s huponexit
             
             # Set a trap to kill all background jobs on error or control-C
+            # Use two distinct traps so we can see which signal causes this.
             cleanup() {
-                echo "#### Received signal. Invoking cleanup()."
                 printf "Killing federate %s.\n" ${pids[*]}
                 # The || true clause means this is not an error if kill fails.
                 kill ${pids[@]} || true
@@ -1265,8 +1264,17 @@ class CGenerator extends GeneratorBase {
                 kill ${RTI} || true
                 exit 1
             }
-            trap cleanup ERR
-            trap cleanup SIGINT
+            cleanup_err() {
+                echo "#### Received ERR signal on line $1. Invoking cleanup()."
+                cleanup
+            }
+            cleanup_sigint() {
+                echo "#### Received SIGINT signal on line $1. Invoking cleanup()."
+                cleanup
+            }
+            
+            trap 'cleanup_err $LINENO' ERR
+            trap 'cleanup_sigint $LINENO' SIGINT
 
             # Create a random 48-byte text ID for this federation.
             # The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).
@@ -1433,20 +1441,20 @@ class CGenerator extends GeneratorBase {
         if (host == 'localhost' || host == '0.0.0.0') {
             // Local PID managements
             pr(shCode, '''
-                echo "#### Bringing the RTI back to foreground"
-                fg 1
-                RTI=$! # Store the new pid of the RTI
+                echo "#### Bringing the RTI back to foreground so it can receive Control-C."
+                fg %1
             ''')
         }
         // Wait for launched processes to finish
         pr(shCode, '''
-                
+            echo "RTI has exited. Wait for federates to exit."
             # Wait for launched processes to finish.
             # The errors are handled separately via trap.
-            for pid in ${pids[*]}; do
+            for pid in "${pids[@]}"
+            do
                 wait $pid
             done
-            wait $RTI
+            echo "All done."
         ''')
 
         // Write the launcher file.
@@ -2156,12 +2164,12 @@ class CGenerator extends GeneratorBase {
                     deadlineFunctionPointer = "&" + deadlineFunctionName
                 }
                 
-                // Assign the tardiness handler
-                var tardyFunctionPointer = "NULL"
-                if (reaction.tardy !== null) {
+                // Assign the STP handler
+                var STPFunctionPointer = "NULL"
+                if (reaction.stp !== null) {
                     // The following has to match the name chosen in generateReactions
-                    val tardyFunctionName = decl.name.toLowerCase + '_tardy_function' + reactionCount
-                    tardyFunctionPointer = "&" + tardyFunctionName
+                    val STPFunctionName = decl.name.toLowerCase + '_STP_function' + reactionCount
+                    STPFunctionPointer = "&" + STPFunctionName
                 }
 
                 // Set the defaults of the reaction_t struct in the constructor.
@@ -2171,13 +2179,13 @@ class CGenerator extends GeneratorBase {
                 // self->___reaction_«reactionCount».pos = 0;
                 // self->___reaction_«reactionCount».running = false;
                 // self->___reaction_«reactionCount».deadline = 0LL;
-                // self->___reaction_«reactionCount».is_tardy = false;
+                // self->___reaction_«reactionCount».is_STP_violated = false;
                 pr(reaction, constructorCode, '''
                     self->___reaction_«reactionCount».number = «reactionCount»;
                     self->___reaction_«reactionCount».function = «reactionFunctionName(decl, reactionCount)»;
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
-                    self->___reaction_«reactionCount».tardy_handler = «tardyFunctionPointer»;
+                    self->___reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
                 ''')
 
             }
@@ -2346,6 +2354,13 @@ class CGenerator extends GeneratorBase {
             pr(constructorCode, '''
                 self->___«variable.name».element_size = «size»;
             ''')
+        
+            if (isFederated) {
+                pr(body,
+                    CGeneratorExtension.createPortStatusFieldForInput(variable, this)                    
+                );
+            }
+        
         }
     }    
     
@@ -2398,15 +2413,15 @@ class CGenerator extends GeneratorBase {
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
-        if (reaction.tardy !== null) {
-            val lateFunctionName = decl.name.toLowerCase + '_tardy_function' + reactionIndex
+        if (reaction.stp !== null) {
+            val lateFunctionName = decl.name.toLowerCase + '_STP_function' + reactionIndex
 
             pr('void ' + lateFunctionName + '(void* instance_args) {')
             indent();
             generateInitializationForReaction(body, reaction, decl, reactionIndex)
             // Code verbatim from 'late'
-            prSourceLineNumber(reaction.tardy.code)
-            pr(reaction.tardy.code.toText)
+            prSourceLineNumber(reaction.stp.code)
+            pr(reaction.stp.code.toText)
             unindent()
             pr("}")
         }
@@ -2441,15 +2456,17 @@ class CGenerator extends GeneratorBase {
         // Construct the intended_tag inheritance code to go into
         // the body of the function.
         var StringBuilder intendedTagInheritenceCode = new StringBuilder()
-        // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the tardiness
+        // Check if the coordination mode is decentralized and if the reaction has any effects to inherit the STP violation
         if (isFederatedAndDecentralized && !reaction.effects.nullOrEmpty) {
             pr(intendedTagInheritenceCode, '''
-                if (self->___reaction_«reactionIndex».is_tardy == true) {
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wunused-variable"
+                if (self->___reaction_«reactionIndex».is_STP_violated == true) {
             ''')
             indent(intendedTagInheritenceCode);            
             pr(intendedTagInheritenceCode, '''            
                 // The operations inside this if clause (if any exists) are expensive 
-                // and must only be done if the reaction has unhandled tardiness.
+                // and must only be done if the reaction has unhandled STP violation.
                 // Otherwise, all intended_tag values are (NEVER, 0) by default.
                 
                 // Inherited intended tag. This will take the minimum
@@ -2491,10 +2508,10 @@ class CGenerator extends GeneratorBase {
                 // No triggers are given, which means the reaction would react to any input.
                 // We need to check the intended tag for every input.
                 // NOTE: this does not include contained outputs. 
-                for (input : reaction.sources) {
+                for (input : (reaction.eContainer as Reactor).inputs) {
                     pr(intendedTagInheritenceCode, '''
-                        if (compare_tags(«input.variable.name»->intended_tag, inherited_min_intended_tag) > 0) {
-                            inherited_min_intended_tag = «input.variable.name»->intended_tag;
+                        if (compare_tags(«input.name»->intended_tag, inherited_min_intended_tag) > 0) {
+                            inherited_min_intended_tag = «input.name»->intended_tag;
                         }
                     ''')
                 }
@@ -2511,17 +2528,12 @@ class CGenerator extends GeneratorBase {
                         // All effects inherit the minimum intended tag of input triggers
                         «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
                     ''')                    
-                } else if (effect.variable instanceof Output) {
-                    // Everything else
-                    pr(intendedTagInheritenceCode, '''
-                        // All effects inherit the minimum intended tag of input triggers
-                        «effect.variable.name»->intended_tag = inherited_min_intended_tag;
-                    ''')                    
                 }
             }
             unindent(intendedTagInheritenceCode);
             pr(intendedTagInheritenceCode,'''
             }
+            #pragma GCC diagnostic pop
             ''')
             
             // Write the the intended tag inheritance initialization
@@ -2684,9 +2696,9 @@ class CGenerator extends GeneratorBase {
             #pragma GCC diagnostic pop
         ''')
 
-        if (reaction.tardy === null) {
+        if (reaction.stp === null) {
             // Pass down the intended_tag to all input and output effects
-            // downstream if the current reaction does not have a tardy
+            // downstream if the current reaction does not have a STP
             // handler.
             generateIntendedTagInheritence(body, reaction, decl, reactionIndex)
         }
@@ -3463,6 +3475,7 @@ class CGenerator extends GeneratorBase {
                 «nameOfSelfStruct»->«targetBankIndex» = 0;
             ''')
         }
+        
         generateTraceTableEntries(instance, initializeTriggerObjects)
               
         generateReactorInstanceExtension(initializeTriggerObjects, instance, federate)
@@ -3545,7 +3558,7 @@ class CGenerator extends GeneratorBase {
             reactionCount++
         }
         
-        // Next, allocate memory for input multiports. 
+        // Next, allocate memory for input. 
         for (input : reactorClass.toDefinition.inputs) {
             // If the port is a multiport, create an array.
             if (input.isMultiport) {
@@ -3563,7 +3576,7 @@ class CGenerator extends GeneratorBase {
                     // width of -2 indicates that it is not a multiport.
                     «nameOfSelfStruct»->__«input.name»__width = -2;
                 ''')
-            }
+            }            
         }
 
         // Next, initialize the "self" struct with state variables.
@@ -3600,6 +3613,7 @@ class CGenerator extends GeneratorBase {
                     «nameOfSelfStruct»->«getStackPortMember('''__«output.name»''', "num_destinations")» = «numDestinations»;
                 ''')
             }
+            
         }
         
         // Do the same for inputs of contained reactors that are sent data by reactions
@@ -3660,7 +3674,7 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects,
                     '''
                     «nameOfSelfStruct»->___«action.name».token = __create_token(«payloadSize»);
-                    «nameOfSelfStruct»->___«action.name».is_present = false;
+                    «nameOfSelfStruct»->___«action.name».status = absent;
                     '''
                 )
                 // At the start of each time step, we need to initialize the is_present field
@@ -3670,7 +3684,7 @@ class CGenerator extends GeneratorBase {
                     __tokens_with_ref_count[«startTimeStepTokens»].token
                             = &«nameOfSelfStruct»->___«action.name».token;
                     __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                            = &«nameOfSelfStruct»->___«action.name».is_present;
+                            = (bool*)&«nameOfSelfStruct»->___«action.name».status;
                     __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
                 ''')
                 startTimeStepTokens++
@@ -4179,6 +4193,7 @@ class CGenerator extends GeneratorBase {
      * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
+     * @param isPhysical Indicates whether or not the connection is physical
      */
     override generateNetworkReceiverBody(
         Action action,
@@ -4189,8 +4204,13 @@ class CGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         int receivingBankIndex,
         int receivingChannelIndex,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
+        // FIXME: Notify a special type of notification once this reaction is done
+        // FIXME: The receiver logic for the ABSENT message should also notify using this
+        // special message.
+        
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
         // This string is dynamically allocated, and type 'string' is to be
@@ -4204,19 +4224,17 @@ class CGenerator extends GeneratorBase {
             (receivingPort.variable as Port).type.id = "char*"
         }
 
-        val sendRef = generateVarRef(sendingPort)
-        var receiveRef = generateVarRef(receivingPort)
-        // If the receiving port is a multiport, index it.
-        if ((receivingPort.variable as Port).widthSpec !== null && receivingChannelIndex >= 0) {
-            receiveRef = receiveRef + '[' + receivingChannelIndex + ']'
-        }
+        val sendRef = generateVarRef(sendingPort) // Used for comments only, so no bank or multiport index.
+        var receiveRef = generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
         if (isFederatedAndDecentralized) {
             result.append('''
                 // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
                 // Transfer the intended tag from the action to the port
                 «receiveRef»->intended_tag = «action.name»->trigger->intended_tag;
-                DEBUG_PRINT("Received a message with intended tag of (%lld, %u).", «receiveRef»->intended_tag.time, «receiveRef»->intended_tag.microstep);
+                LOG_PRINT("Received a message with intended tag of (%lld, %u).",
+                    «receiveRef»->intended_tag.time - start_time,
+                    «receiveRef»->intended_tag.microstep);
             ''')
         }
         if (isTokenType(type)) {
@@ -4230,6 +4248,7 @@ class CGenerator extends GeneratorBase {
                 SET(«receiveRef», «action.name»->value);
             ''')
         }
+        
         return result.toString
     }
 
@@ -4259,21 +4278,15 @@ class CGenerator extends GeneratorBase {
         boolean isPhysical,
         Delay delay
     ) { 
-        var sendRef = generateVarRef(sendingPort)
-        // If the sending port is a multiport, index it.
-        if ((sendingPort.variable as Port).getWidthSpec() !== null && sendingChannelIndex >= 0) {
-            sendRef = sendRef + '[' + sendingChannelIndex + ']'
-        }
-        val receiveRef = generateVarRef(receivingPort)
+        var sendRef = generatePortRef(sendingPort, sendingBankIndex, sendingChannelIndex);
+        val receiveRef = generateVarRef(receivingPort); // Used for comments only, so no need for bank/multiport index.
         val result = new StringBuilder()
         result.append('''
             // Sending from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
         ''')
         // If the connection is physical and the receiving federate is remote, send it directly on a socket.
-        // If the connection is physical and the receiving federate is local, send it via shared memory. FIXME: not implemented yet
         // If the connection is logical and the coordination mode is centralized, send via RTI.
         // If the connection is logical and the coordination mode is decentralized, send directly
-        var String socket;
         var String messageType;
         
         // The additional delay in absence of after
@@ -4314,35 +4327,19 @@ class CGenerator extends GeneratorBase {
             }
         }
         if (isPhysical) {
-            socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_MESSAGE"
-            // Check if the socket is still valid first
-            result.append('''
-                if (_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»] == -1) {
-                    return;
-                }
-            ''')
         } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-            socket = '''_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»]'''
             messageType = "P2P_TIMED_MESSAGE"
-            // Check if the socket is still valid first
-            result.append('''
-                if (_fed.sockets_for_outbound_p2p_connections[«receivingFed.id»] == -1) {
-                    return;
-                }
-            ''')
         } else {
             // Logical connection
             // Send the message via rti
-            socket = '''_fed.socket_TCP_RTI'''
             messageType = "TIMED_MESSAGE"
-            next_destination_name = '''"the RTI"'''
+            next_destination_name = '''"federate «receivingFed.id» via the RTI"'''
         }
         
         
         var String sendingFunction = '''send_timed_message'''
         var String commonArgs = '''«additionalDelayString», 
-                   «socket»,
                    «messageType»,
                    «receivingPortID»,
                    «receivingFed.id»,
@@ -4352,7 +4349,7 @@ class CGenerator extends GeneratorBase {
             // Messages going on a physical connection do not
             // carry a timestamp or require the delay;
             sendingFunction = '''send_message'''            
-            commonArgs = '''«socket», «messageType», «receivingPortID», «receivingFed.id»,
+            commonArgs = '''«messageType», «receivingPortID», «receivingFed.id»,
                    «next_destination_name», message_length'''
         }
         
@@ -4384,6 +4381,151 @@ class CGenerator extends GeneratorBase {
         }
         return result.toString
     }
+    
+    /**
+     * Generate code for the body of a reaction that decides whether the trigger for the given
+     * port is going to be present or absent for the current logical time.
+     * This reaction is put just before the first reaction that is triggered by the network
+     * input port "port" or has it in its sources. If there are only connections to contained 
+     * reactors, in the top-level reactor.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
+     *  that have port as their trigger or source
+     */
+    override generateNetworkInputControlReactionBody(
+        int receivingPortID,
+        TimeValue maxSTP
+    ) {
+        // Store the code
+        val result = new StringBuilder()
+        
+        // Find the maximum STP for decentralized coordination
+        if(isFederatedAndDecentralized) {
+            result.append('''
+                interval_t max_STP = «maxSTP.timeInTargetLanguage»;
+            ''')  
+        }
+        
+        result.append('''            
+                // Need to lock the mutex to prevent
+                // a race condition with the network
+                // receiver logic.
+                lf_mutex_lock(&mutex);
+        ''')
+        
+        result.append('''
+            DEBUG_PRINT("Invoked network dependant reaction.");
+            if (determine_port_status_if_possible(«receivingPortID») != unknown) {
+                // The status of the trigger is known. No need to wait.
+                LOG_PRINT("------ Not waiting for network input port «receivingPortID»: "
+                           "Status of the port is known already.");
+                mark_control_reaction_not_waiting(«receivingPortID»);
+                lf_mutex_unlock(&mutex);
+                return;
+            }            
+        ''')
+        
+        if(isFederatedAndDecentralized) {
+            result.append('''
+                    if(max_STP != 0LL) {
+                        LOG_PRINT("------ Waiting for %lldns for network input port \"in\" at tag (%llu, %d).",
+                                max_STP,
+                                current_tag.time - start_time,
+                                current_tag.microstep);
+                        while(!wait_until(current_tag.time + max_STP, &port_status_changed)) {
+                            // Interrupted
+                            DEBUG_PRINT("------ Wait for network input port «receivingPortID» interrupted");
+                            // Check if the status of the port is known
+                            if (determine_port_status_if_possible(«receivingPortID») != unknown) {
+                                // The status of the trigger is known. No need to wait.
+                                LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
+                                           "Status of the port has changed.");
+                                mark_control_reaction_not_waiting(«receivingPortID»);
+                                lf_mutex_unlock(&mutex);
+                                return;
+                            }
+                        }
+                        // Done waiting
+                    }
+            ''')        
+        } else {
+            result.append('''                    
+                    LOG_PRINT("------ Waiting for network input port \"in\" at tag (%llu, %d).",
+                            current_tag.time - start_time,
+                            current_tag.microstep);
+                    while(!wait_until(FOREVER, &port_status_changed)) {
+                        // Interrupted
+                        DEBUG_PRINT("------ Wait for network input port «receivingPortID» interrupted");
+                        // Check if the status of the port is known
+                        if (determine_port_status_if_possible(«receivingPortID») != unknown) {
+                            // The status of the trigger is known. No need to wait.
+                            LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
+                                       "Status of the port has changed.");
+                            mark_control_reaction_not_waiting(«receivingPortID»);
+                            lf_mutex_unlock(&mutex);
+                            return;
+                        }
+                    }
+                    // Done waiting
+            ''')        
+        }
+        
+        result.append('''
+                if (determine_port_status_if_possible(«receivingPortID») == unknown) {
+                    // Port will not be triggered at the
+                    // current logical time. Set the absent
+                    // value of the trigger accordingly
+                    // so that the receiving logic cannot
+                    // insert any further reaction
+                    set_network_port_status(«receivingPortID», absent);
+                }
+                mark_control_reaction_not_waiting(«receivingPortID»);
+                lf_mutex_unlock(&mutex);
+                LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
+                          "Wait timed out without a port status change.");
+        ''')
+        
+        return result.toString        
+    }
+
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel if a multiport
+     */
+    override generateNetworkOutputControlReactionBody(
+        VarRef port,
+        int portID,
+        int receivingFederateID,
+        int sendingBankIndex,
+        int sendingChannelIndex
+    ) {
+        // Store the code
+        val result = new StringBuilder();
+        // FIXME: What about bank index?
+        var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
+        
+        result.append('''
+            // If the output port has not been SET for the current logical time,
+            // send an ABSENT message to the receiving federate            
+            LOG_PRINT("Contemplating whether to send port "
+                       "absent for port %d to federate %d.", 
+                       «portID», «receivingFederateID»);
+            if (!«sendRef»->is_present) {
+                send_port_absent_to_federate(«portID», «receivingFederateID»);
+            }
+        ''')
+        
+        
+        return result.toString();
+               
+    }  
 
     /** Generate #include of pqueue.c and either reactor.c or reactor_threaded.c
      *  depending on whether threads are specified in target directive.
@@ -4424,10 +4566,17 @@ class CGenerator extends GeneratorBase {
                         
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (targetConfig.threads === 0 && federates.length > 1) {
-            targetConfig.threads = 1
-        }        
-
+        if (isFederated) {
+            for (federate : federates) {
+                // The number of threads needs to be at least one larger than the input ports
+                // to allow the federate to wait on all input ports while allowing an additional
+                // worker thread to process incoming messages.
+                if (targetConfig.threads < federate.networkMessageActions.size + 1) {
+                    targetConfig.threads = federate.networkMessageActions.size + 1;
+                }            
+            }
+        }
+        
         includeTargetLanguageSourceFiles()
         
         // Do this after the above includes so that the preamble can
@@ -4517,7 +4666,7 @@ class CGenerator extends GeneratorBase {
         } else {
             pr("#include \"core/reactor.c\"")
         }
-        if (federates.length > 1) {
+        if (isFederated) {
             pr("#include \"core/federate.c\"")
         }
     }
@@ -4851,7 +5000,7 @@ class CGenerator extends GeneratorBase {
             // Expose the action struct as a local variable whose name matches the action name.
             «structType»* «action.name» = &self->__«action.name»;
             // Set the fields of the action struct to match the current trigger.
-            «action.name»->is_present = self->___«action.name».is_present;
+            «action.name»->is_present = (bool)self->___«action.name».status;
             «action.name»->has_value = («tokenPointer» != NULL && «tokenPointer»->value != NULL);
             «action.name»->token = «tokenPointer»;
         ''')
@@ -5311,22 +5460,6 @@ class CGenerator extends GeneratorBase {
         = '// **** Do not include initialization code in this reaction.'
         
     public static var UNDEFINED_MIN_SPACING = -1
-    
-    protected def isFederatedAndDecentralized() {
-        if (isFederated &&
-            targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-            return true
-        }
-        return false
-    }
-    
-    protected def isFederatedAndCentralized() {
-        if (isFederated &&
-            targetConfig.coordination === CoordinationType.CENTRALIZED) {
-            return true
-        }
-        return false
-    }
     
        
     /** Returns the Target enum for this generator */

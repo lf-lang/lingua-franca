@@ -165,7 +165,7 @@ void warning_print(char* format, ...) {
 void error_print_and_exit(char* format, ...) {
     va_list args;
     va_start (args, format);
-    _lf_message_print(1, "ERROR: ", format, args);
+    _lf_message_print(1, "FATAL ERROR: ", format, args);
     va_end (args);
     exit(EXIT_FAILURE);
 }

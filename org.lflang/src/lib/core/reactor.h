@@ -305,6 +305,19 @@ typedef enum {defer, drop, replace} lf_spacing_policy_t;
  */
 typedef enum {no=0, token_and_value, token_only} ok_to_free_t;
 
+
+/**
+ * Status of a given port at a given logical time.
+ * 
+ * If the value is 'present', it is an indicator that the port is present at the given logical time.
+ * If the value is 'absent', it is an indicator that the port is absent at the given logical time.
+ * If the value is 'unknown', it is unknown whether the port is present or absent (e.g., in a distributed application).
+ * If the value is 'partial', the port is a multiport, where some of the values are known and some are not.
+ * 
+ * @note For non-network ports, unknown is unused.
+ */
+typedef enum {absent, present, unknown, partial} port_status_t;
+
 /**
  * The flag OK_TO_FREE is used to indicate whether
  * the void* in toke_t should be freed or not.
@@ -426,15 +439,15 @@ struct reaction_t {
     int* triggered_sizes;     // Pointer to array of ints with number of triggers per output. INSTANCE.
     trigger_t ***triggers;    // Array of pointers to arrays of pointers to triggers triggered by each output. INSTANCE.
     bool running;             // Indicator that this reaction has already started executing. RUNTIME.
-    interval_t deadline;// Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
-    bool is_tardy;           // Indicator of tardiness in one of the input triggers to this reaction. default = false.
+    interval_t deadline;      // Deadline relative to the time stamp for invocation of the reaction. INSTANCE.
+    bool is_STP_violated;     // Indicator of STP violation in one of the input triggers to this reaction. default = false.
                               // Value of True indicates to the runtime that this reaction contains trigger(s)
                               // that are triggered at a later logical time that was originally anticipated.
                               // Currently, this is only possible if logical
                               // connections are used in a decentralized federated
                               // execution. COMMON.
     reaction_function_t deadline_violation_handler; // Deadline violation handler. COMMON.
-    reaction_function_t tardy_handler; // Tardiness handler. Invoked when a trigger to this reaction
+    reaction_function_t STP_handler;   // STP handler. Invoked when a trigger to this reaction
                                        // was triggered at a later logical time than originally
                                        // intended. Currently, this is only possible if logical
                                        // connections are used in a decentralized federated
@@ -473,9 +486,29 @@ struct trigger_t {
     lf_spacing_policy_t policy;          // Indicates which policy to use when an event is scheduled too early.
     size_t element_size;      // The size of the payload, if there is one, zero otherwise.
                               // If the payload is an array, then this is the size of an element of the array.
-    bool is_present;          // Indicator at any given logical time of whether the trigger is present.
+    port_status_t status;     // Determines the status of the port at the current logical time. Therefore, this
+                              // value needs to be reset at the beginning of each logical time.
+                              //
+                              // This status is especially needed for the distributed execution because the receiver logic will need 
+                              // to know what it should do if it receives a message with 'intended tag = current tag' from another 
+                              // federate. 
+                              // - If status is 'unknown', it means that the federate has still no idea what the status of 
+                              //   this port is and thus has refrained from executing any reaction that has that port as its input.
+                              //   This means that the receiver logic can directly inject the triggered reactions into the reaction
+                              //   queue at the current logical time.
+                              // - If the status is absent, it means that the federate has assumed that the port is 'absent' 
+                              //   for the current logical time. Therefore, receiving a message with 'intended tag = current tag'
+                              //   is an error that should be handled, for example, as a violation of the STP offset in the decentralized 
+                              //   coordination. 
+                              // - Finally, if status is 'present', then this is an error since multiple 
+                              //   downstream messages have been produced for the same port for the same logical time.
+    tag_t last_known_status_tag; // FIXME: ABSENT message needs to carry a timestamp. Both in handle_absent and handle_timed need to update this.
+                                 // This will be compared for each tag to decide whether to wait for the port or not (because the status of the port is
+                                 // known for an equal or greater tag).
 #ifdef FEDERATED
-    tag_t intended_tag;          // The amount of discrepency in logical time between the original intended
+    bool is_a_control_reaction_waiting; // Indicates whether at least one control reaction is waiting for this trigger
+                                        // if it belongs to a network input port. Must be false by default.
+    tag_t intended_tag;       // The amount of discrepency in logical time between the original intended
                               // trigger time of this trigger and the actual trigger time. This currently
                               // can only happen when logical connections are used using a decentralized coordination
                               // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
@@ -578,11 +611,6 @@ void terminate_execution();
  * Function (to be code generated) to trigger shutdown reactions.
  */
 bool __trigger_shutdown_reactions();
-
-/**
- * Indicator for the absence of values for ports that remain disconnected.
- */
-extern bool absent;
 
 /**
  * Create a new token and initialize it.

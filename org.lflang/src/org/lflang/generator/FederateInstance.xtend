@@ -43,6 +43,7 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.lf.Port
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -64,7 +65,12 @@ class FederateInstance {
      * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
      * @param generator The generator (for reporting errors).
      */
-    protected new(Instantiation instantiation, int id, int bankIndex, GeneratorBase generator) {
+    protected new(
+        Instantiation instantiation, 
+        int id, 
+        int bankIndex, 
+        GeneratorBase generator
+    ) {
         this.instantiation = instantiation;
         this.id = id;
         this.generator = generator;
@@ -158,6 +164,23 @@ class FederateInstance {
      * scheduling the appropriate action.
      */
     public var outboundP2PConnections = new LinkedHashSet<FederateInstance>()
+    
+        
+    /**
+     * A list of triggers for network input control reactions. This is used to trigger
+     * all the input network control reactions that might be nested in a hierarchy.
+     */
+    public var networkInputControlReactionsTriggers = new LinkedList<Port>();
+    
+    
+    /**
+     * A list of network trigger ports that trigger the output control reaction of this 
+     * federate. This list is kept because, in certain
+     * circumstances, there is a need to send an ABSENT message for a network output port to
+     * notify all downstream federates that no value will be present on the given network port,
+     * allowing input control reactions on those federates to stop blocking.
+     */
+    public var VarRef networkOutputControlReactionsTrigger = null;
 
     /////////////////////////////////////////////
     //// Public Methods
@@ -222,8 +245,9 @@ class FederateInstance {
         // Construct the set of excluded reactions for this federate.
         for (react : reactor.allReactions) {
             // If the reaction is triggered by an output of a contained
-            // reactor that is not in the federate, or the reaction
-            // sends to an input of a contained reactor that is not
+            // reactor or has the output in its sources and the trigger/source
+            // is not in the federate,
+            // or the reaction sends to an input of a contained reactor that is not
             // in the federate, then do not generate code for the reaction.
             // If the reaction mixes ports across federates, then report
             // an error and do not generate code.
@@ -245,6 +269,21 @@ class FederateInstance {
                         }
                     }
                 }
+            }
+            for (VarRef source : react.sources ?: emptyList) {
+                    if (source.variable instanceof Output) {
+                        // The trigger is an output port of a contained reactor.
+                        if (source.container === this.instantiation) {
+                            referencesFederate = true;
+                        } else {
+                            if (referencesFederate) {
+                                generator.reportError(react, 
+                                "Reaction mixes triggers and effects from" +
+                                " different federates. This is not permitted")
+                            }
+                            inFederate = false;
+                        }
+                    }
             }
             for (effect : react.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
@@ -325,7 +364,7 @@ class FederateInstance {
                     if (actionInstance.minDelay.isEarlierThan(minDelay)) {
                         minDelay = actionInstance.minDelay;
                     }
-                } else {
+                } else if (action.origin === ActionOrigin.LOGICAL) {
                     // Logical action
                     // Follow it upstream inside the reactor
                     for (uReaction: actionInstance.dependsOnReactions) {
@@ -343,7 +382,6 @@ class FederateInstance {
                 // Outputs of contained reactions
                 var outputInstance = trigger as PortInstance
                 for (uReaction: outputInstance.dependsOnReactions) {
-                    println("Found reaction " + uReaction.name + " upstream in contained reactors")
                     var uMinDelay = findNearestPhysicalActionTrigger(uReaction)
                     if (uMinDelay.isEarlierThan(minDelay)) {
                         minDelay = uMinDelay;

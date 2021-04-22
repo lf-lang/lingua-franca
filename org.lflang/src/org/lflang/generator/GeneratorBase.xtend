@@ -87,6 +87,7 @@ import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.federated.FedASTUtils
 
 /**
  * Generator base class for shared code between code generators.
@@ -108,6 +109,19 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
     
+    /**
+     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
+     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
+     * if it is being called from the Eclipse IDE, and 
+     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
+     */
+    public var Mode mode = Mode.UNDEFINED
+
+    /** 
+     * The main (top-level) reactor instance.
+     */
+    public ReactorInstance main
+    
     ////////////////////////////////////////////
     //// Protected fields.
         
@@ -126,14 +140,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * invocation of doGenerate, which calls setFileConfig.
      */
     protected var FileConfig fileConfig
-    
-    /**
-     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
-     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
-     * if it is being called from the Eclipse IDE, and 
-     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
-     */
-    public var Mode mode = Mode.UNDEFINED
 
     /**
      * Collection of generated delay classes.
@@ -166,11 +172,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * from the Eclipse eCore view of the file and the OS view of the file.
      */
     protected var iResource = null as IResource
-
-    /** 
-     * The main (top-level) reactor instance.
-     */
-    protected ReactorInstance main
 
     /**
      * Definition of the main (top-level) reactor.
@@ -215,12 +216,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
+    
 
     /**
      * Indicates whether or not the current Lingua Franca program
      * contains a federation.
      */
-    protected var boolean isFederated = false
+    public var boolean isFederated = false
 
     // //////////////////////////////////////////
     // // Target properties, if they are included.
@@ -579,7 +581,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Generate code for referencing a port, action, or timer.
-     * @param reference The referenced variable.
+     * @param reference The reference to the variable.
      */
     def String generateVarRef(VarRef reference) {
         var prefix = "";
@@ -587,6 +589,35 @@ abstract class GeneratorBase extends AbstractLFValidator {
             prefix = reference.container.name + "."
         }
         return prefix + reference.variable.name
+    }
+
+    /**
+     * Generate code for referencing a port possibly indexed by
+     * a bank index and/or a multiport index. This assumes the target language uses
+     * the usual array indexing [n] for both cases. If not, this needs to be overridden
+     * by the target code generator.  If the provided reference is not a port, then
+     * this return the string "ERROR: not a port.".
+     * @param reference The reference to the port.
+     * @param bankIndex A bank index or null or negative if not in a bank.
+     * @param multiportIndex A multiport index or null or negative if not in a multiport.
+     */
+    def String generatePortRef(VarRef reference, Integer bankIndex, Integer multiportIndex) {
+        if (!(reference.variable instanceof Port)) {
+            return "ERROR: not a port.";
+        }
+        var prefix = "";
+        if (reference.container !== null) {
+            var bank = "";
+            if (reference.container.widthSpec !== null && bankIndex !== null && bankIndex >= 0) {
+                bank = "[" + bankIndex + "]";
+            }
+            prefix = reference.container.name + bank + "."
+        }
+        var multiport = "";
+        if ((reference.variable as Port).widthSpec !== null && multiportIndex !== null && multiportIndex >= 0) {
+            multiport = "[" + multiportIndex + "]";
+        }
+        return prefix + reference.variable.name + multiport;
     }
 
     /**
@@ -627,7 +658,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
         unorderedReactions.add(reaction)
     }
-
+    
     /**
      * Given a representation of time that may possibly include units, return
      * a string that the target language can recognize as a value. In this base
@@ -1202,9 +1233,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Generate code for the body of a reaction that handles input from the network
-     * that is handled by the specified action. This base class throws an exception.
-     * @param action The action that has been created to handle incoming messages.
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
@@ -1213,18 +1245,19 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
-     * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param isPhysical Indicates whether or not the connection is physical
      */
     def String generateNetworkReceiverBody(
         Action action,
         VarRef sendingPort,
         VarRef receivingPort,
-        int receivingPortID,
+        int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         int receivingBankIndex,
         int receivingChannelIndex,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -1257,6 +1290,65 @@ abstract class GeneratorBase extends AbstractLFValidator {
         Delay delay
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+    }
+    
+    /**
+     * Generate code for the body of a reaction that waits long enough so that the status
+     * of the trigger for the given port becomes known for the current logical time.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
+     *  that have port as their trigger or source
+     */
+    def String generateNetworkInputControlReactionBody(
+        int receivingPortID,
+        TimeValue maxSTP
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }    
+    
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel if a multiport
+     */
+    def String generateNetworkOutputControlReactionBody(
+        VarRef port,
+        int portID,
+        int receivingFederateID,
+        int sendingBankIndex,
+        int sendingChannelIndex
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }  
+    
+    /**
+     * Returns true if the program is federated and uses the decentralized
+     * coordination mechanism.
+     */
+    def isFederatedAndDecentralized() {
+        if (isFederated &&
+            targetConfig.coordination === CoordinationType.DECENTRALIZED) {
+            return true
+        }
+        return false
+    }
+    
+    /**
+     * Returns true if the program is federated and uses the centralized
+     * coordination mechanism.
+     */
+    def isFederatedAndCentralized() {
+        if (isFederated &&
+            targetConfig.coordination === CoordinationType.CENTRALIZED) {
+            return true
+        }
+        return false
     }
 
     /**
@@ -1933,7 +2025,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param port The port.
      * @return True if the port is a multiport.
      */
-    protected def boolean isMultiport(Port port) {
+    def boolean isMultiport(Port port) {
         port.widthSpec !== null
     }
 
@@ -2103,7 +2195,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
                                 val rightFederate = federatesByInstantiation.get(rightPort.container).get(rightBankIndex);
 
                                 // Set up dependency information.
-                                // FIXME: Maybe we don't need this any more?
                                 if (
                                     leftFederate !== rightFederate
                                     && !connection.physical
@@ -2125,23 +2216,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
                                     if (connection.delay !== null) {
                                         sendsTo.add(connection.delay)
                                     }
-                                    // Check for causality loops between federates.
-                                    // FIXME: This does not detect cycles involving more than one federate.
-                                    var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                                    if (reverseDependency !== null) {
-                                        // Check that at least one direction has a delay.
-                                        if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                            // Found a causality loop.
-                                            val message = "Causality loop found between federates " +
-                                                leftFederate.name + " and " + rightFederate.name
-                                            reportError(connection, message)
-                                            // This is a fatal error, so throw an exception.
-                                            throw new Exception(message)
-                                        }
-                                    }
                                 }
                                                                 
-                                ASTUtils.makeCommunication(
+                                FedASTUtils.makeCommunication(
                                     connection, 
                                     leftFederate, leftBankIndex, leftChannelIndex,
                                     rightFederate, rightBankIndex, rightChannelIndex,
