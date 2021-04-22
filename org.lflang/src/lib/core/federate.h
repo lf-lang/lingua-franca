@@ -52,6 +52,13 @@ typedef struct federate_instance_t {
 	int number_of_inbound_p2p_connections;
 
 	/**
+	 * Array of thread IDs for threads that listen for incoming messages.
+	 * This is NULL if there are none and otherwise has size given by
+	 * number_of_inbound_p2p_connections.
+	 */
+	lf_thread_t *inbound_socket_listeners;
+
+	/**
 	 * Number of outbound peer-to-peer connections from the federate.
 	 * This can be either physical connections, or logical connections
 	 * in the decentralized coordination, or both.
@@ -74,7 +81,7 @@ typedef struct federate_instance_t {
 	int sockets_for_inbound_p2p_connections[NUMBER_OF_FEDERATES];
 
 	/**
-	 * An array that holds the socket descriptors for outbound physical
+	 * An array that holds the socket descriptors for outbound direct
 	 * connections to each remote federate. The index will be the federate
 	 * ID of the remote receiving federate. This is initialized at startup
 	 * to -1 and is set to a socket ID by connect_to_federate()
@@ -121,6 +128,14 @@ typedef struct federate_instance_t {
 	 * This variable should only be accessed while holding the mutex lock.
 	 */
 	tag_t last_TAG;
+
+	/**
+	 * Indicates whether the last TAG received is provisional or an ordinary
+	 * TAG. 
+	 * If the last TAG has been provisional, network control reactions must be inserted.
+	 * This variable should only be accessed while holding the mutex lock.
+	 */
+	bool is_last_TAG_provisional;
 
 	/**
 	 * Indicator of whether a NET has been sent to the RTI and no TAG
@@ -175,6 +190,36 @@ typedef struct federate_instance_t {
 	 * path from a physical action to any output.
 	 */
 	instant_t min_delay_from_physical_action_to_federate_output;
+
+	/**
+	 * This list is also used to determine the status of a given network 
+	 * input port at a given logical time. The status of the port (trigger->status) can be: 
+	 * present, absent, or unknown. To determine the status of that port, for a given trigger 
+	 * 't' in this list, a (number of) network input control reactions are inserted into the 
+	 * reaction queue, which is are special kind of reaction that wait long enough until the 
+	 * status of the port becomes known. In the centralized coordination, this wait is until 
+	 * the RTI informs the reaction of the status of the port. In the decentralized coordination,
+	 * this wait is until the STP offset expires (or the status is somehow becomes known sooner).
+	 */
+
+	/**
+	 * List of triggers for network input control reactions, used
+	 * to trigger these reaction at the beginning of every tag.
+	 */
+	trigger_t** triggers_for_network_input_control_reactions;
+	int triggers_for_network_input_control_reactions_size;
+
+
+	/**
+	 * The triggers for all network output control reactions. 
+	 * 
+	 * This is used to trigger network output
+	 * control reactions that will potentially send an ABSENT 
+	 * message to any downstream federate that might be blocking 
+	 * on the network port. The ABSENT message will only be sent if
+	 * the output is not present.
+	 */
+	trigger_t* trigger_for_network_output_control_reactions;
 
 } federate_instance_t;
 

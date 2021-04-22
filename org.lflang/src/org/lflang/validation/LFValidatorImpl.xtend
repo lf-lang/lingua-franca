@@ -79,6 +79,7 @@ import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.lf.LfPackage.Literals
+import org.lflang.lf.STP
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -517,6 +518,16 @@ class LFValidatorImpl extends LFValidator {
             this.info.overflowingDeadlines.contains(deadline)) {
             error(
                 "Deadline exceeds the maximum of " +
+                    TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                Literals.DEADLINE__DELAY)
+        }
+    }
+@Check(FAST)
+    def checkSTPOffset(STP stp) {
+        if (this.target == Target.C &&
+            this.info.overflowingDeadlines.contains(stp)) {
+            error(
+                "STP offset exceeds the maximum of " +
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY)
         }
