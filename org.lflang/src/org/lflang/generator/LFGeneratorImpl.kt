@@ -21,50 +21,40 @@
 package org.lflang.generator
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.Target
 import org.lflang.lf.TargetDecl
-import java.util.*
 
-/**
- * Generates code from your model files on save.
- *
- *
- * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
- */
-internal class LFGenerator : AbstractGenerator() {
-    /** Indicator of whether generator errors occurred in the last call to doGenerate(). */
-    var generatorErrorsOccurred = false
-        private set
+/** Implementation of [LFGenerator]. */
+internal object LFGeneratorImpl {
 
-    companion object {
-        private val TARGET_MAP: Map<Target, Class<out GeneratorBase>> = mapOf(
-            Target.C to CGenerator::class.java,
-            Target.CCPP to CCppGenerator::class.java,
-            Target.CPP to CppGenerator::class.java,
-            Target.TS to TypeScriptGenerator::class.java,
-            Target.Python to PythonGenerator::class.java
-        )
+    private val TARGET_MAP: Map<Target, Class<out GeneratorBase>> = mapOf(
+        Target.C to CGenerator::class.java,
+        Target.CCPP to CCppGenerator::class.java,
+        Target.CPP to CppGenerator::class.java,
+        Target.TS to TypeScriptGenerator::class.java,
+        Target.Python to PythonGenerator::class.java
+    )
 
-        private fun getGenerator(target: Target): GeneratorBase {
-            val generatorClass = TARGET_MAP[target]!!
-            return try {
-                generatorClass.getConstructor().newInstance()
-            } catch (e: Exception) {
-                throw AssertionError("Missing constructor in $generatorClass", e)
-            }
+    private fun getGenerator(target: Target): GeneratorBase {
+        val generatorClass = TARGET_MAP[target]!!
+        return try {
+            generatorClass.getConstructor().newInstance()
+        } catch (e: Exception) {
+            throw AssertionError("Missing constructor in $generatorClass", e)
         }
+
     }
 
-    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
+    /** Returns true if some errors occurred. */
+    fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): Boolean {
         // Determine which target is desired.
         val targetName = findTargetNameOrThrow(resource)
         val target = Target.forName(targetName) ?: throw AssertionError("Not a target '$targetName'")
         val generator = getGenerator(target)
         generator.doGenerate(resource, fsa, context)
-        generatorErrorsOccurred = generatorErrorsOccurred or generator.errorsOccurred()
+        return generator.errorsOccurred()
     }
 
     private fun findTargetNameOrThrow(resource: Resource): String =

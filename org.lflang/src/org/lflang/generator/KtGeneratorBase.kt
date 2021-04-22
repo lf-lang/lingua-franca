@@ -38,12 +38,13 @@ import kotlin.math.max
  * This extends AbstractLinguaFrancaValidator so that errors can be highlighted
  * in the XText-based IDE.
  *
- * @author{Edward A. Lee <eal></eal>@berkeley.edu>}
- * @author{Marten Lohstroh <marten></marten>@berkeley.edu>}
- * @author{Christian Menard <christian.menard></christian.menard>@tu-dresden.de}
- * @author{Matt Weber <matt.weber></matt.weber>@berkeley.edu>}
+ * @author {Edward A. Lee <eal></eal>@berkeley.edu>}
+ * @author {Marten Lohstroh <marten></marten>@berkeley.edu>}
+ * @author {Christian Menard <christian.menard></christian.menard>@tu-dresden.de}
+ * @author {Matt Weber <matt.weber></matt.weber>@berkeley.edu>}
  */
-abstract class GeneratorBase(val target: Target) : AbstractLFValidator() {
+abstract class KtGeneratorBase(val target: Target) : AbstractLFValidator() {
+
     /**
      * Defines the execution environment that is used to execute binaries.
      *
