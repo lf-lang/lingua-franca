@@ -1344,10 +1344,11 @@ void handle_port_absent_message(int socket, int fed_id) {
     network_input_port_action->last_known_status_tag = intended_tag;
     // If any control reaction is waiting, notify them that the status has changed
     if (network_input_port_action->is_a_control_reaction_waiting) {
-        if (compare_tags(intended_tag, get_current_tag()) == 0) {
+        if (compare_tags(intended_tag, get_current_tag()) == 0 &&
+            determine_port_status_if_possible(port_id) == unknown) {
             // If the intended tag for the absent message is the current tag
-            // and there is a control reaction waiting, we need to set the port
-            // status to absent
+            // and the status of the port cannot be determined and there is a 
+            // control reaction waiting, we need to set the port status to absent
             set_network_port_status(port_id, absent);
         }
         // The last known status tag of the port has changed. Notify any waiting threads.
