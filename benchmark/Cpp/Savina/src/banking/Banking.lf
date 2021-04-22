@@ -651,9 +651,9 @@ main reactor (numIterations:int(12), numTransactions:int(50000)) {
     reaction(startup) -> runner.inStart {=
         printBenchmarkInfo("BankingReactorLFCppBenchmark");
         /* [[[cog
-          cog.outl(f'printArgs("numIterations", numIterations, "numTransactions", numTransactions, "numAccounts", {numAccounts});')
+          cog.outl(f'printArgs("numIterations", numIterations, "numTransactions", numTransactions, "numAccounts", {numAccounts}, "innitialBalance", std::numeric_limits<double>::max() / ({numAccounts} * numTransactions));')
         ]]] */
-        printArgs("numIterations", numIterations, "numTransactions", numTransactions, "numAccounts", 20);
+        printArgs("numIterations", numIterations, "numTransactions", numTransactions, "numAccounts", 20, "initialBalance", std::numeric_limits<double>::max() / (20 * numTransactions));
         /// [[[end]]]
         printSystemInfo();
         runner.inStart.set();
