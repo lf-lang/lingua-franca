@@ -16,6 +16,7 @@ import org.eclipse.xtext.validation.CheckMode
 import org.eclipse.xtext.xbase.lib.*
 import org.lflang.*
 import org.lflang.Target
+import org.lflang.federated.FedASTUtils
 import org.lflang.graph.InstantiationGraph
 import org.lflang.lf.*
 import org.lflang.validation.AbstractLFValidator
@@ -1349,7 +1350,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                 // Determine the resource within which the error occurred.
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
-                resource = this.getEclipseResource(URI(parsed.filepath))
+                resource = this.getEclipseResource(URI(parsed.filepath!!))
             } else {
                 // No line designator.
                 if (message.isNotEmpty()) {
@@ -1815,11 +1816,10 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
 
             // Create a FederateInstance for each top-level reactor.
             for (instantiation in mainDefn.allInstantiations) {
-                var bankWidth = ASTUtils.width(instantiation.widthSpec)
-                if (bankWidth < 0) {
+                val bankWidth = instantiation.widthSpec.width ?: run {
                     reportError(instantiation, "Cannot determine bank width!")
                     // Continue with a bank width of 1.
-                    bankWidth = 1
+                    1
                 }
                 // Create one federate instance for each reactor instance in the bank of reactors.
                 val federateInstances = LinkedList<FederateInstance>()
@@ -1872,10 +1872,10 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                 var rightPort = connection.rightPorts[rightIndex++]
                 var rightBankIndex = 0
                 var rightChannelIndex = 0
-                var rightPortWidth = ASTUtils.width((rightPort.variable as Port).widthSpec)
+                var rightPortWidth = (rightPort.variable as Port).widthSpec.width(default = 1)
                 for (leftPort in connection.leftPorts) {
-                    val leftPortWidth = ASTUtils.width((leftPort.variable as Port).widthSpec)
-                    for (leftBankIndex in 0..ASTUtils.width(leftPort.container.widthSpec)) {
+                    val leftPortWidth = (leftPort.variable as Port).widthSpec.width(default = 1)
+                    for (leftBankIndex in 0..leftPort.container.widthSpec.width(default = 1)) {
                         var leftChannelIndex = 0
                         while (rightPort != null) {
                             val minWidth =
@@ -1923,7 +1923,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                                     }
                                 }
 
-                                ASTUtils.makeCommunication(
+                                FedASTUtils.makeCommunication(
                                     connection,
                                     leftFederate, leftBankIndex, leftChannelIndex,
                                     rightFederate, rightBankIndex, rightChannelIndex,
@@ -1937,21 +1937,21 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                                     // Ran out of channels on the right.
                                     // First, check whether there is another bank reactor.
                                     when {
-                                        rightBankIndex < ASTUtils.width(rightPort.container.widthSpec) - 1 -> {
+                                        rightBankIndex < rightPort.container.widthSpec.width(default = 1) - 1 -> {
                                             rightBankIndex++
                                             rightChannelIndex = 0
                                         }
-                                        rightIndex >= connection.rightPorts.size                         -> {
+                                        rightIndex >= connection.rightPorts.size                              -> {
                                             // We are done.
                                             rightPort = null
                                             rightBankIndex = 0
                                             rightChannelIndex = 0
                                         }
-                                        else                                                               -> {
+                                        else                                                                  -> {
                                             rightBankIndex = 0
                                             rightPort = connection.rightPorts[rightIndex++]
                                             rightChannelIndex = 0
-                                            rightPortWidth = ASTUtils.width((rightPort.variable as Port).widthSpec)
+                                            rightPortWidth = (rightPort.variable as Port).widthSpec.width(default = 1)
                                         }
                                     }
                                 }
@@ -2084,9 +2084,11 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * @return A time string in the target language
      */
     protected fun getTargetValue(v: Value): String =
-        if ((v.time != null)) {
+        if (v.time != null) {
             this.getTargetTime(v.time)
-        } else ASTUtils.toText(v)
+        } else {
+            v.toText()
+        }
 
     /**
      * Get textual representation of a value in the target language.
