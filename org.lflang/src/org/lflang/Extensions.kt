@@ -92,7 +92,7 @@ val Reactor.allStateVars: List<StateVar> get() = superClassRecursor { stateVars 
 val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
 
 private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): List<T> =
-    superClasses.orEmpty().mapNotNull { it.toDefinition()?.collector() }.flatten() + this.collector()
+    superClasses.orEmpty().mapNotNull { it.toDefinition().collector() }.flatten() + this.collector()
 
 val Parameter.isOfTimeType: Boolean
     get() {
@@ -138,6 +138,74 @@ fun TypeParm.toText(): String =
     if (!literal.isNullOrEmpty()) literal
     else code.toText()
 
+
+/**
+ * Return a textual representation of this element,
+ * without quotes if there are any. Leading or trailing
+ * whitespace is removed.
+ *
+ * @receiver The element to be rendered as a string.
+ */
+fun Element.toText(): String {
+    if (literal != null) {
+        return literal.withoutQuotes().trim()
+    }
+    if (id != null) {
+        return id
+    }
+    return ""
+}
+
+
+fun Delay.toText(): String {
+    if (parameter !== null) {
+        return parameter.name
+    }
+    return interval.toString() + " " + unit
+}
+
+/**
+ * Remove quotation marks surrounding the specified string.
+ */
+fun String.withoutQuotes(): String {
+    val r = removeSurrounding("\"")
+    return if (r !== this) this else removeSurrounding("'")
+}
+
+
+/**
+ * Return a string of the form either "name" or "container.name" depending
+ * on in which form the variable reference was given.
+ * @param this@toText The variable reference.
+ */
+fun VarRef.toText(): String =
+    if (container !== null) {
+        "${container.name}.${variable.name}"
+    } else {
+        variable.name
+    }
+
+/**
+ * Convert an array specification to its textual representation as it would
+ * appear in LF code.
+ *
+ * @param this@toText The array spec to be converted
+ * @return A textual representation
+ */
+fun ArraySpec.toText(): String =
+    if (isOfVariableLength) "[]"
+    else "[$length]"
+
+
+/**
+ * Translate the given type into its textual representation, including
+ * any array specifications.
+ * @param type AST node to render as string.
+ * @return Textual representation of the given argument.
+ */
+fun toText(type: Type): String {
+    return type.baseType + type.arraySpec?.toText().orEmpty()
+}
 
 /**
  * Find connections in the given resource that have a delay associated with them,
@@ -350,11 +418,8 @@ private fun getDelayClass(aType: Type, generator: KtGeneratorBase): Reactor {
             "${KtGeneratorBase.GEN_DELAY_CLASS_NAME}_$id"
         }
 
-    // Only add class definition if it is not already there.
-    val classDef = generator.findDelayClass(className)
-    if (classDef !== null) {
-        return classDef
-    }
+    // If it is there, return it
+    generator.findDelayClass(className)?.let { return it }
 
     val defaultValue = factory.createValue().apply {
         literal = generator.timeInTargetLanguage(TimeValue(0, TimeUnit.NONE))
@@ -478,3 +543,37 @@ private fun Type.getCopy(): Type {
     }
 
 }
+
+/**
+ * Translate the given type into its textual representation, but
+ * do not append any array specifications.
+ * @receiver AST node to render as string.
+ * @return Textual representation of the given argument.
+ */
+val Type.baseType: String
+    get() = when {
+        code != null -> code.toText()
+        isTime       -> "time"
+        else         -> id + stars.orEmpty().joinToString()
+    }
+
+/**
+ * Report whether the given literal is zero or not.
+ * @receiver AST node to inspect.
+ * @return True if the given literal denotes the constant `0`, false
+ * otherwise.
+ */
+val String.isZero: Boolean get() = this.toIntOrNull() == 0
+
+val Code.isZero: Boolean get() = this.toText().isZero
+
+/**
+ * Report whether the given value is zero or not.
+ * @param value AST node to inspect.
+ * @return True if the given value denotes the constant `0`, false otherwise.
+ */
+fun isZero(value: Value): Boolean =
+    value.literal?.isZero
+        ?: value.code?.isZero
+        ?: false
+
