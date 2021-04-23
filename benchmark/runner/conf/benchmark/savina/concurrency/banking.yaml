@@ -12,6 +12,11 @@ targets:
     run_args:
       accounts: ["-a", "<value>"]
       transactions: ["-n", "<value>"]
+  caf:
+    bin: "caf_15_banking_request_then_infinite"
+    run_args:
+      accounts: ["-a", "<value>"]
+      transactions: ["-n", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

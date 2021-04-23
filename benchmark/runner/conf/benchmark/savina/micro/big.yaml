@@ -2,13 +2,18 @@
 name: "Big"
 params:
   messages: 20000
-  actors: 120
+  actors: 50
 
 # target specific configuration
 targets:
   akka:
     jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
     class: "edu.rice.habanero.benchmarks.big.BigAkkaActorBenchmark"
+    run_args:
+      messages: ["-n", "<value>"]
+      actors: ["-w", "<value>"]
+  caf:
+    bin: "caf_07_big"
     run_args:
       messages: ["-n", "<value>"]
       actors: ["-w", "<value>"]

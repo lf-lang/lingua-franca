@@ -18,6 +18,14 @@ targets:
       threshold: ["-t", "<value>"]
       priorities: ["-p", "<value>"]
       solution_limit: ["-s", "<value>"]
+  caf:
+    bin: "caf_28_nqueenk"
+    run_args:
+      num_workers: ["-w", "<value>"]
+      size: ["-n", "<value>"]
+      threshold: ["-t", "<value>"]
+      priorities: ["-p", "<value>"]
+      solution_limit: ["-s", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

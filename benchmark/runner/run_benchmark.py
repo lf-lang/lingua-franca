@@ -60,7 +60,11 @@ def main(cfg):
     log.info(f"Running {benchmark_name} using the {target_name} target.")
 
     # perform some sanity checks
-    check_benchmark_target_config(benchmark, target_name)
+    if not check_benchmark_target_config(benchmark, target_name):
+        if continue_on_error:
+            return
+        else:
+            raise RuntimeError("Aborting because an error occurred")
 
     # prepare the benchmark
     for step in ["prepare", "copy", "gen", "compile"]:
@@ -79,9 +83,8 @@ def main(cfg):
 def check_benchmark_target_config(benchmark, target_name):
     benchmark_name = benchmark["name"]
     if target_name not in benchmark["targets"]:
-        raise RuntimeError(
-            f"target {target_name} is not supported by the benchmark {benchmark_name}"
-        )
+        log.error(f"target {target_name} is not supported by the benchmark {benchmark_name}")
+        return False
     # keep a list of all benchmark parameters
     bench_params = list(benchmark["params"].keys())
 
@@ -92,12 +95,15 @@ def check_benchmark_target_config(benchmark, target_name):
         if arg_type in target_cfg and target_cfg[arg_type] is not None:
             for param in target_cfg[arg_type].keys():
                 if param not in bench_params:
-                    raise RuntimeError(f"{param} is not a parameter of the benchmark!")
+                    log.error(f"{param} is not a parameter of the benchmark!")
+                    return False
                 used_params.add(param)
 
     for param in bench_params:
         if param not in used_params:
             log.warning(f"The benchmark parameter {param} is not used in any command")
+
+    return True
 
 
 def execute_command(command, continue_on_error):

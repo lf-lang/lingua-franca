@@ -10,6 +10,10 @@ targets:
     class: "edu.rice.habanero.benchmarks.count.CountingAkkaActorBenchmark"
     run_args:
       messages: ["-n", "<value>"]
+  caf:
+    bin: "caf_02_count"
+    run_args:
+      messages: ["-n", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
