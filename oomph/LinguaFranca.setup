@@ -167,6 +167,24 @@
     <description>Install the tools needed in the IDE to work with the source code for ${scope.project.label}</description>
   </setupTask>
   <setupTask
+      xsi:type="setup.p2:P2Task">
+    <requirement
+        name="202103162301.org.eclipse.ajdt"/>
+    <requirement
+        name="202103162301.org.eclipse.ajdt.other"/>
+    <repository
+        url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
+  </setupTask>
+  <setupTask
+      xsi:type="setup.p2:P2Task">
+    <requirement
+        name="org.jetbrains.kotlin.feature.feature.group"/>
+    <requirement
+        name="org.jetbrains.kotlin.gradle.feature.feature.group"/>
+    <repository
+        url="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last"/>
+  </setupTask>
+  <setupTask
       xsi:type="setup:VariableTask"
       name="git.clone.lingua.franca.branch"
       value="master"
