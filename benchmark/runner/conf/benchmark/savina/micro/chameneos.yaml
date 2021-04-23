@@ -12,6 +12,11 @@ targets:
     run_args:
       meetings: ["-m", "<value>"]
       chameneos: ["-c", "<value>"]
+  caf:
+    bin: "caf_06_chameneos"
+    run_args:
+      meetings: ["-m", "<value>"]
+      chameneos: ["-c", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"

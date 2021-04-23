@@ -10,8 +10,13 @@ targets:
     jar: "${savina_path}/target/savina-0.0.1-SNAPSHOT-jar-with-dependencies.jar"
     class: "edu.rice.habanero.benchmarks.threadring.ThreadRingAkkaActorBenchmark"
     run_args:
-      pings: ["-n", "<value>"]
-      actors: ["-r", "<value>"]
+      pings: ["-r", "<value>"]
+      actors: ["-n", "<value>"]
+  caf:
+    bin: "caf_05_threadring"
+    run_args:
+      pings: ["-r", "<value>"]
+      actors: ["-n", "<value>"]
   lf-cpp:
     copy_sources:
       - "${lf_path}/benchmark/Cpp/Savina/src/BenchmarkRunner.lf"
