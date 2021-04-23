@@ -37,11 +37,12 @@ subprojects {
 		implementation group: 'com.google.inject', name: 'guice', version: '5.0.0-BETA-1'
 		// https://mvnrepository.com/artifact/commons-cli/commons-cli
 		implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
-		// https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib
-		implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: "$kotlinVersion"
-		// https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib-jdk8
-		implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: "$kotlinVersion"
-	}
+    }
+    dependencies {
+        implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
+        implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
+    }
+
 
 	apply plugin: 'org.xtext.xtend'
 	apply from: "${rootDir}/gradle/source-layout.gradle"

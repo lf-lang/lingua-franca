@@ -256,16 +256,16 @@ abstract class KtGeneratorBase(
 
     fun setTargetConfig(context: IGeneratorContext) {
         // If there are any physical actions, ensure the threaded engine is used.
-        for (action in fileConfig.resource.allContents.toIterable.filter(Action)) {
+        for (action in fileConfig!!.resource.allContents.asSequence().filterIsInstance<Action>()) {
             if (action.origin == ActionOrigin.PHYSICAL) {
                 targetConfig.threads = 1
             }
         }
 
-        val target = fileConfig.resource.findTarget
+        val target = fileConfig!!.resource.findTarget()
         if (target.config !== null) {
             // Update the configuration according to the set target properties.
-            TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList)
+            TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList())
         }
 
         // Override target properties if specified as command line arguments.
@@ -1411,7 +1411,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * @param source The source file as a path relative to the classpath.
      * @param destination The file system path that the source file is copied to.
      */
-    protected fun copyFileFromClassPath(source: String, destination: String): Long {
+    protected fun copyFileFromClassPath(source: String, destination: String) {
         val sourceStream = this::class.java.getResourceAsStream(source)
             ?: throw IOException(
                 "A required target resource could not be found: " + source + "\n" +
@@ -1456,7 +1456,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * an Eclipse IDE), then refresh the project. This will ensure that
      * any generated files become visible in the project.
      */
-    protected fun refreshProject(): String? {
+    protected fun refreshProject() {
         if (mode == Mode.INTEGRATED) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)"
@@ -1798,7 +1798,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * information between federates. See the C target
      * for a reference implementation.
      */
-    private fun analyzeFederates(): FederateInstance? {
+    private fun analyzeFederates() {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
@@ -2020,7 +2020,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * Print to stdout information about what source file is being generated,
      * what mode the generator is in, and where the generated sources are to be put.
      */
-    open fun printInfo(): String? {
+    open fun printInfo() {
         println("Generating code for: " + fileConfig!!.resource.uri)
         println("******** mode: $mode")
         println("******** source file: " + fileConfig!!.srcFile) // FIXME: redundant
