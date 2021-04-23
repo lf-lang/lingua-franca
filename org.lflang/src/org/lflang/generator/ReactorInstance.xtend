@@ -189,6 +189,21 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                             // If left ports are to be iterated, then start over here.
                             if (connection.isIterated) {
                                 leftPort = connection.leftPorts.get(0)
+                                // The left port may be in a bank.
+                                if (leftPort.container !== null) {
+                                    val reactor = getChildReactorInstance(leftPort.container)
+                                    if (reactor !== null && reactor.bankMembers !== null) {
+                                        for (bankReactor : reactor.bankMembers) {
+                                            // Also reset the bank index.
+                                            nextBankTable.put(leftPort, 0)
+                                            // Since we are starting over with the bank, need to
+                                            // remove all portInstances in each bank reactor that
+                                            // match the left port.
+                                            var portInstance = bankReactor.lookupPortInstance(leftPort.variable as Port)
+                                            nextPortTable.remove(portInstance)
+                                        }
+                                    }
+                                }
                                 leftPortCount = 1
                                 leftPortInstance = nextPort(leftPort)
                             } else {
