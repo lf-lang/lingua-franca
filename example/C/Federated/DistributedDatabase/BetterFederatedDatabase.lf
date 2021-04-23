@@ -3,7 +3,7 @@
  * These are required for this database application to work.
  */
 target C {
-    timeout: 1 sec,
+    timeout: 5 sec,
     coordination: centralized
 }
 
