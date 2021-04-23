@@ -99,7 +99,7 @@ import org.lflang.federated.FedASTUtils
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator {
+abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -652,7 +652,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * instance is created, add that instance to this set.
      * @param reaction The reaction to make unordered.
      */
-    def makeUnordered(Reaction reaction) {
+    override makeUnordered(Reaction reaction) {
         if (unorderedReactions === null) {
             unorderedReactions = new LinkedHashSet<Reaction>()
         }
@@ -1232,106 +1232,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
         targetDecl
     }
 
-    /**
-     * Generate code for the body of a reaction that handles the
-     * action that is triggered by receiving a message from a remote
-     * federate.
-     * @param action The action.
-     * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The ID of the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param receivingFed The destination federate.
-     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
-     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
-     * @param type The type.
-     * @param isPhysical Indicates whether or not the connection is physical
-     */
-    def String generateNetworkReceiverBody(
-        Action action,
-        VarRef sendingPort,
-        VarRef receivingPort,
-        int receivingPortID, 
-        FederateInstance sendingFed,
-        FederateInstance receivingFed,
-        int receivingBankIndex,
-        int receivingChannelIndex,
-        InferredType type,
-        boolean isPhysical
-    ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
-    }
-
-    /**
-     * Generate code for the body of a reaction that handles an output
-     * that is to be sent over the network. This base class throws an exception.
-     * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The ID of the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
-     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
-     * @param receivingFed The destination federate.
-     * @param type The type.
-     * @param isPhysical Indicates whether the connection is physical or not
-     * @param delay The delay value imposed on the connection using after
-     * @throws UnsupportedOperationException If the target does not support this operation.
-     */
-    def String generateNetworkSenderBody(
-        VarRef sendingPort,
-        VarRef receivingPort,
-        int receivingPortID,
-        FederateInstance sendingFed,
-        int sendingBankIndex,
-        int sendingChannelIndex,
-        FederateInstance receivingFed,
-        InferredType type,
-        boolean isPhysical,
-        Delay delay
-    ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
-    }
-    
-    /**
-     * Generate code for the body of a reaction that waits long enough so that the status
-     * of the trigger for the given port becomes known for the current logical time.
-     * 
-     * @param port The port to generate the control reaction for
-     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
-     *  that have port as their trigger or source
-     */
-    def String generateNetworkInputControlReactionBody(
-        int receivingPortID,
-        TimeValue maxSTP
-    ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
-    }    
-    
-    /**
-     * Generate code for the body of a reaction that sends a port status message for the given
-     * port if it is absent.
-     * 
-     * @param port The port to generate the control reaction for
-     * @param portID The ID assigned to the port in the AST transformation
-     * @param receivingFederateID The ID of the receiving federate
-     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
-     * @param sendingChannelIndex The channel if a multiport
-     */
-    def String generateNetworkOutputControlReactionBody(
-        VarRef port,
-        int portID,
-        int receivingFederateID,
-        int sendingBankIndex,
-        int sendingChannelIndex
-    ) {
-        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
-    }  
     
     /**
      * Returns true if the program is federated and uses the decentralized
      * coordination mechanism.
      */
-    def isFederatedAndDecentralized() {
+    override isFederatedAndDecentralized() {
         if (isFederated &&
             targetConfig.coordination === CoordinationType.DECENTRALIZED) {
             return true
@@ -1842,7 +1748,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /** Report an error.
      *  @param message The error message.
      */
-    protected def reportError(String message) {
+    override reportError(String message) {
         return report(message, IMarker.SEVERITY_ERROR, null)
     }
 
@@ -1850,7 +1756,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  @param object The parse tree object.
      *  @param message The error message.
      */
-    protected def reportError(EObject object, String message) {
+    override reportError(EObject object, String message) {
         return report(message, IMarker.SEVERITY_ERROR, object)
     }
 
@@ -1858,7 +1764,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  @param object The parse tree object.
      *  @param message The error message.
      */
-    protected def reportWarning(EObject object, String message) {
+    override reportWarning(EObject object, String message) {
         return report(message, IMarker.SEVERITY_WARNING, object)
     }
 
@@ -2342,7 +2248,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     abstract def boolean supportsGenerics()
 
-    abstract def String getTargetTimeType()
+    abstract override String getTargetTimeType()
 
     abstract def String getTargetTagType()
 
@@ -2464,6 +2370,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
         var fOut = new FileOutputStream(new File(path), false);
         fOut.write(code)
         fOut.close()
+    }
+
+    override getFederationSize() {
+        federates.size
     }
     
 }

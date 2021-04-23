@@ -759,7 +759,7 @@ public enum TargetProperty {
          */
         public static void produceError(String name, String description,
                 LFValidator v) {
-            v.targetPropertyErrors.add("Target property '" + name
+            v.getTargetPropertyErrors().add("Target property '" + name
                     + "' is required to be " + description + ".");
         }
     }
