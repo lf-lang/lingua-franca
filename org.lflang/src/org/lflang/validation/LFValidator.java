@@ -1,6 +1,9 @@
 package org.lflang.validation;
 
-public class LFValidator extends AbstractLFValidator {
+import java.util.List;
 
+public abstract class LFValidator extends AbstractLFValidator {
+
+    public abstract List<String> getTargetPropertyErrors();
     // todo port xtend into new kotlin file
 }

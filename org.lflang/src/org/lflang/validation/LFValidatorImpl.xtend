@@ -131,9 +131,13 @@ class LFValidatorImpl extends LFValidator {
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
 
-    public val List<String> targetPropertyErrors = newLinkedList
+    private val List<String> targetPropertyErrors = newLinkedList
 
-    public val List<String> targetPropertyWarnings = newLinkedList
+    private val List<String> targetPropertyWarnings = newLinkedList
+
+    override List<String> getTargetPropertyErrors() {
+        this.targetPropertyErrors
+    }
 
     @Check
     def checkImportedReactor(ImportedReactor reactor) {

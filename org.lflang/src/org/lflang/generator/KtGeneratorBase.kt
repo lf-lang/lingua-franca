@@ -49,7 +49,7 @@ import kotlin.math.min
 abstract class KtGeneratorBase(
     val target: Target,
     val supportsGenerics: Boolean
-) : AbstractLFValidator() {
+) : AbstractLFValidator(), GeneratorApi {
 
     /**
      * Defines the execution environment that is used to execute binaries.
@@ -531,6 +531,37 @@ abstract class KtGeneratorBase(
         return prefix + reference.variable.name
     }
 
+
+    /**
+     * Generate code for referencing a port possibly indexed by
+     * a bank index and/or a multiport index. This assumes the target language uses
+     * the usual array indexing [n] for both cases. If not, this needs to be overridden
+     * by the target code generator.  If the provided reference is not a port, then
+     * this return the string "ERROR: not a port.".
+     * @param reference The reference to the port.
+     * @param bankIndex A bank index or null or negative if not in a bank.
+     * @param multiportIndex A multiport index or null if not in a multiport.
+     */
+    fun generatePortRef( reference:VarRef,  bankIndex:Int?,  multiportIndex:Int?):String {
+        if (reference.variable !is Port) {
+            return "ERROR: not a port."
+        }
+        var prefix = ""
+        if (reference.container != null) {
+            var bank = ""
+            if (reference.container.widthSpec != null && bankIndex != null) {
+                bank = "[$bankIndex]"
+            }
+            prefix = reference.container.name + bank + "."
+        }
+        var multiport = ""
+        if ((reference.variable as Port).widthSpec != null && multiportIndex != null && multiportIndex >= 0) {
+            multiport = "[$multiportIndex]"
+        }
+        return prefix + reference.variable.name + multiport
+    }
+
+
     /**
      * Return true if the reaction is unordered. An unordered reaction is one
      * that does not have any dependency on other reactions in the containing
@@ -558,7 +589,7 @@ abstract class KtGeneratorBase(
      * instance is created, add that instance to this set.
      * @param reaction The reaction to make unordered.
      */
-    fun makeUnordered(reaction: Reaction): Boolean =
+    override fun makeUnordered(reaction: Reaction): Boolean =
         unorderedReactions?.add(reaction) ?: let {
             unorderedReactions = mutableSetOf(reaction)
             true
@@ -1083,66 +1114,6 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
     }
 
     /**
-     * Generate code for the body of a reaction that handles input from the network
-     * that is handled by the specified action. This base class throws an exception.
-     * @param action The action that has been created to handle incoming messages.
-     * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The ID of the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param receivingFed The destination federate.
-     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
-     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
-     * @param type The type.
-     * @throws UnsupportedOperationException If the target does not support this operation.
-     */
-    open fun generateNetworkReceiverBody(
-        action: Action?,
-        sendingPort: VarRef?,
-        receivingPort: VarRef?,
-        receivingPortID: Int,
-        sendingFed: FederateInstance?,
-        receivingFed: FederateInstance?,
-        receivingBankIndex: Int,
-        receivingChannelIndex: Int,
-        type: InferredType?
-    ): String? {
-        throw UnsupportedOperationException("This target does not support direct connections between federates.")
-    }
-
-    // ---ported until HERE---
-
-    /**
-     * Generate code for the body of a reaction that handles an output
-     * that is to be sent over the network. This base class throws an exception.
-     * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The ID of the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
-     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
-     * @param receivingFed The destination federate.
-     * @param type The type.
-     * @param isPhysical Indicates whether the connection is physical or not
-     * @param delay The delay value imposed on the connection using after
-     * @throws UnsupportedOperationException If the target does not support this operation.
-     */
-    open fun generateNetworkSenderBody(
-        sendingPort: VarRef?,
-        receivingPort: VarRef?,
-        receivingPortID: Int,
-        sendingFed: FederateInstance?,
-        sendingBankIndex: Int,
-        sendingChannelIndex: Int,
-        receivingFed: FederateInstance?,
-        type: InferredType?,
-        isPhysical: Boolean,
-        delay: Delay?
-    ): String? {
-        throw UnsupportedOperationException("This target does not support direct connections between federates.")
-    }
-
-    /**
      * Generate any preamble code that appears in the code generated
      * file before anything else.
      */
@@ -1472,13 +1443,14 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * This will print the error message to stderr.
      * If running in INTEGRATED mode (within the Eclipse IDE), then this also
      * adds a marker to the editor.
+     *
      * @param message The error message.
      * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
      * @param line The line number or null if it is not known.
-     * @param object The Ecore object, or null if it is not known.
+     * @param eObject The Ecore object, or null if it is not known.
      * @param resource The resource, or null if it is not known.
      */
-    protected fun report(message: String, severity: Int, line: Int?, `object`: EObject?, resource: IResource?): String {
+    protected fun report(message: String, severity: Int, line: Int?, eObject: EObject?, resource: IResource?): String {
         if (severity == IMarker.SEVERITY_ERROR) {
             generatorErrorsOccurred = true
         }
@@ -1488,8 +1460,8 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
         val fullPath: String = let {
             var p = resource?.fullPath?.toString()
             if (p == null) {
-                if (`object` != null && `object`.eResource() != null)
-                    p = FileConfig.toPath(`object`.eResource()).toString()
+                if (eObject != null && eObject.eResource() != null)
+                    p = FileConfig.toPath(eObject.eResource()).toString()
                 if (p == null) {
                     p = if (line == null) "" else "path unknown"
                 }
@@ -1504,9 +1476,9 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
         // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
         if (mode === Mode.INTEGRATED) {
             var myResource = resource
-            if (myResource === null && `object` != null) {
+            if (myResource === null && eObject != null) {
                 // Attempt to identify the IResource from the object.
-                val eResource = `object`.eResource()
+                val eResource = eObject.eResource()
                 if (eResource != null) {
                     val uri = FileConfig.toPath(eResource).toUri()
                     myResource = getEclipseResource(uri)
@@ -1579,26 +1551,26 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * Report an error.
      * @param message The error message.
      */
-    protected fun reportError(message: String): String {
+    override fun reportError(message: String): String {
         return this.report(message, IMarker.SEVERITY_ERROR, null)
     }
 
     /**
      * Report an error on the specified parse tree object.
-     * @param object The parse tree object.
+     * @param eObject The parse tree object.
      * @param message The error message.
      */
-    protected fun reportError(`object`: EObject?, message: String): String {
-        return this.report(message, IMarker.SEVERITY_ERROR, `object`)
+    override fun reportError(eObject: EObject?, message: String): String {
+        return this.report(message, IMarker.SEVERITY_ERROR, eObject)
     }
 
     /**
      * Report a warning on the specified parse tree object.
-     * @param object The parse tree object.
+     * @param eObject The parse tree object.
      * @param message The error message.
      */
-    protected fun reportWarning(`object`: EObject?, message: String): String {
-        return this.report(message, IMarker.SEVERITY_WARNING, `object`)
+    override fun reportWarning(eObject: EObject?, message: String): String {
+        return this.report(message, IMarker.SEVERITY_WARNING, eObject)
     }
 
     /**
@@ -2040,7 +2012,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
         return returnCode
     }
 
-    abstract val targetTimeType: String
+    abstract override fun getTargetTimeType(): String
     abstract val targetTagType: String
     abstract val targetTagIntervalType: String
     abstract val targetUndefinedType: String
@@ -2134,4 +2106,10 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
             }
         }
     }
+
+    override fun getFederationSize(): Int = federates.size
+
+    override fun isFederatedAndDecentralized() =
+        isFederated && targetConfig.coordination === TargetProperty.CoordinationType.DECENTRALIZED
+
 }

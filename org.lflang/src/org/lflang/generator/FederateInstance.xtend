@@ -69,7 +69,7 @@ class FederateInstance {
         Instantiation instantiation, 
         int id, 
         int bankIndex, 
-        GeneratorBase generator
+        GeneratorApi generator
     ) {
         this.instantiation = instantiation;
         this.id = id;
@@ -313,7 +313,7 @@ class FederateInstance {
      * @return True if no federation has been defined.
      */
      def isSingleton() {
-         return ((instantiation === null) || (generator.federates.size <= 1))
+         return ((instantiation === null) || (generator.getFederationSize <= 1))
      }
      
     /**
@@ -344,7 +344,7 @@ class FederateInstance {
     var excludeReactions = null as Set<Reaction>
     
     /** The generator using this. */
-    var generator = null as GeneratorBase
+    var GeneratorApi generator = null
     
     /**
      * Find the nearest (shortest) path to a physical action trigger from this

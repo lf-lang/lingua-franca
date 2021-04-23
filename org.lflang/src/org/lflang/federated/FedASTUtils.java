@@ -37,6 +37,7 @@ import org.lflang.ASTUtils;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.generator.FederateInstance;
+import org.lflang.generator.GeneratorApi;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -95,7 +96,7 @@ public class FedASTUtils {
             int recevingPortID,
             FederateInstance instance,
             Reactor parent,
-            GeneratorBase generator
+            GeneratorApi generator
         ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
@@ -160,7 +161,7 @@ public class FedASTUtils {
      */
     private static TimeValue findMaxSTP(Variable port,
             FederateInstance instance,
-            GeneratorBase generator, Reactor reactor) {
+            GeneratorApi generator, Reactor reactor) {
         // Find a list of STP offsets (if any exists)
         List<Value> STPList = new LinkedList<Value>();
         
@@ -290,7 +291,7 @@ public class FedASTUtils {
             int channelIndex, 
             int bankIndex, 
             int receivingFedID,
-            GeneratorBase generator
+            GeneratorApi generator
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
@@ -380,7 +381,7 @@ public class FedASTUtils {
         FederateInstance rightFederate,
         int rightBankIndex,
         int rightChannelIndex,
-        GeneratorBase generator,
+        GeneratorApi generator,
         CoordinationType coordination
     ) {
         LfFactory factory = LfFactory.eINSTANCE;

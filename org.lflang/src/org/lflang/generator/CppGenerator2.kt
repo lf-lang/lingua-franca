@@ -64,8 +64,9 @@ class CppGenerator2 : KtGeneratorBase(
         TODO("Not yet implemented")
     }
 
-    override val targetTimeType: String
-        get() = TODO("Not yet implemented")
+    override fun getTargetTimeType(): String {
+        TODO("Not yet implemented")
+    }
     override val targetTagType: String
         get() = TODO("Not yet implemented")
     override val targetTagIntervalType: String
