@@ -263,7 +263,7 @@ abstract class KtGeneratorBase(
         }
 
         val target = fileConfig!!.resource.findTarget()
-        if (target.config !== null) {
+        if (target.config != null) {
             // Update the configuration according to the set target properties.
             TargetProperty.update(this.targetConfig, target.config.pairs ?: emptyList())
         }
@@ -336,7 +336,7 @@ abstract class KtGeneratorBase(
         createMainInstance()
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (mainDef !== null) {
+        if (mainDef != null) {
             for (conflict in MainConflictChecker(fileConfig).conflicts) {
                 reportError(this.mainDef!!.reactorClass, "Conflicting main reactor in $conflict")
             }
@@ -524,7 +524,7 @@ abstract class KtGeneratorBase(
      */
     fun generateVarRef(reference: VarRef): String {
         var prefix = ""
-        if (reference.container !== null) {
+        if (reference.container != null) {
             prefix = reference.container.name + "."
         }
         return prefix + reference.variable.name
@@ -575,7 +575,7 @@ abstract class KtGeneratorBase(
      * @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
     open fun timeInTargetLanguage(time: TimeValue?): String =
-        if (time !== null) {
+        if (time != null) {
             if (time.unit != TimeUnit.NONE) {
                 time.unit.name + '(' + time.time + ')'
             } else {
@@ -661,17 +661,15 @@ abstract class KtGeneratorBase(
                     // FIXME: These would have to be top-level parameters, which don't really
                     // have any support yet. Ideally, they could be overridden on the command line.
                     // When that is done, they will need to be in scope here.
-                    val delays = federate.dependsOn.get(upstreamFederate)
-                    if (delays !== null) {
-                        for (delay in delays) {
-                            pr(
-                                rtiCode, """
-                                    if (federates[${federate.id}].upstream_delay[${count}] < ${delay.getRTITime}) {
-                                    federates[${federate.id}].upstream_delay[${count}] = ${delay.getRTITime};
-                                }
-                                """
-                            )
-                        }
+                    val delays = federate.dependsOn[upstreamFederate].orEmpty()
+                    for (delay in delays) {
+                        pr(
+                            rtiCode, """
+                                if (federates[${federate.id}].upstream_delay[${count}] < ${delay.rtiTime}) {
+                                federates[${federate.id}].upstream_delay[${count}] = ${delay.rtiTime};
+                            }
+                            """
+                        )
                     }
                     count++
                 }
@@ -747,7 +745,7 @@ abstract class KtGeneratorBase(
         val compile = compileCCommand(file, doNotLinkIfNoMain) ?: return false
 
         val stderr = ByteArrayOutputStream()
-        val returnCode = compile.executeCommand(stderr)
+        val returnCode = compile.executeCommand(errStream = stderr)
 
         if (returnCode != 0 && mode !== Mode.INTEGRATED) {
             reportError("""${targetConfig.compiler} returns error code $returnCode""")
@@ -779,7 +777,7 @@ abstract class KtGeneratorBase(
 
         for (cmd in commands) {
             val stderr = ByteArrayOutputStream()
-            val returnCode = cmd.executeCommand(stderr)
+            val returnCode = cmd.executeCommand(errStream = stderr)
 
             if (returnCode != 0 && mode !== Mode.INTEGRATED) {
                 reportError("""Build command "${targetConfig.buildCommands}" returns error code $returnCode""")
@@ -836,7 +834,7 @@ abstract class KtGeneratorBase(
 
         // If threaded computation is requested, add a -pthread option.
 
-        if (targetConfig.threads != 0 || targetConfig.tracing !== null) {
+        if (targetConfig.threads != 0 || targetConfig.tracing != null) {
             compileArgs.add("-pthread")
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
@@ -888,10 +886,10 @@ abstract class KtGeneratorBase(
         val workspaceRoot = ResourcesPlugin.getWorkspace().root
         // The following uses a java.net.URI, which,
         // pathetically, cannot be distinguished in xtend from a org.eclipse.emf.common.util.URI.
-        if (uri !== null) {
+        if (uri != null) {
             // Pathetically, Eclipse requires a java.net.uri, not a org.eclipse.emf.common.util.URI.
             val files = workspaceRoot.findFilesForLocationURI(uri)
-            if (files !== null && files.isNotEmpty() && files[0] !== null) {
+            if (files != null && files.isNotEmpty() && files[0] != null) {
                 resource = files[0]
             }
         }
@@ -923,14 +921,14 @@ abstract class KtGeneratorBase(
     /**
      * Run a given command and record its output.
      *
-     * @param cmd the command to be executed
+     * @receiver the command to be executed
      * @param errStream a stream object to forward the commands error messages to
      * @param outStream a stream object to forward the commands output messages to
      * @return the commands return code
      */
-    protected fun executeCommand(cmd: ProcessBuilder, errStream: OutputStream? = null, outStream: OutputStream? = null): Int {
+    protected fun ProcessBuilder.executeCommand(errStream: OutputStream? = null, outStream: OutputStream? = null): Int {
         println("--- Current working directory: \${cmd.directory.toString()}")
-        println("--- Executing command: ${cmd.command().joinToString(" ")}")
+        println("--- Executing command: ${command().joinToString(" ")}")
 
         val outStreams = mutableListOf<OutputStream>()
         val errStreams = mutableListOf<OutputStream>()
@@ -945,7 +943,7 @@ abstract class KtGeneratorBase(
 
         // Execute the command. Write output to the System output,
         // but also keep copies in outStream and errStream
-        return cmd.runSubprocess(outStreams, errStreams)
+        return runSubprocess(outStreams, errStreams)
 
     }
 
@@ -989,7 +987,7 @@ abstract class KtGeneratorBase(
         val bashCommand = listOf("bash", "--login", "-c", "which $cmd")
         val bashBuilder = ProcessBuilder(bashCommand)
         val bashOut = ByteArrayOutputStream()
-        val bashReturn = bashBuilder.runSubprocess(#[bashOut], #[])
+        val bashReturn = bashBuilder.runSubprocess(listOf(bashOut), listOf())
         if (bashReturn == 0) {
             println("SUCCESS")
             return ExecutionEnvironment.BASH
@@ -1084,18 +1082,6 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
     }
 
     /**
-     * Return the target.
-     */
-    fun findTarget(resource: Resource): TargetDecl? {
-        val targets = resource.allContents.asSequence().filterIsInstance<TargetDecl>().toList()
-        when {
-            targets.isEmpty() -> throw RuntimeException("No target found!")
-            targets.size > 1  -> throw RuntimeException("There is more than one target!") // FIXME: check this in validator
-            else              -> return targets[0]
-        }
-    }
-
-    /**
      * Generate code for the body of a reaction that handles input from the network
      * that is handled by the specified action. This base class throws an exception.
      * @param action The action that has been created to handle incoming messages.
@@ -1181,19 +1167,12 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
         }
     }
 
-    /**
-     * Get the code produced so far.
-     * @return The code produced so far as a String.
-     */
+    /** Returns the code produced so far. */
     protected fun getCode(): String = code.toString()
 
     /**
      * Increase the indentation of the output code produced
      * on the specified builder.
-     * @param The builder to indent.
-     */
-    /**
-     * Increase the indentation of the output code produced.
      */
     protected fun indent(builder: StringBuilder = this.code): String =
         (indentation.getOrDefault(builder, "") + "    ").also {
@@ -1392,7 +1371,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                 // statements to find which one matches and mark all the
                 // import statements down the chain. But what a pain!
                 report(
-                    "Error in imported file: " + resource.fullPath,
+                    "Error in imported file: " + resource!!.fullPath,
                     IMarker.SEVERITY_ERROR,
                     null,
                     originalResource
@@ -1469,15 +1448,13 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                 )
             }
             val matcher = pattern.matcher(code)
-            var projName = ""
-            if (matcher.find()) {
-                projName = matcher.group(1)
-            }
+            val projName = if (matcher.find()) matcher.group(1) else ""
+
             try {
-                val members = ResourcesPlugin.getWorkspace().root.members
+                val members = ResourcesPlugin.getWorkspace().root.members()
                 for (member in members) {
                     // Refresh current project, or simply entire workspace if project name was not found
-                    if (projName == "" || projName.equals(member.fullPath.toString().substring(1))) {
+                    if (projName.isEmpty() || projName == member.fullPath.toString().substring(1)) {
                         member.refreshLocal(IResource.DEPTH_INFINITE, null)
                         println("Refreshed " + member.fullPath)
                     }
@@ -1510,7 +1487,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
         val fullPath: String = let {
             var p = resource?.fullPath?.toString()
             if (p == null) {
-                if (`object` != null && `object`.eResource() !== null)
+                if (`object` != null && `object`.eResource() != null)
                     p = FileConfig.toPath(`object`.eResource()).toString()
                 if (p == null) {
                     p = if (line == null) "" else "path unknown"
@@ -1529,7 +1506,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
             if (myResource === null && `object` != null) {
                 // Attempt to identify the IResource from the object.
                 val eResource = `object`.eResource()
-                if (eResource !== null) {
+                if (eResource != null) {
                     val uri = FileConfig.toPath(eResource).toUri()
                     myResource = getEclipseResource(uri)
                 }
@@ -1539,10 +1516,10 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
             if (myResource === null) {
                 myResource = iResource
             }
-            if (myResource !== null) {
+            if (myResource != null) {
                 val marker = myResource.createMarker(IMarker.PROBLEM)
                 marker.setAttribute(IMarker.MESSAGE, message)
-                if (line !== null) {
+                if (line != null) {
                     marker.setAttribute(IMarker.LINE_NUMBER, line)
                 } else {
                     marker.setAttribute(IMarker.LINE_NUMBER, 1)
@@ -1685,7 +1662,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
 
         val ofTimeType = param.isOfTimeType
 
-        val assignments = i.parameters.filter { p.lhs === param }
+        val assignments = i.parameters.filter { it.lhs === param }
 
         return if (assignments.isEmpty()) {
             // the parameter was not overwritten in the instantiation
@@ -1725,7 +1702,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
         if (widthSpec.isOfVariableLength) return emptyList()
         return widthSpec.terms.map { term ->
             val param = term.parameter
-            if (param !== null) getTargetReference(param)
+            if (param != null) getTargetReference(param)
             else term.width.toString()
         }
     }
@@ -1757,22 +1734,23 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * code for targets that override timeInTargetLanguage
      * to return a C-incompatible time type.
      *
-     * @param d A time AST node
+     * @param this@getRTITime A time AST node
      * @return An RTI-compatible (ie. C target) time string
      */
-    protected fun getRTITime(d: Delay): String {
-        if (d.parameter !== null) {
-            return d.toText
-        }
+    protected val Delay.rtiTime: String
+        get() {
+            if (parameter != null) {
+                return this.toText()
+            }
 
-        val time = TimeValue(d.interval.toLong(), d.unit)
+            val time = TimeValue(interval.toLong(), unit)
 
-        return if (time.unit != TimeUnit.NONE) {
-            time.unit.name + '(' + time.time + ')'
-        } else {
-            time.time.toString()
+            return if (time.unit != TimeUnit.NONE) {
+                time.unit.name + '(' + time.time + ')'
+            } else {
+                time.time.toString()
+            }
         }
-    }
 
     /**
      * Analyze the resource (the .lf file) that is being parsed
@@ -1802,9 +1780,9 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        val mainDefn = this.mainDef?.reactorClass.toDefinition()
+        val mainDefn = this.mainDef?.reactorClass?.toDefinition()
 
-        if (this.mainDef === null || !mainDefn.isFederated) {
+        if (mainDefn?.isFederated != true) {
             // Ensure federates is never empty.
             val federateInstance = FederateInstance(null, 0, 0, this)
             federates.add(federateInstance)
@@ -1812,7 +1790,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
         } else {
             // The Lingua Franca program is federated
             isFederated = true
-            if (mainDefn?.host != null) {
+            if (mainDefn.host != null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
                 if (mainDefn.host.addr != null) {
@@ -1824,12 +1802,12 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                     federationRTIProperties["port"] = mainDefn.host.port
                 }
                 // Get the user information, if specified.
-                if (mainDefn.host.user !== null) {
+                if (mainDefn.host.user != null) {
                     federationRTIProperties["user"] = mainDefn.host.user
                 }
                 // Get the directory information, if specified.
                 /* FIXME
-                 * if (mainDef.reactorClass.host.dir !== null) {
+                 * if (mainDef.reactorClass.host.dir != null) {
                  *     federationRTIProperties.put('dir', mainDef.reactorClass.host.dir)
                  * }
                  */
@@ -1854,7 +1832,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                     federateInstances.add(federateInstance)
                     federateByID[federateID] = federateInstance
 
-                    if (instantiation.host !== null) {
+                    if (instantiation.host != null) {
                         federateInstance.host = instantiation.host.addr
                         // The following could be 0.
                         federateInstance.port = instantiation.host.port
@@ -1899,7 +1877,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                     val leftPortWidth = ASTUtils.width((leftPort.variable as Port).widthSpec)
                     for (leftBankIndex in 0..ASTUtils.width(leftPort.container.widthSpec)) {
                         var leftChannelIndex = 0
-                        while (rightPort !== null) {
+                        while (rightPort != null) {
                             val minWidth =
                                 if (leftPortWidth - leftChannelIndex < rightPortWidth - rightChannelIndex)
                                     leftPortWidth - leftChannelIndex
@@ -1921,26 +1899,18 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                                     && !connection.isPhysical
                                     && targetConfig.coordination !== TargetProperty.CoordinationType.DECENTRALIZED
                                 ) {
-                                    var dependsOn = rightFederate.dependsOn[leftFederate]
-                                    if (dependsOn === null) {
-                                        dependsOn = LinkedHashSet<Delay>()
-                                        rightFederate.dependsOn[leftFederate] = dependsOn
-                                    }
-                                    if (connection.delay !== null) {
+                                    val dependsOn = rightFederate.dependsOn.computeIfAbsent(leftFederate) { mutableSetOf() }
+                                    if (connection.delay != null) {
                                         dependsOn.add(connection.delay)
                                     }
-                                    var sendsTo = leftFederate.sendsTo[rightFederate]
-                                    if (sendsTo === null) {
-                                        sendsTo = LinkedHashSet<Delay>()
-                                        leftFederate.sendsTo[rightFederate] = sendsTo
-                                    }
-                                    if (connection.delay !== null) {
+                                    val sendsTo = leftFederate.dependsOn.computeIfAbsent(rightFederate) { mutableSetOf() }
+                                    if (connection.delay != null) {
                                         sendsTo.add(connection.delay)
                                     }
                                     // Check for causality loops between federates.
                                     // FIXME: This does not detect cycles involving more than one federate.
                                     val reverseDependency = leftFederate.dependsOn[rightFederate]
-                                    if (reverseDependency !== null) {
+                                    if (reverseDependency != null) {
                                         // Check that at least one direction has a delay.
                                         if (reverseDependency.size == 0 && dependsOn.size == 0) {
                                             // Found a causality loop.
@@ -1957,7 +1927,8 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                                     connection,
                                     leftFederate, leftBankIndex, leftChannelIndex,
                                     rightFederate, rightBankIndex, rightChannelIndex,
-                                    this, targetConfig.coordination
+                                    this,
+                                    targetConfig.coordination
                                 )
 
                                 leftChannelIndex++
@@ -1970,7 +1941,7 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
                                             rightBankIndex++
                                             rightChannelIndex = 0
                                         }
-                                        rightIndex >= connection.rightPorts.size()                         -> {
+                                        rightIndex >= connection.rightPorts.size                         -> {
                                             // We are done.
                                             rightPort = null
                                             rightBankIndex = 0
@@ -2004,16 +1975,15 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * Integrated mode means that it is running within an Eclipse IDE.
      * Standalone mode means that it is running on the command line.
      */
-    private fun setMode(): Mode? {
+    private fun setMode() {
         val resource = fileConfig?.resource
         mode = when {
             resource?.uri?.isPlatform == true -> Mode.INTEGRATED
             resource?.uri?.isFile == true     -> Mode.STANDALONE
             else                              -> Mode.UNDEFINED.also {
-                System.err.println("ERROR: Source file protocol is not recognized: " + resource.uri)
+                System.err.println("ERROR: Source file protocol is not recognized: " + resource!!.uri)
             }
         }
-        return mode
     }
 
     /**
@@ -2035,37 +2005,33 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
      * buffers are full. This method ensures that output and error messages
      * are continuously read and forwards them to the given streams.
      *
-     * @param processBuilder The process to be executed.
-     * @param outStream The stream to forward the process' output to.
-     * @param errStream The stream to forward the process' error messages to.
+     * @param this@runSubprocess The process to be executed.
+     * @param outStreams The stream to forward the process' output to.
+     * @param errStreams The stream to forward the process' error messages to.
      * @author{Christian Menard <christian.menard></christian.menard>@tu-dresden.de}
      */
-    private fun runSubprocess(processBuilder: ProcessBuilder, outStream: List<OutputStream>, errStream: List<OutputStream>): Int {
-        val process = processBuilder.start()
+    private fun ProcessBuilder.runSubprocess(outStreams: List<OutputStream>,
+                                             errStreams: List<OutputStream>): Int {
 
-        val outThread = Thread {
-            val buffer = ByteArray(64)
-            var len = process.inputStream.read(buffer)
-            while (len != -1) {
-                for (os in outStream) {
-                    os.write(buffer, 0, len)
+        fun startThread(inputStream: InputStream, outputs:List<OutputStream>) =
+            Thread {
+                val buffer = ByteArray(64)
+                var len = inputStream.read(buffer)
+                while (len != -1) {
+                    for (os in outputs) {
+                        os.write(buffer, 0, len)
+                    }
+                    len = inputStream.read(buffer)
                 }
-                len = process.inputStream.read(buffer)
+            }.also {
+                it.start()
             }
-        }
-        outThread.start()
 
-        val errThread = Thread {
-            val buffer = ByteArray(64)
-            var len = process.errorStream.read(buffer)
-            while (len != -1) {
-                for (es in errStream) {
-                    es.write(buffer, 0, len)
-                }
-                len = process.errorStream.read(buffer)
-            }
-        }
-        errThread.start()
+
+        val process = start()
+
+        val outThread = startThread(process.inputStream, outStreams)
+        val errThread = startThread(process.errorStream, errStreams)
 
         val returnCode = process.waitFor()
         outThread.join()
@@ -2153,9 +2119,17 @@ You can set PATH in ~/.bash_profile on Linux or Mac."""
     }
 
     companion object {
-        /**
-         * Constant that specifies how to name generated delay reactors.
-         */
-        val GEN_DELAY_CLASS_NAME = "__GenDelay"
+        /** Constant that specifies how to name generated delay reactors. */
+        const val GEN_DELAY_CLASS_NAME = "__GenDelay"
+
+        /** Return the target. Throws if there is not exactly one. */
+        fun Resource.findTarget(): TargetDecl {
+            val targets = allContents.asSequence().filterIsInstance<TargetDecl>().toList()
+            when {
+                targets.isEmpty() -> throw RuntimeException("No target found!")
+                targets.size > 1  -> throw RuntimeException("There is more than one target!") // FIXME: check this in validator
+                else              -> return targets[0]
+            }
+        }
     }
 }
