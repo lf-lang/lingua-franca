@@ -769,11 +769,11 @@ class PythonGenerator extends CGenerator {
 
         includeTargetLanguageHeaders()
 
-        pr('#define NUMBER_OF_FEDERATES ' + federates.length);
+        pr('#define NUMBER_OF_FEDERATES ' + federates.size);
 
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (targetConfig.threads === 0 && federates.length > 1) {
+        if (targetConfig.threads === 0 && federates.size > 1) {
             targetConfig.threads = 1
         }
 
@@ -935,7 +935,7 @@ class PythonGenerator extends CGenerator {
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
         // If there are federates, assign the number of threads in the CGenerator to 1        
-        if(federates.length > 1) {
+        if(federates.size > 1) {
             targetConfig.threads = 1;
         }
 
