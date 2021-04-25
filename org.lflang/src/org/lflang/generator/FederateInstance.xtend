@@ -271,7 +271,7 @@ class FederateInstance {
     /** 
      * Return true if this is singleton, meaning either that no federation
      * has been defined or that there is only one federate.
-     * @return True if no federation has been defined.
+     * @return True if no federation has been defined or there is only one federate.
      */
      def isSingleton() {
          return ((instantiation === null) || (generator.federates.size <= 1))
