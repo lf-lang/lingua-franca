@@ -2063,7 +2063,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // In a federated execution, we need keepalive to be true,
             // otherwise a federate could exit simply because it hasn't received
             // any messages.
-            if (federates.size > 1) {
+            if (isFederated) {
                 targetConfig.keepalive = true
             }
 

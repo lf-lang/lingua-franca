@@ -440,7 +440,7 @@ class CGenerator extends GeneratorBase {
         
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
-        if (federates.size > 1) {
+        if (isFederated) {
             coreFiles.addAll("rti.c", "rti.h", "federate.c", "federate.h", "clock-sync.h", "clock-sync.c")
             createFederateRTI()
             createLauncher(coreFiles)
@@ -462,7 +462,7 @@ class CGenerator extends GeneratorBase {
             
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
-            if (!federate.isSingleton) {
+            if (isFederated) {
                 topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
@@ -713,7 +713,7 @@ class CGenerator extends GeneratorBase {
                 // that the specified logical time is complete.
                 pr('''
                     void logical_tag_complete(tag_t tag_to_send) {
-                        «IF federates.size > 1 && targetConfig.coordination == CoordinationType.CENTRALIZED»
+                        «IF isFederatedAndCentralized»
                             _lf_logical_tag_complete(tag_to_send);
                         «ENDIF»
                     }
@@ -750,7 +750,7 @@ class CGenerator extends GeneratorBase {
                 // execution. For federated execution, an implementation is
                 // provided in federate.c.  That implementation will resign
                 // from the federation and close any open sockets.
-                if (federates.size <= 1) {
+                if (!isFederated) {
                     pr("void terminate_execution() {}");
                 }
             }
@@ -779,7 +779,7 @@ class CGenerator extends GeneratorBase {
         if (!targetConfig.noCompile) {
             if (!targetConfig.buildCommands.nullOrEmpty) {
                 runBuildCommand()
-            } else if (federates.size > 1) {
+            } else if (isFederated) {
                 // Compile the RTI files if there is more than one federate.
                 compileRTI()
             }
@@ -896,7 +896,7 @@ class CGenerator extends GeneratorBase {
      * @param federate The federate instance.
      */
     protected def void initializeFederate(FederateInstance federate) {
-        if (federates.size > 1) {
+        if (isFederated) {
             pr('''
                 // ***** Start initializing the federated execution. */
             ''')            
@@ -4424,7 +4424,7 @@ class CGenerator extends GeneratorBase {
                         
         // Handle target parameters.
         // First, if there are federates, then ensure that threading is enabled.
-        if (targetConfig.threads === 0 && federates.size > 1) {
+        if (targetConfig.threads === 0 && isFederated) {
             targetConfig.threads = 1
         }        
 
@@ -4517,7 +4517,7 @@ class CGenerator extends GeneratorBase {
         } else {
             pr("#include \"core/reactor.c\"")
         }
-        if (federates.size > 1) {
+        if (isFederated) {
             pr("#include \"core/federate.c\"")
         }
     }
