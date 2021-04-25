@@ -291,7 +291,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         // If this is a federated execution, generate C code for the RTI.
-        if (federates.length > 1) {
+        if (federates.size > 1) {
             createFederateRTI()
 
             // Copy the required library files into the target file system.
