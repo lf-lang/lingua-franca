@@ -65,7 +65,6 @@ import org.lflang.lf.StateVar
 import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
-import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
@@ -1053,7 +1052,7 @@ class CGenerator extends GeneratorBase {
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES
             #endif
-            #define NUMBER_OF_FEDERATES «federates.length»
+            #define NUMBER_OF_FEDERATES «federates.size»
             #include "core/rti.c"
             int main(int argc, char* argv[]) {
         ''')
@@ -4558,7 +4557,7 @@ class CGenerator extends GeneratorBase {
         
         includeTargetLanguageHeaders()
 
-        pr('#define NUMBER_OF_FEDERATES ' + federates.length);
+        pr('#define NUMBER_OF_FEDERATES ' + federates.size);
         
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
             pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
