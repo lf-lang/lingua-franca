@@ -1817,7 +1817,6 @@ void terminate_execution() {
         if (written == 1) {
         	LOG_PRINT("Resigned.");
         }
-        _fed.socket_TCP_RTI = -1;
     }
     lf_mutex_unlock(&outbound_socket_mutex);
 
