@@ -45,6 +45,11 @@ typedef struct federate_instance_t {
 	int socket_TCP_RTI;
 
 	/**
+	 * Thread listening for incoming TCP messages from the RTI.
+	 */
+	lf_thread_t RTI_socket_listener;
+
+	/**
 	 * Number of inbound physical connections to the federate.
 	 * This can be either physical connections, or logical connections
 	 * in the decentralized coordination, or both.

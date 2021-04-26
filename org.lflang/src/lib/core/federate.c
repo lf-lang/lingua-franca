@@ -61,6 +61,7 @@ lf_cond_t port_status_changed;
  */
 federate_instance_t _fed = {
         .socket_TCP_RTI = -1,
+		.RTI_socket_listener = NULL,
         .number_of_inbound_p2p_connections = 0,
 		.inbound_socket_listeners = NULL,
         .number_of_outbound_p2p_connections = 0,
@@ -1837,6 +1838,10 @@ void terminate_execution() {
     		lf_thread_join(_fed.inbound_socket_listeners[i], NULL);
     	}
     }
+
+    // Wait for the thread listening for messages from the RTI to close.
+    lf_thread_join(_fed.RTI_socket_listener, NULL);
+
     free(_fed.inbound_socket_listeners);
 }
 
@@ -2000,12 +2005,12 @@ void synchronize_with_other_federates() {
     }
     
     // Start a thread to listen for incoming TCP messages from the RTI.
-    // @note Up until this point, the federate has been listenting for messages
+    // @note Up until this point, the federate has been listening for messages
     //  from the RTI in a sequential manner in the main thread. From now on, a
     //  separate thread is created to allow for asynchronous communication.
-    lf_thread_t thread_id;
-    lf_thread_create(&thread_id, listen_to_rti_TCP, NULL);
+    lf_thread_create(&_fed.RTI_socket_listener, listen_to_rti_TCP, NULL);
 
+    lf_thread_t thread_id;
     if (create_clock_sync_thread(&thread_id)) {
         warning_print("Failed to create thread to handle clock synchronization.");
     }
