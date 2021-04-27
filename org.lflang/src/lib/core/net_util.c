@@ -428,27 +428,3 @@ void extract_header(
 
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 }
-
-
-/**
- * Prevent SIGPIPE from terminating the application.
- *
- * A broken pipe error occurs when an attempt is made
- * to write to a socket whose the reading end has closed.
- * Calling this function will prevent the entire writer 
- * process from exiting with a SIGPIPE. Instead, an EPIPE
- * error is returned on call to write, which can be handled
- * individually depending on the situation.
- */
-void ignore_sigpipe() {
-    struct sigaction act;
-    memset(&act, 0, sizeof(act));
-    act.sa_handler = SIG_IGN;   // Ignore the signal
-    act.sa_flags = SA_RESTART;  // Resume library function after 
-                                // signal handler is invoked. See
-                                // https://www.gnu.org/software/libc/manual/html_node/Flags-for-Sigaction.html
-    int err = sigaction(SIGPIPE, &act, NULL);
-    if (err) {
-        error_print_and_exit("sigaction() failed with error code %d.", err);
-    }
-}
