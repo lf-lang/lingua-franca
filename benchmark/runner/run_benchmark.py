@@ -160,6 +160,7 @@ def write_results(times, cfg):
     }
     # also add all parameters and their values
     row.update(cfg["benchmark"]["params"])
+    row.update(cfg["target"]["params"])
 
     with open("results.csv", "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=row.keys())
