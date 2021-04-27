@@ -34,6 +34,7 @@ def main():
             reduced_df["min time (ms)"] = df["time (ms)"].min()
             reduced_df["max time (ms)"] = df["time (ms)"].max()
             reduced_df["median time (ms)"] = df["time (ms)"].median()
+            reduced_df["mean time (ms)"] = df["time (ms)"].mean()
             reduced_data_frames.append(reduced_df)
         data_frames = reduced_data_frames
 
