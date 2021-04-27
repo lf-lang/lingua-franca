@@ -151,9 +151,9 @@ class TargetConfig {
     public List<String> protoFiles = newLinkedList
 
     /**
-     * The version of the reatcor-cpp library to be used in the generated target. 
+     * The version of the runtime library to be used in the generated target. 
      */
-    public String reactorCppVersion = "26e6e641916924eae2e83bbf40cbc9b933414310"
+    public String runtimeVersion = null
 
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,

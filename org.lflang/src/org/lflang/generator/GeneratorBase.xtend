@@ -347,8 +347,8 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     targetConfig.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
                 }
             }
-            if (context.args.containsKey("reactor-cpp-version")) {
-                targetConfig.reactorCppVersion = context.args.getProperty("reactor-cpp-version")
+            if (context.args.containsKey("runtime-version")) {
+                targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
             }
         }
     }
