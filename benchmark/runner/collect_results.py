@@ -30,11 +30,11 @@ def main():
     if not args.raw:
         reduced_data_frames = []
         for df in data_frames:
-            reduced_df = df.drop(columns=["time (ms)", "iteration"]).drop_duplicates()
-            reduced_df["min time (ms)"] = df["time (ms)"].min()
-            reduced_df["max time (ms)"] = df["time (ms)"].max()
-            reduced_df["median time (ms)"] = df["time (ms)"].median()
-            reduced_df["mean time (ms)"] = df["time (ms)"].mean()
+            reduced_df = df.drop(columns=["time_ms", "iteration"]).drop_duplicates()
+            reduced_df["min_time_ms"] = df["time_ms"].min()
+            reduced_df["max_time_ms"] = df["time_ms"].max()
+            reduced_df["median_time_ms"] = df["time_ms"].median()
+            reduced_df["mean_time_ms"] = df["time_ms"].mean()
             reduced_data_frames.append(reduced_df)
         data_frames = reduced_data_frames
 
