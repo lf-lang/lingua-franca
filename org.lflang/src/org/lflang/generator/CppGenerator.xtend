@@ -325,7 +325,7 @@ class CppGenerator extends GeneratorBase {
             void «r.templateName»::«n.name»_body() {
               // prepare scope
               «FOR i : r.instantiations»
-                  auto& «i.name» = *(this->«i.name»);
+                  «IF i.widthSpec === null»auto& «i.name» = *(this->«i.name»);«ENDIF»
               «ENDFOR»
               // reaction code
               «n.code.toText»
