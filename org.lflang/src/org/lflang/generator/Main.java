@@ -202,7 +202,8 @@ public class Main {
         UPDATE("u", "update-deps", false, false, "Update dependencies and rebuild the LF compiler (requires Internet connection).", false),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         THREADS("t", "threads", false, false, "Specify the default number of threads.", true),
-        OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false);
+        OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
+        REACTOR_CPP_VERSION(null, "reactor-cpp-version", true, false, "Specify the reactor-cpp version used for compiling LF programs.", true);
         
         /**
          * The corresponding Apache CLI Option object.
