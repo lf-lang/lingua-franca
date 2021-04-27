@@ -1984,10 +1984,6 @@ void* listen_to_rti_TCP(void* args) {
  * FIXME: Possibly should be renamed
  */
 void synchronize_with_other_federates() {
-    // Ignore SIGPIPE errors, which terminate the entire application if
-    // socket write() fails because the reader has closed the socket.
-    // Instead, cause an EPIPE error to be set when write() fails.
-    ignore_sigpipe();
 
     DEBUG_PRINT("Synchronizing with other federates.");
 
