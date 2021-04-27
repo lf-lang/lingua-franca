@@ -238,4 +238,16 @@ void extract_header(
         unsigned int* length
 );
 
+/**
+ * Prevent SIGPIPE from terminating the application.
+ *
+ * A broken pipe error occurs when an attempt is made
+ * to write to a socket whose the reading end has closed.
+ * Calling this function will prevent the entire writer 
+ * process from exiting with a SIGPIPE. Instead, an EPIPE
+ * error is returned on call to write, which can be handled
+ * individually depending on the situation.
+ */
+void ignore_sigpipe();
+
 #endif /* NET_UTIL_H */
