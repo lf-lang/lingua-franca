@@ -238,11 +238,11 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive for specifying a specific version of the reactor-cpp library.
+     * Directive for specifying a specific version of the reactor runtime library.
      */
-    REACTOR_CPP_VERSION("reactor-cpp-version", PrimitiveType.STRING,
+    RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
             Arrays.asList(Target.CPP), (config, value) -> {
-                config.reactorCppVersion = ASTUtils.toText(value);
+                config.runtimeVersion = ASTUtils.toText(value);
             }),
 
     /**
