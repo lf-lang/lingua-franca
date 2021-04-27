@@ -2184,65 +2184,75 @@ abstract class GeneratorBase extends AbstractLFValidator {
                             var minWidth = (leftPortWidth - leftChannelIndex < rightPortWidth - rightChannelIndex)
                                     ? leftPortWidth - leftChannelIndex
                                     : rightPortWidth - rightChannelIndex;
-                            for (var j = 0; j < minWidth; j++) {
-                            
-                                // Finally, we have a specific connection.
-                                // Replace the connection in the AST with an action
-                                // (which inherits the delay) and two reactions.
-                                // The action will be physical if the connection physical and
-                                // otherwise will be logical.
-                                val leftFederate = federatesByInstantiation.get(leftPort.container).get(leftBankIndex);
-                                val rightFederate = federatesByInstantiation.get(rightPort.container).get(rightBankIndex);
+                            if (minWidth <= 0) {
+                                // FIXME: Not sure what to do here.
+                                reportError(connection, "Unexpected error: mismatched widths.");
+                                rightPort = null;
+                            } else {
+                                for (var j = 0; j < minWidth; j++) {
 
-                                // Set up dependency information.
-                                if (
-                                    leftFederate !== rightFederate
-                                    && !connection.physical
-                                    && targetConfig.coordination !== CoordinationType.DECENTRALIZED
-                                ) {
-                                    var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                                    if (dependsOn === null) {
-                                        dependsOn = new LinkedHashSet<Delay>()
-                                        rightFederate.dependsOn.put(leftFederate, dependsOn)
+                                    // Finally, we have a specific connection.
+                                    // Replace the connection in the AST with an action
+                                    // (which inherits the delay) and two reactions.
+                                    // The action will be physical if the connection physical and
+                                    // otherwise will be logical.
+                                    val leftFederate = federatesByInstantiation.get(leftPort.container).get(
+                                        leftBankIndex);
+                                    val rightFederate = federatesByInstantiation.get(rightPort.container).get(
+                                        rightBankIndex);
+
+                                    // Set up dependency information.
+                                    if (leftFederate !== rightFederate && !connection.physical &&
+                                        targetConfig.coordination !== CoordinationType.DECENTRALIZED) {
+                                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                                        if (dependsOn === null) {
+                                            dependsOn = new LinkedHashSet<Delay>()
+                                            rightFederate.dependsOn.put(leftFederate, dependsOn)
+                                        }
+                                        if (connection.delay !== null) {
+                                            dependsOn.add(connection.delay)
+                                        }
+                                        var sendsTo = leftFederate.sendsTo.get(rightFederate)
+                                        if (sendsTo === null) {
+                                            sendsTo = new LinkedHashSet<Delay>()
+                                            leftFederate.sendsTo.put(rightFederate, sendsTo)
+                                        }
+                                        if (connection.delay !== null) {
+                                            sendsTo.add(connection.delay)
+                                        }
                                     }
-                                    if (connection.delay !== null) {
-                                        dependsOn.add(connection.delay)
-                                    }
-                                    var sendsTo = leftFederate.sendsTo.get(rightFederate)
-                                    if (sendsTo === null) {
-                                        sendsTo = new LinkedHashSet<Delay>()
-                                        leftFederate.sendsTo.put(rightFederate, sendsTo)
-                                    }
-                                    if (connection.delay !== null) {
-                                        sendsTo.add(connection.delay)
-                                    }
-                                }
-                                                                
-                                FedASTUtils.makeCommunication(
-                                    connection, 
-                                    leftFederate, leftBankIndex, leftChannelIndex,
-                                    rightFederate, rightBankIndex, rightChannelIndex,
-                                    this, targetConfig.coordination
-                                )
-                            
-                                leftChannelIndex++;
-                                rightChannelIndex++;
-                                if (rightChannelIndex >= rightPortWidth) {
-                                    // Ran out of channels on the right.
-                                    // First, check whether there is another bank reactor.
-                                    if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
-                                        rightBankIndex++;
-                                        rightChannelIndex = 0;
-                                    } else if (rightIndex >= connection.rightPorts.size()) {
-                                        // We are done.
-                                        rightPort = null;
-                                        rightBankIndex = 0;
-                                        rightChannelIndex = 0;
-                                    } else {
-                                        rightBankIndex = 0;
-                                        rightPort = connection.rightPorts.get(rightIndex++);
-                                        rightChannelIndex = 0;
-                                        rightPortWidth = width((rightPort.variable as Port).widthSpec);
+
+                                    FedASTUtils.makeCommunication(
+                                        connection,
+                                        leftFederate,
+                                        leftBankIndex,
+                                        leftChannelIndex,
+                                        rightFederate,
+                                        rightBankIndex,
+                                        rightChannelIndex,
+                                        this,
+                                        targetConfig.coordination
+                                    )
+
+                                    leftChannelIndex++;
+                                    rightChannelIndex++;
+                                    if (rightChannelIndex >= rightPortWidth) {
+                                        // Ran out of channels on the right.
+                                        // First, check whether there is another bank reactor.
+                                        if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
+                                            rightBankIndex++;
+                                            rightChannelIndex = 0;
+                                        } else if (rightIndex >= connection.rightPorts.size()) {
+                                            // We are done.
+                                            rightPort = null;
+                                            rightBankIndex = 0;
+                                            rightChannelIndex = 0;
+                                        } else {
+                                            rightBankIndex = 0;
+                                            rightPort = connection.rightPorts.get(rightIndex++);
+                                            rightChannelIndex = 0;
+                                            rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                                        }
                                     }
                                 }
                             }
