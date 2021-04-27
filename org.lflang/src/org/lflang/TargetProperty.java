@@ -236,7 +236,15 @@ public enum TargetProperty {
             (config, value) -> {
                 config.protoFiles = ASTUtils.toListOfStrings(value);
             }),
-    
+
+    /**
+     * Directive for specifying a specific version of the reactor-cpp library.
+     */
+    REACTOR_CPP_VERSION("reactor-cpp-version", PrimitiveType.STRING,
+            Arrays.asList(Target.CPP), (config, value) -> {
+                config.reactorCppVersion = ASTUtils.toText(value);
+            }),
+
     /**
      * Directive to specify the number of threads.
      */
