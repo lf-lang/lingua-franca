@@ -487,7 +487,7 @@ public class Main {
         for (Option o : cmd.getOptions()) {
             if (passOn.contains(o)) {
                 String value = "";
-                if (o.hasArgs()) {
+                if (o.hasArg()) {
                     value = o.getValue();
                 }
                 props.setProperty(o.getLongOpt(), value);
