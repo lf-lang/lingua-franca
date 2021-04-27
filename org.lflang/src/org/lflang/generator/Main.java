@@ -375,11 +375,15 @@ public class Main {
         cmdList.add("-jar");
         cmdList.add(jarPath.toString());
         for (Option o : cmd.getOptions()) {
+            // Drop -r and -u flags to prevent an infinite loop in case the
+            // source fails to compile.
             if (!CLIOption.REBUILD.option.equals(o)
                     && !CLIOption.UPDATE.option.equals(o)) {
-                // Remove -r and -o flags to prevent an 
-                // infinite loop in case the source fails to compile.
-                cmdList.add(o.getOpt() + " " + o.getValue());
+                // pass all other options on to the new command
+                cmdList.add("--" + o.getLongOpt());
+                if (o.hasArg()) {
+                    cmdList.add(o.getValue());
+                }
             }
         }
         cmdList.addAll(cmd.getArgList());
