@@ -166,7 +166,12 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
                         _lf_global_tag_advancement_barrier.horizon.microstep);
         } 
     } else {
-            // The future_tag is not in the future (incoming message has violated the STP offset).
+            // The future_tag is not in the future.
+            
+            // One possibility is that the incoming message has violated the STP offset.
+            // Another possibility is that the message is coming from a zero-delay loop,
+            // and control reactions are waiting.
+
             // Prevent logical time from advancing further so that the measure of
             // STP violation properly reflects the amount of time (logical or physical)
             // that has elapsed after the incoming message would have violated the STP offset.
@@ -217,7 +222,7 @@ void _lf_increment_global_tag_barrier(tag_t future_tag) {
 /**
  * Decrement the total number of pending barrier requests for the global tag barrier.
  * If the total number of requests reaches zero, this function resets the
- * tag barrier to (FOREVER, 0) and notifies all threads that are waiting 
+ * tag barrier to (FOREVER, UINT_MAX) and notifies all threads that are waiting 
  * on the barrier that the number of requests has reached zero.
  * 
  * This function assumes that the caller already holds the mutex lock.

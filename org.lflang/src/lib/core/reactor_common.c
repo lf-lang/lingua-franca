@@ -616,6 +616,7 @@ void __pop_events() {
             }
         }
 
+        // Mark the trigger present.
         event->trigger->status = present;
 
         // If the trigger is a periodic timer, create a new event for its next execution.
