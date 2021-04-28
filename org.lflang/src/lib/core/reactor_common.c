@@ -425,9 +425,9 @@ void _lf_enqueue_reaction(reaction_t* reaction);
 void __start_time_step() {
     LOG_PRINT("--------- Start time step at tag (%lld, %u).", current_tag.time - start_time, current_tag.microstep);
     for(int i = 0; i < __tokens_with_ref_count_size; i++) {
-        if (*(__tokens_with_ref_count[i].is_present)) {
+        if (*(__tokens_with_ref_count[i].status) == present) {
             if (__tokens_with_ref_count[i].reset_is_present) {
-                *(__tokens_with_ref_count[i].is_present) = false;
+                *(__tokens_with_ref_count[i].status) = absent;
             }
             __done_using(*(__tokens_with_ref_count[i].token));
         }

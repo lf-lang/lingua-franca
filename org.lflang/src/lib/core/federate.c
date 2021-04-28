@@ -1935,7 +1935,8 @@ void* listen_to_rti_TCP(void* args) {
         // This will exit if the read fails.
         int bytes_read = read_from_socket(_fed.socket_TCP_RTI, 1, buffer);
         if (bytes_read < 0) {
-            error_print_and_exit("Socket connection to the RTI has been broken.");
+            error_print_and_exit("Socket connection to the RTI has been broken" 
+                                    " with error %d: %s.", errno, strerror(errno));
         } else if (bytes_read == 0) {
             // EOF received.
             info_print("Connection to the RTI closed with an EOF.");

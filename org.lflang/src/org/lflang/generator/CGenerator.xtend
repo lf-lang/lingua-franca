@@ -2911,7 +2911,7 @@ class CGenerator extends GeneratorBase {
                                 for (int i = 0; i < «input.width»; i++) {
                                     __tokens_with_ref_count[«startTimeStepTokens» + i].token
                                             = &«nameOfSelfStruct»->__«input.name»[i]->token;
-                                    __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].status
                                             = &«nameOfSelfStruct»->__«input.name»[i]->is_present;
                                     __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                 }
@@ -2921,7 +2921,7 @@ class CGenerator extends GeneratorBase {
                             pr(startTimeStep, '''
                                 __tokens_with_ref_count[«startTimeStepTokens»].token
                                         = &«nameOfSelfStruct»->__«input.name»->token;
-                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                __tokens_with_ref_count[«startTimeStepTokens»].status
                                         = &«nameOfSelfStruct»->__«input.name»->is_present;
                                 __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                             ''')
@@ -2985,7 +2985,7 @@ class CGenerator extends GeneratorBase {
                                     for (int i = 0; i < «port.width»; i++) {
                                         __tokens_with_ref_count[«startTimeStepTokens» + i].token
                                                 = &«containerSelfStructName»->__«port.parent.name».«port.name»[i]->token;
-                                        __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                        __tokens_with_ref_count[«startTimeStepTokens» + i].status
                                                 = &«containerSelfStructName»->__«port.parent.name».«port.name»[i]->is_present;
                                         __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                     }
@@ -2995,7 +2995,7 @@ class CGenerator extends GeneratorBase {
                                 pr(startTimeStep, '''
                                     __tokens_with_ref_count[«startTimeStepTokens»].token
                                             = &«containerSelfStructName»->__«port.parent.name».«port.name»->token;
-                                    __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                    __tokens_with_ref_count[«startTimeStepTokens»].status
                                             = &«containerSelfStructName»->__«port.parent.name».«port.name»->is_present;
                                     __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                                 ''')
@@ -3682,7 +3682,7 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects, '''
                     __tokens_with_ref_count[«startTimeStepTokens»].token
                             = &«nameOfSelfStruct»->___«action.name».token;
-                    __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                    __tokens_with_ref_count[«startTimeStepTokens»].status
                             = (bool*)&«nameOfSelfStruct»->___«action.name».status;
                     __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
                 ''')

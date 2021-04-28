@@ -312,11 +312,10 @@ typedef enum {no=0, token_and_value, token_only} ok_to_free_t;
  * If the value is 'present', it is an indicator that the port is present at the given logical time.
  * If the value is 'absent', it is an indicator that the port is absent at the given logical time.
  * If the value is 'unknown', it is unknown whether the port is present or absent (e.g., in a distributed application).
- * If the value is 'partial', the port is a multiport, where some of the values are known and some are not.
  * 
  * @note For non-network ports, unknown is unused.
  */
-typedef enum {absent, present, unknown, partial} port_status_t;
+typedef enum {absent, present, unknown} port_status_t;
 
 /**
  * The flag OK_TO_FREE is used to indicate whether
@@ -411,7 +410,7 @@ typedef struct lf_token_t {
  */
 typedef struct token_present_t {
     lf_token_t** token;
-    bool* is_present;
+    port_status_t* status;
     bool reset_is_present; // True to set is_present to false after calling done_using().
 } token_present_t;
 
