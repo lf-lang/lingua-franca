@@ -92,7 +92,7 @@ import org.lflang.lf.STP
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
  *
  */
-class LFValidatorImpl extends LFValidator {
+class LFValidator extends AbstractLFValidator {
 
     var Target target
     public var info = new ModelInfo()
@@ -135,7 +135,7 @@ class LFValidatorImpl extends LFValidator {
 
     private val List<String> targetPropertyWarnings = newLinkedList
 
-    override List<String> getTargetPropertyErrors() {
+    def List<String> getTargetPropertyErrors() {
         this.targetPropertyErrors
     }
 

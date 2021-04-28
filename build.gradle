@@ -22,8 +22,6 @@ subprojects {
 	}
 	
 	apply plugin: 'kotlin'
-	apply plugin: 'java'
-	compileJava.dependsOn(compileKotlin)
 	compileKotlin {
 		destinationDir = compileJava.destinationDir
 		kotlinOptions {
