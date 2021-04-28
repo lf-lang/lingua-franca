@@ -153,13 +153,14 @@ def write_results(times, cfg):
     row = {
         "benchmark": cfg["benchmark"]["name"],
         "target": cfg["target"]["name"],
-        "total iterations": cfg["iterations"],
+        "total_iterations": cfg["iterations"],
         "threads": cfg["threads"],
         "iteration": None,
-        "time (ms)": None,
+        "time_ms": None,
     }
     # also add all parameters and their values
     row.update(cfg["benchmark"]["params"])
+    row.update(cfg["target"]["params"])
 
     with open("results.csv", "w", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=row.keys())
@@ -167,7 +168,7 @@ def write_results(times, cfg):
         i = 0
         for t in times:
             row["iteration"] = i
-            row["time (ms)"] = t
+            row["time_ms"] = t
             writer.writerow(row)
             i += 1
 
