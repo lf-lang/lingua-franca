@@ -9,7 +9,6 @@
  */
 target C {
     timeout: 900 msec,
-    logging: LOG,
     coordination: centralized
 };
 
