@@ -30,7 +30,6 @@ import org.eclipse.emf.ecore.EReference
 import org.eclipse.xtext.naming.SimpleNameProvider
 import org.eclipse.xtext.scoping.IScope
 import org.eclipse.xtext.scoping.Scopes
-import org.eclipse.xtext.scoping.impl.DelegatingScopeProvider
 import org.eclipse.xtext.scoping.impl.SelectableBasedScope
 import org.eclipse.xtext.xbase.lib.CollectionLiterals
 import org.lflang.*
@@ -47,8 +46,15 @@ import java.util.Collections.emptyList
  *
  * @author Marten Lohstroh
  */
-class LFScopeProviderImpl(val nameProvider: SimpleNameProvider,
-                          val scopeProvider: LFGlobalScopeProvider) : DelegatingScopeProvider() {
+class LFScopeProvider : AbstractLFScopeProvider() {
+
+    @Inject
+    lateinit var nameProvider: SimpleNameProvider
+
+    @Inject
+    lateinit var scopeProvider: LFGlobalScopeProvider
+
+
     /**
      * Enumerate of the kinds of references.
      */
@@ -79,7 +85,7 @@ class LFScopeProviderImpl(val nameProvider: SimpleNameProvider,
      */
     private fun getScopeForImportedReactor(context: ImportedReactor, reference: EReference): IScope {
         val importURI = (context.eContainer() as Import).importURI ?: ""
-        val importedURI = scopeProvider!!.resolve(importURI, context.eResource())
+        val importedURI = scopeProvider.resolve(importURI, context.eResource())
         if (importedURI != null) {
             val uniqueImportURIs: Set<URI> = scopeProvider.getImportedUris(context.eResource())
             val uri = uniqueImportURIs.first { it == importedURI }
@@ -118,7 +124,7 @@ class LFScopeProviderImpl(val nameProvider: SimpleNameProvider,
     private fun getScopeForAssignment(assignment: Assignment, reference: EReference?): IScope {
 
         if (reference == LfPackage.Literals.ASSIGNMENT__LHS) {
-            val defn = ((assignment.eContainer() as Instantiation).reactorClass).toDefinition()
+            val defn = ((assignment.eContainer() as Instantiation).reactorClass)?.toDefinition()
             if (defn != null) {
                 return Scopes.scopeFor(defn.allParameters)
             }
@@ -155,11 +161,11 @@ class LFScopeProviderImpl(val nameProvider: SimpleNameProvider,
         }
 
         if (variable.container != null) { // Resolve hierarchical port reference
-            val instanceName = nameProvider?.getFullyQualifiedName(variable.container)
+            val instanceName = nameProvider.getFullyQualifiedName(variable.container)
             val instances = reactor.instantiations
 
             for (instance in instances) {
-                val defn = instance.reactorClass.toDefinition()
+                val defn = instance.reactorClass?.toDefinition()
                 if (defn != null && instanceName != null && instance.name == instanceName.toString()) {
                     return when (type) {
                         RefType.TRIGGER, RefType.SOURCE, RefType.CLEFT   -> Scopes.scopeFor(defn.allOutputs)
