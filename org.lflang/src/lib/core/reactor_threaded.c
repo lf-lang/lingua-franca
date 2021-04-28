@@ -1136,9 +1136,10 @@ void* worker(void* arg) {
             //  chain until it is dealt with in a downstream STP handler.
             if (current_reaction_to_execute->is_STP_violated == true) {
                 reaction_function_t handler = current_reaction_to_execute->STP_handler;
-                LOG_PRINT("Worker %d: Invoking tardiness handler.", worker_number);
+                LOG_PRINT("STP violation detected.");
                 // Invoke the STP handler if there is one.
                 if (handler != NULL) {
+                    LOG_PRINT("Worker %d: Invoking tardiness handler.", worker_number);
                     // There is a violation
                     violation = true;
                     (*handler)(current_reaction_to_execute->self);
