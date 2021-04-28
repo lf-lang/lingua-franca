@@ -93,6 +93,7 @@ int read_from_socket_errexit(
 		char* format, ...) {
     va_list args;
 	if (socket < 0 && format != NULL) {
+		error_print("Socket is no longer open.");
         error_print_and_exit(format, args);
 	}
     int bytes_read = 0;
@@ -107,6 +108,8 @@ int read_from_socket_errexit(
             if (format != NULL) {
                 shutdown(socket, SHUT_RDWR);
                 close(socket);
+                error_print("Read %d bytes, but expected %d.",
+                		more + bytes_read, num_bytes);
                 error_print_and_exit(format, args);
             }
             return more;

@@ -151,6 +151,11 @@ class TargetConfig {
     public List<String> protoFiles = newLinkedList
 
     /**
+     * The version of the runtime library to be used in the generated target. 
+     */
+    public String runtimeVersion = null
+
+    /**
      * The number of worker threads to deploy. The default is zero (i.e.,
      * all work is done in the main thread).
      */

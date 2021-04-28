@@ -464,7 +464,7 @@ class CGenerator extends GeneratorBase {
             
             // If federated, append the federate name to the file name.
             // Only generate one output if there is no federation.
-            if (!federate.isSingleton) {
+            if (isFederated) {
                 topLevelName = baseFilename + '_' + federate.name // FIXME: don't (temporarily) reassign a class variable for this
                 // Clear out previously generated code.
                 code = new StringBuilder(commonCode)
@@ -1052,7 +1052,7 @@ class CGenerator extends GeneratorBase {
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES
             #endif
-            #define NUMBER_OF_FEDERATES «federates.length»
+            #define NUMBER_OF_FEDERATES «federates.size»
             #include "core/rti.c"
             int main(int argc, char* argv[]) {
         ''')
@@ -2911,7 +2911,7 @@ class CGenerator extends GeneratorBase {
                                 for (int i = 0; i < «input.width»; i++) {
                                     __tokens_with_ref_count[«startTimeStepTokens» + i].token
                                             = &«nameOfSelfStruct»->__«input.name»[i]->token;
-                                    __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                    __tokens_with_ref_count[«startTimeStepTokens» + i].status
                                             = &«nameOfSelfStruct»->__«input.name»[i]->is_present;
                                     __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                 }
@@ -2921,7 +2921,7 @@ class CGenerator extends GeneratorBase {
                             pr(startTimeStep, '''
                                 __tokens_with_ref_count[«startTimeStepTokens»].token
                                         = &«nameOfSelfStruct»->__«input.name»->token;
-                                __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                __tokens_with_ref_count[«startTimeStepTokens»].status
                                         = &«nameOfSelfStruct»->__«input.name»->is_present;
                                 __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                             ''')
@@ -2985,7 +2985,7 @@ class CGenerator extends GeneratorBase {
                                     for (int i = 0; i < «port.width»; i++) {
                                         __tokens_with_ref_count[«startTimeStepTokens» + i].token
                                                 = &«containerSelfStructName»->__«port.parent.name».«port.name»[i]->token;
-                                        __tokens_with_ref_count[«startTimeStepTokens» + i].is_present
+                                        __tokens_with_ref_count[«startTimeStepTokens» + i].status
                                                 = &«containerSelfStructName»->__«port.parent.name».«port.name»[i]->is_present;
                                         __tokens_with_ref_count[«startTimeStepTokens» + i].reset_is_present = false;
                                     }
@@ -2995,7 +2995,7 @@ class CGenerator extends GeneratorBase {
                                 pr(startTimeStep, '''
                                     __tokens_with_ref_count[«startTimeStepTokens»].token
                                             = &«containerSelfStructName»->__«port.parent.name».«port.name»->token;
-                                    __tokens_with_ref_count[«startTimeStepTokens»].is_present
+                                    __tokens_with_ref_count[«startTimeStepTokens»].status
                                             = &«containerSelfStructName»->__«port.parent.name».«port.name»->is_present;
                                     __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = false;
                                 ''')
@@ -3682,8 +3682,8 @@ class CGenerator extends GeneratorBase {
                 pr(initializeTriggerObjects, '''
                     __tokens_with_ref_count[«startTimeStepTokens»].token
                             = &«nameOfSelfStruct»->___«action.name».token;
-                    __tokens_with_ref_count[«startTimeStepTokens»].is_present
-                            = (bool*)&«nameOfSelfStruct»->___«action.name».status;
+                    __tokens_with_ref_count[«startTimeStepTokens»].status
+                            = &«nameOfSelfStruct»->___«action.name».status;
                     __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
                 ''')
                 startTimeStepTokens++
@@ -4226,16 +4226,6 @@ class CGenerator extends GeneratorBase {
         val sendRef = generateVarRef(sendingPort) // Used for comments only, so no bank or multiport index.
         var receiveRef = generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
-        if (isFederatedAndDecentralized) {
-            result.append('''
-                // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-                // Transfer the intended tag from the action to the port
-                «receiveRef»->intended_tag = «action.name»->trigger->intended_tag;
-                LOG_PRINT("Received a message with intended tag of (%lld, %u).",
-                    «receiveRef»->intended_tag.time - start_time,
-                    «receiveRef»->intended_tag.microstep);
-            ''')
-        }
         if (isTokenType(type)) {
             result.append('''
                 SET_TOKEN(«receiveRef», «action.name»->token);
@@ -4557,7 +4547,7 @@ class CGenerator extends GeneratorBase {
         
         includeTargetLanguageHeaders()
 
-        pr('#define NUMBER_OF_FEDERATES ' + federates.length);
+        pr('#define NUMBER_OF_FEDERATES ' + federates.size);
         
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
             pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)

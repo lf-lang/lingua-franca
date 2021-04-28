@@ -40,6 +40,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
 #include <assert.h>
+#include <signal.h>     // Defines sigaction.
 #include "net_util.c"   // Defines network functions.
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
@@ -1344,10 +1345,11 @@ void handle_port_absent_message(int socket, int fed_id) {
     network_input_port_action->last_known_status_tag = intended_tag;
     // If any control reaction is waiting, notify them that the status has changed
     if (network_input_port_action->is_a_control_reaction_waiting) {
-        if (compare_tags(intended_tag, get_current_tag()) == 0) {
+        if (compare_tags(intended_tag, get_current_tag()) == 0 &&
+            determine_port_status_if_possible(port_id) == unknown) {
             // If the intended tag for the absent message is the current tag
-            // and there is a control reaction waiting, we need to set the port
-            // status to absent
+            // and the status of the port cannot be determined and there is a 
+            // control reaction waiting, we need to set the port status to absent
             set_network_port_status(port_id, absent);
         }
         // The last known status tag of the port has changed. Notify any waiting threads.
@@ -1815,7 +1817,6 @@ void terminate_execution() {
         if (written == 1) {
         	LOG_PRINT("Resigned.");
         }
-        _fed.socket_TCP_RTI = -1;
     }
     lf_mutex_unlock(&outbound_socket_mutex);
 
@@ -1836,6 +1837,10 @@ void terminate_execution() {
     		lf_thread_join(_fed.inbound_socket_listeners[i], NULL);
     	}
     }
+
+    // Wait for the thread listening for messages from the RTI to close.
+    lf_thread_join(_fed.RTI_socket_listener, NULL);
+
     free(_fed.inbound_socket_listeners);
 }
 
@@ -1929,7 +1934,16 @@ void* listen_to_rti_TCP(void* args) {
         // This will exit if the read fails.
         int bytes_read = read_from_socket(_fed.socket_TCP_RTI, 1, buffer);
         if (bytes_read < 0) {
-            error_print_and_exit("Socket connection to the RTI has been broken.");
+            if (errno == ECONNRESET) {
+                error_print("Socket connection to the RTI was closed by the RTI without"
+                            " properly sending an EOF first. Considering this a soft error.");
+                // FIXME: If this happens, possibly a new RTI must be elected.
+                _fed.socket_TCP_RTI = -1;
+                return NULL;
+            } else {
+                error_print_and_exit("Socket connection to the RTI has been broken" 
+                                    " with error %d: %s.", errno, strerror(errno));
+            }
         } else if (bytes_read == 0) {
             // EOF received.
             info_print("Connection to the RTI closed with an EOF.");
@@ -1999,12 +2013,12 @@ void synchronize_with_other_federates() {
     }
     
     // Start a thread to listen for incoming TCP messages from the RTI.
-    // @note Up until this point, the federate has been listenting for messages
+    // @note Up until this point, the federate has been listening for messages
     //  from the RTI in a sequential manner in the main thread. From now on, a
     //  separate thread is created to allow for asynchronous communication.
-    lf_thread_t thread_id;
-    lf_thread_create(&thread_id, listen_to_rti_TCP, NULL);
+    lf_thread_create(&_fed.RTI_socket_listener, listen_to_rti_TCP, NULL);
 
+    lf_thread_t thread_id;
     if (create_clock_sync_thread(&thread_id)) {
         warning_print("Failed to create thread to handle clock synchronization.");
     }
