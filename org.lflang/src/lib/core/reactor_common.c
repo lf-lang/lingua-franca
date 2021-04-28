@@ -1454,6 +1454,9 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                 trigger_t* trigger = triggerArray[j];
                 if (trigger != NULL) {
 #ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated LF programs
+                    // If there is no STP violations in the reaction, check
+                    // for STP violations in the effects of the reaction
+                    if (inherited_STP_violation != true) {
                         // In federated execution, an intended tag that is not (NEVER, 0)
                         // indicates that this particular trigger is triggered by a network message.
                         // The intended tag is set in handle_timed_message in federate.c whenever
@@ -1467,6 +1470,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                                 inherited_STP_violation = true;
                             }
                         }
+                    }
 #endif
                     DEBUG_PRINT("Trigger %p lists %d reactions.", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
