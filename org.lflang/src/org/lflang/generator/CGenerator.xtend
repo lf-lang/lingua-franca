@@ -4226,16 +4226,6 @@ class CGenerator extends GeneratorBase {
         val sendRef = generateVarRef(sendingPort) // Used for comments only, so no bank or multiport index.
         var receiveRef = generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
-        if (isFederatedAndDecentralized) {
-            result.append('''
-                // Receiving from «sendRef» in federate «sendingFed.name» to «receiveRef» in federate «receivingFed.name»
-                // Transfer the intended tag from the action to the port
-                «receiveRef»->intended_tag = «action.name»->trigger->intended_tag;
-                LOG_PRINT("Received a message with intended tag of (%lld, %u).",
-                    «receiveRef»->intended_tag.time - start_time,
-                    «receiveRef»->intended_tag.microstep);
-            ''')
-        }
         if (isTokenType(type)) {
             result.append('''
                 SET_TOKEN(«receiveRef», «action.name»->token);
