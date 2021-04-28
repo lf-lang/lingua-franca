@@ -101,6 +101,11 @@ class TargetConfig {
     public CoordinationOptions coordinationOptions = new CoordinationOptions();
 
     /**
+     * Link to an external runtime library instead of the default one. 
+     */
+    public String externalRuntimePath = null;
+
+    /**
      * If true, configure the execution environment such that it does not
      * wait for physical time to match logical time. The default is false.
      */
