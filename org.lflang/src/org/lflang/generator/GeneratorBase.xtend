@@ -99,7 +99,7 @@ import org.lflang.federated.FedASTUtils
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi {
+abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -348,6 +348,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
                 if (!context.args.getProperty("target-flags").isEmpty) {
                     targetConfig.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
                 }
+            }
+            if (context.args.containsKey("runtime-version")) {
+                targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
             }
         }
     }
@@ -652,7 +655,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
      * instance is created, add that instance to this set.
      * @param reaction The reaction to make unordered.
      */
-    override makeUnordered(Reaction reaction) {
+    def makeUnordered(Reaction reaction) {
         if (unorderedReactions === null) {
             unorderedReactions = new LinkedHashSet<Reaction>()
         }
@@ -715,7 +718,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES
             #endif
-            #define NUMBER_OF_FEDERATES «federates.length»
+            #define NUMBER_OF_FEDERATES «federates.size»
             #include "rti.c"
             int main(int argc, char* argv[]) {
         ''')
@@ -1232,12 +1235,106 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
         targetDecl
     }
 
+    /**
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param receivingFed The destination federate.
+     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
+     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
+     * @param type The type.
+     * @param isPhysical Indicates whether or not the connection is physical
+     */
+    def String generateNetworkReceiverBody(
+        Action action,
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID, 
+        FederateInstance sendingFed,
+        FederateInstance receivingFed,
+        int receivingBankIndex,
+        int receivingChannelIndex,
+        InferredType type,
+        boolean isPhysical
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+    }
+
+    /**
+     * Generate code for the body of a reaction that handles an output
+     * that is to be sent over the network. This base class throws an exception.
+     * @param sendingPort The output port providing the data to send.
+     * @param receivingPort The ID of the destination port.
+     * @param receivingPortID The ID of the destination port.
+     * @param sendingFed The sending federate.
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
+     * @param receivingFed The destination federate.
+     * @param type The type.
+     * @param isPhysical Indicates whether the connection is physical or not
+     * @param delay The delay value imposed on the connection using after
+     * @throws UnsupportedOperationException If the target does not support this operation.
+     */
+    def String generateNetworkSenderBody(
+        VarRef sendingPort,
+        VarRef receivingPort,
+        int receivingPortID,
+        FederateInstance sendingFed,
+        int sendingBankIndex,
+        int sendingChannelIndex,
+        FederateInstance receivingFed,
+        InferredType type,
+        boolean isPhysical,
+        Delay delay
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+    }
+    
+    /**
+     * Generate code for the body of a reaction that waits long enough so that the status
+     * of the trigger for the given port becomes known for the current logical time.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
+     *  that have port as their trigger or source
+     */
+    def String generateNetworkInputControlReactionBody(
+        int receivingPortID,
+        TimeValue maxSTP
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }    
+    
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel if a multiport
+     */
+    def String generateNetworkOutputControlReactionBody(
+        VarRef port,
+        int portID,
+        int receivingFederateID,
+        int sendingBankIndex,
+        int sendingChannelIndex
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }  
     
     /**
      * Returns true if the program is federated and uses the decentralized
      * coordination mechanism.
      */
-    override isFederatedAndDecentralized() {
+    def isFederatedAndDecentralized() {
         if (isFederated &&
             targetConfig.coordination === CoordinationType.DECENTRALIZED) {
             return true
@@ -1748,7 +1845,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
     /** Report an error.
      *  @param message The error message.
      */
-    override reportError(String message) {
+    protected def reportError(String message) {
         return report(message, IMarker.SEVERITY_ERROR, null)
     }
 
@@ -1756,7 +1853,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
      *  @param object The parse tree object.
      *  @param message The error message.
      */
-    override reportError(EObject object, String message) {
+    protected def reportError(EObject object, String message) {
         return report(message, IMarker.SEVERITY_ERROR, object)
     }
 
@@ -1764,7 +1861,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
      *  @param object The parse tree object.
      *  @param message The error message.
      */
-    override reportWarning(EObject object, String message) {
+    protected def reportWarning(EObject object, String message) {
         return report(message, IMarker.SEVERITY_WARNING, object)
     }
 
@@ -2034,7 +2131,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
                 val federateInstances = new LinkedList<FederateInstance>();
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
-                    var federateID = federates.length
+                    var federateID = federates.size
                     var federateInstance = new FederateInstance(instantiation, federateID, i, this)
                     federateInstance.bankIndex = i;
                     federates.add(federateInstance)
@@ -2061,7 +2158,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
             // In a federated execution, we need keepalive to be true,
             // otherwise a federate could exit simply because it hasn't received
             // any messages.
-            if (federates.size > 1) {
+            if (isFederated) {
                 targetConfig.keepalive = true
             }
 
@@ -2090,65 +2187,75 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
                             var minWidth = (leftPortWidth - leftChannelIndex < rightPortWidth - rightChannelIndex)
                                     ? leftPortWidth - leftChannelIndex
                                     : rightPortWidth - rightChannelIndex;
-                            for (var j = 0; j < minWidth; j++) {
-                            
-                                // Finally, we have a specific connection.
-                                // Replace the connection in the AST with an action
-                                // (which inherits the delay) and two reactions.
-                                // The action will be physical if the connection physical and
-                                // otherwise will be logical.
-                                val leftFederate = federatesByInstantiation.get(leftPort.container).get(leftBankIndex);
-                                val rightFederate = federatesByInstantiation.get(rightPort.container).get(rightBankIndex);
+                            if (minWidth <= 0) {
+                                // FIXME: Not sure what to do here.
+                                reportError(connection, "Unexpected error: mismatched widths.");
+                                rightPort = null;
+                            } else {
+                                for (var j = 0; j < minWidth; j++) {
 
-                                // Set up dependency information.
-                                if (
-                                    leftFederate !== rightFederate
-                                    && !connection.physical
-                                    && targetConfig.coordination !== CoordinationType.DECENTRALIZED
-                                ) {
-                                    var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                                    if (dependsOn === null) {
-                                        dependsOn = new LinkedHashSet<Delay>()
-                                        rightFederate.dependsOn.put(leftFederate, dependsOn)
+                                    // Finally, we have a specific connection.
+                                    // Replace the connection in the AST with an action
+                                    // (which inherits the delay) and two reactions.
+                                    // The action will be physical if the connection physical and
+                                    // otherwise will be logical.
+                                    val leftFederate = federatesByInstantiation.get(leftPort.container).get(
+                                        leftBankIndex);
+                                    val rightFederate = federatesByInstantiation.get(rightPort.container).get(
+                                        rightBankIndex);
+
+                                    // Set up dependency information.
+                                    if (leftFederate !== rightFederate && !connection.physical &&
+                                        targetConfig.coordination !== CoordinationType.DECENTRALIZED) {
+                                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                                        if (dependsOn === null) {
+                                            dependsOn = new LinkedHashSet<Delay>()
+                                            rightFederate.dependsOn.put(leftFederate, dependsOn)
+                                        }
+                                        if (connection.delay !== null) {
+                                            dependsOn.add(connection.delay)
+                                        }
+                                        var sendsTo = leftFederate.sendsTo.get(rightFederate)
+                                        if (sendsTo === null) {
+                                            sendsTo = new LinkedHashSet<Delay>()
+                                            leftFederate.sendsTo.put(rightFederate, sendsTo)
+                                        }
+                                        if (connection.delay !== null) {
+                                            sendsTo.add(connection.delay)
+                                        }
                                     }
-                                    if (connection.delay !== null) {
-                                        dependsOn.add(connection.delay)
-                                    }
-                                    var sendsTo = leftFederate.sendsTo.get(rightFederate)
-                                    if (sendsTo === null) {
-                                        sendsTo = new LinkedHashSet<Delay>()
-                                        leftFederate.sendsTo.put(rightFederate, sendsTo)
-                                    }
-                                    if (connection.delay !== null) {
-                                        sendsTo.add(connection.delay)
-                                    }
-                                }
-                                                                
-                                FedASTUtils.makeCommunication(
-                                    connection, 
-                                    leftFederate, leftBankIndex, leftChannelIndex,
-                                    rightFederate, rightBankIndex, rightChannelIndex,
-                                    this, targetConfig.coordination
-                                )
-                            
-                                leftChannelIndex++;
-                                rightChannelIndex++;
-                                if (rightChannelIndex >= rightPortWidth) {
-                                    // Ran out of channels on the right.
-                                    // First, check whether there is another bank reactor.
-                                    if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
-                                        rightBankIndex++;
-                                        rightChannelIndex = 0;
-                                    } else if (rightIndex >= connection.rightPorts.size()) {
-                                        // We are done.
-                                        rightPort = null;
-                                        rightBankIndex = 0;
-                                        rightChannelIndex = 0;
-                                    } else {
-                                        rightBankIndex = 0;
-                                        rightPort = connection.rightPorts.get(rightIndex++);
-                                        rightChannelIndex = 0;
-                                        rightPortWidth = width((rightPort.variable as Port).widthSpec);
+
+                                    FedASTUtils.makeCommunication(
+                                        connection,
+                                        leftFederate,
+                                        leftBankIndex,
+                                        leftChannelIndex,
+                                        rightFederate,
+                                        rightBankIndex,
+                                        rightChannelIndex,
+                                        this,
+                                        targetConfig.coordination
+                                    )
+
+                                    leftChannelIndex++;
+                                    rightChannelIndex++;
+                                    if (rightChannelIndex >= rightPortWidth) {
+                                        // Ran out of channels on the right.
+                                        // First, check whether there is another bank reactor.
+                                        if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
+                                            rightBankIndex++;
+                                            rightChannelIndex = 0;
+                                        } else if (rightIndex >= connection.rightPorts.size()) {
+                                            // We are done.
+                                            rightPort = null;
+                                            rightBankIndex = 0;
+                                            rightChannelIndex = 0;
+                                        } else {
+                                            rightBankIndex = 0;
+                                            rightPort = connection.rightPorts.get(rightIndex++);
+                                            rightChannelIndex = 0;
+                                            rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                                        }
                                     }
                                 }
                             }
@@ -2248,7 +2355,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
      */
     abstract def boolean supportsGenerics()
 
-    abstract override String getTargetTimeType()
+    abstract def String getTargetTimeType()
 
     abstract def String getTargetTagType()
 
@@ -2370,10 +2477,6 @@ abstract class GeneratorBase extends AbstractLFValidator implements GeneratorApi
         var fOut = new FileOutputStream(new File(path), false);
         fOut.write(code)
         fOut.close()
-    }
-
-    override getFederationSize() {
-        federates.size
     }
     
 }

@@ -38,6 +38,7 @@ task cleanupXtextFilesThatWeWriteOurselves(type: Delete) {
 			"org.lflang.LFRuntimeModule",
 			"org.lflang.LFStandaloneSetup",
 			"org.lflang.generator.LFGenerator",
+			"org.lflang.scoping.LFScopeProvider"
 	]
 
 	doLast {
@@ -65,7 +66,6 @@ clean.dependsOn(cleanGenerateXtextLanguage)
 eclipse.classpath.plusConfigurations += [configurations.mwe2]
 
 task generateStandaloneCompiler() {
-	apply plugin: 'java'
 	apply plugin: 'application'
 	apply plugin: 'com.github.johnrengelman.shadow'
 	mainClassName = 'org.lflang.generator.Main'
@@ -80,10 +80,6 @@ task generateStandaloneCompiler() {
             resource = 'plugin.properties'
         }
     }
-    
-    compileJava {
-                options.compilerArgs << '-Xlint:unchecked'
-	}
 }
 
 generateStandaloneCompiler.finalizedBy shadowJar
