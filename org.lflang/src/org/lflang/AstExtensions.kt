@@ -34,7 +34,7 @@ import org.lflang.lf.*
 fun ReactorDecl.toDefinition(): Reactor = when (this) {
     is Reactor         -> this
     is ImportedReactor -> this.reactorClass
-    else               -> throw AssertionError("unreachable")
+    else               -> throw AssertionError("Unknown reactor type: $this")
 }
 
 /**
@@ -83,7 +83,7 @@ val Reactor.allReactions: List<Reaction> get() = superClassRecursor { reactions 
  * Given a reactor class, return a list of all its state variables,
  * which includes state variables of base classes that it extends.
  */
-val Reactor.allStateVars: List<StateVar> get() = superClassRecursor { stateVars }
+val Reactor.allStateVars: List<StateVar> get() = this.superClassRecursor { this.stateVars }
 
 /**
  * Given a reactor class, return a list of all its  timers,
@@ -92,6 +92,8 @@ val Reactor.allStateVars: List<StateVar> get() = superClassRecursor { stateVars 
 val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
 
 private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): List<T> =
+
+
     superClasses.orEmpty().mapNotNull { it.toDefinition().collector() }.flatten() + this.collector()
 
 val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
@@ -225,9 +227,7 @@ val String.isZero: Boolean get() = this.toIntOrNull() == 0
 val Code.isZero: Boolean get() = this.toText().isZero
 
 /**
- * Report whether the given value is zero or not.
- * @param value AST node to inspect.
- * @return True if the given value denotes the constant `0`, false otherwise.
+ * Return whether the given [value] is zero or not.
  */
 fun isZero(value: Value): Boolean =
     value.literal?.isZero
@@ -254,6 +254,12 @@ val WidthSpec.width: Int?
 
 // more general extensions
 
+/**
+ * Parse and return an integer from this string, much
+ * like [String.toIntOrNull], but allows any radix.
+ *
+ * @see Integer.decode
+ */
 fun String.toIntOrNullAnyRadix(): Int? =
     try {
         Integer.decode(this)
@@ -261,5 +267,20 @@ fun String.toIntOrNullAnyRadix(): Int? =
         null
     }
 
+/**
+ * Return the sublist consisting of the tail elements of this list,
+ * ie, everything except the first elements. This is a list view,
+ * and does not copy the backing buffer (if any).
+ *
+ * @throws NoSuchElementException if the list is empty
+ */
 fun <T> List<T>.tail() = subList(1, size)
+
+/**
+ * Return a pair consisting of the [List.first] element and the [tail] sublist.
+ * This may be used to deconstruct a list recursively, as is usual in
+ * functional languages.
+ *
+ * @throws NoSuchElementException if the list is empty
+ */
 fun <T> List<T>.headAndTail() = Pair(first(), tail())

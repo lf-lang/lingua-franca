@@ -55,9 +55,7 @@ class LFScopeProvider : AbstractLFScopeProvider() {
     lateinit var scopeProvider: LFGlobalScopeProvider
 
 
-    /**
-     * Enumerate of the kinds of references.
-     */
+    /** Enumerate of the kinds of references. */
     private enum class RefType {
         NULL, TRIGGER, SOURCE, EFFECT, DEADLINE, CLEFT, CRIGHT
     }
@@ -68,8 +66,8 @@ class LFScopeProvider : AbstractLFScopeProvider() {
      * @param context The AST node in which a to-be-resolved reference occurs.
      * @param reference The reference to resolve.
      */
-    override fun getScope(context: EObject, reference: EReference): IScope {
-        return when (context) {
+    override fun getScope(context: EObject, reference: EReference): IScope =
+        when (context) {
             is VarRef          -> getScopeForVarRef(context, reference)
             is Assignment      -> getScopeForAssignment(context, reference)
             is Instantiation   -> getScopeForReactorDecl(context, reference)
@@ -77,7 +75,6 @@ class LFScopeProvider : AbstractLFScopeProvider() {
             is ImportedReactor -> getScopeForImportedReactor(context, reference)
             else               -> super.getScope(context, reference)
         }
-    }
 
     /**
      * Filter out candidates that do not originate from the file listed in
