@@ -1442,6 +1442,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
 #ifdef FEDERATED_DECENTRALIZED // Only pass down STP violation for federated programs that use decentralized coordination.
     // Extract the inherited STP violation
     bool inherited_STP_violation = reaction->is_STP_violated;
+    LOG_PRINT("Reaction %p has STP violation status: %d.", reaction, reaction->is_STP_violated);
 #endif
     DEBUG_PRINT("There are %d outputs from reaction %p.", reaction->num_outputs, reaction);
     for (int i=0; i < reaction->num_outputs; i++) {
@@ -1459,7 +1460,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                         // Set the is_STP_violated for the downstream reaction
                         if (downstream_reaction != NULL) {
                             downstream_reaction->is_STP_violated = inherited_STP_violation;
-                            DEBUG_PRINT("Passing is_STP_violated of %d to the downstream reaction", downstream_reaction->is_STP_violated);
+                            LOG_PRINT("Passing is_STP_violated of %d to the downstream reaction", downstream_reaction->is_STP_violated);
                         }
 #endif
                         if (downstream_reaction != NULL && downstream_reaction != downstream_to_execute_now) {
