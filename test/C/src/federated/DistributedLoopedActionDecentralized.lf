@@ -22,8 +22,7 @@
 
 target C {
     timeout: 1 sec,
-    coordination: decentralized,
-    logging: LOG
+    coordination: decentralized
 };
 
 import Sender from "../lib/LoopedActionSender.lf"
