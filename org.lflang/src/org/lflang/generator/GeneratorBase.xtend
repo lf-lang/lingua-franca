@@ -87,6 +87,8 @@ import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
+import java.util.Comparator
+import java.util.stream.Collectors
 
 /**
  * Generator base class for shared code between code generators.
@@ -388,11 +390,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
         setFileConfig(resource, fsa, context)
-        
+        setTargetConfig(context)
+
         setMode()
-        
+
+        cleanIfNeeded(context)
+
         printInfo()
-        
+
         // Clear any markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
         clearMarkers()
@@ -407,8 +412,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
-        
-        setTargetConfig(context)
         
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.
@@ -438,6 +441,41 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere. See awkwardness with CppGenerator because it will not even
         // use the result.
+    }
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform the clean step.
+     */
+    protected def void cleanIfNeeded(IGeneratorContext context) {
+        if (context instanceof StandaloneContext) {
+            if (context.args.containsKey("clean")) {
+                doClean()
+            }
+        }
+    }
+
+    /**
+     * Clean any artifacts produced by the code generator and target compilers.
+     * 
+     * The base implementation deletes the bin and src-gen directories. If the target code generator creates additional 
+     * files or directories, the corresponding generator should override this method.
+     */
+    protected def void doClean() {
+        deleteDirectory(fileConfig.binPath)
+        deleteDirectory(fileConfig.srcGenBasePath)
+    }
+
+    /**
+     * Recursively delete a directory if it exists.
+     */
+    protected def void deleteDirectory(Path dir) {
+        if (Files.isDirectory(dir)) {
+            println("Cleaning " + dir.toString())
+            val pathsToDelete = Files.walk(dir).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+            for (Path path : pathsToDelete) {
+                Files.deleteIfExists(path);
+            }
+        }
     }
 
     /**
