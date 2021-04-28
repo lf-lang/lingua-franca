@@ -4435,6 +4435,11 @@ class CGenerator extends GeneratorBase {
                                 return;
                             }
                         }
+                        // The wait has timed out. However, a message header
+                        // for the current tag could have been received in time 
+                        // but not the the body of the message.
+                        // Wait on the tag barrier based on the current tag. 
+                        _lf_wait_on_global_tag_barrier(get_current_tag());
                         // Done waiting
                     }
             ''')        
