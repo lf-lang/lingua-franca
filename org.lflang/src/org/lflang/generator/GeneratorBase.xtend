@@ -350,6 +350,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
             if (context.args.containsKey("runtime-version")) {
                 targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
             }
+            if (context.args.containsKey("external-runtime-path")) {
+                targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
+            }
         }
     }
 
