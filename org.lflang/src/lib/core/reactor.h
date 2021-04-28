@@ -413,7 +413,6 @@ typedef struct lf_token_t {
  */
 typedef struct token_present_t {
     lf_token_t** token;
-    // bool* is_present
     port_status_t* status; // FIXME: This structure is used to present the status of tokens
                            // for both ports and actions.
     bool reset_is_present; // True to set is_present to false after calling done_using().

@@ -3,11 +3,22 @@
  * where a federate that receives timestamped messages has a timer in addition to the messages
  * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
  * In addition, this test shows that the STP violation is passed down the hierarchy until it is handled.
+ * 
+ * An STP violation occurs if when a message with intended tag g1 arrives 
+ * on a port p after the receiving federate has progressed far enough that
+ * it cannot process an event with tag g1 on the port p.
+ * This test has a fast timer (10 usec period) in the receiving federate
+ * so that the receiving federate is continually advancing its current tag,
+ * and hence an STP violation is more likely to occur.
+ * Furthermore, this test sets the STP threshold to 0, which makes the
+ * violation extremely likely to occur.  It could still not occur, however,
+ * if the message arrives between ticks of the 10 usec timer.
+ * 
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
 target C {
-    timeout: 4900 msec,
+    timeout: 49 msec, // 9 msec headroom for the last (probably tardy) message to arrive.
     logging: LOG,
     coordination: decentralized
 };
@@ -16,7 +27,7 @@ import Count from "../lib/Count.lf";
 
 reactor ImportantActuator {
     input in:int;
-    state success:int(0);
+    state success:int(0);   // Count messages that arrive without STP violation.
     state success_stp_violation:int(0);
     timer t(0, 10 usec); // Force a timer to be invoke periodically
                          // to ensure logical time will advance in the
@@ -24,20 +35,22 @@ reactor ImportantActuator {
     state c:int(0);
     reaction(in) {=
         tag_t current_tag = get_current_tag();
-        printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
+        info_print("ImportantActuator: At tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
             get_elapsed_logical_time(),
             get_microstep(),
             in->value,
             in->intended_tag.time - get_start_time(),
             in->intended_tag.microstep);
         if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
-                         (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0) {
+                         (tag_t){.time=MSEC(10) *  self->c, .microstep=0}) == 0) {
             self->success++; // Message was on-time
+        } else {
+            error_print_and_exit("Normal reaction was invoked, but current tag doesn't match expected tag.");
         }
         self->c++;
     =} STP (0) {=
         tag_t current_tag = get_current_tag();
-        printf("At tag (%lld, %u), message has violated the STP offset by (%lld, %u).\n",
+        info_print("ImportantActuator: At tag (%lld, %u), message has violated the STP offset by (%lld, %u).",
                 current_tag.time - start_time, current_tag.microstep,
                 current_tag.time - in->intended_tag.time,
                 current_tag.microstep - in->intended_tag.microstep);
@@ -62,7 +75,7 @@ reactor Print {
     input in:int;
     reaction(in) {=
         tag_t current_tag = get_current_tag();  
-        printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
+        info_print("Print reactor: at tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
                current_tag.time - get_start_time(),
                current_tag.microstep,
                in->value,
@@ -89,9 +102,9 @@ reactor Receiver {
         // Do nothing.
     =}
 }
-
+ 
 federated reactor {
-    c = new Count();
+    c = new Count(period = 10 msec);
     r = new Receiver();
     c.out -> r.in;    // Indicating a 'logical' connection.
 }

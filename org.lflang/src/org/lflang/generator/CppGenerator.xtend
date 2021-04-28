@@ -950,49 +950,50 @@ class CppGenerator extends GeneratorBase {
           set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
         endif()
         
-        if(NOT REACTOR_CPP_BUILD_DIR)
-          set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
-        endif()
-        
-        ExternalProject_Add(
-          dep-reactor-cpp
-          PREFIX "${REACTOR_CPP_BUILD_DIR}"
-          GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-          GIT_TAG "«IF targetConfig.runtimeVersion !== null»«targetConfig.runtimeVersion»«ELSE»26e6e641916924eae2e83bbf40cbc9b933414310«ENDIF»"
-          CMAKE_ARGS
-            -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-            -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
-            -DCMAKE_INSTALL_BINDIR:PATH=${CMAKE_INSTALL_BINDIR}
-            -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-            -DREACTOR_CPP_VALIDATE=«IF targetConfig.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
-            -DREACTOR_CPP_TRACE=«IF targetConfig.tracing !== null»ON«ELSE»OFF«ENDIF»
-            «IF targetConfig.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetConfig.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
-        )
-        
-        set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-        set(REACTOR_CPP_BIN_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}")
-        set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
-        set(REACTOR_CPP_IMPLIB_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        «IF targetConfig.externalRuntimePath!==null»
+            find_package(reactor-cpp PATHS "«targetConfig.externalRuntimePath»")
+        «ELSE»
+            if(NOT REACTOR_CPP_BUILD_DIR)
+              set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
+            endif()
 
-        ««« Unfortunately, we cannot use find_package() here. At the time when this file is processed, the
-        ««« reactor-cpp library is not build yet and find_package() would not work. Therefore, we need to
-        ««« setup the reactor-cpp dependency manually. This also means that we have to check for the
-        ««« platform and set the correct paths accordingly.
-        add_library(reactor-cpp SHARED IMPORTED)
-        add_dependencies(reactor-cpp dep-reactor-cpp)
-        if(WIN32)
-            set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_IMPLIB_NAME}")
-            set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_BIN_DIR}/${REACTOR_CPP_LIB_NAME}")
-        else()
-            set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
-        endif()
-        
-        if (APPLE)
-          file(RELATIVE_PATH REL_LIB_PATH "${REACTOR_CPP_BIN_DIR}" "${REACTOR_CPP_LIB_DIR}")
-          set(CMAKE_INSTALL_RPATH "@executable_path/${REL_LIB_PATH}")
-        else ()
-          set(CMAKE_INSTALL_RPATH "${REACTOR_CPP_LIB_DIR}")
-        endif ()
+            ExternalProject_Add(
+            dep-reactor-cpp
+              PREFIX "${REACTOR_CPP_BUILD_DIR}"
+              GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
+              GIT_TAG "«IF targetConfig.runtimeVersion !== null»«targetConfig.runtimeVersion»«ELSE»26e6e641916924eae2e83bbf40cbc9b933414310«ENDIF»"
+              CMAKE_ARGS
+                -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+                -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+                -DCMAKE_INSTALL_BINDIR:PATH=${CMAKE_INSTALL_BINDIR}
+                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                -DREACTOR_CPP_VALIDATE=«IF targetConfig.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
+                -DREACTOR_CPP_TRACE=«IF targetConfig.tracing !== null»ON«ELSE»OFF«ENDIF»
+                «IF targetConfig.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetConfig.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
+            )
+
+            set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+            set(REACTOR_CPP_BIN_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}")
+            set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
+            set(REACTOR_CPP_IMPLIB_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+            add_library(reactor-cpp SHARED IMPORTED)
+            add_dependencies(reactor-cpp dep-reactor-cpp)
+            if(WIN32)
+                set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_IMPLIB_NAME}")
+                set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_BIN_DIR}/${REACTOR_CPP_LIB_NAME}")
+            else()
+                set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
+            endif()
+
+            if (APPLE)
+              file(RELATIVE_PATH REL_LIB_PATH "${REACTOR_CPP_BIN_DIR}" "${REACTOR_CPP_LIB_DIR}")
+              set(CMAKE_INSTALL_RPATH "@executable_path/${REL_LIB_PATH}")
+            else ()
+              set(CMAKE_INSTALL_RPATH "${REACTOR_CPP_LIB_DIR}")
+            endif ()
+        «ENDIF»
+
         set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
         
         set(LF_MAIN_TARGET «topLevelName»)

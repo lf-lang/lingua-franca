@@ -1166,7 +1166,7 @@ port_status_t determine_port_status_if_possible(int portID) {
     trigger_t* network_input_port_action = __action_for_port(portID);
     if (network_input_port_action->status == present) {
         LOG_PRINT("------ Not waiting for network input port %d"
-                    "because it is already present.", portID);
+                    " because it is already present.", portID);
         // The status of the trigger is present.
         return present;
     } else if (network_input_port_action->status == unknown && 
