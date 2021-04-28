@@ -61,7 +61,6 @@ lf_cond_t port_status_changed;
  */
 federate_instance_t _fed = {
         .socket_TCP_RTI = -1,
-		.RTI_socket_listener = NULL,
         .number_of_inbound_p2p_connections = 0,
 		.inbound_socket_listeners = NULL,
         .number_of_outbound_p2p_connections = 0,

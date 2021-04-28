@@ -8,6 +8,7 @@
  */
 target C {
     timeout: 4900 msec,
+    logging: LOG,
     coordination: decentralized
 };
 
