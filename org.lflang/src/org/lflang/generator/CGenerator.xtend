@@ -2525,7 +2525,12 @@ class CGenerator extends GeneratorBase {
                     // Input to a contained reaction
                     pr(intendedTagInheritenceCode, '''
                         // All effects inherit the minimum intended tag of input triggers
-                        «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
+                        if (inherited_min_intended_tag.time != NEVER) {
+                            if (compare_tags(inherited_min_intended_tag, 
+                                            «effect.container.name».«effect.variable.name»->intended_tag) > 0) {
+                                «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
+                            }
+                         }
                     ''')                    
                 }
             }
