@@ -3683,7 +3683,7 @@ class CGenerator extends GeneratorBase {
                     __tokens_with_ref_count[«startTimeStepTokens»].token
                             = &«nameOfSelfStruct»->___«action.name».token;
                     __tokens_with_ref_count[«startTimeStepTokens»].status
-                            = (bool*)&«nameOfSelfStruct»->___«action.name».status;
+                            = &«nameOfSelfStruct»->___«action.name».status;
                     __tokens_with_ref_count[«startTimeStepTokens»].reset_is_present = true;
                 ''')
                 startTimeStepTokens++
