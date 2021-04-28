@@ -6,7 +6,6 @@
  */
  target C {
     timeout: 5 sec,
-    logging: LOG,
     coordination: centralized
 };
 

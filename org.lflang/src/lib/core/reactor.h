@@ -314,8 +314,11 @@ typedef enum {no=0, token_and_value, token_only} ok_to_free_t;
  * If the value is 'unknown', it is unknown whether the port is present or absent (e.g., in a distributed application).
  * 
  * @note For non-network ports, unknown is unused.
+ * @note The absent and present fields need to be compatible with false and true
+ *  respectively because for non-network ports, the status can either be present
+ *  or absent (no possibility of unknown).
  */
-typedef enum {absent, present, unknown} port_status_t;
+typedef enum {absent = false, present = true, unknown} port_status_t;
 
 /**
  * The flag OK_TO_FREE is used to indicate whether
@@ -410,6 +413,7 @@ typedef struct lf_token_t {
  */
 typedef struct token_present_t {
     lf_token_t** token;
+    // bool* is_present
     port_status_t* status; // FIXME: This structure is used to present the status of tokens
                            // for both ports and actions.
     bool reset_is_present; // True to set is_present to false after calling done_using().
