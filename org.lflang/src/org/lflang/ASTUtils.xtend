@@ -1880,9 +1880,15 @@ class ASTUtils {
         if (object.eResource instanceof XtextResource) {
             val compNode = NodeModelUtils.findActualNodeFor(object)
             if (compNode !== null) {
+                // Find comment node in AST
+                // For reactions/timers/action/etc., it is usually the lowermost first child node
                 var node = compNode.firstChild
                 while (node instanceof CompositeNode) {
                     node = node.firstChild
+                }
+                // For reactors, it seems to be the next sibling of the first child node
+                if (node === null && compNode.firstChild !== null) {
+                    node = compNode.firstChild.nextSibling
                 }
                 while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
                     val rule = node.grammarElement
