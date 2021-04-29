@@ -135,6 +135,15 @@ public enum TargetProperty {
                     }
                 }
             }),
+    
+    /**
+     * Directive for specifying a path to an external runtime to be used for the
+     * compiled binary.
+     */
+    EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
+            Arrays.asList(Target.CPP), (config, value) -> {
+                config.externalRuntimePath = ASTUtils.toText(value);
+            }),
 
     /**
      * Directive to let the execution engine allow logical time to elapse
@@ -236,7 +245,15 @@ public enum TargetProperty {
             (config, value) -> {
                 config.protoFiles = ASTUtils.toListOfStrings(value);
             }),
-    
+
+    /**
+     * Directive for specifying a specific version of the reactor runtime library.
+     */
+    RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
+            Arrays.asList(Target.CPP), (config, value) -> {
+                config.runtimeVersion = ASTUtils.toText(value);
+            }),
+
     /**
      * Directive to specify the number of threads.
      */

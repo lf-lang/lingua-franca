@@ -4,10 +4,15 @@ prepare: ["mkdir", "src"]
 copy: ["cp", "-r", "${benchmark.targets.lf-cpp.copy_sources}", "src"]
 gen: ["cog", "-r", "${args:benchmark.targets.lf-cpp.gen_args}",
       "src/${benchmark.targets.lf-cpp.lf_file}"]
-compile: ["${lf_path}/bin/lfc", "src/${benchmark.targets.lf-cpp.lf_file}"]
+compile: ["${lf_path}/bin/lfc",
+          "--runtime-version", "${target.params.reactor_cpp_version}",
+          "src/${benchmark.targets.lf-cpp.lf_file}"]
 run: ["bin/${benchmark.targets.lf-cpp.binary}",
       "--threads", "${threads}",
       "--numIterations", "${iterations}",
       "${args:benchmark.targets.lf-cpp.run_args}"]
 parser:
   _target_: "parser.parse_lfcpp_output"
+
+params:
+  runtime_version: "master"

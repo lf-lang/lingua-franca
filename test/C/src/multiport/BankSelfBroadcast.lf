@@ -1,0 +1,46 @@
+/**
+ * Test a bank of reactors that broadcast a single output
+ * back to a multiport input of the same reactors in the bank
+ * so that each reactor in the bank receives the output
+ * produced by itself and each other reactor.
+ * 
+ * @author Edward A. Lee 
+ */
+target C;
+reactor A {
+    input[4] in:int;
+    output out:int;
+    state received:bool(false);
+    reaction(startup) -> out {=
+        SET(out, self->bank_index);
+    =}
+    reaction(in) {=
+        for (int i = 0; i < in_width; i++) {
+            if (in[i]->is_present) {
+        		info_print(
+        			"Reactor %d received %d on channel %d.",
+                    self->bank_index, in[i]->value, i
+                );
+                if (in[i]->value != i) {
+                    error_print_and_exit("Expected %d.", i);
+                }
+                self->received = true;
+       		} else {
+        		info_print(
+        			"Reactor %d channel %d is absent.",
+                    self->bank_index, i
+                );
+                error_print_and_exit("Expected %d.", i);
+            }
+      	}
+    =}
+    reaction(shutdown) {=
+        if (!self->received) {
+            error_print_and_exit("No inputs received.");
+        }
+    =}
+}
+main reactor {
+    a  = new[4] A();
+    (a.out)+ -> a.in;
+}
