@@ -1212,6 +1212,7 @@ void handle_federate_resign(federate_t *my_fed) {
     my_fed->next_event = FOREVER_TAG;
     my_fed->time_advance = FOREVER;
     
+    shutdown(my_fed->socket, SHUT_RDWR);
     close(my_fed->socket); //  from unistd.h
     
     info_print("Federate %d has resigned.", my_fed->id);
