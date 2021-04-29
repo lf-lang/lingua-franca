@@ -1941,8 +1941,15 @@ void* listen_to_rti_TCP(void* args) {
                 _fed.socket_TCP_RTI = -1;
                 return NULL;
             } else {
-                error_print_and_exit("Socket connection to the RTI has been broken" 
-                                    " with error %d: %s.", errno, strerror(errno));
+                error_print("Socket connection to the RTI has been broken" 
+                                    " with error %d: %s. The RTI should"
+                                    " close connections with an EOF first."
+                                    " Considering this a soft error.", 
+                                    errno, 
+                                    strerror(errno));
+                // FIXME: If this happens, possibly a new RTI must be elected.
+                _fed.socket_TCP_RTI = -1;
+                return NULL;                   
             }
         } else if (bytes_read == 0) {
             // EOF received.
