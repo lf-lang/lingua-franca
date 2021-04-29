@@ -202,7 +202,9 @@ public class Main {
         UPDATE("u", "update-deps", false, false, "Update dependencies and rebuild the LF compiler (requires Internet connection).", false),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         THREADS("t", "threads", false, false, "Specify the default number of threads.", true),
-        OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false);
+        OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
+        RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
+        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true);
         
         /**
          * The corresponding Apache CLI Option object.
@@ -374,11 +376,15 @@ public class Main {
         cmdList.add("-jar");
         cmdList.add(jarPath.toString());
         for (Option o : cmd.getOptions()) {
+            // Drop -r and -u flags to prevent an infinite loop in case the
+            // source fails to compile.
             if (!CLIOption.REBUILD.option.equals(o)
                     && !CLIOption.UPDATE.option.equals(o)) {
-                // Remove -r and -o flags to prevent an 
-                // infinite loop in case the source fails to compile.
-                cmdList.add(o.getOpt() + " " + o.getValue());
+                // pass all other options on to the new command
+                cmdList.add("--" + o.getLongOpt());
+                if (o.hasArg()) {
+                    cmdList.add(o.getValue());
+                }
             }
         }
         cmdList.addAll(cmd.getArgList());
@@ -487,7 +493,7 @@ public class Main {
         for (Option o : cmd.getOptions()) {
             if (passOn.contains(o)) {
                 String value = "";
-                if (o.hasArgs()) {
+                if (o.hasArg()) {
                     value = o.getValue();
                 }
                 props.setProperty(o.getLongOpt(), value);

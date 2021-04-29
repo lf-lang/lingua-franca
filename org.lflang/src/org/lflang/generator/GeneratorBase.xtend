@@ -347,6 +347,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
                     targetConfig.compilerFlags.addAll(context.args.getProperty("target-flags").split(' '))
                 }
             }
+            if (context.args.containsKey("runtime-version")) {
+                targetConfig.runtimeVersion = context.args.getProperty("runtime-version")
+            }
+            if (context.args.containsKey("external-runtime-path")) {
+                targetConfig.externalRuntimePath = context.args.getProperty("external-runtime-path")
+            }
         }
     }
 
@@ -684,7 +690,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             #ifdef NUMBER_OF_FEDERATES
             #undefine NUMBER_OF_FEDERATES
             #endif
-            #define NUMBER_OF_FEDERATES «federates.length»
+            #define NUMBER_OF_FEDERATES «federates.size»
             #include "rti.c"
             int main(int argc, char* argv[]) {
         ''')
@@ -2036,7 +2042,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 val federateInstances = new LinkedList<FederateInstance>();
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
-                    var federateID = federates.length
+                    var federateID = federates.size
                     var federateInstance = new FederateInstance(instantiation, federateID, i, this)
                     federateInstance.bankIndex = i;
                     federates.add(federateInstance)
@@ -2063,7 +2069,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // In a federated execution, we need keepalive to be true,
             // otherwise a federate could exit simply because it hasn't received
             // any messages.
-            if (federates.size > 1) {
+            if (isFederated) {
                 targetConfig.keepalive = true
             }
 

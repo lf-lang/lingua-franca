@@ -101,6 +101,11 @@ class TargetConfig {
     public CoordinationOptions coordinationOptions = new CoordinationOptions();
 
     /**
+     * Link to an external runtime library instead of the default one. 
+     */
+    public String externalRuntimePath = null;
+
+    /**
      * If true, configure the execution environment such that it does not
      * wait for physical time to match logical time. The default is false.
      */
@@ -149,6 +154,11 @@ class TargetConfig {
      * List of proto files to be processed by the code generator.
      */
     public List<String> protoFiles = newLinkedList
+
+    /**
+     * The version of the runtime library to be used in the generated target. 
+     */
+    public String runtimeVersion = null
 
     /**
      * The number of worker threads to deploy. The default is zero (i.e.,

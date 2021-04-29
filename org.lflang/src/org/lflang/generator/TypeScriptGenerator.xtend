@@ -158,7 +158,7 @@ class TypeScriptGenerator extends GeneratorBase {
         for (federate : federates) {
             
             // Only generate one output if there is no federation.
-            if (!federate.isSingleton) {
+            if (isFederated) {
                 federateFilename = fileConfig.name + '_' + federate.name
                 // Clear out previously generated code,
                 // but keep the reactor class definitions
@@ -291,7 +291,7 @@ class TypeScriptGenerator extends GeneratorBase {
         }
 
         // If this is a federated execution, generate C code for the RTI.
-        if (federates.length > 1) {
+        if (isFederated) {
             createFederateRTI()
 
             // Copy the required library files into the target file system.

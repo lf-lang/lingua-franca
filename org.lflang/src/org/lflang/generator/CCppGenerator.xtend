@@ -383,7 +383,7 @@ class CCppGenerator extends CGenerator {
                 }
             ''')
         }
-        if (federates.length > 1) {
+        if (isFederated) {
             pr("#include \"core/federate.c\"")
         }
     }
