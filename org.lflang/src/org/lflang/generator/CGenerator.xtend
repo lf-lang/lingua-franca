@@ -2761,8 +2761,16 @@ class CGenerator extends GeneratorBase {
                 // Record the number of reactions that this reaction depends on.
                 // This is used for optimization. When that number is 1, the reaction can
                 // be executed immediately when its triggering reaction has completed.
-                val dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(reaction)
-                if (dominatingReaction !== null) {
+                var dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(reaction)
+                // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
+                while (dominatingReaction !== null 
+                    && !federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition
+                )) {
+                    dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(dominatingReaction);
+                }
+                if (dominatingReaction !== null
+                    && federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition)
+                ) {
                     val upstreamReaction =
                         '''«selfStructName(dominatingReaction.parent)»->___reaction_«dominatingReaction.reactionIndex»'''
                     pr(initializeTriggerObjectsEnd, '''
