@@ -227,6 +227,8 @@ class FederateInstance {
      * federate. This means that if the reaction is triggered by or
      * sends data to a port of a contained reactor, then that reactor
      * is in the federate. Otherwise, return false.
+     * This will also return false if the reaction is not a reaction of the specified reactor,
+     *
      * @param reaction The reaction.
      * @param federate The federate instance or null if there
      *  is no federation.
@@ -234,6 +236,8 @@ class FederateInstance {
     def containsReaction(Reactor reactor, Reaction reaction) {
         // Easy case first.
         if (!reactor.federated || isSingleton) return true
+        
+        if (!reactor.reactions.contains(reaction)) return false;
         
         // If this has been called before, then the result of the
         // following check is cached.
