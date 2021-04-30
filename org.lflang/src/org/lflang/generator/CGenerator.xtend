@@ -1617,11 +1617,16 @@ class CGenerator extends GeneratorBase {
         // the case where a reaction triggered by a
         // port or action is late due to network 
         // latency, etc..
-        var intended_tag = ''        
+        var StringBuilder federatedExtension = new StringBuilder();    
         if (isFederatedAndDecentralized) {
-            intended_tag = '''
+            federatedExtension.append('''
                 «targetTagType» intended_tag;
-            '''
+            ''');
+        }
+        if (isFederated) {
+            federatedExtension.append('''                
+                «targetTimeType» physical_time_of_arrival;
+            ''');
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
@@ -1638,7 +1643,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
-                    «intended_tag»
+                    «federatedExtension.toString»
                 } «variableStructType(input, decl)»;
             ''')
             
@@ -1658,7 +1663,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
-                    «intended_tag»
+                    «federatedExtension.toString»
                 } «variableStructType(output, decl)»;
             ''')
 
@@ -1675,7 +1680,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     bool has_value;
                     lf_token_t* token;
-                    «intended_tag»
+                    «federatedExtension.toString»
                 } «variableStructType(action, decl)»;
             ''')
             
@@ -2002,6 +2007,13 @@ class CGenerator extends GeneratorBase {
                         self->__«containedReactor.name».«port.name»_trigger.last = NULL;
                         self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
                     ''')
+                    
+                    if (isFederated) {
+                        // Set the physical_time_of_arrival
+                        pr(port, constructorCode, '''
+                            self->__«containedReactor.name».«port.name»_trigger.physical_time_of_arrival = NEVER;
+                        ''')
+                    }
                 }
             }
             unindent(body)
@@ -2338,6 +2350,13 @@ class CGenerator extends GeneratorBase {
                 self->___«variable.name».reactions = &self->___«variable.name»_reactions[0];
                 self->___«variable.name».number_of_reactions = «count»;
             ''')
+            
+            if (isFederated) {
+                // Set the physical_time_of_arrival
+                pr(variable, constructorCode, '''
+                    self->___«variable.name».physical_time_of_arrival = NEVER;
+                ''')
+            }
         }
         if (variable instanceof Input) {
             val rootType = variable.targetType.rootType
@@ -4217,10 +4236,6 @@ class CGenerator extends GeneratorBase {
         InferredType type,
         boolean isPhysical
     ) {
-        // FIXME: Notify a special type of notification once this reaction is done
-        // FIXME: The receiver logic for the ABSENT message should also notify using this
-        // special message.
-        
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
         // This string is dynamically allocated, and type 'string' is to be
@@ -4234,9 +4249,14 @@ class CGenerator extends GeneratorBase {
             (receivingPort.variable as Port).type.id = "char*"
         }
 
-        val sendRef = generateVarRef(sendingPort) // Used for comments only, so no bank or multiport index.
         var receiveRef = generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
+      
+        // Transfer the physical time of arrival from the action to the port
+        result.append('''
+            «receiveRef»->physical_time_of_arrival = self->___«action.name».physical_time_of_arrival;
+        ''')
+        
         if (isTokenType(type)) {
             result.append('''
                 SET_TOKEN(«receiveRef», «action.name»->token);

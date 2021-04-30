@@ -1466,6 +1466,9 @@ void handle_timed_message(int socket, int fed_id) {
     // Get the triggering action for the corerponding port
     trigger_t* action = __action_for_port(port_id);
 
+    // Record the physical time of arrival of the message
+    action->physical_time_of_arrival = get_physical_time();
+
     if (action->is_physical) {
         // Messages sent on physical connections should be handled via handle_message().
         warning_print("Received a timed message on a physical connection. Time stamp will be lost.");
