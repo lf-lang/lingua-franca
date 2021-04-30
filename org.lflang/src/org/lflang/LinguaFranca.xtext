@@ -182,7 +182,7 @@ Action:
     (':' type=Type)? ';'?;
 
 Reaction:
-    ('reaction')
+    ('reaction') (name=ID)?
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRef (',' effects+=VarRef)*)?
