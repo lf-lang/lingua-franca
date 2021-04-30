@@ -393,7 +393,8 @@ int send_timed_message(interval_t additional_delay,
  */
 void _lf_send_time(unsigned char type, instant_t time) {
     DEBUG_PRINT("Sending time %lld to the RTI.", time);
-    unsigned char buffer[1 + sizeof(instant_t)];
+    int bytes_to_write = 1 + sizeof(instant_t);
+    unsigned char buffer[bytes_to_write];
     buffer[0] = type;
     encode_ll(time, &(buffer[1]));
     lf_mutex_lock(&outbound_socket_mutex);
@@ -402,8 +403,20 @@ void _lf_send_time(unsigned char type, instant_t time) {
         lf_mutex_unlock(&outbound_socket_mutex);
     	return;
     }
-    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), buffer, &outbound_socket_mutex,
-            "Failed to send time to the RTI.");
+    int bytes_written = write_to_socket(_fed.socket_TCP_RTI, bytes_to_write, buffer);
+    if (bytes_written < bytes_to_write) {
+        if (errno == ENOTCONN) {
+            // FIXME: Shutdown is probably not working properly because the socket gets disconnected.
+            error_print("Socket to the RTI is no longer connected. Considering this a soft error.");
+        } else {
+            error_print_and_exit("Failed to send time %lld to the RTI.", 
+                                    " Error code %d: %s",
+                                    time - start_time,
+                                    errno,
+                                    strerror(errno)
+                                );
+        }
+    }
     lf_mutex_unlock(&outbound_socket_mutex);
 }
 
@@ -416,7 +429,8 @@ void _lf_send_time(unsigned char type, instant_t time) {
  */
 void _lf_send_tag(unsigned char type, tag_t tag) {
     DEBUG_PRINT("Sending tag (%lld, %u) to the RTI.", tag.time - start_time, tag.microstep);
-    unsigned char buffer[1 + sizeof(instant_t) + sizeof(microstep_t)];
+    int bytes_to_write = 1 + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_write];
     buffer[0] = type;
     encode_ll(tag.time, &(buffer[1]));
     encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
@@ -426,9 +440,21 @@ void _lf_send_tag(unsigned char type, tag_t tag) {
         lf_mutex_unlock(&outbound_socket_mutex);
     	return;
     }
-    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, 1 + sizeof(instant_t) + sizeof(microstep_t),
-    		buffer, &outbound_socket_mutex,
-            "Failed to send tag (%lld, %u) to the RTI.", tag.time - start_time, tag.microstep);
+    int bytes_written = write_to_socket(_fed.socket_TCP_RTI, bytes_to_write, buffer);
+    if (bytes_written < bytes_to_write) {
+        if (errno == ENOTCONN) {
+            error_print("Socket to the RTI is no longer connected. Considering this a soft error.");
+        } else {
+            error_print_and_exit("Failed to send tag (%lld, %u) to the RTI.", 
+                                    " Error code %d: %s",
+                                    tag.time - start_time, 
+                                    tag.microstep,
+                                    errno,
+                                    strerror(errno)
+                                );
+        }
+    }
+
     lf_mutex_unlock(&outbound_socket_mutex);
 }
 
@@ -1299,9 +1325,12 @@ int _lf_request_close_inbound_socket(int fed_id) {
 void _lf_close_inbound_socket(int fed_id) {
     if (fed_id < 0) {
         // socket connection is to the RTI.
-        shutdown(_fed.socket_TCP_RTI, SHUT_RDWR);
-        close(_fed.socket_TCP_RTI);
+        int socket = _fed.socket_TCP_RTI;
+        // First, set the global socket to -1.
         _fed.socket_TCP_RTI = -1;
+        // Then shutdown and close the socket.
+        shutdown(socket, SHUT_RDWR);
+        close(socket);
     } else if (_fed.sockets_for_inbound_p2p_connections[fed_id] >= 0) {
         shutdown(_fed.sockets_for_inbound_p2p_connections[fed_id], SHUT_RDWR);
         close(_fed.sockets_for_inbound_p2p_connections[fed_id]);
