@@ -1094,7 +1094,7 @@ void* worker(void* arg) {
         } else {
             // Got a reaction that is ready to run.
             DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: "
-                    "%lld and deadline %lld.", worker_number,
+                    "%llx and deadline %lld.", worker_number,
                     current_reaction_to_execute->index,
                     current_reaction_to_execute->deadline);
 
