@@ -455,6 +455,9 @@ struct reaction_t {
                                        // intended. Currently, this is only possible if logical
                                        // connections are used in a decentralized federated
                                        // execution. COMMON.
+    bool is_a_control_reaction; // Indicates whether this reaction is a control reaction. Control
+                                // reactions will not set ports or actions and don't require scheduling
+                                // output any reactions. Default is false.
 };
 
 /** Typedef for event_t struct, used for storing activation records. */

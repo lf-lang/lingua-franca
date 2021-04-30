@@ -1073,6 +1073,7 @@ void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
         if (determine_port_status_if_possible(i) == unknown) {
             reaction_t *reaction = _fed.triggers_for_network_input_control_reactions[i]->reactions[0];
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                reaction->is_a_control_reaction = true;
                 pqueue_insert(reaction_q, reaction);
                 mark_control_reaction_waiting(i);
             }
@@ -1090,10 +1091,11 @@ void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
         return;
     }
     for (int i = 0; i < _fed.trigger_for_network_output_control_reactions->number_of_reactions; i++) {
-       reaction_t* reaction = _fed.trigger_for_network_output_control_reactions->reactions[i];
-       if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-           pqueue_insert(reaction_q, reaction);
-       }
+        reaction_t* reaction = _fed.trigger_for_network_output_control_reactions->reactions[i];
+        if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+            reaction->is_a_control_reaction = true;
+            pqueue_insert(reaction_q, reaction);
+        }
     }
 }
 
