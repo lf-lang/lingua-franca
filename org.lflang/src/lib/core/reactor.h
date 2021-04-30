@@ -519,7 +519,7 @@ struct trigger_t {
                                         // can only happen when logical connections are used using a decentralized coordination
                                         // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
     instant_t physical_time_of_arrival; // The physical time at which the message has been received on the network according to the local clock.
-                                        // Note: The physical_time_of_arrival is only passed down one level of the hierarchy. Default: 0.
+                                        // Note: The physical_time_of_arrival is only passed down one level of the hierarchy. Default: NEVER.
 #endif
 };
 //  ======== Function Declarations ========  //

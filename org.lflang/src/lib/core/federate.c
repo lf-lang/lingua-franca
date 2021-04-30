@@ -2261,6 +2261,8 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
             // NOTE: If fast execution is being used, it may be necessary to
             // throttle upstream federates.
             if (!_fed.has_upstream) {
+                DEBUG_PRINT("Not waiting for reply to NET (%lld, %u) because I have no upstream federates.", 
+                         tag.time - start_time, tag.microstep);
                 return tag;
             }
             // Fed has upstream federates. Have to wait for a TAG or PTAG.
