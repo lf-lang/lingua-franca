@@ -179,7 +179,8 @@ int write_to_socket_errexit_with_mutex(
             	if (mutex != NULL) {
             		lf_mutex_unlock(mutex);
             	}
-                error_print_and_exit(format, args);
+                error_print(format, args);
+                error_print_and_exit("Code %d: %s.", errno, strerror(errno));
             }
             return more;
         }

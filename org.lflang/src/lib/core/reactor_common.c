@@ -1432,6 +1432,13 @@ lf_token_t* __set_new_array_impl(lf_token_t* token, int length, int num_destinat
  * @param worker The thread number of the worker thread or 0 for unthreaded execution (for tracing).
  */
 void schedule_output_reactions(reaction_t* reaction, int worker) {
+    if (reaction->is_a_control_reaction) {
+        // Control reactions will not produce an output but can have
+        // effects in order to have certain precedence requirements.
+        // No need to execute this function if the reaction is a control
+        // reaction.
+        return;
+    }
     // If the reaction produced outputs, put the resulting triggered
     // reactions into the reaction queue. As an optimization, if exactly one
     // downstream reaction is enabled by this reaction, then it may be
@@ -1453,25 +1460,6 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
             for (int j=0; j < reaction->triggered_sizes[i]; j++) {
                 trigger_t* trigger = triggerArray[j];
                 if (trigger != NULL) {
-#ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated LF programs
-                    // If there is no STP violations in the reaction, check
-                    // for STP violations in the effects of the reaction
-                    if (inherited_STP_violation != true) {
-                        // In federated execution, an intended tag that is not (NEVER, 0)
-                        // indicates that this particular trigger is triggered by a network message.
-                        // The intended tag is set in handle_timed_message in federate.c whenever
-                        // a timed message arrives from another federate.
-                        if (trigger->intended_tag.time != NEVER) {
-                            // If the intended tag of the trigger is actually set,
-                            // check if it is in the past compared to the current tag.
-                            if (compare_tags(trigger->intended_tag,
-                                            current_tag) < 0) {
-                                // Mark the triggered reaction with a STP violation
-                                inherited_STP_violation = true;
-                            }
-                        }
-                    }
-#endif
                     DEBUG_PRINT("Trigger %p lists %d reactions.", trigger, trigger->number_of_reactions);
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];

@@ -167,7 +167,7 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
         } 
     } else {
             // The future_tag is not in the future.
-            
+
             // One possibility is that the incoming message has violated the STP offset.
             // Another possibility is that the message is coming from a zero-delay loop,
             // and control reactions are waiting.
@@ -1199,6 +1199,7 @@ void* worker(void* arg) {
                 tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
                 current_reaction_to_execute->function(current_reaction_to_execute->self);
                 tracepoint_reaction_ends(current_reaction_to_execute, worker_number);
+
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(current_reaction_to_execute, worker_number);

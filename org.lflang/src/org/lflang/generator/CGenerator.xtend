@@ -2528,7 +2528,7 @@ class CGenerator extends GeneratorBase {
                         if (inherited_min_intended_tag.time != NEVER) {
                             // Don't reset the intended tag of the output port if it has already been set.
                             «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
-                         }
+                        }
                     ''')                    
                 }
             }
