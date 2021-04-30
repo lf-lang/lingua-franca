@@ -18,8 +18,7 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 49 msec, // 9 msec headroom for the last (probably tardy) message to arrive.
-    logging: LOG,
+    timeout: 1900 msec, // 9 msec headroom for the last (probably tardy) message to arrive.
     coordination: decentralized
 };
 
@@ -42,7 +41,7 @@ reactor ImportantActuator {
             in->intended_tag.time - get_start_time(),
             in->intended_tag.microstep);
         if (compare_tags((tag_t){.time=current_tag.time - get_start_time(), .microstep=current_tag.microstep}, 
-                         (tag_t){.time=MSEC(10) *  self->c, .microstep=0}) == 0) {
+                         (tag_t){.time=SEC(1) *  self->c, .microstep=0}) == 0) {
             self->success++; // Message was on-time
         } else {
             error_print_and_exit("Normal reaction was invoked, but current tag doesn't match expected tag.");
@@ -62,11 +61,10 @@ reactor ImportantActuator {
     =}
     
     reaction(shutdown) {=
-        if ((self->success +  self->success_stp_violation) != 5) {
-            fprintf(stderr, "Failed to detect STP violation in messages.\n");
-            exit(1);
+        if ((self->success +  self->success_stp_violation) != 2) {
+            error_print_and_exit("Failed to detect STP violation in messages.");
         } else {
-            printf("Successfully detected STP violations (%d violations, %d on-time).\n", self->success_stp_violation, self->success);
+            info_print("Successfully detected STP violations (%d violations, %d on-time).", self->success_stp_violation, self->success);
         }
     =}
 }
@@ -75,7 +73,7 @@ reactor Print {
     input in:int;
     reaction(in) {=
         tag_t current_tag = get_current_tag();  
-        info_print("Print reactor: at tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
+        info_print("Print reactor: at tag (%lld, %u) received %d. Intended tag is (%lld, %u).",
                current_tag.time - get_start_time(),
                current_tag.microstep,
                in->value,
@@ -104,7 +102,7 @@ reactor Receiver {
 }
  
 federated reactor {
-    c = new Count(period = 10 msec);
+    c = new Count(period = 1 sec);
     r = new Receiver();
     c.out -> r.in;    // Indicating a 'logical' connection.
 }
