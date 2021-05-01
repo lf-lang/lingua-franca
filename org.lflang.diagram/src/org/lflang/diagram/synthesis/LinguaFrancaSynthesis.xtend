@@ -46,6 +46,18 @@ import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.emf.ecore.EObject
 import org.lflang.ASTUtils
+import org.lflang.FileConfig
+import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction
+import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction
+import org.lflang.diagram.synthesis.action.FilterCycleAction
+import org.lflang.diagram.synthesis.action.ShowCycleAction
+import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions
+import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
+import org.lflang.diagram.synthesis.styles.ReactorFigureComponents
+import org.lflang.diagram.synthesis.util.CycleVisualization
+import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization
+import org.lflang.diagram.synthesis.util.ReactorIcons
+import org.lflang.diagram.synthesis.util.UtilityExtensions
 import org.lflang.graph.BreadCrumbTrail
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -61,21 +73,10 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
-import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction
-import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction
-import org.lflang.diagram.synthesis.action.FilterCycleAction
-import org.lflang.diagram.synthesis.action.ShowCycleAction
-import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions
-import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
-import org.lflang.diagram.synthesis.styles.ReactorFigureComponents
-import org.lflang.diagram.synthesis.util.CycleVisualization
-import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization
-import org.lflang.diagram.synthesis.util.UtilityExtensions
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import org.lflang.FileConfig
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -98,6 +99,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	@Inject extension CycleVisualization
     @Inject extension InterfaceDependenciesVisualization
 	@Inject extension FilterCycleAction
+	@Inject extension ReactorIcons
 	
 	// -------------------------------------------------------------------------
 
@@ -305,6 +307,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				comps.figures.forEach[associateWith(reactor)]
 				comps.outer.setProperty(KlighdProperties.EXPANDED_RENDERING, true)
 				comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
+				comps.reactor.handleIcon(reactor, false)
 
 				if (SHOW_HYPERLINKS.booleanValue) {
 					// Collapse button
@@ -343,6 +346,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				if (reactor.hasContent && !recursive) {
 					comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
 				}
+				comps.reactor.handleIcon(reactor, true)
 
 				if (SHOW_HYPERLINKS.booleanValue) {
 					// Expand button
