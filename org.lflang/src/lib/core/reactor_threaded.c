@@ -1198,11 +1198,13 @@ void* worker(void* arg) {
                         current_tag.microstep);
                 tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
                 current_reaction_to_execute->function(current_reaction_to_execute->self);
-                tracepoint_reaction_ends(current_reaction_to_execute, worker_number);git
+                tracepoint_reaction_ends(current_reaction_to_execute, worker_number);
 
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(current_reaction_to_execute, worker_number);
+
+                DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
 
                 // Reacquire the mutex lock.
                 lf_mutex_lock(&mutex);
@@ -1217,7 +1219,7 @@ void* worker(void* arg) {
             // down the chain
             current_reaction_to_execute->is_STP_violated = false;
 
-            DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
+            DEBUG_PRINT("Worker %d: Done with reaction.", worker_number);
         }
     } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
