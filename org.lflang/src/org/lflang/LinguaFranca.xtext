@@ -97,6 +97,7 @@ Reactor:
         | (instantiations+=Instantiation)
         | (connections+=Connection)
         | (reactions+=Reaction)
+        | (modes+=Mode)
         | (mutations+=Mutation)
     )* '}';
 
@@ -165,6 +166,17 @@ terminal TRUE:
     
 terminal FALSE:
     'false' | 'False';
+    
+Mode:
+    {Mode} (initial?='initial')? 'mode' (name=ID)? 
+    '{' (
+        (stateVars+=StateVar) |
+        (timers+=Timer) |
+        (actions+=Action) |
+        (instantiations+=Instantiation) |
+        (connections+=Connection) |
+        (reactions+=Reaction)
+    )* '}';
 
 // Action that has either a physical or logical origin.
 // 
@@ -254,7 +266,7 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer;
+    TypedVariable | Timer | Mode;
 
 Trigger:
     Action | Input;

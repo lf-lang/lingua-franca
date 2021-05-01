@@ -41,11 +41,12 @@ import org.lflang.lf.Deadline
 import org.lflang.lf.Import
 import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Instantiation
+import org.lflang.lf.LfPackage
+import org.lflang.lf.Mode
 import org.lflang.lf.Model
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
-import org.lflang.lf.LfPackage
 
 import static extension org.lflang.ASTUtils.*
 
@@ -126,12 +127,12 @@ class LFScopeProvider extends AbstractLFScopeProvider {
         val locals = newLinkedList
         
         // Find the local Model
-        if (obj.eContainer instanceof Model) {
-            model = obj.eContainer as Model
-        } else if (obj.eContainer.eContainer instanceof Model) {
-            model = obj.eContainer.eContainer as Model
-        } else {
-             // Empty list
+        var container = obj
+        while(model === null && container !== null) {
+            container = container.eContainer
+            if (container instanceof Model) {
+                model = container
+            }
         }
         
         // Collect eligible candidates, all of which are local (i.e., not in other files).
@@ -176,9 +177,13 @@ class LFScopeProvider extends AbstractLFScopeProvider {
             val candidates = new ArrayList<EObject>()
             var type = RefType.NULL
             var Reactor reactor = null
-
+            var Mode mode = null
+            
             if (variable.eContainer.eContainer instanceof Reactor) {
                 reactor = variable.eContainer.eContainer as Reactor
+            } else if (variable.eContainer.eContainer instanceof Mode) {
+                mode = variable.eContainer.eContainer as Mode
+                reactor = variable.eContainer.eContainer.eContainer as Reactor
             } else {
                 return Scopes.scopeFor(newLinkedList)
             }
@@ -206,7 +211,10 @@ class LFScopeProvider extends AbstractLFScopeProvider {
             if (variable.container !== null) { // Resolve hierarchical port reference
                 val instanceName = nameProvider.
                     getFullyQualifiedName(variable.container)
-                val instances = reactor.instantiations
+                val instances = <Instantiation>newArrayList(reactor.instantiations)
+                if (mode !== null) {
+                    instances.addAll(mode.instantiations)
+                }
                 
                 for (instance : instances) {
                     val defn = instance.reactorClass.toDefinition
@@ -230,12 +238,20 @@ class LFScopeProvider extends AbstractLFScopeProvider {
                         candidates.addAll(reactor.allInputs)
                         candidates.addAll(reactor.allActions)
                         candidates.addAll(reactor.allTimers)
+                        if (mode !== null) {
+                            candidates.addAll(mode.actions)
+                            candidates.addAll(mode.timers)
+                        }
                     }
                     case RefType.SOURCE:
                         return super.getScope(variable, reference)
                     case RefType.EFFECT: {
                         candidates.addAll(reactor.allOutputs)
                         candidates.addAll(reactor.allActions)
+                        if (mode !== null) {
+                            candidates.addAll(mode.actions)
+                            candidates.addAll(reactor.modes)
+                        }
                     }
                     case RefType.DEADLINE:
                         return Scopes.scopeFor(reactor.allInputs)
