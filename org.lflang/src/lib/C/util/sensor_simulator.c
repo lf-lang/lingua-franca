@@ -35,8 +35,9 @@ See sensor_simulator.h.
 #include "sensor_simulator.h"
 #include "ctarget.h"
 #include "core/util.h"
+#include "core/platform.h"
 
-pthread_t _lf_sensor_thread_id;
+_lf_thread_t _lf_sensor_thread_id;
 int _lf_sensor_thread_created = 0;
 
 // Support ASCII characters SPACE (32) through DEL (127).
@@ -51,7 +52,11 @@ trigger_t* _lf_sensor_newline_trigger = NULL;
 // Trigger for any key.
 trigger_t* _lf_sensor_any_key_trigger = NULL;
 
-pthread_mutex_t _lf_sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
+SCREEN* screen;
+
+lf_mutex_t _lf_sensor_mutex;
+
+lf_cond_t _lf_sensor_simulator_started;
 
 /**
  * Default window from which to get input characters.
@@ -200,6 +205,13 @@ void _lf_print_message_function(char* format, va_list args) {
         (*newline) = '\0';
     }
     pthread_mutex_lock(&_lf_sensor_mutex);
+
+    // If the sensor simulator has not started yet, wait for it to start.
+    while (!_lf_sensor_thread_created) {
+    	DEBUG_PRINT("Waiting for sensor simulator start.");
+    	lf_cond_wait(&_lf_sensor_simulator_started, &_lf_sensor_mutex);
+    }
+
     vwprintw(_lf_sensor_print_window, format, args);
     int y, x;
     getyx(_lf_sensor_print_window, y, x);
@@ -229,6 +241,7 @@ void _lf_print_message_function(char* format, va_list args) {
  * @param tick_window_width The width of the tick window or 0 for none.
  */
 int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width) {
+	lf_mutex_init(&_lf_sensor_mutex);
     pthread_mutex_lock(&_lf_sensor_mutex);
     int result = 0;
     if (_lf_sensor_thread_created == 0) {
@@ -246,17 +259,12 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         }
 
         // Initialize ncurses.
-        printf("FIXME: Initializing ncurses.\n");
+        DEBUG_PRINT("Initializing ncurses.");
         initscr();
-        info_print("FIXME: 1.\n");
         start_color();     // Allow colors.
-        info_print("FIXME: 2.\n");
         noecho();          // Don't echo input
-        info_print("FIXME: 3.\n");
         cbreak();          // Don't wait for Return or Enter
-        info_print("FIXME: 4.\n");
         refresh();         // Not documented, but needed?
-        info_print("FIXME: 5.\n");
 
         _lf_sensor_default_window = stdscr;
         if (message_lines != NULL && number_of_lines > 0) {
@@ -268,16 +276,18 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         }
         _lf_start_print_window(number_of_lines + 2, tick_window_width + 2);
 
-        register_print_function(&_lf_print_message_function);
-
         // Create the thread that listens for input.
         int result = pthread_create(&_lf_sensor_thread_id, NULL, &read_input, NULL);
         if (result == 0) {
+            register_print_function(&_lf_print_message_function);
             _lf_sensor_thread_created = 1;
+            lf_cond_broadcast(&_lf_sensor_simulator_started);
+        } else {
+        	error_print("Failed to start sensor simulator!");
         }
     }
     pthread_mutex_unlock(&_lf_sensor_mutex);
-    info_print("FIXME: Finished start_sensor_simulator.\n");
+    DEBUG_PRINT("Finished starting sensor simulator.");
     return result;
 }
 
@@ -287,6 +297,13 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
  */
 void show_tick(char* character) {
     pthread_mutex_lock(&_lf_sensor_mutex);
+
+    // If necessary, wait for the sensor simulator start.
+    while (!_lf_sensor_thread_created) {
+    	DEBUG_PRINT("Waiting for sensor simulator start.");
+    	lf_cond_wait(&_lf_sensor_simulator_started, &_lf_sensor_mutex);
+    }
+
     wmove(_lf_sensor_tick_window, _lf_sensor_tick_cursor_y, _lf_sensor_tick_cursor_x);
     wprintw(_lf_sensor_tick_window, character);
     int tick_height, tick_width;
@@ -328,7 +345,6 @@ void show_tick(char* character) {
  * @return 0 for success, error code for failure.
  */
 int register_sensor_key(char key, void* action) {
-    printf("FIXME: calling register_sensor_key.\n");
     if (action == NULL) {
         return 3;
     }
