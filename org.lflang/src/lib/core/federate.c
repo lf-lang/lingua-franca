@@ -1212,11 +1212,13 @@ port_status_t determine_port_status_if_possible(int portID) {
 }
 
 /**
- * Function that waits until the status of network port "portID" can be
+ * Wait until the status of network port "portID" can be
  * determined.
  * 
  * In decentralized coordination mode, the wait time is capped by "STP",
  * after which the status of the port is presumed to be absent.
+ * 
+ * This function assumes the holder does not hold a mutex.
  * 
  * @param portID The ID of the network port
  * @param STP The STP offset of the port
@@ -1246,7 +1248,7 @@ void wait_until_port_status_known(int portID, interval_t STP) {
     // block here FOREVER, until one of the aforementioned 
     // conditions is met.
     interval_t wait_time = FOREVER;
-#ifdef FEDERATED_DECENTRALIZED// Only applies to decentralized coordination
+#ifdef FEDERATED_DECENTRALIZED // Only applies to decentralized coordination
     // The wait time for port status in the decentralized 
     // coordination is capped by the STP offset assigned 
     // to the port.

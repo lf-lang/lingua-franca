@@ -246,8 +246,7 @@ typedef struct federate_instance_t {
 void synchronize_with_other_federates();
 
 /**
- * Function that waits until the status of network port "portID" can be
- * determined.
+ * Wait until the status of network port "portID" can be determined.
  * 
  * In decentralized coordination mode, the wait time is capped by "STP",
  * after which the status of the port is presumed to be absent.
