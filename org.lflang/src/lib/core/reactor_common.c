@@ -320,21 +320,6 @@ static void print_event(void *event) {
 			e->time, e->trigger, e->token);
 }
 
-/**
- * If DEBUG logging is enabled, prints the status of the event queue
- * and the reaction queue.
- */
-void print_queue_status() {
-    if(LOG_LEVEL > 3) {
-        DEBUG_PRINT("Reaction queue size: %d. Contents:",
-                        pqueue_size(reaction_q));
-        pqueue_print(reaction_q, print_reaction);
-        DEBUG_PRINT("Event queue size: %d. Contents:",
-                        pqueue_size(event_q));
-        pqueue_print(event_q, print_reaction);
-    }
-}
-
 // ********** Priority Queue Support End
 
 /**
@@ -1468,9 +1453,9 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
 #ifdef FEDERATED_DECENTRALIZED // Only pass down STP violation for federated programs that use decentralized coordination.
     // Extract the inherited STP violation
     bool inherited_STP_violation = reaction->is_STP_violated;
-    LOG_PRINT("Reaction %p has STP violation status: %d.", reaction, reaction->is_STP_violated);
+    LOG_PRINT("Reaction %llx has STP violation status: %d.", reaction->index, reaction->is_STP_violated);
 #endif
-    DEBUG_PRINT("There are %d outputs from reaction %p.", reaction->num_outputs, reaction);
+    DEBUG_PRINT("There are %d outputs from reaction %llx.", reaction->num_outputs, reaction->index);
     for (int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
             DEBUG_PRINT("Output %d has been produced.", i);
