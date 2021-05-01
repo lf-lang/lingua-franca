@@ -665,7 +665,7 @@ void __pop_events() {
 
     
 #ifdef FEDERATED
-    // Insert network dependant reactions for network input ports into
+    // Insert network dependent reactions for network input ports into
     // the reaction queue
     enqueue_network_control_reactions(reaction_q);
 #endif // FEDERATED
