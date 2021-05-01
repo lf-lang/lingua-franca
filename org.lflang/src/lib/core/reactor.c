@@ -112,9 +112,11 @@ int wait_until(instant_t logical_time_ns) {
 }
 
 void print_snapshot() {
-    printf(">>> START Snapshot\n");
-    pqueue_dump(reaction_q, stdout, reaction_q->prt);
-    printf(">>> END Snapshot\n");
+    if(LOG_LEVEL > 3) {
+        DEBUG_PRINT(">>> START Snapshot\n");
+        pqueue_dump(reaction_q, reaction_q->prt);
+        DEBUG_PRINT(">>> END Snapshot\n");
+    }
 }
 
 /**
@@ -139,7 +141,7 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
 int _lf_do_step() {
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
-        //print_snapshot();
+        print_snapshot();
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         
         LOG_PRINT("Invoking reaction at elapsed logical tag (%lld, %d).",
@@ -216,7 +218,7 @@ int _lf_do_step() {
 // Otherwise, return 1.
 int next() {
     event_t* event = (event_t*)pqueue_peek(event_q);
-    //pqueue_dump(event_q, stdout, event_q->prt);
+    //pqueue_dump(event_q, event_q->prt);
     // If there is no next event and -keepalive has been specified
     // on the command line, then we will wait the maximum time possible.
     // FIXME: is LLONG_MAX different from FOREVER?
