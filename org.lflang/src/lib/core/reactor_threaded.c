@@ -921,7 +921,7 @@ void _lf_initialize_start_tag() {
     // network control reactions.
     int init_reaction_queue_size = pqueue_size(reaction_q);
 
-    // Insert network dependant reactions for network input ports into
+    // Insert network dependent reactions for network input ports into
     // the reaction queue to prevent reactions from executing at (0,0)
     // incorrectly.
     // At (0,0), events are not currently handled through the event_q.
@@ -1198,7 +1198,7 @@ void* worker(void* arg) {
                         current_tag.microstep);
                 tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
                 current_reaction_to_execute->function(current_reaction_to_execute->self);
-                tracepoint_reaction_ends(current_reaction_to_execute, worker_number);
+                tracepoint_reaction_ends(current_reaction_to_execute, worker_number);git
 
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
