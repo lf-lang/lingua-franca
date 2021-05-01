@@ -55,7 +55,7 @@ typedef size_t (*pqueue_get_pos_f)(void *a);
 typedef void (*pqueue_set_pos_f)(void *a, size_t pos);
 
 /** debug callback function to print a entry */
-typedef void (*pqueue_print_entry_f)(FILE *out, void *a);
+typedef void (*pqueue_print_entry_f)(void *a);
 
 /** the priority queue handle */
 typedef struct pqueue_t
@@ -175,12 +175,10 @@ void *pqueue_peek(pqueue_t *q);
  * @internal
  * DEBUG function only
  * @param q the queue
- * @param out the output handle
  * @param the callback function to print the entry
  */
 void
-pqueue_print(pqueue_t *q, 
-             FILE *out,
+pqueue_print(pqueue_t *q,
              pqueue_print_entry_f print);
 
 /**
@@ -188,12 +186,10 @@ pqueue_print(pqueue_t *q,
  * @internal
  * debug function only
  * @param q the queue
- * @param out the output handle
  * @param the callback function to print the entry
  */
 void
-pqueue_dump(pqueue_t *q, 
-             FILE *out,
+pqueue_dump(pqueue_t *q,
              pqueue_print_entry_f print);
 
 /**
