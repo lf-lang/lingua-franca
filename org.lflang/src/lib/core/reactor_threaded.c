@@ -840,7 +840,7 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
     lf_mutex_lock(&mutex);
     // Do not enqueue this reaction twice.
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-        DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
+        DEBUG_PRINT("Enqueing downstream reaction %llx.", reaction->index);
         pqueue_insert(reaction_q, reaction);
         // NOTE: We could notify another thread so it can execute this reaction.
         // However, this notification is expensive!
@@ -1026,7 +1026,7 @@ void* worker(void* arg) {
         // Obtain a reaction from the reaction_q that is ready to execute
         // (i.e., it is not blocked by concurrently executing reactions
         // that it depends on).
-        print_queue_status();
+        print_snapshot();
         reaction_t* current_reaction_to_execute = first_ready_reaction();
         if (current_reaction_to_execute == NULL) {
             // There are no reactions ready to run.
@@ -1095,8 +1095,9 @@ void* worker(void* arg) {
         } else {
             // Got a reaction that is ready to run.
             DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: "
-                    "%llx and deadline %lld.", worker_number,
+                    "%llx, chain ID: %llu, and deadline %lld.", worker_number,
                     current_reaction_to_execute->index,
+                    current_reaction_to_execute->chain_id,
                     current_reaction_to_execute->deadline);
 
             // This thread will no longer be idle.
@@ -1192,9 +1193,10 @@ void* worker(void* arg) {
                 pqueue_remove(executing_q, current_reaction_to_execute);
             } else {
                 // Invoke the reaction function.
-                LOG_PRINT("Worker %d: Invoking reaction with index %llx at elapsed tag (%lld, %d).",
+                LOG_PRINT("Worker %d: Invoking reaction with index %llx and chain ID %llu at elapsed tag (%lld, %d).",
                         worker_number,
 						current_reaction_to_execute->index,
+                        current_reaction_to_execute->chain_id,
                         current_tag.time - start_time,
                         current_tag.microstep);
                 tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
@@ -1205,9 +1207,10 @@ void* worker(void* arg) {
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(current_reaction_to_execute, worker_number);
 
-                DEBUG_PRINT("Worker %d: Done invoking reaction with index %llx.", 
+                DEBUG_PRINT("Worker %d: Done invoking reaction with index %llx and chain ID %llu.", 
                                 worker_number,
-                                current_reaction_to_execute->index);
+                                current_reaction_to_execute->index,
+                                current_reaction_to_execute->chain_id);
 
                 // Reacquire the mutex lock.
                 lf_mutex_lock(&mutex);
@@ -1236,13 +1239,22 @@ void* worker(void* arg) {
     return NULL;
 }
 
+/**
+ * If DEBUG logging is enabled, prints the status of the event queue,
+ * the reaction queue, and the executing queue.
+ */
 void print_snapshot() {
-    printf(">>> START Snapshot\n");
-    printf("Pending:\n");
-    pqueue_dump(reaction_q, reaction_q->prt);
-    printf("Executing:\n");
-    pqueue_dump(executing_q, executing_q->prt);    
-    printf(">>> END Snapshot\n");
+    if(LOG_LEVEL > 3) {
+        DEBUG_PRINT(">>> START Snapshot");
+        DEBUG_PRINT("Pending:");
+        pqueue_dump(reaction_q, print_reaction);
+        DEBUG_PRINT("Executing:");
+        pqueue_dump(executing_q, print_reaction);
+        DEBUG_PRINT("Event queue size: %d. Contents:",
+                        pqueue_size(event_q));
+        pqueue_dump(event_q, print_reaction); 
+        DEBUG_PRINT(">>> END Snapshot");
+    }
 }
 
 // Array of thread IDs (to be dynamically allocated).
