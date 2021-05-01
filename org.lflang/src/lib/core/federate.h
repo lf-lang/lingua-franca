@@ -29,6 +29,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Data structures and functions used and defined in federate.c.
  */
 
+#ifndef FEDERATE_H
+#define FEDERATE_H
+
 #ifndef ADVANCE_MESSAGE_INTERVAL
 #define ADVANCE_MESSAGE_INTERVAL MSEC(10)
 #endif
@@ -241,3 +244,17 @@ typedef struct federate_instance_t {
  * returned by the RTI.
  */
 void synchronize_with_other_federates();
+
+/**
+ * Function that waits until the status of network port "portID" can be
+ * determined.
+ * 
+ * In decentralized coordination mode, the wait time is capped by "STP",
+ * after which the status of the port is presumed to be absent.
+ * 
+ * @param portID The ID of the network port
+ * @param STP The STP offset of the port
+ */
+void wait_until_port_status_known(int portID, interval_t STP);
+
+#endif // FEDERATE_H

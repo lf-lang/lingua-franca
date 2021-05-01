@@ -989,7 +989,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     return timestamp;
 }
 
-////////////////////////////////Port Status  Handling///////////////////////////////////////
+////////////////////////////////Port Status Handling///////////////////////////////////////
 
 /**
  * Placeholder for a generated function that returns a pointer to the
@@ -1209,6 +1209,94 @@ port_status_t determine_port_status_if_possible(int portID) {
         return absent;
     }
     return unknown;
+}
+
+/**
+ * Function that waits until the status of network port "portID" can be
+ * determined.
+ * 
+ * In decentralized coordination mode, the wait time is capped by "STP",
+ * after which the status of the port is presumed to be absent.
+ * 
+ * @param portID The ID of the network port
+ * @param STP The STP offset of the port
+ */
+void wait_until_port_status_known(int portID, interval_t STP) {            
+    // Need to lock the mutex to prevent
+    // a race condition with the network
+    // receiver logic.
+    lf_mutex_lock(&mutex);
+
+    // See if the port status can be determined immediately without waiting
+    if (determine_port_status_if_possible(portID) != unknown) {
+        // The status of the trigger is known. No need to wait.
+        LOG_PRINT("------ Not waiting for network input port %d: "
+                    "Status of the port is known already.", portID);
+        mark_control_reaction_not_waiting(portID);
+        lf_mutex_unlock(&mutex);
+        return;
+    }
+
+    // Determine the wait time.
+    // In centralized coordination, the wait time is until
+    // the RTI can determine the port status and send a TAG
+    // replacing the PTAG it sent earlier or until a port absent
+    // message has been sent by an upstream federate for this port
+    // with a tag greater than the current tag. The federate will 
+    // block here FOREVER, until one of the aforementioned 
+    // conditions is met.
+    interval_t wait_time = FOREVER;
+#ifdef FEDERATED_DECENTRALIZED// Only applies to decentralized coordination
+    // The wait time for port status in the decentralized 
+    // coordination is capped by the STP offset assigned 
+    // to the port.
+    wait_time = current_tag.time + STP;
+#endif
+
+    // Perform the wait, if it is necessary.
+    if (wait_time != current_tag.time) {
+        LOG_PRINT("------ Waiting for %lldns for network input port \"in\" at tag (%llu, %d).",
+                wait_time,
+                current_tag.time - start_time,
+                current_tag.microstep);
+        while(!wait_until(wait_time, &port_status_changed)) {
+            // Interrupted
+            DEBUG_PRINT("------ Wait for network input port %d interrupted.", portID);
+            // Check if the status of the port is known
+            if (determine_port_status_if_possible(portID) != unknown) {
+                // The status of the trigger is known. No need to wait.
+                LOG_PRINT("------ Done waiting for network input port %d: "
+                            "Status of the port has changed.", portID);
+                mark_control_reaction_not_waiting(portID);
+                lf_mutex_unlock(&mutex);
+                return;
+            }
+        }
+    }
+
+#ifdef FEDERATED_DECENTRALIZED // Only applies in decentralized coordination
+    // The wait has timed out. However, a message header
+    // for the current tag could have been received in time 
+    // but not the the body of the message.
+    // Wait on the tag barrier based on the current tag. 
+    _lf_wait_on_global_tag_barrier(get_current_tag());
+#endif
+
+    // Done waiting
+    // If the status of the port is still unknown, assume it is absent.
+    if (determine_port_status_if_possible(portID) == unknown) {
+        // Port will not be triggered at the
+        // current logical time. Set the absent
+        // value of the trigger accordingly
+        // so that the receiving logic cannot
+        // insert any further reaction
+        set_network_port_status(portID, absent);
+    }
+    mark_control_reaction_not_waiting(portID);
+    lf_mutex_unlock(&mutex);
+    LOG_PRINT("------ Done waiting for network input port %d: "
+                "Wait timed out without a port status change.", portID);
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

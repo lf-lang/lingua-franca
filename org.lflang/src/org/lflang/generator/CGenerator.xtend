@@ -4420,95 +4420,20 @@ class CGenerator extends GeneratorBase {
         // Store the code
         val result = new StringBuilder()
         
+        result.append('''
+                interval_t max_STP = 0LL;
+        ''');
+        
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
             result.append('''
-                interval_t max_STP = «maxSTP.timeInTargetLanguage»;
+                max_STP = «maxSTP.timeInTargetLanguage»;
             ''')  
         }
         
-        result.append('''            
-                // Need to lock the mutex to prevent
-                // a race condition with the network
-                // receiver logic.
-                lf_mutex_lock(&mutex);
-        ''')
-        
         result.append('''
-            DEBUG_PRINT("Invoked network dependant reaction.");
-            if (determine_port_status_if_possible(«receivingPortID») != unknown) {
-                // The status of the trigger is known. No need to wait.
-                LOG_PRINT("------ Not waiting for network input port «receivingPortID»: "
-                           "Status of the port is known already.");
-                mark_control_reaction_not_waiting(«receivingPortID»);
-                lf_mutex_unlock(&mutex);
-                return;
-            }            
-        ''')
-        
-        if(isFederatedAndDecentralized) {
-            result.append('''
-                    if(max_STP != 0LL) {
-                        LOG_PRINT("------ Waiting for %lldns for network input port \"in\" at tag (%llu, %d).",
-                                max_STP,
-                                current_tag.time - start_time,
-                                current_tag.microstep);
-                        while(!wait_until(current_tag.time + max_STP, &port_status_changed)) {
-                            // Interrupted
-                            DEBUG_PRINT("------ Wait for network input port «receivingPortID» interrupted");
-                            // Check if the status of the port is known
-                            if (determine_port_status_if_possible(«receivingPortID») != unknown) {
-                                // The status of the trigger is known. No need to wait.
-                                LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
-                                           "Status of the port has changed.");
-                                mark_control_reaction_not_waiting(«receivingPortID»);
-                                lf_mutex_unlock(&mutex);
-                                return;
-                            }
-                        }
-                        // The wait has timed out. However, a message header
-                        // for the current tag could have been received in time 
-                        // but not the the body of the message.
-                        // Wait on the tag barrier based on the current tag. 
-                        _lf_wait_on_global_tag_barrier(get_current_tag());
-                        // Done waiting
-                    }
-            ''')        
-        } else {
-            result.append('''                    
-                    LOG_PRINT("------ Waiting for network input port \"in\" at tag (%llu, %d).",
-                            current_tag.time - start_time,
-                            current_tag.microstep);
-                    while(!wait_until(FOREVER, &port_status_changed)) {
-                        // Interrupted
-                        DEBUG_PRINT("------ Wait for network input port «receivingPortID» interrupted");
-                        // Check if the status of the port is known
-                        if (determine_port_status_if_possible(«receivingPortID») != unknown) {
-                            // The status of the trigger is known. No need to wait.
-                            LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
-                                       "Status of the port has changed.");
-                            mark_control_reaction_not_waiting(«receivingPortID»);
-                            lf_mutex_unlock(&mutex);
-                            return;
-                        }
-                    }
-                    // Done waiting
-            ''')        
-        }
-        
-        result.append('''
-                if (determine_port_status_if_possible(«receivingPortID») == unknown) {
-                    // Port will not be triggered at the
-                    // current logical time. Set the absent
-                    // value of the trigger accordingly
-                    // so that the receiving logic cannot
-                    // insert any further reaction
-                    set_network_port_status(«receivingPortID», absent);
-                }
-                mark_control_reaction_not_waiting(«receivingPortID»);
-                lf_mutex_unlock(&mutex);
-                LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
-                          "Wait timed out without a port status change.");
+            // Wait until the port status is known
+            wait_until_port_status_known(«receivingPortID», max_STP);
         ''')
         
         return result.toString        
