@@ -1,14 +1,19 @@
 /**
- * Demonstration of timed distributed Lingua Franca programs.
+ * Rhythm generator using samples of percussion instruments.
+ * This version can run on multiple machines leveraging
+ * synchronized clocks to stay in sync.
  * This program is not portable. It runs on MacOS.
  * 
  * This program tests clock synchronization by producing
  * sounds on each of two computers that, if the clocks are
  * synchronized well enough, sound like they are occurring
- * at identical times.
+ * at identical times. In this version, there is no communication
+ * between the components other than clock synchronization.
  * 
- * @see RhythmMac
- * @see RhythmMacDistributed
+ * @see RhythmMac.lf
+ * @see RhythmMacDistributed.lf
+ * @see RhythmMacDistributedIndependent.lf
+ * 
  * @author Edward A. Lee
  */
 target C {
@@ -25,8 +30,9 @@ target C {
         attenuation: 10
     },
     files: ["/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
-            "Claves.wav"] 
+            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
+            "/lib/C/util/audio_loop_linux.c",
+            "sounds/Claves.wav"] 
 };
 preamble {= 
     #include "wave_file_reader.c"

@@ -7,8 +7,10 @@
  * instrument, choose its rhythm, and control its tempo. The
  * two programs do not communicate.
  * 
- * @see RhythmMac
- * @see RhythmMacDistributed
+ * @see RhythmMac.lf
+ * @see RhythmMacDistributed.lf
+ * @see RhythmMacDistributedNoUI.lf
+ *
  * @author Edward A. Lee
  */
 target C {
@@ -16,10 +18,11 @@ target C {
     coordination: decentralized,
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
-            "Bass-Drum-1.wav", "Hi-Bongo.wav", "Claves.wav", "High-Conga-1.wav",
-            "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
-            "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"] 
+            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
+            "/lib/C/util/audio_loop_linux.c",
+            "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
+            "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
+            "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 }; 
 preamble {= 
     #include <ncurses.h>

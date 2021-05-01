@@ -113,7 +113,9 @@ void* read_input(void* ignored) {
  */
 void end_ncurses() {
     register_print_function(NULL);
+    pthread_mutex_lock(&_lf_sensor_mutex);
     endwin();
+    pthread_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -189,6 +191,7 @@ void _lf_start_print_window(int above, int right) {
 
 /**
  * Function to register to handle printing of messages in util.h/c.
+ * This acquires the mutex lock.
  */
 void _lf_print_message_function(char* format, va_list args) {
     // Replace the last \n with a \0 in the format and handle trailing returns manually.
@@ -196,6 +199,7 @@ void _lf_print_message_function(char* format, va_list args) {
     if (newline != NULL) {
         (*newline) = '\0';
     }
+    pthread_mutex_lock(&_lf_sensor_mutex);
     vwprintw(_lf_sensor_print_window, format, args);
     int y, x;
     getyx(_lf_sensor_print_window, y, x);
@@ -212,6 +216,7 @@ void _lf_print_message_function(char* format, va_list args) {
     }
 
     wrefresh(_lf_sensor_print_window);
+    pthread_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -232,16 +237,26 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         for (int i = 0; i < LF_SENSOR_TRIGGER_TABLE_SIZE; i++) {
             trigger_table[i] = NULL;
         }
-        // Initialize ncurses.
-        initscr();
-        start_color();     // Allow colors.
-        noecho();          // Don't echo input
-        cbreak();          // Don't wait for Return or Enter
-        refresh();         // Not documented, but needed?
-
         if (atexit(end_ncurses) != 0) {
             warning_print("sensor_simulator: Failed to register end_ncurses function!");
         }
+        // Clean up any previous curses state.
+        if (!isendwin()) {
+        	endwin();
+        }
+
+        // Initialize ncurses.
+        printf("FIXME: Initializing ncurses.\n");
+        initscr();
+        info_print("FIXME: 1.\n");
+        start_color();     // Allow colors.
+        info_print("FIXME: 2.\n");
+        noecho();          // Don't echo input
+        info_print("FIXME: 3.\n");
+        cbreak();          // Don't wait for Return or Enter
+        info_print("FIXME: 4.\n");
+        refresh();         // Not documented, but needed?
+        info_print("FIXME: 5.\n");
 
         _lf_sensor_default_window = stdscr;
         if (message_lines != NULL && number_of_lines > 0) {
@@ -262,6 +277,7 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         }
     }
     pthread_mutex_unlock(&_lf_sensor_mutex);
+    info_print("FIXME: Finished start_sensor_simulator.\n");
     return result;
 }
 
@@ -312,6 +328,7 @@ void show_tick(char* character) {
  * @return 0 for success, error code for failure.
  */
 int register_sensor_key(char key, void* action) {
+    printf("FIXME: calling register_sensor_key.\n");
     if (action == NULL) {
         return 3;
     }
