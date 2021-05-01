@@ -1026,6 +1026,7 @@ void* worker(void* arg) {
         // Obtain a reaction from the reaction_q that is ready to execute
         // (i.e., it is not blocked by concurrently executing reactions
         // that it depends on).
+        print_queue_status();
         reaction_t* current_reaction_to_execute = first_ready_reaction();
         if (current_reaction_to_execute == NULL) {
             // There are no reactions ready to run.
@@ -1191,9 +1192,9 @@ void* worker(void* arg) {
                 pqueue_remove(executing_q, current_reaction_to_execute);
             } else {
                 // Invoke the reaction function.
-                LOG_PRINT("Worker %d: Invoking reaction %p at elapsed tag (%lld, %d).",
+                LOG_PRINT("Worker %d: Invoking reaction with index %llx at elapsed tag (%lld, %d).",
                         worker_number,
-						current_reaction_to_execute,
+						current_reaction_to_execute->index,
                         current_tag.time - start_time,
                         current_tag.microstep);
                 tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
@@ -1204,7 +1205,9 @@ void* worker(void* arg) {
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(current_reaction_to_execute, worker_number);
 
-                DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
+                DEBUG_PRINT("Worker %d: Done invoking reaction with index %llx.", 
+                                worker_number,
+                                current_reaction_to_execute->index);
 
                 // Reacquire the mutex lock.
                 lf_mutex_lock(&mutex);
@@ -1236,9 +1239,9 @@ void* worker(void* arg) {
 void print_snapshot() {
     printf(">>> START Snapshot\n");
     printf("Pending:\n");
-    pqueue_dump(reaction_q, stdout, reaction_q->prt);
+    pqueue_dump(reaction_q, reaction_q->prt);
     printf("Executing:\n");
-    pqueue_dump(executing_q, stdout, executing_q->prt);    
+    pqueue_dump(executing_q, executing_q->prt);    
     printf(">>> END Snapshot\n");
 }
 

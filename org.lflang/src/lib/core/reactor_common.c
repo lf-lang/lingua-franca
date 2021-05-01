@@ -300,20 +300,39 @@ static void set_reaction_position(void *a, size_t pos) {
 
 /**
  * Print some information about the given reaction.
+ * 
+ * DEBUG function only.
  */
-static void print_reaction(FILE *out, void *reaction) {
+static void print_reaction(void *reaction) {
 	reaction_t *r = (reaction_t*)reaction;
-    fprintf(out, "chain_id:%llu, index: %llu, reaction: %p\n", 
+    DEBUG_PRINT("chain_id:%llu, index: %llx, reaction: %p", 
         r->chain_id, r->index, r);
 }
 
 /**
  * Print some information about the given event.
+ * 
+ * DEBUG function only.
  */
-static void print_event(FILE *out, void *event) {
+static void print_event(void *event) {
 	event_t *e = (event_t*)event;
-    fprintf(out, "time: %lld, trigger: %p, token: %p\n",
+    DEBUG_PRINT("time: %lld, trigger: %p, token: %p",
 			e->time, e->trigger, e->token);
+}
+
+/**
+ * If DEBUG logging is enabled, prints the status of the event queue
+ * and the reaction queue.
+ */
+void print_queue_status() {
+    if(LOG_LEVEL > 3) {
+        DEBUG_PRINT("Reaction queue size: %d. Contents:",
+                        pqueue_size(reaction_q));
+        pqueue_print(reaction_q, print_reaction);
+        DEBUG_PRINT("Event queue size: %d. Contents:",
+                        pqueue_size(event_q));
+        pqueue_print(event_q, print_reaction);
+    }
 }
 
 // ********** Priority Queue Support End
