@@ -58,12 +58,21 @@
 // numHaircuts = 2000
 // [[[end]]]
 
-target C;
+target C{
+    files: [] //TODO: Add the path to the files of the library
+};
 
 // BenchmarkRunner from "./BenchmarkRunner.lf";
 
+//inController->value->type for C port structs
+//self->s->field1 if s is a state var that is a struct pointer
+//self->s.field1 if s is a state var that is a struct not pointer
+
+
 
 preamble {=
+    
+    //TODO: #include library statement
     enum MsgType {
       ResetMsg,
       StartMsg,
@@ -82,23 +91,26 @@ preamble {=
       int id;
    
      } Message;
+     
 =}
 
 reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:int(1000)) {
     
     preamble {=
-        #include "PseudoRandom.h" //there is a C version already
+        #include "PseudoRandom.h" //there is a C version already TODO: if it doesn't compile add this
         #include <list>
     =}
     
     preamble {=
         #include "reactor-cpp/logging.hh"
+        customerToReturn = calloc(sizeof(int)); //TODO: Library used arraylist 
     =}
     
     state numHairCutsSoFar:int(0);
     state numAttempts:long(0); // idGenerator in Savina
     state nextCustomerToSendFirstIdx:int(0);
-    state customersToReturn:{=list<int>=};
+    state customersToReturn:{=int*=};
+    state customersToReturnlength:int(0);
     state random:{=PseudoRandom=};
     
     input inStart:void;
@@ -122,7 +134,7 @@ reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:i
         numHairCutsSoFar = 0;
         numAttempts = 0;
         nextCustomerToSendFirstIdx = 0;
-        customersToReturn.;
+        customerToReturn = calloc(sizeof(int)); //TODO: for loop set everything in customerToReturn to 0
         random = PseudoRandom();
         
         // send signals to reset
@@ -134,9 +146,9 @@ reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:i
         schedule(sendCustomersFirstVisit, 0);
     =}
     
-    reaction(sendCustomersFirstVisit) -> outRoom, sendCustomersFirstVisit, sendCustomersToReturn {=
+    reaction(sendCustomersFirstVisit) -> outRoom, sendCustomersFirstVisit, sendCustomersToReturn {= //???
         
-        if(nextCustomerToSendFirstIdx == numHaircuts) {
+        if(nextCustomerToSendFirstIdx == numHaircuts) { //nextCustomerToSendFirstIdx???
             schedule(sendCustomersToReturn, 0);
             return;
         }
@@ -148,24 +160,24 @@ reactor CustomerControllerReactor(numHaircuts:int(2000), averageProductionRate:i
         busyWait(random.nextInt(averageProductionRate) + 10);
     =}
     
-    reaction(sendCustomersToReturn) -> outRoom {=
+    reaction(sendCustomersToReturn) -> outRoom {= //????
         
-        if(customersToReturn.empty()) {
+        if(customersToReturnlength == 0) {
             // wait for finish
             return;
         }
         
         numAttempts += 1;
-        SET(outRoom, Message{EnterMsg, customersToReturn.front()});
+        SET(outRoom, Message{EnterMsg, customersToReturn.[0]}); //TODO: after changing customersToReturn type
         customersToReturn.pop_front();
-        sendCustomersToReturn.schedule();
+        schedule(sendCustomersToReturn, 0);
     =}
     
     reaction(exit) -> outRoom, outBarber, outFinished {=
         
-        outRoom.set(Message{ExitMsg});
-        outBarber.set(Message{ExitMsg});
-        outFinished.set();
+        SET(outRoom, Message{ExitMsg});
+        SET(outBarber, Message{ExitMsg});
+        SET(outFinished, 0);
     =}
     
     reaction(inCustomers) -> sendCustomersToReturn, exit {=
@@ -224,11 +236,11 @@ reactor CustomerReactor(instance:int(0)) {
     
     reaction(inBarber) -> outController {=
         
-        if(inBarber.get()->type == StartMsg) {
+        if(inBarber->type == StartMsg) {
             
             // do nothing, the barber is barbering me now.
             
-        } else if(inBarber.get()->type == DoneMsg) {
+        } else if(inBarber->type == DoneMsg) {
             
             outController.set(Message{DoneMsg});
             // this reactor is finished and could be destroyed
@@ -259,7 +271,7 @@ reactor BarberReactor(averageHaircutRate:int(1000)) {
     
     reaction(inController) {=
         
-        if(inController.get()->type == ResetMsg) {
+        if(inController.get()->type == ResetMsg) { //I don't need a get() here right???
             
             // reset local state
             currentCustomerIdx = -1;
@@ -285,9 +297,9 @@ reactor BarberReactor(averageHaircutRate:int(1000)) {
         if(inRoom.get()->type == EnterMsg) {
             
             currentCustomerIdx = inRoom.get()->id;
-            reactor::log::Debug() << "Barber is serving customer " << currentCustomerIdx;
-            outCustomers[currentCustomerIdx].set(Message{StartMsg});
-            cutHair.schedule();
+            reactor::log::Debug() << "Barber is serving customer " << currentCustomerIdx; //???
+            SET(outCustomers[currentCustomerIdx], Message{StartMsg});
+            schedule(cutHair, 0);
             
         } else if(inRoom.get()->type == WaitMsg) {
             
@@ -317,7 +329,7 @@ reactor WaitingRoomReactor(capacity:int(1000), numCustomers:int(2000)) {
         #include <queue>
     =}
     
-    state waitingCustomers:{=std::queue<int>=};
+    state waitingCustomers:{=std::queue<int>=}; //TODO: queue for malloc head and tail
     state barberAsleep:bool(true);
     
     /* [[[cog
@@ -368,7 +380,7 @@ reactor WaitingRoomReactor(capacity:int(1000), numCustomers:int(2000)) {
                 }
             }
             
-        } else if(inController.get()->type == ResetMsg) {
+        } else if(inController.get()->type == ResetMsg) { 
             
             // reset local state
             waitingCustomers = std::queue<int>();
@@ -388,21 +400,21 @@ main reactor SleepingBarberBenchmark(numIterations:int(12), waitingRoomSize:int(
     ]]] */
     controller = new CustomerControllerReactor(numHaircuts=2000, averageProductionRate=averageProductionRate);
     // [[[end]]]
-    runner = new BenchmarkRunner(numIterations=numIterations);
+    //runner = new BenchmarkRunner(numIterations=numIterations);
     
-    runner.outIterationStart -> controller.inStart;
-    controller.outFinished -> runner.inIterationFinish;
+    //runner.outIterationStart -> controller.inStart;
+    //controller.outFinished -> runner.inIterationFinish;
     
-    reaction(startup) -> runner.inStart {=
-        printBenchmarkInfo("SleepingBarberReactorLFCppBenchmark");
+    //reaction(startup) -> runner.inStart {=
+      //  printBenchmarkInfo("SleepingBarberReactorLFCppBenchmark");
         /* [[[cog
           cog.outl(f'printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", {numHaircuts});')
         ]]] */
-        printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", 2000);
+        //printArgs("numIterations", numIterations, "waitingRoomSize", waitingRoomSize, "averageProductionRate", averageProductionRate, "averageHaircutRate", averageHaircutRate, "numHaircuts", 2000);
         /// [[[end]]]
-        printSystemInfo();
-        runner.inStart.set();
-    =}
+        //printSystemInfo();
+        //runner.inStart.set();
+    //=}
     
     /* [[[cog
       cog.outl(f'room = new WaitingRoomReactor(capacity=waitingRoomSize, numCustomers={numHaircuts});')
