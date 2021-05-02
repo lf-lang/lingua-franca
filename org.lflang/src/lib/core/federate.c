@@ -1044,6 +1044,26 @@ void update_last_known_status_on_input_ports(tag_t tag) {
     }
 }
 
+
+/**
+ * Update the last known status tag of a network input port
+ * to the value of "tag".
+ * 
+ * @param tag The tag on which the latest status of network input
+ *  ports is known.
+ * @param portID The port ID
+ */
+void update_last_known_status_on_input_port(tag_t tag, int port_id) {
+    trigger_t* input_port_action = __action_for_port(port_id);
+    if (compare_tags(tag,
+            input_port_action->last_known_status_tag) > 0) {
+        input_port_action->last_known_status_tag = tag;
+    } else {
+        DEBUG_PRINT("Attempt to update the last known status tag " 
+                        "of network input port %d to an earlier tag was ignored.", port_id);
+    }
+}
+
 /**
  * Check if any network input control reaction is waiting at the current
  * tag.
@@ -1508,7 +1528,7 @@ void handle_port_absent_message(int socket, int fed_id) {
        // can set the last_known_status_tag to a future tag where messages
        // have not arrived yet.
     // Set the mutex status as absent
-    network_input_port_action->last_known_status_tag = intended_tag;
+    update_last_known_status_on_input_port(intended_tag, port_id);
     // If any control reaction is waiting, notify them that the status has changed
     if (network_input_port_action->is_a_control_reaction_waiting) {
         if (compare_tags(intended_tag, get_current_tag()) == 0 &&
@@ -1668,7 +1688,7 @@ void handle_timed_message(int socket, int fed_id) {
     }
 
     // FIXME: It might be enough to just check this field and not the status at all
-    action->last_known_status_tag = intended_tag;
+    update_last_known_status_on_input_port(intended_tag, port_id);
 
     // Check if reactions need to be inserted directly into the reaction
     // queue or a call to schedule is needed. This checks if the intended
