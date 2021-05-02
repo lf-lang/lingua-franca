@@ -89,12 +89,12 @@ reactor Player(sixteenth:time(200 msec)) {
     state cursor:int(0);
     
     reaction(startup) -> key, note, tick {=
-        info_print("******* starting sensor simulator.");
+        // info_print("******* starting sensor simulator.");
         // Start the sensor simulator, which starts ncurses.
         if (start_sensor_simulator(player_message, player_message_length, 16)) {
             error_print_and_exit("ERROR: Failed to start sensor simulator.");
         }
-        info_print("******* started sensor simulator.");
+        // info_print("******* started sensor simulator.");
         
         // Register action to trigger on key press.
         register_sensor_key('\0', key);
@@ -103,7 +103,7 @@ reactor Player(sixteenth:time(200 msec)) {
     =}
 	
     reaction(key) -> instrument {=
-        info_print("******* Player: reaction to key.");
+        // info_print("******* Player: reaction to key.");
         int numeric;
         switch (key->value) {
             case '0':
@@ -119,7 +119,7 @@ reactor Player(sixteenth:time(200 msec)) {
     =}
 
     reaction(rhythm_change) {=
-        info_print("******* Player: reaction to rhythm_change.");
+        // info_print("******* Player: reaction to rhythm_change.");
         switch (rhythm_change->value) {
             case 'm':
                 self->rhythm = MERENGUE;
@@ -145,14 +145,14 @@ reactor Player(sixteenth:time(200 msec)) {
     =}
     
     reaction(tempo) {=
-        info_print("******* Player: reaction to tempo.");
+        // info_print("******* Player: reaction to tempo.");
         self->tick_duration = tempo->value;
     =}
     
     // FIXME: Use inheritance to share this.
     // But we want its priority to be last!
     reaction(tick) -> note, tick {=
-        info_print("******* Player: reaction to tick.");
+        // info_print("******* Player: reaction to tick.");
         int beeped = 0;
         int position = 0;
         position = 1 << self->count;
@@ -226,12 +226,12 @@ reactor PlayWaveform {
     =}
     
     reaction(waveform) {=
-        info_print("******* PlayWaveform: reaction to waveform.");
+        // info_print("******* PlayWaveform: reaction to waveform.");
         self->waveform_id = waveform->value;
     =}
     
     reaction(note) {=
-         info_print("******* PlayWaveform: reaction to note.");
+        // info_print("******* PlayWaveform: reaction to note.");
         if (self->waveform_id < 0 || self->waveform_id > NUM_WAVEFORMS) {
             lf_play_audio_waveform(NULL, note->value, get_logical_time());
         } else {
