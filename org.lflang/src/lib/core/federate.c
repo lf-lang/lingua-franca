@@ -1112,8 +1112,10 @@ void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
  * message to downstream federates if a given network output port is not present.
  */
 void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
+    DEBUG_PRINT("Enqueueing output control reactions.");
     if (_fed.trigger_for_network_output_control_reactions == NULL) {
         // There are no network output control reactions
+        DEBUG_PRINT("No output control reactions.");
         return;
     }
     for (int i = 0; i < _fed.trigger_for_network_output_control_reactions->number_of_reactions; i++) {
@@ -1145,25 +1147,59 @@ void enqueue_network_control_reactions(pqueue_t* reaction_q) {
  * Send a port absent message to federate with fed_ID, informing the
  * remote federate that the current federate will not produce an event
  * on this network port at the current logical time.
+ * 
+ * @param additional_delay The offset applied to the timestamp
+ *  using after. The additional delay will be greater or equal to zero
+ *  if an after is used on the connection. If no after is given in the
+ *  program, -1 is passed.
  */
-void send_port_absent_to_federate(unsigned short port_ID, 
+void send_port_absent_to_federate(interval_t additional_delay,
+                                    unsigned short port_ID, 
                                   unsigned short fed_ID) {
     // Construct the message
     int message_length = 1 + sizeof(port_ID) + sizeof(fed_ID) + sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[message_length];
-    tag_t current_tag = get_current_tag();
+    // Get current logical time
+    instant_t current_message_timestamp = get_logical_time();
+
+    // Note that we are getting the microstep here directly
+    // under the assumption that it does not change while
+    // this function is executing.
+    microstep_t current_message_microstep = get_microstep();
+    if (additional_delay == 0LL) {
+        // After was specified by the user
+        // on the connection with a delay of 0.
+        // In this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time(), get_microstep() + 1).
+        current_message_microstep += 1;
+    } else if (additional_delay > 0LL) {
+        // After was specified by the user
+        // on the connection with a positive delay.
+        // In this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time() + additional_delay, 0)
+
+        current_message_timestamp += additional_delay;
+        current_message_microstep = 0;
+    } else if (additional_delay == -1LL) {
+        // No after delay is given by the user
+        // In this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time(), get_microstep())
+    }
 
     LOG_PRINT("Sending port "
             "absent for tag (%lld, %u) for port %d to federate %d.",
-            current_tag.time - start_time,
-            current_tag.microstep,
+            current_message_timestamp - start_time,
+            current_message_microstep,
             port_ID, fed_ID);
 
     buffer[0] = PORT_ABSENT;
     encode_ushort(port_ID, &(buffer[1]));
     encode_ushort(fed_ID, &(buffer[1+sizeof(port_ID)]));
-    encode_ll(current_tag.time, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
-    encode_int(current_tag.microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
+    encode_ll(current_message_timestamp, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
+    encode_int(current_message_microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
 
     lf_mutex_lock(&outbound_socket_mutex);
 #ifdef FEDERATED_CENTRALIZED

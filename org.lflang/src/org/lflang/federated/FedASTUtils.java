@@ -41,6 +41,7 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
+import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -282,6 +283,7 @@ public class FedASTUtils {
      * @param receivingFedID The ID of destination federate.
      * @param generator The GeneratorBase instance used to identify certain
      *        target properties
+     * @param delay The delay value imposed on the connection using after
      */
     public static void addNetworkOutputControlReaction(
             VarRef portRef,
@@ -290,7 +292,8 @@ public class FedASTUtils {
             int channelIndex, 
             int bankIndex, 
             int receivingFedID,
-            GeneratorBase generator
+            GeneratorBase generator,
+            Delay delay
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
@@ -356,7 +359,7 @@ public class FedASTUtils {
 
         reaction.getCode().setBody(
                 generator.generateNetworkOutputControlReactionBody(newPortRef,
-                        receivingPortID, receivingFedID, bankIndex, channelIndex));
+                        receivingPortID, receivingFedID, bankIndex, channelIndex, delay));
         
         generator.makeUnordered(reaction);
 
@@ -480,7 +483,8 @@ public class FedASTUtils {
                 leftBankIndex,
                 leftChannelIndex,
                 rightFederate.id,
-                generator
+                generator,
+                connection.getDelay()
             );
             
             // Add the network input control reaction to the parent
