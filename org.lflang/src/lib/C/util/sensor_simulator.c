@@ -118,9 +118,9 @@ void* read_input(void* ignored) {
  */
 void end_ncurses() {
     register_print_function(NULL);
-    pthread_mutex_lock(&_lf_sensor_mutex);
+    lf_mutex_lock(&_lf_sensor_mutex);
     endwin();
-    pthread_mutex_unlock(&_lf_sensor_mutex);
+    lf_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -204,7 +204,7 @@ void _lf_print_message_function(char* format, va_list args) {
     if (newline != NULL) {
         (*newline) = '\0';
     }
-    pthread_mutex_lock(&_lf_sensor_mutex);
+    lf_mutex_lock(&_lf_sensor_mutex);
 
     // If the sensor simulator has not started yet, wait for it to start.
     while (!_lf_sensor_thread_created) {
@@ -228,7 +228,7 @@ void _lf_print_message_function(char* format, va_list args) {
     }
 
     wrefresh(_lf_sensor_print_window);
-    pthread_mutex_unlock(&_lf_sensor_mutex);
+    lf_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -242,7 +242,7 @@ void _lf_print_message_function(char* format, va_list args) {
  */
 int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width) {
 	lf_mutex_init(&_lf_sensor_mutex);
-    pthread_mutex_lock(&_lf_sensor_mutex);
+    lf_mutex_lock(&_lf_sensor_mutex);
     int result = 0;
     if (_lf_sensor_thread_created == 0) {
         // Thread has not been created.
@@ -277,7 +277,7 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         _lf_start_print_window(number_of_lines + 2, tick_window_width + 2);
 
         // Create the thread that listens for input.
-        int result = pthread_create(&_lf_sensor_thread_id, NULL, &read_input, NULL);
+        int result = lf_thread_create(&_lf_sensor_thread_id, &read_input, NULL);
         if (result == 0) {
             register_print_function(&_lf_print_message_function);
             _lf_sensor_thread_created = 1;
@@ -286,7 +286,7 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         	error_print("Failed to start sensor simulator!");
         }
     }
-    pthread_mutex_unlock(&_lf_sensor_mutex);
+    lf_mutex_unlock(&_lf_sensor_mutex);
     DEBUG_PRINT("Finished starting sensor simulator.");
     return result;
 }
@@ -296,7 +296,7 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
  * @param character The tick character.
  */
 void show_tick(char* character) {
-    pthread_mutex_lock(&_lf_sensor_mutex);
+    lf_mutex_lock(&_lf_sensor_mutex);
 
     // If necessary, wait for the sensor simulator start.
     while (!_lf_sensor_thread_created) {
@@ -323,7 +323,7 @@ void show_tick(char* character) {
     // calls don't mess up the screen as much.
     wmove(stdscr, 0, 0);
     refresh();
-    pthread_mutex_unlock(&_lf_sensor_mutex);
+    lf_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -353,7 +353,7 @@ int register_sensor_key(char key, void* action) {
         return 2;
     }
     int result = 0;
-    pthread_mutex_lock(&_lf_sensor_mutex);
+    lf_mutex_lock(&_lf_sensor_mutex);
     if (key == '\n') {
         if (_lf_sensor_newline_trigger != NULL) {
             result = 1;
@@ -372,6 +372,6 @@ int register_sensor_key(char key, void* action) {
     } else {
         trigger_table[index] = action;
     }
-    pthread_mutex_unlock(&_lf_sensor_mutex);
+    lf_mutex_unlock(&_lf_sensor_mutex);
     return result;
 }

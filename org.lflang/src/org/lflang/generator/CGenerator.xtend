@@ -4448,18 +4448,55 @@ class CGenerator extends GeneratorBase {
      * @param receivingFederateID The ID of the receiving federate
      * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
      * @param sendingChannelIndex The channel if a multiport
+     * @param delay The delay value imposed on the connection using after
      */
     override generateNetworkOutputControlReactionBody(
         VarRef port,
         int portID,
         int receivingFederateID,
         int sendingBankIndex,
-        int sendingChannelIndex
+        int sendingChannelIndex,
+        Delay delay
     ) {
         // Store the code
         val result = new StringBuilder();
-        // FIXME: What about bank index?
         var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
+        
+        // The additional delay in absence of after
+        // is  -1. This has a special meaning
+        // in send_timed_message
+        // (@see send_timed_message in lib/core/federate.c).
+        // In this case, the sender will send
+        // its current tag as the timestamp
+        // of the outgoing message without adding a microstep delay.
+        // If the user has assigned an after delay 
+        // (that can be zero) either as a time
+        // value (e.g., 200 msec) or as a literal
+        // (e.g., a parameter), that delay in nsec
+        // will be passed to send_timed_message and added to 
+        // the current timestamp. If after delay is 0,
+        // send_timed_message will use the current tag +
+        // a microstep as the timestamp of the outgoing message.
+        var String additionalDelayString = '-1';
+        if (delay !== null) {
+            if (delay.parameter !== null) {
+                // The parameter has to be parameter of the main reactor.
+                // And that value has to be a Time.
+                val value = delay.parameter.init.get(0)
+                if (value.time !== null) {
+                    additionalDelayString = (new TimeValue(value.time.interval, value.time.unit))
+                            .toNanoSeconds.toString;
+                } else if (value.literal !== null) {
+                    // If no units are given, e.g. "0", then use the literal.
+                    additionalDelayString = value.literal;
+                } else {
+                    // This should have been caught by the validator.
+                    reportError(delay.parameter, "Parameter is required to be a time to be used in an after clause.")
+                }
+            } else {
+                additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
+            }
+        }
         
         result.append('''
             // If the output port has not been SET for the current logical time,
@@ -4468,7 +4505,7 @@ class CGenerator extends GeneratorBase {
                        "absent for port %d to federate %d.", 
                        «portID», «receivingFederateID»);
             if (!«sendRef»->is_present) {
-                send_port_absent_to_federate(«portID», «receivingFederateID»);
+                send_port_absent_to_federate(«additionalDelayString», «portID», «receivingFederateID»);
             }
         ''')
         
