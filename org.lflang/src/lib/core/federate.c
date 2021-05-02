@@ -1795,12 +1795,11 @@ void handle_tag_advance_grant() {
     // on the RTI to handle port statuses up until the granted tag.
     update_last_known_status_on_input_ports(TAG);
     // Then, check if any control reaction is waiting
-    // and if this TAG is replacing a previously issued PTAG.
+    // and if this TAG is replacing a previously issued PTAG or TAG.
     // If so, mark any unknown ports as absent and notify
     // the control reactions.
     if (any_control_reaction_is_waiting() &&
-         compare_tags(TAG, _fed.last_TAG) == 0 &&
-         _fed.is_last_TAG_provisional) {
+         compare_tags(TAG, _fed.last_TAG) >= 0) {
         // A provisional TAG (PTAG) has already been granted. Therefore, we only need
         // to release network input control reactions.
         mark_all_unknown_ports_as_absent();
