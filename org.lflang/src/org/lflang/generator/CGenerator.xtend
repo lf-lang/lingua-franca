@@ -4464,19 +4464,20 @@ class CGenerator extends GeneratorBase {
         
         // The additional delay in absence of after
         // is  -1. This has a special meaning
-        // in send_timed_message
-        // (@see send_timed_message in lib/core/federate.c).
+        // in send_port_absent_to_federate
+        // (@see send_port_absent_to_federate in lib/core/federate.c).
         // In this case, the sender will send
         // its current tag as the timestamp
-        // of the outgoing message without adding a microstep delay.
+        // of the outgoing port absent message
+        // without adding a microstep delay.
         // If the user has assigned an after delay 
         // (that can be zero) either as a time
         // value (e.g., 200 msec) or as a literal
         // (e.g., a parameter), that delay in nsec
-        // will be passed to send_timed_message and added to 
+        // will be passed to send_port_absent_to_federate and added to 
         // the current timestamp. If after delay is 0,
-        // send_timed_message will use the current tag +
-        // a microstep as the timestamp of the outgoing message.
+        // send_port_absent_to_federate will use the current tag +
+        // a microstep as the timestamp of the outgoing port absent message.
         var String additionalDelayString = '-1';
         if (delay !== null) {
             if (delay.parameter !== null) {
