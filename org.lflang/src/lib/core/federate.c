@@ -1493,11 +1493,20 @@ void handle_port_absent_message(int socket, int fed_id) {
 
     lf_mutex_lock(&mutex);
     trigger_t* network_input_port_action = __action_for_port(port_id);
+#ifdef FEDERATED_DECENTRALIZED
     if (compare_tags(intended_tag,
             network_input_port_action->last_known_status_tag) <= 0) {
-        error_print_and_exit("The following contract was violated: In-order "
-                             "delivery of messages over a TCP socket.");
+        error_print_and_exit("The following contract was violated for port absent messages: In-order "
+                             "delivery of messages over a TCP socket. Had status for (%lld, %u), got "
+                             "port absent with intended tag (%lld, %u).",
+                             network_input_port_action->last_known_status_tag.time - start_time,
+                             network_input_port_action->last_known_status_tag.microstep,
+                             intended_tag.time - start_time,
+                             intended_tag.microstep);
     }
+#endif // In centralized coordination, a TAG message from the RTI 
+       // can set the last_known_status_tag to a future tag where messages
+       // have not arrived yet.
     // Set the mutex status as absent
     network_input_port_action->last_known_status_tag = intended_tag;
     // If any control reaction is waiting, notify them that the status has changed
@@ -1638,11 +1647,20 @@ void handle_timed_message(int socket, int fed_id) {
     message_token->length = length;
 
     // Sanity checks
+#ifdef FEDERATED_DECENTRALIZED
     if (compare_tags(intended_tag,
-            action->last_known_status_tag) <= 0) {
-        error_print_and_exit("The following contract was violated: In-order "
-                             "delivery of messages over a TCP socket.");
+            action->last_known_status_tag) <= 0) {        
+        error_print_and_exit("The following contract was violated for a timed message: In-order "
+                             "delivery of messages over a TCP socket. Had status for (%lld, %u), got "
+                             "timed message with intended tag (%lld, %u).",
+                             action->last_known_status_tag.time - start_time,
+                             action->last_known_status_tag.microstep,
+                             intended_tag.time - start_time,
+                             intended_tag.microstep);
     }
+#endif // In centralized coordination, a TAG message from the RTI 
+       // can set the last_known_status_tag to a future tag where messages
+       // have not arrived yet.
     if (action->is_a_control_reaction_waiting && 
             __advancing_time) {
         error_print_and_exit("Federate was attempting to advance time "

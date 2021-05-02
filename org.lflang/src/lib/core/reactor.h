@@ -509,9 +509,8 @@ struct trigger_t {
                               // - Finally, if status is 'present', then this is an error since multiple 
                               //   downstream messages have been produced for the same port for the same logical time.
 #ifdef FEDERATED
-    tag_t last_known_status_tag;        // FIXME: ABSENT message needs to carry a timestamp. Both in handle_absent and handle_timed need to update this.
-                                        // This will be compared for each tag to decide whether to wait for the port or not (because the status of the port is
-                                        // known for an equal or greater tag).
+    tag_t last_known_status_tag;        // Last known status of the port, either via a timed message, a port absent, or a
+                                        // TAG from the RTI.
     bool is_a_control_reaction_waiting; // Indicates whether at least one control reaction is waiting for this trigger
                                         // if it belongs to a network input port. Must be false by default.
     tag_t intended_tag;                 // The amount of discrepency in logical time between the original intended
