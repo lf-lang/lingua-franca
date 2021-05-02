@@ -1026,7 +1026,8 @@ void mark_all_unknown_ports_as_absent() {
 
 /**
  * Update the last known status tag of all network input ports
- * to the value of tag.
+ * to the value of tag, assuming that the provided tag is larger
+ * than the last_known_status_tag of the port.
  * 
  * @param tag The tag on which the latest status of network input
  *  ports is known.
@@ -1793,24 +1794,43 @@ void handle_tag_advance_grant() {
     // so by extension, we assume that the federate can safely rely
     // on the RTI to handle port statuses up until the granted tag.
     update_last_known_status_on_input_ports(TAG);
-    // Then, check if any control reaction is waiting.
-    // If so, a PTAG has been granted before.
-    // Mark any unknown ports as absent and notify
+    // Then, check if any control reaction is waiting
+    // and if this TAG is replacing a previously issued PTAG.
+    // If so, mark any unknown ports as absent and notify
     // the control reactions.
-    if (any_control_reaction_is_waiting()) {
+    if (any_control_reaction_is_waiting() &&
+         compare_tags(TAG, _fed.last_TAG) == 0 &&
+         _fed.is_last_TAG_provisional) {
         // A provisional TAG (PTAG) has already been granted. Therefore, we only need
         // to release network input control reactions.
         mark_all_unknown_ports_as_absent();
         lf_cond_broadcast(&port_status_changed);
     }
 
-    _fed.last_TAG.time = TAG.time;
-    _fed.last_TAG.microstep = TAG.microstep;
-    _fed.waiting_for_TAG = false;
-    // Notify everything that is blocked.
-    lf_cond_broadcast(&event_q_changed);
-    _fed.is_last_TAG_provisional = false;
-    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    // It is possible for this federate to have received a PTAG
+    // earlier with a larger tag than this TAG. Therefore, we might
+    // need to ignore this TAG if that is the case.
+    if (compare_tags(TAG, _fed.last_TAG) >= 0) {
+        _fed.last_TAG.time = TAG.time;
+        _fed.last_TAG.microstep = TAG.microstep;
+        _fed.waiting_for_TAG = false;
+        // Notify everything that is blocked.
+        lf_cond_broadcast(&event_q_changed);
+        _fed.is_last_TAG_provisional = false;
+        LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    } else if (_fed.is_last_TAG_provisional) {
+        LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u) but already had PTAG (%lld, %u). Ignoring the TAG.",
+                    TAG.time - start_time, 
+                    TAG.microstep,
+                    _fed.last_TAG.time - start_time,
+                    _fed.last_TAG.microstep);
+    } else {
+        error_print_and_exit("Received a TAG (%lld, %u) that wasn't larger than the previous TAG (%lld, %u).",
+                                TAG.time - start_time, 
+                                TAG.microstep,
+                                _fed.last_TAG.time - start_time,
+                                _fed.last_TAG.microstep);
+    }
     lf_mutex_unlock(&mutex);
 }
 
