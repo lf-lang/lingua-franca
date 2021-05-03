@@ -15,7 +15,6 @@
  */
 target C {
     coordination: centralized,
-    logging: DEBUG,
     flags: ["-lncurses", "-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
@@ -25,7 +24,7 @@ target C {
             "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
             "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
-
+ 
 import RhythmSource from "RhythmMac.lf"
 
 preamble {=    
