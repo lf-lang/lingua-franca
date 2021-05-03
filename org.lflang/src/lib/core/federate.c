@@ -1787,18 +1787,12 @@ void handle_tag_advance_grant() {
     // so by extension, we assume that the federate can safely rely
     // on the RTI to handle port statuses up until the granted tag.
     update_last_known_status_on_input_ports(TAG);
-    // Then, check if any control reaction is waiting
-    // and if this TAG is replacing a previously issued PTAG or TAG.
-    // If so, mark any unknown ports as absent and notify
-    // the control reactions.
-    if (any_control_reaction_is_waiting() &&
-         compare_tags(TAG, _fed.last_TAG) >= 0) {
-        // A provisional TAG (PTAG) has already been granted. Therefore, we only need
-        // to release network input control reactions.
-        mark_all_unknown_ports_as_absent();
+    // Then, check if any control reaction is waiting.
+    // If so, notify them.
+    if (any_control_reaction_is_waiting()) {
+        // Notify network input control reactions
+        lf_cond_broadcast(&port_status_changed);
     }
-    // Notify network input control reactions
-    lf_cond_broadcast(&port_status_changed);
 
     // It is possible for this federate to have received a PTAG
     // earlier with a larger tag than this TAG. Therefore, we might
