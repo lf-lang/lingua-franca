@@ -1256,7 +1256,7 @@ port_status_t determine_port_status_if_possible(int portID) {
         return present;
     } else if (network_input_port_action->status == unknown && 
                         compare_tags(network_input_port_action->last_known_status_tag, 
-                        get_current_tag()) > 0) {
+                        get_current_tag()) >= 0) {
         // We have a known status for this port in a future tag. Therefore, no event is going
         // to be present for this port at the current tag.
         set_network_port_status(portID, absent);
@@ -1532,13 +1532,6 @@ void handle_port_absent_message(int socket, int fed_id) {
     update_last_known_status_on_input_port(intended_tag, port_id);
     // If any control reaction is waiting, notify them that the status has changed
     if (network_input_port_action->is_a_control_reaction_waiting) {
-        if (compare_tags(intended_tag, get_current_tag()) == 0 &&
-            determine_port_status_if_possible(port_id) == unknown) {
-            // If the intended tag for the absent message is the current tag
-            // and the status of the port cannot be determined and there is a 
-            // control reaction waiting, we need to set the port status to absent
-            set_network_port_status(port_id, absent);
-        }
         // The last known status tag of the port has changed. Notify any waiting threads.
         lf_cond_broadcast(&port_status_changed);
     }
@@ -1803,8 +1796,9 @@ void handle_tag_advance_grant() {
         // A provisional TAG (PTAG) has already been granted. Therefore, we only need
         // to release network input control reactions.
         mark_all_unknown_ports_as_absent();
-        lf_cond_broadcast(&port_status_changed);
     }
+    // Notify network input control reactions
+    lf_cond_broadcast(&port_status_changed);
 
     // It is possible for this federate to have received a PTAG
     // earlier with a larger tag than this TAG. Therefore, we might
@@ -1848,6 +1842,10 @@ void handle_provisional_tag_advance_grant() {
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read provisional tag advance grant from RTI.");
 
+    // Note: it is important that last_known_status_tag of ports does not
+    // get updated to a PTAG value because a PTAG does not indicate that
+    // the RTI knows about the status of all ports up to and _including_
+    // the value of PTAG. Only a TAG message indicates that.
     lf_mutex_lock(&mutex);
     _fed.last_TAG.time = extract_ll(buffer);
     _fed.last_TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
@@ -2403,7 +2401,9 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 
         // If time advance has already been granted for this tag or a larger
         // tag, then return immediately.
-        if (compare_tags(_fed.last_TAG, tag) >= 0) {
+        if (compare_tags(_fed.last_TAG, tag) > 0 ||
+            (compare_tags(_fed.last_TAG, tag) == 0 &&
+             !_fed.is_last_TAG_provisional)) {
             DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG is at least as large.",
                     current_tag.time - start_time, current_tag.microstep);
             return tag;
