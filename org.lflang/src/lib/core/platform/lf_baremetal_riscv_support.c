@@ -25,12 +25,57 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lf_baremetal_riscv_support.h"
 #include "../platform.h"
+#include <time.h> //needed for timespec _lf_time_spec_t
+#include "../tag.h" //needed for BILLION. In flexpret-script under tag.h CLOCK_FREQ is defined, but it's not defined in lf repo
+#include <stdint.h>
 
-/**
- * Fetch the value of clk_id and store it in tp.
- */
-int lf_clock_gettime(_lf_clock_t clk_id, _lf_time_spec_t* tp) {
-    return clock_gettime((clockid_t)clk_id, (struct timespec*) tp);
+#ifdef NUMBER_OF_WORKERS
+#if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
+#include "lf_POSIX_threads_support.c"
+#else
+#include "lf_C11_threads_support.c"
+#endif
+#endif
+
+// FIXME: This assumption about clock frequency
+// varies by hardware platforms.
+#define CLOCK_FREQ 100000000LL
+
+
+// System call interface for getting the current time.
+int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+
+    *tp = __clock_gettime();
+    return 0;
+}
+
+// ********** RISC-V Bare Metal Support
+// Gets the current physical time by cycle counting
+struct timespec __clock_gettime() {
+
+    uint32_t cycle_high;
+    uint32_t cycle_low;
+    struct timespec ts;
+
+    asm(
+    "read_cycle:\n"
+        "rdcycleh t0\n"
+        "rdcycle %1\n"
+        "rdcycleh %0\n"
+        "bne t0, %0, read_cycle"
+    : "=r"(cycle_high), "=r"(cycle_low)// outputs
+    : // inputs
+    : "t0" // clobbers
+    );
+
+    // Convert cycles to seconds and nanoseconds
+    const uint32_t CYCLES_PER_NANOSEC = CLOCK_FREQ / BILLION;
+    const float NSEC_PER_CYCLE = BILLION / CLOCK_FREQ;
+
+    ts.tv_sec = (time_t) (cycle_low / CLOCK_FREQ) + (time_t) (cycle_high * (UINT32_MAX / CLOCK_FREQ) + (cycle_high / CLOCK_FREQ));
+    ts.tv_nsec = (long) ((uint32_t) (cycle_low * NSEC_PER_CYCLE) % BILLION);
+
+    return ts;
 }
 
 /**
@@ -38,14 +83,16 @@ int lf_clock_gettime(_lf_clock_t clk_id, _lf_time_spec_t* tp) {
  */
 int nanosleep(_lf_time_spec_t *req, _lf_time_spec_t *rem) {
 
-    _lf_time_spec_t start_time = __clock_gettime();
-    _lf_time_spec_t ts = start_time;
+    struct timespec start_time = __clock_gettime();
+    struct timespec ts = start_time;
     while (ts.tv_sec < start_time.tv_sec + req->tv_sec || (ts.tv_sec == start_time.tv_sec + req->tv_sec && ts.tv_nsec <= start_time.tv_nsec + req->tv_nsec)) {
         ts = __clock_gettime();
     }
 
     return 0;
 }
+
+
 
 // Default nosys implementation of _sbrk
 void *
