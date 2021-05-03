@@ -1800,9 +1800,6 @@ void handle_tag_advance_grant() {
     if (compare_tags(TAG, _fed.last_TAG) >= 0) {
         _fed.last_TAG.time = TAG.time;
         _fed.last_TAG.microstep = TAG.microstep;
-        _fed.waiting_for_TAG = false;
-        // Notify everything that is blocked.
-        lf_cond_broadcast(&event_q_changed);
         _fed.is_last_TAG_provisional = false;
         LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     } else if (_fed.is_last_TAG_provisional) {
@@ -1818,6 +1815,14 @@ void handle_tag_advance_grant() {
                                 _fed.last_TAG.time - start_time,
                                 _fed.last_TAG.microstep);
     }
+
+    // Ignore unsolicited TAGs
+    if (_fed.waiting_for_TAG) {
+        _fed.waiting_for_TAG = false;
+        // Notify everything that is blocked.
+        lf_cond_broadcast(&event_q_changed);
+    }
+
     lf_mutex_unlock(&mutex);
 }
 
@@ -1841,8 +1846,18 @@ void handle_provisional_tag_advance_grant() {
     // the RTI knows about the status of all ports up to and _including_
     // the value of PTAG. Only a TAG message indicates that.
     lf_mutex_lock(&mutex);
-    _fed.last_TAG.time = extract_ll(buffer);
-    _fed.last_TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+    tag_t PTAG;
+    PTAG.time = extract_ll(buffer);
+    PTAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+
+    // Sanity check
+    if (compare_tags(PTAG, _fed.last_TAG) < 0 ||
+        (compare_tags(PTAG, _fed.last_TAG) == 0 &&
+         !_fed.is_last_TAG_provisional)) {
+        error_print_and_exit("Received a PTAG that is equal or earlier than an already received TAG.");
+    }
+
+    _fed.last_TAG = PTAG;
     _fed.waiting_for_TAG = false;
     _fed.is_last_TAG_provisional = true;
     LOG_PRINT("Received Provisional Tag Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
