@@ -40,6 +40,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <netdb.h>      // Defines gethostbyname().
 #include <strings.h>    // Defines bzero().
 #include <assert.h>
+#include <signal.h>     // Defines sigaction.
 #include "net_util.c"   // Defines network functions.
 #include "rti.h"        // Defines TIMESTAMP.
 #include "reactor.h"    // Defines instant_t.
@@ -51,9 +52,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 char* ERROR_SENDING_HEADER = "ERROR sending header information to federate via RTI";
 char* ERROR_SENDING_MESSAGE = "ERROR sending message to federate via RTI";
 
-// Mutex locks held while performing socket operations.
-lf_mutex_t inbound_socket_mutex;
+// Mutex lock held while performing socket write and close operations.
 lf_mutex_t outbound_socket_mutex;
+lf_cond_t port_status_changed;
 
 /**
  * The state of this federate instance.
@@ -61,6 +62,7 @@ lf_mutex_t outbound_socket_mutex;
 federate_instance_t _fed = {
         .socket_TCP_RTI = -1,
         .number_of_inbound_p2p_connections = 0,
+		.inbound_socket_listeners = NULL,
         .number_of_outbound_p2p_connections = 0,
         .sockets_for_inbound_p2p_connections = { -1 },
         .sockets_for_outbound_p2p_connections = { -1 },
@@ -68,13 +70,17 @@ federate_instance_t _fed = {
         .server_socket = -1,
         .server_port = -1,
         .last_TAG = {.time = NEVER, .microstep = 0u},
+        .is_last_TAG_provisional = false,
         .waiting_for_TAG = false,
         .has_upstream = false,
         .has_downstream = false,
         .sent_a_stop_request_to_rti = false,
         .last_sent_LTC = (tag_t) {.time = NEVER, .microstep = 0u},
         .last_sent_NET = (tag_t) {.time = NEVER, .microstep = 0u},
-        .min_delay_from_physical_action_to_federate_output = NEVER
+        .min_delay_from_physical_action_to_federate_output = NEVER,
+        .triggers_for_network_input_control_reactions = NULL,
+        .triggers_for_network_input_control_reactions_size = 0,
+        .trigger_for_network_output_control_reactions = NULL
 };
 
 /** 
@@ -190,15 +196,13 @@ void create_server(int specified_port) {
  * Send a message to another federate directly or via the RTI.
  * This method assumes that the caller does not hold the outbound_socket_mutex lock,
  * which it acquires to perform the send.
+ *
+ * If the socket connection to the remote federate or the RTI has been broken,
+ * then this returns 0 without sending. Otherwise, it returns 1.
  * 
  * @note This function is similar to send_timed_message() except that it
  *  does not deal with time and timed_messages.
  * 
- * @param additional_delay The offset applied to the timestamp
- *  using after. The additional delay will be greater or equal to zero
- *  if an after is used on the connection. If no after is given in the
- *  program, -1 is passed.
- * @param socket The socket to send the message on
  * @param message_type The type of the message being sent. 
  *  Currently can be TIMED_MESSAGE for messages sent via
  *  RTI or P2P_TIMED_MESSAGE for messages sent between
@@ -208,16 +212,14 @@ void create_server(int specified_port) {
  * @param next_destination_str The name of the next destination in string format
  * @param length The message length.
  * @param message The message.
+ * @return 1 if the message has been sent, 0 otherwise.
  */
-void send_message(int socket,
-                  int message_type,
-                  unsigned int port,
-                  unsigned int federate,
-                  const char next_destination_str[],
+int send_message(int message_type,
+                  unsigned short port,
+                  unsigned short federate,
+                  const char* next_destination_str,
                   size_t length,
                   unsigned char* message) {
-    assert(port < 65536);
-    assert(federate < 65536);
     unsigned char header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)];
     // First byte identifies this as a timed message.
     header_buffer[0] = message_type;
@@ -237,11 +239,25 @@ void send_message(int socket,
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int);
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     lf_mutex_lock(&outbound_socket_mutex);
-    write_to_socket_errexit(socket, header_length, header_buffer,
+    // First, check that the socket is still connected. This must done
+    // while holding the mutex lock.
+    int socket = -1;
+    if (message_type == P2P_MESSAGE || message_type == P2P_TIMED_MESSAGE) {
+        socket = _fed.sockets_for_outbound_p2p_connections[federate];
+    } else {
+        socket = _fed.socket_TCP_RTI;
+    }
+    if (socket < 0) {
+    	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
+    	return 0;
+    }
+    write_to_socket_errexit_with_mutex(socket, header_length, header_buffer, &outbound_socket_mutex,
             "Failed to send message header to to %s.", next_destination_str);
-    write_to_socket_errexit(socket, length, message,
+    write_to_socket_errexit_with_mutex(socket, length, message, &outbound_socket_mutex,
             "Failed to send message body to to %s.", next_destination_str);
     lf_mutex_unlock(&outbound_socket_mutex);
+    return 1;
 }
 
 /** 
@@ -252,6 +268,10 @@ void send_message(int socket,
  * The port should be an input port of a reactor in 
  * the destination federate. This version does include the timestamp 
  * in the message. The caller can reuse or free the memory after this returns.
+ *
+ * If the socket connection to the remote federate or the RTI has been broken,
+ * then this returns 0 without sending. Otherwise, it returns 1.
+ *
  * This method assumes that the caller does not hold the outbound_socket_mutex lock,
  * which it acquires to perform the send.
  * 
@@ -262,7 +282,6 @@ void send_message(int socket,
  *  using after. The additional delay will be greater or equal to zero
  *  if an after is used on the connection. If no after is given in the
  *  program, -1 is passed.
- * @param socket The socket to send the message on
  * @param message_type The type of the message being sent. 
  *  Currently can be TIMED_MESSAGE for messages sent via
  *  RTI or P2P_TIMED_MESSAGE for messages sent between
@@ -273,20 +292,15 @@ void send_message(int socket,
  *  (used for reporting errors).
  * @param length The message length.
  * @param message The message.
+ * @return 1 if the message has been sent, 0 otherwise.
  */
-void send_timed_message(interval_t additional_delay,
-                        int socket,
+int send_timed_message(interval_t additional_delay,
                         int message_type,
-                        unsigned int port,
-                        unsigned int federate,
-                        const char next_destination_str[],
+                        unsigned short port,
+                        unsigned short federate,
+                        const char* next_destination_str,
                         size_t length,
                         unsigned char* message) {
-    assert(port < 65536);
-    assert(federate < 65536);
-    if (socket < 0) {
-        return;
-    }
     unsigned char header_buffer[1 + sizeof(ushort) + sizeof(ushort)
              + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t)];
     // First byte identifies this as a timed message.
@@ -344,16 +358,30 @@ void send_timed_message(interval_t additional_delay,
     if (_lf_is_tag_after_stop_tag((tag_t){.time=current_message_timestamp,.microstep=current_message_microstep})) {
         // Message tag is past the timeout time (the stop time) so it should
         // not be sent.
-        return;
+        return 0;
     }
 
     // Use a mutex lock to prevent multiple threads from simultaneously sending.
     lf_mutex_lock(&outbound_socket_mutex);
-    write_to_socket_errexit(socket, header_length, header_buffer,
+    // First, check that the socket is still connected. This must done
+    // while holding the mutex lock.
+    int socket = -1;
+    if (message_type == P2P_MESSAGE || message_type == P2P_TIMED_MESSAGE) {
+        socket = _fed.sockets_for_outbound_p2p_connections[federate];
+    } else {
+        socket = _fed.socket_TCP_RTI;
+    }
+    if (socket < 0) {
+    	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
+    	return 0;
+    }
+    write_to_socket_errexit_with_mutex(socket, header_length, header_buffer, &outbound_socket_mutex,
             "Failed to send timed message header to %s.", next_destination_str);
-    write_to_socket_errexit(socket, length, message,
-            "Federate %d failed to send timed message body to %s.", next_destination_str);
+    write_to_socket_errexit_with_mutex(socket, length, message, &outbound_socket_mutex,
+            "Failed to send timed message body to %s.", next_destination_str);
     lf_mutex_unlock(&outbound_socket_mutex);
+    return 1;
 }
 
 /** 
@@ -365,11 +393,31 @@ void send_timed_message(interval_t additional_delay,
  */
 void _lf_send_time(unsigned char type, instant_t time) {
     DEBUG_PRINT("Sending time %lld to the RTI.", time);
-    unsigned char buffer[1 + sizeof(instant_t)];
+    int bytes_to_write = 1 + sizeof(instant_t);
+    unsigned char buffer[bytes_to_write];
     buffer[0] = type;
     encode_ll(time, &(buffer[1]));
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), buffer,
-            "Failed to send time to the RTI.");
+    lf_mutex_lock(&outbound_socket_mutex);
+    if (_fed.socket_TCP_RTI < 0) {
+    	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
+    	return;
+    }
+    int bytes_written = write_to_socket(_fed.socket_TCP_RTI, bytes_to_write, buffer);
+    if (bytes_written < bytes_to_write) {
+        if (errno == ENOTCONN) {
+            // FIXME: Shutdown is probably not working properly because the socket gets disconnected.
+            error_print("Socket to the RTI is no longer connected. Considering this a soft error.");
+        } else {
+            error_print_and_exit("Failed to send time %lld to the RTI.", 
+                                    " Error code %d: %s",
+                                    time - start_time,
+                                    errno,
+                                    strerror(errno)
+                                );
+        }
+    }
+    lf_mutex_unlock(&outbound_socket_mutex);
 }
 
 /**
@@ -381,12 +429,33 @@ void _lf_send_time(unsigned char type, instant_t time) {
  */
 void _lf_send_tag(unsigned char type, tag_t tag) {
     DEBUG_PRINT("Sending tag (%lld, %u) to the RTI.", tag.time - start_time, tag.microstep);
-    unsigned char buffer[1 + sizeof(instant_t) + sizeof(microstep_t)];
+    int bytes_to_write = 1 + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_write];
     buffer[0] = type;
     encode_ll(tag.time, &(buffer[1]));
     encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(instant_t) + sizeof(microstep_t), buffer,
-            "Failed to send tag (%lld, %u) to the RTI.", tag.time - start_time, tag.microstep);
+    lf_mutex_lock(&outbound_socket_mutex);
+    if (_fed.socket_TCP_RTI < 0) {
+    	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
+    	return;
+    }
+    int bytes_written = write_to_socket(_fed.socket_TCP_RTI, bytes_to_write, buffer);
+    if (bytes_written < bytes_to_write) {
+        if (errno == ENOTCONN) {
+            error_print("Socket to the RTI is no longer connected. Considering this a soft error.");
+        } else {
+            error_print_and_exit("Failed to send tag (%lld, %u) to the RTI.", 
+                                    " Error code %d: %s",
+                                    tag.time - start_time, 
+                                    tag.microstep,
+                                    errno,
+                                    strerror(errno)
+                                );
+        }
+    }
+
+    lf_mutex_unlock(&outbound_socket_mutex);
 }
 
 /**
@@ -398,7 +467,8 @@ void _lf_send_tag(unsigned char type, tag_t tag) {
  */
 void* handle_p2p_connections_from_federates(void* ignored) {
     int received_federates = 0;
-    lf_thread_t thread_ids[_fed.number_of_inbound_p2p_connections];
+    // Allocate memory to store thread IDs.
+    _fed.inbound_socket_listeners = (lf_thread_t*)calloc(_fed.number_of_inbound_p2p_connections, sizeof(lf_thread_t));
     while (received_federates < _fed.number_of_inbound_p2p_connections) {
         // Wait for an incoming connection request.
         struct sockaddr client_fd;
@@ -472,7 +542,10 @@ void* handle_p2p_connections_from_federates(void* ignored) {
             error_print_and_exit("malloc failed.");
         }
         *remote_fed_id_copy = remote_fed_id;
-        int result = lf_thread_create(&thread_ids[received_federates], listen_to_federates, remote_fed_id_copy);
+        int result = lf_thread_create(
+        		&_fed.inbound_socket_listeners[received_federates],
+				listen_to_federates,
+				remote_fed_id_copy);
         if (result != 0) {
             // Failed to create a listening thread.
             close(socket_id);
@@ -487,6 +560,58 @@ void* handle_p2p_connections_from_federates(void* ignored) {
     }
 
     LOG_PRINT("All remote federates are connected.");
+    return NULL;
+}
+
+/**
+ * Close the socket that sends outgoing messages to the
+ * specified federate ID. This function assumes the caller holds
+ * the outbound_socket_mutex mutex lock.
+ * @param The ID of the peer federate receiving messages from this
+ *  federate, or -1 if the RTI (centralized coordination).
+ */
+void _lf_close_outbound_socket(int fed_id) {
+	assert (fed_id >= 0 && fed_id < NUMBER_OF_FEDERATES);
+	if (_fed.sockets_for_outbound_p2p_connections[fed_id] >= 0) {
+        shutdown(_fed.sockets_for_outbound_p2p_connections[fed_id], SHUT_RDWR);
+        close(_fed.sockets_for_outbound_p2p_connections[fed_id]);
+        _fed.sockets_for_outbound_p2p_connections[fed_id] = -1;
+    }
+}
+
+/**
+ * For each incoming message socket, we create this thread that listens
+ * for upstream messages. Currently, the only possible upstream message
+ * is CLOSE_REQUEST.  If this thread receives that message, then closes
+ * the socket.  The idea here is that a peer-to-peer socket connection
+ * is always closed from the sending end, never from the receiving end.
+ * This way, any sends in progress complete before the socket is actually
+ * closed.
+ */
+void* listen_for_upstream_messages_from_downstream_federates(void* fed_id_ptr) {
+    ushort fed_id = *((ushort*)fed_id_ptr);
+    unsigned char message;
+
+    lf_mutex_lock(&outbound_socket_mutex);
+    while(_fed.sockets_for_outbound_p2p_connections[fed_id] >= 0) {
+    	// Unlock the mutex before performing a blocking read.
+    	// Note that there is a race condition here, but the read will return
+    	// a failure if the socket gets closed.
+        lf_mutex_unlock(&outbound_socket_mutex);
+
+        DEBUG_PRINT("Thread listening for CLOSE_REQUEST from federate %d", fed_id);
+    	int bytes_read = read_from_socket(
+    			_fed.sockets_for_outbound_p2p_connections[fed_id], 1, &message);
+    	// Reacquire the mutex lock before closing or reading the socket again.
+        lf_mutex_lock(&outbound_socket_mutex);
+
+        if (bytes_read == 1 && message == CLOSE_REQUEST) {
+    		// Received a request to close the socket.
+    		DEBUG_PRINT("Received CLOSE_REQUEST from federate %d.", fed_id);
+    		_lf_close_outbound_socket(fed_id);
+    	}
+    }
+    lf_mutex_unlock(&outbound_socket_mutex);
     return NULL;
 }
 
@@ -654,6 +779,26 @@ void connect_to_federate(ushort remote_federate_id) {
     // Once we set this variable, then all future calls to close() on this
     // socket ID should reset it to -1 within a critical section.
     _fed.sockets_for_outbound_p2p_connections[remote_federate_id] = socket_id;
+
+    // Start a thread to listen for upstream messages (CLOSE_REQUEST) from
+    // this downstream federate.
+    ushort* remote_fed_id_copy = (ushort*)malloc(sizeof(ushort));
+    if (remote_fed_id_copy == NULL) {
+        error_print_and_exit("malloc failed.");
+    }
+    *remote_fed_id_copy = remote_federate_id;
+    lf_thread_t thread_id;
+    result = lf_thread_create(
+    		&thread_id,
+			listen_for_upstream_messages_from_downstream_federates,
+			remote_fed_id_copy);
+    if (result != 0) {
+        // Failed to create a listening thread.
+        error_print_and_exit(
+                "Failed to create a thread to listen for upstream message. Error code: %d.",
+                result
+        );
+    }
 }
 
 /**
@@ -844,6 +989,8 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
     return timestamp;
 }
 
+////////////////////////////////Port Status Handling///////////////////////////////////////
+
 /**
  * Placeholder for a generated function that returns a pointer to the
  * trigger_t struct for the action corresponding to the specified port ID.
@@ -851,6 +998,368 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
  * @return A pointer to a trigger_t struct or null if the ID is out of range.
  */
 trigger_t* __action_for_port(int port_id);
+
+
+/**
+ * Set the status of network port with id portID.
+ * 
+ * @param portID The network port ID
+ * @param status The network port status (port_status_t)
+ */
+void set_network_port_status(int portID, port_status_t status) {
+    trigger_t* network_input_port_action = __action_for_port(portID);
+    network_input_port_action->status = status;
+}
+
+
+/**
+ * Mark all status fields of unknown network input ports as absent.
+ */
+void mark_all_unknown_ports_as_absent() {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        trigger_t* input_port_action = __action_for_port(i);
+        if (input_port_action->status == unknown) {
+            set_network_port_status(i, absent);
+        }
+    }
+}
+
+/**
+ * Update the last known status tag of all network input ports
+ * to the value of tag, assuming that the provided tag is larger
+ * than the last_known_status_tag of the port.
+ * 
+ * @param tag The tag on which the latest status of network input
+ *  ports is known.
+ */
+void update_last_known_status_on_input_ports(tag_t tag) {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        trigger_t* input_port_action = __action_for_port(i);
+        if (compare_tags(tag,
+                input_port_action->last_known_status_tag) >= 0) {
+            input_port_action->last_known_status_tag = tag;
+        } else {
+            DEBUG_PRINT("Attempt to update the last known status tag " 
+                           "of network input port %d to an earlier tag was ignored.", i);
+        }
+    }
+}
+
+
+/**
+ * Update the last known status tag of a network input port
+ * to the value of "tag".
+ * 
+ * @param tag The tag on which the latest status of network input
+ *  ports is known.
+ * @param portID The port ID
+ */
+void update_last_known_status_on_input_port(tag_t tag, int port_id) {
+    trigger_t* input_port_action = __action_for_port(port_id);
+    if (compare_tags(tag,
+            input_port_action->last_known_status_tag) > 0) {
+        input_port_action->last_known_status_tag = tag;
+    } else {
+        DEBUG_PRINT("Attempt to update the last known status tag " 
+                        "of network input port %d to an earlier tag was ignored.", port_id);
+    }
+}
+
+/**
+ * Check if any network input control reaction is waiting at the current
+ * tag.
+ * 
+ * @return true if any network input control reaction is waiting. False otherwise.
+ */
+bool any_control_reaction_is_waiting() {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        trigger_t* input_port_action = __action_for_port(i);
+        if (input_port_action->is_a_control_reaction_waiting) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Reset the status fields on network input ports to unknown.
+ * 
+ * @note This function must be called at the beginning of each
+ *  logical time.
+ */
+void reset_status_fields_on_input_port_triggers() {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        set_network_port_status(i, unknown);
+    }
+}
+
+/**
+ * Indicate that one or more control reactions are waiting for portID
+ */
+void mark_control_reaction_waiting(int portID) {
+    trigger_t* network_input_port_action = __action_for_port(portID);
+    network_input_port_action->is_a_control_reaction_waiting = true;
+}
+
+/**
+ * Indicate that no control reactions are waiting for portID
+ */
+void mark_control_reaction_not_waiting(int portID) {
+    trigger_t* network_input_port_action = __action_for_port(portID);
+    network_input_port_action->is_a_control_reaction_waiting = false;
+}
+
+/**
+ * Enqueue network input control reactions that determine if the trigger for a
+ * given network input port is going to be present at the current logical time
+ * or absent.
+ */
+void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        // Reaction 0 should always be the network input control reaction
+        if (determine_port_status_if_possible(i) == unknown) {
+            reaction_t *reaction = _fed.triggers_for_network_input_control_reactions[i]->reactions[0];
+            if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+                reaction->is_a_control_reaction = true;
+                pqueue_insert(reaction_q, reaction);
+                mark_control_reaction_waiting(i);
+            }
+        }
+    }
+}
+
+/**
+ * Enqueue network output control reactions that will send a PORT_ABSENT
+ * message to downstream federates if a given network output port is not present.
+ */
+void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
+    DEBUG_PRINT("Enqueueing output control reactions.");
+    if (_fed.trigger_for_network_output_control_reactions == NULL) {
+        // There are no network output control reactions
+        DEBUG_PRINT("No output control reactions.");
+        return;
+    }
+    for (int i = 0; i < _fed.trigger_for_network_output_control_reactions->number_of_reactions; i++) {
+        reaction_t* reaction = _fed.trigger_for_network_output_control_reactions->reactions[i];
+        if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+            reaction->is_a_control_reaction = true;
+            pqueue_insert(reaction_q, reaction);
+        }
+    }
+}
+
+
+/**
+ * Enqueue network control reactions.
+ */
+void enqueue_network_control_reactions(pqueue_t* reaction_q) {
+#ifdef FEDERATED_CENTRALIZED
+    // The granted tag is not provisional, therefore there is no
+    // need for network control reactions
+    if (_fed.is_last_TAG_provisional == false) {
+        return;
+    }
+#endif
+    enqueue_network_input_control_reactions(reaction_q);
+    enqueue_network_output_control_reactions(reaction_q);
+}
+
+/**
+ * Send a port absent message to federate with fed_ID, informing the
+ * remote federate that the current federate will not produce an event
+ * on this network port at the current logical time.
+ * 
+ * @param additional_delay The offset applied to the timestamp
+ *  using after. The additional delay will be greater or equal to zero
+ *  if an after is used on the connection. If no after is given in the
+ *  program, -1 is passed.
+ */
+void send_port_absent_to_federate(interval_t additional_delay,
+                                    unsigned short port_ID, 
+                                  unsigned short fed_ID) {
+    // Construct the message
+    int message_length = 1 + sizeof(port_ID) + sizeof(fed_ID) + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[message_length];
+    // Get current logical time
+    instant_t current_message_timestamp = get_logical_time();
+
+    // Note that we are getting the microstep here directly
+    // under the assumption that it does not change while
+    // this function is executing.
+    microstep_t current_message_microstep = get_microstep();
+    if (additional_delay == 0LL) {
+        // After was specified by the user
+        // on the connection with a delay of 0.
+        // In this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time(), get_microstep() + 1).
+        current_message_microstep += 1;
+    } else if (additional_delay > 0LL) {
+        // After was specified by the user
+        // on the connection with a positive delay.
+        // In this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time() + additional_delay, 0)
+
+        current_message_timestamp += additional_delay;
+        current_message_microstep = 0;
+    } else if (additional_delay == -1LL) {
+        // No after delay is given by the user
+        // In this case,
+        // the tag of the outgoing message
+        // should be (get_logical_time(), get_microstep())
+    }
+
+    LOG_PRINT("Sending port "
+            "absent for tag (%lld, %u) for port %d to federate %d.",
+            current_message_timestamp - start_time,
+            current_message_microstep,
+            port_ID, fed_ID);
+
+    buffer[0] = PORT_ABSENT;
+    encode_ushort(port_ID, &(buffer[1]));
+    encode_ushort(fed_ID, &(buffer[1+sizeof(port_ID)]));
+    encode_ll(current_message_timestamp, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
+    encode_int(current_message_microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
+
+    lf_mutex_lock(&outbound_socket_mutex);
+#ifdef FEDERATED_CENTRALIZED
+    // Send the absent message through the RTI
+    int socket = _fed.socket_TCP_RTI;
+#else
+    // Send the absent message directly to the federate
+    int socket = _fed.sockets_for_outbound_p2p_connections[fed_ID];
+#endif
+    // Do not write if the socket is closed.
+    if (socket >= 0) {
+    	write_to_socket_errexit_with_mutex(socket, message_length, buffer, &outbound_socket_mutex,
+    			"Failed to send port absent message for port %hu to federate %hu.",
+				port_ID, fed_ID);
+    }
+    lf_mutex_unlock(&outbound_socket_mutex);
+}
+
+/**
+ * Determine the status of the port at the current logical time.
+ * If successful, return true. If the status cannot be determined
+ * at this moment, return false.
+ * 
+ * @param portID the ID of the port to determine status for
+ */
+port_status_t determine_port_status_if_possible(int portID) {
+    // Check if the status of the port is known
+    trigger_t* network_input_port_action = __action_for_port(portID);
+    if (network_input_port_action->status == present) {
+        LOG_PRINT("------ Not waiting for network input port %d"
+                    " because it is already present.", portID);
+        // The status of the trigger is present.
+        return present;
+    } else if (network_input_port_action->status == unknown && 
+                        compare_tags(network_input_port_action->last_known_status_tag, 
+                        get_current_tag()) >= 0) {
+        // We have a known status for this port in a future tag. Therefore, no event is going
+        // to be present for this port at the current tag.
+        set_network_port_status(portID, absent);
+        return absent;
+    } else if (network_input_port_action->status == absent) {
+        // The status of the trigger is absent.
+        return absent;
+    }
+    return unknown;
+}
+
+/**
+ * Wait until the status of network port "port_ID" can be
+ * determined.
+ * 
+ * In decentralized coordination mode, the wait time is capped by "STP",
+ * after which the status of the port is presumed to be absent.
+ * 
+ * This function assumes the holder does not hold a mutex.
+ * 
+ * @param port_ID The ID of the network port
+ * @param STP The STP offset of the port
+ */
+void wait_until_port_status_known(int port_ID, interval_t STP) {            
+    // Need to lock the mutex to prevent
+    // a race condition with the network
+    // receiver logic.
+    lf_mutex_lock(&mutex);
+
+    // See if the port status can be determined immediately without waiting
+    if (determine_port_status_if_possible(port_ID) != unknown) {
+        // The status of the trigger is known. No need to wait.
+        LOG_PRINT("------ Not waiting for network input port %d: "
+                    "Status of the port is known already.", port_ID);
+        mark_control_reaction_not_waiting(port_ID);
+        lf_mutex_unlock(&mutex);
+        return;
+    }
+
+    // Determine the wait time.
+    // In centralized coordination, the wait time is until
+    // the RTI can determine the port status and send a TAG
+    // replacing the PTAG it sent earlier or until a port absent
+    // message has been sent by an upstream federate for this port
+    // with a tag greater than the current tag. The federate will 
+    // block here FOREVER, until one of the aforementioned 
+    // conditions is met.
+    interval_t wait_time = FOREVER;
+#ifdef FEDERATED_DECENTRALIZED // Only applies to decentralized coordination
+    // The wait time for port status in the decentralized 
+    // coordination is capped by the STP offset assigned 
+    // to the port.
+    wait_time = current_tag.time + STP;
+#endif
+
+    // Perform the wait, if it is necessary.
+    if (wait_time != current_tag.time) {
+        LOG_PRINT("------ Waiting for %lldns for network input port %d at tag (%llu, %d).",
+                wait_time,
+                port_ID,
+                current_tag.time - start_time,
+                current_tag.microstep);
+        while(!wait_until(wait_time, &port_status_changed)) {
+            // Interrupted
+            DEBUG_PRINT("------ Wait for network input port %d interrupted.", port_ID);
+            // Check if the status of the port is known
+            if (determine_port_status_if_possible(port_ID) != unknown) {
+                // The status of the trigger is known. No need to wait.
+                LOG_PRINT("------ Done waiting for network input port %d: "
+                            "Status of the port has changed.", port_ID);
+                mark_control_reaction_not_waiting(port_ID);
+                lf_mutex_unlock(&mutex);
+                return;
+            }
+        }
+    }
+
+#ifdef FEDERATED_DECENTRALIZED // Only applies in decentralized coordination
+    // The wait has timed out. However, a message header
+    // for the current tag could have been received in time 
+    // but not the the body of the message.
+    // Wait on the tag barrier based on the current tag. 
+    _lf_wait_on_global_tag_barrier(get_current_tag());
+#endif
+
+    // Done waiting
+    // If the status of the port is still unknown, assume it is absent.
+    if (determine_port_status_if_possible(port_ID) == unknown) {
+        // Port will not be triggered at the
+        // current logical time. Set the absent
+        // value of the trigger accordingly
+        // so that the receiving logic cannot
+        // insert any further reaction
+        set_network_port_status(port_ID, absent);
+    }
+    mark_control_reaction_not_waiting(port_ID);
+    lf_mutex_unlock(&mutex);
+    LOG_PRINT("------ Done waiting for network input port %d: "
+                "Wait timed out without a port status change.", port_ID);
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Version of schedule_value() similar to that in reactor_common.c
@@ -874,10 +1383,7 @@ trigger_t* __action_for_port(int port_id);
 handle_t schedule_message_received_from_network_already_locked(
         trigger_t* trigger,
         tag_t tag,
-        void* value,
-        int length) {
-
-    lf_token_t* token = create_token(trigger->element_size);
+        lf_token_t* token) {
     // Return value of the function
     int return_value = 0;
 
@@ -887,114 +1393,150 @@ handle_t schedule_message_received_from_network_already_locked(
     // federate. By default, assume it is not.
     bool message_tag_is_in_the_future = compare_tags(tag, current_tag) > 0;
 
-    // Set up the token
-    token->value = value;
-    token->length = length;
-
     // Assign the intended tag
     trigger->intended_tag = tag;
 
     // Calculate the extra_delay required to be passed
     // to the schedule function.
     interval_t extra_delay = tag.time - current_tag.time;
-
-    if (!_lf_execution_started && !message_tag_is_in_the_future) {
-        // If execution has not started yet,
-        // there could be a special case where a message has
-        // arrived on a logical connection with a tag
-        // (0, 0) when this federate
-        // is at tag (0, 0).
-        // In this case, the schedule
-        // function cannot be called since it will
-        // incur a microstep (i.e., it will insert an
-        // event with tag (0,1)). To check, we call
-        // _lf_schedule_init_reactions, which is a special kind
-        // of schedule that does not incur a microstep. This function will first
-        // check the appropriate conditions and if the above-mentioned
-        // conditions are not met, the return value will be 0.
-        return_value = _lf_schedule_init_reactions(trigger, extra_delay, token);
-        DEBUG_PRINT("Startup schedule returned %d.", return_value);
-    }
-
-    // If return_value remains 0, it means that the special startup procedure
-    // does not apply or the call to _lf_schedule_init_reactions() has failed.
-    // Thus, call __schedule() instead.
-    if (return_value == 0) {
-        if (!message_tag_is_in_the_future) {
+    if (!message_tag_is_in_the_future) {
 #ifdef FEDERATED_CENTRALIZED
-            // If the coordination is centralized, receiving a message
-            // that does not carry a timestamp that is in the future
-            // would indicate a critical condition, showing that the
-            // time advance mechanism is not working correctly.
-            error_print_and_exit("Received a message at tag (%lld, %u) that"
-                                 " has a tag (%lld, %u) that is tardy. "
-                                 "Centralized coordination should not have tardy messages.",
-                                 current_tag.time - start_time, get_microstep(),
-                                 tag.time - start_time, tag.microstep);
+        // If the coordination is centralized, receiving a message
+        // that does not carry a timestamp that is in the future
+        // would indicate a critical condition, showing that the
+        // time advance mechanism is not working correctly.
+        error_print_and_exit("Received a message at tag (%lld, %u) that"
+                                " has a tag (%lld, %u) that has violated the STP offset. "
+                                "Centralized coordination should not have these types of messages.",
+                                current_tag.time - start_time, get_microstep(),
+                                tag.time - start_time, tag.microstep);
 #else
-            // Set the delay back to 0
-            extra_delay = 0LL;
-            DEBUG_PRINT("Calling schedule with 0 delay and intended tag (%lld, %u).",
-                        trigger->intended_tag.time - start_time,
-                        trigger->intended_tag.microstep);
-            return_value = __schedule(trigger, extra_delay, token);
+        // Set the delay back to 0
+        extra_delay = 0LL;
+        LOG_PRINT("Calling schedule with 0 delay and intended tag (%lld, %u).",
+                    trigger->intended_tag.time - start_time,
+                    trigger->intended_tag.microstep);
+        return_value = __schedule(trigger, extra_delay, token);
 #endif
-        } else {
-            // In case the message is in the future, call
-            // _lf_schedule_at_tag() so that the microstep is respected.
-            DEBUG_PRINT("Received a message that is (%lld nanoseconds, %u microsteps) "
-                    "in the future.", extra_delay, tag.microstep - get_microstep());
-            return_value = _lf_schedule_at_tag(trigger, tag, token);
-        }
-        // Notify the main thread in case it is waiting for physical time to elapse.
-        DEBUG_PRINT("Broadcasting notification that event queue changed.");
-        lf_cond_broadcast(&event_q_changed);
+    } else {
+        // In case the message is in the future, call
+        // _lf_schedule_at_tag() so that the microstep is respected.
+        LOG_PRINT("Received a message that is (%lld nanoseconds, %u microsteps) "
+                "in the future.", extra_delay, tag.microstep - get_microstep());
+        return_value = _lf_schedule_at_tag(trigger, tag, token);
     }
+    // Notify the main thread in case it is waiting for physical time to elapse.
+    DEBUG_PRINT("Broadcasting notification that event queue changed.");
+    lf_cond_broadcast(&event_q_changed);
     return return_value;
 }
 
 /**
+ * Request to close the socket that receives incoming messages from the
+ * specified federate ID. This sends a message to the upstream federate
+ * requesting that it close the socket. If the message is sent successfully,
+ * this returns 1. Otherwise it returns 0, which presumably means that the
+ * socket is already closed.
+ *
+ * @param The ID of the peer federate sending messages to this federate.
+ *
+ * @return 1 if the CLOSE_REQUEST message is sent successfully, 0 otherwise.
+ */
+int _lf_request_close_inbound_socket(int fed_id) {
+	assert(fed_id >= 0 && fed_id < NUMBER_OF_FEDERATES);
+
+ 	if (_fed.sockets_for_inbound_p2p_connections[fed_id] < 1) return 0;
+
+   	// Send a CLOSE_REQUEST message.
+    unsigned char message_marker = CLOSE_REQUEST;
+   	LOG_PRINT("Sending CLOSE_REQUEST message to upstream federate.");
+    int written = write_to_socket(
+     		_fed.sockets_for_inbound_p2p_connections[fed_id],
+			1, &message_marker);
+    _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
+    if (written == 1) {
+       	LOG_PRINT("Sent CLOSE_REQUEST message to upstream federate.");
+       	return 1;
+    } else {
+    	return 0;
+    }
+}
+
+/**
  * Close the socket that receives incoming messages from the
- * specified federate ID. This function assumes the caller does
- * not hold ANY mutex lock. This function acquires a mutex lock
- * that is used exlusively for closing these sorts of sockets.
+ * specified federate ID or RTI. This function should be called when a read
+ * of incoming socket fails or when an EOF is received.
+ *
  * @param The ID of the peer federate sending messages to this
- *  federate, or -1 if the RTI (centralized coordination).
+ *  federate, or -1 if the RTI.
  */
 void _lf_close_inbound_socket(int fed_id) {
-    lf_mutex_lock(&inbound_socket_mutex);
     if (fed_id < 0) {
         // socket connection is to the RTI.
-        shutdown(_fed.socket_TCP_RTI, SHUT_RDWR);
-        close(_fed.socket_TCP_RTI);
+        int socket = _fed.socket_TCP_RTI;
+        // First, set the global socket to -1.
+        _fed.socket_TCP_RTI = -1;
+        // Then shutdown and close the socket.
+        shutdown(socket, SHUT_RDWR);
+        close(socket);
     } else if (_fed.sockets_for_inbound_p2p_connections[fed_id] >= 0) {
         shutdown(_fed.sockets_for_inbound_p2p_connections[fed_id], SHUT_RDWR);
         close(_fed.sockets_for_inbound_p2p_connections[fed_id]);
         _fed.sockets_for_inbound_p2p_connections[fed_id] = -1;
     }
-    lf_mutex_unlock(&inbound_socket_mutex);
 }
 
-/**
- * Close the socket that sends outgoing messages to the
- * specified federate ID. This function assumes the caller does
- * not hold ANY mutex lock. This function acquires a mutex lock
- * that is used exlusively for closing these sorts of sockets.
- * @param The ID of the peer federate receiving messages from this
- *  federate, or -1 if the RTI (centralized coordination).
+/** 
+ * Handle a port absent message received from a remote federate.
+ * @param socket The socket to read the message from
+ * @param buffer The buffer to read
+ * @param fed_id The sending federate ID or -1 if the centralized coordination.
  */
-void _lf_close_outbound_socket(int fed_id) {
-    lf_mutex_lock(&outbound_socket_mutex);
-    if (fed_id < 0) {
-        // socket connection is to the RTI.
-        shutdown(_fed.socket_TCP_RTI, SHUT_RDWR);
-        close(_fed.socket_TCP_RTI);
-    } else if (_fed.sockets_for_outbound_p2p_connections[fed_id] != -1) {
-        shutdown(_fed.sockets_for_outbound_p2p_connections[fed_id], SHUT_RDWR);
-        close(_fed.sockets_for_outbound_p2p_connections[fed_id]);
-        _fed.sockets_for_outbound_p2p_connections[fed_id] = -1;
+void handle_port_absent_message(int socket, int fed_id) {
+    size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_read];
+    read_from_socket_errexit(socket, bytes_to_read, buffer,
+    		"Failed to read port absent message.");
+
+    // Extract the header information.
+    unsigned short port_id = extract_ushort(buffer);
+    // The next part of the message is the federate_id, but we don't need it.
+    // unsigned short federate_id = extract_ushort(&(buffer[sizeof(ushort)]));
+    tag_t intended_tag;
+    intended_tag.time = extract_ll(&(buffer[sizeof(ushort)+sizeof(ushort)]));
+    intended_tag.microstep = extract_int(&(buffer[sizeof(ushort)+sizeof(ushort)+sizeof(instant_t)])); 
+
+    LOG_PRINT("Handling port absent for tag (%lld, %u) for port %d.",
+            intended_tag.time - start_time,
+            intended_tag.microstep,
+            port_id, 
+            fed_id
+    );
+
+    lf_mutex_lock(&mutex);
+    trigger_t* network_input_port_action = __action_for_port(port_id);
+#ifdef FEDERATED_DECENTRALIZED
+    if (compare_tags(intended_tag,
+            network_input_port_action->last_known_status_tag) <= 0) {
+        error_print_and_exit("The following contract was violated for port absent messages: In-order "
+                             "delivery of messages over a TCP socket. Had status for (%lld, %u), got "
+                             "port absent with intended tag (%lld, %u).",
+                             network_input_port_action->last_known_status_tag.time - start_time,
+                             network_input_port_action->last_known_status_tag.microstep,
+                             intended_tag.time - start_time,
+                             intended_tag.microstep);
     }
-    lf_mutex_unlock(&outbound_socket_mutex);
+#endif // In centralized coordination, a TAG message from the RTI 
+       // can set the last_known_status_tag to a future tag where messages
+       // have not arrived yet.
+    // Set the mutex status as absent
+    update_last_known_status_on_input_port(intended_tag, port_id);
+    // If any control reaction is waiting, notify them that the status has changed
+    if (network_input_port_action->is_a_control_reaction_waiting) {
+        // The last known status tag of the port has changed. Notify any waiting threads.
+        lf_cond_broadcast(&port_status_changed);
+    }
+    lf_mutex_unlock(&mutex);
 }
 
 /**
@@ -1005,17 +1547,14 @@ void _lf_close_outbound_socket(int fed_id) {
  * @param buffer The buffer to read
  * @param fed_id The sending federate ID or -1 if the centralized coordination.
  */
-void handle_message(int socket, unsigned char* buffer, int fed_id) {
+void handle_message(int socket, int fed_id) {
     // FIXME: Need better error handling?
     // Read the header.
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(int);
-    // Do not use read_from_socket_errexit() because if the socket needs
-    // to be closed, it needs to be closed using _lf_close_inbound_socket().
-    size_t bytes_read = read_from_socket(socket, bytes_to_read, buffer);
-    if (bytes_read != bytes_to_read) {
-        _lf_close_inbound_socket(fed_id);
-        error_print_and_exit("Failed to read message header.");
-    }
+    unsigned char buffer[bytes_to_read];
+    read_from_socket_errexit(socket, bytes_to_read, buffer,
+    		"Failed to read message header.");
+
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
@@ -1031,13 +1570,9 @@ void handle_message(int socket, unsigned char* buffer, int fed_id) {
     // Read the payload.
     // Allocate memory for the message contents.
     unsigned char* message_contents = (unsigned char*)malloc(length);
-    // Do not use read_from_socket_errexit() because if the socket needs
-    // to be closed, it needs to be closed using _lf_close_inbound_socket().
-    bytes_read = read_from_socket(socket, length, message_contents);
-    if (bytes_read != length) {
-        _lf_close_inbound_socket(fed_id);
-        error_print_and_exit("Failed to read message body.");
-    }
+    read_from_socket_errexit(socket, length, message_contents,
+    		"Failed to read message body.");
+
     LOG_PRINT("Message received by federate: %s. Length: %d.", message_contents, length);
 
     DEBUG_PRINT("Calling schedule for message received on a physical connection.");
@@ -1060,18 +1595,15 @@ void handle_message(int socket, unsigned char* buffer, int fed_id) {
  * @param buffer The buffer to read.
  * @param fed_id The sending federate ID or -1 if the centralized coordination.
  */
-void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
+void handle_timed_message(int socket, int fed_id) {
     // FIXME: Need better error handling?
     // Read the header which contains the timestamp.
     size_t bytes_to_read = sizeof(ushort) + sizeof(ushort) + sizeof(int)
             + sizeof(instant_t) + sizeof(microstep_t);
-    // Do not use read_from_socket_errexit() because if the socket needs
-    // to be closed, it needs to be closed using _lf_close_inbound_socket().
-    size_t bytes_read = read_from_socket(socket, bytes_to_read, buffer);
-    if (bytes_read != bytes_to_read) {
-        _lf_close_inbound_socket(fed_id);
-        error_print_and_exit("Failed to read timed message header.");
-    }
+    unsigned char buffer[bytes_to_read];
+    read_from_socket_errexit(socket, bytes_to_read, buffer,
+    		"Failed to read timed message header");
+
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
@@ -1084,15 +1616,19 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     // Get the triggering action for the corerponding port
     trigger_t* action = __action_for_port(port_id);
 
+    // Record the physical time of arrival of the message
+    action->physical_time_of_arrival = get_physical_time();
+
     if (action->is_physical) {
         // Messages sent on physical connections should be handled via handle_message().
         warning_print("Received a timed message on a physical connection. Time stamp will be lost.");
     }
 
     // Read the tag of the message.
-    tag_t tag;
-    tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
-    tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
+    // FIXME : intended_tag
+    tag_t intended_tag;
+    intended_tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    intended_tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
 
 #ifdef FEDERATED_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // For logical connections in decentralized coordination,
@@ -1102,37 +1638,117 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
     // by the message. If this tag is in the past, the function will cause
     // the tag to freeze at the current level.
     // If something happens, make sure to release the barrier.
-    _lf_increment_global_tag_barrier(tag);
+    _lf_increment_global_tag_barrier(intended_tag);
 #endif
     LOG_PRINT("Received message with tag: (%lld, %u), Current tag: (%lld, %u).",
-            tag.time - start_time, tag.microstep, get_elapsed_logical_time(), get_microstep());
+            intended_tag.time - start_time, intended_tag.microstep, get_elapsed_logical_time(), get_microstep());
 
     // Read the payload.
     // Allocate memory for the message contents.
     unsigned char* message_contents = (unsigned char*)malloc(length);
-    bytes_read = read_from_socket(socket, length, message_contents);
-    if (bytes_read < length) {
-#ifdef FEDERATED_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
-        lf_mutex_lock(&mutex);
-        // Decrement the barrier to allow advancement of tag.
-        _lf_decrement_global_tag_barrier_locked();
-        lf_mutex_unlock(&mutex);
-#endif
-        _lf_close_inbound_socket(fed_id);
-        // FIXME: Better error handling?
-        error_print_and_exit("Failed to read timed message body.");
-    }
+    read_from_socket_errexit(socket, length, message_contents,
+    		"Failed to read message body.");
 
     // The following is only valid for string messages.
     // DEBUG_PRINT("Message received: %s.", message_contents);
 
     lf_mutex_lock(&mutex);
-    // Acquire the one mutex lock to prevent logical time from advancing
-    // during the call to schedule().
 
-    DEBUG_PRINT("Calling schedule with tag (%lld, %u).", tag.time - start_time, tag.microstep);
-    schedule_message_received_from_network_already_locked(action, tag, message_contents,
-                                                          length);
+    // Create a token for the message
+    lf_token_t* message_token = create_token(action->element_size);
+    // Set up the token
+
+    message_token->value = message_contents;
+    message_token->length = length;
+
+    // Sanity checks
+#ifdef FEDERATED_DECENTRALIZED
+    if (compare_tags(intended_tag,
+            action->last_known_status_tag) <= 0) {        
+        error_print_and_exit("The following contract was violated for a timed message: In-order "
+                             "delivery of messages over a TCP socket. Had status for (%lld, %u), got "
+                             "timed message with intended tag (%lld, %u).",
+                             action->last_known_status_tag.time - start_time,
+                             action->last_known_status_tag.microstep,
+                             intended_tag.time - start_time,
+                             intended_tag.microstep);
+    }
+#endif // In centralized coordination, a TAG message from the RTI 
+       // can set the last_known_status_tag to a future tag where messages
+       // have not arrived yet.
+    if (action->is_a_control_reaction_waiting && 
+            __advancing_time) {
+        error_print_and_exit("Federate was attempting to advance time "
+                             "while control reactions are still present.");
+    }
+
+    // FIXME: It might be enough to just check this field and not the status at all
+    update_last_known_status_on_input_port(intended_tag, port_id);
+
+    // Check if reactions need to be inserted directly into the reaction
+    // queue or a call to schedule is needed. This checks if the intended
+    // tag of the message is for the current tag or a tag that is already
+    // passed and if any control reaction is waiting on this port.
+    // If the tag is intended for a tag that is passed, the control reactions
+    // would need to exit because only one message can be processed per tag,
+    // and that message is going to be a tardy message. The actual tardiness
+    // handling is done inside _lf_insert_reactions_for_trigger.
+    // To prevent multiple procesing of messages per tag, we also need to check
+    // the port status.
+    // For example, there could be a case where current tag is 
+    // 10 with a control reaction waiting, and a message has arrived with intended_tag 8.
+    // This message will eventually cause the control reaction to exit, but before that,
+    // a message with intended_tag of 9 could arrive before the control reaction has had a chance
+    // to exit. The port status is on the other hand changed in this thread, and thus,
+    // can be checked in this scenario without this race condition. The message with 
+    // intended_tag of 9 in this case needs to wait one microstep to be processed.
+    if (compare_tags(intended_tag, get_current_tag()) <= 0 &&                           
+            action->is_a_control_reaction_waiting && // Check if a control reaction is waiting
+            action->status == unknown                // Check if the status of the port is still unknown
+            ) {
+        // Since the message is intended for the current tag and a control reaction
+        // was waiting for the message, trigger the corresponding reactions for this
+        // message.
+        LOG_PRINT("Inserting reactions directly at tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
+        action->intended_tag = intended_tag;
+        _lf_insert_reactions_for_trigger(action, message_token);
+
+        // Set the status of the port as present here to inform the network input
+        // control reactions know that they no longer need to block. The reason for
+        // that is because the network receiver reaction is now in the reaction queue
+        // keeping the precedence order intact.
+        set_network_port_status(port_id, present);        
+        // Port is now present. Therfore, notify the network input control reactions to 
+        // stop waiting and re-check the port status.
+        lf_cond_broadcast(&port_status_changed);
+
+        // Notify the main thread in case it is waiting for reactions.
+        DEBUG_PRINT("Broadcasting notification that reaction queue changed.");
+        lf_cond_signal(&reaction_q_changed);
+        // Notify the main thread in case it is waiting for events. FIXME
+        DEBUG_PRINT("Broadcasting notification that event queue changed.");
+        lf_cond_signal(&event_q_changed);
+    } else {
+        // If no control reaction is waiting for this message, or if the intended
+        // tag is in the future, use schedule functions to process the message.
+
+        // Before that, if the current time >= stop time, discard the message.
+        // But only if the stop time is not equal to the start time!
+        if (compare_tags(current_tag, stop_tag) >= 0) {
+            lf_mutex_unlock(&mutex);
+            warning_print("Received message too late. Already at stopping time. Discarding message.");
+            return;
+        }
+        
+        LOG_PRINT("Calling schedule with tag (%lld, %u).", intended_tag.time - start_time, intended_tag.microstep);
+        schedule_message_received_from_network_already_locked(action, intended_tag, message_token);
+
+        if (action->is_a_control_reaction_waiting) {
+            // Notify the waiting control reaction that a future event has been produced for the port
+            lf_cond_broadcast(&port_status_changed);
+        }
+    }
+
 
 #ifdef FEDERATED_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // Finally, decrement the barrier to allow the execution to continue
@@ -1151,17 +1767,101 @@ void handle_timed_message(int socket, unsigned char* buffer, int fed_id) {
  *  This function assumes the caller does not hold the mutex lock,
  *  which it acquires to interact with the main thread, which may
  *  be waiting for a TAG (this broadcasts a condition signal).
+ * 
+ *  @note This function is very similar to handle_provisinal_tag_advance_grant() except that
+ *  it sets last_TAG_was_provisional to false.
  */
 void handle_tag_advance_grant() {
-    unsigned char buffer[sizeof(instant_t) + sizeof(microstep_t)];
-    read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(instant_t) + sizeof(microstep_t), buffer,
-                     "Failed to read the time advance grant from the RTI.");
+    int bytes_to_read = sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_read];
+    read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
+    		"Failed to read tag advance grant from RTI.");
 
     lf_mutex_lock(&mutex);
-    _fed.last_TAG.time = extract_ll(buffer);
-    _fed.last_TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+    tag_t TAG;
+    TAG.time = extract_ll(buffer);
+    TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+
+    // Update the last known status tag of all network input ports
+    // to the TAG received from the RTI. Here we assume that the RTI
+    // knows the status of network ports up to and including the granted tag,
+    // so by extension, we assume that the federate can safely rely
+    // on the RTI to handle port statuses up until the granted tag.
+    update_last_known_status_on_input_ports(TAG);
+    // Then, check if any control reaction is waiting.
+    // If so, notify them.
+    if (any_control_reaction_is_waiting()) {
+        // Notify network input control reactions
+        lf_cond_broadcast(&port_status_changed);
+    }
+
+    // It is possible for this federate to have received a PTAG
+    // earlier with a larger tag than this TAG. Therefore, we might
+    // need to ignore this TAG if that is the case.
+    if (compare_tags(TAG, _fed.last_TAG) >= 0) {
+        _fed.last_TAG.time = TAG.time;
+        _fed.last_TAG.microstep = TAG.microstep;
+        _fed.is_last_TAG_provisional = false;
+        LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    } else if (_fed.is_last_TAG_provisional) {
+        LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u) but already had PTAG (%lld, %u). Ignoring the TAG.",
+                    TAG.time - start_time, 
+                    TAG.microstep,
+                    _fed.last_TAG.time - start_time,
+                    _fed.last_TAG.microstep);
+    } else {
+        error_print_and_exit("Received a TAG (%lld, %u) that wasn't larger than the previous TAG (%lld, %u).",
+                                TAG.time - start_time, 
+                                TAG.microstep,
+                                _fed.last_TAG.time - start_time,
+                                _fed.last_TAG.microstep);
+    }
+
+    // Ignore unsolicited TAGs
+    if (_fed.waiting_for_TAG) {
+        _fed.waiting_for_TAG = false;
+        // Notify everything that is blocked.
+        lf_cond_broadcast(&event_q_changed);
+    }
+
+    lf_mutex_unlock(&mutex);
+}
+
+
+/** Handle a provisional time advance grant (TAG) message from the RTI.
+ *  This function assumes the caller does not hold the mutex lock,
+ *  which it acquires to interact with the main thread, which may
+ *  be waiting for a TAG (this broadcasts a condition signal).
+ * 
+ * @note This function is very similar to handle_tag_advance_grant() except that
+ *  it sets last_TAG_was_provisional to true.
+ */
+void handle_provisional_tag_advance_grant() {
+    int bytes_to_read = sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[bytes_to_read];    
+    read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
+    		"Failed to read provisional tag advance grant from RTI.");
+
+    // Note: it is important that last_known_status_tag of ports does not
+    // get updated to a PTAG value because a PTAG does not indicate that
+    // the RTI knows about the status of all ports up to and _including_
+    // the value of PTAG. Only a TAG message indicates that.
+    lf_mutex_lock(&mutex);
+    tag_t PTAG;
+    PTAG.time = extract_ll(buffer);
+    PTAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+
+    // Sanity check
+    if (compare_tags(PTAG, _fed.last_TAG) < 0 ||
+        (compare_tags(PTAG, _fed.last_TAG) == 0 &&
+         !_fed.is_last_TAG_provisional)) {
+        error_print_and_exit("Received a PTAG that is equal or earlier than an already received TAG.");
+    }
+
+    _fed.last_TAG = PTAG;
     _fed.waiting_for_TAG = false;
-    LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    _fed.is_last_TAG_provisional = true;
+    LOG_PRINT("Received Provisional Tag Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     // Notify everything that is blocked.
     lf_cond_broadcast(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -1186,8 +1886,15 @@ void _lf_fd_send_stop_request_to_rti() {
     unsigned char buffer[1 + sizeof(instant_t)];
     buffer[0] = STOP_REQUEST;
     encode_ll(current_tag.time, &(buffer[1]));
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), buffer,
+    lf_mutex_lock(&outbound_socket_mutex);
+    if (_fed.socket_TCP_RTI < 0) {
+    	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
+    	return;
+    }
+    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), buffer, &outbound_socket_mutex,
             "Failed to send stop time %lld to the RTI.", current_tag.time - start_time);
+    lf_mutex_unlock(&outbound_socket_mutex);
     _fed.sent_a_stop_request_to_rti = true;
 }
 
@@ -1206,9 +1913,10 @@ void _lf_fd_send_stop_request_to_rti() {
  * This would require implementing a shutdown action.
  */
 void handle_stop_granted_message() {
-    unsigned char buffer[sizeof(instant_t)];
-    read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(instant_t), buffer,
-            "Failed to read STOP_GRANTED time from RTI.");
+    int bytes_to_read = sizeof(instant_t);
+    unsigned char buffer[bytes_to_read];    
+    read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
+    		"Failed to read stop granted from RTI.");
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
@@ -1257,9 +1965,10 @@ void handle_stop_granted_message() {
  * the mutex lock, therefore, it acquires it.
  */
 void handle_stop_request_message() {
-    unsigned char buffer[sizeof(instant_t)];
-    read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(instant_t), buffer,
-            "Failed to read STOP_REQUEST time from RTI.");
+    int bytes_to_read = sizeof(instant_t);
+    unsigned char buffer[bytes_to_read];    
+    read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
+    		"Failed to read stop request from RTI.");
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is transport or being used to determine a TAG.
@@ -1282,10 +1991,17 @@ void handle_stop_request_message() {
         tag_to_stop = current_tag;
     }
     encode_ll(tag_to_stop.time, &(outgoing_buffer[1]));
+    lf_mutex_lock(&outbound_socket_mutex);
+    if (_fed.socket_TCP_RTI < 0) {
+    	warning_print("Socket is no longer connected. Dropping message.");
+        lf_mutex_unlock(&outbound_socket_mutex);
+    	return;
+    }
     // Send the current logical time to the RTI. This message does not have an identifying byte since
     // since the RTI is waiting for a response from this federate.
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), outgoing_buffer,
+    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, 1 + sizeof(instant_t), outgoing_buffer, &outbound_socket_mutex,
             "Failed to send the answer to STOP_REQUEST to RTI.");
+    lf_mutex_unlock(&outbound_socket_mutex);
 
     // Raise a barrier at current time
     // because we are sending it to the RTI
@@ -1311,38 +2027,54 @@ void terminate_execution() {
     // NOTE: It is dangerous to acquire a mutex in a termination
     // process because it can block program exit if a deadlock occurs.
     // Hence, it is paramount that these mutexes not allow for any
-    // possibility of deadlock. To ensure this, the above two close
-    // functions should NEVER be called while holding any mutex lock.
+    // possibility of deadlock. To ensure this, this
+    // function should NEVER be called while holding any mutex lock.
+    lf_mutex_lock(&outbound_socket_mutex);
     for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
         // Close outbound connections, in case they have not closed themselves.
         // This will result in EOF being sent to the remote federate, I think.
         _lf_close_outbound_socket(i);
     }
-    /* NOTE: The following attempts to close the incoming P2P sockets
-     * result in a race condition that intermittently gives
-     * spurious errors on shutdown. The mutex locks used in
-     * the function _lf_close_inbound_socket() should, in theory, prevent
-     * this, but for some reason, it does not. Since this federate is exiting,
-     * however, any upstream federate that attempts to send data to this
-     * federate will discover that the socket is broken and can react
-     * accordingly, presumably by exiting. So I don't think it is necessary
-     * to close these sockets here.
-    for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
-        // Close inbound connections, in case they have not closed themselves.
-        _lf_close_inbound_socket(i);
+    // Resign the federation, which will close the socket to the RTI.
+   	if (_fed.socket_TCP_RTI >= 0) {
+        unsigned char message_marker = RESIGN;
+        int written = write_to_socket(_fed.socket_TCP_RTI, 1, &message_marker);
+        if (written == 1) {
+        	LOG_PRINT("Resigned.");
+        }
     }
-     */
-    unsigned char message_marker = RESIGN;
-    write_to_socket_errexit(_fed.socket_TCP_RTI, 1, &message_marker,
-            "Federate %d failed to send RESIGN message to the RTI.", _lf_my_fed_id);
-    LOG_PRINT("Resigned.");
+    lf_mutex_unlock(&outbound_socket_mutex);
+
+    // Request closing the incoming P2P sockets.
+    for (int i=0; i < NUMBER_OF_FEDERATES; i++) {
+        if (_lf_request_close_inbound_socket(i) == 0) {
+        	// Sending the close request failed. Mark the socket closed.
+        	_fed.sockets_for_inbound_p2p_connections[i] = -1;
+        }
+    }
+
+    // Wait for each inbound socket listener thread to close.
+    if (_fed.number_of_inbound_p2p_connections > 0) {
+    	LOG_PRINT("Waiting for %d threads listening for incoming messages to exit.",
+    			_fed.number_of_inbound_p2p_connections);
+    	for (int i=0; i < _fed.number_of_inbound_p2p_connections; i++) {
+    		// Ignoring errors here.
+    		lf_thread_join(_fed.inbound_socket_listeners[i], NULL);
+    	}
+    }
+
+    // Wait for the thread listening for messages from the RTI to close.
+    lf_thread_join(_fed.RTI_socket_listener, NULL);
+
+    free(_fed.inbound_socket_listeners);
 }
 
 /** 
  * Thread that listens for inputs from other federates.
- * This thread listens for messages of type P2P_TIMED_MESSAGE 
- * (@see rti.h) from the specified peer federate and calls schedule to 
- * schedule an event. If an error occurs or an EOF is received 
+ * This thread listens for messages of type P2P_MESSAGE,
+ * P2P_TIMED_MESSAGE, or PORT_ABSENT (@see rti.h) from the specified
+ * peer federate and calls the appropriate handling function for
+ * each message type. If an error occurs or an EOF is received
  * from the peer, then this procedure sets the corresponding 
  * socket in _fed.sockets_for_inbound_p2p_connections
  * to -1 and returns, terminating the thread.
@@ -1383,19 +2115,22 @@ void* listen_to_federates(void* fed_id_ptr) {
         switch (buffer[0]) {
             case P2P_MESSAGE:
                 LOG_PRINT("Received untimed message from federate %d.", fed_id);
-                handle_message(socket_id, buffer + 1, fed_id);
+                handle_message(socket_id, fed_id);
                 break;
             case P2P_TIMED_MESSAGE:
                 LOG_PRINT("Received timed message from federate %d.", fed_id);
-                handle_timed_message(socket_id, buffer + 1, fed_id);
+                handle_timed_message(socket_id, fed_id);
+                break;
+            case PORT_ABSENT:
+                LOG_PRINT("Received port absent message from federate %d.", fed_id);
+                handle_port_absent_message(socket_id, fed_id);
                 break;
             default:
                 bad_message = true;
         }
         if (bad_message) {
-            error_print("Received erroneous message type: %d. Closing the socket.", buffer[0]);
             // FIXME: Better error handling needed.
-            _lf_close_inbound_socket(fed_id);
+            error_print_and_exit("Received erroneous message type: %d. Closing the socket.", buffer[0]);
             break;
         }
     }
@@ -1415,28 +2150,56 @@ void* listen_to_rti_TCP(void* args) {
 
     // Listen for messages from the federate.
     while (1) {
+        // Check whether the RTI socket is still valid
+        if (_fed.socket_TCP_RTI < 0) {
+            warning_print("Socket to the RTI unexpectedly closed.");
+            return NULL;
+        }
         // Read one byte to get the message type.
         // This will exit if the read fails.
         int bytes_read = read_from_socket(_fed.socket_TCP_RTI, 1, buffer);
         if (bytes_read < 0) {
-            error_print_and_exit("Socket connection to the RTI has been broken.");
-        } else if (bytes_read < 1) {
+            if (errno == ECONNRESET) {
+                error_print("Socket connection to the RTI was closed by the RTI without"
+                            " properly sending an EOF first. Considering this a soft error.");
+                // FIXME: If this happens, possibly a new RTI must be elected.
+                _fed.socket_TCP_RTI = -1;
+                return NULL;
+            } else {
+                error_print("Socket connection to the RTI has been broken" 
+                                    " with error %d: %s. The RTI should"
+                                    " close connections with an EOF first."
+                                    " Considering this a soft error.", 
+                                    errno, 
+                                    strerror(errno));
+                // FIXME: If this happens, possibly a new RTI must be elected.
+                _fed.socket_TCP_RTI = -1;
+                return NULL;                   
+            }
+        } else if (bytes_read == 0) {
             // EOF received.
             info_print("Connection to the RTI closed with an EOF.");
+            _fed.socket_TCP_RTI = -1;
             return NULL;
         }
         switch (buffer[0]) {
             case TIMED_MESSAGE:
-                handle_timed_message(_fed.socket_TCP_RTI, &(buffer[1]), -1);
+                handle_timed_message(_fed.socket_TCP_RTI, -1);
                 break;
             case TIME_ADVANCE_GRANT:
                 handle_tag_advance_grant();
+                break;
+            case PROVISIONAL_TIME_ADVANCE_GRANT:
+                handle_provisional_tag_advance_grant();
                 break;
             case STOP_REQUEST:
                 handle_stop_request_message();
                 break;
             case STOP_GRANTED:
                 handle_stop_granted_message();
+                break;
+            case PORT_ABSENT:
+                handle_port_absent_message(_fed.socket_TCP_RTI, -1);
                 break;
             case PHYSICAL_CLOCK_SYNC_MESSAGE_T1:
             case PHYSICAL_CLOCK_SYNC_MESSAGE_T4:
@@ -1481,11 +2244,13 @@ void synchronize_with_other_federates() {
        stop_tag = ((tag_t) {.time = start_time + duration, .microstep = 0});
     }
     
-    // Start two threads to listen for incoming messages from the RTI.
-    // One for TCP messages:
-    lf_thread_t thread_id;
-    lf_thread_create(&thread_id, listen_to_rti_TCP, NULL);
+    // Start a thread to listen for incoming TCP messages from the RTI.
+    // @note Up until this point, the federate has been listening for messages
+    //  from the RTI in a sequential manner in the main thread. From now on, a
+    //  separate thread is created to allow for asynchronous communication.
+    lf_thread_create(&_fed.RTI_socket_listener, listen_to_rti_TCP, NULL);
 
+    lf_thread_t thread_id;
     if (create_clock_sync_thread(&thread_id)) {
         warning_print("Failed to create thread to handle clock synchronization.");
     }
@@ -1646,7 +2411,9 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 
         // If time advance has already been granted for this tag or a larger
         // tag, then return immediately.
-        if (compare_tags(_fed.last_TAG, tag) >= 0) {
+        if (compare_tags(_fed.last_TAG, tag) > 0 ||
+            (compare_tags(_fed.last_TAG, tag) == 0 &&
+             !_fed.is_last_TAG_provisional)) {
             DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG is at least as large.",
                     current_tag.time - start_time, current_tag.microstep);
             return tag;
@@ -1687,9 +2454,11 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
             // NOTE: If fast execution is being used, it may be necessary to
             // throttle upstream federates.
             if (!_fed.has_upstream) {
+                DEBUG_PRINT("Not waiting for reply to NET (%lld, %u) because I have no upstream federates.", 
+                         tag.time - start_time, tag.microstep);
                 return tag;
             }
-            // Fed has upstream federates. Have to wait for a TAG.
+            // Fed has upstream federates. Have to wait for a TAG or PTAG.
             _fed.waiting_for_TAG = true;
 
             // Wait until a TAG is received from the RTI.
@@ -1700,7 +2469,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
                 if (lf_cond_wait(&event_q_changed, &mutex) != 0) {
                     error_print("Wait error.");
                 }
-                // Either there is a new event on the event queue or a TAG arrived.
+                // Either a TAG or PTAG arrived.
                 if (!_fed.waiting_for_TAG) {
                     // _fed.last_TAG will have been set by the thread receiving the TAG message that
                     // set _fed.waiting_for_TAG to false.

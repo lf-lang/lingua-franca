@@ -39,11 +39,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "pqueue.c"
 #include "util.c"
 
-/**
- * Indicator for the absence of values for ports that remain disconnected.
- **/
-bool absent = false;
-
 /** 
  * Indicator of whether to wait for physical time to match logical time.
  * By default, execution will wait. The command-line argument -fast will
@@ -114,6 +109,28 @@ int __tokens_with_ref_count_size = 0;
  * calling set_stp_offset(interval_t offset).
  */
 interval_t _lf_global_time_STP_offset = 0LL;
+
+#ifdef FEDERATED
+/**
+ * Reset absent fields on network input ports.
+ * @note Defined in federate.c
+ */
+void reset_status_fields_on_input_port_triggers();
+
+/**
+ * Enqueue network control reactions.
+ */
+void enqueue_network_control_reactions(pqueue_t* reaction_q);
+
+/**
+ * Determine the status of the port at the current logical time.
+ * If successful, return true. If the status cannot be determined
+ * at this moment, return false.
+ * 
+ * @param portID the ID of the port to determine status for
+ */
+port_status_t determine_port_status_if_possible(int portID);
+#endif
 
 /**
  * Set the stop tag.
@@ -283,19 +300,23 @@ static void set_reaction_position(void *a, size_t pos) {
 
 /**
  * Print some information about the given reaction.
+ * 
+ * DEBUG function only.
  */
-static void print_reaction(FILE *out, void *reaction) {
+static void print_reaction(void *reaction) {
 	reaction_t *r = (reaction_t*)reaction;
-    fprintf(out, "chain_id:%llu, index: %llu, reaction: %p\n", 
-        r->chain_id, r->index, r);
+    DEBUG_PRINT("%s: chain_id:%llu, index: %llx, reaction: %p",
+    		r->name, r->chain_id, r->index, r);
 }
 
 /**
  * Print some information about the given event.
+ * 
+ * DEBUG function only.
  */
-static void print_event(FILE *out, void *event) {
+static void print_event(void *event) {
 	event_t *e = (event_t*)event;
-    fprintf(out, "time: %lld, trigger: %p, token: %p\n",
+    DEBUG_PRINT("time: %lld, trigger: %p, token: %p",
 			e->time, e->trigger, e->token);
 }
 
@@ -408,9 +429,9 @@ void _lf_enqueue_reaction(reaction_t* reaction);
 void __start_time_step() {
     LOG_PRINT("--------- Start time step at tag (%lld, %u).", current_tag.time - start_time, current_tag.microstep);
     for(int i = 0; i < __tokens_with_ref_count_size; i++) {
-        if (*(__tokens_with_ref_count[i].is_present)) {
+        if (*(__tokens_with_ref_count[i].status) == present) {
             if (__tokens_with_ref_count[i].reset_is_present) {
-                *(__tokens_with_ref_count[i].is_present) = false;
+                *(__tokens_with_ref_count[i].status) = absent;
             }
             __done_using(*(__tokens_with_ref_count[i].token));
         }
@@ -429,6 +450,11 @@ void __start_time_step() {
         *__intended_tag_fields[i] = (tag_t) {NEVER, 0};
 #endif
     }
+#ifdef FEDERATED
+    // Reset absent fields on network ports because
+    // their status is unknown
+    reset_status_fields_on_input_port_triggers();
+#endif
 }
 
 /**
@@ -468,6 +494,9 @@ lf_token_t* __create_token(size_t element_size) {
  * @param element_size The size of an element carried in the payload or
  *  0 if there is no payload.
  * @return A new or recycled lf_token_t struct.
+ * 
+ * @note For multithreaded applications, the caller must hold
+ *  the mutex lock because it accesses global variables.
  */
 lf_token_t* create_token(size_t element_size) {
     DEBUG_PRINT("create_token: element_size: %zu", element_size);
@@ -560,7 +589,6 @@ void __pop_events() {
 
         // Put the corresponding reactions onto the reaction queue.
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            DEBUG_PRINT("Pushed onto reaction_q: %p", event->trigger->reactions[i]);
             reaction_t *reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
@@ -577,19 +605,24 @@ void __pop_events() {
                     // And check if it is in the past compared to the current tag.
                     if (compare_tags(event->intended_tag,
                                     current_tag) < 0) {
-                        // Mark the triggered reaction as tardy
-                        reaction->is_tardy = true;
-                        LOG_PRINT("Trigger %p is tardy. Intended tag: (%lld, %u). Current tag: (%lld, %u)",
+                        // Mark the triggered reaction with a STP violation
+                        reaction->is_STP_violated = true;
+                        LOG_PRINT("Trigger %p has violated the reaction's STP offset. Intended tag: (%lld, %u). Current tag: (%lld, %u)",
                                     event->trigger,
                                     event->intended_tag.time - start_time, event->intended_tag.microstep,
                                     current_tag.time - start_time, current_tag.microstep);
                     }
                 }
 #endif
-                DEBUG_PRINT("Enqueing reaction %p.", reaction);
+                DEBUG_PRINT("Enqueing reaction %s.", reaction->name);
                 pqueue_insert(reaction_q, reaction);
+            } else {
+                DEBUG_PRINT("Reaction is already on the reaction_q: %s", reaction->name);
             }
         }
+
+        // Mark the trigger present.
+        event->trigger->status = present;
 
         // If the trigger is a periodic timer, create a new event for its next execution.
         if (event->trigger->is_timer && event->trigger->period > 0LL) {
@@ -616,11 +649,12 @@ void __pop_events() {
         event->trigger->token = token;
         // Prevent this token from being freed. It is the new template.
         // This might be null if there are no reactions to the action.
-        if (token != NULL)
+        if (token != NULL) {
             token->ok_to_free = no;
+        }
 
         // Mark the trigger present.
-        event->trigger->is_present = true;
+        event->trigger->status = present;
         
         // If this event points to a next event, insert it into the next queue.
         if (event->next != NULL) {
@@ -633,6 +667,13 @@ void __pop_events() {
         // Peek at the next event in the event queue.
         event = (event_t*)pqueue_peek(event_q);
     };
+
+    
+#ifdef FEDERATED
+    // Insert network dependent reactions for network input ports into
+    // the reaction queue
+    enqueue_network_control_reactions(reaction_q);
+#endif // FEDERATED
 
     // After populating the reaction queue, see if there are things on the
     // next queue to put back into the event queue.
@@ -819,7 +860,7 @@ int _lf_schedule_at_tag(trigger_t* trigger, tag_t tag, lf_token_t* token) {
 
     event_t* found = (event_t *)pqueue_find_equal_same_priority(event_q, e);
     if (found != NULL) {
-        if (tag.microstep == 0) {
+        if (tag.microstep == 0u) {
                 // The microstep is 0, which means that the event is being scheduled
                 // at a future time and at the beginning of the skip list of events 
                 // at that time.
@@ -1045,7 +1086,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
         // - we have eliminated the possibility to have a negative additional delay; and
         // - we detect the asynchronous use of logical actions
         if (intended_time < current_tag.time) {
-            warning_print("Attempting to schedule an event earlier than current time by %lld nsec!"
+            warning_print("Attempting to schedule an event earlier than current time by %lld nsec! "
                     "Revising to the current time %lld.",
                     current_tag.time - intended_time, current_tag.time);
             intended_time = current_tag.time;
@@ -1161,7 +1202,7 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
     // FIXME: This is a development assertion and might
     // not be necessary for end-user LF programs
     if (intended_time < current_tag.time) {
-        error_print("Attempting to schedule an event earlier than current time by %lld nsec!"
+        error_print("Attempting to schedule an event earlier than current time by %lld nsec! "
                 "Revising to the current time %lld.",
                 current_tag.time - intended_time, current_tag.time);
         intended_time = current_tag.time;
@@ -1210,44 +1251,14 @@ handle_t __schedule(trigger_t* trigger, interval_t extra_delay, lf_token_t* toke
 }
 
 /**
- * A variant of __schedule() that will not incur a microstep delay when called.
- * This is achieved by bypassing the event queue and scheduling reactions
- * directly on the reaction queue.
- * This function should only be used at tag (0,0) (i.e., startup) when execution 
- * has not started yet for triggers that
- * are not timers or physical actions, but are still triggered at tag (0,0).
- * This situation arises when an upstream federate sends a message with tag
- * (0,0), and is received at tag (0,0) while the federate has not started execution
- * yet. The message handling reactions thus need to be triggered at (0,0).
- * This function is only appropriate for logical actions, not timers nor 
- * physical actions. Timers and physical actions should be handled separately.
- * If these conditions are not met, it will not schedule anything and return 0.
+ * Insert reactions triggered by trigger to the reaction queue... 
  * 
- * 
- * @param trigger The trigger to 
- * @param extra_delay The logical time delay, which gets added to the
- *  trigger's minimum delay, if it has one. If this number is negative,
- *  then zero is used instead.
+ * @param trigger The trigger
  * @param token The token wrapping the payload or NULL for no payload.
- * @return A handle to the event, or 0 if no new event was scheduled because the function
+ * @return 1 if successful, or 0 if no new reaction was scheduled because the function
  *  was called incorrectly.
  */
-handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay, lf_token_t* token) {
-    // Check to see if the execution
-    // has not started yet.
-    if (_lf_execution_started) {
-        warning_print("_lf_schedule_init_reactions() called when execution has already started.");
-        return 0;
-    }
-    
-    // Check to see if we are actually at startup
-    // FIXME: add microsteps
-    if (current_tag.time != start_time) {
-        warning_print("_lf_schedule_init_reactions() at a time (%lld) other than start time (%lld).",
-                      current_tag.time, start_time);
-        return 0;
-    }
-
+handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token) {
     // The trigger argument could be null, meaning that nothing is triggered.
     // Doing this after incrementing the reference count ensures that the
     // payload will be freed, if there is one.
@@ -1256,12 +1267,6 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
 	    __done_using(token);
 	    return 0;
 	}
-
-    // Check to see if the intended event will actually be scheduled at (0,0)
-    if ((trigger->offset + extra_delay) != 0LL) {
-        warning_print("_lf_schedule_init_reactions() called with with intended time %lld which is non-zero.", trigger->offset + extra_delay);
-        return 0;
-    }
     
     // Check to see if the trigger is not a timer
     // and not a physical action
@@ -1270,9 +1275,25 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
         return 0;
     }
 
-#ifdef FEDERATED_DECENTRALIZED
-    // Set the intended tag which is (0,0)
-    trigger->intended_tag = (tag_t) { .time = start_time, .microstep = 0 };
+    // Increment the reference count of the token.
+	if (token != NULL) {
+	    token->ref_count++;
+	}
+
+    // Check if the trigger has violated the STP offset
+    bool is_STP_violated = false;
+#ifdef FEDERATED
+    if (compare_tags(trigger->intended_tag, get_current_tag()) < 0) {
+        is_STP_violated = true;
+    }
+#ifdef FEDERATED_CENTRALIZED
+    // Check for STP violation in the centralized coordination, which is a 
+    // critical error.
+    if (is_STP_violated) {
+        error_print_and_exit("Attempted to insert reactions for a trigger that had violated the STP offset"
+                             " in centralized coordination.");
+    }
+#endif
 #endif
 
     // Copy the token pointer into the trigger struct so that the
@@ -1293,30 +1314,22 @@ handle_t _lf_schedule_init_reactions(trigger_t* trigger, interval_t extra_delay,
         token->ok_to_free = no;
     }
 
+    // Mark the trigger present.
+    trigger->status = present;
     
     // Push the corresponding reactions for this trigger
     // onto the reaction queue.
-    // NOTE: This is allowed because
-    // when this is called, the execution has not started
-    // and the (0,0) tag has not been acquired yet.
     for (int i = 0; i < trigger->number_of_reactions; i++) {
         reaction_t* reaction = trigger->reactions[i];
         // Do not enqueue this reaction twice.
         if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+            reaction->is_STP_violated = is_STP_violated;
             pqueue_insert(reaction_q, reaction);
-            DEBUG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
+            LOG_PRINT("Enqueued reaction %s at time %lld.", reaction->name, get_logical_time());
         }
     }
 
-    // FIXME: make a record of handle and implement unschedule.
-    // NOTE: Rather than wrapping around to get a negative number,
-    // we reset the handle on the assumption that much earlier
-    // handles are irrelevant.
-    int return_value = __handle++;
-    if (__handle < 0) { 
-        __handle = 1;
-    }
-    return return_value;
+    return 1;
 }
 
 /**
@@ -1424,6 +1437,13 @@ lf_token_t* __set_new_array_impl(lf_token_t* token, int length, int num_destinat
  * @param worker The thread number of the worker thread or 0 for unthreaded execution (for tracing).
  */
 void schedule_output_reactions(reaction_t* reaction, int worker) {
+    if (reaction->is_a_control_reaction) {
+        // Control reactions will not produce an output but can have
+        // effects in order to have certain precedence requirements.
+        // No need to execute this function if the reaction is a control
+        // reaction.
+        return;
+    }
     // If the reaction produced outputs, put the resulting triggered
     // reactions into the reaction queue. As an optimization, if exactly one
     // downstream reaction is enabled by this reaction, then it may be
@@ -1431,11 +1451,12 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
     // without going through the reaction queue.
     reaction_t* downstream_to_execute_now = NULL;
     int num_downstream_reactions = 0;
-#ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated programs that use decentralized coordination.
-    // Extract the inherited tardiness
-    bool inherited_tardiness = reaction->is_tardy;
+#ifdef FEDERATED_DECENTRALIZED // Only pass down STP violation for federated programs that use decentralized coordination.
+    // Extract the inherited STP violation
+    bool inherited_STP_violation = reaction->is_STP_violated;
+    LOG_PRINT("Reaction %s has STP violation status: %d.", reaction->name, reaction->is_STP_violated);
 #endif
-    DEBUG_PRINT("There are %d outputs from reaction %p.", reaction->num_outputs, reaction);
+    DEBUG_PRINT("There are %d outputs from reaction %s.", reaction->num_outputs, reaction->name);
     for (int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
             DEBUG_PRINT("Output %d has been produced.", i);
@@ -1448,10 +1469,11 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                     for (int k=0; k < trigger->number_of_reactions; k++) {
                         reaction_t* downstream_reaction = trigger->reactions[k];
 #ifdef FEDERATED_DECENTRALIZED // Only pass down tardiness for federated LF programs
-                        // Set the tardiness for the downstream reaction
+                        // Set the is_STP_violated for the downstream reaction
                         if (downstream_reaction != NULL) {
-                            downstream_reaction->is_tardy = inherited_tardiness;
-                            DEBUG_PRINT("Passing tardiness of %d to the downstream reaction.", downstream_reaction->is_tardy);
+                            downstream_reaction->is_STP_violated = inherited_STP_violation;
+                            DEBUG_PRINT("Passing is_STP_violated of %d to the downstream reaction: %s",
+                            		downstream_reaction->is_STP_violated, downstream_reaction->name);
                         }
 #endif
                         if (downstream_reaction != NULL && downstream_reaction != downstream_to_execute_now) {
@@ -1488,32 +1510,33 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         }
     }
     if (downstream_to_execute_now != NULL) {
-        LOG_PRINT("Worker %d: Optimizing and executing downstream reaction now.", worker);
+        LOG_PRINT("Worker %d: Optimizing and executing downstream reaction now: %s", worker, downstream_to_execute_now->name);
         bool violation = false;
-#ifdef FEDERATED_DECENTRALIZED // Only use the Tardy handler for federated programs that use decentralized coordination
-        // If the is_tardy for the reaction is true,
+#ifdef FEDERATED_DECENTRALIZED // Only use the STP handler for federated programs that use decentralized coordination
+        // If the is_STP_violated for the reaction is true,
         // an input trigger to this reaction has been triggered at a later
         // logical time than originally anticipated. In this case, a special
-        // tardy reaction will be invoked.             
-        // FIXME: Note that the tardy reaction will be invoked
-        // at most once per logical time value. If the tardy reaction triggers the
+        // STP handler will be invoked.             
+        // FIXME: Note that the STP handler will be invoked
+        // at most once per logical time value. If the STP handler triggers the
         // same reaction at the current time value, even if at a future superdense time,
-        // then the reaction will be invoked and the tardy reaction will not be invoked again.
-        // However, inputs ports to a federate reactor are network port types so this possibly should
+        // then the reaction will be invoked and the STP handler will not be invoked again.
+        // However, input ports to a federate reactor are network port types so this possibly should
         // be disallowed.
-        // @note The tardy handler and the deadline handler are not mutually exclusive.
+        // @note The STP handler and the deadline handler are not mutually exclusive.
         //  In other words, both can be invoked for a reaction if it is triggered late
-        //  in logical time (tardy) and also misses the constraint on physical time (deadline).
-        // @note In absence of a tardy handler, the is_tardy will be passed down the reaction
-        //  chain until it is dealt with in a downstream tardy handler.
-        if (downstream_to_execute_now->is_tardy == true) {
+        //  in logical time (STP offset is violated) and also misses the constraint on 
+        //  physical time (deadline).
+        // @note In absence of a STP handler, the is_STP_violated will be passed down the reaction
+        //  chain until it is dealt with in a downstream STP handler.
+        if (downstream_to_execute_now->is_STP_violated == true) {
             // Tardiness has occurred
-            LOG_PRINT("Event is tardy.");
-            reaction_function_t handler = downstream_to_execute_now->tardy_handler;
-            // Invoke the tardy handler if there is one.
+            LOG_PRINT("Event has STP violation.");
+            reaction_function_t handler = downstream_to_execute_now->STP_handler;
+            // Invoke the STP handler if there is one.
             if (handler != NULL) {
                 // There is a violation and it is being handled here
-                // If there is no tardy handler, pass the is_tardy
+                // If there is no STP handler, pass the is_STP_violated
                 // to downstream reactions.
                 violation = true;
                 LOG_PRINT("Invoke tardiness handler.");
@@ -1524,9 +1547,10 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                 schedule_output_reactions(downstream_to_execute_now, worker);
                 
                 // Reset the tardiness because it has been dealt with in the
-                // tardy handler
-                downstream_to_execute_now->is_tardy = false;
-                DEBUG_PRINT("Reset reaction's is_tardy field to false.");
+                // STP handler
+                downstream_to_execute_now->is_STP_violated = false;
+                DEBUG_PRINT("Reset reaction's is_STP_violated field to false: %s",
+                		downstream_to_execute_now->name);
             }
         }
 #endif
@@ -1560,10 +1584,11 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
             schedule_output_reactions(downstream_to_execute_now, worker);
         }
             
-        // Reset the is_tardy because it has been passed
+        // Reset the is_STP_violated because it has been passed
         // down the chain
-        downstream_to_execute_now->is_tardy = false;
-        DEBUG_PRINT("Finally, reset reaction's is_tardy field to false.");
+        downstream_to_execute_now->is_STP_violated = false;
+        DEBUG_PRINT("Finally, reset reaction's is_STP_violated field to false: %s",
+        		downstream_to_execute_now->name);
     } else if (num_downstream_reactions > 0) {
         // If we are running a multithreaded setting, the following function
         // may wake up other worker threads to execute the newly queued reactions.

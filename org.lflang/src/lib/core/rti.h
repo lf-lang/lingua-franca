@@ -144,8 +144,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * number and IP address in reply, it will establish a socket connection
  * to that remote federate.
  *
- * FIXME: Don't physical connections also use the above P2P sockets between
- * federates? Even if the coordination is centralized...
+ * Physical connections also use the above P2P sockets between
+ * federates even if the coordination is centralized.
+ *
+ * Peer-to-peer sockets can be closed by the downstream federate.
+ * For example, when a downstream federate reaches its stop time, then
+ * it will stop accepting physical messages. To achieve an orderly shutdown,
+ * the downstream federate sends a CLOSE_REQUEST message to the upstream
+ * one and the upstream federate handles closing the socket. This way, any
+ * messages that are in the middle of being sent while the downstream
+ * federate shuts down will successfully traverse the socket, even if
+ * only to be ignored by the downstream federate.  It is valid to ignore
+ * such messages if the connection is physical or if the coordination is
+ * decentralized and the messages arrive after the STP offset of the
+ * downstream federate (i.e., they are "tardy").
  *
  * FIXME: What happens after this?
  *
@@ -354,12 +366,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TIME_ADVANCE_GRANT 7
 
 /** 
+ * Byte identifying a provisional time advance grant (TAG) sent by the RTI to a federate
+ * in centralized coordination.
+ * The next eight bytes will be the timestamp.
+ * The next four bytes will be the microstep.
+ */
+#define PROVISIONAL_TIME_ADVANCE_GRANT 8
+
+/** 
  * Byte identifying a logical tag complete (LTC) message sent by a federate
  * to the RTI.
  * The next eight bytes will be the timestep of the completed tag.
  * The next four bytes will be the microsteps of the completed tag.
  */
-#define LOGICAL_TAG_COMPLETE 8
+#define LOGICAL_TAG_COMPLETE 9
 
 /////////// Messages used in request_stop() ///////////////
 //// Overview of the algorithm:
@@ -385,21 +405,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * and time cannot be advanced. Hence, the current implementations may result
  * in nondeterministic stop times.
  */
-#define STOP_REQUEST 9
+#define STOP_REQUEST 10
 
 /**
  * Byte indicating a federate's reply to a STOP_REQUEST that was originally sent
  * by the RTI.
  * The next 8 bytes will be the timestamp.
  */
-#define STOP_REQUEST_REPLY 10
+#define STOP_REQUEST_REPLY 11
 
 /**
  * Byte sent by the RTI indicating that the stop request from this federate
  * or from other federates has been granted. The next 8 bytes will be the
  * time at which the federates will stop.
  */
-#define STOP_GRANTED 11
+#define STOP_GRANTED 12
 /////////// End of request_stop() messages ////////////////
 
 /**
@@ -411,7 +431,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * the other federate), followed by the IP address of the other
  * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
  */
-#define ADDRESS_QUERY 12
+#define ADDRESS_QUERY 13
 
 /**
  * Byte identifying a message advertising the port for the physical connection server
@@ -420,7 +440,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The sending federate will not wait for a response from the RTI and assumes its
  * request will be processed eventually by the RTI.
  */
-#define ADDRESS_AD 13
+#define ADDRESS_AD 14
 
 /**
  * Byte identifying a first message that is sent by a federate directly to another federate
@@ -431,7 +451,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * federate does not expect this federate or federation to connect, it will respond
  * instead with REJECT.
  */
-#define P2P_SENDING_FED_ID 14
+#define P2P_SENDING_FED_ID 15
 
 /**
  * Byte identifying a message to send directly to another federate.
@@ -442,7 +462,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The four bytes after will be the length of the message.
  * The ramaining bytes are the message.
  */
-#define P2P_MESSAGE 15
+#define P2P_MESSAGE 16
 
 /**
  * Byte identifying a timestamped message to send directly to another federate.
@@ -459,7 +479,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next four bytes will be the microstep of the sender.
  * The ramaining bytes are the message.
  */
-#define P2P_TIMED_MESSAGE 16
+#define P2P_TIMED_MESSAGE 17
+
+/**
+ * Byte identifying a message that a downstream federate sends to its
+ * upstream counterpart to request that the socket connection be closed.
+ * This is the only message that should flow upstream on such socket
+ * connections.
+ */
+#define CLOSE_REQUEST 18
 
 ////////////////////////////////////////////////
 /**
@@ -470,19 +498,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 8 bytes will be a timestamp sent according to
  * PTP.
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T1 17
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T1 19
 
 /*
  * Prompts the master to send a T4.
  * The next four bytes will be the sendin federate's id
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T3 18
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T3 20
 
 /*
  * The next 8 bytes will be a timestamp sent according to
  * PTP.
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4 19
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4 21
 
 /**
  * Coded probe message.
@@ -494,7 +522,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @see Geng, Yilong, et al.
  * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 20
+#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 22
+
+
+/**
+ * A port absent message, informing the receiver that a given port
+ * will not have event for the current logical time.
+ * 
+ * The next 2 bytes is the port id.
+ * The next 2 bytes will be the federate id of the destination federate.
+ *  This is needed for the centralized coordination so that the RTI knows where
+ *  to forward the message.
+ * The next 8 bytes are the intended time of the absent message
+ * The next 4 bytes are the intended microstep of the absent message
+ */
+#define PORT_ABSENT 23
 
 
 /////////////////////////////////////////////

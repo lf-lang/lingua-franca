@@ -129,7 +129,10 @@ reactor Server(
  * @input query A trigger to read the current value of the record.
  * @output reply The time value of the record.
  */
-reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
+reactor Database(update_deadline:time(200 msec),
+    database_name:char*(""), 
+    STP_offset:time(0)      // Used for decentralized coordination of federation only.
+    ) {
     input local_update:int;
     input remote_update:int;
     input query:bool;
@@ -156,7 +159,7 @@ reactor Database(update_deadline:time(200 msec), database_name:char*("")) {
                 get_elapsed_physical_time()
             );
         }
-    =} tardy {=
+    =} STP (STP_offset) {=
 #ifdef FEDERATED_DECENTRALIZED
         if (remote_update->is_present) {
             error_print("At tag (%lld, %u), database \"%s\" "
@@ -211,7 +214,7 @@ reactor Platform(
     update_offset:time(0),
     update_period:time(100 msec),
     start:int(0),
-    STP:time(0),			// Used for decentralized coordination of federation only.
+    STP_offset:time(0),      // Used for decentralized coordination of federation only.
     database_name:char*("") // Used for more visible logging
 ) {
     input update:int;
@@ -224,7 +227,7 @@ reactor Platform(
         start = start,
         server_name = database_name
     );
-    database = new Database(database_name = database_name);
+    database = new Database(database_name = database_name, STP_offset = STP_offset);
     server.query -> database.query;
     server.update -> database.local_update;
     database.reply -> server.reply;
