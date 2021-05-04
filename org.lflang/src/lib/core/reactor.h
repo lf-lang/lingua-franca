@@ -458,6 +458,9 @@ struct reaction_t {
     bool is_a_control_reaction; // Indicates whether this reaction is a control reaction. Control
                                 // reactions will not set ports or actions and don't require scheduling
                                 // any output reactions. Default is false.
+    char* name;                 // If logging is set to LOG or higher, then this will
+                                // point to the full name of the reactor followed by
+    							// the reaction number.
 };
 
 /** Typedef for event_t struct, used for storing activation records. */
