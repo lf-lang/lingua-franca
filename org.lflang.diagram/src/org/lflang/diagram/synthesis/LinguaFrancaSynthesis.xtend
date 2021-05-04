@@ -45,6 +45,8 @@ import org.eclipse.elk.core.options.PortSide
 import org.eclipse.elk.core.options.SizeConstraint
 import org.eclipse.elk.graph.properties.Property
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.eclipse.xtext.resource.XtextResource
 import org.lflang.ASTUtils
 import org.lflang.FileConfig
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction
@@ -56,14 +58,15 @@ import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions
 import org.lflang.diagram.synthesis.styles.ReactorFigureComponents
 import org.lflang.diagram.synthesis.util.CycleVisualization
 import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization
+import org.lflang.diagram.synthesis.util.ModeDiagrams
 import org.lflang.diagram.synthesis.util.ReactorIcons
 import org.lflang.diagram.synthesis.util.UtilityExtensions
 import org.lflang.graph.BreadCrumbTrail
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
-import org.lflang.lf.Connection
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
+import org.lflang.lf.Mode
 import org.lflang.lf.Model
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
@@ -100,6 +103,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     @Inject extension InterfaceDependenciesVisualization
 	@Inject extension FilterCycleAction
 	@Inject extension ReactorIcons
+    @Inject extension ModeDiagrams
 	
 	// -------------------------------------------------------------------------
 
@@ -168,7 +172,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			SHOW_REACTOR_HOST,
 			SHOW_INSTANCE_NAMES,
 			REACTOR_PARAMETER_MODE,
-			REACTOR_PARAMETER_TABLE_COLS
+			REACTOR_PARAMETER_TABLE_COLS,
+			ModeDiagrams.SHOW_TRANSITION_LABELS
 		]
 	}
 	
@@ -542,36 +547,58 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		var shutdownUsed = false
 
 		// Transform instances
-		for (entry : reactor.allInstantiations.reverseView.indexed) {
+		val reactors = newArrayList
+		reactors += reactor.allInstantiations.reverseView.indexed
+		reactors += reactor.modes.map[it.instantiations.reverseView.indexed].flatten
+		for (entry : reactors) {
 			val instance = entry.value
 			val rNodes = instance.reactorClass.toDefinition.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors, allReactorNodes)
 			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
+			rNodes.forEach[setMode(instance)]
 			nodes += rNodes
 		}
 		
 		// Create timers
-		for (Timer timer : reactor.allTimers?:emptyList) {
+		val timers = newArrayList
+        timers += reactor.allTimers?:emptyList
+        timers += reactor.modes.map[it.timers].flatten
+		for (Timer timer : timers) {
 			val node = createNode().associateWith(timer)
 			nodes += node
 			nodes += timer.createUserComments(node)
+			node.setMode(timer)
 			timerNodes.put(timer, node)
 			
 			node.addTimerFigure(timer)
 		}
 
 		// Create reactions
-		for (reaction : reactor.allReactions.reverseView) {
-			val idx = reactor.allReactions.indexOf(reaction)
+        val reactions = newArrayList
+        reactions += reactor.allReactions
+        if (!reactor.modes.empty) {
+            reactions += reactor.modes.map[it.reactions].flatten
+            if (reactor.eResource instanceof XtextResource) {
+                val reactionPos = newHashMap()
+                for (reaction : reactions) {
+                    val iNode = NodeModelUtils.findActualNodeFor(reaction)
+                    reactionPos.put(reaction, iNode.totalOffset)
+                }
+                reactions.sortInplaceBy[reactionPos.get(it)]
+            }
+        }
+		for (reaction : reactions) {
 			val node = createNode().associateWith(reaction)
 			nodes += node
 			nodes += reaction.createUserComments(node)
 			reactionNodes.put(reaction, node)
+			val idx = reactions.indexOf(reaction)
+			node.setMode(reaction)
 						
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			node.setLayoutOption(CoreOptions.PRIORITY, (reactor.allReactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
 			node.setLayoutOption(LayeredOptions.POSITION, new KVector(0, idx)) // try order reactions vertically if in one layer
 			
-			node.addReactionFigure(reaction)
+			node.addReactionFigure(reaction, reactions.size > 1 ? idx + 1 : null)
 		
 			// connect input
 			var KPort port
@@ -643,24 +670,26 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// connect outputs
 			port = null // create new ports
 			for (VarRef effect : reaction.effects?:emptyList) {
-				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
-					port
-				} else {
-					node.addInvisiblePort() => [
-						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-					]
-				}
-				if (effect.variable instanceof Action) {
-					actionSources.put(effect.variable as Action, port)
-				} else {
-					val dst = if (effect.variable instanceof Output) {
-						parentOutputPorts.get(effect.variable)
-					} else {
-						inputPorts.get(effect.container, effect.variable)
-					}
-					if (dst !== null) {
-						createDependencyEdge(effect).connect(port, dst)
-					}
+			    if (!(effect.variable instanceof Mode)) {
+    				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
+    					port
+    				} else {
+    					node.addInvisiblePort() => [
+    						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
+    					]
+    				}
+    				if (effect.variable instanceof Action) {
+    					actionSources.put(effect.variable as Action, port)
+    				} else {
+    					val dst = if (effect.variable instanceof Output) {
+    						parentOutputPorts.get(effect.variable)
+    					} else {
+    						inputPorts.get(effect.container, effect.variable)
+    					}
+    					if (dst !== null) {
+    						createDependencyEdge(effect).connect(port, dst)
+    					}
+    				}
 				}
 			}
 		}
@@ -673,6 +702,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val node = createNode().associateWith(action)
 			nodes += node
 			nodes += action.createUserComments(node)
+			node.setMode(action)
 			
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			
@@ -699,7 +729,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Transform connections
-		for (Connection connection : reactor.allConnections?:emptyList) {
+        val connections = newArrayList
+        connections += reactor.allConnections?:emptyList
+        connections += reactor.modes.map[it.connections].flatten
+		for (connection : connections) {
 		    for (leftPort : connection.leftPorts) {
 		        for (rightPort : connection.rightPorts) {
                     val source = if (leftPort?.container !== null) {
@@ -798,6 +831,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				prevNode = node
 			}
 		}
+		
+		nodes.handleModes(reactor)
 		
 		return nodes
 	}
@@ -1022,6 +1057,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			
 			if (!commentText.nullOrEmpty) {
 				val comment = createNode()
+				comment.setMode(element)
 		        comment.setLayoutOption(CoreOptions.COMMENT_BOX, true)
 		        comment.addCommentFigure(commentText) => [
 		        	commentStyle()
@@ -1039,5 +1075,4 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		return #[]
 	}
-
 }
