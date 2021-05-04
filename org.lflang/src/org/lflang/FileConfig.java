@@ -77,9 +77,12 @@ public class FileConfig {
     public final String name;
     
     /**
-     * The directory that is the root of the package in which the .lf source
-     * file resides.
-     * FIXME: package? Do we have a package system? What is this? The project root, perhaps?
+     * The directory that is the root of the package in which the .lf source file resides. This path is determined
+     * differently depending on whether the compiler is invoked through the IDE or from the command line. In the former
+     * case, the package is the project root that the source resides in. In the latter case, it is the parent directory
+     * of the nearest `src` directory up the hierarchy, if there is one, or just the `outPath` if there is none. It is
+     * recommended to always keep the sources in a `src` directory regardless of the workflow, in which case the
+     * output behavior will be identical irrespective of the way the compiler is invoked.
      */
     public final Path srcPkgPath;
 
@@ -104,10 +107,12 @@ public class FileConfig {
     // Protected fields.
     
     /**
-     * The parent of the specified directory for generated sources. Additional
-     * directories created during the build process should be created relative
-     * to this path.
-     * FIXME: parent? why parent? where is this "specified directory" specified?
+     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional 
+     * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources, 
+     * which means that such directories should be created relative to the path assigned to this class variable.
+     * 
+     * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
+     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
      */
     protected Path outPath;
    
