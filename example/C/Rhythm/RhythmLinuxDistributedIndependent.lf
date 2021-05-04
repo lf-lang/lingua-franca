@@ -23,16 +23,9 @@ target C {
             "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 }; 
 
-import RhythmSource, PlayWaveform from "RhythmMacDistributedIndependent.lf"
+import Player from "RhythmMacDistributed.lf"
 
-reactor RhythmLinuxPlayer {
-    source = new RhythmSource();
-    play = new PlayWaveform();
-    source.note -> play.note;
-    source.instrument -> play.waveform;
-}
-
-federated reactor at localhost {
-    player1 = new RhythmLinuxPlayer() at localhost;
-    player2 = new RhythmLinuxPlayer();
+federated reactor {
+    player1 = new Player();
+    player2 = new Player();
 }

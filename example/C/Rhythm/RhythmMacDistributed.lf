@@ -15,6 +15,7 @@
  */
 target C {
     coordination: centralized,
+    // logging: DEBUG,
     flags: ["-lncurses", "-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
@@ -25,189 +26,29 @@ target C {
             "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
  
-import RhythmSource, PlayWaveform from "RhythmMac.lf"
+import RhythmSource from "RhythmMac.lf"
+import PlayWaveform from "PlayWaveform.lf"
 
-preamble {=    
-    //////////////////////////////////////
-    // Configuration of the user interface.
-
-    char* player_message[] = {
-        "Effects:",
-        "  m: mirror",
-        "Instrument:",
-        "  0: none",
-        "  1: bass drum",
-        "  2: bongo",
-        "  3: claves",
-        "  4: conga",
-        "  5: cowbell",
-        "  6: cuica",
-        "  7: guiro",
-        "  8: snare",
-        "  9: tom"
-    };
-    int player_message_length = 13;
-=}
-
-/**
- * Reactor that outputs notes (which carry an emphasis))
- * according to rhythm given by an input. The minimum time
- * between notes is given by the most recently received
- * 'tempo' input.
- */
-reactor Player(sixteenth:time(200 msec)) {    
-    output note:float;         // To play a note with the given emphasis.
-    output instrument:int;     // Instrument selection.
-    input rhythm_change:char;  // To change the rhythm.
-    input tempo:interval_t;    // To change the tempo.
-    
-    state tick_duration:time(200 msec);
-    logical action tick;
-    
-    // Count of sixteenth notes.
-    state count:int(0);
-    
-    // Action to be invoked when a key is pressed.
-    physical action key:char;
-    
-    // Indicator of when to make a sound.
-    state rhythm:int({=DOWNBEAT=});
-    
-    // Indicator of whether to emphasize the sound.
-    state emphasis:int({=DOWNBEAT=});
-
-   // Currently active rhythm. This becomes
-    // active from rhythm on the downbeat.
-    state active_rhythm:int({=DOWNBEAT=});
-    
-    // Currently active emphasis. This becomes
-    // active from rhythm on the downbeat.
-    state active_emphasis:int({=DOWNBEAT=});
-        
-    // Position of the cursor in the terminal window.
-    state cursor:int(0);
-    
-    reaction(startup) -> key, note, tick {=
-        // info_print("******* starting sensor simulator.");
-        // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator(player_message, player_message_length, 16)) {
-            error_print_and_exit("ERROR: Failed to start sensor simulator.");
-        }
-        // info_print("******* started sensor simulator.");
-        
-        // Register action to trigger on key press.
-        register_sensor_key('\0', key);
-        
-        schedule(tick, self->tick_duration);
-    =}
-	
-    reaction(key) -> instrument {=
-        // info_print("******* Player: reaction to key.");
-        int numeric;
-        switch (key->value) {
-            case '0':
-                SET(instrument, 0);
-                break;
-            default:
-                numeric = (int)key->value;
-                if (numeric >= 49 && numeric <= 57) {
-                    // A digit between 1 and 9.
-                    SET(instrument, numeric - 48);
-                }
-        }
-    =}
-
-    reaction(rhythm_change) {=
-        // info_print("******* Player: reaction to rhythm_change.");
-        switch (rhythm_change->value) {
-            case 'm':
-                self->rhythm = MERENGUE;
-                self->emphasis = MERENGUE_EMPHASIS;
-                SET(rhythm_change, 'm');
-                break;
-            case 'b':
-                self->rhythm = BOSSA_NOVA;
-                self->emphasis = BOSSA_NOVA_EMPHASIS;
-                SET(rhythm_change, 'b');
-                break;
-            case 's':
-                self->rhythm = SAMBA;
-                self->emphasis = SAMBA_EMPHASIS;
-                SET(rhythm_change, 's');
-                break;
-            default:
-                self->rhythm = DOWNBEAT;
-                self->emphasis = DOWNBEAT;
-                SET(rhythm_change, 'd');
-                break;
-        }
-    =}
-    
-    reaction(tempo) {=
-        // info_print("******* Player: reaction to tempo.");
-        self->tick_duration = tempo->value;
-    =}
-    
-    // FIXME: Use inheritance to share this.
-    // But we want its priority to be last!
-    reaction(tick) -> note, tick {=
-        // info_print("******* Player: reaction to tick.");
-        int beeped = 0;
-        int position = 0;
-        position = 1 << self->count;
-        if (position & self->active_rhythm) {
-            double emphasis = 0.25;
-            if (position & self->active_emphasis) {
-                emphasis = 1.0;
-            }
-            SET(note, emphasis);
-            beeped++;
-        }
-        if (beeped > 0) {
-            if (position & self->active_emphasis) {
-                show_tick("!");
-            } else {
-                show_tick("*");
-            }
-        } else {
-            show_tick(".");
-        }
-        self->count++;
-        if (self->count == 16) {
-            self->active_rhythm = self->rhythm;
-            self->active_emphasis = self->emphasis;
-            self->count = 0;
-        } 
-
-        schedule(tick, self->tick_duration);
-    =}
-}
-
-reactor RhythmMacMaster {
-    output rhythm_change:char;  // To change the rhythm.
-    output tempo:interval_t;    // To change the tempo.
+reactor Player {
+    input tempo_change_in:interval_t; // To accept a tempo change.
+    input rhythm_change_in:char;      // To accept a rhythm change.
+    output tempo_change:interval_t;   // To change the tempo.
+    output rhythm_change:char;        // To change the rhythm.
     source = new RhythmSource();
     play = new PlayWaveform();
     source.note -> play.note;
     source.instrument -> play.waveform;
     source.rhythm_change -> rhythm_change;
-    source.tempo -> tempo;
-}
-
-reactor RhythmMacPlayer {
-    input rhythm_change:char;  // To change the rhythm.
-    input tempo:interval_t;    // To change the tempo.
-    source = new Player();
-    play = new PlayWaveform();
-    source.note -> play.note;
-    source.instrument -> play.waveform;
-    rhythm_change -> source.rhythm_change;
-    tempo -> source.tempo;
+    source.tempo_change -> tempo_change;
+    rhythm_change_in -> source.rhythm_change_in;
+    tempo_change_in -> source.tempo_change_in;
 }
 
 federated reactor {
-    player1 = new RhythmMacMaster();
-    player2 = new RhythmMacPlayer();
-    player1.rhythm_change -> player2.rhythm_change after 20 msec;
-    player1.tempo -> player2.tempo after 20 msec;
+    player1 = new Player();
+    player2 = new Player();
+    player1.rhythm_change -> player2.rhythm_change_in;
+    player1.tempo_change -> player2.tempo_change_in;
+    player2.rhythm_change -> player1.rhythm_change_in;
+    player2.tempo_change -> player1.tempo_change_in;
 }
