@@ -31,7 +31,7 @@ reactor PrintMessageWithDetector(offset:time(10 msec)) extends PrintMessage {
     timer local(offset, 1 sec);
     reaction (message) {=
         // Empty. The base class will react and report the incoming message.
-    =} tardy {=
+    =} STP(0) {=
         warning_print("Message is tardy. Intended tag is (%lld, %u).",
             message->intended_tag.time - start_time, message->intended_tag.microstep
         );

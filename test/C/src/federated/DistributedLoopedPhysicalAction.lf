@@ -1,6 +1,12 @@
 /**
  * Test a sender-receiver network system that
- * relies on microsteps being taken into account.
+ * is similar to DistributedLoopedAction, but it uses a physical
+ * action rather than a logical action.
+ * This also demonstrates the advance-message-interval coordination option.
+ * This specifies the time period between Time Advance Notice (TAN) messages
+ * sent to the RTI (a form of null message that must be sent because of the
+ * physical action). The presence of this option also silences a warning
+ * about having a physical action that triggers an output.
  *  
  * @author Soroush Bateni
  */
@@ -14,7 +20,7 @@ reactor Sender(take_a_break_after:int(10), break_interval:time(550 msec)) {
     output out:int;
     physical action act;
     state sent_messages:int(0);
-    reaction(startup, act) -> out {=
+    reaction(startup, act) -> act, out {=
         // Send a message on out
         SET(out, self->sent_messages);
         self->sent_messages++;
@@ -22,7 +28,7 @@ reactor Sender(take_a_break_after:int(10), break_interval:time(550 msec)) {
         	schedule(act, 0);
         } else {
             // Take a break
-        	self->sent_messages=0;
+        	self->sent_messages = 0;
             schedule(act, self->break_interval);
         }
     =}
@@ -39,14 +45,13 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
                         // log output.
     reaction(in) {=
         tag_t current_tag = get_current_tag();  
-        printf("At tag (%lld, %u) received %d.\n",
+        info_print("At tag (%lld, %u) received %d.",
                current_tag.time - get_start_time(),
                current_tag.microstep,
                in->value);
         self->total_received_messages++;
         if (in->value != self->received_messages++) {
-            fprintf(stderr,"ERROR: received messages out of order.\n");
-            exit(1);
+            error_print_and_exit("Expected %d.", self->received_messages - 1);
         }
 
         if (self->received_messages == self->take_a_break_after) {
@@ -64,10 +69,9 @@ reactor Receiver(take_a_break_after:int(10), break_interval:time(550 msec)) {
         if (self->breaks != 2 ||
             (self->total_received_messages != ((SEC(1)/self->break_interval)+1) * self->take_a_break_after)
         ) {
-            fprintf(stderr,"ERROR: test failed. Breaks: %d, Messages: %d.\n", self->breaks, self->total_received_messages);
-            exit(4);
+            error_print_and_exit("Test failed. Breaks: %d, Messages: %d.", self->breaks, self->total_received_messages);
         }
-        printf("SUCCESS: Successfully received all messages from the sender.\n");
+        info_print("SUCCESS: Successfully received all messages from the sender.");
     =}
 }
 

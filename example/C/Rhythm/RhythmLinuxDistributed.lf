@@ -18,12 +18,13 @@ target C {
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h",
-            "Bass-Drum-1.wav", "Hi-Bongo.wav", "Claves.wav", "High-Conga-1.wav",
-            "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
-            "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"] 
+            "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
+            "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
+            "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
 
-import RhythmSource, Player, PlayWaveform from "RhythmMacDistributed.lf"
+import RhythmSource from "RhythmMac.lf";
+import Player, PlayWaveform from "RhythmMacDistributed.lf"
 
 
 reactor RhythmLinuxMaster {
