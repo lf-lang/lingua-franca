@@ -1269,7 +1269,7 @@ port_status_t determine_port_status_if_possible(int portID) {
 }
 
 /**
- * Wait until the status of network port "portID" can be
+ * Wait until the status of network port "port_ID" can be
  * determined.
  * 
  * In decentralized coordination mode, the wait time is capped by "STP",
@@ -1277,21 +1277,21 @@ port_status_t determine_port_status_if_possible(int portID) {
  * 
  * This function assumes the holder does not hold a mutex.
  * 
- * @param portID The ID of the network port
+ * @param port_ID The ID of the network port
  * @param STP The STP offset of the port
  */
-void wait_until_port_status_known(int portID, interval_t STP) {            
+void wait_until_port_status_known(int port_ID, interval_t STP) {            
     // Need to lock the mutex to prevent
     // a race condition with the network
     // receiver logic.
     lf_mutex_lock(&mutex);
 
     // See if the port status can be determined immediately without waiting
-    if (determine_port_status_if_possible(portID) != unknown) {
+    if (determine_port_status_if_possible(port_ID) != unknown) {
         // The status of the trigger is known. No need to wait.
         LOG_PRINT("------ Not waiting for network input port %d: "
-                    "Status of the port is known already.", portID);
-        mark_control_reaction_not_waiting(portID);
+                    "Status of the port is known already.", port_ID);
+        mark_control_reaction_not_waiting(port_ID);
         lf_mutex_unlock(&mutex);
         return;
     }
@@ -1314,19 +1314,20 @@ void wait_until_port_status_known(int portID, interval_t STP) {
 
     // Perform the wait, if it is necessary.
     if (wait_time != current_tag.time) {
-        LOG_PRINT("------ Waiting for %lldns for network input port \"in\" at tag (%llu, %d).",
+        LOG_PRINT("------ Waiting for %lldns for network input port %d at tag (%llu, %d).",
                 wait_time,
+                port_ID,
                 current_tag.time - start_time,
                 current_tag.microstep);
         while(!wait_until(wait_time, &port_status_changed)) {
             // Interrupted
-            DEBUG_PRINT("------ Wait for network input port %d interrupted.", portID);
+            DEBUG_PRINT("------ Wait for network input port %d interrupted.", port_ID);
             // Check if the status of the port is known
-            if (determine_port_status_if_possible(portID) != unknown) {
+            if (determine_port_status_if_possible(port_ID) != unknown) {
                 // The status of the trigger is known. No need to wait.
                 LOG_PRINT("------ Done waiting for network input port %d: "
-                            "Status of the port has changed.", portID);
-                mark_control_reaction_not_waiting(portID);
+                            "Status of the port has changed.", port_ID);
+                mark_control_reaction_not_waiting(port_ID);
                 lf_mutex_unlock(&mutex);
                 return;
             }
@@ -1343,18 +1344,18 @@ void wait_until_port_status_known(int portID, interval_t STP) {
 
     // Done waiting
     // If the status of the port is still unknown, assume it is absent.
-    if (determine_port_status_if_possible(portID) == unknown) {
+    if (determine_port_status_if_possible(port_ID) == unknown) {
         // Port will not be triggered at the
         // current logical time. Set the absent
         // value of the trigger accordingly
         // so that the receiving logic cannot
         // insert any further reaction
-        set_network_port_status(portID, absent);
+        set_network_port_status(port_ID, absent);
     }
-    mark_control_reaction_not_waiting(portID);
+    mark_control_reaction_not_waiting(port_ID);
     lf_mutex_unlock(&mutex);
     LOG_PRINT("------ Done waiting for network input port %d: "
-                "Wait timed out without a port status change.", portID);
+                "Wait timed out without a port status change.", port_ID);
 
 }
 

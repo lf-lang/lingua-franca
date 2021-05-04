@@ -2806,7 +2806,7 @@ class CGenerator extends GeneratorBase {
                 }
                 if (targetConfig.logLevel >= LogLevel.LOG) {
                     pr(initializeTriggerObjectsEnd, '''
-                        // Reaction «reactionCount» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
+                        // Reaction «reactionCount» of «reactorInstance.getFullName»'s name.
                         «selfStruct»->___reaction_«reactionCount».name = "«reactorInstance.fullName» reaction «reactionCount»";
                     ''')
                 }

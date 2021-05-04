@@ -1026,7 +1026,7 @@ void* worker(void* arg) {
         // Obtain a reaction from the reaction_q that is ready to execute
         // (i.e., it is not blocked by concurrently executing reactions
         // that it depends on).
-        // print_snapshot(); // This is quite verbose.
+        // print_snapshot(); // This is quite verbose (but very useful in debugging reaction deadlocks).
         reaction_t* current_reaction_to_execute = first_ready_reaction();
         if (current_reaction_to_execute == NULL) {
             // There are no reactions ready to run.
