@@ -305,8 +305,8 @@ static void set_reaction_position(void *a, size_t pos) {
  */
 static void print_reaction(void *reaction) {
 	reaction_t *r = (reaction_t*)reaction;
-    DEBUG_PRINT("chain_id:%llu, index: %llx, reaction: %p", 
-        r->chain_id, r->index, r);
+    DEBUG_PRINT("%s: chain_id:%llu, index: %llx, reaction: %p",
+    		r->name, r->chain_id, r->index, r);
 }
 
 /**
@@ -589,7 +589,6 @@ void __pop_events() {
 
         // Put the corresponding reactions onto the reaction queue.
         for (int i = 0; i < event->trigger->number_of_reactions; i++) {
-            DEBUG_PRINT("Pushed onto reaction_q: %p", event->trigger->reactions[i]);
             reaction_t *reaction = event->trigger->reactions[i];
             // Do not enqueue this reaction twice.
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
@@ -615,8 +614,10 @@ void __pop_events() {
                     }
                 }
 #endif
-                DEBUG_PRINT("Enqueing reaction %p.", reaction);
+                DEBUG_PRINT("Enqueing reaction %s.", reaction->name);
                 pqueue_insert(reaction_q, reaction);
+            } else {
+                DEBUG_PRINT("Reaction is already on the reaction_q: %s", reaction->name);
             }
         }
 
@@ -1324,7 +1325,7 @@ handle_t _lf_insert_reactions_for_trigger(trigger_t* trigger, lf_token_t* token)
         if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
             reaction->is_STP_violated = is_STP_violated;
             pqueue_insert(reaction_q, reaction);
-            LOG_PRINT("Enqueued reaction %p at time %lld.", reaction, get_logical_time());
+            LOG_PRINT("Enqueued reaction %s at time %lld.", reaction->name, get_logical_time());
         }
     }
 
@@ -1453,9 +1454,9 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
 #ifdef FEDERATED_DECENTRALIZED // Only pass down STP violation for federated programs that use decentralized coordination.
     // Extract the inherited STP violation
     bool inherited_STP_violation = reaction->is_STP_violated;
-    LOG_PRINT("Reaction %llx has STP violation status: %d.", reaction->index, reaction->is_STP_violated);
+    LOG_PRINT("Reaction %s has STP violation status: %d.", reaction->name, reaction->is_STP_violated);
 #endif
-    DEBUG_PRINT("There are %d outputs from reaction %llx.", reaction->num_outputs, reaction->index);
+    DEBUG_PRINT("There are %d outputs from reaction %s.", reaction->num_outputs, reaction->name);
     for (int i=0; i < reaction->num_outputs; i++) {
         if (*(reaction->output_produced[i])) {
             DEBUG_PRINT("Output %d has been produced.", i);
@@ -1471,7 +1472,8 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                         // Set the is_STP_violated for the downstream reaction
                         if (downstream_reaction != NULL) {
                             downstream_reaction->is_STP_violated = inherited_STP_violation;
-                            LOG_PRINT("Passing is_STP_violated of %d to the downstream reaction", downstream_reaction->is_STP_violated);
+                            DEBUG_PRINT("Passing is_STP_violated of %d to the downstream reaction: %s",
+                            		downstream_reaction->is_STP_violated, downstream_reaction->name);
                         }
 #endif
                         if (downstream_reaction != NULL && downstream_reaction != downstream_to_execute_now) {
@@ -1508,7 +1510,7 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         }
     }
     if (downstream_to_execute_now != NULL) {
-        LOG_PRINT("Worker %d: Optimizing and executing downstream reaction now.", worker);
+        LOG_PRINT("Worker %d: Optimizing and executing downstream reaction now: %s", worker, downstream_to_execute_now->name);
         bool violation = false;
 #ifdef FEDERATED_DECENTRALIZED // Only use the STP handler for federated programs that use decentralized coordination
         // If the is_STP_violated for the reaction is true,
@@ -1547,7 +1549,8 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
                 // Reset the tardiness because it has been dealt with in the
                 // STP handler
                 downstream_to_execute_now->is_STP_violated = false;
-                DEBUG_PRINT("Reset reaction's is_STP_violated field to false.");
+                DEBUG_PRINT("Reset reaction's is_STP_violated field to false: %s",
+                		downstream_to_execute_now->name);
             }
         }
 #endif
@@ -1584,7 +1587,8 @@ void schedule_output_reactions(reaction_t* reaction, int worker) {
         // Reset the is_STP_violated because it has been passed
         // down the chain
         downstream_to_execute_now->is_STP_violated = false;
-        DEBUG_PRINT("Finally, reset reaction's is_STP_violated field to false.");
+        DEBUG_PRINT("Finally, reset reaction's is_STP_violated field to false: %s",
+        		downstream_to_execute_now->name);
     } else if (num_downstream_reactions > 0) {
         // If we are running a multithreaded setting, the following function
         // may wake up other worker threads to execute the newly queued reactions.

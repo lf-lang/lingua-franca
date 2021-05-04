@@ -127,7 +127,7 @@ void print_snapshot() {
 void _lf_enqueue_reaction(reaction_t* reaction) {
     // Do not enqueue this reaction twice.
     if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-        DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
+        DEBUG_PRINT("Enqueing downstream reaction %s.", reaction->name);
         pqueue_insert(reaction_q, reaction);
     }
 }
@@ -144,7 +144,8 @@ int _lf_do_step() {
         print_snapshot();
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         
-        LOG_PRINT("Invoking reaction at elapsed logical tag (%lld, %d).",
+        LOG_PRINT("Invoking reaction %s at elapsed logical tag (%lld, %d).",
+        		reaction->name,
                 current_tag.time - start_time, current_tag.microstep);
 
         bool violation = false;

@@ -48,6 +48,7 @@ import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
+import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
 import org.lflang.lf.Action
@@ -2197,6 +2198,7 @@ class CGenerator extends GeneratorBase {
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
                     self->___reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
+                    self->___reaction_«reactionCount».name = "?";
                 ''')
 
             }
@@ -2802,6 +2804,13 @@ class CGenerator extends GeneratorBase {
                         «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = NULL;
                     ''')
                 }
+                if (targetConfig.logLevel >= LogLevel.LOG) {
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName» depends on one maximal upstream reaction.
+                        «selfStruct»->___reaction_«reactionCount».name = "«reactorInstance.fullName» reaction «reactionCount»";
+                    ''')
+                }
+                                
                 for (port : reaction.effects.filter(PortInstance)) {
                     // Skip multiports and handle the component ports instead.
                     if (!(port instanceof MultiportInstance)) {
