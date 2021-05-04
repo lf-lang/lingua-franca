@@ -223,10 +223,9 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Creates the visual representation of a reaction node
 	 */
-	def addReactionFigure(KNode node, Reaction reaction) {
+	def addReactionFigure(KNode node, Reaction reaction, Integer priority) {
 		val minHeight = 22
 		val minWidth = 45
-		val reactor = reaction.eContainer as Reactor
 		node.setMinimalNodeSize(minWidth, minHeight)
 		
 		val baseShape = node.addPolygon() => [
@@ -257,8 +256,8 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			gridPlacement = 1
 		]
 		
-		if (reactor.reactions.size > 1) {
-			contentContainer.addText(Integer.toString(reactor.reactions.indexOf(reaction) + 1)) => [
+		if (priority !== null) {
+			contentContainer.addText(priority.toString) => [
 				fontBold = true
 				noSelectionStyle
 				suppressSelectability
@@ -290,7 +289,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			// delay with stopwatch
 			val labelContainer = contentContainer.addRectangle() => [
 				invisible = true
-				setGridPlacementData().from(LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0, TOP, 0, reactor.reactions.size > 1 || hasCode || hasDeadlineCode ? 0 : 0.5f).to(RIGHT, 0, 0, BOTTOM, 0, 0).setHorizontalAlignment(HorizontalAlignment.LEFT)
+				setGridPlacementData().from(LEFT, hasDeadlineCode ? 0 : -REACTION_POINTINESS * 0.5f, 0, TOP, 0, priority !== null || hasCode || hasDeadlineCode ? 0 : 0.5f).to(RIGHT, 0, 0, BOTTOM, 0, 0).setHorizontalAlignment(HorizontalAlignment.LEFT)
 			]
 			labelContainer.addStopwatchFigure() => [
 				setLeftTopAlignedPointPlacementData(0, 0, 0, 0)

@@ -116,7 +116,7 @@ class UtilityExtensions extends AbstractSynthesisExtensions {
 	 * Returns true if the reactor as has inner reactions or instances
 	 */
 	def hasContent(Reactor reactor) {
-		return !reactor.reactions.empty || !reactor.instantiations.empty
+		return !reactor.allReactions.empty || !reactor.allInstantiations.empty || !reactor.modes.empty
 	}
 	
 	/**
