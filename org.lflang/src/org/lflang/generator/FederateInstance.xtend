@@ -44,6 +44,7 @@ import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.lf.Port
+import org.lflang.lf.Variable
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
@@ -174,13 +175,15 @@ class FederateInstance {
     
     
     /**
-     * A list of network trigger ports that trigger the output control reaction of this 
-     * federate. This list is kept because, in certain
-     * circumstances, there is a need to send an ABSENT message for a network output port to
-     * notify all downstream federates that no value will be present on the given network port,
-     * allowing input control reactions on those federates to stop blocking.
+     * The trigger that triggers the output control reaction of this 
+     * federate. 
+     * 
+     * The network output control reactions send a PORT_ABSENT message for a network output port, 
+     * if it is absent at the current tag, to notify all downstream federates that no value will 
+     * be present on the given network port, allowing input control reactions on those federates 
+     * to stop blocking.
      */
-    public var VarRef networkOutputControlReactionsTrigger = null;
+    public var Variable networkOutputControlReactionsTrigger = null;
 
     /////////////////////////////////////////////
     //// Public Methods

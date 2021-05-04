@@ -306,10 +306,6 @@ public class FedASTUtils {
         if (instance.networkOutputControlReactionsTrigger == null) {
             String triggerName = "outputControlReactionTrigger";
 
-            // The trigger for the reaction
-            VarRef newTriggerForControlReaction = (VarRef) factory
-                    .createVarRef();
-
             // Find the trigger in the reactor definition, which could have been
             // generated for another federate instance
             Optional<Input> optTriggerInput = reactor.getInputs().stream()
@@ -322,34 +318,34 @@ public class FedASTUtils {
                 // already added
                 // to the reactor definition, we need to create it for the first
                 // time.
-                Variable newTriggerForControlReactionVariable = factory
+                Input newTriggerForControlReactionVariable = factory
                         .createInput();
                 newTriggerForControlReactionVariable.setName(triggerName);
 
                 Type portType = factory.createType();
                 portType.setId(generator.getTargetTimeType());
-                ((Input) newTriggerForControlReactionVariable)
-                        .setType(portType);
+                newTriggerForControlReactionVariable.setType(portType);
 
-                newTriggerForControlReaction
-                        .setVariable(newTriggerForControlReactionVariable);
 
                 reactor.getInputs()
-                        .add((Input) newTriggerForControlReactionVariable);
+                        .add(newTriggerForControlReactionVariable);
+                
+                // Now that the variable is created, store it in the federate instance
+                instance.networkOutputControlReactionsTrigger = newTriggerForControlReactionVariable;
             } else {
                 // If the "outputControlReactionTrigger" trigger is already
-                // there, we
-                // can re-use it for this new reaction since a single trigger
+                // there, we can re-use it for this new reaction since a single trigger
                 // will trigger
                 // all network output control reactions.
-                newTriggerForControlReaction.setVariable(optTriggerInput.get());
+                instance.networkOutputControlReactionsTrigger = optTriggerInput.get();
             }
-            instance.networkOutputControlReactionsTrigger = newTriggerForControlReaction;
         }
 
         // Add the trigger for all output control reactions to the list of triggers
+        VarRef triggerRef = factory.createVarRef();
+        triggerRef.setVariable(instance.networkOutputControlReactionsTrigger);
         reaction.getTriggers()
-                .add(instance.networkOutputControlReactionsTrigger);
+                .add(triggerRef);
         // Add the output from the contained reactor as a source to preserve
         // precedence order
         reaction.getSources().add(newPortRef);
