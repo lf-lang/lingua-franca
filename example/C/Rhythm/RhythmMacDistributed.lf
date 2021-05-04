@@ -25,7 +25,7 @@ target C {
             "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
  
-import RhythmSource from "RhythmMac.lf"
+import RhythmSource, PlayWaveform from "RhythmMac.lf"
 
 preamble {=    
     //////////////////////////////////////
@@ -180,68 +180,6 @@ reactor Player(sixteenth:time(200 msec)) {
         } 
 
         schedule(tick, self->tick_duration);
-    =}
-}
-
-/**
- * Produce a note when a `note` input is received.
- * 
- * This reactor provides a small collection of built-in audio
- * waveforms which are read at startup time from .wav files.
- * The waveform input specifies which of the waveforms to play
- * upon the next `note` input received.
- * It is a number between 0 and NUM_WAVEFORMS. If a number outside
- * this range is received, then simple tick sounds will be produced.
- * Number 0 is specially interpreted for silence.
- *
- * The `note` input is a number, normally between 0.0 and 1.0,
- * that specifies the loudness of the note. If the loudness exceeds
- * 1.0, or if too many notes are played at once, clipping may occur.
- * 
- */
-reactor PlayWaveform {
-    input note:float;
-    input waveform:int;
-    
-    /**
-     * Index of the current waveform.
-     * -1 means no waveform (just make ticks)).
-     */
-    state waveform_id:int(0);
-        
-    reaction(startup) {=
-        
-        // First waveform is empty.
-        waveforms[0] = &empty_waveform;
-        
-        // Open and read waveform files.
-        for (int i = 0; i < NUM_WAVEFORMS; i++) {
-            waveforms[i + 1] = read_wave_file(waveform_files[i]);
-        }
-        
-        // Start an audio loop that will become ready to receive
-        // amplitude samples of audio data.
-        lf_start_audio_loop(get_logical_time());
-    =}
-    
-    reaction(waveform) {=
-        // info_print("******* PlayWaveform: reaction to waveform.");
-        self->waveform_id = waveform->value;
-    =}
-    
-    reaction(note) {=
-        // info_print("******* PlayWaveform: reaction to note.");
-        if (self->waveform_id < 0 || self->waveform_id > NUM_WAVEFORMS) {
-            lf_play_audio_waveform(NULL, note->value, get_logical_time());
-        } else {
-            lf_play_audio_waveform(waveforms[self->waveform_id], note->value, get_logical_time());
-        }
-    =} deadline (100 msec) {=  // NOTE: deadline has to match BUFFER_DURATION_NS.
-        warning_print("Missed deadline!");
-    =}
-    
-    reaction(shutdown) {=
-        lf_stop_audio_loop();
     =}
 }
 
