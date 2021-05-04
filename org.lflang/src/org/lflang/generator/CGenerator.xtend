@@ -4557,6 +4557,8 @@ class CGenerator extends GeneratorBase {
 
         pr('#define NUMBER_OF_FEDERATES ' + federates.size);
         
+        pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
+        
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
             pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)
         }
