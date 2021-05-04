@@ -77,8 +77,9 @@ public class FileConfig {
     public final String name;
     
     /**
-     * The directory that is the root of the package in which the source
+     * The directory that is the root of the package in which the .lf source
      * file resides.
+     * FIXME: package? Do we have a package system? What is this? The project root, perhaps?
      */
     public final Path srcPkgPath;
 
@@ -96,7 +97,7 @@ public class FileConfig {
     public final File srcFile;
 
     /**
-     * The directory in which the source file was found.
+     * The directory in which the source .lf file was found.
      */
     public final Path srcPath;
     
@@ -106,6 +107,7 @@ public class FileConfig {
      * The parent of the specified directory for generated sources. Additional
      * directories created during the build process should be created relative
      * to this path.
+     * FIXME: parent? why parent? where is this "specified directory" specified?
      */
     protected Path outPath;
    
