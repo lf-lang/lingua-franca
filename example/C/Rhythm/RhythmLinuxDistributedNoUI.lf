@@ -21,16 +21,10 @@ target C {
             "/lib/C/util/audio_loop_linux.c", "/lib/C/util/audio_loop.h",
             "sounds/Claves.wav"] 
 };
- import BeatSource, PlayWaveform from "RhythmMacDistributedNoUI.lf"
+import RhythmPlayer from "RhythmMacDistributedNoUI.lf"
 
-reactor RhythmLinuxPlayer {
-    source = new BeatSource();
-    play = new PlayWaveform();
-    source.note -> play.note;
-}
-
-federated reactor RhythmLinuxDistributedNoUI {
-    player1 = new RhythmLinuxPlayer();
-    player2 = new RhythmLinuxPlayer();
+federated reactor at localhost {
+    player1 = new RhythmPlayer() at localhost;
+    player2 = new RhythmPlayer() at localhost;
 }
 

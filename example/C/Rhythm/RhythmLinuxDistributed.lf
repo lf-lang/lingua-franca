@@ -23,35 +23,29 @@ target C {
             "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
 
-import RhythmSource from "RhythmMac.lf";
-import Player, PlayWaveform from "RhythmMacDistributed.lf"
+import RhythmSource from "RhythmMac.lf"
+import PlayWaveform from "PlayWaveform.lf"
 
-
-reactor RhythmLinuxMaster {
-    output rhythm_change:char;  // To change the rhythm.
-    output tempo:interval_t;    // To change the tempo.
+reactor Player {
+    input tempo_change_in:interval_t; // To accept a tempo change.
+    input rhythm_change_in:char;      // To accept a rhythm change.
+    output tempo_change:interval_t;   // To change the tempo.
+    output rhythm_change:char;        // To change the rhythm.
     source = new RhythmSource();
     play = new PlayWaveform();
     source.note -> play.note;
     source.instrument -> play.waveform;
     source.rhythm_change -> rhythm_change;
-    source.tempo -> tempo;
+    source.tempo_change -> tempo_change;
+    rhythm_change_in -> source.rhythm_change_in;
+    tempo_change_in -> source.tempo_change_in;
 }
 
-reactor RhythmLinuxPlayer {
-    input rhythm_change:char;  // To change the rhythm.
-    input tempo:interval_t;    // To change the tempo.
-    source = new Player();
-    play = new PlayWaveform();
-    source.note -> play.note;
-    source.instrument -> play.waveform;
-    rhythm_change -> source.rhythm_change;
-    tempo -> source.tempo;
-}
-
-federated reactor at localhost {
-    player1 = new RhythmLinuxMaster() at localhost;
-    player2 = new RhythmLinuxPlayer() at localhost;
-    player1.rhythm_change -> player2.rhythm_change after 20 msec;
-    player1.tempo -> player2.tempo after 20 msec;
+federated reactor {
+    player1 = new Player();
+    player2 = new Player();
+    player1.rhythm_change -> player2.rhythm_change_in;
+    player1.tempo_change -> player2.tempo_change_in;
+    player2.rhythm_change -> player1.rhythm_change_in;
+    player2.tempo_change -> player1.tempo_change_in;
 }

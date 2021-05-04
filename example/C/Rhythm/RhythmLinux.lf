@@ -39,7 +39,8 @@ target C {
             "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
 
-import RhythmSource, PlayWaveform from "RhythmMac.lf"
+import RhythmSource from "RhythmMac.lf"
+import PlayWaveform from "PlayWaveform.lf"
 
 main reactor RhythmLinux {
     play = new PlayWaveform();
