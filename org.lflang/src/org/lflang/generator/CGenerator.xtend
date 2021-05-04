@@ -2541,18 +2541,32 @@ class CGenerator extends GeneratorBase {
             // it will be passed down to the port effects
             // of the reaction. Note that the intended tag
             // will not pass on to actions downstream.
+            // Last reaction that sets the intended tag for the effect
+            // will be seen.
+            pr(intendedTagInheritenceCode, '''
+                // All effects inherit the minimum intended tag of input triggers
+                if (inherited_min_intended_tag.time != NEVER) {
+            ''')
             for (effect : reaction.effects ?: emptyList) {
                 if (effect.variable instanceof Input) {
-                    // Input to a contained reaction
-                    pr(intendedTagInheritenceCode, '''
-                        // All effects inherit the minimum intended tag of input triggers
-                        if (inherited_min_intended_tag.time != NEVER) {
-                            // Don't reset the intended tag of the output port if it has already been set.
-                            «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
-                        }
-                    ''')                    
+                    if ((effect.variable as Input).isMultiport) {
+                        pr(intendedTagInheritenceCode, '''
+                            for(int i=0; i < «effect.container.name».«effect.variable.name»_width; i++) {
+                                «effect.container.name».«effect.variable.name»[i]->intended_tag = inherited_min_intended_tag;
+                            }
+                        ''')
+                    } else {
+                        // Input to a contained reaction
+                        pr(intendedTagInheritenceCode, '''
+                                // Don't reset the intended tag of the output port if it has already been set.
+                                «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
+                        ''')
+                    }                   
                 }
             }
+            pr(intendedTagInheritenceCode, '''
+                }
+            ''')
             unindent(intendedTagInheritenceCode);
             pr(intendedTagInheritenceCode,'''
             }
