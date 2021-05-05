@@ -167,7 +167,7 @@ void _lf_increment_global_tag_barrier_already_locked(tag_t future_tag) {
         } 
     } else {
             // The future_tag is not in the future.
-            
+
             // One possibility is that the incoming message has violated the STP offset.
             // Another possibility is that the message is coming from a zero-delay loop,
             // and control reactions are waiting.
@@ -839,8 +839,8 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
     // Acquire the mutex lock.
     lf_mutex_lock(&mutex);
     // Do not enqueue this reaction twice.
-    if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
-        DEBUG_PRINT("Enqueing downstream reaction %p.", reaction);
+    if (reaction != NULL && pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
+        DEBUG_PRINT("Enqueing downstream reaction %s.", reaction->name);
         pqueue_insert(reaction_q, reaction);
         // NOTE: We could notify another thread so it can execute this reaction.
         // However, this notification is expensive!
@@ -921,7 +921,7 @@ void _lf_initialize_start_tag() {
     // network control reactions.
     int init_reaction_queue_size = pqueue_size(reaction_q);
 
-    // Insert network dependant reactions for network input ports into
+    // Insert network dependent reactions for network input ports into
     // the reaction queue to prevent reactions from executing at (0,0)
     // incorrectly.
     // At (0,0), events are not currently handled through the event_q.
@@ -1026,6 +1026,7 @@ void* worker(void* arg) {
         // Obtain a reaction from the reaction_q that is ready to execute
         // (i.e., it is not blocked by concurrently executing reactions
         // that it depends on).
+        // print_snapshot(); // This is quite verbose (but very useful in debugging reaction deadlocks).
         reaction_t* current_reaction_to_execute = first_ready_reaction();
         if (current_reaction_to_execute == NULL) {
             // There are no reactions ready to run.
@@ -1093,9 +1094,10 @@ void* worker(void* arg) {
             }
         } else {
             // Got a reaction that is ready to run.
-            DEBUG_PRINT("Worker %d: Popped from reaction_q reaction with index: "
-                    "%lld and deadline %lld.", worker_number,
-                    current_reaction_to_execute->index,
+            DEBUG_PRINT("Worker %d: Popped from reaction_q %s: "
+                    "chain ID: %llu, and deadline %lld.", worker_number,
+                    current_reaction_to_execute->name,
+                    current_reaction_to_execute->chain_id,
                     current_reaction_to_execute->deadline);
 
             // This thread will no longer be idle.
@@ -1115,7 +1117,8 @@ void* worker(void* arg) {
 
             // Unlock the mutex to run the reaction.
             lf_mutex_unlock(&mutex);
-            DEBUG_PRINT("Worker %d: Running a reaction (or its fault variants).", worker_number);
+            DEBUG_PRINT("Worker %d: Running reaction %s (or its fault variants).",
+            		worker_number, current_reaction_to_execute->name);
 
             bool violation = false;
             // If the reaction violates the STP offset,
@@ -1191,17 +1194,22 @@ void* worker(void* arg) {
                 pqueue_remove(executing_q, current_reaction_to_execute);
             } else {
                 // Invoke the reaction function.
-                LOG_PRINT("Worker %d: Invoking reaction %p at elapsed tag (%lld, %d).",
+                LOG_PRINT("Worker %d: Invoking reaction %s at elapsed tag (%lld, %d).",
                         worker_number,
-						current_reaction_to_execute,
+						current_reaction_to_execute->name,
                         current_tag.time - start_time,
                         current_tag.microstep);
                 tracepoint_reaction_starts(current_reaction_to_execute, worker_number);
                 current_reaction_to_execute->function(current_reaction_to_execute->self);
                 tracepoint_reaction_ends(current_reaction_to_execute, worker_number);
+
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(current_reaction_to_execute, worker_number);
+
+                DEBUG_PRINT("Worker %d: Done invoking reaction %s.",
+                                worker_number,
+                                current_reaction_to_execute->name);
 
                 // Reacquire the mutex lock.
                 lf_mutex_lock(&mutex);
@@ -1216,7 +1224,8 @@ void* worker(void* arg) {
             // down the chain
             current_reaction_to_execute->is_STP_violated = false;
 
-            DEBUG_PRINT("Worker %d: Done invoking reaction.", worker_number);
+            DEBUG_PRINT("Worker %d: Done with reaction %s.",
+            		worker_number, current_reaction_to_execute->name);
         }
     } // while (!stop_requested || pqueue_size(reaction_q) > 0)
     // This thread is exiting, so don't count it anymore.
@@ -1230,13 +1239,22 @@ void* worker(void* arg) {
     return NULL;
 }
 
+/**
+ * If DEBUG logging is enabled, prints the status of the event queue,
+ * the reaction queue, and the executing queue.
+ */
 void print_snapshot() {
-    printf(">>> START Snapshot\n");
-    printf("Pending:\n");
-    pqueue_dump(reaction_q, stdout, reaction_q->prt);
-    printf("Executing:\n");
-    pqueue_dump(executing_q, stdout, executing_q->prt);    
-    printf(">>> END Snapshot\n");
+    if(LOG_LEVEL > 3) {
+        DEBUG_PRINT(">>> START Snapshot");
+        DEBUG_PRINT("Pending:");
+        pqueue_dump(reaction_q, print_reaction);
+        DEBUG_PRINT("Executing:");
+        pqueue_dump(executing_q, print_reaction);
+        DEBUG_PRINT("Event queue size: %d. Contents:",
+                        pqueue_size(event_q));
+        pqueue_dump(event_q, print_reaction); 
+        DEBUG_PRINT(">>> END Snapshot");
+    }
 }
 
 // Array of thread IDs (to be dynamically allocated).

@@ -35,7 +35,7 @@ To use this, include the following flags in your target properties:
 <pre>
 target C {
     flags: "-lncurses",
-    files: ["/lib/C/sensor_simulator.c", "/lib/C/sensor_simulator.h"]
+    files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h"]
 };
 </pre>
 This requires `ncurses`, a library providing somewhat portable keyboard access.
@@ -46,6 +46,10 @@ preamble {=
     #include "sensor_simulator.c"
 =}
 </pre>
+To start the sensor simulator, call `start_sensor_simulator` passing it
+an array of strings to print and the width of the window to use to display
+characters using the `show_tick` function.
+
 To print messages to the screen, rather than using printf(), you should use
 the messaging functions in util.h, such as info_print(). Otherwise, your messages
 will be printed over other information.
@@ -68,7 +72,10 @@ will be printed over other information.
  * @param number_of_lines The number of message lines or 0 for none.
  * @param tick_window_width The width of the tick window or 0 for none.
  */
-int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width);
+int start_sensor_simulator(
+		char* message_lines[],
+		int number_of_lines,
+		int tick_window_width);
 
 /**
  * Place a tick (usually a single character) in the tick window.
