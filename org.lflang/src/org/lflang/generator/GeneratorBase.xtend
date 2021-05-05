@@ -1173,9 +1173,11 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Use 'where' on Windows, 'which' on other systems
         val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
         val whichBuilder = new ProcessBuilder(#[which, cmd])
-        val dirFile = new File(dir.toString)
-        if (dirFile.isDirectory()) {
-            whichBuilder.directory(dirFile)
+        if (dir !== null) {
+            val dirFile = new File(dir.toString)
+            if (dirFile.isDirectory()) {
+                whichBuilder.directory(dirFile)
+            }
         }
         val whichReturn = whichBuilder.start().waitFor()
         if (whichReturn == 0) {
