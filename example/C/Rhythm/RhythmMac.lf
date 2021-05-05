@@ -282,7 +282,7 @@ reactor RhythmSource(
     =}
 }
 
-main reactor RhythmMac {
+main reactor {
     source = new RhythmSource();
     play = new PlayWaveform();
     source.note -> play.note;
