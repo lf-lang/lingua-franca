@@ -27,7 +27,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../platform.h"
 #include <time.h> //needed for timespec _lf_time_spec_t
 #include "../tag.h" //needed for BILLION. In flexpret-script under tag.h CLOCK_FREQ is defined, but it's not defined in lf repo
-#include <stdint.h>
+#include <stdint.h> //needed for the uint32_t 
+
 
 #ifdef NUMBER_OF_WORKERS
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
@@ -39,19 +40,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // FIXME: This assumption about clock frequency
 // varies by hardware platforms.
+//hardcoded because it wasn't defined in tag.h
 #define CLOCK_FREQ 100000000LL
 
 
 // System call interface for getting the current time.
-int clock_gettime(clockid_t clk_id, struct timespec *tp) {
+int lf_clock_gettime(clockid_t clk_id, struct timespec *tp) {
 
-    *tp = __clock_gettime();
+    *tp = clock_gettime_helper();
     return 0;
 }
 
 // ********** RISC-V Bare Metal Support
 // Gets the current physical time by cycle counting
-struct timespec __clock_gettime() {
+struct timespec clock_gettime_helper() {
 
     uint32_t cycle_high;
     uint32_t cycle_low;
@@ -81,12 +83,12 @@ struct timespec __clock_gettime() {
 /**
  * Pause execution for a number of nanoseconds.
  */
-int nanosleep(_lf_time_spec_t *req, _lf_time_spec_t *rem) {
+int lf_nanosleep(_lf_time_spec_t *req, _lf_time_spec_t *rem) {
 
-    struct timespec start_time = __clock_gettime();
+    struct timespec start_time = clock_gettime_helper();
     struct timespec ts = start_time;
     while (ts.tv_sec < start_time.tv_sec + req->tv_sec || (ts.tv_sec == start_time.tv_sec + req->tv_sec && ts.tv_nsec <= start_time.tv_nsec + req->tv_nsec)) {
-        ts = __clock_gettime();
+        ts = clock_gettime_helper();
     }
 
     return 0;
