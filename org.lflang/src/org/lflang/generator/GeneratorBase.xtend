@@ -867,7 +867,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         var commands = newLinkedList
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
-            if (tokens.size > 1) {
+            if (tokens.size > 0) {
                 val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.fileConfig.srcPath)
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
