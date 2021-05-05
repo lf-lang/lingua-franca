@@ -48,6 +48,7 @@ import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TargetProperty.ClockSyncMode
 import org.lflang.TargetProperty.CoordinationType
+import org.lflang.TargetProperty.LogLevel
 import org.lflang.TimeValue
 import org.lflang.federated.CGeneratorExtension
 import org.lflang.lf.Action
@@ -1617,11 +1618,16 @@ class CGenerator extends GeneratorBase {
         // the case where a reaction triggered by a
         // port or action is late due to network 
         // latency, etc..
-        var intended_tag = ''        
+        var StringBuilder federatedExtension = new StringBuilder();    
         if (isFederatedAndDecentralized) {
-            intended_tag = '''
+            federatedExtension.append('''
                 «targetTagType» intended_tag;
-            '''
+            ''');
+        }
+        if (isFederated) {
+            federatedExtension.append('''                
+                «targetTimeType» physical_time_of_arrival;
+            ''');
         }
         // First, handle inputs.
         for (input : reactor.allInputs) {
@@ -1638,7 +1644,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
-                    «intended_tag»
+                    «federatedExtension.toString»
                 } «variableStructType(input, decl)»;
             ''')
             
@@ -1658,7 +1664,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     int num_destinations;
                     «token»
-                    «intended_tag»
+                    «federatedExtension.toString»
                 } «variableStructType(output, decl)»;
             ''')
 
@@ -1675,7 +1681,7 @@ class CGenerator extends GeneratorBase {
                     bool is_present;
                     bool has_value;
                     lf_token_t* token;
-                    «intended_tag»
+                    «federatedExtension.toString»
                 } «variableStructType(action, decl)»;
             ''')
             
@@ -2002,6 +2008,13 @@ class CGenerator extends GeneratorBase {
                         self->__«containedReactor.name».«port.name»_trigger.last = NULL;
                         self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
                     ''')
+                    
+                    if (isFederated) {
+                        // Set the physical_time_of_arrival
+                        pr(port, constructorCode, '''
+                            self->__«containedReactor.name».«port.name»_trigger.physical_time_of_arrival = NEVER;
+                        ''')
+                    }
                 }
             }
             unindent(body)
@@ -2185,6 +2198,7 @@ class CGenerator extends GeneratorBase {
                     self->___reaction_«reactionCount».self = self;
                     self->___reaction_«reactionCount».deadline_violation_handler = «deadlineFunctionPointer»;
                     self->___reaction_«reactionCount».STP_handler = «STPFunctionPointer»;
+                    self->___reaction_«reactionCount».name = "?";
                 ''')
 
             }
@@ -2338,6 +2352,13 @@ class CGenerator extends GeneratorBase {
                 self->___«variable.name».reactions = &self->___«variable.name»_reactions[0];
                 self->___«variable.name».number_of_reactions = «count»;
             ''')
+            
+            if (isFederated) {
+                // Set the physical_time_of_arrival
+                pr(variable, constructorCode, '''
+                    self->___«variable.name».physical_time_of_arrival = NEVER;
+                ''')
+            }
         }
         if (variable instanceof Input) {
             val rootType = variable.targetType.rootType
@@ -2525,7 +2546,10 @@ class CGenerator extends GeneratorBase {
                     // Input to a contained reaction
                     pr(intendedTagInheritenceCode, '''
                         // All effects inherit the minimum intended tag of input triggers
-                        «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
+                        if (inherited_min_intended_tag.time != NEVER) {
+                            // Don't reset the intended tag of the output port if it has already been set.
+                            «effect.container.name».«effect.variable.name»->intended_tag = inherited_min_intended_tag;
+                        }
                     ''')                    
                 }
             }
@@ -2758,8 +2782,16 @@ class CGenerator extends GeneratorBase {
                 // Record the number of reactions that this reaction depends on.
                 // This is used for optimization. When that number is 1, the reaction can
                 // be executed immediately when its triggering reaction has completed.
-                val dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(reaction)
-                if (dominatingReaction !== null) {
+                var dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(reaction)
+                // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
+                while (dominatingReaction !== null 
+                    && !federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition
+                )) {
+                    dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(dominatingReaction);
+                }
+                if (dominatingReaction !== null
+                    && federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition)
+                ) {
                     val upstreamReaction =
                         '''«selfStructName(dominatingReaction.parent)»->___reaction_«dominatingReaction.reactionIndex»'''
                     pr(initializeTriggerObjectsEnd, '''
@@ -2772,6 +2804,13 @@ class CGenerator extends GeneratorBase {
                         «selfStruct»->___reaction_«reactionCount».last_enabling_reaction = NULL;
                     ''')
                 }
+                if (targetConfig.logLevel >= LogLevel.LOG) {
+                    pr(initializeTriggerObjectsEnd, '''
+                        // Reaction «reactionCount» of «reactorInstance.getFullName»'s name.
+                        «selfStruct»->___reaction_«reactionCount».name = "«reactorInstance.fullName» reaction «reactionCount»";
+                    ''')
+                }
+                                
                 for (port : reaction.effects.filter(PortInstance)) {
                     // Skip multiports and handle the component ports instead.
                     if (!(port instanceof MultiportInstance)) {
@@ -4206,10 +4245,6 @@ class CGenerator extends GeneratorBase {
         InferredType type,
         boolean isPhysical
     ) {
-        // FIXME: Notify a special type of notification once this reaction is done
-        // FIXME: The receiver logic for the ABSENT message should also notify using this
-        // special message.
-        
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
         // This string is dynamically allocated, and type 'string' is to be
@@ -4223,9 +4258,14 @@ class CGenerator extends GeneratorBase {
             (receivingPort.variable as Port).type.id = "char*"
         }
 
-        val sendRef = generateVarRef(sendingPort) // Used for comments only, so no bank or multiport index.
         var receiveRef = generatePortRef(receivingPort, receivingBankIndex, receivingChannelIndex)
         val result = new StringBuilder()
+      
+        // Transfer the physical time of arrival from the action to the port
+        result.append('''
+            «receiveRef»->physical_time_of_arrival = self->___«action.name».physical_time_of_arrival;
+        ''')
+        
         if (isTokenType(type)) {
             result.append('''
                 SET_TOKEN(«receiveRef», «action.name»->token);
@@ -4389,95 +4429,20 @@ class CGenerator extends GeneratorBase {
         // Store the code
         val result = new StringBuilder()
         
+        result.append('''
+                interval_t max_STP = 0LL;
+        ''');
+        
         // Find the maximum STP for decentralized coordination
         if(isFederatedAndDecentralized) {
             result.append('''
-                interval_t max_STP = «maxSTP.timeInTargetLanguage»;
+                max_STP = «maxSTP.timeInTargetLanguage»;
             ''')  
         }
         
-        result.append('''            
-                // Need to lock the mutex to prevent
-                // a race condition with the network
-                // receiver logic.
-                lf_mutex_lock(&mutex);
-        ''')
-        
         result.append('''
-            DEBUG_PRINT("Invoked network dependant reaction.");
-            if (determine_port_status_if_possible(«receivingPortID») != unknown) {
-                // The status of the trigger is known. No need to wait.
-                LOG_PRINT("------ Not waiting for network input port «receivingPortID»: "
-                           "Status of the port is known already.");
-                mark_control_reaction_not_waiting(«receivingPortID»);
-                lf_mutex_unlock(&mutex);
-                return;
-            }            
-        ''')
-        
-        if(isFederatedAndDecentralized) {
-            result.append('''
-                    if(max_STP != 0LL) {
-                        LOG_PRINT("------ Waiting for %lldns for network input port \"in\" at tag (%llu, %d).",
-                                max_STP,
-                                current_tag.time - start_time,
-                                current_tag.microstep);
-                        while(!wait_until(current_tag.time + max_STP, &port_status_changed)) {
-                            // Interrupted
-                            DEBUG_PRINT("------ Wait for network input port «receivingPortID» interrupted");
-                            // Check if the status of the port is known
-                            if (determine_port_status_if_possible(«receivingPortID») != unknown) {
-                                // The status of the trigger is known. No need to wait.
-                                LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
-                                           "Status of the port has changed.");
-                                mark_control_reaction_not_waiting(«receivingPortID»);
-                                lf_mutex_unlock(&mutex);
-                                return;
-                            }
-                        }
-                        // The wait has timed out. However, a message header
-                        // for the current tag could have been received in time 
-                        // but not the the body of the message.
-                        // Wait on the tag barrier based on the current tag. 
-                        _lf_wait_on_global_tag_barrier(get_current_tag());
-                        // Done waiting
-                    }
-            ''')        
-        } else {
-            result.append('''                    
-                    LOG_PRINT("------ Waiting for network input port \"in\" at tag (%llu, %d).",
-                            current_tag.time - start_time,
-                            current_tag.microstep);
-                    while(!wait_until(FOREVER, &port_status_changed)) {
-                        // Interrupted
-                        DEBUG_PRINT("------ Wait for network input port «receivingPortID» interrupted");
-                        // Check if the status of the port is known
-                        if (determine_port_status_if_possible(«receivingPortID») != unknown) {
-                            // The status of the trigger is known. No need to wait.
-                            LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
-                                       "Status of the port has changed.");
-                            mark_control_reaction_not_waiting(«receivingPortID»);
-                            lf_mutex_unlock(&mutex);
-                            return;
-                        }
-                    }
-                    // Done waiting
-            ''')        
-        }
-        
-        result.append('''
-                if (determine_port_status_if_possible(«receivingPortID») == unknown) {
-                    // Port will not be triggered at the
-                    // current logical time. Set the absent
-                    // value of the trigger accordingly
-                    // so that the receiving logic cannot
-                    // insert any further reaction
-                    set_network_port_status(«receivingPortID», absent);
-                }
-                mark_control_reaction_not_waiting(«receivingPortID»);
-                lf_mutex_unlock(&mutex);
-                LOG_PRINT("------ Done waiting for network input port «receivingPortID»: "
-                          "Wait timed out without a port status change.");
+            // Wait until the port status is known
+            wait_until_port_status_known(«receivingPortID», max_STP);
         ''')
         
         return result.toString        
@@ -4492,18 +4457,56 @@ class CGenerator extends GeneratorBase {
      * @param receivingFederateID The ID of the receiving federate
      * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
      * @param sendingChannelIndex The channel if a multiport
+     * @param delay The delay value imposed on the connection using after
      */
     override generateNetworkOutputControlReactionBody(
         VarRef port,
         int portID,
         int receivingFederateID,
         int sendingBankIndex,
-        int sendingChannelIndex
+        int sendingChannelIndex,
+        Delay delay
     ) {
         // Store the code
         val result = new StringBuilder();
-        // FIXME: What about bank index?
         var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
+        
+        // The additional delay in absence of after
+        // is  -1. This has a special meaning
+        // in send_port_absent_to_federate
+        // (@see send_port_absent_to_federate in lib/core/federate.c).
+        // In this case, the sender will send
+        // its current tag as the timestamp
+        // of the outgoing port absent message
+        // without adding a microstep delay.
+        // If the user has assigned an after delay 
+        // (that can be zero) either as a time
+        // value (e.g., 200 msec) or as a literal
+        // (e.g., a parameter), that delay in nsec
+        // will be passed to send_port_absent_to_federate and added to 
+        // the current timestamp. If after delay is 0,
+        // send_port_absent_to_federate will use the current tag +
+        // a microstep as the timestamp of the outgoing port absent message.
+        var String additionalDelayString = '-1';
+        if (delay !== null) {
+            if (delay.parameter !== null) {
+                // The parameter has to be parameter of the main reactor.
+                // And that value has to be a Time.
+                val value = delay.parameter.init.get(0)
+                if (value.time !== null) {
+                    additionalDelayString = (new TimeValue(value.time.interval, value.time.unit))
+                            .toNanoSeconds.toString;
+                } else if (value.literal !== null) {
+                    // If no units are given, e.g. "0", then use the literal.
+                    additionalDelayString = value.literal;
+                } else {
+                    // This should have been caught by the validator.
+                    reportError(delay.parameter, "Parameter is required to be a time to be used in an after clause.")
+                }
+            } else {
+                additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
+            }
+        }
         
         result.append('''
             // If the output port has not been SET for the current logical time,
@@ -4512,7 +4515,7 @@ class CGenerator extends GeneratorBase {
                        "absent for port %d to federate %d.", 
                        «portID», «receivingFederateID»);
             if (!«sendRef»->is_present) {
-                send_port_absent_to_federate(«portID», «receivingFederateID»);
+                send_port_absent_to_federate(«additionalDelayString», «portID», «receivingFederateID»);
             }
         ''')
         
@@ -4553,6 +4556,8 @@ class CGenerator extends GeneratorBase {
         includeTargetLanguageHeaders()
 
         pr('#define NUMBER_OF_FEDERATES ' + federates.size);
+        
+        pr('#define TARGET_FILES_DIRECTORY "' + fileConfig.srcGenPath + '"');
         
         if (targetConfig.coordinationOptions.advance_message_interval !== null) {
             pr('#define ADVANCE_MESSAGE_INTERVAL ' + targetConfig.coordinationOptions.advance_message_interval.timeInTargetLanguage)

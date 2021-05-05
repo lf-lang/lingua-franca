@@ -35,9 +35,13 @@ See sensor_simulator.h.
 #include "sensor_simulator.h"
 #include "ctarget.h"
 #include "core/util.h"
+#include "core/platform.h"
 
-pthread_t _lf_sensor_thread_id;
+_lf_thread_t _lf_sensor_thread_id;
 int _lf_sensor_thread_created = 0;
+
+// Maximum number of milliseconds that wgetchr will block for.
+#define WGETCHR_TIMEOUT 1000
 
 // Support ASCII characters SPACE (32) through DEL (127).
 #define LF_SENSOR_TRIGGER_TABLE_SIZE 96
@@ -51,7 +55,11 @@ trigger_t* _lf_sensor_newline_trigger = NULL;
 // Trigger for any key.
 trigger_t* _lf_sensor_any_key_trigger = NULL;
 
-pthread_mutex_t _lf_sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
+SCREEN* screen;
+
+lf_mutex_t _lf_sensor_mutex;
+
+lf_cond_t _lf_sensor_simulator_started;
 
 /**
  * Default window from which to get input characters.
@@ -87,21 +95,29 @@ int _lf_sensor_print_window_height;
  * Otherwise, the character is ignored.
  */
 void* read_input(void* ignored) {
-    int c;
-    while((c = wgetch(_lf_sensor_default_window)) != EOF) {
-        // It is imperative that we not hold the _lf_sensor_mutex when
-        // calling schedule(), because schedule() acquires another mutex.
-        // We would create a deadlock risk.  The following code is correct
-        // because a trigger_table entry, once assigned a value, becomes
-        // immutable.
-        if (c == '\n' && _lf_sensor_newline_trigger != NULL) {
-            schedule_copy(_lf_sensor_newline_trigger, 0, &c, 1);
-        } else if (c - 32 >= 0 && c - 32 < LF_SENSOR_TRIGGER_TABLE_SIZE && trigger_table[c-32] != NULL) {
-            schedule_copy(trigger_table[c-32], 0, &c, 1);
-        }
-        // Any key trigger triggers after specific keys.
-        if (_lf_sensor_any_key_trigger != NULL) {
-            schedule_copy(_lf_sensor_any_key_trigger, 0, &c, 1);
+    while(_lf_sensor_thread_created != 0) {
+        int c = wgetch(_lf_sensor_default_window);
+        if (c == EOF) {
+            // End of file received. Exit thread.
+            _lf_sensor_thread_created = 0;
+        } else if (c != ERR) {
+            // wgetch returns ERR if it times out, in which case, we continue
+            // and check whether _lf_sensor_thread_created has been set to 0.
+            // So here, ERR was not returned.
+            // It is imperative that we not hold the _lf_sensor_mutex when
+            // calling schedule(), because schedule() acquires another mutex.
+            // We would create a deadlock risk.  The following code is correct
+            // because a trigger_table entry, once assigned a value, becomes
+            // immutable.
+            if (c == '\n' && _lf_sensor_newline_trigger != NULL) {
+                schedule_copy(_lf_sensor_newline_trigger, 0, &c, 1);
+            } else if (c - 32 >= 0 && c - 32 < LF_SENSOR_TRIGGER_TABLE_SIZE && trigger_table[c-32] != NULL) {
+                schedule_copy(trigger_table[c-32], 0, &c, 1);
+            }
+            // Any key trigger triggers after specific keys.
+            if (_lf_sensor_any_key_trigger != NULL) {
+                schedule_copy(_lf_sensor_any_key_trigger, 0, &c, 1);
+            }
         }
     }
     _lf_sensor_thread_created = 0;
@@ -112,8 +128,11 @@ void* read_input(void* ignored) {
  * End ncurses control of the terminal.
  */
 void end_ncurses() {
+    lf_mutex_lock(&_lf_sensor_mutex);
     register_print_function(NULL);
     endwin();
+    _lf_sensor_thread_created = 0;
+    lf_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -189,6 +208,7 @@ void _lf_start_print_window(int above, int right) {
 
 /**
  * Function to register to handle printing of messages in util.h/c.
+ * This acquires the mutex lock.
  */
 void _lf_print_message_function(char* format, va_list args) {
     // Replace the last \n with a \0 in the format and handle trailing returns manually.
@@ -196,6 +216,13 @@ void _lf_print_message_function(char* format, va_list args) {
     if (newline != NULL) {
         (*newline) = '\0';
     }
+    lf_mutex_lock(&_lf_sensor_mutex);
+
+    // If the sensor simulator has not started yet, wait for it to start.
+    while (!_lf_sensor_thread_created) {
+        lf_cond_wait(&_lf_sensor_simulator_started, &_lf_sensor_mutex);
+    }
+
     vwprintw(_lf_sensor_print_window, format, args);
     int y, x;
     getyx(_lf_sensor_print_window, y, x);
@@ -212,6 +239,7 @@ void _lf_print_message_function(char* format, va_list args) {
     }
 
     wrefresh(_lf_sensor_print_window);
+    lf_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -224,7 +252,8 @@ void _lf_print_message_function(char* format, va_list args) {
  * @param tick_window_width The width of the tick window or 0 for none.
  */
 int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width) {
-    pthread_mutex_lock(&_lf_sensor_mutex);
+    lf_mutex_init(&_lf_sensor_mutex);
+    lf_mutex_lock(&_lf_sensor_mutex);
     int result = 0;
     if (_lf_sensor_thread_created == 0) {
         // Thread has not been created.
@@ -232,16 +261,22 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         for (int i = 0; i < LF_SENSOR_TRIGGER_TABLE_SIZE; i++) {
             trigger_table[i] = NULL;
         }
+        if (atexit(end_ncurses) != 0) {
+            warning_print("sensor_simulator: Failed to register end_ncurses function!");
+        }
+        // Clean up any previous curses state.
+        if (!isendwin()) {
+            endwin();
+        }
+
         // Initialize ncurses.
+        DEBUG_PRINT("Initializing ncurses.");
         initscr();
         start_color();     // Allow colors.
         noecho();          // Don't echo input
         cbreak();          // Don't wait for Return or Enter
+        wtimeout(stdscr, WGETCHR_TIMEOUT); // Don't wait longer than this
         refresh();         // Not documented, but needed?
-
-        if (atexit(end_ncurses) != 0) {
-            warning_print("sensor_simulator: Failed to register end_ncurses function!");
-        }
 
         _lf_sensor_default_window = stdscr;
         if (message_lines != NULL && number_of_lines > 0) {
@@ -253,15 +288,18 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         }
         _lf_start_print_window(number_of_lines + 2, tick_window_width + 2);
 
-        register_print_function(&_lf_print_message_function);
-
         // Create the thread that listens for input.
-        int result = pthread_create(&_lf_sensor_thread_id, NULL, &read_input, NULL);
+        int result = lf_thread_create(&_lf_sensor_thread_id, &read_input, NULL);
         if (result == 0) {
+            register_print_function(&_lf_print_message_function);
             _lf_sensor_thread_created = 1;
+        } else {
+            error_print("Failed to start sensor simulator!");
         }
+        lf_cond_broadcast(&_lf_sensor_simulator_started);
     }
-    pthread_mutex_unlock(&_lf_sensor_mutex);
+    lf_mutex_unlock(&_lf_sensor_mutex);
+    DEBUG_PRINT("Finished starting sensor simulator.");
     return result;
 }
 
@@ -270,7 +308,14 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
  * @param character The tick character.
  */
 void show_tick(char* character) {
-    pthread_mutex_lock(&_lf_sensor_mutex);
+    lf_mutex_lock(&_lf_sensor_mutex);
+
+    // If necessary, wait for the sensor simulator start.
+    while (!_lf_sensor_thread_created) {
+        DEBUG_PRINT("Waiting for sensor simulator start.");
+        lf_cond_wait(&_lf_sensor_simulator_started, &_lf_sensor_mutex);
+    }
+
     wmove(_lf_sensor_tick_window, _lf_sensor_tick_cursor_y, _lf_sensor_tick_cursor_x);
     wprintw(_lf_sensor_tick_window, character);
     int tick_height, tick_width;
@@ -290,7 +335,7 @@ void show_tick(char* character) {
     // calls don't mess up the screen as much.
     wmove(stdscr, 0, 0);
     refresh();
-    pthread_mutex_unlock(&_lf_sensor_mutex);
+    lf_mutex_unlock(&_lf_sensor_mutex);
 }
 
 /**
@@ -320,7 +365,7 @@ int register_sensor_key(char key, void* action) {
         return 2;
     }
     int result = 0;
-    pthread_mutex_lock(&_lf_sensor_mutex);
+    lf_mutex_lock(&_lf_sensor_mutex);
     if (key == '\n') {
         if (_lf_sensor_newline_trigger != NULL) {
             result = 1;
@@ -339,6 +384,6 @@ int register_sensor_key(char key, void* action) {
     } else {
         trigger_table[index] = action;
     }
-    pthread_mutex_unlock(&_lf_sensor_mutex);
+    lf_mutex_unlock(&_lf_sensor_mutex);
     return result;
 }

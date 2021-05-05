@@ -177,6 +177,6 @@ void error_print_and_exit(char* format, ...) {
  * @param function The print message function or NULL to revert
  *  to using printf.
  */
-void register_print_function(print_message_function_t function) {
+void register_print_function(print_message_function_t* function) {
     print_message_function = function;
 }

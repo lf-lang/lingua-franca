@@ -455,6 +455,12 @@ struct reaction_t {
                                        // intended. Currently, this is only possible if logical
                                        // connections are used in a decentralized federated
                                        // execution. COMMON.
+    bool is_a_control_reaction; // Indicates whether this reaction is a control reaction. Control
+                                // reactions will not set ports or actions and don't require scheduling
+                                // any output reactions. Default is false.
+    char* name;                 // If logging is set to LOG or higher, then this will
+                                // point to the full name of the reactor followed by
+    							// the reaction number.
 };
 
 /** Typedef for event_t struct, used for storing activation records. */
@@ -505,16 +511,17 @@ struct trigger_t {
                               //   coordination. 
                               // - Finally, if status is 'present', then this is an error since multiple 
                               //   downstream messages have been produced for the same port for the same logical time.
-    tag_t last_known_status_tag; // FIXME: ABSENT message needs to carry a timestamp. Both in handle_absent and handle_timed need to update this.
-                                 // This will be compared for each tag to decide whether to wait for the port or not (because the status of the port is
-                                 // known for an equal or greater tag).
 #ifdef FEDERATED
+    tag_t last_known_status_tag;        // Last known status of the port, either via a timed message, a port absent, or a
+                                        // TAG from the RTI.
     bool is_a_control_reaction_waiting; // Indicates whether at least one control reaction is waiting for this trigger
                                         // if it belongs to a network input port. Must be false by default.
-    tag_t intended_tag;       // The amount of discrepency in logical time between the original intended
-                              // trigger time of this trigger and the actual trigger time. This currently
-                              // can only happen when logical connections are used using a decentralized coordination
-                              // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
+    tag_t intended_tag;                 // The amount of discrepency in logical time between the original intended
+                                        // trigger time of this trigger and the actual trigger time. This currently
+                                        // can only happen when logical connections are used using a decentralized coordination
+                                        // mechanism (@see https://github.com/icyphy/lingua-franca/wiki/Logical-Connections).
+    instant_t physical_time_of_arrival; // The physical time at which the message has been received on the network according to the local clock.
+                                        // Note: The physical_time_of_arrival is only passed down one level of the hierarchy. Default: NEVER.
 #endif
 };
 //  ======== Function Declarations ========  //

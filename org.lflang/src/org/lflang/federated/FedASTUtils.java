@@ -41,6 +41,7 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
+import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -282,6 +283,7 @@ public class FedASTUtils {
      * @param receivingFedID The ID of destination federate.
      * @param generator The GeneratorBase instance used to identify certain
      *        target properties
+     * @param delay The delay value imposed on the connection using after
      */
     public static void addNetworkOutputControlReaction(
             VarRef portRef,
@@ -290,7 +292,8 @@ public class FedASTUtils {
             int channelIndex, 
             int bankIndex, 
             int receivingFedID,
-            GeneratorBase generator
+            GeneratorBase generator,
+            Delay delay
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
@@ -302,10 +305,6 @@ public class FedASTUtils {
 
         if (instance.networkOutputControlReactionsTrigger == null) {
             String triggerName = "outputControlReactionTrigger";
-
-            // The trigger for the reaction
-            VarRef newTriggerForControlReaction = (VarRef) factory
-                    .createVarRef();
 
             // Find the trigger in the reactor definition, which could have been
             // generated for another federate instance
@@ -319,34 +318,34 @@ public class FedASTUtils {
                 // already added
                 // to the reactor definition, we need to create it for the first
                 // time.
-                Variable newTriggerForControlReactionVariable = factory
+                Input newTriggerForControlReactionVariable = factory
                         .createInput();
                 newTriggerForControlReactionVariable.setName(triggerName);
 
                 Type portType = factory.createType();
                 portType.setId(generator.getTargetTimeType());
-                ((Input) newTriggerForControlReactionVariable)
-                        .setType(portType);
+                newTriggerForControlReactionVariable.setType(portType);
 
-                newTriggerForControlReaction
-                        .setVariable(newTriggerForControlReactionVariable);
 
                 reactor.getInputs()
-                        .add((Input) newTriggerForControlReactionVariable);
+                        .add(newTriggerForControlReactionVariable);
+                
+                // Now that the variable is created, store it in the federate instance
+                instance.networkOutputControlReactionsTrigger = newTriggerForControlReactionVariable;
             } else {
                 // If the "outputControlReactionTrigger" trigger is already
-                // there, we
-                // can re-use it for this new reaction since a single trigger
+                // there, we can re-use it for this new reaction since a single trigger
                 // will trigger
                 // all network output control reactions.
-                newTriggerForControlReaction.setVariable(optTriggerInput.get());
+                instance.networkOutputControlReactionsTrigger = optTriggerInput.get();
             }
-            instance.networkOutputControlReactionsTrigger = newTriggerForControlReaction;
         }
 
         // Add the trigger for all output control reactions to the list of triggers
+        VarRef triggerRef = factory.createVarRef();
+        triggerRef.setVariable(instance.networkOutputControlReactionsTrigger);
         reaction.getTriggers()
-                .add(instance.networkOutputControlReactionsTrigger);
+                .add(triggerRef);
         // Add the output from the contained reactor as a source to preserve
         // precedence order
         reaction.getSources().add(newPortRef);
@@ -356,7 +355,7 @@ public class FedASTUtils {
 
         reaction.getCode().setBody(
                 generator.generateNetworkOutputControlReactionBody(newPortRef,
-                        receivingPortID, receivingFedID, bankIndex, channelIndex));
+                        receivingPortID, receivingFedID, bankIndex, channelIndex, delay));
         
         generator.makeUnordered(reaction);
 
@@ -480,7 +479,8 @@ public class FedASTUtils {
                 leftBankIndex,
                 leftChannelIndex,
                 rightFederate.id,
-                generator
+                generator,
+                connection.getDelay()
             );
             
             // Add the network input control reaction to the parent

@@ -867,7 +867,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         var commands = newLinkedList
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
-            if (tokens.size > 1) {
+            if (tokens.size > 0) {
                 val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.fileConfig.srcPath)
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
@@ -1322,13 +1322,15 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param receivingFederateID The ID of the receiving federate
      * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
      * @param sendingChannelIndex The channel if a multiport
+     * @param delay The delay value imposed on the connection using after
      */
     def String generateNetworkOutputControlReactionBody(
         VarRef port,
         int portID,
         int receivingFederateID,
         int sendingBankIndex,
-        int sendingChannelIndex
+        int sendingChannelIndex,
+        Delay delay
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
     }  
