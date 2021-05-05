@@ -445,6 +445,7 @@ void _lf_send_tag(unsigned char type, tag_t tag) {
         if (errno == ENOTCONN) {
             error_print("Socket to the RTI is no longer connected. Considering this a soft error.");
         } else {
+            lf_mutex_unlock(&outbound_socket_mutex);
             error_print_and_exit("Failed to send tag (%lld, %u) to the RTI.", 
                                     " Error code %d: %s",
                                     tag.time - start_time, 
