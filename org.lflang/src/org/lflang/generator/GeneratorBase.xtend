@@ -1114,31 +1114,69 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /** 
-     * It tries to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
-     * If that fails, it tries again with bash. 
-     * In case this fails again, raise an error.
+     * Try to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
+     * If that fails, try again with bash, thereby using any PATH set in the 
+     * bash profile. If this fails again, report an error and return null.
+     * If the command has the form "./name", where
+     * name is an executable file in the current working directory,
+     * then that command will be used.
      * 
-     * Return ExecutionEnvironment.NATIVE 
+     * This returns ExecutionEnvironment.NATIVE 
      * if the specified command is directly executable on the current host
-     * Returns ExecutionEnvironment.BASH 
+     * and ExecutionEnvironment.BASH 
      * if the command must be executed within a bash shell.
-     * 
      * The latter occurs, for example, if the specified command 
      * is not in the native path but is in the path
      * specified by the user's bash configuration file.
      * If the specified command is not found in either the native environment 
-     * nor the bash environment,
-     * then this reports and error and returns null.
+     * nor the bash environment, then this reports and error and returns null.
      * 
-     * @param cmd The command to be find.
-     * @return Returns an ExecutionEnvironment.
+     * @param cmd The command to find.
+     * @param dir A directory from which to search for the command or null to use PWD.
+     * 
+     * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
+     *  where ExecutionEnvironment is an enum.
+     * 
+     * @see findCommandEnv(String, Path)
      */
     protected def findCommandEnv(String cmd) {
+        return findCommandEnv(cmd, null)
+    }
+
+    /** 
+     * Try to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
+     * If that fails, try again with bash, thereby using any PATH set in the 
+     * bash profile. If this fails again, report an error and return null.
+     * If a directory is given and the command has the form "./name", where
+     * name is an executable file in the specified directory,
+     * then that command will be used.
+     * 
+     * This returns ExecutionEnvironment.NATIVE 
+     * if the specified command is directly executable on the current host
+     * and ExecutionEnvironment.BASH 
+     * if the command must be executed within a bash shell.
+     * The latter occurs, for example, if the specified command 
+     * is not in the native path but is in the path
+     * specified by the user's bash configuration file.
+     * If the specified command is not found in either the native environment 
+     * nor the bash environment, then this reports and error and returns null.
+     * 
+     * @param cmd The command to find.
+     * @param dir A directory from which to search for the command or null to use PWD.
+     * 
+     * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
+     *  where ExecutionEnvironment is an enum.
+     */
+    protected def findCommandEnv(String cmd, Path dir) {
         // Make sure the command is found in the PATH.
         print('''--- Looking for command «cmd» ... ''')
         // Use 'where' on Windows, 'which' on other systems
         val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
         val whichBuilder = new ProcessBuilder(#[which, cmd])
+        val dirFile = new File(dir.toString)
+        if (dirFile.isDirectory()) {
+            whichBuilder.directory(dirFile)
+        }
         val whichReturn = whichBuilder.start().waitFor()
         if (whichReturn == 0) {
             println("SUCCESS")
@@ -1167,22 +1205,23 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Creates a ProcessBuilder for a given command and its arguments.
+     * Create a ProcessBuilder for a given command and its arguments.
+     * If the env argument is ExecutionEnvironment.BASH, then the returned execution
+     * environment will be set up to run the command within bash.
+     * If the env argument is null, then report an error and return null.
      * 
-     * This method returns correctly constructed ProcessBuilder object 
-     * according to the Execution environment. Raise an error if the env is null.
+     * @param cmd The command to be executed.
+     * @param args A list of arguments for the given command.
+     * @param dir The directory to change into before executing the command.
+     * @param env The type of the Execution Environment.
      * 
-     * @param cmd The command to be executed
-     * @param args A list of arguments for the given command
-     * @param dir the directory to change into before executing the command.
-     * @param env is the type of the Execution Environment.
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
     protected def createCommand(String cmd, List<String> args, Path dir, ExecutionEnvironment env) {
+        var builder = null as ProcessBuilder
         if (env == ExecutionEnvironment.NATIVE) {
-            val builder = new ProcessBuilder(#[cmd] + args)
+            builder = new ProcessBuilder(#[cmd] + args)
             builder.directory(dir.toFile)
-            return builder
         } else if (env == ExecutionEnvironment.BASH) {
 
             val str_builder = new StringBuilder(cmd + " ")
@@ -1193,31 +1232,33 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // val bash_arg = #[cmd + args]
             val newCmd = #["bash", "--login", "-c"]
             // use that command to build the process
-            val builder = new ProcessBuilder(newCmd + #[bash_arg])
+            builder = new ProcessBuilder(newCmd + #[bash_arg])
             builder.directory(dir.toFile)
-            return builder
+        } else {
+            println("FAILED")
+            reportError(
+                    "The command " + cmd + " could not be found in the source directory nor in your PATH.\n" +
+                    "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
+                    "You can set PATH in ~/.bash_profile on Linux or Mac.")
         }
-        println("FAILED")
-        reportError(
-            "The command " + cmd + " could not be found.\n" +
-                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.")
-        return null as ProcessBuilder
+        return builder
     }
 
     /**
      * Creates a ProcessBuilder for a given command and its arguments.
+     * If the specified command must be executed in a bash shell (i.e., if it cannot
+     * be found without the settings in your bash profile), then the returned execution
+     * environment will be set up to run the command within bash.
+     * If the command cannot be found, then report an error and return null.
      * 
-     * This method returns correctly constructed ProcessBuilder object 
-     * according to the Execution environment. It finds the execution environment using findCommandEnv(). 
-     * Raise an error if the env is null.
+     * @param cmd The command to be executed.
+     * @param args A list of arguments for the given command.
+     * @param dir A directory to change into before finding the command.
      * 
-     * @param cmd The command to be executed
-     * @param args A list of arguments for the given command
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
     protected def createCommand(String cmd, List<String> args, Path dir) {
-        val env = findCommandEnv(cmd)
+        val env = findCommandEnv(cmd, dir)
         return createCommand(cmd, args, dir, env)
     }
 
