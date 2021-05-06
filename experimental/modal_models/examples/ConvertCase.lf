@@ -1,0 +1,23 @@
+target Python;
+
+reactor ConvertCase {
+	input raw;
+    output conv;
+    
+    initial mode Lower {
+		reaction(raw) -> Upper, conv {=
+            if raw.isalpha:
+            	conv.set(raw.lower())
+            else:
+            	set_mode(Upper)
+		=}
+    }
+    mode Upper {
+		reaction(raw) -> Lower, conv {=
+            if raw.isalpha:
+            	conv.set(raw.upper())
+            else:
+            	set_mode(Lower)
+		=}
+    }
+}
