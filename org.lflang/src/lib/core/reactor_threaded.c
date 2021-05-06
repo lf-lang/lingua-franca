@@ -376,20 +376,16 @@ void logical_tag_complete(tag_t tag_to_send);
 
 /** 
  * Placeholder for code-generated function that will, in a federated
- * execution, be used to coordinate the advancement of time.  It will notify
- * the runtime infrastructure (RTI) of the specified tag, which is the tag of
- * the next event on the event queue or, if the queue is empty either
- * (FOREVER, UINT_MAX) or the stop_time (the timeout time), whichever is less.
- * This function may also modify the tag if there is a physical action that
- * can trigger an output from the federate so that the tag sent does not
- * excceed the current physical time.
- * An implementation of this function may block until it is safe for
- * logical time to advance to the returned tag, which may be less than the
- * specified tag.
- * This function returns either the specified tag or a lesser tag.
- * It will return a lesser tag if its blocking was interrupted by
- * either a new event on the event queue (e.g. a physical action) or
- * if the RTI grants advancement to a lesser tag.
+ * execution with centralized coordination, be used to coordinate the
+ * advancement of time.  Otherwise this function returns the specified tag
+ * immediately.
+ *
+ * In a federated execution with centralized coordination, this function returns a
+ * tag that is less than or equal to the specified tag when, as far
+ * as the federation is concerned, it is safe to commit to advancing
+ * to the returned tag. That is, all incoming network messages with
+ * tags less than the returned tag have been received.
+ *
  * @param tag The tag to which to advance.
  * @param wait_for_reply If true, wait for the RTI to respond.
  * @return The tag to which it is safe to advance.
