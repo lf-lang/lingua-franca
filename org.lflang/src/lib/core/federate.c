@@ -1026,22 +1026,42 @@ void mark_all_unknown_ports_as_absent() {
 
 /**
  * Update the last known status tag of all network input ports
- * to the value of tag, assuming that the provided tag is larger
- * than the last_known_status_tag of the port.
+ * to the value of `tag`, unless that the provided `tag` is less
+ * than the last_known_status_tag of the port. This is called when
+ * all inputs to network ports with tags up to an including `tag`
+ * have been received by those ports. If any update occurs and if
+ * there are control reactions blocked, then this broadcasts a
+ * signal to potentially unblock those control reactions.
  * 
+ * This assumes the caller holds the mutex.
+ *
  * @param tag The tag on which the latest status of network input
  *  ports is known.
  */
 void update_last_known_status_on_input_ports(tag_t tag) {
+	bool notify = false;
     for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
         trigger_t* input_port_action = __action_for_port(i);
         if (compare_tags(tag,
                 input_port_action->last_known_status_tag) >= 0) {
             input_port_action->last_known_status_tag = tag;
+            if (input_port_action->is_a_control_reaction_waiting) {
+            	notify = true;
+            }
         } else {
-            DEBUG_PRINT("Attempt to update the last known status tag " 
-                           "of network input port %d to an earlier tag was ignored.", i);
+            warning_print("Attempt to update the last known status tag "
+            		"of network input port %d to an earlier tag. "
+            		"Ignoring the update.", i);
         }
+    }
+    // Then, check if any control reaction is waiting.
+    // If so, notify them.
+    // FIXME: We could put a condition variable into the trigger_t
+    // struct for each network input port, in which case this won't
+    // be a broadcast but rather a targetted signal.
+    if (notify) {
+        // Notify network input control reactions
+        lf_cond_broadcast(&port_status_changed);
     }
 }
 
@@ -1063,22 +1083,6 @@ void update_last_known_status_on_input_port(tag_t tag, int port_id) {
         DEBUG_PRINT("Attempt to update the last known status tag " 
                         "of network input port %d to an earlier tag was ignored.", port_id);
     }
-}
-
-/**
- * Check if any network input control reaction is waiting at the current
- * tag.
- * 
- * @return true if any network input control reaction is waiting. False otherwise.
- */
-bool any_control_reaction_is_waiting() {
-    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
-        trigger_t* input_port_action = __action_for_port(i);
-        if (input_port_action->is_a_control_reaction_waiting) {
-            return true;
-        }
-    }
-    return false;
 }
 
 /**
@@ -1154,9 +1158,10 @@ void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
  */
 void enqueue_network_control_reactions(pqueue_t* reaction_q) {
 #ifdef FEDERATED_CENTRALIZED
-    // The granted tag is not provisional, therefore there is no
+    // If the granted tag is not provisional, there is no
     // need for network control reactions
-    if (_fed.is_last_TAG_provisional == false) {
+    if (compare_tags(_fed.last_TAG, get_current_tag()) != 0
+    		|| _fed.is_last_TAG_provisional == false) {
         return;
     }
 #endif
@@ -1763,12 +1768,20 @@ void handle_timed_message(int socket, int fed_id) {
     lf_mutex_unlock(&mutex);
 }
 
-/** Handle a time advance grant (TAG) message from the RTI.
- *  This function assumes the caller does not hold the mutex lock,
- *  which it acquires to interact with the main thread, which may
- *  be waiting for a TAG (this broadcasts a condition signal).
+/**
+ * Handle a time advance grant (TAG) message from the RTI.
+ * This updates the last known status tag for each network input
+ * port, and broadcasts a signal, which may cause a blocking
+ * control reaction to unblock.
+ *
+ * In addition, this updates the last known TAG/PTAG and broadcasts
+ * a notification of this update, which may unblock whichever worker
+ * thread is trying to advance time.
+ *
+ * This function assumes the caller does not hold the mutex lock,
+ * which it acquires.
  * 
- *  @note This function is very similar to handle_provisinal_tag_advance_grant() except that
+ * @note This function is very similar to handle_provisinal_tag_advance_grant() except that
  *  it sets last_TAG_was_provisional to false.
  */
 void handle_tag_advance_grant() {
@@ -1776,11 +1789,11 @@ void handle_tag_advance_grant() {
     unsigned char buffer[bytes_to_read];
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read tag advance grant from RTI.");
-
-    lf_mutex_lock(&mutex);
     tag_t TAG;
     TAG.time = extract_ll(buffer);
     TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+
+    lf_mutex_lock(&mutex);
 
     // Update the last known status tag of all network input ports
     // to the TAG received from the RTI. Here we assume that the RTI
@@ -1788,68 +1801,66 @@ void handle_tag_advance_grant() {
     // so by extension, we assume that the federate can safely rely
     // on the RTI to handle port statuses up until the granted tag.
     update_last_known_status_on_input_ports(TAG);
-    // Then, check if any control reaction is waiting.
-    // If so, notify them.
-    if (any_control_reaction_is_waiting()) {
-        // Notify network input control reactions
-        lf_cond_broadcast(&port_status_changed);
-    }
 
     // It is possible for this federate to have received a PTAG
-    // earlier with a larger tag than this TAG. Therefore, we might
-    // need to ignore this TAG if that is the case.
+    // earlier with the same tag as this TAG.
     if (compare_tags(TAG, _fed.last_TAG) >= 0) {
         _fed.last_TAG.time = TAG.time;
         _fed.last_TAG.microstep = TAG.microstep;
         _fed.is_last_TAG_provisional = false;
-        LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+        LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).",
+        		_fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     } else if (_fed.is_last_TAG_provisional) {
-        LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u) but already had PTAG (%lld, %u). Ignoring the TAG.",
+    	// FIXME: This clause should be removed because this is a fault.
+    	// TAG and PTAG are required to be monotonically non-decreasing.
+        warning_print("Received Time Advance Grant (TAG): (%lld, %u) but already had PTAG (%lld, %u). Ignoring the TAG.",
                     TAG.time - start_time, 
                     TAG.microstep,
                     _fed.last_TAG.time - start_time,
                     _fed.last_TAG.microstep);
     } else {
-        error_print_and_exit("Received a TAG (%lld, %u) that wasn't larger than the previous TAG (%lld, %u).",
+        lf_mutex_unlock(&mutex);
+        error_print_and_exit("Received a TAG (%lld, %u) that wasn't larger than the previous TAG or PTAG (%lld, %u).",
                                 TAG.time - start_time, 
                                 TAG.microstep,
                                 _fed.last_TAG.time - start_time,
                                 _fed.last_TAG.microstep);
     }
 
-    // Ignore unsolicited TAGs
-    if (_fed.waiting_for_TAG) {
-        _fed.waiting_for_TAG = false;
-        // Notify everything that is blocked.
-        lf_cond_broadcast(&event_q_changed);
-    }
+    _fed.waiting_for_TAG = false;
+    // Notify everything that is blocked.
+    lf_cond_broadcast(&event_q_changed);
 
     lf_mutex_unlock(&mutex);
 }
 
-
-/** Handle a provisional time advance grant (TAG) message from the RTI.
- *  This function assumes the caller does not hold the mutex lock,
- *  which it acquires to interact with the main thread, which may
- *  be waiting for a TAG (this broadcasts a condition signal).
+/**
+ * Handle a provisional tag advance grant (PTAG) message from the RTI.
+ * This updates the last known TAG/PTAG and broadcasts
+ * a notification of this update, which may unblock whichever worker
+ * thread is trying to advance time.
+ *
+ * This function assumes the caller does not hold the mutex lock,
+ * which it acquires.
  * 
- * @note This function is very similar to handle_tag_advance_grant() except that
- *  it sets last_TAG_was_provisional to true.
+ * @note This function is similar to handle_tag_advance_grant() except that
+ *  it sets last_TAG_was_provisional to true and also it does not update the
+ *  last known tag for input ports.
  */
 void handle_provisional_tag_advance_grant() {
     int bytes_to_read = sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[bytes_to_read];    
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read provisional tag advance grant from RTI.");
+    tag_t PTAG;
+    PTAG.time = extract_ll(buffer);
+    PTAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
     // Note: it is important that last_known_status_tag of ports does not
     // get updated to a PTAG value because a PTAG does not indicate that
     // the RTI knows about the status of all ports up to and _including_
     // the value of PTAG. Only a TAG message indicates that.
     lf_mutex_lock(&mutex);
-    tag_t PTAG;
-    PTAG.time = extract_ll(buffer);
-    PTAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
     // Sanity check
     if (compare_tags(PTAG, _fed.last_TAG) < 0 ||
@@ -1861,7 +1872,8 @@ void handle_provisional_tag_advance_grant() {
     _fed.last_TAG = PTAG;
     _fed.waiting_for_TAG = false;
     _fed.is_last_TAG_provisional = true;
-    LOG_PRINT("Received Provisional Tag Advance Grant (TAG): (%lld, %u).", _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+    LOG_PRINT("Received Provisional Tag Advance Grant (TAG): (%lld, %u).",
+    		_fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     // Notify everything that is blocked.
     lf_cond_broadcast(&event_q_changed);
     lf_mutex_unlock(&mutex);
@@ -2342,19 +2354,21 @@ bool _lf_bounded_NET(tag_t* tag) {
 
 /** 
  * If this federate depends on upstream federates or sends data to downstream
- * federates, then notify the RTI of the next event tag (NET) on the event queue.
- * If the next event is not known (because either the queue is empty or there
- * are physical actions that may affect outputs and physical time has not
- * advanced to the time of the earliest event on the queue), then send a TAN
- * message instead, which is a promise to not produce events with the sent
- * timestamp or less anytime in the future.
+ * federates, then send to the RTI either a NET or a TAN, depending on whether
+ * there are network outputs that depend on physical actions. If there are no
+ * such outputs, then send next event tag (NET), which will give the tag of
+ * the earliest event on the event queue, or, if the queue is empty, the timeout
+ * time, or, if there is no timeout, FOREVER.
+ *
+ * A NET or TAN is a promise saying that, absent network inputs, this federate will
+ * not produce an output message with tag earlier than the NET value or (TAN,0).
  *
  * If there are upstream federates, then after sending a NET, this will block
  * until either the RTI grants the advance to the requested time or the wait
  * for the response from the RTI is interrupted by a change in the event queue
- * (e.g., a physical action triggered).  If there are no upstream
- * federates, then it will not wait for a TAG (which won't be forthcoming
- * anyway) and returns the earliest tag on the event queue.
+ * (e.g., a physical action triggered or a network message arrived).
+ * If there are no upstream federates, then it will not wait for a TAG
+ * (which won't be forthcoming anyway) and returns the earliest tag on the event queue.
  *
  * If the federate has neither upstream nor downstream federates, then this
  * returns the specified tag immediately without sending anything to the RTI.
@@ -2411,10 +2425,8 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 
         // If time advance has already been granted for this tag or a larger
         // tag, then return immediately.
-        if (compare_tags(_fed.last_TAG, tag) > 0 ||
-            (compare_tags(_fed.last_TAG, tag) == 0 &&
-             !_fed.is_last_TAG_provisional)) {
-            DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG is at least as large.",
+        if (compare_tags(_fed.last_TAG, tag) >= 0) {
+            DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG or PTAG is at least as large.",
                     current_tag.time - start_time, current_tag.microstep);
             return tag;
         }
