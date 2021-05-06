@@ -1,0 +1,24 @@
+target Python;
+
+import ConvertCase from "ConvertCase.lf";
+
+reactor Hierachy {
+    input pause;
+	input inp;
+    output outp;
+    
+    initial mode Process {
+		converter = new ConvertCase();
+		inp -> converter.raw
+		converter.conv -> outp
+		
+		reaction(pause) -> Wait {=
+		=}
+    }
+    
+    mode Wait {
+		reaction(pause) -> Process {=
+		=}
+    }
+}
+

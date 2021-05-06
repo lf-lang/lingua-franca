@@ -1,0 +1,36 @@
+target Python;
+
+import ConvertCase from "ConvertCase.lf";
+
+reactor Timing {
+	input next;
+	input inp;
+    output outp;
+    
+    initial mode Timer {
+        timer t(5 msec, 10 msec);
+        
+		reaction(t) -> outp {=
+		=}
+		reaction(next) -> Action {=
+		=}
+    }
+    mode Action {
+	    logical action delay(5 msec);
+	    
+		reaction(inp) -> delay {=
+		=}
+		reaction(delay) -> outp {=
+		=}
+		reaction(next) -> After {=
+		=}
+    }
+    mode After {
+		converter = new ConvertCase();
+		inp -> converter.raw
+		converter.conv -> outp after 5 msec
+		
+		reaction(next) -> Timer {=
+		=}
+    }
+}

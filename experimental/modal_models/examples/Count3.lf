@@ -1,0 +1,18 @@
+target Python;
+
+reactor Count3 {
+	input next;
+    
+    initial mode One {
+		reaction(next) -> Two {=
+		=}
+    }
+    mode Two {
+		reaction(next) -> Three {=
+		=}
+    }
+    mode Three {
+		reaction(next) -> One {=
+		=}
+    }
+}
