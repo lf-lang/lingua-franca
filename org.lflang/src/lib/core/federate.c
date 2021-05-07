@@ -2432,7 +2432,7 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
         // tag, then return immediately.
         // FIXME: If a provisional time advance is granted for this tag instead, we
         // need an actual time advance grant to move on from `tag`. Therefore,
-        // we need send this tag again on a NET message.
+        // we need to send this tag again on a NET message.
         if (compare_tags(_fed.last_TAG, tag) > 0 ||
             (compare_tags(_fed.last_TAG, tag) == 0 &&
              !_fed.is_last_TAG_provisional)) {
