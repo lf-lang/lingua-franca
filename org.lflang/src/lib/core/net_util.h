@@ -38,6 +38,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef NET_UTIL_H
 #define NET_UTIL_H
 
+#include "platform.h"  // defines lf_mutex_t
+
 #define HOST_LITTLE_ENDIAN 1
 #define HOST_BIG_ENDIAN 2
 
@@ -46,7 +48,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 int host_is_big_endian();
 
-/** 
+/**
  * Read the specified number of bytes from the specified socket into the
  * specified buffer. If a disconnect or an EOF occurs during this
  * reading, then if format is non-null, report an error and exit.
@@ -62,7 +64,11 @@ int host_is_big_endian();
  * @return The number of bytes read, or 0 if an EOF is received, or
  *  a negative number for an error.
  */
-int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, char* format, ...);
+int read_from_socket_errexit(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		char* format, ...);
 
 /**
  * Read the specified number of bytes from the specified socket into the
@@ -87,13 +93,42 @@ int read_from_socket(int socket, int num_bytes, unsigned char* buffer);
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to write.
  * @param buffer The buffer from which to get the bytes.
+ * @param mutex If non-NULL, the mutex to unlock before exiting.
  * @param format A format string for error messages, followed by any number of
  *  fields that will be used to fill the format string as in printf, or NULL
  *  to prevent exit on error.
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, char* format, ...);
+int write_to_socket_errexit_with_mutex(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		lf_mutex_t* mutex,
+		char* format, ...);
+
+/**
+ * Write the specified number of bytes to the specified socket from the
+ * specified buffer. If a disconnect or an EOF occurs during this
+ * reading, report an error and exit, unless the format string is NULL,
+ * in which case, report an error and return. This function takes a formatted
+ * string and additional optional arguments similar to printf(format, ...)
+ * that is appended to the error messages.
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to write.
+ * @param buffer The buffer from which to get the bytes.
+ * @param mutex If non-NULL, the mutex to unlock before exiting.
+ * @param format A format string for error messages, followed by any number of
+ *  fields that will be used to fill the format string as in printf, or NULL
+ *  to prevent exit on error.
+ * @return The number of bytes written, or 0 if an EOF was received, or a negative
+ *  number if an error occurred.
+ */
+int write_to_socket_errexit(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		char* format, ...);
 
 /**
  * Write the specified number of bytes to the specified socket from the

@@ -40,8 +40,6 @@ import org.eclipse.xtext.nodemodel.impl.CompositeNode
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.eclipse.xtext.resource.XtextResource
-import org.lflang.TargetProperty.CoordinationType
-import org.lflang.generator.FederateInstance
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
@@ -402,128 +400,6 @@ class ASTUtils {
         return delayClass
     }
     
-    /** 
-     * Replace the specified connection with a communication between federates.
-     * @param connection The connection.
-     * @param leftFederate The source federate.
-     * @param rightFederate The destination federate.
-     */
-    static def void makeCommunication(
-        Connection connection, 
-        FederateInstance leftFederate,
-        int leftBankIndex,
-        int leftChannelIndex,
-        FederateInstance rightFederate,
-        int rightBankIndex,
-        int rightChannelIndex,
-        GeneratorBase generator,
-        CoordinationType coordination
-    ) {
-        val factory = LfFactory.eINSTANCE
-        // Assume all the types are the same, so just use the first on the right.
-        var type = (connection.rightPorts.get(0).variable as Port).type.copy
-        val action = factory.createAction
-        val triggerRef = factory.createVarRef
-        val inRef = factory.createVarRef
-        val outRef = factory.createVarRef
-        val parent = (connection.eContainer as Reactor)
-        val r1 = factory.createReaction
-        val r2 = factory.createReaction
-        
-        // These reactions do not require any dependency relationship
-        // to other reactions in the container.
-        generator.makeUnordered(r1)
-        generator.makeUnordered(r2)
-
-        // Name the newly created action; set its delay and type.
-        action.name = getUniqueIdentifier(parent, "networkMessage")
-        action.type = type
-        
-        // The connection is 'physical' if it uses the ~> notation.
-        if (connection.physical) {
-            leftFederate.outboundP2PConnections.add(rightFederate)
-            rightFederate.inboundP2PConnections.add(leftFederate)
-            action.origin = ActionOrigin.PHYSICAL
-            // Messages sent on physical connections do not
-            // carry a timestamp, or a delay. The delay
-            // provided using after is enforced by setting
-            // the minDelay.
-            if (connection.delay !== null) {
-                action.minDelay = factory.createValue
-                action.minDelay.time = factory.createTime
-                action.minDelay.time.interval = connection.delay.interval
-                action.minDelay.time.unit = connection.delay.unit
-            }
-        } else {
-            // If the connection is logical but coordination
-            // is decentralized, we would need
-            // to make P2P connections
-            if (coordination === CoordinationType.DECENTRALIZED) {
-                leftFederate.outboundP2PConnections.add(rightFederate)
-                rightFederate.inboundP2PConnections.add(leftFederate)                
-            }            
-            action.origin = ActionOrigin.LOGICAL
-        }
-        
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        val receivingPortID = rightFederate.networkMessageActions.length
-        rightFederate.networkMessageActions.add(action)
-
-        // Establish references to the action.
-        triggerRef.variable = action
-
-        // Establish references to the involved ports.
-        // FIXME: This does not support parallel connections yet!!
-        if (connection.leftPorts.length > 1 || connection.rightPorts.length > 1) {
-            throw new UnsupportedOperationException("FIXME: Parallel connections are not yet supported between federates.")
-        }
-        inRef.container = connection.leftPorts.get(0).container
-        inRef.variable = connection.leftPorts.get(0).variable
-        outRef.container = connection.rightPorts.get(0).container
-        outRef.variable = connection.rightPorts.get(0).variable
-
-        // Add the action to the reactor.
-        parent.actions.add(action)
-        
-        // Configure the sending reaction.
-        r1.triggers.add(inRef)
-        r1.code = factory.createCode()
-        r1.code.body = generator.generateNetworkSenderBody(
-            inRef,
-            outRef,
-            receivingPortID,
-            leftFederate,
-            leftBankIndex,
-            leftChannelIndex,
-            rightFederate,
-            action.inferredType,
-            connection.isPhysical,
-            connection.delay
-        )
-
-        // Configure the receiving reaction.
-        r2.triggers.add(triggerRef)
-        r2.effects.add(outRef)
-        r2.code = factory.createCode()
-        r2.code.body = generator.generateNetworkReceiverBody(
-            action,
-            inRef,
-            outRef,
-            receivingPortID,
-            leftFederate,
-            rightFederate,
-            rightBankIndex,
-            rightChannelIndex,
-            action.inferredType
-        )
-
-        // Add the reactions to the parent.
-        parent.reactions.add(r1)
-        parent.reactions.add(r2)
-    }
-    
     /**
      * Produce a unique identifier within a reactor based on a
      * given based name. If the name does not exists, it is returned;
@@ -577,7 +453,7 @@ class ASTUtils {
      * @param original The original to create a deep copy of.
      * @return A deep copy of the given AST node.
      */
-     private static def getCopy(Type original) {
+     static def getCopy(Type original) {
         if (original !== null) {
             val clone = factory.createType
             
@@ -1880,9 +1756,15 @@ class ASTUtils {
         if (object.eResource instanceof XtextResource) {
             val compNode = NodeModelUtils.findActualNodeFor(object)
             if (compNode !== null) {
+                // Find comment node in AST
+                // For reactions/timers/action/etc., it is usually the lowermost first child node
                 var node = compNode.firstChild
                 while (node instanceof CompositeNode) {
                     node = node.firstChild
+                }
+                // For reactors, it seems to be the next sibling of the first child node
+                if (node === null && compNode.firstChild !== null) {
+                    node = compNode.firstChild.nextSibling
                 }
                 while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
                     val rule = node.grammarElement

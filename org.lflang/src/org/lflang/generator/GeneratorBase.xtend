@@ -89,6 +89,7 @@ import org.lflang.validation.AbstractLFValidator
 import static extension org.lflang.ASTUtils.*
 import java.util.Comparator
 import java.util.stream.Collectors
+import org.lflang.federated.FedASTUtils
 
 /**
  * Generator base class for shared code between code generators.
@@ -110,6 +111,19 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
     
+    /**
+     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
+     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
+     * if it is being called from the Eclipse IDE, and 
+     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
+     */
+    public var Mode mode = Mode.UNDEFINED
+
+    /** 
+     * The main (top-level) reactor instance.
+     */
+    public ReactorInstance main
+    
     ////////////////////////////////////////////
     //// Protected fields.
         
@@ -128,14 +142,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * invocation of doGenerate, which calls setFileConfig.
      */
     protected var FileConfig fileConfig
-    
-    /**
-     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
-     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
-     * if it is being called from the Eclipse IDE, and 
-     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
-     */
-    public var Mode mode = Mode.UNDEFINED
 
     /**
      * Collection of generated delay classes.
@@ -168,11 +174,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * from the Eclipse eCore view of the file and the OS view of the file.
      */
     protected var iResource = null as IResource
-
-    /** 
-     * The main (top-level) reactor instance.
-     */
-    protected ReactorInstance main
 
     /**
      * Definition of the main (top-level) reactor.
@@ -217,12 +218,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * the Reaction instance is created, add that instance to this set.
      */
     protected var Set<Reaction> unorderedReactions = null
+    
 
     /**
      * Indicates whether or not the current Lingua Franca program
      * contains a federation.
      */
-    protected var boolean isFederated = false
+    public var boolean isFederated = false
 
     // //////////////////////////////////////////
     // // Target properties, if they are included.
@@ -623,7 +625,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Generate code for referencing a port, action, or timer.
-     * @param reference The referenced variable.
+     * @param reference The reference to the variable.
      */
     def String generateVarRef(VarRef reference) {
         var prefix = "";
@@ -631,6 +633,35 @@ abstract class GeneratorBase extends AbstractLFValidator {
             prefix = reference.container.name + "."
         }
         return prefix + reference.variable.name
+    }
+
+    /**
+     * Generate code for referencing a port possibly indexed by
+     * a bank index and/or a multiport index. This assumes the target language uses
+     * the usual array indexing [n] for both cases. If not, this needs to be overridden
+     * by the target code generator.  If the provided reference is not a port, then
+     * this return the string "ERROR: not a port.".
+     * @param reference The reference to the port.
+     * @param bankIndex A bank index or null or negative if not in a bank.
+     * @param multiportIndex A multiport index or null or negative if not in a multiport.
+     */
+    def String generatePortRef(VarRef reference, Integer bankIndex, Integer multiportIndex) {
+        if (!(reference.variable instanceof Port)) {
+            return "ERROR: not a port.";
+        }
+        var prefix = "";
+        if (reference.container !== null) {
+            var bank = "";
+            if (reference.container.widthSpec !== null && bankIndex !== null && bankIndex >= 0) {
+                bank = "[" + bankIndex + "]";
+            }
+            prefix = reference.container.name + bank + "."
+        }
+        var multiport = "";
+        if ((reference.variable as Port).widthSpec !== null && multiportIndex !== null && multiportIndex >= 0) {
+            multiport = "[" + multiportIndex + "]";
+        }
+        return prefix + reference.variable.name + multiport;
     }
 
     /**
@@ -671,7 +702,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         }
         unorderedReactions.add(reaction)
     }
-
+    
     /**
      * Given a representation of time that may possibly include units, return
      * a string that the target language can recognize as a value. In this base
@@ -874,7 +905,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         var commands = newLinkedList
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
-            if (tokens.size > 1) {
+            if (tokens.size > 0) {
                 val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.fileConfig.srcPath)
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
@@ -1121,31 +1152,71 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /** 
-     * It tries to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
-     * If that fails, it tries again with bash. 
-     * In case this fails again, raise an error.
+     * Try to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
+     * If that fails, try again with bash, thereby using any PATH set in the 
+     * bash profile. If this fails again, report an error and return null.
+     * If the command has the form "./name", where
+     * name is an executable file in the current working directory,
+     * then that command will be used.
      * 
-     * Return ExecutionEnvironment.NATIVE 
+     * This returns ExecutionEnvironment.NATIVE 
      * if the specified command is directly executable on the current host
-     * Returns ExecutionEnvironment.BASH 
+     * and ExecutionEnvironment.BASH 
      * if the command must be executed within a bash shell.
-     * 
      * The latter occurs, for example, if the specified command 
      * is not in the native path but is in the path
      * specified by the user's bash configuration file.
      * If the specified command is not found in either the native environment 
-     * nor the bash environment,
-     * then this reports and error and returns null.
+     * nor the bash environment, then this reports and error and returns null.
      * 
-     * @param cmd The command to be find.
-     * @return Returns an ExecutionEnvironment.
+     * @param cmd The command to find.
+     * @param dir A directory from which to search for the command or null to use PWD.
+     * 
+     * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
+     *  where ExecutionEnvironment is an enum.
+     * 
+     * @see findCommandEnv(String, Path)
      */
     protected def findCommandEnv(String cmd) {
+        return findCommandEnv(cmd, null)
+    }
+
+    /** 
+     * Try to find the command with 'which <cmd>' (or 'where <cmd>' on Windows). 
+     * If that fails, try again with bash, thereby using any PATH set in the 
+     * bash profile. If this fails again, report an error and return null.
+     * If a directory is given and the command has the form "./name", where
+     * name is an executable file in the specified directory,
+     * then that command will be used.
+     * 
+     * This returns ExecutionEnvironment.NATIVE 
+     * if the specified command is directly executable on the current host
+     * and ExecutionEnvironment.BASH 
+     * if the command must be executed within a bash shell.
+     * The latter occurs, for example, if the specified command 
+     * is not in the native path but is in the path
+     * specified by the user's bash configuration file.
+     * If the specified command is not found in either the native environment 
+     * nor the bash environment, then this reports and error and returns null.
+     * 
+     * @param cmd The command to find.
+     * @param dir A directory from which to search for the command or null to use PWD.
+     * 
+     * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
+     *  where ExecutionEnvironment is an enum.
+     */
+    protected def findCommandEnv(String cmd, Path dir) {
         // Make sure the command is found in the PATH.
         print('''--- Looking for command «cmd» ... ''')
         // Use 'where' on Windows, 'which' on other systems
         val which = System.getProperty("os.name").startsWith("Windows") ? "where" : "which"
         val whichBuilder = new ProcessBuilder(#[which, cmd])
+        if (dir !== null) {
+            val dirFile = new File(dir.toString)
+            if (dirFile.isDirectory()) {
+                whichBuilder.directory(dirFile)
+            }
+        }
         val whichReturn = whichBuilder.start().waitFor()
         if (whichReturn == 0) {
             println("SUCCESS")
@@ -1174,22 +1245,23 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Creates a ProcessBuilder for a given command and its arguments.
+     * Create a ProcessBuilder for a given command and its arguments.
+     * If the env argument is ExecutionEnvironment.BASH, then the returned execution
+     * environment will be set up to run the command within bash.
+     * If the env argument is null, then report an error and return null.
      * 
-     * This method returns correctly constructed ProcessBuilder object 
-     * according to the Execution environment. Raise an error if the env is null.
+     * @param cmd The command to be executed.
+     * @param args A list of arguments for the given command.
+     * @param dir The directory to change into before executing the command.
+     * @param env The type of the Execution Environment.
      * 
-     * @param cmd The command to be executed
-     * @param args A list of arguments for the given command
-     * @param dir the directory to change into before executing the command.
-     * @param env is the type of the Execution Environment.
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
     protected def createCommand(String cmd, List<String> args, Path dir, ExecutionEnvironment env) {
+        var builder = null as ProcessBuilder
         if (env == ExecutionEnvironment.NATIVE) {
-            val builder = new ProcessBuilder(#[cmd] + args)
+            builder = new ProcessBuilder(#[cmd] + args)
             builder.directory(dir.toFile)
-            return builder
         } else if (env == ExecutionEnvironment.BASH) {
 
             val str_builder = new StringBuilder(cmd + " ")
@@ -1200,31 +1272,33 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // val bash_arg = #[cmd + args]
             val newCmd = #["bash", "--login", "-c"]
             // use that command to build the process
-            val builder = new ProcessBuilder(newCmd + #[bash_arg])
+            builder = new ProcessBuilder(newCmd + #[bash_arg])
             builder.directory(dir.toFile)
-            return builder
+        } else {
+            println("FAILED")
+            reportError(
+                    "The command " + cmd + " could not be found in the source directory nor in your PATH.\n" +
+                    "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
+                    "You can set PATH in ~/.bash_profile on Linux or Mac.")
         }
-        println("FAILED")
-        reportError(
-            "The command " + cmd + " could not be found.\n" +
-                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.")
-        return null as ProcessBuilder
+        return builder
     }
 
     /**
      * Creates a ProcessBuilder for a given command and its arguments.
+     * If the specified command must be executed in a bash shell (i.e., if it cannot
+     * be found without the settings in your bash profile), then the returned execution
+     * environment will be set up to run the command within bash.
+     * If the command cannot be found, then report an error and return null.
      * 
-     * This method returns correctly constructed ProcessBuilder object 
-     * according to the Execution environment. It finds the execution environment using findCommandEnv(). 
-     * Raise an error if the env is null.
+     * @param cmd The command to be executed.
+     * @param args A list of arguments for the given command.
+     * @param dir A directory to change into before finding the command.
      * 
-     * @param cmd The command to be executed
-     * @param args A list of arguments for the given command
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
     protected def createCommand(String cmd, List<String> args, Path dir) {
-        val env = findCommandEnv(cmd)
+        val env = findCommandEnv(cmd, dir)
         return createCommand(cmd, args, dir, env)
     }
 
@@ -1246,9 +1320,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Generate code for the body of a reaction that handles input from the network
-     * that is handled by the specified action. This base class throws an exception.
-     * @param action The action that has been created to handle incoming messages.
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
@@ -1257,18 +1332,19 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
-     * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param isPhysical Indicates whether or not the connection is physical
      */
     def String generateNetworkReceiverBody(
         Action action,
         VarRef sendingPort,
         VarRef receivingPort,
-        int receivingPortID,
+        int receivingPortID, 
         FederateInstance sendingFed,
         FederateInstance receivingFed,
         int receivingBankIndex,
         int receivingChannelIndex,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
     }
@@ -1301,6 +1377,67 @@ abstract class GeneratorBase extends AbstractLFValidator {
         Delay delay
     ) {
         throw new UnsupportedOperationException("This target does not support direct connections between federates.")
+    }
+    
+    /**
+     * Generate code for the body of a reaction that waits long enough so that the status
+     * of the trigger for the given port becomes known for the current logical time.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
+     *  that have port as their trigger or source
+     */
+    def String generateNetworkInputControlReactionBody(
+        int receivingPortID,
+        TimeValue maxSTP
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }    
+    
+    /**
+     * Generate code for the body of a reaction that sends a port status message for the given
+     * port if it is absent.
+     * 
+     * @param port The port to generate the control reaction for
+     * @param portID The ID assigned to the port in the AST transformation
+     * @param receivingFederateID The ID of the receiving federate
+     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingChannelIndex The channel if a multiport
+     * @param delay The delay value imposed on the connection using after
+     */
+    def String generateNetworkOutputControlReactionBody(
+        VarRef port,
+        int portID,
+        int receivingFederateID,
+        int sendingBankIndex,
+        int sendingChannelIndex,
+        Delay delay
+    ) {
+        throw new UnsupportedOperationException("This target does not support direct connections between federates.")        
+    }  
+    
+    /**
+     * Returns true if the program is federated and uses the decentralized
+     * coordination mechanism.
+     */
+    def isFederatedAndDecentralized() {
+        if (isFederated &&
+            targetConfig.coordination === CoordinationType.DECENTRALIZED) {
+            return true
+        }
+        return false
+    }
+    
+    /**
+     * Returns true if the program is federated and uses the centralized
+     * coordination mechanism.
+     */
+    def isFederatedAndCentralized() {
+        if (isFederated &&
+            targetConfig.coordination === CoordinationType.CENTRALIZED) {
+            return true
+        }
+        return false
     }
 
     /**
@@ -1977,7 +2114,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param port The port.
      * @return True if the port is a multiport.
      */
-    protected def boolean isMultiport(Port port) {
+    def boolean isMultiport(Port port) {
         port.widthSpec !== null
     }
 
@@ -2136,80 +2273,75 @@ abstract class GeneratorBase extends AbstractLFValidator {
                             var minWidth = (leftPortWidth - leftChannelIndex < rightPortWidth - rightChannelIndex)
                                     ? leftPortWidth - leftChannelIndex
                                     : rightPortWidth - rightChannelIndex;
-                            for (var j = 0; j < minWidth; j++) {
-                            
-                                // Finally, we have a specific connection.
-                                // Replace the connection in the AST with an action
-                                // (which inherits the delay) and two reactions.
-                                // The action will be physical if the connection physical and
-                                // otherwise will be logical.
-                                val leftFederate = federatesByInstantiation.get(leftPort.container).get(leftBankIndex);
-                                val rightFederate = federatesByInstantiation.get(rightPort.container).get(rightBankIndex);
+                            if (minWidth <= 0) {
+                                // FIXME: Not sure what to do here.
+                                reportError(connection, "Unexpected error: mismatched widths.");
+                                rightPort = null;
+                            } else {
+                                for (var j = 0; j < minWidth; j++) {
 
-                                // Set up dependency information.
-                                // FIXME: Maybe we don't need this any more?
-                                if (
-                                    leftFederate !== rightFederate
-                                    && !connection.physical
-                                    && targetConfig.coordination !== CoordinationType.DECENTRALIZED
-                                ) {
-                                    var dependsOn = rightFederate.dependsOn.get(leftFederate)
-                                    if (dependsOn === null) {
-                                        dependsOn = new LinkedHashSet<Delay>()
-                                        rightFederate.dependsOn.put(leftFederate, dependsOn)
-                                    }
-                                    if (connection.delay !== null) {
-                                        dependsOn.add(connection.delay)
-                                    }
-                                    var sendsTo = leftFederate.sendsTo.get(rightFederate)
-                                    if (sendsTo === null) {
-                                        sendsTo = new LinkedHashSet<Delay>()
-                                        leftFederate.sendsTo.put(rightFederate, sendsTo)
-                                    }
-                                    if (connection.delay !== null) {
-                                        sendsTo.add(connection.delay)
-                                    }
-                                    // Check for causality loops between federates.
-                                    // FIXME: This does not detect cycles involving more than one federate.
-                                    var reverseDependency = leftFederate.dependsOn.get(rightFederate)
-                                    if (reverseDependency !== null) {
-                                        // Check that at least one direction has a delay.
-                                        if (reverseDependency.size === 0 && dependsOn.size === 0) {
-                                            // Found a causality loop.
-                                            val message = "Causality loop found between federates " +
-                                                leftFederate.name + " and " + rightFederate.name
-                                            reportError(connection, message)
-                                            // This is a fatal error, so throw an exception.
-                                            throw new Exception(message)
+                                    // Finally, we have a specific connection.
+                                    // Replace the connection in the AST with an action
+                                    // (which inherits the delay) and two reactions.
+                                    // The action will be physical if the connection physical and
+                                    // otherwise will be logical.
+                                    val leftFederate = federatesByInstantiation.get(leftPort.container).get(
+                                        leftBankIndex);
+                                    val rightFederate = federatesByInstantiation.get(rightPort.container).get(
+                                        rightBankIndex);
+
+                                    // Set up dependency information.
+                                    if (leftFederate !== rightFederate && !connection.physical &&
+                                        targetConfig.coordination !== CoordinationType.DECENTRALIZED) {
+                                        var dependsOn = rightFederate.dependsOn.get(leftFederate)
+                                        if (dependsOn === null) {
+                                            dependsOn = new LinkedHashSet<Delay>()
+                                            rightFederate.dependsOn.put(leftFederate, dependsOn)
+                                        }
+                                        if (connection.delay !== null) {
+                                            dependsOn.add(connection.delay)
+                                        }
+                                        var sendsTo = leftFederate.sendsTo.get(rightFederate)
+                                        if (sendsTo === null) {
+                                            sendsTo = new LinkedHashSet<Delay>()
+                                            leftFederate.sendsTo.put(rightFederate, sendsTo)
+                                        }
+                                        if (connection.delay !== null) {
+                                            sendsTo.add(connection.delay)
                                         }
                                     }
-                                }
-                                                                
-                                ASTUtils.makeCommunication(
-                                    connection, 
-                                    leftFederate, leftBankIndex, leftChannelIndex,
-                                    rightFederate, rightBankIndex, rightChannelIndex,
-                                    this, targetConfig.coordination
-                                )
-                            
-                                leftChannelIndex++;
-                                rightChannelIndex++;
-                                if (rightChannelIndex >= rightPortWidth) {
-                                    // Ran out of channels on the right.
-                                    // First, check whether there is another bank reactor.
-                                    if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
-                                        rightBankIndex++;
-                                        rightChannelIndex = 0;
-                                    } else if (rightIndex >= connection.rightPorts.size()) {
-                                        // We are done.
-                                        rightPort = null;
-                                        rightBankIndex = 0;
-                                        rightChannelIndex = 0;
-                                    } else {
-                                        rightBankIndex = 0;
-                                        rightPort = connection.rightPorts.get(rightIndex++);
-                                        rightChannelIndex = 0;
-                                        rightPortWidth = width((rightPort.variable as Port).widthSpec);
+
+                                    FedASTUtils.makeCommunication(
+                                        connection,
+                                        leftFederate,
+                                        leftBankIndex,
+                                        leftChannelIndex,
+                                        rightFederate,
+                                        rightBankIndex,
+                                        rightChannelIndex,
+                                        this,
+                                        targetConfig.coordination
+                                    )
+
+                                    leftChannelIndex++;
+                                    rightChannelIndex++;
+                                    if (rightChannelIndex >= rightPortWidth) {
+                                        // Ran out of channels on the right.
+                                        // First, check whether there is another bank reactor.
+                                        if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
+                                            rightBankIndex++;
+                                            rightChannelIndex = 0;
+                                        } else if (rightIndex >= connection.rightPorts.size()) {
+                                            // We are done.
+                                            rightPort = null;
+                                            rightBankIndex = 0;
+                                            rightChannelIndex = 0;
+                                        } else {
+                                            rightBankIndex = 0;
+                                            rightPort = connection.rightPorts.get(rightIndex++);
+                                            rightChannelIndex = 0;
+                                            rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                                        }
                                     }
                                 }
                             }
