@@ -71,11 +71,13 @@ will be printed over other information.
  * @param message_lines The message lines or NULL for none.
  * @param number_of_lines The number of message lines or 0 for none.
  * @param tick_window_width The width of the tick window or 0 for none.
+ * @param log_file If non-NULL, the name of a file to which to write logging messages.
  */
 int start_sensor_simulator(
 		char* message_lines[],
 		int number_of_lines,
-		int tick_window_width);
+		int tick_window_width,
+		char* log_file);
 
 /**
  * Place a tick (usually a single character) in the tick window.

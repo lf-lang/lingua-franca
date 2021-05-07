@@ -87,6 +87,9 @@ int _lf_sensor_print_cursor_y;
 /** The print window height. */
 int _lf_sensor_print_window_height;
 
+/** File to which to write log data, or NULL to send to window. */
+FILE* _lf_sensor_log_file = NULL;
+
 /**
  * Thread to read input characters until an EOF is received.
  * For each character received, if there is a registered trigger
@@ -133,6 +136,9 @@ void end_ncurses() {
     endwin();
     _lf_sensor_thread_created = 0;
     lf_mutex_unlock(&_lf_sensor_mutex);
+	if (_lf_sensor_log_file != NULL) {
+		fclose(_lf_sensor_log_file);
+	}
 }
 
 /**
@@ -211,6 +217,11 @@ void _lf_start_print_window(int above, int right) {
  * This acquires the mutex lock.
  */
 void _lf_print_message_function(char* format, va_list args) {
+	if (_lf_sensor_log_file != NULL) {
+		// Write to a log file instead of to the window.
+		vfprintf(_lf_sensor_log_file, format, args);
+		return;
+	}
     // Replace the last \n with a \0 in the format and handle trailing returns manually.
     char* newline = strrchr(format, '\n');
     if (newline != NULL) {
@@ -250,8 +261,14 @@ void _lf_print_message_function(char* format, va_list args) {
  * @param message_lines The message lines.
  * @param number_of_lines The number of lines.
  * @param tick_window_width The width of the tick window or 0 for none.
+ * @param log_file If non-NULL, the name of a file to which to write logging messages.
  */
-int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_window_width) {
+int start_sensor_simulator(
+		char* message_lines[],
+		int number_of_lines,
+		int tick_window_width,
+		char* log_file
+) {
     lf_mutex_init(&_lf_sensor_mutex);
     lf_mutex_lock(&_lf_sensor_mutex);
     int result = 0;
@@ -268,6 +285,13 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
         if (!isendwin()) {
             endwin();
         }
+        // For some strange reason, this log file has to be opened before
+        // ncurses is initialized, otherwise, ncurses gets disabled (won't
+        // accept input).
+    	if (log_file != NULL) {
+    		// FIXME: If file exists, append to the name until it doesn't.
+    		_lf_sensor_log_file = fopen(log_file, "w");
+    	}
 
         // Initialize ncurses.
         DEBUG_PRINT("Initializing ncurses.");
@@ -310,11 +334,8 @@ int start_sensor_simulator(char* message_lines[], int number_of_lines, int tick_
 void show_tick(char* character) {
     lf_mutex_lock(&_lf_sensor_mutex);
 
-    // If necessary, wait for the sensor simulator start.
-    while (!_lf_sensor_thread_created) {
-        DEBUG_PRINT("Waiting for sensor simulator start.");
-        lf_cond_wait(&_lf_sensor_simulator_started, &_lf_sensor_mutex);
-    }
+    // No active sensor simulator. Return.
+    if (!_lf_sensor_thread_created) return;
 
     wmove(_lf_sensor_tick_window, _lf_sensor_tick_cursor_y, _lf_sensor_tick_cursor_x);
     wprintw(_lf_sensor_tick_window, character);
