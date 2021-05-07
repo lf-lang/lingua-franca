@@ -1,0 +1,42 @@
+{
+    "name": "Lingua Franca",
+    "scopeName": "text.lflang",
+    "fileTypes": [
+        "lf"
+    ],
+    "repository": {
+        "general": {
+            "patterns": [
+                {
+                    "include": "#linecomment"
+                },
+                {
+                    "include": "#blockcomment"
+                },
+                {
+                    "include": "#keyword"
+                }
+            ]
+        },
+        "linecomment": {
+            "name": "comment.line.double-dash.lflang",
+            "begin": "(^[ \\t]+)?(?=//)",
+            "end": "(?=$)"
+        },
+        "blockcomment": {
+            "name": "comment.block.lflang",
+            "begin": "/\\*(\\*)?(?!/)",
+            "end": "\\*/"
+        },
+        "keyword": {
+            "name": "keyword.control.lflang",
+            "match": "\\b(reactor)\\b|!"
+        }
+    },
+    "patterns": [
+        {
+            "include": "#general"
+        }
+    ],
+    "uuid": "cd57a55d-0af5-4750-a6a0-3b7108553c2a"
+}
