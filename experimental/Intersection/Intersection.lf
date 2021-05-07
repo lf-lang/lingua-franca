@@ -1,0 +1,117 @@
+/**
+ * Program generating the DistributedDatabase figure.
+ * 
+ * @author Edward A. Lee
+ */
+target C;
+
+/**
+ * Mockup for a web server that issues updates and read requests.
+ * The read and update outputs are separated so that there
+ * is no need for network traffic on a database read only.
+ * 
+ * @input reply Accepts the reply to a query.
+ * 
+ * @output read Issue a database read.
+ * @output update Issue an update.
+ */
+reactor CarController {
+    physical action approaching;
+    
+    input reply:int;
+    input update:int;
+    
+    output request_passage:int;  // Payload is speed and distance and ...
+    output yield:int;  // Send a message acknowledging that I will stop.
+    
+    // @label Initiate interaction with intersection.
+    reaction(approaching) -> request_passage {=
+        // Issue either a read or an update.
+    =} deadline(1 msec) {=
+        // Reply with an error.
+    =}
+    
+    // @label Adjust speed.
+    reaction(reply) {=
+        // Send HTTP reply.
+    =}
+
+    // @label Adjust speed again.
+    reaction(update) -> yield {=
+        // Send HTTP reply.
+    =}
+}
+
+/**
+ * A mockup for a replicated database.
+ * 
+ * @param num_replicas The number of inputs from database replicas.
+ * 
+ * @input updates Multiport accepting database updates.
+ * @input read Accept a read request for a record.
+ *
+ * @output value The value of the record that is read.
+ */
+reactor IntersectionController (
+    num_replicas:int(2)
+) {
+    input[num_replicas] updates:int;
+    input passage_request:int;  // Payload is speed and distance and ...
+    
+    output adjust_speed:int;
+    output adjust_speed_update:int;
+    
+    state record:int(0);
+    
+    reaction(passage_request) -> adjust_speed {=
+        SET(value, self->record);
+    =}
+
+    reaction(updates) -> adjust_speed_update {=
+        for (int i = 0; i < updates_width; i++) {
+            if (updates[i]->is_present) {
+                // Update the record.
+            }
+        }
+    =}
+    
+}
+
+/**
+ * A mockup of a platform (e.g. a pod, a virtual machine, a physical
+ * machine, etc.) that hosts a replicated database and a web server.
+ * 
+ * @param num_replicas The number of database replicas.
+ * 
+ * @input update An update notification from another replica.
+ * 
+ * @output publish A copy of any local updates.
+ */
+reactor Car(
+    num_replicas:int(2)
+) {
+    input[num_replicas] updates:int;
+    
+    output publish:int;
+    
+    s = new CarController();
+    d = new IntersectionController(
+        num_replicas = num_replicas
+    );
+    s.request_passage -> d.passage_request;
+    d.adjust_speed -> s.reply;
+    s.request_passage -> publish;
+    d.adjust_speed_update -> s.update;
+    updates -> d.updates;
+}
+
+federated reactor (
+    num_replicas:int(2)
+) {
+    f1 = new Car(
+            num_replicas = num_replicas);
+    f2 = new Car(
+            num_replicas = num_replicas);
+    f1.publish, f2.publish -> f1.updates after 10 msec;
+    f1.publish, f2.publish -> f2.updates after 10 msec;
+}

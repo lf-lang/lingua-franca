@@ -3,11 +3,11 @@
  * These are required for this database application to work.
  */
 target C {
-    timeout: 1 sec,
+    timeout: 5 sec,
     coordination: centralized
 }
 
-import Platform from "../BetterReplicatedDatabase.lf"
+import Platform from "BetterReplicatedDatabase.lf"
 
 federated reactor (
     query_period:time(1 sec),

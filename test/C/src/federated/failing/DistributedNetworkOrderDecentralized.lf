@@ -1,12 +1,18 @@
 /*
  * This is a test for send_timed_message,
  * which is an internal API.
+ * This version of the test uses the
+ * decentralized coordination.
+ * 
+ * FIXME: Because this test sends messages with intended tag
+ *  out of order, it will fail.
  * 
  * @author Soroush Bateni
  */
 
 target C {
-    timeout: 1 sec
+    timeout: 1 sec,
+    coordination: decentralized
 };
 
 reactor Sender {
@@ -15,11 +21,11 @@ reactor Sender {
     reaction(t) {=
         int payload = 1;
         if (get_elapsed_logical_time() == 0LL) {
-            send_timed_message(MSEC(10), _fed.socket_TCP_RTI, TIMED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
+            send_timed_message(MSEC(10), P2P_TIMED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
                                 (unsigned char*)&payload);
         } else if (get_elapsed_logical_time() == MSEC(5)) {
             payload = 2;
-            send_timed_message(MSEC(5), _fed.socket_TCP_RTI, TIMED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
+            send_timed_message(MSEC(5), P2P_TIMED_MESSAGE, 0, 1, "federate 1", sizeof(int), 
                                 (unsigned char*)&payload);
         }
     =}
@@ -38,10 +44,12 @@ reactor Receiver {
                 self->success++;
             }
         }
-        printf("Received %d at tag (%lld, %u).\n",
+        printf("Received %d at tag (%lld, %u) with intended tag (%lld, %u).\n",
                in->value,
                get_elapsed_logical_time(),
-               get_microstep());
+               get_microstep(),
+               in->intended_tag.time - get_start_time(),
+               in->intended_tag.microstep);
     =}
     
     reaction(shutdown) {=
@@ -53,7 +61,7 @@ reactor Receiver {
     =}
 }
 
-federated reactor DistributedNetworkOrder {
+federated reactor {
     sender = new Sender();
     receiver = new Receiver();
     

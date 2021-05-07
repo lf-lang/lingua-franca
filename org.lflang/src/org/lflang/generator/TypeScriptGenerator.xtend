@@ -913,9 +913,10 @@ class TypeScriptGenerator extends GeneratorBase {
     // // Protected methods.
     
     /**
-     * Generate code for the body of a reaction that handles input from the network
-     * that is handled by the specified action. This base class throws an exception.
-     * @param action The action that has been created to handle incoming messages.
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
@@ -924,9 +925,9 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
-     * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param isPhysical Indicates whether or not the connection is physical
      */
-    override String generateNetworkReceiverBody(
+    override generateNetworkReceiverBody(
         Action action,
         VarRef sendingPort,
         VarRef receivingPort,
@@ -935,7 +936,8 @@ class TypeScriptGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         int receivingBankIndex,
         int receivingChannelIndex,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.
