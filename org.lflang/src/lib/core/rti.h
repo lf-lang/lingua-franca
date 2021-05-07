@@ -609,6 +609,7 @@ typedef struct federate_t {
                                            // for this federate. Enabled by default.
     tag_t completed;        // The largest logical tag completed by the federate (or NEVER if no LTC has been received).
     tag_t last_granted;     // The maximum TAG that has been granted so far (or NEVER if none granted)
+    tag_t last_provisionally_granted;      // The maximum PTAG that has been provisionally granted (or NEVER if none granted)
     tag_t next_event;       // Most recent NET received from the federate (or NEVER if none received).
     instant_t time_advance; // Most recent TAN received from the federate (or NEVER if none received).
     fed_state_t state;      // State of the federate.

@@ -381,6 +381,9 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
 
 /** 
  * Send a tag advance grant (TAG) message to the specified federate.
+ * 
+ * This function will keep a record of this TAG in the federate's last_granted
+ * field.
  * @param fed The federate.
  * @param tag The tag to grant.
  */
@@ -413,6 +416,9 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
 
 /** 
  * Send a provisional tag advance grant (PTAG) message to the specified federate.
+ * 
+ * This function will keep a record of this PTAG in the federate's last_provisionally_granted
+ * field.
  * @param fed The federate.
  * @param tag The tag to grant.
  */
@@ -437,6 +443,7 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
             // _lf_rti_mark_federate_requesting_stop(fed);
         }
     } else {
+        fed->last_provisionally_granted = tag;
         LOG_PRINT("RTI sent to federate %d the Provisional Time Advance Grant (PTAG) (%lld, %u).",
                 fed->id, tag.time - start_time, tag.microstep);
     }
@@ -530,11 +537,13 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
  */
 bool send_tag_advance_if_appropriate(federate_t* fed) {
 
-    // If the federate has been granted a TAG and has not
-    // yet responded with a NET, then do not grant another TAG here.
-    // If appropriate, that TAG will be granted when the NET arrives.
-    if (compare_tags(fed->next_event, fed->last_granted) <= 0) {
-        // No unsatisfied NET on record.
+    // If the federate has been granted a TAG or PTAG and has not
+    // yet responded with a NET, then do not grant another TAG
+    // or PTAG here. If appropriate, that TAG or PTAG will be granted 
+    // when such a NET arrives.
+    if (compare_tags(fed->next_event, fed->last_granted) <= 0 || 
+         compare_tags(fed->next_event, fed->last_provisionally_granted) < 0) {
+        // No new NET on record.
         return false;
     }
         
@@ -1552,6 +1561,7 @@ void initialize_federate(int id) {
     federates[id].clock_synchronization_enabled = true;
     federates[id].completed = NEVER_TAG;
     federates[id].last_granted = NEVER_TAG;
+    federates[id].last_provisionally_granted = NEVER_TAG;
     federates[id].next_event = NEVER_TAG;
     federates[id].time_advance = NEVER;
     federates[id].state = NOT_CONNECTED;
