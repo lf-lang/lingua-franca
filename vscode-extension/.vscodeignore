@@ -1,0 +1,6 @@
+.gitignore
+.gradle/**
+build/**
+src/**
+*.vsix
+*.gradle

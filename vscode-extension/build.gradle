@@ -1,0 +1,71 @@
+apply plugin: 'com.github.node-gradle.node'
+node {
+    version = '10.16.0'
+    npmVersion = '6.10.2'
+    download = true
+}
+
+task copyLSJar(type: Sync) {
+    def ide = project(':org.lflang.ide')
+    dependsOn ide.tasks.generateLanguageServer
+    from ide.buildDirectory.file('libs/org.lflang.ide-1.0.0-SNAPSHOT-ls.jar')
+    rename '.*', 'lflang.jar'
+    into './ls'
+}
+
+clean {
+    doLast {
+        delete copyLSJar.outputs
+        delete 'out' // output of npmInstall - don't want to delete node_modules
+    }
+}
+
+npmInstall {
+    inputs.files('package.json', 'package-lock.json')
+    outputs.dir('node_modules')
+}
+
+task compileVSCodeExtension(type: NpxTask, dependsOn: npmInstall) {
+    command = 'tsc'
+    inputs.files('package.json', 'package-lock.json', 'tsconfig.json')
+    inputs.dir('src')
+    inputs.dir(fileTree('node_modules').exclude('.cache'))
+    outputs.dir('out')
+}
+
+task generateVSCodeExtension(type: NpxTask, dependsOn: [compileVSCodeExtension, copyLSJar]) {
+    ext.destDir = new File(buildDir, 'vscode')
+    ext.archiveName = "lflang-extension-${project.version}.vsix"
+    ext.destPath = "$destDir/$archiveName"
+    
+    inputs.files('package.json', 'lflang.configuration.json', '.vscodeignore')
+    inputs.dir('out')
+    inputs.dir('images')
+    inputs.dir('ls')
+    inputs.dir('syntaxes')
+    outputs.dir destDir
+    doFirst {
+        destDir.mkdirs()
+    }
+
+    command = 'vsce'
+    args = ['package', '--out', destPath ]
+}
+
+task installExtension(type: Exec, dependsOn: generateVSCodeExtension) {
+    if (System.properties['os.name'].toLowerCase().contains('windows')) {
+        commandLine 'code.cmd'
+    } else {
+        commandLine 'code'
+    }
+    args '--install-extension', generateVSCodeExtension.destPath
+}
+
+task startCode(type:Exec, dependsOn: installExtension) {
+    if (System.properties['os.name'].toLowerCase().contains('windows')) {
+        commandLine 'code.cmd'
+    } else {
+        commandLine 'code'
+    }
+    args "$rootProject.projectDir/example/", '--new-window'
+}
