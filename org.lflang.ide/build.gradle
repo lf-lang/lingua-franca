@@ -20,6 +20,7 @@ task generateLanguageServer {
 		classifier = 'ls'
 		minimize() {
             exclude(dependency('log4j:log4j:.*'))
+            exclude(dependency('org.eclipse.xtext:.*ide:.*'))
         }
 
 		exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'schema/*',
