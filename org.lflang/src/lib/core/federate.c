@@ -2430,17 +2430,22 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
 
         // If time advance has already been granted for this tag or a larger
         // tag, then return immediately.
+        // FIXME: If a provisional time advance is granted for this tag instead, we
+        // need an actual time advance grant to move on from `tag`. Therefore,
+        // we need send this tag again on a NET message.
+        if (compare_tags(_fed.last_TAG, tag) > 0 ||
+            (compare_tags(_fed.last_TAG, tag) == 0 &&
+             !_fed.is_last_TAG_provisional)) {
+            DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG or PTAG is at least as large.",
+                    current_tag.time - start_time, current_tag.microstep);
+            return tag;
+        }
         // FIXME: To avoid sending a NET message and then sending another NET
         // message with an earlier tag (before TAG is sent from the RTI as a 
         // response to the first one), the federate needs to keep track of 
         // the last sent NET, and not send any NETs with a tag earlier. This 
         // means that, potentially, the federates do not have to inform the 
         // RTI when they process an event originated in an upstream federate.
-        if (compare_tags(_fed.last_TAG, tag) >= 0) {
-            DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG or PTAG is at least as large.",
-                    current_tag.time - start_time, current_tag.microstep);
-            return tag;
-        }
 
         // Copy the tag because _lf_bounded_NET() may modify it.
         tag_t original_tag = tag;
