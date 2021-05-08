@@ -381,14 +381,20 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
 
 /** 
  * Send a tag advance grant (TAG) message to the specified federate.
+ * Do not send it if a previously sent PTAG was greater or if a
+ * previously sent TAG was greater or equal.
  * 
  * This function will keep a record of this TAG in the federate's last_granted
  * field.
+ *
  * @param fed The federate.
  * @param tag The tag to grant.
  */
 void send_tag_advance_grant(federate_t* fed, tag_t tag) {
-    if (fed->state == NOT_CONNECTED) {
+    if (fed->state == NOT_CONNECTED
+    		|| compare_tags(tag, fed->last_granted) <= 0
+			|| compare_tags(tag, fed->last_provisionally_granted) < 0
+    ) {
         return;
     }
     int message_length = 1 + sizeof(instant_t) + sizeof(microstep_t);
@@ -416,14 +422,18 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
 
 /** 
  * Send a provisional tag advance grant (PTAG) message to the specified federate.
- * 
+ * Do not send it if a previously sent PTAG or TAG was greater or equal.
+ *
  * This function will keep a record of this PTAG in the federate's last_provisionally_granted
  * field.
  * @param fed The federate.
  * @param tag The tag to grant.
  */
 void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
-    if (fed->state == NOT_CONNECTED) {
+    if (fed->state == NOT_CONNECTED
+    		|| compare_tags(tag, fed->last_granted) <= 0
+			|| compare_tags(tag, fed->last_provisionally_granted) <= 0
+    ) {
         return;
     }
     int message_length = 1 + sizeof(instant_t) + sizeof(microstep_t);
