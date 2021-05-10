@@ -111,6 +111,12 @@ int read_from_socket_errexit(
                 error_print("Read %d bytes, but expected %d.",
                 		more + bytes_read, num_bytes);
                 error_print_and_exit(format, args);
+            } else if (more == 0) {
+                // According to this: https://stackoverflow.com/questions/4160347/close-vs-shutdown-socket,
+            	// upon receiving a zero length packet or an error, we can close the socket.
+            	// If there are any pending outgoing messages, this will attempt to send those
+            	// followed by an EOF.
+            	close(socket);
             }
             return more;
         }

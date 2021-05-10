@@ -716,20 +716,7 @@ class CGenerator extends GeneratorBase {
                         «ENDIF»
                     }
                 ''')
-                
-                // Generate a function that will either just return immediately
-                // if there is only one federate or will notify the RTI,
-                // if necessary, of the next event time.
-                pr('''
-                    tag_t send_next_event_tag(tag_t tag, bool wait_for_reply) {
-                        «IF isFederatedAndCentralized»
-                            return _lf_send_next_event_tag(tag, wait_for_reply);
-                        «ELSE»
-                            return tag;
-                        «ENDIF»
-                    }
-                ''')
-                
+                                
                 // Generate function to schedule shutdown reactions if any
                 // reactors have reactions to shutdown.
                 pr('''

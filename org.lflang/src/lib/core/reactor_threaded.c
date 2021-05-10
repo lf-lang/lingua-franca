@@ -375,24 +375,6 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
 void logical_tag_complete(tag_t tag_to_send);
 
 /** 
- * Placeholder for code-generated function that will, in a federated
- * execution with centralized coordination, be used to coordinate the
- * advancement of time.  Otherwise this function returns the specified tag
- * immediately.
- *
- * In a federated execution with centralized coordination, this function returns a
- * tag that is less than or equal to the specified tag when, as far
- * as the federation is concerned, it is safe to commit to advancing
- * to the returned tag. That is, all incoming network messages with
- * tags less than the returned tag have been received.
- *
- * @param tag The tag to which to advance.
- * @param wait_for_reply If true, wait for the RTI to respond.
- * @return The tag to which it is safe to advance.
- */
-tag_t send_next_event_tag(tag_t tag, bool wait_for_reply);
-
-/** 
  * Synchronize the start with other federates via the RTI.
  * This assumes that a connection to the RTI is already made 
  * and _fed.socket_TCP_RTI is valid. It then sends the current logical
@@ -532,6 +514,8 @@ tag_t get_next_event_tag() {
 
         next_tag.time = event->time;
         if (next_tag.time == current_tag.time) {
+        	DEBUG_PRINT("Earliest event matches current time. Incrementing microstep. Event is dummy: %d.",
+        			event->is_dummy);
             next_tag.microstep =  get_microstep() + 1;
         } else {
             next_tag.microstep = 0;
@@ -546,6 +530,32 @@ tag_t get_next_event_tag() {
     LOG_PRINT("Earliest event on the event queue (or stop time if empty) is (%lld, %u). Event queue has size %d.",
             next_tag.time - start_time, next_tag.microstep, pqueue_size(event_q));
     return next_tag;
+}
+
+#ifdef FEDERATED_CENTRALIZED
+// The following is defined in federate.c and used in the following function.
+tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply);
+#endif
+
+/**
+ * In a federated execution with centralized coordination, this function returns
+ * a tag that is less than or equal to the specified tag when, as far
+ * as the federation is concerned, it is safe to commit to advancing
+ * to the returned tag. That is, all incoming network messages with
+ * tags less than the returned tag have been received.
+ * In unfederated execution or in federated execution with decentralized
+ * control, this function returns the specified tag immediately.
+ *
+ * @param tag The tag to which to advance.
+ * @param wait_for_reply If true, wait for the RTI to respond.
+ * @return The tag to which it is safe to advance.
+ */
+tag_t send_next_event_tag(tag_t tag, bool wait_for_reply) {
+#ifdef FEDERATED_CENTRALIZED
+    return _lf_send_next_event_tag(tag, wait_for_reply);
+#else
+    return tag;
+#endif
 }
 
 /**
