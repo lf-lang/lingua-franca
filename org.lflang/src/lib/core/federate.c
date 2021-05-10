@@ -1026,6 +1026,20 @@ void mark_all_unknown_ports_as_absent() {
 }
 
 /**
+ * Return true if there is an input control reaction blocked waiting for input.
+ * This assumes the caller holds the mutex.
+ */
+bool is_input_control_reaction_blocked() {
+    for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
+        trigger_t* input_port_action = __action_for_port(i);
+        if (input_port_action->is_a_control_reaction_waiting) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Update the last known status tag of all network input ports
  * to the value of `tag`, unless that the provided `tag` is less
  * than the last_known_status_tag of the port. This is called when
@@ -1160,6 +1174,7 @@ void enqueue_network_input_control_reactions(pqueue_t *reaction_q) {
             reaction_t *reaction = _fed.triggers_for_network_input_control_reactions[i]->reactions[0];
             if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
                 reaction->is_a_control_reaction = true;
+                DEBUG_PRINT("Inserting network input control reaction on reaction queue.");
                 pqueue_insert(reaction_q, reaction);
                 mark_control_reaction_waiting(i, true);
             }
@@ -1182,6 +1197,7 @@ void enqueue_network_output_control_reactions(pqueue_t* reaction_q){
         reaction_t* reaction = _fed.trigger_for_network_output_control_reactions->reactions[i];
         if (pqueue_find_equal_same_priority(reaction_q, reaction) == NULL) {
             reaction->is_a_control_reaction = true;
+            DEBUG_PRINT("Inserting network output control reaction on reaction queue.");
             pqueue_insert(reaction_q, reaction);
         }
     }
@@ -1731,7 +1747,7 @@ void handle_timed_message(int socket, int fed_id) {
         // that is because the network receiver reaction is now in the reaction queue
         // keeping the precedence order intact.
         set_network_port_status(port_id, present);        
-        // Port is now present. Therfore, notify the network input control reactions to 
+        // Port is now present. Therefore, notify the network input control reactions to
         // stop waiting and re-check the port status.
         lf_cond_broadcast(&port_status_changed);
 
@@ -1842,6 +1858,11 @@ void handle_tag_advance_grant() {
  * This updates the last known TAG/PTAG and broadcasts
  * a notification of this update, which may unblock whichever worker
  * thread is trying to advance time.
+ * If current_time is less than the specified PTAG, then this will
+ * also insert into the event_q a dummy event with the specified tag.
+ * This will ensure that the federate advances time to the specified
+ * tag and, for centralized coordination, inserts blocking reactions
+ * and null-message-sending output reactions at that tag.
  *
  * This function assumes the caller does not hold the mutex lock,
  * which it acquires.
@@ -1866,21 +1887,72 @@ void handle_provisional_tag_advance_grant() {
     lf_mutex_lock(&mutex);
 
     // Sanity check
-    if (compare_tags(PTAG, _fed.last_TAG) < 0 ||
-        (compare_tags(PTAG, _fed.last_TAG) == 0 &&
-         !_fed.is_last_TAG_provisional)) {
+    if (compare_tags(PTAG, _fed.last_TAG) < 0
+    		|| (compare_tags(PTAG, _fed.last_TAG) == 0 && !_fed.is_last_TAG_provisional)) {
+        lf_mutex_unlock(&mutex);
         error_print_and_exit("Received a PTAG that is equal or earlier than an already received TAG.");
     }
 
     _fed.last_TAG = PTAG;
     _fed.waiting_for_TAG = false;
     _fed.is_last_TAG_provisional = true;
-    LOG_PRINT("Received Provisional Tag Advance Grant (TAG): (%lld, %u).",
+    LOG_PRINT("At tag (%lld, %d), received Provisional Tag Advance Grant (PTAG): (%lld, %u).",
+    		current_tag.time - start_time, current_tag.microstep,
     		_fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
-    // Notify everything that is blocked.
-    // FIXME: Could check here whether there is any control reaction waiting before broadcasting.
-    lf_cond_broadcast(&port_status_changed);
-    lf_cond_broadcast(&event_q_changed);
+
+    // Insert a dummy event into the event queue if current time is behind
+    // (which it should be). Do not do this if the federate has not fully
+    // started yet.
+
+    instant_t dummy_event_time = PTAG.time;
+    microstep_t dummy_event_relative_microstep = PTAG.microstep;
+
+    if (compare_tags(current_tag, PTAG) == 0) {
+    	// The current tag should only equal the PTAG if we are at the start time.
+    	if (current_tag.time == start_time && current_tag.microstep == 0) {
+    		// No need to schedule a dummy event because at the start, all
+    		// federates implicitly assume they have been granted a PTAG.
+    	    lf_mutex_unlock(&mutex);
+    	    return;
+    	} else {
+    		// FIXME ???????????
+    		error_print("RTI has sent a PTAG, but HUH????");
+    		return;
+    	}
+    } if (compare_tags(current_tag, PTAG) > 0) {
+    	// Current tag is greater than the PTAG, so we schedule a
+    	// a dummy event as soon as possible so that network output
+    	// control reactions are scheduled.
+    	dummy_event_time = current_tag.time;
+    	dummy_event_relative_microstep = 0;
+    	DEBUG_PRINT("At tag (%lld, %d), inserting into the event queue a dummy event with tag (%lld, %d).",
+    			current_tag.time - start_time, current_tag.microstep,
+    			dummy_event_time - start_time, current_tag.microstep + 1);
+    } else if (PTAG.time == current_tag.time) {
+    	// Cut
+    	dummy_event_relative_microstep -= current_tag.microstep;
+    	DEBUG_PRINT("At tag (%lld, %d), inserting into the event queue a dummy event with tag (%lld, %d).",
+    			current_tag.time - start_time, current_tag.microstep,
+    			dummy_event_time - start_time, PTAG.microstep);
+    } else {
+    	DEBUG_PRINT("At tag (%lld, %d), inserting into the event queue a dummy event with tag (%lld, %d).",
+    			current_tag.time - start_time, current_tag.microstep,
+    			dummy_event_time - start_time, PTAG.microstep);
+    }
+    // Dummy event points to a NULL trigger and NULL real event.
+	event_t* dummy = _lf_create_dummy_events(NULL, dummy_event_time, NULL, dummy_event_relative_microstep);
+	// FIXME: How is this resulting in a microstep increment????
+	pqueue_insert(event_q, dummy);
+	lf_cond_broadcast(&event_q_changed);
+
+	// Notify everything that is blocked.
+    // Check here whether there is any control reaction waiting
+    // before broadcasting to avoid an unnecessary broadcast.
+    // This also avoids problems waking up threads before execution
+    // has started (while they are waiting for the start time).
+    if (is_input_control_reaction_blocked()) {
+    	lf_cond_broadcast(&port_status_changed);
+    }
     lf_mutex_unlock(&mutex);
 }
 
@@ -2428,14 +2500,9 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
             return tag;
         }
 
-        // If time advance has already been granted for this tag or a larger
-        // tag, then return immediately.
-        // FIXME: If a provisional time advance is granted for this tag instead, we
-        // need an actual time advance grant to move on from `tag`. Therefore,
-        // we need to send this tag again on a NET message.
-        if (compare_tags(_fed.last_TAG, tag) > 0 ||
-            (compare_tags(_fed.last_TAG, tag) == 0 &&
-             !_fed.is_last_TAG_provisional)) {
+        // If time advance (TAG or PTAG) has already been granted for this tag
+        // or a larger tag, then return immediately.
+        if (compare_tags(_fed.last_TAG, tag) >= 0) {
             DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG or PTAG is at least as large.",
                     current_tag.time - start_time, current_tag.microstep);
             return tag;

@@ -580,7 +580,11 @@ void __pop_events() {
         event = (event_t*)pqueue_pop(event_q);
         
         if (event->is_dummy) {
-            pqueue_insert(next_q, event->next);
+        	DEBUG_PRINT("Popped dummy event from the event queue.");
+        	if (event->next != NULL) {
+            	DEBUG_PRINT("Putting event from the event queue for the next microstep.");
+        		pqueue_insert(next_q, event->next);
+        	}
             _lf_recycle_event(event);
             continue;
         }
@@ -668,12 +672,13 @@ void __pop_events() {
         event = (event_t*)pqueue_peek(event_q);
     };
 
-    
 #ifdef FEDERATED
     // Insert network dependent reactions for network input ports into
     // the reaction queue
     enqueue_network_control_reactions(reaction_q);
 #endif // FEDERATED
+
+    DEBUG_PRINT("There are %d events deferred to the next microstep.", pqueue_size(next_q));
 
     // After populating the reaction queue, see if there are things on the
     // next queue to put back into the event queue.
