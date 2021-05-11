@@ -15,7 +15,7 @@
  */
 target C {
     coordination: centralized,
-    // logging: DEBUG,
+    logging: DEBUG,
     flags: ["-lncurses", "-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",

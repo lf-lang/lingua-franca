@@ -1241,7 +1241,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
                 "You can set PATH in ~/.bash_profile on Linux or Mac.")
         return null as ExecutionEnvironment
-
     }
 
     /**

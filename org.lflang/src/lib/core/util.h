@@ -78,6 +78,11 @@ typedef struct lf_stat_ll {
 extern int _lf_my_fed_id;
 
 /**
+ * Return the federate ID or -1 if this program is not part of a federation.
+ */
+int get_fed_id();
+
+/**
  * Report an informational message on stdout with
  * a newline appended at the end.
  * If this execution is federated, then
