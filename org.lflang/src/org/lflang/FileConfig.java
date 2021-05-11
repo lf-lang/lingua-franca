@@ -3,10 +3,13 @@ package org.lflang;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -288,9 +291,54 @@ public class FileConfig {
     public void createDirectories() {
         // FIXME
     }
-    
-    
-    
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     */
+    public void cleanIfNeeded() {
+        if (context instanceof StandaloneContext) {
+            if (((StandaloneContext) context).getArgs().containsKey("clean")) {
+                try {
+                    doClean();
+                } catch (IOException e) {
+                    System.err.println("WARNING: IO Error during clean");
+                }
+            }
+        }
+    }
+
+    /**
+     * Recursively delete a directory if it exists.
+     * 
+     * @throws IOException
+     */
+    public void deleteDirectory(Path dir) throws IOException {
+        if (Files.isDirectory(dir)) {
+            System.out.println("Cleaning " + dir.toString());
+            List<Path> pathsToDelete = Files.walk(dir)
+                    .sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList());
+            for (Path path : pathsToDelete) {
+                Files.deleteIfExists(path);
+            }
+        }
+    }
+
+    /**
+     * Clean any artifacts produced by the code generator and target compilers.
+     * 
+     * The base implementation deletes the bin and src-gen directories. If the
+     * target code generator creates additional files or directories, the
+     * corresponding generator should override this method.
+     * 
+     * @throws IOException
+     */
+    public void doClean() throws IOException {
+        deleteDirectory(binPath);
+        deleteDirectory(srcGenBasePath);
+    }
+ 
     /**
      * Remove files in the bin directory that may have been created.
      * Call this if a compilation occurs so that files from a previous

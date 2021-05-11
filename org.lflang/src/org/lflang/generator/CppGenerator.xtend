@@ -1087,17 +1087,6 @@ class CppGenerator extends GeneratorBase {
 
     // //////////////////////////////////////////////
     // // Protected methods
-    
-    /**
-     * Clean any artifacts produced by the C++ code generator.
-     */
-    override protected void doClean() {
-        super.doClean()
-        deleteDirectory(fileConfig.outPath.resolve("build"))
-        deleteDirectory(fileConfig.outPath.resolve("lib"))
-        deleteDirectory(fileConfig.outPath.resolve("include"))
-        deleteDirectory(fileConfig.outPath.resolve("share"))
-    }
 
     /**
      * Generate code for the body of a reaction that takes an input and

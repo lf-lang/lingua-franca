@@ -14,4 +14,17 @@ public class CppFileConfig extends FileConfig {
         super(resource, fsa, context);
     }
 
+    /**
+     * Clean any artifacts produced by the C++ code generator.
+     * 
+     * @throws IOException
+     */
+    public void doClean() throws IOException {
+        super.doClean();
+        deleteDirectory(outPath.resolve("build"));
+        deleteDirectory(outPath.resolve("lib"));
+        deleteDirectory(outPath.resolve("include"));
+        deleteDirectory(outPath.resolve("share"));
+    }
+
 }
