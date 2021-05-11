@@ -586,6 +586,8 @@ void __pop_events() {
         		pqueue_insert(next_q, event->next);
         	}
             _lf_recycle_event(event);
+            // Peek at the next event in the event queue.
+            event = (event_t*)pqueue_peek(event_q);
             continue;
         }
 
@@ -765,16 +767,19 @@ void _lf_recycle_event(event_t* e) {
 event_t* _lf_create_dummy_events(trigger_t* trigger, instant_t time, event_t* next, microstep_t offset) {
     event_t* first_dummy = _lf_get_new_event();
     event_t* dummy = first_dummy;
+    dummy->time = time;
+    dummy->is_dummy = true;
+    dummy->trigger = trigger;
     while (offset > 0) {
-        dummy->time = time;
-        dummy->trigger = trigger;
-        dummy->is_dummy = true;
         if (offset == 1) {
             dummy->next = next;
             break;
         }
         dummy->next = _lf_get_new_event();
         dummy = dummy->next;
+        dummy->time = time;
+        dummy->is_dummy = true;
+        dummy->trigger = trigger;
         offset--;
     }
     return first_dummy;

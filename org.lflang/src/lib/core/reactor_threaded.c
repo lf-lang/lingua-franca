@@ -463,7 +463,7 @@ bool wait_until(instant_t logical_time_ns, lf_cond_t* condition) {
         // Hence, we want to run it repeatedly until either it returns non-zero or the
         // current physical time matches or exceeds the logical time.
         if (lf_cond_timedwait(condition, &mutex, unadjusted_wait_until_time_ns) != LF_TIMEOUT) {
-            DEBUG_PRINT("-------- Wait on event queue interrupted before timeout.");
+            DEBUG_PRINT("-------- wait_until interrupted before timeout.");
 
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule().
@@ -1101,8 +1101,9 @@ void* worker(void* arg) {
         } else {
             // Got a reaction that is ready to run.
             DEBUG_PRINT("Worker %d: Popped from reaction_q %s: "
-                    "chain ID: %llu, and deadline %lld.", worker_number,
+                    "is control reaction: %d, chain ID: %llu, and deadline %lld.", worker_number,
                     current_reaction_to_execute->name,
+					current_reaction_to_execute->is_a_control_reaction,
                     current_reaction_to_execute->chain_id,
                     current_reaction_to_execute->deadline);
 
@@ -1123,8 +1124,6 @@ void* worker(void* arg) {
 
             // Unlock the mutex to run the reaction.
             lf_mutex_unlock(&mutex);
-            DEBUG_PRINT("Worker %d: Running reaction %s (or its fault variants).",
-            		worker_number, current_reaction_to_execute->name);
 
             bool violation = false;
             // If the reaction violates the STP offset,
@@ -1212,10 +1211,6 @@ void* worker(void* arg) {
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(current_reaction_to_execute, worker_number);
-
-                DEBUG_PRINT("Worker %d: Done invoking reaction %s.",
-                                worker_number,
-                                current_reaction_to_execute->name);
 
                 // Reacquire the mutex lock.
                 lf_mutex_lock(&mutex);
