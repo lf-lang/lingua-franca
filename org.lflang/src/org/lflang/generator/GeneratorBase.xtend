@@ -87,8 +87,6 @@ import org.lflang.lf.Variable
 import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
-import java.util.Comparator
-import java.util.stream.Collectors
 import org.lflang.federated.FedASTUtils
 
 /**
@@ -396,7 +394,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         setMode()
 
-        cleanIfNeeded(context)
+        fileConfig.cleanIfNeeded()
 
         printInfo()
 
@@ -443,41 +441,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // to produce before anything else goes into the code generated files.
         generatePreamble() // FIXME: Move this elsewhere. See awkwardness with CppGenerator because it will not even
         // use the result.
-    }
-
-    /**
-     * Check if a clean was requested from the standalone compiler and perform the clean step.
-     */
-    protected def void cleanIfNeeded(IGeneratorContext context) {
-        if (context instanceof StandaloneContext) {
-            if (context.args.containsKey("clean")) {
-                doClean()
-            }
-        }
-    }
-
-    /**
-     * Clean any artifacts produced by the code generator and target compilers.
-     * 
-     * The base implementation deletes the bin and src-gen directories. If the target code generator creates additional 
-     * files or directories, the corresponding generator should override this method.
-     */
-    protected def void doClean() {
-        deleteDirectory(fileConfig.binPath)
-        deleteDirectory(fileConfig.srcGenBasePath)
-    }
-
-    /**
-     * Recursively delete a directory if it exists.
-     */
-    protected def void deleteDirectory(Path dir) {
-        if (Files.isDirectory(dir)) {
-            println("Cleaning " + dir.toString())
-            val pathsToDelete = Files.walk(dir).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
-            for (Path path : pathsToDelete) {
-                Files.deleteIfExists(path);
-            }
-        }
     }
 
     /**
