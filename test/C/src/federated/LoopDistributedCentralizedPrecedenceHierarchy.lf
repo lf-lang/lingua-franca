@@ -10,7 +10,6 @@ target C {
     coordination: centralized,
     coordination-options: {advance-message-interval: 100 msec}, 
     threads: 2,
-    logging: DEBUG,
     timeout: 5 sec
 }
 

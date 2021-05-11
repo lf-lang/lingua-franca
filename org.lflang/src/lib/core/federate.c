@@ -1754,9 +1754,6 @@ void handle_timed_message(int socket, int fed_id) {
         // Notify the main thread in case it is waiting for reactions.
         DEBUG_PRINT("Broadcasting notification that reaction queue changed.");
         lf_cond_signal(&reaction_q_changed);
-        // Notify the main thread in case it is waiting for events. FIXME
-        DEBUG_PRINT("Broadcasting notification that event queue changed.");
-        lf_cond_signal(&event_q_changed);
     } else {
         // If no control reaction is waiting for this message, or if the intended
         // tag is in the future, use schedule functions to process the message.
@@ -1854,6 +1851,39 @@ void handle_tag_advance_grant() {
 }
 
 /**
+ * Send a logical tag complete (LTC) message to the RTI.
+ * This function assumes the caller holds the mutex lock.
+ *
+ * @param tag_to_send The tag to send.
+ */
+void _lf_logical_tag_complete(tag_t tag_to_send) {
+    int compare_with_last_tag = compare_tags(_fed.last_sent_LTC, tag_to_send);
+    if (compare_with_last_tag == 0) {
+        // Sending this tag more than once can happen if __next() returns without
+        // adding an event to the event queue (and thus not advancing tag).
+        DEBUG_PRINT("Was trying to send logical tag complete (%lld, %u) twice to the RTI.",
+                           tag_to_send.time - start_time,
+                           tag_to_send.microstep);
+        return;
+    } else if (compare_with_last_tag > 0) {
+        // This is a critical error. The federate is trying to inform the RTI of
+        // the completion of a tag when it has already reported a larger tag as completed.
+        error_print_and_exit("Was trying to send logical tag complete (%lld, %u) out of order to the RTI "
+                    "when it has already sent (%lld, %u).",
+                    tag_to_send.time - start_time,
+                    tag_to_send.microstep,
+                    _fed.last_sent_LTC.time - start_time,
+                    _fed.last_sent_LTC.microstep);
+        return;
+    }
+    LOG_PRINT("Sending Logical Time Complete (LTC) (%lld, %u) to the RTI.",
+            tag_to_send.time - start_time,
+            tag_to_send.microstep);
+    _lf_send_tag(LOGICAL_TAG_COMPLETE, tag_to_send);
+    _fed.last_sent_LTC = tag_to_send;
+}
+
+/**
  * Handle a provisional tag advance grant (PTAG) message from the RTI.
  * This updates the last known TAG/PTAG and broadcasts
  * a notification of this update, which may unblock whichever worker
@@ -1900,52 +1930,10 @@ void handle_provisional_tag_advance_grant() {
     		current_tag.time - start_time, current_tag.microstep,
     		_fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
 
-    // Insert a dummy event into the event queue if current time is behind
-    // (which it should be). Do not do this if the federate has not fully
-    // started yet.
-
-    instant_t dummy_event_time = PTAG.time;
-    microstep_t dummy_event_relative_microstep = PTAG.microstep;
-
-    if (compare_tags(current_tag, PTAG) == 0) {
-    	// The current tag should only equal the PTAG if we are at the start time.
-    	if (current_tag.time == start_time && current_tag.microstep == 0) {
-    		// No need to schedule a dummy event because at the start, all
-    		// federates implicitly assume they have been granted a PTAG.
-    	    lf_mutex_unlock(&mutex);
-    	    return;
-    	} else {
-    		// FIXME ???????????
-    		error_print("RTI has sent a PTAG, but HUH????");
-    		return;
-    	}
-    } if (compare_tags(current_tag, PTAG) > 0) {
-    	// Current tag is greater than the PTAG, so we schedule a
-    	// a dummy event as soon as possible so that network output
-    	// control reactions are scheduled.
-    	dummy_event_time = current_tag.time;
-    	dummy_event_relative_microstep = 0;
-    	DEBUG_PRINT("At tag (%lld, %d), inserting into the event queue a dummy event with tag (%lld, %d).",
-    			current_tag.time - start_time, current_tag.microstep,
-    			dummy_event_time - start_time, current_tag.microstep + 1);
-    } else if (PTAG.time == current_tag.time) {
-    	// Cut
-    	dummy_event_relative_microstep -= current_tag.microstep;
-    	DEBUG_PRINT("At tag (%lld, %d), inserting into the event queue a dummy event with tag (%lld, %d).",
-    			current_tag.time - start_time, current_tag.microstep,
-    			dummy_event_time - start_time, PTAG.microstep);
-    } else {
-    	DEBUG_PRINT("At tag (%lld, %d), inserting into the event queue a dummy event with tag (%lld, %d).",
-    			current_tag.time - start_time, current_tag.microstep,
-    			dummy_event_time - start_time, PTAG.microstep);
-    }
-    // Dummy event points to a NULL trigger and NULL real event.
-	event_t* dummy = _lf_create_dummy_events(NULL, dummy_event_time, NULL, dummy_event_relative_microstep);
-	// FIXME: How is this resulting in a microstep increment????
-	pqueue_insert(event_q, dummy);
+    // Even if we don't modify the event queue, we need to broadcast a change
+    // because we do not need to continue to wait for a TAG.
 	lf_cond_broadcast(&event_q_changed);
-
-	// Notify everything that is blocked.
+	// Notify control reactions that are blocked.
     // Check here whether there is any control reaction waiting
     // before broadcasting to avoid an unnecessary broadcast.
     // This also avoids problems waking up threads before execution
@@ -1953,6 +1941,56 @@ void handle_provisional_tag_advance_grant() {
     if (is_input_control_reaction_blocked()) {
     	lf_cond_broadcast(&port_status_changed);
     }
+
+    // Possibly insert a dummy event into the event queue if current time is behind
+    // (which it should be). Do not do this if the federate has not fully
+    // started yet.
+
+    instant_t dummy_event_time = PTAG.time;
+    microstep_t dummy_event_relative_microstep = PTAG.microstep;
+
+    if (compare_tags(current_tag, PTAG) == 0) {
+    	// The current tag can equal the PTAG if we are at the start time
+    	// or if this federate has been able to advance time to the current
+    	// tag (e.g., it has no upstream federates). In either case, either
+    	// it is already treating the current tag as PTAG cycle (e.g. at the
+    	// start time) or it will be completing the current cycle and sending
+    	// a LTC message shortly. In either case, there is nothing more to do.
+   	    lf_mutex_unlock(&mutex);
+    	return;
+    } else if (compare_tags(current_tag, PTAG) > 0) {
+    	// Current tag is greater than the PTAG.
+    	// It could be that we have sent an LTC that crossed with the incoming
+    	// PTAG or that we have advanced to a tag greater than the PTAG.
+    	// In the former case, there is nothing more to do.
+    	// In the latter case, we may be blocked processing a PTAG cycle at
+    	// a greater tag or we may be in the middle of processing a regular
+    	// TAG. In either case, we know that at the PTAG tag, all outputs
+    	// have either been sent or are absent, so we can send an LTC.
+   	    if (compare_tags(_fed.last_sent_LTC, PTAG) <= 0) {
+   	    	// Send an LTC to indicate absent outputs.
+   	    	_lf_logical_tag_complete(PTAG);
+   	    }
+	    // Nothing more to do.
+	   	lf_mutex_unlock(&mutex);
+	    return;
+    } else if (PTAG.time == current_tag.time) {
+    	// We now know current_tag < PTAG, but the times are equal.
+    	// Adjust the microstep for scheduling the dummy event.
+    	dummy_event_relative_microstep -= current_tag.microstep;
+    }
+	// We now know current_tag < PTAG.
+    // Schedule a dummy event at the specified time and (relative) microstep.
+   	DEBUG_PRINT("At tag (%lld, %d), inserting into the event queue a dummy event "
+   			"with time %lld and (relative) microstep %d.",
+    		current_tag.time - start_time, current_tag.microstep,
+    		dummy_event_time - start_time, dummy_event_relative_microstep);
+
+   	// Dummy event points to a NULL trigger and NULL real event.
+	event_t* dummy = _lf_create_dummy_events(
+			NULL, dummy_event_time, NULL, dummy_event_relative_microstep);
+	pqueue_insert(event_q, dummy);
+
     lf_mutex_unlock(&mutex);
 }
 
@@ -2343,39 +2381,6 @@ void synchronize_with_other_federates() {
     if (create_clock_sync_thread(&thread_id)) {
         warning_print("Failed to create thread to handle clock synchronization.");
     }
-}
-
-/** 
- * Send a logical tag complete (LTC) message to the RTI.
- * This function assumes the caller holds the mutex lock.
- * 
- * @param tag_to_send The tag to send.
- */
-void _lf_logical_tag_complete(tag_t tag_to_send) {
-    int compare_with_last_tag = compare_tags(_fed.last_sent_LTC, tag_to_send);
-    if (compare_with_last_tag == 0) {
-        // Sending this tag more than once can happen if __next() returns without
-        // adding an event to the event queue (and thus not advancing tag).
-        DEBUG_PRINT("Was trying to send logical tag complete (%lld, %u) twice to the RTI.", 
-                           tag_to_send.time - start_time,
-                           tag_to_send.microstep);
-        return;
-    } else if (compare_with_last_tag > 0) {
-        // This is a critical error. The federate is trying to inform the RTI of
-        // the completion of a tag when it has already reported a larger tag as completed.
-        error_print_and_exit("Was trying to send logical tag complete (%lld, %u) out of order to the RTI "
-                    "when it has already sent (%lld, %u).", 
-                    tag_to_send.time - start_time,
-                    tag_to_send.microstep,
-                    _fed.last_sent_LTC.time - start_time,
-                    _fed.last_sent_LTC.microstep);
-        return;
-    }
-    LOG_PRINT("Sending Logical Time Complete (LTC) (%lld, %u) to the RTI.",
-            tag_to_send.time - start_time,
-            tag_to_send.microstep);
-    _lf_send_tag(LOGICAL_TAG_COMPLETE, tag_to_send);
-    _fed.last_sent_LTC = tag_to_send;
 }
 
 /**
