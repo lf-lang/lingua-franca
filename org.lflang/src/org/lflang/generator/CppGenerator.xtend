@@ -134,6 +134,11 @@ class CppGenerator extends GeneratorBase {
 
     def sourceFile(Reactor r) { r.eResource.toDir.resolve('''«r.name».cc''') }
 
+    override setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+        this.fileConfig = new CppFileConfig(resource, fsa, context)
+        this.topLevelName = fileConfig.name
+    }
+
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
         super.doGenerate(resource, fsa, context)
