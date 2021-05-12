@@ -285,7 +285,7 @@
           activeRepositoryList="DefaultRepositories"
           includeSources="false">
         <annotation
-            source="http:/www.eclipse.org/oomph/targlets/TargetDefinitionGenerator_DISABLED">
+            source="http:/www.eclipse.org/oomph/targlets/TargetDefinitionGenerator">
           <detail
               key="preferredRepositories">
             <value>http://download.eclipse.org/eclipse/updates/</value>
@@ -300,7 +300,7 @@
           </detail>
           <detail
               key="location">
-            <value>${git.clone.lingua.franca.location}/targetplatform/lingua-franca.target</value>
+            <value>${git.clone.lingua.franca.location}/org.lflang.targetplatform/org.lflang.targetplatform.target</value>
           </detail>
         </annotation>
         <requirement
@@ -319,6 +319,8 @@
             name="org.python.pydev.feature.feature.group"/>
         <requirement
             name="com.google.inject"/>
+        <requirement
+            name="javax.annotation"/>
         <requirement
             name="com.google.guava"
             versionRange="27.0.0"/>

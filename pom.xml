@@ -17,10 +17,15 @@
         <module>org.lflang</module>
         <module>org.lflang.ide</module>
         <module>org.lflang.ui</module>
+        <module>org.lflang.diagram</module>
+        <!-- Tests -->
         <module>org.lflang.tests</module>
         <module>org.lflang.ui.tests</module>
+        <!-- Eclipse Product -->
         <module>org.lflang.sdk</module>
         <module>org.lflang.updatesite</module>
+        <module>org.lflang.product</module>
+        <module>org.lflang.targetplatform</module>
     </modules>
 
     <properties>
@@ -29,7 +34,7 @@
         <tycho-version>2.3.0</tycho-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- When the Eclipse p2 site is updated to a new version of Eclipse, then update the xtext.version. -->
-        <xtext.version>2.21.0</xtext.version>
+        <xtext.version>2.25.0</xtext.version>
         <tycho.disableP2Mirrors>true</tycho.disableP2Mirrors>
     </properties>
 
@@ -39,23 +44,6 @@
             <url>https://oss.sonatype.org/content/repositories/orgeclipsetycho-1056</url>
         </pluginRepository>
     </pluginRepositories>
-
-    <repositories>
-        <repository>
-            <id>eclipse</id>
-            <layout>p2</layout>
-            <!-- If you update the Eclipse release, you may need to also update the xtext.version above
-                 and some version numbers in
-                 org.lflang/pom.xml and
-                 org.lflang.tests/pom.xml -->
-            <url>https://download.eclipse.org/releases/2020-03/</url>
-        </repository>
-        <repository>
-            <id>Xtext Update Site</id>
-            <layout>p2</layout>
-            <url>https://download.eclipse.org/modeling/tmf/xtext/updates/releases/${xtext.version}/</url>
-        </repository>
-    </repositories>
 
     <build>
 
@@ -146,16 +134,46 @@
                 <extensions>true</extensions>
             </plugin>
 
-            <!-- Avoid
-                 "[WARNING] No explicit target runtime environment configuration. Build is platform dependent."
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-source-plugin</artifactId>
+                <version>${tycho-version}</version>
+                <executions>
+                    <execution>
+                        <id>plugin-source</id>
+                        <goals>
+                            <goal>plugin-source</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-                 See https://wiki.eclipse.org/Tycho/Reference_Card#Target_runtime_environment
-            -->
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-surefire-plugin</artifactId>
+                <version>${tycho-version}</version>
+                <configuration>
+                    <argLine>-ea</argLine>
+                    <includes>
+                        <include>**/Test*.java</include>
+                        <include>**/*Test.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.eclipse.tycho</groupId>
                 <artifactId>target-platform-configuration</artifactId>
                 <version>${tycho-version}</version>
                 <configuration>
+                    <!-- <pomDependencies>consider</pomDependencies> -->
+                    <target>
+                        <artifact>
+                            <groupId>org.lflang</groupId>
+                            <artifactId>org.lflang.targetplatform</artifactId>
+                            <version>1.0.0-SNAPSHOT</version>
+                        </artifact>
+                    </target>     
                     <environments>
                         <environment>
                             <os>win32</os>

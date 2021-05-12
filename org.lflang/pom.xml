@@ -42,8 +42,7 @@
                     </arguments>
                     <classpathScope>compile</classpathScope>
                     <includePluginDependencies>true</includePluginDependencies>
-                    <cleanupDaemonThreads>false
-                    </cleanupDaemonThreads><!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+                    <cleanupDaemonThreads>false</cleanupDaemonThreads> <!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
                 </configuration>
                 <dependencies>
                     <!-- https://mvnrepository.com/artifact/commons-cli/commons-cli -->
@@ -58,7 +57,8 @@
                         <!-- If the Eclipse release is updated, then update the version number below.
                              See https://www.eclipse.org/Xtext/documentation/350_continuous_integration.html#maven-tycho-hints
                              and https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch -->
-                        <version>2.11.2</version>
+                        <!-- This version MUST match the version xtext uses or the build gets stuck -->
+                        <version>2.12.1</version>
                     </dependency>
                     <dependency>
                         <groupId>org.eclipse.xtext</groupId>
