@@ -25,6 +25,7 @@
         <module>org.lflang.sdk</module>
         <module>org.lflang.updatesite</module>
         <module>org.lflang.product</module>
+        <module>org.lflang.rca</module>
         <module>org.lflang.targetplatform</module>
     </modules>
 
