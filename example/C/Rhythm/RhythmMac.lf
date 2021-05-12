@@ -48,6 +48,7 @@ import PlayWaveform from "PlayWaveform.lf"
 
 preamble {= 
     #include <ncurses.h>
+    #include <sys/stat.h> // Defines mkdir.
     #include "sensor_simulator.c"
     
     /////////////////////////////
@@ -160,7 +161,16 @@ reactor RhythmSource(
     
     reaction(startup) -> key, note, tick {=
         // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator(self->message, self->message_length, 16)) {
+        char log_file_name[40];
+        int fed_id = get_fed_id();
+        // FIXME: log directory won't work in Windows (wrong separator).
+        mkdir("log", 0755);
+        if (fed_id < 0) {
+        	sprintf(log_file_name, "log/Rhythm_%lld.log", get_logical_time());
+      	} else {
+        	sprintf(log_file_name, "log/Rhythm_%d_%lld.log", fed_id, get_logical_time());
+        }
+        if (start_sensor_simulator(self->message, self->message_length, 16, log_file_name)) {
             error_print_and_exit("ERROR: Failed to start sensor simulator.");
         }
         

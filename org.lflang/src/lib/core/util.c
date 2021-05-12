@@ -62,6 +62,13 @@ int _lf_my_fed_id = -1;
 print_message_function_t* print_message_function = NULL;
 
 /**
+ * Return the federate ID or -1 if this program is not part of a federation.
+ */
+int get_fed_id() {
+	return _lf_my_fed_id;
+}
+
+/**
  * Internal implementation of the next few reporting functions.
  */
 void _lf_message_print(int is_error, char* prefix, char* format, va_list args) {
