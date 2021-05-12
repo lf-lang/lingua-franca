@@ -1,7 +1,7 @@
 This document includes information about supported operating systems and external dependencies that are expected to be manually installed by the user.
 
 
-## Development Requirements
+## Core Development Requirements
 
 ### **Supported Operating Systems**
 |                              | C  | C++ | Python | TypeScript |
@@ -17,15 +17,15 @@ This document includes information about supported operating systems and externa
 ### **Dependencies**
  - Java >= 11
 
-In order to develop the core Lingua Franca, the only basic requirement is to have Java >= 11. 
-You should be able to download and run the provided Eclipse development project (see [Downloading and Building](https://github.com/icyphy/lingua-franca/wiki/Downloading-and-Building)). 
+In order to develop the core Lingua Franca, the only basic requirement is to have Java >= 11 installed. You should be able to download and run the provided Eclipse development project (see [Downloading and Building](https://github.com/icyphy/lingua-franca/wiki/Downloading-and-Building)). This will get you as far as modifying the under-the-hood code of Lingua Franca, and contributing to the ongoing open-source effort. Please see [Contribution]().
 
-## Target Language Requirements
-With Java (>= 11), you should be able to use the provided Eclipse IDE products located at [](). Any particular plugin or additional dependencies are managed by the Eclipse IDE product itself. The Eclipse IDE product will give you the ability to write a Lingua Franca program (see [Language-Specification](https://github.com/icyphy/lingua-franca/wiki/Language-Specification)), generate synthesized diagrams for your program (see [Diagrams](https://github.com/icyphy/lingua-franca/wiki/Diagrams)), and generate code in any of the supported target languages.
+## Target Language Development Requirements
+With Java (>= 11), you should also be able to use the provided Eclipse IDE products located at [Releases](). Any particular plugin or additional dependencies are managed by the Eclipse IDE product itself. The Eclipse IDE product will give you the ability to write a Lingua Franca program in any of the supported target languages (see [Language-Specification](https://github.com/icyphy/lingua-franca/wiki/Language-Specification)), generate synthesized diagrams for your program (see [Diagrams](https://github.com/icyphy/lingua-franca/wiki/Diagrams)), and to generate standalone program codes in the specified target language (but no binaries).
 
-Nonetheless, each target language in Lingua Franca has a set of requirements to compile the generated code. Compiling the generated code is generally automatically done in the Eclipse IDE and using the `lfc` command line tool. This default behavior can be disabled using the [no-compile](https://github.com/icyphy/lingua-franca/wiki/target-specification#no-compile) target property or by using the `-n` argument for the `lfc` command line tool (see [Command Line Tools](https://github.com/icyphy/lingua-franca/wiki/Command-Line-Tools)). 
+To compile the generated code and to create a binary, each target language in Lingua Franca has an additional set of requirements, which are listed in this section. We also include a list of tested operating systems in the format of a compact table below.
 
-Here, we list the supported platforms as well as the set of requirements for compiling and creating a binary for your Lingua Franca program written in any of the supported target languages:
+**Note:** Compiling the generated code is generally automatically done in the Eclipse IDE or while using the `lfc` command line tool. This default behavior can be disabled, however, using the [no-compile](https://github.com/icyphy/lingua-franca/wiki/target-specification#no-compile) target property in your Lingua Franca program or by using the `-n` argument for the `lfc` command line tool (see [Command Line Tools](https://github.com/icyphy/lingua-franca/wiki/Command-Line-Tools)). 
+
 
 ### Supported Operating Systems
 |                      | C             | C++ | Python | TypeScript |
