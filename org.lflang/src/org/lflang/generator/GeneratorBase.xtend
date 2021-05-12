@@ -390,11 +390,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
         setFileConfig(resource, fsa, context)
-        
+        setTargetConfig(context)
+
         setMode()
-        
+
+        fileConfig.cleanIfNeeded()
+
         printInfo()
-        
+
         // Clear any markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
         clearMarkers()
@@ -409,8 +412,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
-        
-        setTargetConfig(context)
         
         // If federates are specified in the target, create a mapping
         // from Instantiations in the main reactor to federate names.

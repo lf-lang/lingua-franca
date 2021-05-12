@@ -29,7 +29,6 @@
 package org.lflang.generator
 
 import com.google.inject.Inject
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.LinkedList
@@ -133,6 +132,11 @@ class CppGenerator extends GeneratorBase {
     def headerImplFile(Reactor r) { r.eResource.toDir.resolve('''«r.name»_impl.hh''') }
 
     def sourceFile(Reactor r) { r.eResource.toDir.resolve('''«r.name».cc''') }
+
+    override setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+        this.fileConfig = new CppFileConfig(resource, fsa, context)
+        this.topLevelName = fileConfig.name
+    }
 
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
@@ -1032,8 +1036,8 @@ class CppGenerator extends GeneratorBase {
         val buildPath = outPath.resolve("build").resolve(topLevelName)
         val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
         
-        var buildDir = new File(buildPath.toString())
-        if (!buildDir.exists()) buildDir.mkdirs()
+        // make sure the build directory exists
+        FileConfig.createDirectories(buildPath)
 
         val makeBuilder = createCommand("cmake", #[
             "--build",
@@ -1054,7 +1058,7 @@ class CppGenerator extends GeneratorBase {
         }
 
         // prepare cmake
-        cmakeBuilder.directory(buildDir)
+        cmakeBuilder.directory(buildPath.toFile())
         if (targetConfig.compiler !== null) {
             val cmakeEnv = cmakeBuilder.environment();
             cmakeEnv.put("CXX", targetConfig.compiler);
@@ -1065,7 +1069,7 @@ class CppGenerator extends GeneratorBase {
 
         if (cmakeReturnCode == 0) {
             // If cmake succeeded, prepare and run make
-            makeBuilder.directory(buildDir)
+            makeBuilder.directory(buildPath.toFile())
             val makeReturnCode = makeBuilder.executeCommand()
 
             if (makeReturnCode == 0) {
