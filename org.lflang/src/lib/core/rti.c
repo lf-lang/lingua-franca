@@ -381,11 +381,22 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
 
 /** 
  * Send a tag advance grant (TAG) message to the specified federate.
+ * Do not send it if a previously sent PTAG was greater or if a
+ * previously sent TAG was greater or equal.
+ * 
+ * This function will keep a record of this TAG in the federate's last_granted
+ * field.
+ *
+ * This function assumes that the caller holds the mutex lock.
+ *
  * @param fed The federate.
  * @param tag The tag to grant.
  */
 void send_tag_advance_grant(federate_t* fed, tag_t tag) {
-    if (fed->state == NOT_CONNECTED) {
+    if (fed->state == NOT_CONNECTED
+    		|| compare_tags(tag, fed->last_granted) <= 0
+			|| compare_tags(tag, fed->last_provisionally_granted) < 0
+    ) {
         return;
     }
     int message_length = 1 + sizeof(instant_t) + sizeof(microstep_t);
@@ -407,37 +418,6 @@ void send_tag_advance_grant(federate_t* fed, tag_t tag) {
     } else {
         fed->last_granted = tag;
         LOG_PRINT("RTI sent to federate %d the Time Advance Grant (TAG) (%lld, %u).",
-                fed->id, tag.time - start_time, tag.microstep);
-    }
-}
-
-/** 
- * Send a provisional tag advance grant (PTAG) message to the specified federate.
- * @param fed The federate.
- * @param tag The tag to grant.
- */
-void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
-    if (fed->state == NOT_CONNECTED) {
-        return;
-    }
-    int message_length = 1 + sizeof(instant_t) + sizeof(microstep_t);
-    unsigned char buffer[message_length];
-    buffer[0] = PROVISIONAL_TIME_ADVANCE_GRANT;
-    encode_ll(tag.time, &(buffer[1]));
-    encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
-    // This function is called in send_tag_advance_if_appropriate(), which is a long
-    // function. During this call, the socket might close, causing the following write_to_socket
-    // to fail. Consider a failure here a soft failure and update the federate's status.
-    int bytes_written = write_to_socket(fed->socket, message_length, buffer);
-    if (bytes_written < message_length) {
-        error_print("RTI failed to send time advance grant to federate %d.", fed->id);
-        if (bytes_written < 0) {
-            fed->state = NOT_CONNECTED;
-            // FIXME: We need better error handling, but don't stop other execution here.
-            // _lf_rti_mark_federate_requesting_stop(fed);
-        }
-    } else {
-        LOG_PRINT("RTI sent to federate %d the Provisional Time Advance Grant (PTAG) (%lld, %u).",
                 fed->id, tag.time - start_time, tag.microstep);
     }
 }
@@ -478,12 +458,12 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
     if (fed->time_advance > fed->next_event.time) {
         result = (tag_t){.time = fed->time_advance, .microstep = 0};
     }
-        
+
     // If the candidate is less than this federate's next_event, use the candidate.
     if (compare_tags(candidate, result) < 0) {
         result = candidate;
     }
-    
+
     // The result cannot be earlier than the start time.
     if (result.time < start_time) {
         // Earliest next event cannot be before the start time.
@@ -495,10 +475,10 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
     for (int i = 0; i < fed->num_upstream; i++) {
         tag_t upstream_result = transitive_next_event(
                 &federates[fed->upstream[i]], result, visited);
-                
+
         // Add the "after" delay of the connection to the result.
         upstream_result = delay_tag(upstream_result, fed->upstream_delay[i]);
-        
+
         // If the adjusted event time is less than the result so far, update the result.
         if (compare_tags(upstream_result, result) < 0) {
             result = upstream_result;
@@ -508,6 +488,77 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
         result = fed->completed;
     }
     return result;
+}
+
+/**
+ * Send a provisional tag advance grant (PTAG) message to the specified federate.
+ * Do not send it if a previously sent PTAG or TAG was greater or equal.
+ *
+ * This function will keep a record of this PTAG in the federate's last_provisionally_granted
+ * field.
+ *
+ * This function assumes that the caller holds the mutex lock.
+ *
+ * @param fed The federate.
+ * @param tag The tag to grant.
+ */
+void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
+    if (fed->state == NOT_CONNECTED
+    		|| compare_tags(tag, fed->last_granted) <= 0
+			|| compare_tags(tag, fed->last_provisionally_granted) <= 0
+    ) {
+        return;
+    }
+    int message_length = 1 + sizeof(instant_t) + sizeof(microstep_t);
+    unsigned char buffer[message_length];
+    buffer[0] = PROVISIONAL_TIME_ADVANCE_GRANT;
+    encode_ll(tag.time, &(buffer[1]));
+    encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
+    // This function is called in send_tag_advance_if_appropriate(), which is a long
+    // function. During this call, the socket might close, causing the following write_to_socket
+    // to fail. Consider a failure here a soft failure and update the federate's status.
+    int bytes_written = write_to_socket(fed->socket, message_length, buffer);
+    if (bytes_written < message_length) {
+        error_print("RTI failed to send time advance grant to federate %d.", fed->id);
+        if (bytes_written < 0) {
+            fed->state = NOT_CONNECTED;
+            // FIXME: We need better error handling, but don't stop other execution here.
+            // _lf_rti_mark_federate_requesting_stop(fed);
+        }
+    } else {
+        fed->last_provisionally_granted = tag;
+        LOG_PRINT("RTI sent to federate %d the Provisional Time Advance Grant (PTAG) (%lld, %u).",
+                fed->id, tag.time - start_time, tag.microstep);
+
+        // Send PTAG to all upstream federates, if they have not had
+        // a later or equal PTAG or TAG sent previously and if the transitive
+        // NET is greater than or equal to the tag.
+        // NOTE: This could later be replaced with a TNET mechanism once
+        // we have an available encoding of causality interfaces.
+        // That might be more efficient.
+        for (int j = 0; j < fed->num_upstream; j++) {
+            federate_t* upstream = &federates[fed->upstream[j]];
+
+            // Ignore this federate if it has resigned.
+            if (upstream->state == NOT_CONNECTED) continue;
+
+            // To handle cycles, need to create a boolean array to keep
+            // track of which upstream federates have been visited.
+            bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+
+            // Find the (transitive) next event tag upstream.
+            tag_t upstream_next_event = transitive_next_event(
+                    upstream, upstream->next_event, visited);
+
+            // If these tags are equal, then
+            // a TAG or PTAG should have already been granted,
+            // in which case, another will not be sent. So it seems
+            // harmless to include the equals case.
+            if (compare_tags(upstream_next_event, tag) > 0) {
+            	send_provisional_tag_advance_grant(upstream, tag);
+            }
+        }
+    }
 }
 
 /** 
@@ -530,11 +581,13 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
  */
 bool send_tag_advance_if_appropriate(federate_t* fed) {
 
-    // If the federate has been granted a TAG and has not
-    // yet responded with a NET, then do not grant another TAG here.
-    // If appropriate, that TAG will be granted when the NET arrives.
-    if (compare_tags(fed->next_event, fed->last_granted) <= 0) {
-        // No unsatisfied NET on record.
+    // If the federate has been granted a TAG or PTAG and has not
+    // yet responded with a NET, then do not grant another TAG
+    // or PTAG here. If appropriate, that TAG or PTAG will be granted 
+    // when such a NET arrives.
+    if (compare_tags(fed->next_event, fed->last_granted) <= 0 || 
+         compare_tags(fed->next_event, fed->last_provisionally_granted) < 0) {
+        // No new NET on record.
         return false;
     }
         
@@ -1212,8 +1265,14 @@ void handle_federate_resign(federate_t *my_fed) {
     my_fed->next_event = FOREVER_TAG;
     my_fed->time_advance = FOREVER;
     
-    shutdown(my_fed->socket, SHUT_RDWR);
-    close(my_fed->socket); //  from unistd.h
+    // According to this: https://stackoverflow.com/questions/4160347/close-vs-shutdown-socket,
+    // the close should happen when receiving a 0 length message from the other end.
+    // Here, we just signal the other side that no further writes to the socket are
+    // forthcoming, which should result in the other end getting a zero-length reception.
+    shutdown(my_fed->socket, SHUT_WR);
+    // Do not close because this results in an error on the other side rather than
+    // an orderly shutdown.
+    // close(my_fed->socket); //  from unistd.h
     
     info_print("Federate %d has resigned.", my_fed->id);
     
@@ -1552,6 +1611,7 @@ void initialize_federate(int id) {
     federates[id].clock_synchronization_enabled = true;
     federates[id].completed = NEVER_TAG;
     federates[id].last_granted = NEVER_TAG;
+    federates[id].last_provisionally_granted = NEVER_TAG;
     federates[id].next_event = NEVER_TAG;
     federates[id].time_advance = NEVER;
     federates[id].state = NOT_CONNECTED;

@@ -375,24 +375,6 @@ handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, i
 void logical_tag_complete(tag_t tag_to_send);
 
 /** 
- * Placeholder for code-generated function that will, in a federated
- * execution with centralized coordination, be used to coordinate the
- * advancement of time.  Otherwise this function returns the specified tag
- * immediately.
- *
- * In a federated execution with centralized coordination, this function returns a
- * tag that is less than or equal to the specified tag when, as far
- * as the federation is concerned, it is safe to commit to advancing
- * to the returned tag. That is, all incoming network messages with
- * tags less than the returned tag have been received.
- *
- * @param tag The tag to which to advance.
- * @param wait_for_reply If true, wait for the RTI to respond.
- * @return The tag to which it is safe to advance.
- */
-tag_t send_next_event_tag(tag_t tag, bool wait_for_reply);
-
-/** 
  * Synchronize the start with other federates via the RTI.
  * This assumes that a connection to the RTI is already made 
  * and _fed.socket_TCP_RTI is valid. It then sends the current logical
@@ -481,7 +463,7 @@ bool wait_until(instant_t logical_time_ns, lf_cond_t* condition) {
         // Hence, we want to run it repeatedly until either it returns non-zero or the
         // current physical time matches or exceeds the logical time.
         if (lf_cond_timedwait(condition, &mutex, unadjusted_wait_until_time_ns) != LF_TIMEOUT) {
-            DEBUG_PRINT("-------- Wait on event queue interrupted before timeout.");
+            DEBUG_PRINT("-------- wait_until interrupted before timeout.");
 
             // Wait did not time out, which means that there
             // may have been an asynchronous call to schedule().
@@ -532,6 +514,8 @@ tag_t get_next_event_tag() {
 
         next_tag.time = event->time;
         if (next_tag.time == current_tag.time) {
+        	DEBUG_PRINT("Earliest event matches current time. Incrementing microstep. Event is dummy: %d.",
+        			event->is_dummy);
             next_tag.microstep =  get_microstep() + 1;
         } else {
             next_tag.microstep = 0;
@@ -546,6 +530,32 @@ tag_t get_next_event_tag() {
     LOG_PRINT("Earliest event on the event queue (or stop time if empty) is (%lld, %u). Event queue has size %d.",
             next_tag.time - start_time, next_tag.microstep, pqueue_size(event_q));
     return next_tag;
+}
+
+#ifdef FEDERATED_CENTRALIZED
+// The following is defined in federate.c and used in the following function.
+tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply);
+#endif
+
+/**
+ * In a federated execution with centralized coordination, this function returns
+ * a tag that is less than or equal to the specified tag when, as far
+ * as the federation is concerned, it is safe to commit to advancing
+ * to the returned tag. That is, all incoming network messages with
+ * tags less than the returned tag have been received.
+ * In unfederated execution or in federated execution with decentralized
+ * control, this function returns the specified tag immediately.
+ *
+ * @param tag The tag to which to advance.
+ * @param wait_for_reply If true, wait for the RTI to respond.
+ * @return The tag to which it is safe to advance.
+ */
+tag_t send_next_event_tag(tag_t tag, bool wait_for_reply) {
+#ifdef FEDERATED_CENTRALIZED
+    return _lf_send_next_event_tag(tag, wait_for_reply);
+#else
+    return tag;
+#endif
 }
 
 /**
@@ -1091,8 +1101,9 @@ void* worker(void* arg) {
         } else {
             // Got a reaction that is ready to run.
             DEBUG_PRINT("Worker %d: Popped from reaction_q %s: "
-                    "chain ID: %llu, and deadline %lld.", worker_number,
+                    "is control reaction: %d, chain ID: %llu, and deadline %lld.", worker_number,
                     current_reaction_to_execute->name,
+					current_reaction_to_execute->is_a_control_reaction,
                     current_reaction_to_execute->chain_id,
                     current_reaction_to_execute->deadline);
 
@@ -1113,8 +1124,6 @@ void* worker(void* arg) {
 
             // Unlock the mutex to run the reaction.
             lf_mutex_unlock(&mutex);
-            DEBUG_PRINT("Worker %d: Running reaction %s (or its fault variants).",
-            		worker_number, current_reaction_to_execute->name);
 
             bool violation = false;
             // If the reaction violates the STP offset,
@@ -1202,10 +1211,6 @@ void* worker(void* arg) {
                 // If the reaction produced outputs, put the resulting triggered
                 // reactions into the queue or execute them immediately.
                 schedule_output_reactions(current_reaction_to_execute, worker_number);
-
-                DEBUG_PRINT("Worker %d: Done invoking reaction %s.",
-                                worker_number,
-                                current_reaction_to_execute->name);
 
                 // Reacquire the mutex lock.
                 lf_mutex_lock(&mutex);

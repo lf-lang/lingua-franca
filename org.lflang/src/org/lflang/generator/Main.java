@@ -195,7 +195,8 @@ public class Main {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
-        COMPILER("c", "target-compiler", true, false, "Target compiler to invoke.", true),
+        COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
+        CLEAN("c", "clean", false, false, "Clean before building.", true),
         HELP("h", "help", false, false, "Display this information.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         REBUILD("r", "rebuild", false, false, "Rebuild the LF compiler first.", false),

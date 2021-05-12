@@ -471,10 +471,10 @@ struct event_t {
     instant_t time;           // Time of release.
     trigger_t* trigger;       // Associated trigger, NULL if this is a dummy event.
     size_t pos;               // Position in the priority queue.
-    lf_token_t* token;           // Pointer to the token wrapping the value.
+    lf_token_t* token;        // Pointer to the token wrapping the value.
     bool is_dummy;            // Flag to indicate whether this event is merely a placeholder or an actual event.
 #ifdef FEDERATED
-    tag_t intended_tag; // The tardiness of the event relative to the intended tag.
+    tag_t intended_tag;       // The intended tag.
 #endif
     event_t* next;            // Pointer to the next event lined up in superdense time.
 };
