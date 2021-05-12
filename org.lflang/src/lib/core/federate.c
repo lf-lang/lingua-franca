@@ -1967,7 +1967,7 @@ void handle_provisional_tag_advance_grant() {
     	// a greater tag or we may be in the middle of processing a regular
     	// TAG. In either case, we know that at the PTAG tag, all outputs
     	// have either been sent or are absent, so we can send an LTC.
-   	    if (compare_tags(_fed.last_sent_LTC, PTAG) <= 0) {
+   	    if (compare_tags(_fed.last_sent_LTC, PTAG) < 0) {
    	    	// Send an LTC to indicate absent outputs.
    	    	_lf_logical_tag_complete(PTAG);
    	    }
