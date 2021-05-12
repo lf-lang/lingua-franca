@@ -25,7 +25,7 @@ subprojects {
 		// https://mvnrepository.com/artifact/com.google.inject/guice
 		implementation group: 'com.google.inject', name: 'guice', version: '5.0.0-BETA-1'
 		// https://mvnrepository.com/artifact/commons-cli/commons-cli
-		implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
+		implementation group: 'commons-cli', name: 'commons-cli', version: '1.2'
 	}
 
 	apply plugin: 'org.xtext.xtend'
