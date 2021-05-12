@@ -6,7 +6,7 @@
   <parent>
     <relativePath>../pom.xml</relativePath>
     <groupId>org.lflang</groupId>
-    <artifactId>parent</artifactId>
+    <artifactId>lf</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
 
