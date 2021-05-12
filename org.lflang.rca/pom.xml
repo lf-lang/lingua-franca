@@ -47,7 +47,7 @@
 						<product>
 							<id>org.lflang.rca</id>
 							<rootFolder>lflang</rootFolder>
-							<archiveFileName>lignua_franca_rca_${buildQualifier}</archiveFileName>
+							<archiveFileName>lingua_franca_rca_${buildQualifier}</archiveFileName>
 						</product>
 					</products>
 				</configuration>
