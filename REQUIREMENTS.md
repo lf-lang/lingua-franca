@@ -21,11 +21,11 @@ In order to develop the core Lingua Franca, the only basic requirement is to hav
 You should be able to download and run the provided Eclipse development project (see [Downloading and Building](https://github.com/icyphy/lingua-franca/wiki/Downloading-and-Building)). 
 
 ## Target Language Requirements
-You should be able to use the provided Eclipse IDE products located at [](). Any particular plugin or additional dependencies are managed by the Eclipse IDE product itself. The Eclipse IDE product will give you the ability to write a Lingua Franca program (see [Language-Specification](https://github.com/icyphy/lingua-franca/wiki/Language-Specification)), generate synthesized diagrams for your program (see [Diagrams](https://github.com/icyphy/lingua-franca/wiki/Diagrams)), and generate code in any of the supported target languages.
+With Java (>= 11), you should be able to use the provided Eclipse IDE products located at [](). Any particular plugin or additional dependencies are managed by the Eclipse IDE product itself. The Eclipse IDE product will give you the ability to write a Lingua Franca program (see [Language-Specification](https://github.com/icyphy/lingua-franca/wiki/Language-Specification)), generate synthesized diagrams for your program (see [Diagrams](https://github.com/icyphy/lingua-franca/wiki/Diagrams)), and generate code in any of the supported target languages.
 
-_Nonetheless_, each target language in Lingua Franca has a set of requirements to compile the generated code. Compiling the generated code is generally automatically done in the Eclipse IDE and using the `lfc` command line tool. This default behavior can be disabled using the [no-compile](https://github.com/icyphy/lingua-franca/wiki/target-specification#no-compile) target property or by using the `-n` argument for the `lfc` command line tool (see [Command Line Tools](https://github.com/icyphy/lingua-franca/wiki/Command-Line-Tools)). 
+Nonetheless, each target language in Lingua Franca has a set of requirements to compile the generated code. Compiling the generated code is generally automatically done in the Eclipse IDE and using the `lfc` command line tool. This default behavior can be disabled using the [no-compile](https://github.com/icyphy/lingua-franca/wiki/target-specification#no-compile) target property or by using the `-n` argument for the `lfc` command line tool (see [Command Line Tools](https://github.com/icyphy/lingua-franca/wiki/Command-Line-Tools)). 
 
-Here, we list the supported platforms for compiling and creating a binary as well as the set of requirements for each target:
+Here, we list the supported platforms as well as the set of requirements for compiling and creating a binary for your Lingua Franca program written in any of the supported target languages:
 
 ### Supported Operating Systems
 |                      | C             | C++ | Python | TypeScript |
