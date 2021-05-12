@@ -8,7 +8,6 @@ This document includes information about supported operating systems and externa
 |------------------------------|----|-----|--------|------------|
 | Ubuntu 20.04                 | Y  | Y   | Y      | Y          |
 | MacOS 10.15 Catalina         | Y  | Y   | Y      | Y          |
-| MacOS 11 Big Sur             | Y  | Y   | Y      | Y          |
 | Windows 10 1909<sup>†</sup>  | Y  | Y   | Y      | Y          |
 | Windows 10 2004<sup>†</sup>  | Y  | Y   | Y      | Y          |
 
@@ -34,7 +33,6 @@ Here, we list the supported platforms for compiling and creating a binary as wel
 |----------------------|---------------|-----|--------|------------|
 | Ubuntu 20.04         | Y             | Y   | Y      | Y          |
 | MacOS 10.15 Catalina | Y             | Y   | Y      | Y          |
-| MacOS 11 Big Sur     | Y             | Y   | Y      | Y          |
 | Windows 10 1909      | Y<sup>‡</sup> | Y   | N      | N          |
 | Windows 10 2004      | Y<sup>‡</sup> | N   | N      | N          |
 
