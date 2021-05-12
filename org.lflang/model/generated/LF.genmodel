@@ -121,6 +121,8 @@
     <genClasses ecoreClass="LF.ecore#//TriggerRef">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LF.ecore#//TriggerRef/startup"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LF.ecore#//TriggerRef/shutdown"/>
+      <genOperations ecoreOperation="LF.ecore#//TriggerRef/isPresent"/>
+      <genOperations ecoreOperation="LF.ecore#//TriggerRef/getTrue"/>
     </genClasses>
     <genClasses ecoreClass="LF.ecore#//Deadline">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference LF.ecore#//Deadline/delay"/>
@@ -182,6 +184,7 @@
     </genClasses>
     <genClasses ecoreClass="LF.ecore#//Variable">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute LF.ecore#//Variable/name"/>
+      <genOperations ecoreOperation="LF.ecore#//Variable/updates"/>
     </genClasses>
     <genClasses ecoreClass="LF.ecore#//Trigger"/>
     <genClasses ecoreClass="LF.ecore#//Effect"/>
