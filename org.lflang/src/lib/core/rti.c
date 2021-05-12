@@ -562,17 +562,28 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
 }
 
 /** 
- * Determine whether the specified federate is eligible for a tag advance grant,
- * (TAG) and, if so, send it one. This is called upon receiving a NET from the
- * federate, and only if the federate has upstream federates.
- * This function calculates the minimum over
- * all upstream federates of the "after" delay plus the earliest tag
- * of any future message the upstream federate might send.
- * If that minimum is greater than the NET of the federate, then
- * send TAG to the federate with tag equal to the NET of the federate.
+ * Determine whether the specified federate fed is eligible for a tag advance grant,
+ * (TAG) and, if so, send it one. This is called upon receiving a LTC, TAN, NET
+ * or resign from an upstream federate.
  *
- * This should be called whenever an upstream federate sends to the RTI
- * either a TAN (Time Advance Notice) or NET (Next Event Tag) message.
+ * This function calculates the minimum M over
+ * all upstream federates of the "after" delay plus the most recently
+ * received LTC from that federate. If M is greater than the
+ * most recently sent TAG to fed or greater than or equal to the most
+ * recently sent PTAG, then send a TAG(M) to fed and return.
+ *
+ * If the above conditions do not result in sending a TAG, then find the
+ * minimum M of the earliest possible future message from upstream federates.
+ * This is calculated by transitively looking at the most recently received
+ * NET message from upstream federates.
+ * If M is greater than the NET of the federate fed or the most recently
+ * sent PTAG to that federate, then
+ * send TAG to the federate with tag equal to the NET of fed or the PTAG.
+ * If M is equal to the NET of the federate, then send PTAG(M).
+ *
+ * This should be called whenever an immediately upstream federate sends to
+ * the RTI an LTC (Logical Tag Complete), or when a transitive upstream
+ * federate sends a TAN (Time Advance Notice) or a NET (Next Event Tag) message.
  * It is also called when an upstream federate resigns from the federation.
  *
  * This function assumes that the caller holds the mutex lock.
@@ -581,19 +592,30 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
  */
 bool send_tag_advance_if_appropriate(federate_t* fed) {
 
-    // If the federate has been granted a TAG or PTAG and has not
-    // yet responded with a NET, then do not grant another TAG
-    // or PTAG here. If appropriate, that TAG or PTAG will be granted 
-    // when such a NET arrives.
-    if (compare_tags(fed->next_event, fed->last_granted) <= 0 || 
-         compare_tags(fed->next_event, fed->last_provisionally_granted) < 0) {
-        // No new NET on record.
-        return false;
+	// Find the earliest LTC of upstream federates.
+    tag_t min_upstream_completed = FOREVER_TAG;
+
+    for (int j = 0; j < fed->num_upstream; j++) {
+        federate_t* upstream = &federates[fed->upstream[j]];
+
+        // Ignore this federate if it has resigned.
+        if (upstream->state == NOT_CONNECTED) continue;
+
+        tag_t candidate = delay_tag(upstream->completed, fed->upstream_delay[j]);
+
+        if (compare_tags(candidate, min_upstream_completed) < 0) {
+        	min_upstream_completed = candidate;
+        }
     }
-        
-    // If we get here, the federate has issued a NET
-    // and is waiting for a TAG.
-        
+    LOG_PRINT("Minimum upstream LTC for fed %d is (%lld, %u) "
+            "(adjusted by after delay).",
+            fed->id,
+            min_upstream_completed.time - start_time, min_upstream_completed.microstep);
+    if (compare_tags(min_upstream_completed, fed->last_granted) > 0) {
+    	send_tag_advance_grant(fed, min_upstream_completed);
+    	return true;
+    }
+
     // If all (transitive) upstream federates of the federate
     // have earliest event tags such that the
     // federate can now advance its tag, then send it a TAG message.
@@ -606,10 +628,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
 
     // Find the tag of the earliest possible incoming message from
     // upstream federates.
-    // At the same time, find the earliest completed tag of the
-    // immediately upstream federates.
     tag_t t_d = FOREVER_TAG;
-    tag_t min_upstream_completed = FOREVER_TAG;
     DEBUG_PRINT("NOTE: FOREVER is displayed as (%lld, %u) and NEVER as (%lld, %u)",
             FOREVER_TAG.time - start_time, FOREVER_TAG.microstep,
             NEVER - start_time, 0u);
@@ -637,15 +656,11 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         if (compare_tags(candidate, t_d) < 0) {
             t_d = candidate;
         }
-        if (compare_tags(upstream->completed, min_upstream_completed) < 0) {
-            min_upstream_completed = upstream->completed;
-        }
     }
 
-    LOG_PRINT("Minimum upstream LTC for fed %d is (%lld, %u) and earliest message time "
-            "(adjusted by after delay) is (%lld, %u).",
+    LOG_PRINT("Earliest upstream message time for fed %d is (%lld, %u) "
+            "(adjusted by after delay).",
             fed->id,
-            min_upstream_completed.time - start_time, min_upstream_completed.microstep,
             t_d.time - start_time, t_d.microstep);
 
     // - If the earliest event time of the upstream federates (adjusted by
@@ -662,14 +677,20 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     //
     // - Otherwise, do not send a reply now.  A TAG will presumably later
     //   be sent when one of the upstream federates makes progress.
+
     if (t_d.time == FOREVER || compare_tags(t_d, fed->next_event) > 0) {
         // Send TAG to federate.
         send_tag_advance_grant(fed, fed->next_event);
         return true;
-    } else if (compare_tags(min_upstream_completed, fed->completed) > 0) {
-        // Upstream federates have completed a tag greater than this federate.
-        send_tag_advance_grant(fed, min_upstream_completed);
-        return true;
+
+    } else if (compare_tags(t_d, fed->last_provisionally_granted) > 0
+    		&& compare_tags(fed->last_provisionally_granted, fed->last_granted) > 0
+    ) {
+        // Most recent tag advance grant was a PTAG, and the earliest event
+    	// time of upstream federates is now greater than that PTAG time, so
+    	// we can send a TAG at the PTAG time.
+        send_tag_advance_grant(fed, fed->last_provisionally_granted);
+
     } else if(compare_tags(t_d, fed->next_event) == 0) {
         // Send PTAG to federate.
         send_provisional_tag_advance_grant(fed, fed->next_event);
@@ -697,7 +718,33 @@ void handle_logical_tag_complete(federate_t* fed) {
     LOG_PRINT("RTI received from federate %d the Logical Tag Complete (LTC) (%lld, %u).",
                 fed->id, fed->completed.time - start_time, fed->completed.microstep);
 
+    // Check downstream federates to see whether they should now be granted a TAG.
+    for (int i = 0; i < fed->num_downstream; i++) {
+        federate_t* downstream = &federates[fed->downstream[i]];
+        send_tag_advance_if_appropriate(downstream);
+    }
+
     pthread_mutex_unlock(&rti_mutex);
+}
+
+/**
+ * For all federates transitively downstream of the specified federate, determine
+ * whether they should be sent a TAG or PTAG and send it if so.
+ *
+ * This assumes the caller holds the mutex.
+ *
+ * @param fed The upstream federate.
+ * @param visited An array of booleans used to determine whether a federate has
+ *  been visited (initially all false).
+ */
+void transitive_send_TAG_if_appropriate(federate_t* fed, bool visited[]) {
+	visited[fed->id] = true;
+	for (int i = 0; i < fed->num_downstream; i++) {
+		federate_t* downstream = &federates[fed->downstream[i]];
+		if (visited[downstream->id]) continue;
+		send_tag_advance_if_appropriate(downstream);
+		transitive_send_TAG_if_appropriate(downstream, visited);
+	}
 }
 
 /**
@@ -726,10 +773,11 @@ void handle_next_event_tag(federate_t* fed) {
         send_tag_advance_if_appropriate(fed);
     }
     // Check downstream federates to see whether they should now be granted a TAG.
-    for (int i = 0; i < fed->num_downstream; i++) {
-        federate_t* downstream = &federates[fed->downstream[i]];
-        send_tag_advance_if_appropriate(downstream);
-    }
+    // To handle cycles, need to create a boolean array to keep
+    // track of which upstream federates have been visited.
+    bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+    transitive_send_TAG_if_appropriate(fed, visited);
+
     pthread_mutex_unlock(&rti_mutex);
 }
 
@@ -754,10 +802,11 @@ void handle_time_advance_notice(federate_t* fed) {
     // events to process.
 
     // Check downstream federates to see whether they should now be granted a TAG.
-    for (int i = 0; i < fed->num_downstream; i++) {
-        federate_t* downstream = &federates[fed->downstream[i]];
-        send_tag_advance_if_appropriate(downstream);
-    }
+    // To handle cycles, need to create a boolean array to keep
+    // track of which upstream federates have been visited.
+    bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+    transitive_send_TAG_if_appropriate(fed, visited);
+
     pthread_mutex_unlock(&rti_mutex);
 }
 
@@ -1277,10 +1326,11 @@ void handle_federate_resign(federate_t *my_fed) {
     info_print("Federate %d has resigned.", my_fed->id);
     
     // Check downstream federates to see whether they should now be granted a TAG.
-    for (int i = 0; i < my_fed->num_downstream; i++) {
-        federate_t* downstream = &federates[my_fed->downstream[i]];
-        send_tag_advance_if_appropriate(downstream);
-    }
+    // To handle cycles, need to create a boolean array to keep
+    // track of which upstream federates have been visited.
+    bool visited[NUMBER_OF_FEDERATES] = { }; // Empty initializer initializes to 0.
+    transitive_send_TAG_if_appropriate(my_fed, visited);
+
     pthread_mutex_unlock(&rti_mutex);
 }
 
