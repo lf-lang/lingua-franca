@@ -72,12 +72,17 @@ will be printed over other information.
  * @param number_of_lines The number of message lines or 0 for none.
  * @param tick_window_width The width of the tick window or 0 for none.
  * @param log_file If non-NULL, the name of a file to which to write logging messages.
+ * @param log_level The level of log messages to redirect to the file.
+ *  The level should be one of LOG_LEVEL_ERROR, LOG_LEVEL_WARNING,
+ *  LOG_LEVEL_INFO, LOG_LEVEL_LOG, or LOG_LEVEL_DEBUG.
  */
 int start_sensor_simulator(
 		char* message_lines[],
 		int number_of_lines,
 		int tick_window_width,
-		char* log_file);
+		char* log_file,
+		int log_level
+);
 
 /**
  * Place a tick (usually a single character) in the tick window.

@@ -65,8 +65,15 @@ typedef struct lf_stat_ll {
  * If debug is set (4), the DEBUG_PRINT messages will
  * be printed as well.
  */
+#define LOG_LEVEL_ERROR 0
+#define LOG_LEVEL_WARNING 1
+#define LOG_LEVEL_INFO 2
+#define LOG_LEVEL_LOG 3
+#define LOG_LEVEL_DEBUG 4
+
+/** Default log level. */
 #ifndef LOG_LEVEL
-#define LOG_LEVEL 2
+#define LOG_LEVEL LOG_LEVEL_INFO
 #endif
 
 /**
@@ -105,7 +112,8 @@ void log_print(char* format, ...);
 /**
  * A macro used to print useful logging information. It can be enabled
  * by setting the target property 'logging' to 'LOG' or
- * by defining LOG_LEVEL to 3 or 4 in the top-level preamble.
+ * by defining LOG_LEVEL to LOG_LEVEL_LOG or
+ * LOG_LEVEL_DEBUG in the top-level preamble.
  * The input to this macro is exactly like printf: (format, ...).
  * "LOG: " is prepended to the beginning of the message
  * and a newline is appended to the end of the message.
@@ -119,7 +127,7 @@ void log_print(char* format, ...);
  * it do not themselves incur significant overhead to evaluate.
  */
 #define LOG_PRINT(format, ...) \
-            do { if(LOG_LEVEL > 2) { \
+            do { if(LOG_LEVEL >= LOG_LEVEL_LOG) { \
                     log_print(format, ##__VA_ARGS__); \
                 } } while (0)
 
@@ -150,9 +158,16 @@ void debug_print(char* format, ...);
  * it do not themselves incur significant overhead to evaluate.
  */
 #define DEBUG_PRINT(format, ...) \
-            do { if(LOG_LEVEL > 3) { \
+            do { if(LOG_LEVEL >= LOG_LEVEL_DEBUG) { \
                     debug_print(format, ##__VA_ARGS__); \
                 } } while (0)
+
+/**
+ * Print the error defined by the errno variable with the
+ * specified message as a prefix, then exit with error code 1.
+ * @param msg The prefix to the message.
+ */
+void error(char *msg);
 
 /**
  * Report an error with the prefix "ERROR: " and a newline appended
@@ -184,14 +199,15 @@ typedef void(print_message_function_t)(char*, va_list);
 /**
  * Register a function to display messages. After calling this,
  * all messages passed to the above print functions will be
- * printed using the specified function rather than printf.
+ * printed using the specified function rather than printf
+ * if their log level is greater than the specified level.
+ * The level should be one of LOG_LEVEL_ERROR, LOG_LEVEL_WARNING,
+ * LOG_LEVEL_INFO, LOG_LEVEL_LOG, or LOG_LEVEL_DEBUG.
+ *
+ * @param function The print message function or NULL to revert
+ *  to using printf.
+ * @param log_level The level of messages to redirect.
  */
-void register_print_function(print_message_function_t* function);
-
-/** Print the error defined by the errno variable with the
- *  specified message as a prefix, then exit with error code 1.
- *  @param msg The prefix to the message.
- */
-void error(char *msg);
+void register_print_function(print_message_function_t* function, int log_level);
 
 #endif /* UTIL_H */

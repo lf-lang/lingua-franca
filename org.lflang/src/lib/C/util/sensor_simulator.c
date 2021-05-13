@@ -132,7 +132,7 @@ void* read_input(void* ignored) {
  */
 void end_ncurses() {
     lf_mutex_lock(&_lf_sensor_mutex);
-    register_print_function(NULL);
+    register_print_function(NULL, -1);
     endwin();
     _lf_sensor_thread_created = 0;
     lf_mutex_unlock(&_lf_sensor_mutex);
@@ -262,12 +262,16 @@ void _lf_print_message_function(char* format, va_list args) {
  * @param number_of_lines The number of lines.
  * @param tick_window_width The width of the tick window or 0 for none.
  * @param log_file If non-NULL, the name of a file to which to write logging messages.
+ * @param log_level The level of log messages to redirect to the file.
+ *  The level should be one of LOG_LEVEL_ERROR, LOG_LEVEL_WARNING,
+ *  LOG_LEVEL_INFO, LOG_LEVEL_LOG, or LOG_LEVEL_DEBUG.
  */
 int start_sensor_simulator(
 		char* message_lines[],
 		int number_of_lines,
 		int tick_window_width,
-		char* log_file
+		char* log_file,
+		int log_level
 ) {
     lf_mutex_init(&_lf_sensor_mutex);
     lf_mutex_lock(&_lf_sensor_mutex);
@@ -315,7 +319,7 @@ int start_sensor_simulator(
         // Create the thread that listens for input.
         int result = lf_thread_create(&_lf_sensor_thread_id, &read_input, NULL);
         if (result == 0) {
-            register_print_function(&_lf_print_message_function);
+            register_print_function(&_lf_print_message_function, log_level);
             _lf_sensor_thread_created = 1;
         } else {
             error_print("Failed to start sensor simulator!");
