@@ -161,7 +161,7 @@
         name="org.eclipse.epp.mpc.feature.group"/>
     <requirement
         name="org.eclipse.xtext.sdk.feature.group"
-        versionRange="2.23.0"/>
+        versionRange="${xtext.version}"/>
     <repository
         url="http://download.eclipse.org/modeling/tmf/xtext/updates/composite/releases/"/>
     <description>Install the tools needed in the IDE to work with the source code for ${scope.project.label}</description>
@@ -268,6 +268,10 @@
     </workingSet>
     <description>The dynamic working sets for ${scope.project.label}</description>
   </setupTask>
+  <setupTask
+      xsi:type="setup:VariableTask"
+      name="xtext.version"
+      defaultValue="2.25.0"/>
   <stream name="master"
       label="Master">
     <setupTask
@@ -326,10 +330,10 @@
             versionRange="27.0.0"/>
         <requirement
             name="org.eclipse.xtext.runtime.feature.group"
-            versionRange="2.23.0"/>
+            versionRange="${xtext.version}"/>
         <requirement
             name="org.eclipse.xtext.sdk.feature.group"
-            versionRange="2.23.0"/>
+            versionRange="${xtext.version}"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
@@ -444,10 +448,10 @@
             versionRange="27.0.0"/>
         <requirement
             name="org.eclipse.xtext.runtime.feature.group"
-            versionRange="2.23.0"/>
+            versionRange="${xtext.version}"/>
         <requirement
             name="org.eclipse.xtext.sdk.feature.group"
-            versionRange="2.23.0"/>
+            versionRange="${xtext.version}"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <repositoryList
