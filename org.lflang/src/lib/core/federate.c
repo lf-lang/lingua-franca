@@ -1057,16 +1057,18 @@ void update_last_known_status_on_input_ports(tag_t tag) {
 	bool notify = false;
     for (int i = 0; i < _fed.triggers_for_network_input_control_reactions_size; i++) {
         trigger_t* input_port_action = __action_for_port(i);
+        // This is called when a TAG is received.
+        // But it is possible for an input port to have received already
+        // a message with a larger tag (if there is an after delay on the
+        // connection), in which case, the last known status tag of the port
+        // is in the future and should not be rolled back. So in that case,
+        // we do not update the last known status tag.
         if (compare_tags(tag,
                 input_port_action->last_known_status_tag) >= 0) {
             input_port_action->last_known_status_tag = tag;
             if (input_port_action->is_a_control_reaction_waiting) {
             	notify = true;
             }
-        } else {
-            warning_print("Attempt to update the last known status tag "
-            		"of network input port %d to an earlier tag. "
-            		"Ignoring the update.", i);
         }
     }
     // Then, check if any control reaction is waiting.
@@ -1826,21 +1828,12 @@ void handle_tag_advance_grant() {
         _fed.is_last_TAG_provisional = false;
         LOG_PRINT("Received Time Advance Grant (TAG): (%lld, %u).",
         		_fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
-    } else if (_fed.is_last_TAG_provisional) {
-    	// FIXME: This clause should be removed because this is a fault.
-    	// TAG and PTAG are required to be monotonically non-decreasing.
-        warning_print("Received Time Advance Grant (TAG): (%lld, %u) but already had PTAG (%lld, %u). Ignoring the TAG.",
-                    TAG.time - start_time, 
-                    TAG.microstep,
-                    _fed.last_TAG.time - start_time,
-                    _fed.last_TAG.microstep);
     } else {
         lf_mutex_unlock(&mutex);
-        error_print_and_exit("Received a TAG (%lld, %u) that wasn't larger than the previous TAG or PTAG (%lld, %u).",
-                                TAG.time - start_time, 
-                                TAG.microstep,
-                                _fed.last_TAG.time - start_time,
-                                _fed.last_TAG.microstep);
+        error_print("Received a TAG (%lld, %u) that wasn't larger "
+        		"than the previous TAG or PTAG (%lld, %u). Ignoring the TAG.",
+                TAG.time - start_time, TAG.microstep,
+                _fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
     }
 
     _fed.waiting_for_TAG = false;
