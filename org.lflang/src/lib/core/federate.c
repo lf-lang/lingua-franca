@@ -2359,6 +2359,15 @@ void synchronize_with_other_federates() {
     // enough or the STP offset must be set globally to an accurate value.
     start_time = get_start_time_from_rti(get_physical_time());
 
+    // Every federate starts out assuming that it has been granted a PTAG
+    // at the start time, or if it has no upstream federates, a TAG.
+    _fed.last_TAG = (tag_t){.time = start_time, .microstep = 0u};
+    if (_fed.has_upstream) {
+    	_fed.is_last_TAG_provisional = true;
+    } else {
+    	_fed.is_last_TAG_provisional = false;
+    }
+
     if (duration >= 0LL) {
         // A duration has been specified. Recalculate the stop time.
        stop_tag = ((tag_t) {.time = start_time + duration, .microstep = 0});
