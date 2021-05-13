@@ -76,14 +76,9 @@ typedef struct _lf_tag_advancement_barrier {
 
 /**
  * Create a global tag barrier and
- * initialize the barrier's semaphore to 0 and its horizon to (FOREVER, UINT_MAX).
+ * initialize the barrier's semaphore to 0 and its horizon to FOREVER_TAG.
  */
-_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, 
-                                                                  (tag_t) {
-                                                                    .time = FOREVER,
-                                                                    .microstep = UINT_MAX 
-                                                                  }
-                                                                 };
+_lf_tag_advancement_barrier _lf_global_tag_advancement_barrier = {0, FOREVER_TAG};
 
 // Queue of currently executing reactions.
 pqueue_t* executing_q; // Sorted by index (precedence sort)
@@ -222,7 +217,7 @@ void _lf_increment_global_tag_barrier(tag_t future_tag) {
 /**
  * Decrement the total number of pending barrier requests for the global tag barrier.
  * If the total number of requests reaches zero, this function resets the
- * tag barrier to (FOREVER, UINT_MAX) and notifies all threads that are waiting 
+ * tag barrier to FOREVER_TAG and notifies all threads that are waiting
  * on the barrier that the number of requests has reached zero.
  * 
  * This function assumes that the caller already holds the mutex lock.
@@ -241,7 +236,7 @@ void _lf_decrement_global_tag_barrier_locked() {
                 " and  _lf_decrement_global_tag_barrier_locked().");
     } else if (_lf_global_tag_advancement_barrier.requestors == 0) {
         // When the semaphore reaches zero, reset the horizon to forever.
-        _lf_global_tag_advancement_barrier.horizon = (tag_t) { .time = FOREVER, .microstep = UINT_MAX };
+        _lf_global_tag_advancement_barrier.horizon = FOREVER_TAG;
         // Notify waiting threads that the semaphore has reached zero.
         lf_cond_broadcast(&global_tag_barrier_requestors_reached_zero);
     }
@@ -496,13 +491,13 @@ bool wait_until(instant_t logical_time_ns, lf_cond_t* condition) {
 
 /**
  * Return the tag of the next event on the event queue.
- * If the event queue is empty then return either (FOREVER, UINT_MAX)
+ * If the event queue is empty then return either FOREVER_TAG
  * or, is a stop_time (timeout time) has been set, the stop time.
  */
 tag_t get_next_event_tag() {
     // Peek at the earliest event in the event queue.
     event_t* event = (event_t*)pqueue_peek(event_q);
-    tag_t next_tag = { .time = FOREVER, .microstep = UINT_MAX };
+    tag_t next_tag = FOREVER_TAG;
     if (event != NULL) {
         // There is an event in the event queue.
         if (event->time < current_tag.time) {
@@ -973,23 +968,6 @@ void _lf_initialize_start_tag() {
     // Otherwise, reports of get_elapsed_physical_time are not very meaningful
     // w.r.t. logical time.
     physical_start_time = start_time;
-
-    // Check if we have any reactions to execute at (0,0) other than network control reactions.
-    // If we do, we need to ask the RTI for permission to execute these reactions.
-    if (init_reaction_queue_size != 0) {
-        // At this time, reactions (startup, etc.) are added to the 
-        // reaction queue that will be executed at tag (0,0).
-        // Before we can execute those, if using centralized coordination,
-        // we need to ask the RTI if it is okay.  The following function is
-        // empty if this program is not federated or is using decentralized coordination.
-        tag_t grant_tag = send_next_event_tag((tag_t){ .time = start_time, .microstep = 0u}, true);
-        if (grant_tag.time < start_time) {
-            // This is a critical condition
-            error_print_and_exit("Federate received a grant tag earlier than start time: "
-                    "(%lld, %u).",
-                    grant_tag.time - start_time, grant_tag.microstep);
-        }
-    }
 #endif
 
 #ifdef FEDERATED_DECENTRALIZED
@@ -1059,7 +1037,7 @@ void* worker(void* arg) {
                         // worker threads potentially waiting to continue.
                         // Also, notify the RTI that there will be no more events (if centralized coord).
                         // False argument means don't wait for a reply.
-                        send_next_event_tag((tag_t){ .time=FOREVER, .microstep = UINT_MAX }, false);
+                        send_next_event_tag(FOREVER_TAG, false);
                         lf_cond_broadcast(&reaction_q_changed);
                         lf_cond_signal(&event_q_changed);
                         break;
