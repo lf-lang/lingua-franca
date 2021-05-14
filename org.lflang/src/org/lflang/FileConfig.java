@@ -196,18 +196,23 @@ public class FileConfig {
     // Getters to be overridden in derived classes.
     
     /**
-     * Get the iResource corresponding to the provided resource
+     * Get the iResource corresponding to the provided resource if it can be
+     * found.
      * @throws IOException
      */
     private IResource getIResource(Resource r) throws IOException {
         IResource iResource = null;
         java.net.URI uri = toPath(r).toFile().toURI();
-        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-        if (uri != null) {
-             IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
-             if (files != null && files.length > 0 && files[0] != null) {
-                 iResource = files[0];
-             }
+        if (r.getURI().isPlatform()) {
+            IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+            if (uri != null) {
+                 IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+                 if (files != null && files.length > 0 && files[0] != null) {
+                     iResource = files[0];
+                 }
+            }
+        } else {
+            // FIXME: find the iResource outside Eclipse
         }
         return iResource;
     }
