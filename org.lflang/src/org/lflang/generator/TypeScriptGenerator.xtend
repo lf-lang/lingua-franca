@@ -56,6 +56,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import java.io.ByteArrayOutputStream
 
 /** Generator for TypeScript target.
  *
@@ -200,34 +201,45 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     
         for (file : TypeScriptGenerator.RUNTIME_FILES) {
-            copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file, fileConfig.getSrcGenPath.resolve("core").resolve(file).toString)
+            copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file,
+                fileConfig.getSrcGenPath.resolve("core").resolve(file).toString)
         }
 
         // Install default versions of config files into project if
         // they don't exist.       
         this.initializeProjectConfiguration()
+
         
-        // NOTE: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
-        // the complete PATH variable needed to find the command npm. I had
-        // to start my eclipse instance from a terminal so eclipse would have the correct environment
-        // variables to run this command. Now, executeCommand makes a second
-        // attempt to run the command using a bash shell, so if you have a
-        // ~/.bash_profile file that specifies suitable paths, the command should
-        // work.
-        
-            val npmInstall = createCommand(
-                "pnpm",
-                #["install"],
-                fileConfig.getSrcGenPkgPath,
-                "The TypeScript target requires pnpm >= 6.0  to compile the generated code. " +
-                "Auto-compiling can be disabled using the \"no-compile: true\" target property."
-            )
-            if (npmInstall === null || npmInstall.executeCommand() !== 0) {
-                reportError(resource.findTarget, "ERROR: npm install command failed."
-                    + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+        val pnpmInstall = createCommand(
+            "pnpm",
+            #["install"],
+            fileConfig.getSrcGenPkgPath,
+            "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
+                "it is highly recommended to install pnpm globally (npm install -g pnpm).",
+            false
+        )
+
+        val installErrors = new ByteArrayOutputStream()
+        // Attempt to use pnpm, but fall back on npm if it is not available.
+        if (pnpmInstall !== null) {
+            val ret = pnpmInstall.executeCommand(installErrors)
+            if (ret !== 0) {
+                reportError(resource.findTarget, "ERROR: pnpm install command failed: " + installErrors.toString)
+            }
+        } else {
+            val npmInstall = createCommand("npm", #["install"], fileConfig.getSrcGenPkgPath,
+                "The TypeScript target requires npm >= 6.14.4. " +
+                    "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.", true)
+            if (npmInstall !== null && npmInstall.executeCommand(installErrors) !== 0) {
+                reportError(resource.findTarget, "ERROR: npm install command failed: " + installErrors.toString)
+                reportError(resource.findTarget,
+                    "ERROR: npm install command failed." +
+                        "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
-        
+        }
+
         refreshProject()
         
         // Invoke the protocol buffers compiler on all .proto files in the project directory
@@ -250,7 +262,8 @@ class TypeScriptGenerator extends GeneratorBase {
                 "protoc",
                 protocArgs,
                 fileConfig.srcPath,
-                "Processing .proto files requires libprotoc >= 3.6.1"
+                "Processing .proto files requires libprotoc >= 3.6.1",
+                true
                 )
                 
             if (protoc === null) {
@@ -285,7 +298,8 @@ class TypeScriptGenerator extends GeneratorBase {
             findCommandEnv(
                 "npm",
                 "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
-                "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+                "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+                true
             )            
         )
         if (tsc !== null) {
@@ -300,7 +314,8 @@ class TypeScriptGenerator extends GeneratorBase {
                     #["run", "build"],
                     fileConfig.getSrcGenPkgPath,
                     "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+                    true
                 )
                 //createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], codeGenConfig.outPath)
                 

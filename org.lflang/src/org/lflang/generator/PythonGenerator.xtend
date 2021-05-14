@@ -689,13 +689,15 @@ class PythonGenerator extends CGenerator {
             #["setup.py", "build"],
             fileConfig.outPath,
             "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
+            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+            true)
         val installCmd = createCommand(
             '''python3''',
             #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."],
             fileConfig.outPath,
             "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+            true
            )
 
         compileCmd.directory(fileConfig.getSrcGenPath.toFile)
@@ -842,7 +844,7 @@ class PythonGenerator extends CGenerator {
             "protoc",
             #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename],
             fileConfig.srcPath,
-            "Processing .proto files requires libprotoc >= 3.6.1")
+            "Processing .proto files requires libprotoc >= 3.6.1", true)
          //val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
         if (protoc === null) {
             return
