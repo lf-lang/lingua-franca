@@ -170,7 +170,9 @@ reactor RhythmSource(
       	} else {
         	sprintf(log_file_name, "log/Rhythm_%d_%lld.log", fed_id, get_logical_time());
         }
-        if (start_sensor_simulator(self->message, self->message_length, 16, log_file_name)) {
+        if (start_sensor_simulator(
+            self->message, self->message_length, 16, log_file_name, LOG_LEVEL_LOG
+        )) {
             error_print_and_exit("ERROR: Failed to start sensor simulator.");
         }
         
