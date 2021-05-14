@@ -39,6 +39,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NET_UTIL_H
 
 #include "platform.h"  // defines lf_mutex_t
+#include "tag.h"       // Defines tag_t
 
 #define HOST_LITTLE_ENDIAN 1
 #define HOST_BIG_ENDIAN 2
@@ -222,20 +223,41 @@ long long extract_ll(unsigned char* bytes);
  */
 unsigned short extract_ushort(unsigned char* bytes);
 
-/** Extract the core header information that all messages between
- *  federates share. The core header information is two bytes with
- *  the ID of the destination port, two bytes with the ID of the destination
- *  federate, and four bytes with the length of the message.
- *  @param buffer The buffer to read from.
- *  @param port_id The place to put the port ID.
- *  @param federate_id The place to put the federate ID.
- *  @param length The place to put the length.
+/**
+ * Extract the core header information that all messages between
+ * federates share. The core header information is two bytes with
+ * the ID of the destination port, two bytes with the ID of the destination
+ * federate, and four bytes with the length of the message.
+ * @param buffer The buffer to read from.
+ * @param port_id The place to put the port ID.
+ * @param federate_id The place to put the federate ID.
+ * @param length The place to put the length.
  */
 void extract_header(
         unsigned char* buffer,
         unsigned short* port_id,
         unsigned short* federate_id,
         unsigned int* length
+);
+
+/**
+ * Extract the timed header information for timed messages between
+ * federates. This is two bytes with the ID of the destination port,
+ * two bytes with the ID of the destination
+ * federate, four bytes with the length of the message,
+ * eight bytes with a timestamp, and four bytes with a microstep.
+ * @param buffer The buffer to read from.
+ * @param port_id The place to put the port ID.
+ * @param federate_id The place to put the federate ID.
+ * @param length The place to put the length.
+ * @param tag The place to put the tag.
+ */
+void extract_timed_header(
+        unsigned char* buffer,
+        unsigned short* port_id,
+        unsigned short* federate_id,
+        unsigned int* length,
+		tag_t* tag
 );
 
 #endif /* NET_UTIL_H */

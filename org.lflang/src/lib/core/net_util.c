@@ -409,14 +409,15 @@ unsigned short extract_ushort(unsigned char* bytes) {
     return swap_bytes_if_big_endian_ushort(result.ushort);
 }
 
-/** Extract the core header information that all messages between
- *  federates share. The core header information is two bytes with
- *  the ID of the destination port, two bytes with the ID of the destination
- *  federate, and four bytes with the length of the message.
- *  @param buffer The buffer to read from.
- *  @param port_id The place to put the port ID.
- *  @param federate_id The place to put the federate ID.
- *  @param length The place to put the length.
+/**
+ * Extract the core header information that all messages between
+ * federates share. The core header information is two bytes with
+ * the ID of the destination port, two bytes with the ID of the destination
+ * federate, and four bytes with the length of the message.
+ * @param buffer The buffer to read from.
+ * @param port_id The place to put the port ID.
+ * @param federate_id The place to put the federate ID.
+ * @param length The place to put the length.
  */
 void extract_header(
         unsigned char* buffer,
@@ -437,4 +438,29 @@ void extract_header(
     *length = extract_int(&(buffer[sizeof(unsigned short) + sizeof(unsigned short)]));
 
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
+}
+
+/**
+ * Extract the timed header information for timed messages between
+ * federates. This is two bytes with the ID of the destination port,
+ * two bytes with the ID of the destination
+ * federate, four bytes with the length of the message,
+ * eight bytes with a timestamp, and four bytes with a microstep.
+ * @param buffer The buffer to read from.
+ * @param port_id The place to put the port ID.
+ * @param federate_id The place to put the federate ID.
+ * @param length The place to put the length.
+ * @param tag The place to put the tag.
+ */
+void extract_timed_header(
+        unsigned char* buffer,
+        unsigned short* port_id,
+        unsigned short* federate_id,
+        unsigned int* length,
+		tag_t* tag
+) {
+	extract_header(buffer, port_id, federate_id, length);
+
+    tag->time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    tag->microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
 }
