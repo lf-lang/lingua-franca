@@ -918,10 +918,6 @@ void _lf_initialize_start_tag() {
     }
 
 #ifdef FEDERATED
-    // Get the size of the reaction queue before adding any
-    // network control reactions.
-    int init_reaction_queue_size = pqueue_size(reaction_q);
-
     // Insert network dependent reactions for network input ports into
     // the reaction queue to prevent reactions from executing at (0,0)
     // incorrectly.
@@ -1024,36 +1020,54 @@ void* worker(void* arg) {
             // the reaction queue, then advance time,
             // unless some other worker thread is already advancing time.
             if (pqueue_size(reaction_q) == 0
-                    && pqueue_size(executing_q) == 0
-                    && !__advancing_time) {
-                // If this is not the very first step, notify that the previous step is complete
-                // and check against the stop tag to see whether this is the last step.
-                if (_lf_logical_tag_completed) {
-                    logical_tag_complete(current_tag);
-                    // If we are at the stop tag, do not call __next()
-                    // to prevent advancing the logical time.
-                    if (compare_tags(current_tag, stop_tag) >= 0) {
-                        // Break out of the while loop and notify other
-                        // worker threads potentially waiting to continue.
-                        // Also, notify the RTI that there will be no more events (if centralized coord).
-                        // False argument means don't wait for a reply.
-                        send_next_event_tag(FOREVER_TAG, false);
-                        lf_cond_broadcast(&reaction_q_changed);
-                        lf_cond_signal(&event_q_changed);
-                        break;
+                    && pqueue_size(executing_q) == 0) {
+            	// Nothing more happening at this logical time.
+                if (!__advancing_time) {
+                	// This thread will take charge of advancing time.
+                	// Block other worker threads from doing that.
+                    __advancing_time = true;
+
+                    // If this is not the very first step, notify that the previous step is complete
+                    // and check against the stop tag to see whether this is the last step.
+                    if (_lf_logical_tag_completed) {
+                        logical_tag_complete(current_tag);
+                        // If we are at the stop tag, do not call __next()
+                        // to prevent advancing the logical time.
+                        if (compare_tags(current_tag, stop_tag) >= 0) {
+                            // Break out of the while loop and notify other
+                            // worker threads potentially waiting to continue.
+                            // Also, notify the RTI that there will be no more events (if centralized coord).
+                            // False argument means don't wait for a reply.
+                            send_next_event_tag(FOREVER_TAG, false);
+                            lf_cond_broadcast(&reaction_q_changed);
+                            lf_cond_signal(&event_q_changed);
+                            break;
+                        }
                     }
+                    _lf_logical_tag_completed = true;
+
+                    // Advance time.
+                    // __next() may block waiting for real time to pass or events to appear.
+                    // to appear on the event queue. Note that we already
+                    // hold the mutex lock.
+                    tracepoint_worker_advancing_time_starts(worker_number);
+                    __next();
+                    tracepoint_worker_advancing_time_ends(worker_number);
+                    __advancing_time = false;
+                    DEBUG_PRINT("Worker %d: Done waiting for __next().", worker_number);
+
+                } else if (compare_tags(current_tag, stop_tag) >= 0) {
+                	// At the stop tag so we can exit this thread.
+                	break;
+                } else {
+                	// Some other worker thread is advancing time.
+                	// Just wait for work on the reaction queue.
+                    DEBUG_PRINT("Worker %d: Waiting for items on the reaction queue.", worker_number);
+                    tracepoint_worker_wait_starts(worker_number);
+                    lf_cond_wait(&reaction_q_changed, &mutex);
+                    tracepoint_worker_wait_ends(worker_number);
+                    DEBUG_PRINT("Worker %d: Done waiting.", worker_number);
                 }
-                _lf_logical_tag_completed = true;
-                                
-                // __next() may block waiting for events
-                // to appear on the event queue. Note that we already
-                // hold the mutex lock.
-                __advancing_time = true;
-                tracepoint_worker_advancing_time_starts(worker_number);
-                __next();
-                tracepoint_worker_advancing_time_ends(worker_number);
-                __advancing_time = false;
-                DEBUG_PRINT("Worker %d: Done waiting for __next().", worker_number);
             } else {
                 // Logical time is not complete, and nothing on the reaction queue
                 // is ready to run.
