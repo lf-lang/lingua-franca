@@ -1639,7 +1639,8 @@ void handle_timed_message(int socket, int fed_id) {
     unsigned short port_id;
     unsigned short federate_id;
     unsigned int length;
-    extract_header(buffer, &port_id, &federate_id, &length);
+    tag_t intended_tag;
+    extract_timed_header(buffer, &port_id, &federate_id, &length, &intended_tag);
     // Check if the message is intended for this federate
     assert(_lf_my_fed_id == federate_id);
     DEBUG_PRINT("Receiving message to port %d of length %d.", port_id, length);
@@ -1654,12 +1655,6 @@ void handle_timed_message(int socket, int fed_id) {
         // Messages sent on physical connections should be handled via handle_message().
         warning_print("Received a timed message on a physical connection. Time stamp will be lost.");
     }
-
-    // Read the tag of the message.
-    // FIXME : intended_tag
-    tag_t intended_tag;
-    intended_tag.time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
-    intended_tag.microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
 
 #ifdef FEDERATED_DECENTRALIZED // Only applicable for federated programs with decentralized coordination
     // For logical connections in decentralized coordination,
@@ -1844,29 +1839,15 @@ void handle_tag_advance_grant() {
 }
 
 /**
- * Send a logical tag complete (LTC) message to the RTI.
+ * Send a logical tag complete (LTC) message to the RTI
+ * unless an equal or later LTC has previously been sent.
  * This function assumes the caller holds the mutex lock.
  *
  * @param tag_to_send The tag to send.
  */
 void _lf_logical_tag_complete(tag_t tag_to_send) {
     int compare_with_last_tag = compare_tags(_fed.last_sent_LTC, tag_to_send);
-    if (compare_with_last_tag == 0) {
-        // Sending this tag more than once can happen if __next() returns without
-        // adding an event to the event queue (and thus not advancing tag).
-        DEBUG_PRINT("Was trying to send logical tag complete (%lld, %u) twice to the RTI.",
-                           tag_to_send.time - start_time,
-                           tag_to_send.microstep);
-        return;
-    } else if (compare_with_last_tag > 0) {
-        // This is a critical error. The federate is trying to inform the RTI of
-        // the completion of a tag when it has already reported a larger tag as completed.
-        error_print_and_exit("Was trying to send logical tag complete (%lld, %u) out of order to the RTI "
-                    "when it has already sent (%lld, %u).",
-                    tag_to_send.time - start_time,
-                    tag_to_send.microstep,
-                    _fed.last_sent_LTC.time - start_time,
-                    _fed.last_sent_LTC.microstep);
+    if (compare_with_last_tag >= 0) {
         return;
     }
     LOG_PRINT("Sending Logical Time Complete (LTC) (%lld, %u) to the RTI.",
@@ -1913,7 +1894,10 @@ void handle_provisional_tag_advance_grant() {
     if (compare_tags(PTAG, _fed.last_TAG) < 0
     		|| (compare_tags(PTAG, _fed.last_TAG) == 0 && !_fed.is_last_TAG_provisional)) {
         lf_mutex_unlock(&mutex);
-        error_print_and_exit("Received a PTAG that is equal or earlier than an already received TAG.");
+        error_print_and_exit("Received a PTAG (%lld, %d) that is equal or earlier "
+        		"than an already received TAG (%lld, %d).",
+				PTAG.time, PTAG.microstep,
+				_fed.last_TAG.time, _fed.last_TAG.microstep);
     }
 
     _fed.last_TAG = PTAG;
@@ -1960,10 +1944,8 @@ void handle_provisional_tag_advance_grant() {
     	// a greater tag or we may be in the middle of processing a regular
     	// TAG. In either case, we know that at the PTAG tag, all outputs
     	// have either been sent or are absent, so we can send an LTC.
-   	    if (compare_tags(_fed.last_sent_LTC, PTAG) < 0) {
-   	    	// Send an LTC to indicate absent outputs.
-   	    	_lf_logical_tag_complete(PTAG);
-   	    }
+    	// Send an LTC to indicate absent outputs.
+    	_lf_logical_tag_complete(PTAG);
 	    // Nothing more to do.
 	   	lf_mutex_unlock(&mutex);
 	    return;
@@ -2502,24 +2484,19 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
             // messages sent by upstream federates.
             // However, -fast is really incompatible with federated execution with
             // physical connections, so I don't think we need to worry about this.
-            DEBUG_PRINT("Granted tag (%lld, %u) because the federate has neither upstream nor downstream federates.",
-                    current_tag.time - start_time, current_tag.microstep);
+            DEBUG_PRINT("Granted tag (%lld, %u) because the federate has neither "
+            		"upstream nor downstream federates.",
+                    tag.time - start_time, tag.microstep);
             return tag;
         }
 
         // If time advance (TAG or PTAG) has already been granted for this tag
         // or a larger tag, then return immediately.
         if (compare_tags(_fed.last_TAG, tag) >= 0) {
-            DEBUG_PRINT("Granted tag (%lld, %u) because the RTI's last TAG or PTAG is at least as large.",
-                    current_tag.time - start_time, current_tag.microstep);
-            return tag;
+            DEBUG_PRINT("Granted tag (%lld, %u) because TAG or PTAG has been received.",
+            		_fed.last_TAG.time - start_time, _fed.last_TAG.microstep);
+            return _fed.last_TAG;
         }
-        // FIXME: To avoid sending a NET message and then sending another NET
-        // message with an earlier tag (before TAG is sent from the RTI as a 
-        // response to the first one), the federate needs to keep track of 
-        // the last sent NET, and not send any NETs with a tag earlier. This 
-        // means that, potentially, the federates do not have to inform the 
-        // RTI when they process an event originated in an upstream federate.
 
         // Copy the tag because _lf_bounded_NET() may modify it.
         tag_t original_tag = tag;
@@ -2556,8 +2533,9 @@ tag_t _lf_send_next_event_tag(tag_t tag, bool wait_for_reply) {
             // NOTE: If fast execution is being used, it may be necessary to
             // throttle upstream federates.
             if (!_fed.has_upstream) {
-                DEBUG_PRINT("Not waiting for reply to NET (%lld, %u) because I have no upstream federates.", 
-                         tag.time - start_time, tag.microstep);
+                DEBUG_PRINT("Not waiting for reply to NET (%lld, %u) because I "
+                		"have no upstream federates.",
+                        tag.time - start_time, tag.microstep);
                 return tag;
             }
             // Fed has upstream federates. Have to wait for a TAG or PTAG.
