@@ -1046,13 +1046,17 @@ class CppGenerator extends GeneratorBase {
             "install",
             "--config",
             '''«IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»'''],
-            outPath)
+            outPath, 
+            "The C++ target requires CMAKE >= 3.16 and g++ >= 7 or MSVC >= 14.20 - 1920 (Visual Studio 2019) to compile the generated code. " +
+            "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
         val cmakeBuilder = createCommand("cmake", #[
             '''-DCMAKE_INSTALL_PREFIX=«FileConfig.toUnixString(outPath)»''',
             '''-DREACTOR_CPP_BUILD_DIR=«FileConfig.toUnixString(reactorCppPath)»''',
             '''-DCMAKE_INSTALL_BINDIR=«FileConfig.toUnixString(outPath.relativize(fileConfig.binPath))»''',
             fileConfig.getSrcGenPath.toString],
-            fileConfig.getSrcGenPath)
+            fileConfig.getSrcGenPath, 
+            "The C++ target requires CMAKE >= 3.16 and g++ >= 7 or MSVC >= 14.20 - 1920 (Visual Studio 2019) to compile the generated code. " +
+            "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
         if (makeBuilder === null || cmakeBuilder === null) {
             return
         }

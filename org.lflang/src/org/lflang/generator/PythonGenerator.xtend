@@ -684,9 +684,19 @@ class PythonGenerator extends CGenerator {
      * Execute the command that compiles and installs the current Python module
      */
     def pythonCompileCode() {
-        val compileCmd = createCommand('''python3''', #["setup.py", "build"], fileConfig.outPath)
-        val installCmd = createCommand('''python3''',
-            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."], fileConfig.outPath)
+        val compileCmd = createCommand(
+            '''python3''',
+            #["setup.py", "build"],
+            fileConfig.outPath,
+            "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
+            "Auto-compiling can be disabled using the \"no-compile: true\" target property.")
+        val installCmd = createCommand(
+            '''python3''',
+            #["-m", "pip", "install", "--ignore-installed", "--force-reinstall", "--no-binary", ":all:", "--user", "."],
+            fileConfig.outPath,
+            "The Python target requires Python >= 3.6, pip >= 20.0.2, and setuptools >= 45.2.0-1 to compile the generated code. " +
+            "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+           )
 
         compileCmd.directory(fileConfig.getSrcGenPath.toFile)
         installCmd.directory(fileConfig.getSrcGenPath.toFile)
@@ -828,7 +838,11 @@ class PythonGenerator extends CGenerator {
      * @param filename Name of the file to process.
      */
     override processProtoFile(String filename) {
-         val protoc = createCommand("protoc", #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename], fileConfig.srcPath)
+         val protoc = createCommand(
+            "protoc",
+            #['''--python_out=«this.fileConfig.getSrcGenPath»''', filename],
+            fileConfig.srcPath,
+            "Processing .proto files requires libprotoc >= 3.6.1")
          //val protoc = createCommand("protoc", #['''--python_out=src-gen/«topLevelName»''', topLevelName], codeGenConfig.outPath)
         if (protoc === null) {
             return

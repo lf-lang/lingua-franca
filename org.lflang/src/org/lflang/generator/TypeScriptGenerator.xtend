@@ -215,7 +215,13 @@ class TypeScriptGenerator extends GeneratorBase {
         // ~/.bash_profile file that specifies suitable paths, the command should
         // work.
         
-            val npmInstall = createCommand("pnpm", #["install"], fileConfig.getSrcGenPkgPath)
+            val npmInstall = createCommand(
+                "pnpm",
+                #["install"],
+                fileConfig.getSrcGenPkgPath,
+                "The TypeScript target requires pnpm >= 6.0  to compile the generated code. " +
+                "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+            )
             if (npmInstall === null || npmInstall.executeCommand() !== 0) {
                 reportError(resource.findTarget, "ERROR: npm install command failed."
                     + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
@@ -240,7 +246,12 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--js_out=import_style=commonjs,binary:"+tsOutPath,
                 "--ts_out=" + tsOutPath)
             protocArgs.addAll(targetConfig.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
-            val protoc = createCommand("protoc", protocArgs, fileConfig.srcPath)
+            val protoc = createCommand(
+                "protoc",
+                protocArgs,
+                fileConfig.srcPath,
+                "Processing .proto files requires libprotoc >= 3.6.1"
+                )
                 
             if (protoc === null) {
                 return
@@ -267,7 +278,16 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Invoke the compiler on the generated code.
         println("Type Checking")
-        val tsc = createCommand("npm", #["run", "check-types"], fileConfig.getSrcGenPkgPath, findCommandEnv("npm"))
+        val tsc = createCommand(
+            "npm",
+            #["run", "check-types"],
+            fileConfig.getSrcGenPkgPath,
+            findCommandEnv(
+                "npm",
+                "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
+                "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+            )            
+        )
         if (tsc !== null) {
             if (tsc.executeCommand() == 0) {
                 // Babel will compile TypeScript to JS even if there are type errors
@@ -275,7 +295,13 @@ class TypeScriptGenerator extends GeneratorBase {
                 //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
                 // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
                 println("Compiling")
-                val babel = createCommand("npm", #["run", "build"], fileConfig.getSrcGenPkgPath)
+                val babel = createCommand(
+                    "npm",
+                    #["run", "build"],
+                    fileConfig.getSrcGenPkgPath,
+                    "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property."
+                )
                 //createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], codeGenConfig.outPath)
                 
                 if (babel !== null) {
