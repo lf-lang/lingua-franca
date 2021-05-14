@@ -3160,7 +3160,11 @@ class CGenerator extends GeneratorBase {
      * @param filename Name of the file to process.
      */
      def processProtoFile(String filename) {
-        val protoc = createCommand("protoc-c", #['''--c_out=«this.fileConfig.getSrcGenPath»''', filename], fileConfig.srcPath)
+        val protoc = createCommand(
+            "protoc-c",
+            #['''--c_out=«this.fileConfig.getSrcGenPath»''', filename],
+            fileConfig.srcPath,
+            "Processing .proto files requires proto-c >= 1.3.3.")
         if (protoc === null) {
             return
         }

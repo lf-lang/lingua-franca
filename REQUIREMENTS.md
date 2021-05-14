@@ -53,7 +53,8 @@ However, to compile the generated code and to create a binary (which is done by 
  - Python >= 3.6
  - pip >= 20.0.2
  - setuptools >= 45.2.0-1
+ - **Programs using Protocol Buffers:** protoc >= 3.6.1
 
 **TypeScript:**
-  - npm >= 6.14.4
-  - protoc-c 1.3.3 (for using protobuf and data serialization - see https://github.com/icyphy/lingua-franca/wiki/Protobufs)
+  - pnpm >= 6 or npm >= 6.14.4
+  - **Programs using Protocol Buffers:** protoc >= 3.6.1 (for using protobuf and data serialization - see https://github.com/icyphy/lingua-franca/wiki/Protobufs)

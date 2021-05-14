@@ -11,7 +11,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
@@ -97,6 +101,14 @@ public class FileConfig {
     public final Resource resource;
     
     /**
+     * If running in an Eclipse IDE, the iResource refers to the
+     * IFile representing the Lingua Franca program.
+     * This is the XText view of the file, which is distinct
+     * from the Eclipse eCore view of the file and the OS view of the file.
+     */    
+    public final IResource iResource;
+    
+    /**
      * The full path to the file containing the .lf file including the
      * full filename with the .lf extension.
      */
@@ -178,10 +190,28 @@ public class FileConfig {
         this.srcGenPkgPath = this.srcGenPath;
         this.outPath = toPath(this.outputRoot);
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
+        this.iResource = getIResource(resource);
     }
     
     // Getters to be overridden in derived classes.
     
+    /**
+     * Get the iResource corresponding to the provided resource
+     * @throws IOException
+     */
+    private IResource getIResource(Resource r) throws IOException {
+        IResource iResource = null;
+        java.net.URI uri = toPath(r).toFile().toURI();
+        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+        if (uri != null) {
+             IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+             if (files != null && files.length > 0 && files[0] != null) {
+                 iResource = files[0];
+             }
+        }
+        return iResource;
+    }
+
     /** 
      * Get the file name of a resource without file extension
      */
