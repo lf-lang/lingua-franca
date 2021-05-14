@@ -314,8 +314,9 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
     unsigned short port_id;
     unsigned short federate_id;
     unsigned int length;
+    tag_t intended_tag;
     // Extract information from the header.
-    extract_header(&(buffer[1]), &port_id, &federate_id, &length);
+    extract_timed_header(&(buffer[1]), &port_id, &federate_id, &length, &intended_tag);
 
     unsigned int total_bytes_to_read = length + header_size;
     unsigned int bytes_to_read = length;
@@ -345,6 +346,16 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
         warning_print("RTI: Destination federate %d is no longer connected. Dropping message.",
                 federate_id);
         return;
+    }
+
+    // If the destination federate has previously sent a NET that is larger
+    // than the indended tag of this message, then reset that NET to be equal
+    // to the indended tag of this message.  This is needed because the NET
+    // is a promise that is valid only in the absence of network inputs,
+    // and now there is a network input. Hence, the promise needs to be
+    // updated.
+    if (compare_tags(federates[federate_id].next_event, intended_tag) > 0) {
+    	federates[federate_id].next_event = intended_tag;
     }
 
     // Forward the message or message chunk.
@@ -453,11 +464,8 @@ tag_t transitive_next_event(federate_t* fed, tag_t candidate, bool visited[]) {
     }
 
     visited[fed->id] = true;
-    // Use the larger of the NET and TAN.
+    // Note that NET already takes into account any TAN messages received.
     tag_t result = fed->next_event;
-    if (fed->time_advance > fed->next_event.time) {
-        result = (tag_t){.time = fed->time_advance, .microstep = 0};
-    }
 
     // If the candidate is less than this federate's next_event, use the candidate.
     if (compare_tags(candidate, result) < 0) {
@@ -506,6 +514,7 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
     if (fed->state == NOT_CONNECTED
     		|| compare_tags(tag, fed->last_granted) <= 0
 			|| compare_tags(tag, fed->last_provisionally_granted) <= 0
+			|| (tag.time == start_time && tag.microstep == 0) // PTAG at (0,0) is implicit
     ) {
         return;
     }
@@ -527,11 +536,11 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
         }
     } else {
         fed->last_provisionally_granted = tag;
-        LOG_PRINT("RTI sent to federate %d the Provisional Time Advance Grant (PTAG) (%lld, %u).",
+        LOG_PRINT("RTI sent to federate %d the Provisional Tag Advance Grant (PTAG) (%lld, %u).",
                 fed->id, tag.time - start_time, tag.microstep);
 
         // Send PTAG to all upstream federates, if they have not had
-        // a later or equal PTAG or TAG sent previously and if the transitive
+        // a later or equal PTAG or TAG sent previously and if their transitive
         // NET is greater than or equal to the tag.
         // NOTE: This could later be replaced with a TNET mechanism once
         // we have an available encoding of causality interfaces.
@@ -552,9 +561,9 @@ void send_provisional_tag_advance_grant(federate_t* fed, tag_t tag) {
 
             // If these tags are equal, then
             // a TAG or PTAG should have already been granted,
-            // in which case, another will not be sent. So it seems
-            // harmless to include the equals case.
-            if (compare_tags(upstream_next_event, tag) > 0) {
+            // in which case, another will not be sent. But it
+            // may not have been already granted.
+            if (compare_tags(upstream_next_event, tag) >= 0) {
             	send_provisional_tag_advance_grant(upstream, tag);
             }
         }
@@ -616,6 +625,7 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
     	return true;
     }
 
+    // Can't make progress based only on upstream LTCs.
     // If all (transitive) upstream federates of the federate
     // have earliest event tags such that the
     // federate can now advance its tag, then send it a TAG message.
@@ -658,45 +668,33 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
         }
     }
 
-    LOG_PRINT("Earliest upstream message time for fed %d is (%lld, %u) "
-            "(adjusted by after delay).",
-            fed->id,
+    LOG_PRINT("Earliest next event upstream has tag (%lld, %u).",
             t_d.time - start_time, t_d.microstep);
 
-    // - If the earliest event time of the upstream federates (adjusted by
-    //   delays) is greater than the NET reported by the federate,
-    //   then grant a new TAG to the federate with payload equal to NET.
-    // 
-    // - If the earliest event time of the upstream federates (
-    //   adjusted by delays) is equal to the NET reported by the federate,
-    //   grant a Provisional TAG (PTAG) that will prompt the federate to
-    //   insert network input control reactions that will block execution
-    //   of reactions selectively. This PTAG can be followed eventually
-    //   by a TAG for the same tag that will unblock the network input
-    //   control reactions.
-    //
-    // - Otherwise, do not send a reply now.  A TAG will presumably later
-    //   be sent when one of the upstream federates makes progress.
-
-    if (t_d.time == FOREVER || compare_tags(t_d, fed->next_event) > 0) {
-        // Send TAG to federate.
-        send_tag_advance_grant(fed, fed->next_event);
-        return true;
-
-    } else if (compare_tags(t_d, fed->last_provisionally_granted) > 0
-    		&& compare_tags(fed->last_provisionally_granted, fed->last_granted) > 0
-    ) {
-        // Most recent tag advance grant was a PTAG, and the earliest event
-    	// time of upstream federates is now greater than that PTAG time, so
-    	// we can send a TAG at the PTAG time.
-        send_tag_advance_grant(fed, fed->last_provisionally_granted);
-
-    } else if(compare_tags(t_d, fed->next_event) == 0) {
-        // Send PTAG to federate.
-        send_provisional_tag_advance_grant(fed, fed->next_event);
-        return false;
+    if (compare_tags(t_d, FOREVER_TAG) == 0) {
+    	// Upstream federates are all done.
+        LOG_PRINT("Upstream federates are all done. Granting tag advance.");
+    	send_tag_advance_grant(fed, FOREVER_TAG);
+    	return true;
     }
-    return false;
+
+	if (t_d.time == FOREVER) {
+    	LOG_PRINT("All upstream federates are finished. Sending TAG(FOREVER).");
+    	send_tag_advance_grant(fed, FOREVER_TAG);
+    	return true;
+	} else if (
+		compare_tags(t_d, fed->next_event) >= 0      // The federate has something to do.
+		&& compare_tags(t_d, fed->last_provisionally_granted) > 0  // The grant is not redundant.
+    	&& compare_tags(t_d, fed->last_granted) > 0  // The grant is not redundant.
+	) {
+    	LOG_PRINT("Earliest upstream message time for fed %d is (%lld, %u) "
+            	"(adjusted by after delay). Granting provisional tag advance.",
+            	fed->id,
+            	t_d.time - start_time, t_d.microstep);
+
+    	send_provisional_tag_advance_grant(fed, t_d);
+    }
+	return false;
 }
 
 /**
@@ -797,9 +795,20 @@ void handle_time_advance_notice(federate_t* fed) {
     fed->time_advance = extract_ll(buffer);
     LOG_PRINT("RTI received from federate %d the Time Advance Notice (TAN) %lld.",
             fed->id, fed->time_advance - start_time);
-                        
-    // We do not reply with a time advance grant because the federate has no
-    // events to process.
+
+    // If the TAN is greater than the most recently received NET, then
+    // update the NET to match the TAN. The NET is a promise that, absent
+    // network inputs, the federate will not produce an output with tag
+    // less than the NET.
+    tag_t ta = (tag_t) {.time = fed->time_advance, .microstep = 0};
+    if (compare_tags(ta, fed->next_event) > 0) {
+    	fed->next_event = ta;
+        // We need to reply just as if this were a NET because it could unblock
+        // network input port control reactions.
+        if (fed->num_upstream > 0) {
+            send_tag_advance_if_appropriate(fed);
+        }
+    }
 
     // Check downstream federates to see whether they should now be granted a TAG.
     // To handle cycles, need to create a boolean array to keep
