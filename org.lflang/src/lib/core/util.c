@@ -61,6 +61,9 @@ int _lf_my_fed_id = -1;
  */
 print_message_function_t* print_message_function = NULL;
 
+/** The level of messages to redirect to print_message_function. */
+int print_message_level = -1;
+
 /**
  * Return the federate ID or -1 if this program is not part of a federation.
  */
@@ -71,7 +74,9 @@ int get_fed_id() {
 /**
  * Internal implementation of the next few reporting functions.
  */
-void _lf_message_print(int is_error, char* prefix, char* format, va_list args) {
+void _lf_message_print(
+		int is_error, char* prefix, char* format, va_list args, int log_level
+) {
     // Rather than calling printf() multiple times, we need to call it just
     // once because this function is invoked by multiple threads.
     // If we make multiple calls to printf(), then the results could be
@@ -86,7 +91,7 @@ void _lf_message_print(int is_error, char* prefix, char* format, va_list args) {
         snprintf(message, length, "Federate %d: %s%s\n",
                 _lf_my_fed_id, prefix, format);
     }
-    if (print_message_function == NULL) {
+    if (print_message_function == NULL || log_level < print_message_level) {
         if (is_error) {
             vfprintf(stderr, message, args);
         } else {
@@ -108,7 +113,7 @@ void _lf_message_print(int is_error, char* prefix, char* format, va_list args) {
 void info_print(char* format, ...) {
     va_list args;
     va_start (args, format);
-    _lf_message_print(0, "", format, args);
+    _lf_message_print(0, "", format, args, LOG_LEVEL_INFO);
     va_end (args);
 }
 
@@ -123,7 +128,7 @@ void info_print(char* format, ...) {
 void log_print(char* format, ...) {
     va_list args;
     va_start (args, format);
-    _lf_message_print(0, "LOG: ", format, args);
+    _lf_message_print(0, "LOG: ", format, args, LOG_LEVEL_LOG);
     va_end (args);
 }
 
@@ -138,7 +143,7 @@ void log_print(char* format, ...) {
 void debug_print(char* format, ...) {
     va_list args;
     va_start (args, format);
-    _lf_message_print(0, "DEBUG: ", format, args);
+    _lf_message_print(0, "DEBUG: ", format, args, LOG_LEVEL_DEBUG);
     va_end (args);
 }
 
@@ -149,7 +154,7 @@ void debug_print(char* format, ...) {
 void error_print(char* format, ...) {
     va_list args;
     va_start (args, format);
-    _lf_message_print(1, "ERROR: ", format, args);
+    _lf_message_print(1, "ERROR: ", format, args, LOG_LEVEL_ERROR);
     va_end (args);
 }
 
@@ -160,7 +165,7 @@ void error_print(char* format, ...) {
 void warning_print(char* format, ...) {
     va_list args;
     va_start (args, format);
-    _lf_message_print(1, "WARNING: ", format, args);
+    _lf_message_print(1, "WARNING: ", format, args, LOG_LEVEL_WARNING);
     va_end (args);
 }
 
@@ -172,7 +177,7 @@ void warning_print(char* format, ...) {
 void error_print_and_exit(char* format, ...) {
     va_list args;
     va_start (args, format);
-    _lf_message_print(1, "FATAL ERROR: ", format, args);
+    _lf_message_print(1, "FATAL ERROR: ", format, args, LOG_LEVEL_ERROR);
     va_end (args);
     exit(EXIT_FAILURE);
 }
@@ -180,10 +185,16 @@ void error_print_and_exit(char* format, ...) {
 /**
  * Register a function to display messages. After calling this,
  * all messages passed to the above print functions will be
- * printed using the specified function rather than printf.
+ * printed using the specified function rather than printf
+ * if their log level is greater than the specified level.
+ * The level should be one of LOG_LEVEL_ERROR, LOG_LEVEL_WARNING,
+ * LOG_LEVEL_INFO, LOG_LEVEL_LOG, or LOG_LEVEL_DEBUG.
+ *
  * @param function The print message function or NULL to revert
  *  to using printf.
+ * @param log_level The level of messages to redirect.
  */
-void register_print_function(print_message_function_t* function) {
+void register_print_function(print_message_function_t* function, int log_level) {
     print_message_function = function;
+    print_message_level = log_level;
 }

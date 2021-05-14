@@ -221,7 +221,7 @@ reactor RhythmSource(
                 break;
             case '-':
                 self->tick_duration += self->delta;
-                SET(tempo_change, self->delta);
+                SET(tempo_change, -self->delta);
                 break;
             default:
                 numeric = (int)key->value;
@@ -257,7 +257,7 @@ reactor RhythmSource(
     =}
     
     reaction(tempo_change_in) {=
-        self->tick_duration += tempo_change_in->value;
+        self->tick_duration -= tempo_change_in->value;
     =}
 
     reaction(tick) -> note, tick {=
