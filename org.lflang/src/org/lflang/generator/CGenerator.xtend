@@ -3164,7 +3164,8 @@ class CGenerator extends GeneratorBase {
             "protoc-c",
             #['''--c_out=«this.fileConfig.getSrcGenPath»''', filename],
             fileConfig.srcPath,
-            "Processing .proto files requires proto-c >= 1.3.3.")
+            "Processing .proto files requires proto-c >= 1.3.3.",
+            true)
         if (protoc === null) {
             return
         }
