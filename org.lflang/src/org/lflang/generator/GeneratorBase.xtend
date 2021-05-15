@@ -166,14 +166,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     protected var generatorErrorsOccurred = false
 
     /**
-     * If running in an Eclipse IDE, the iResource refers to the
-     * IFile representing the Lingua Franca program.
-     * This is the XText view of the file, which is distinct
-     * from the Eclipse eCore view of the file and the OS view of the file.
-     */
-    protected var iResource = null as IResource
-
-    /**
      * Definition of the main (top-level) reactor.
      * This is an automatically generated AST node for the top-level
      * reactor.
@@ -869,7 +861,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
         for (cmd : targetConfig.buildCommands) {
             val tokens = newArrayList(cmd.split("\\s+"))
             if (tokens.size > 0) {
-                val buildCommand = createCommand(tokens.head, tokens.tail.toList, this.fileConfig.srcPath)
+                val buildCommand = createCommand(
+                    tokens.head,
+                    tokens.tail.toList,
+                    this.fileConfig.srcPath,
+                    "Executing user specified build command " + cmd + " failed.",
+                    true
+                )
                 // If the build command could not be found, abort.
                 // An error has already been reported in createCommand.
                 if (buildCommand === null) {
@@ -908,7 +906,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  will never have a `-c` flag.
      */
     protected def compileCCommand(String fileToCompile, boolean doNotLinkIfNoMain) {
-        val env = findCommandEnv(targetConfig.compiler)
+        val env = findCommandEnv(
+            targetConfig.compiler, 
+            "The C target requires GCC >= 7 to compile the generated code. " +
+            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+            true
+        )
         
         val cFilename = getTargetFileName(fileToCompile);
 
@@ -988,7 +991,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param uri A java.net.uri of the form "file://path".
      */
     protected def getEclipseResource(URI uri) {
-        var resource = iResource // Default resource.
+        var resource = fileConfig.iResource // Default resource.
         // For some peculiar reason known only to Eclipse developers,
         // the resource cannot be used directly but has to be converted
         // a resource relative to the workspace root.
@@ -1055,10 +1058,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Run a given command and record its error messages.
+     * Run a given command and discard its standard and error output.
      * 
      * @param cmd the command to be executed
-     * @param errStream a stream object to forward the commands error messages to
      * @return the commands return code
      */
     protected def executeCommand(ProcessBuilder cmd) {
@@ -1066,9 +1068,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Run a given command.
+     * Run a given command and capture its error output.
      * 
      * @param cmd the command to be executed
+     * @param errStream a stream object to forward the commands error messages to
      * @return the commands return code
      */
     protected def executeCommand(ProcessBuilder cmd, OutputStream errStream) {
@@ -1108,10 +1111,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * to be executed but merely the environment in which the command executes.
      * 
      * @param cmd The command to be executed
+     * @param errorStringIfNotFound A message to be printed when the command was not found.
+     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
-    protected def createCommand(String cmd) {
-        return createCommand(cmd, #[], fileConfig.outPath, findCommandEnv(cmd)) // FIXME: add argument to specify where to execute; there is no useful assumption that would work here
+    protected def createCommand(String cmd, String messageIfNotFound, boolean failError) {
+        return createCommand(
+            cmd,
+            #[],
+            fileConfig.outPath,
+            findCommandEnv(cmd, messageIfNotFound, failError)
+        ) // FIXME: add argument to specify where to execute; there is no useful assumption that would work here
     }
 
     /** 
@@ -1134,14 +1144,16 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @param cmd The command to find.
      * @param dir A directory from which to search for the command or null to use PWD.
-     * 
+     * @param messageIfNotFound A message to be printed when the command environment
+     *  was not found.
+     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
      * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
      *  where ExecutionEnvironment is an enum.
      * 
      * @see findCommandEnv(String, Path)
      */
-    protected def findCommandEnv(String cmd) {
-        return findCommandEnv(cmd, null)
+    protected def findCommandEnv(String cmd, String messageIfNotFound, boolean failError) {
+        return findCommandEnv(cmd, null, messageIfNotFound, failError)
     }
 
     /** 
@@ -1164,11 +1176,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * 
      * @param cmd The command to find.
      * @param dir A directory from which to search for the command or null to use PWD.
+     * @param errorStringIfNotFound An error mesasge to be printed when the command environment
+     *  was not found.
      * 
      * @return Returns either ExecutionEnvironment.NATIVE or ExecutionEnvironment.BASH,
      *  where ExecutionEnvironment is an enum.
      */
-    protected def findCommandEnv(String cmd, Path dir) {
+    protected def findCommandEnv(String cmd, Path dir, String messageIfNotFound, boolean failError) {
         // Make sure the command is found in the PATH.
         print('''--- Looking for command «cmd» ... ''')
         // Use 'where' on Windows, 'which' on other systems
@@ -1199,10 +1213,18 @@ abstract class GeneratorBase extends AbstractLFValidator {
             println("SUCCESS")
             return ExecutionEnvironment.BASH
         }
-        reportError(
+        if (failError) {
+            reportError( 
             "The command " + cmd + " could not be found.\n" +
                 "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                "You can set PATH in ~/.bash_profile on Linux or Mac.")
+                "You can set PATH in ~/.bash_profile on Linux or Mac.\n" + messageIfNotFound)
+        } else {
+            reportWarning( 
+            "The command " + cmd + " could not be found.\n" +
+                "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
+                "You can set PATH in ~/.bash_profile on Linux or Mac.\n" + messageIfNotFound)
+        }
+        
         return null as ExecutionEnvironment
     }
 
@@ -1237,11 +1259,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
             builder = new ProcessBuilder(newCmd + #[bash_arg])
             builder.directory(dir.toFile)
         } else {
-            println("FAILED")
-            reportError(
-                    "The command " + cmd + " could not be found in the source directory nor in your PATH.\n" +
-                    "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
-                    "You can set PATH in ~/.bash_profile on Linux or Mac.")
+                println("FAILED")
+                reportError(
+                        "Was not able to determine an execution environment that contains " + cmd + ".")
         }
         return builder
     }
@@ -1256,11 +1276,17 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @param cmd The command to be executed.
      * @param args A list of arguments for the given command.
      * @param dir A directory to change into before finding the command.
-     * 
+     * @param messageIfNotFound An message to be printed when the command environment
+     *  was not found.
+     * @param failError Indicate whether to report a failure to find the command as an error (true) or a warning (false).
      * @return A ProcessBuilder object if the command was found or null otherwise.
      */
-    protected def createCommand(String cmd, List<String> args, Path dir) {
-        val env = findCommandEnv(cmd, dir)
+    protected def createCommand(String cmd, List<String> args, Path dir, String messageIfNotFound, boolean failError) {
+        val env = findCommandEnv(cmd, dir, messageIfNotFound, failError)
+        if (env === null) {
+            // Could not find a suitable execution environment for 'cmd'
+            return null;
+        }
         return createCommand(cmd, args, dir, env)
     }
 
@@ -1826,7 +1852,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // If the resource is still null, use the resource associated with
             // the top-level file.
             if (myResource === null) {
-                myResource = iResource
+                myResource = fileConfig.iResource
             }
             if (myResource !== null) {
                 val marker = myResource.createMarker(IMarker.PROBLEM)
@@ -1890,12 +1916,22 @@ abstract class GeneratorBase extends AbstractLFValidator {
         return report(message, severity, line, null, resource)
     }
 
-    /** Report an error.
-     *  @param message The error message.
+    /**
+     * Report an error.
+     * @param message The error message.
      */
     protected def reportError(String message) {
         return report(message, IMarker.SEVERITY_ERROR, null)
     }
+
+    /**
+     * Report a warning.
+     * @param message The warning message.
+     */
+    protected def reportWarning(String message) {
+        return report(message, IMarker.SEVERITY_WARNING, null)
+    }
+
 
     /** Report an error on the specified parse tree object.
      *  @param object The parse tree object.
