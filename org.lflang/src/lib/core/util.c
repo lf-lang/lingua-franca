@@ -91,13 +91,13 @@ void _lf_message_print(
         snprintf(message, length, "Federate %d: %s%s\n",
                 _lf_my_fed_id, prefix, format);
     }
-    if (print_message_function == NULL || log_level < print_message_level) {
+    if (print_message_function == NULL) {
         if (is_error) {
             vfprintf(stderr, message, args);
         } else {
             vfprintf(stdout, message, args);
         }
-    } else {
+    } else if (log_level < print_message_level) {
         (*print_message_function)(message, args);
     }
 }
