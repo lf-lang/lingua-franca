@@ -37,63 +37,23 @@ See sensor_simulator.h.
 #include "core/util.h"
 #include "core/platform.h"
 
-_lf_thread_t _lf_sensor_input_thread_id;
-_lf_thread_t _lf_sensor_output_thread_id;
-int _lf_sensor_thread_created = 0;
-
 // Maximum number of milliseconds that wgetchr will block for.
 #define WGETCHR_TIMEOUT 1000
 
 // Support ASCII characters SPACE (32) through DEL (127).
 #define LF_SENSOR_TRIGGER_TABLE_SIZE 96
 
+/** Table of Lingua Franca trigger objects to schedule in response to keypresses. */
 trigger_t* _lf_sensor_trigger_table[LF_SENSOR_TRIGGER_TABLE_SIZE];
 
-// The newline character '\n', which is platform dependent, is
-// handled specially.
+/** Trigger for the newline character '\n', which is platform dependent. */
 trigger_t* _lf_sensor_sensor_newline_trigger = NULL;
 
-// Trigger for any key.
+/** Trigger for any key. */
 trigger_t* _lf_sensor_any_key_trigger = NULL;
 
-SCREEN* screen;
-
 lf_mutex_t _lf_sensor_mutex;
-
 lf_cond_t _lf_sensor_simulator_cond_var;
-
-/**
- * Default window from which to get input characters.
- * If show_welcome_message() is called, this will be the welcome
- * message window. Otherwise, it will be stdscr, the default
- * curses window.
- */
-WINDOW* _lf_sensor_default_window;
-
-/** Tick window. */
-WINDOW* _lf_sensor_tick_window;
-
-/**
- * Keep track of the tick cursor position directly so it
- * doesn't get as messed up by printf() calls.
- */
-int _lf_sensor_tick_cursor_x, _lf_sensor_tick_cursor_y;
-int _lf_sensor_print_cursor_x, _lf_sensor_print_cursor_y;
-
-/** Print window. */
-WINDOW* _lf_sensor_print_window;
-
-/** The print window height. */
-int _lf_sensor_print_window_height;
-
-/** File to which to write log data, or NULL to send to window. */
-FILE* _lf_sensor_log_file = NULL;
-
-/** The welcome message. */
-char** _lf_sensor_welcome_message;
-
-/** The length of the welcome message. */
-int _lf_sensor_welcome_message_length;
 
 enum _lf_sensor_message_type {
 	_lf_sensor_message, _lf_sensor_tick, _lf_sensor_close_windows
@@ -105,11 +65,50 @@ typedef struct _lf_sensor_message_t {
 	struct _lf_sensor_message_t* next;
 } _lf_sensor_message_t;
 
-struct _lf_sensor_message_t* _lf_sensor_message_q = NULL;
-struct _lf_sensor_message_t* _lf_sensor_message_recycle_q = NULL;
+struct {
+	_lf_thread_t input_thread_id;
+	_lf_thread_t output_thread_id;
+	int thread_created;
 
-/** The width of the tick window. */
-int _lf_sensor_tick_window_width;
+	/**
+	 * Default window from which to get input characters.
+	 * If show_welcome_message() is called, this will be the welcome
+	 * message window. Otherwise, it will be stdscr, the default
+	 * curses window.
+	 */
+	WINDOW* default_window;
+
+	/** Tick window. */
+	WINDOW* tick_window;
+
+	/**
+	 * Keep track of the tick cursor position directly so it
+	 * doesn't get as messed up by printf() calls.
+	 */
+	int tick_cursor_x, tick_cursor_y;
+	int print_cursor_x, print_cursor_y;
+
+	/** Print window. */
+	WINDOW* print_window;
+
+	/** The print window height. */
+	int print_window_height;
+
+	/** File to which to write log data, or NULL to send to window. */
+	FILE* log_file;
+
+	/** The welcome message. */
+	char** welcome_message;
+
+	/** The length of the welcome message. */
+	int welcome_message_length;
+
+	struct _lf_sensor_message_t* message_q;
+	struct _lf_sensor_message_t* message_recycle_q;
+
+	/** The width of the tick window. */
+	int tick_window_width;
+} _lf_sensor;
 
 /**
  * Put a persistent message in the upper left of the terminal window.
@@ -155,11 +154,11 @@ void _lf_show_message(char* message_lines[], int number_of_lines) {
 void _lf_start_tick_window(int width) {
     int term_height, term_width;
     getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-    _lf_sensor_tick_window = newwin(term_height, width + 2, 0, term_width - width - 2);
-    box(_lf_sensor_tick_window, 0, 0);
-    wrefresh(_lf_sensor_tick_window);
-    wmove(_lf_sensor_tick_window, 1, 1);  // Ensure to not overwrite the box.
-    _lf_sensor_tick_cursor_x = _lf_sensor_tick_cursor_y = 1;
+    _lf_sensor.tick_window = newwin(term_height, width + 2, 0, term_width - width - 2);
+    box(_lf_sensor.tick_window, 0, 0);
+    wrefresh(_lf_sensor.tick_window);
+    wmove(_lf_sensor.tick_window, 1, 1);  // Ensure to not overwrite the box.
+    _lf_sensor.tick_cursor_x = _lf_sensor.tick_cursor_y = 1;
     // move(0, 0);
 }
 
@@ -174,12 +173,12 @@ void _lf_start_tick_window(int width) {
 void _lf_start_print_window(int above, int right) {
     int term_height, term_width;
     getmaxyx(stdscr, term_height, term_width);   // Get the size of the terminal window.
-    _lf_sensor_print_window_height = term_height - above;
-    _lf_sensor_print_window = newwin(_lf_sensor_print_window_height, term_width - right, above, 0);
-    wrefresh(_lf_sensor_print_window);
-    wmove(_lf_sensor_print_window, 0, 0);
-    _lf_sensor_print_cursor_y = _lf_sensor_print_cursor_x = 0;
-    _lf_sensor_default_window = _lf_sensor_print_window;
+    _lf_sensor.print_window_height = term_height - above;
+    _lf_sensor.print_window = newwin(_lf_sensor.print_window_height, term_width - right, above, 0);
+    wrefresh(_lf_sensor.print_window);
+    wmove(_lf_sensor.print_window, 0, 0);
+    _lf_sensor.print_cursor_y = _lf_sensor.print_cursor_x = 0;
+    _lf_sensor.default_window = _lf_sensor.print_window;
 }
 
 /**
@@ -190,21 +189,21 @@ void _lf_start_print_window(int above, int right) {
  */
 void _lf_sensor_post_message(enum _lf_sensor_message_type type, char* body) {
     lf_mutex_lock(&_lf_sensor_mutex);
-    _lf_sensor_message_t* message = _lf_sensor_message_recycle_q;
+    _lf_sensor_message_t* message = _lf_sensor.message_recycle_q;
     if (message == NULL) {
     	// Create a new message struct.
     	message = calloc(1, sizeof(_lf_sensor_message_t));
     } else {
     	// Take this item off the recycle queue.
-    	_lf_sensor_message_recycle_q = _lf_sensor_message_recycle_q->next;
+    	_lf_sensor.message_recycle_q = _lf_sensor.message_recycle_q->next;
     }
     message->message = body;
     message->type = type;
 	message->next = NULL;
 	// Find the tail of the message queue.
-	_lf_sensor_message_t* tail = _lf_sensor_message_q;
+	_lf_sensor_message_t* tail = _lf_sensor.message_q;
 	if (tail == NULL) {
-		_lf_sensor_message_q = message;
+		_lf_sensor.message_q = message;
 	} else {
 		while (tail != NULL) {
 			_lf_sensor_message_t* next = tail->next;
@@ -223,9 +222,9 @@ void _lf_sensor_post_message(enum _lf_sensor_message_type type, char* body) {
  * This acquires the mutex lock.
  */
 void _lf_print_message_function(char* format, va_list args) {
-	if (_lf_sensor_log_file != NULL) {
+	if (_lf_sensor.log_file != NULL) {
 		// Write to a log file instead of to the window.
-		vfprintf(_lf_sensor_log_file, format, args);
+		vfprintf(_lf_sensor.log_file, format, args);
 		return;
 	}
     char* copy;
@@ -241,14 +240,14 @@ void _lf_print_message_function(char* format, va_list args) {
  * Otherwise, the character is ignored.
  */
 void* _lf_sensor_read_input(void* ignored) {
-    while(_lf_sensor_thread_created != 0) {
-        int c = wgetch(_lf_sensor_default_window);
+    while(_lf_sensor.thread_created != 0) {
+        int c = wgetch(_lf_sensor.default_window);
         if (c == EOF) {
             // End of file received. Exit thread.
             break;
         } else if (c != ERR) {
             // wgetch returns ERR if it times out, in which case, we continue
-            // and check whether _lf_sensor_thread_created has been set to 0.
+            // and check whether _lf_sensor.thread_created has been set to 0.
             // So here, ERR was not returned.
             // It is imperative that we not hold the _lf_sensor_mutex when
             // calling schedule(), because schedule() acquires another mutex.
@@ -275,7 +274,7 @@ void* _lf_sensor_read_input(void* ignored) {
  */
 void* _lf_sensor_simulator_thread(void* ignored) {
     lf_mutex_lock(&_lf_sensor_mutex);
-    _lf_sensor_thread_created = 1;
+    _lf_sensor.thread_created = 1;
     // Clean up any previous curses state.
     if (!isendwin()) {
         endwin();
@@ -289,76 +288,76 @@ void* _lf_sensor_simulator_thread(void* ignored) {
     wtimeout(stdscr, WGETCHR_TIMEOUT); // Don't wait longer than this for input.
     refresh();         // Not documented, but needed?
 
-    _lf_sensor_default_window = stdscr;
-    if (_lf_sensor_welcome_message != NULL && _lf_sensor_welcome_message_length > 0) {
-        _lf_show_message(_lf_sensor_welcome_message, _lf_sensor_welcome_message_length);
+    _lf_sensor.default_window = stdscr;
+    if (_lf_sensor.welcome_message != NULL && _lf_sensor.welcome_message_length > 0) {
+        _lf_show_message(_lf_sensor.welcome_message, _lf_sensor.welcome_message_length);
     }
-    _lf_sensor_tick_window = stdscr;
-    if (_lf_sensor_tick_window_width > 0) {
-        _lf_start_tick_window(_lf_sensor_tick_window_width);
+    _lf_sensor.tick_window = stdscr;
+    if (_lf_sensor.tick_window_width > 0) {
+        _lf_start_tick_window(_lf_sensor.tick_window_width);
     }
-    _lf_start_print_window(_lf_sensor_welcome_message_length + 2, _lf_sensor_tick_window_width + 2);
+    _lf_start_print_window(_lf_sensor.welcome_message_length + 2, _lf_sensor.tick_window_width + 2);
 
     // ncurses is not thread safe, but since the wtimeout option does not work,
     // there is no way to simultaneously listen for inputs and produce outputs.
     // Here, we create a thread that produces no output and just listens for input.
     // This thread is exclusively responsible for producing output.
-    int result = lf_thread_create(&_lf_sensor_input_thread_id, &_lf_sensor_read_input, NULL);
+    int result = lf_thread_create(&_lf_sensor.input_thread_id, &_lf_sensor_read_input, NULL);
     if (result != 0) {
         error_print("Failed to start sensor simulator input listener!");
     }
 
-    while(_lf_sensor_thread_created != 0) {
+    while(_lf_sensor.thread_created != 0) {
     	// Sadly, ncurses is not thread safe, so there is no way to
-    	while (_lf_sensor_message_q == NULL) {
+    	while (_lf_sensor.message_q == NULL) {
             lf_cond_wait(&_lf_sensor_simulator_cond_var, &_lf_sensor_mutex);
     	}
-		while (_lf_sensor_message_q != NULL) {
-			if (_lf_sensor_message_q->type == _lf_sensor_close_windows) {
+		while (_lf_sensor.message_q != NULL) {
+			if (_lf_sensor.message_q->type == _lf_sensor_close_windows) {
 			    register_print_function(NULL, -1);
 			    endwin();
 			    lf_mutex_unlock(&_lf_sensor_mutex);
 				return NULL;
-			} else if (_lf_sensor_message_q->type == _lf_sensor_tick) {
-			    wmove(_lf_sensor_tick_window, _lf_sensor_tick_cursor_y, _lf_sensor_tick_cursor_x);
-			    wprintw(_lf_sensor_tick_window, _lf_sensor_message_q->message);
+			} else if (_lf_sensor.message_q->type == _lf_sensor_tick) {
+			    wmove(_lf_sensor.tick_window, _lf_sensor.tick_cursor_y, _lf_sensor.tick_cursor_x);
+			    wprintw(_lf_sensor.tick_window, _lf_sensor.message_q->message);
 			    int tick_height, tick_width;
-			    getmaxyx(_lf_sensor_tick_window, tick_height, tick_width);
-			    _lf_sensor_tick_cursor_x += strlen(_lf_sensor_message_q->message);
-			    if (_lf_sensor_tick_cursor_x >= tick_width - 1) {
-			        _lf_sensor_tick_cursor_x = 1;
-			        _lf_sensor_tick_cursor_y++;
+			    getmaxyx(_lf_sensor.tick_window, tick_height, tick_width);
+			    _lf_sensor.tick_cursor_x += strlen(_lf_sensor.message_q->message);
+			    if (_lf_sensor.tick_cursor_x >= tick_width - 1) {
+			        _lf_sensor.tick_cursor_x = 1;
+			        _lf_sensor.tick_cursor_y++;
 			    }
-			    if (_lf_sensor_tick_cursor_y >= tick_height - 1) {
-			        _lf_sensor_tick_cursor_y = 1;
+			    if (_lf_sensor.tick_cursor_y >= tick_height - 1) {
+			        _lf_sensor.tick_cursor_y = 1;
 			    }
-			    wmove(_lf_sensor_tick_window, _lf_sensor_tick_cursor_y, _lf_sensor_tick_cursor_x);
-			    wrefresh(_lf_sensor_tick_window);
+			    wmove(_lf_sensor.tick_window, _lf_sensor.tick_cursor_y, _lf_sensor.tick_cursor_x);
+			    wrefresh(_lf_sensor.tick_window);
 
 			    // Move the standard string cursor to 0, 0, so printf()
 			    // calls don't mess up the screen as much.
 			    // wmove(stdscr, 0, 0);
-			} else if (_lf_sensor_message_q->type == _lf_sensor_message) {
-				wmove(_lf_sensor_print_window, _lf_sensor_print_cursor_y, _lf_sensor_print_cursor_x);
-				wclrtoeol(_lf_sensor_print_window);
-				wprintw(_lf_sensor_print_window, _lf_sensor_message_q->message);
-				_lf_sensor_print_cursor_x = 0;
-				_lf_sensor_print_cursor_y += 1;
-				if (_lf_sensor_print_cursor_y >= _lf_sensor_print_window_height - 1) {
-					_lf_sensor_print_cursor_y = 0;
+			} else if (_lf_sensor.message_q->type == _lf_sensor_message) {
+				wmove(_lf_sensor.print_window, _lf_sensor.print_cursor_y, _lf_sensor.print_cursor_x);
+				wclrtoeol(_lf_sensor.print_window);
+				wprintw(_lf_sensor.print_window, _lf_sensor.message_q->message);
+				_lf_sensor.print_cursor_x = 0;
+				_lf_sensor.print_cursor_y += 1;
+				if (_lf_sensor.print_cursor_y >= _lf_sensor.print_window_height - 1) {
+					_lf_sensor.print_cursor_y = 0;
 				}
-				wmove(_lf_sensor_print_window, _lf_sensor_print_cursor_y, _lf_sensor_print_cursor_x);
-				wclrtoeol(_lf_sensor_print_window);
-				wrefresh(_lf_sensor_print_window);
+				wmove(_lf_sensor.print_window, _lf_sensor.print_cursor_y, _lf_sensor.print_cursor_x);
+				wclrtoeol(_lf_sensor.print_window);
+				wrefresh(_lf_sensor.print_window);
 
-				free(_lf_sensor_message_q->message);
+				free(_lf_sensor.message_q->message);
 			}
 			refresh();
-			_lf_sensor_message_t* tmp_recycle = _lf_sensor_message_recycle_q;
-			_lf_sensor_message_t* tmp_message = _lf_sensor_message_q;
-			_lf_sensor_message_recycle_q = _lf_sensor_message_q;
-			_lf_sensor_message_recycle_q->next = tmp_recycle;
-			_lf_sensor_message_q = tmp_message->next;
+			_lf_sensor_message_t* tmp_recycle = _lf_sensor.message_recycle_q;
+			_lf_sensor_message_t* tmp_message = _lf_sensor.message_q;
+			_lf_sensor.message_recycle_q = _lf_sensor.message_q;
+			_lf_sensor.message_recycle_q->next = tmp_recycle;
+			_lf_sensor.message_q = tmp_message->next;
 		}
     }
     lf_mutex_unlock(&_lf_sensor_mutex);
@@ -373,14 +372,14 @@ void end_sensor_simulator() {
 	_lf_sensor_post_message(_lf_sensor_close_windows, NULL);
 
 	void* thread_return;
-	lf_thread_join(_lf_sensor_output_thread_id, &thread_return);
+	lf_thread_join(_lf_sensor.output_thread_id, &thread_return);
 
     // Timeout mode should result in the input thread exiting on its own.
-    // pthread_kill(_lf_sensor_input_thread_id, SIGINT);
+    // pthread_kill(_lf_sensor.input_thread_id, SIGINT);
 
-    _lf_sensor_thread_created = 0;
-	if (_lf_sensor_log_file != NULL) {
-		fclose(_lf_sensor_log_file);
+    _lf_sensor.thread_created = 0;
+	if (_lf_sensor.log_file != NULL) {
+		fclose(_lf_sensor.log_file);
 	}
 }
 
@@ -408,10 +407,13 @@ int start_sensor_simulator(
 		int log_level
 ) {
     int result = 0;
-    _lf_sensor_welcome_message = message_lines;
-    _lf_sensor_welcome_message_length = number_of_lines;
-    _lf_sensor_tick_window_width = tick_window_width;
-    if (_lf_sensor_thread_created == 0) {
+    _lf_sensor.welcome_message = message_lines;
+    _lf_sensor.welcome_message_length = number_of_lines;
+    _lf_sensor.tick_window_width = tick_window_width;
+    _lf_sensor.message_q = NULL;
+    _lf_sensor.message_recycle_q = NULL;
+    _lf_sensor.thread_created = 0;
+    if (_lf_sensor.thread_created == 0) {
         // Thread has not been created.
         // Zero out the trigger table.
         for (int i = 0; i < LF_SENSOR_TRIGGER_TABLE_SIZE; i++) {
@@ -421,7 +423,9 @@ int start_sensor_simulator(
         // ncurses is initialized, otherwise, ncurses gets disabled (won't
         // accept input).
     	if (log_file != NULL) {
-    		_lf_sensor_log_file = fopen(log_file, "w");
+    		_lf_sensor.log_file = fopen(log_file, "w");
+    	} else {
+    		_lf_sensor.log_file = NULL;
     	}
     	// Register the print function before starting the thread.
     	// Subsequent print messages will go into the queue.
@@ -435,7 +439,7 @@ int start_sensor_simulator(
 
         // ncurses is not thread safe, so create a one thread that does all
         // the writing to the window and one that does all the reading.
-        int result = lf_thread_create(&_lf_sensor_output_thread_id, &_lf_sensor_simulator_thread, NULL);
+        int result = lf_thread_create(&_lf_sensor.output_thread_id, &_lf_sensor_simulator_thread, NULL);
         if (result != 0) {
             error_print("Failed to start sensor simulator!");
         }

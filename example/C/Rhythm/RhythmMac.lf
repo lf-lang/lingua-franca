@@ -253,28 +253,31 @@ reactor RhythmSource(
             case 'm':
                 self->rhythm = MERENGUE;
                 self->emphasis = MERENGUE_EMPHASIS;
-                info_print("Changing rhythm to merengue.");
+                info_print("REMOTE: Changing rhythm to merengue.");
                 break;
             case 'b':
                 self->rhythm = BOSSA_NOVA;
                 self->emphasis = BOSSA_NOVA_EMPHASIS;
-                info_print("Changing rhythm to bossa nova.");
+                info_print("REMOTE: Changing rhythm to bossa nova.");
                 break;
             case 's':
                 self->rhythm = SAMBA;
                 self->emphasis = SAMBA_EMPHASIS;
-                info_print("Changing rhythm to samba.");
+                info_print("REMOTE: Changing rhythm to samba.");
                 break;
             default:
                 self->rhythm = DOWNBEAT;
                 self->emphasis = DOWNBEAT;
-                info_print("Changing rhythm to downbeat only.");
+                info_print("REMOTE: Changing rhythm to downbeat only.");
                 break;
         }
     =}
     
     reaction(tempo_change_in) {=
         self->tick_duration -= tempo_change_in->value;
+        info_print("REMOTE: Changing the tempo period by %lld ns.",
+            -tempo_change_in->value
+        );
     =}
 
     reaction(tick) -> note, tick {=
