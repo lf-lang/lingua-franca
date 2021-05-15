@@ -70,6 +70,7 @@ typedef struct lf_stat_ll {
 #define LOG_LEVEL_INFO 2
 #define LOG_LEVEL_LOG 3
 #define LOG_LEVEL_DEBUG 4
+#define LOG_LEVEL_ALL 255
 
 /** Default log level. */
 #ifndef LOG_LEVEL
