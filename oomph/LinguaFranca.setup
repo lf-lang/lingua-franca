@@ -363,7 +363,7 @@
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2021-03"/>
+              url="http://download.eclipse.org/releases/2020-12"/>
           <repository
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
@@ -453,7 +453,7 @@
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2021-03"/>
+              url="http://download.eclipse.org/releases/2020-12"/>
           <repository
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
