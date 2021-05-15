@@ -363,7 +363,7 @@
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2020-12"/>
+              url="http://download.eclipse.org/releases/2021-03"/>
           <repository
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
@@ -453,11 +453,11 @@
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2020-12"/>
+              url="http://download.eclipse.org/releases/2021-03"/>
           <repository
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
-              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.24.0/"/>
+              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
         </repositoryList>
       </targlet>
     </setupTask>
