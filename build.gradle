@@ -14,7 +14,7 @@ plugins {
 }
 
 subprojects {
-	ext.xtextVersion = '2.23.0'
+	ext.xtextVersion = '2.25.0'
 	repositories {
 		mavenCentral()
 	}
@@ -23,7 +23,7 @@ subprojects {
 	dependencies {
 		implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
 		// https://mvnrepository.com/artifact/com.google.inject/guice
-		implementation group: 'com.google.inject', name: 'guice', version: '5.0.0-BETA-1'
+		implementation group: 'com.google.inject', name: 'guice', version: '3.0'
 		// https://mvnrepository.com/artifact/commons-cli/commons-cli
 		implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
 	}
