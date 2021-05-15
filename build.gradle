@@ -33,7 +33,7 @@ subprojects {
 	apply plugin: 'eclipse'
 	
 	group = 'org.lflang'
-	version = '0.1-alpha-SNAPSHOT'
+	version = '0.1.0-SNAPSHOT'
 	
 	sourceCompatibility = JavaVersion.VERSION_11
 	targetCompatibility = JavaVersion.VERSION_11
