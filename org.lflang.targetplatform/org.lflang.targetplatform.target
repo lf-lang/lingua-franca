@@ -21,8 +21,6 @@
       <unit id="org.eclipse.lsp4e.debug" version="0.0.0"/>
       <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.tm4e.languageconfiguration" version="0.0.0"/>
-      <unit id="org.eclipse.wildwebdeveloper.embedder.node.linux.x86_64" version="0.0.0"/>
-      <unit id="org.eclipse.wildwebdeveloper.xml.feature.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
       <unit id="org.jsoup" version="0.0.0"/>
       <unit id="org.slf4j.api" version="0.0.0"/>
