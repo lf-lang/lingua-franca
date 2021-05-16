@@ -56,6 +56,7 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
+import java.io.ByteArrayOutputStream
 
 /** Generator for TypeScript target.
  *
@@ -200,28 +201,45 @@ class TypeScriptGenerator extends GeneratorBase {
         }
     
         for (file : TypeScriptGenerator.RUNTIME_FILES) {
-            copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file, fileConfig.getSrcGenPath.resolve("core").resolve(file).toString)
+            copyFileFromClassPath("/lib/TS/reactor-ts/src/core/" + file,
+                fileConfig.getSrcGenPath.resolve("core").resolve(file).toString)
         }
 
         // Install default versions of config files into project if
         // they don't exist.       
         this.initializeProjectConfiguration()
+
         
-        // NOTE: (IMPORTANT) at least on my mac, the instance of eclipse running this program did not have
-        // the complete PATH variable needed to find the command npm. I had
-        // to start my eclipse instance from a terminal so eclipse would have the correct environment
-        // variables to run this command. Now, executeCommand makes a second
-        // attempt to run the command using a bash shell, so if you have a
-        // ~/.bash_profile file that specifies suitable paths, the command should
-        // work.
-        
-            val npmInstall = createCommand("pnpm", #["install"], fileConfig.getSrcGenPkgPath)
-            if (npmInstall === null || npmInstall.executeCommand() !== 0) {
-                reportError(resource.findTarget, "ERROR: npm install command failed."
-                    + "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
+        val pnpmInstall = createCommand(
+            "pnpm",
+            #["install"],
+            fileConfig.getSrcGenPkgPath,
+            "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
+                "it is highly recommended to install pnpm globally (npm install -g pnpm).",
+            false
+        )
+
+        val installErrors = new ByteArrayOutputStream()
+        // Attempt to use pnpm, but fall back on npm if it is not available.
+        if (pnpmInstall !== null) {
+            val ret = pnpmInstall.executeCommand(installErrors)
+            if (ret !== 0) {
+                reportError(resource.findTarget, "ERROR: pnpm install command failed: " + installErrors.toString)
+            }
+        } else {
+            val npmInstall = createCommand("npm", #["install"], fileConfig.getSrcGenPkgPath,
+                "The TypeScript target requires npm >= 6.14.4. " +
+                    "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.", true)
+            if (npmInstall !== null && npmInstall.executeCommand(installErrors) !== 0) {
+                reportError(resource.findTarget, "ERROR: npm install command failed: " + installErrors.toString)
+                reportError(resource.findTarget,
+                    "ERROR: npm install command failed." +
+                        "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
-        
+        }
+
         refreshProject()
         
         // Invoke the protocol buffers compiler on all .proto files in the project directory
@@ -240,7 +258,13 @@ class TypeScriptGenerator extends GeneratorBase {
                 "--js_out=import_style=commonjs,binary:"+tsOutPath,
                 "--ts_out=" + tsOutPath)
             protocArgs.addAll(targetConfig.protoFiles.fold(newLinkedList, [list, file | list.add(file); list]))
-            val protoc = createCommand("protoc", protocArgs, fileConfig.srcPath)
+            val protoc = createCommand(
+                "protoc",
+                protocArgs,
+                fileConfig.srcPath,
+                "Processing .proto files requires libprotoc >= 3.6.1",
+                true
+                )
                 
             if (protoc === null) {
                 return
@@ -267,7 +291,17 @@ class TypeScriptGenerator extends GeneratorBase {
 
         // Invoke the compiler on the generated code.
         println("Type Checking")
-        val tsc = createCommand("npm", #["run", "check-types"], fileConfig.getSrcGenPkgPath, findCommandEnv("npm"))
+        val tsc = createCommand(
+            "npm",
+            #["run", "check-types"],
+            fileConfig.getSrcGenPkgPath,
+            findCommandEnv(
+                "npm",
+                "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
+                "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+                true
+            )            
+        )
         if (tsc !== null) {
             if (tsc.executeCommand() == 0) {
                 // Babel will compile TypeScript to JS even if there are type errors
@@ -275,7 +309,14 @@ class TypeScriptGenerator extends GeneratorBase {
                 //val babelPath = codeGenConfig.outPath + File.separator + "node_modules" + File.separator + ".bin" + File.separator + "babel"
                 // Working command  $./node_modules/.bin/babel src-gen --out-dir js --extensions '.ts,.tsx'
                 println("Compiling")
-                val babel = createCommand("npm", #["run", "build"], fileConfig.getSrcGenPkgPath)
+                val babel = createCommand(
+                    "npm",
+                    #["run", "build"],
+                    fileConfig.getSrcGenPkgPath,
+                    "The TypeScript target requires npm >= 6.14.1 to compile the generated code. " +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+                    true
+                )
                 //createCommand(babelPath, #["src", "--out-dir", "dist", "--extensions", ".ts", "--ignore", "**/*.d.ts"], codeGenConfig.outPath)
                 
                 if (babel !== null) {
@@ -913,9 +954,10 @@ class TypeScriptGenerator extends GeneratorBase {
     // // Protected methods.
     
     /**
-     * Generate code for the body of a reaction that handles input from the network
-     * that is handled by the specified action. This base class throws an exception.
-     * @param action The action that has been created to handle incoming messages.
+     * Generate code for the body of a reaction that handles the
+     * action that is triggered by receiving a message from a remote
+     * federate.
+     * @param action The action.
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
@@ -924,9 +966,9 @@ class TypeScriptGenerator extends GeneratorBase {
      * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
      * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
      * @param type The type.
-     * @throws UnsupportedOperationException If the target does not support this operation.
+     * @param isPhysical Indicates whether or not the connection is physical
      */
-    override String generateNetworkReceiverBody(
+    override generateNetworkReceiverBody(
         Action action,
         VarRef sendingPort,
         VarRef receivingPort,
@@ -935,7 +977,8 @@ class TypeScriptGenerator extends GeneratorBase {
         FederateInstance receivingFed,
         int receivingBankIndex,
         int receivingChannelIndex,
-        InferredType type
+        InferredType type,
+        boolean isPhysical
     ) {
         return '''
             // FIXME: For now assume the data is a Buffer, but this is not checked.

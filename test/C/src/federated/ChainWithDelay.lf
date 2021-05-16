@@ -1,0 +1,19 @@
+/**
+ * Demonstration that monotonic NET hypothesis is invalid.
+ * 
+ * @author Edward A. Lee
+ */
+ target C {
+    timeout: 3 msec
+}
+import Count from "../lib/Count.lf";
+import InternalDelay from "../lib/InternalDelay.lf";
+import TestCount from "../lib/TestCount.lf";
+
+federated reactor {
+    c = new Count(period = 1 msec);
+    i = new InternalDelay(delay = 500 usec);
+    t = new TestCount(num_inputs = 3);
+    c.out -> i.in;
+    i.out -> t.in;
+}

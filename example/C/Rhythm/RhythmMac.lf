@@ -1,6 +1,6 @@
 /**
- * Simple demonstration of asynchronous input and timed output.
- * This version is not portable. It runs on MacOS.
+ * Rhythm generator using samples of percussion instruments.
+ * This program is not portable. It runs on MacOS.
  * It serves as a demonstration for how to write Lingua Franca
  * programs that use Apple's AudioToolbox.
  * 
@@ -26,27 +26,30 @@
  * Use afconvert on Mac to convert to the assumed input format.
  * 
  * @author Edward A. Lee
+ * 
+ * @see RhythmMacDistributed.lf
+ * @see RhythmMacDistributedIndependent.lf
+ * @see RhythmMacDistributedNoUI.lf
  */
- target C {
+target C {
+    threads: 2,
+    tracing: true,
     flags: ["-lncurses", "-framework", "AudioToolbox", "-framework", "CoreFoundation",  "-lm"],
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
-            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop_mac.h",
-            "Bass-Drum-1.wav", "Hi-Bongo.wav", "Claves.wav", "High-Conga-1.wav",
-            "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
-            "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"] 
-}; 
+            "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
+            "/lib/C/util/audio_loop_linux.c",
+            "sounds/Bass-Drum-1.wav", "sounds/Hi-Bongo.wav", "sounds/Claves.wav", "sounds/High-Conga-1.wav",
+            "sounds/Cowbell-1.wav", "sounds/Cuica-1.wav", "sounds/Guiro.wav",
+            "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"] 
+};
+
+import PlayWaveform from "PlayWaveform.lf"
+
 preamble {= 
     #include <ncurses.h>
-    #include "wave_file_reader.c"
+    #include <sys/stat.h> // Defines mkdir.
     #include "sensor_simulator.c"
-    #if __APPLE__
-    #include "audio_loop_mac.c"
-    #elif __linux__
-    #include "audio_loop_linux.c"
-    #else
-    #error "Platform not supported."
-    #endif
     
     /////////////////////////////
     // Configuration of the audio.
@@ -74,23 +77,10 @@ preamble {=
     #define SAMBA 0xddda
     #define SAMBA_EMPHASIS 0x99ca
     
-    // wav files giving the waveforms.
-    // These have to also be included in the files target directive.
-    #define NUM_WAVEFORMS 9  // Number of waveforms.
-    char* waveform_files[] = { "Bass-Drum-1.wav", "Hi-Bongo.wav",
-            "Claves.wav", "High-Conga-1.wav",
-            "Cowbell-1.wav", "Cuica-1.wav", "Guiro.wav",
-            "Ensoniq-ESQ-1-Snare.wav", "Floor-Tom-1.wav"};
-            
-    // The waveforms themselves.
-    lf_waveform_t* waveforms[NUM_WAVEFORMS + 1];
-    
-    lf_waveform_t empty_waveform = { 0 };
-    
     //////////////////////////////////////
     // Configuration of the user interface.
 
-    char* message[] = {
+    char* instructions[] = {
         "Basic control:",
         "  x: quit",
         "  +: speed up",
@@ -112,8 +102,7 @@ preamble {=
         "  b: bossa nova",
         "  s: samba"
     };
-    int message_length = 20;
-        
+    int instructions_length = 20;
 =}
 
 /**
@@ -121,10 +110,29 @@ preamble {=
  * according to a specified rhythm. The minimum time
  * between notes is given by the 'tick_duration' state
  * variable. This can be adjusted up or down.
+ * This is designed to coordinate between multiple
+ * instances of this RhythmSource so each can change
+ * the rhythm and tempo while keeping the others in sync.
+ * 
+ * @param sixteenth Initial duration of one sixteenth note.
+ * @param delta The amount by which to change sixteenth when tempo is increased or decreased.
+ * @param message An array of strings to display.
+ * @param message_length The length of the message array.
  */
-reactor RhythmSource(sixteenth:time(200 msec)) {    
-    output note:float;     // To play a note with the given emphasis.
-    output instrument:int; // Instrument selection.
+reactor RhythmSource(
+    sixteenth:time(200 msec),
+    delta:time(10 msec),
+    message:char**({=instructions=}),
+    message_length:int({=instructions_length=}),
+    log_to_file:bool(false)
+) {    
+    input rhythm_change_in:char;  // To change the rhythm.
+    input tempo_change_in:interval_t;    // To change the tempo.
+
+    output note:float;         // To play a note with the given emphasis.
+    output instrument:int;     // Instrument selection.
+    output rhythm_change:char; // To change the rhythm.
+    output tempo_change:interval_t;   // To change the tempo.
     
     state tick_duration:time(200 msec);
     logical action tick;
@@ -153,10 +161,22 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
     state cursor:int(0);
     
     reaction(startup) -> key, note, tick {=
-        // FIXME: See whether a note can be sent at the start time.
-        SET(note, 1.0);
         // Start the sensor simulator, which starts ncurses.
-        if (start_sensor_simulator(message, message_length, 16)) {
+        char* log_file_name = NULL;
+        if (self->log_to_file) {
+            log_file_name = calloc(40, sizeof(char));
+        	// FIXME: log directory won't work in Windows (wrong separator).
+        	mkdir("log", 0755);
+        	int fed_id = get_fed_id();
+        	if (fed_id < 0) {
+        		sprintf(log_file_name, "log/Rhythm_%lld.log", get_logical_time());
+      		} else {
+        		sprintf(log_file_name, "log/Rhythm_%d_%lld.log", fed_id, get_logical_time());
+        	}
+        }
+        if (start_sensor_simulator(
+            self->message, self->message_length, 16, log_file_name, LOG_LEVEL_ALL
+        )) {
             error_print_and_exit("ERROR: Failed to start sensor simulator.");
         }
         
@@ -166,7 +186,10 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
         schedule(tick, self->tick_duration);
     =}
     
-    reaction(key) -> instrument {=
+    /**
+     * React to a key press.
+     */
+    reaction(key) -> instrument, rhythm_change, tempo_change {=
         int numeric;
         switch (key->value) {
             case '0':
@@ -175,38 +198,86 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
             case 'd':
                 self->rhythm = DOWNBEAT;
                 self->emphasis = DOWNBEAT;
+                SET(rhythm_change, 'd');
+                info_print("Changing rhythm to downbeat only.");
                 break;
             case 'm':
                 self->rhythm = MERENGUE;
                 self->emphasis = MERENGUE_EMPHASIS;
+                SET(rhythm_change, 'm');
+                info_print("Changing rhythm to merengue.");
                 break;
             case 'b':
                 self->rhythm = BOSSA_NOVA;
                 self->emphasis = BOSSA_NOVA_EMPHASIS;
+                SET(rhythm_change, 'b');
+                info_print("Changing rhythm to bossa nova.");
                 break;
             case 's':
                 self->rhythm = SAMBA;
                 self->emphasis = SAMBA_EMPHASIS;
+                SET(rhythm_change, 's');
+                info_print("Changing rhythm to samba.");
                 break;
             case 'x':
                 request_stop();
                 break;
             case '+':
-                self->tick_duration -= MSEC(20);
-                if (self->tick_duration < MSEC(20)) {
-                    self->tick_duration = MSEC(20);
+                self->tick_duration -= self->delta;
+                if (self->tick_duration < self->delta) {
+                    self->tick_duration = self->delta;
                 }
+                SET(tempo_change, self->delta);
+                info_print("Speeding up tempo.");
                 break;
             case '-':
-                self->tick_duration += MSEC(20);
+                self->tick_duration += self->delta;
+                SET(tempo_change, -self->delta);
+                info_print("Slowing down tempo.");
                 break;
             default:
                 numeric = (int)key->value;
                 if (numeric >= 49 && numeric <= 57) {
                     // A digit between 1 and 9.
                     SET(instrument, numeric - 48);
+                	info_print("Changing instrument to %c.", numeric);
                 }
         }
+    =}
+
+	/**
+	 * React to a remote rhythm change.
+	 */
+    reaction(rhythm_change_in) {=
+        switch (rhythm_change_in->value) {
+            case 'm':
+                self->rhythm = MERENGUE;
+                self->emphasis = MERENGUE_EMPHASIS;
+                info_print("REMOTE: Changing rhythm to merengue.");
+                break;
+            case 'b':
+                self->rhythm = BOSSA_NOVA;
+                self->emphasis = BOSSA_NOVA_EMPHASIS;
+                info_print("REMOTE: Changing rhythm to bossa nova.");
+                break;
+            case 's':
+                self->rhythm = SAMBA;
+                self->emphasis = SAMBA_EMPHASIS;
+                info_print("REMOTE: Changing rhythm to samba.");
+                break;
+            default:
+                self->rhythm = DOWNBEAT;
+                self->emphasis = DOWNBEAT;
+                info_print("REMOTE: Changing rhythm to downbeat only.");
+                break;
+        }
+    =}
+    
+    reaction(tempo_change_in) {=
+        self->tick_duration -= tempo_change_in->value;
+        info_print("REMOTE: Changing the tempo period by %lld ns.",
+            -tempo_change_in->value
+        );
     =}
 
     reaction(tick) -> note, tick {=
@@ -235,73 +306,17 @@ reactor RhythmSource(sixteenth:time(200 msec)) {
             self->active_rhythm = self->rhythm;
             self->active_emphasis = self->emphasis;
             self->count = 0;
-        } 
-
+        }
+        
         schedule(tick, self->tick_duration);
-    =}
-}
- 
-/**
- * Produce a note when a `note` input is received.
- * 
- * This reactor provides a small collection of built-in audio
- * waveforms which are read at startup time from .wav files.
- * The waveform input specifies which of the waveforms to play
- * upon the next `note` input received.
- * It is a number between 0 and NUM_WAVEFORMS. If a number outside
- * this range is received, then simple tick sounds will be produced.
- * Number 0 is specially interpreted for silence.
- *
- * The `note` input is a number, normally between 0.0 and 1.0,
- * that specifies the loudness of the note. If the loudness exceeds
- * 1.0, or if too many notes are played at once, clipping may occur.
- * 
- */
-reactor PlayWaveform {
-    input note:float;
-    input waveform:int;
-    
-    /**
-     * Index of the current waveform.
-     * -1 means no waveform (just make ticks)).
-     */
-    state waveform_id:int(0);
-        
-    reaction(startup) {=
-        
-        // First waveform is empty.
-        waveforms[0] = &empty_waveform;
-        
-        // Open and read waveform files.
-        for (int i = 0; i < NUM_WAVEFORMS; i++) {
-            waveforms[i + 1] = read_wave_file(waveform_files[i]);
-        }
-        
-        // Start an audio loop that will become ready to receive
-        // amplitude samples of audio data.
-        lf_start_audio_loop(get_logical_time());
-    =}
-    
-    reaction(waveform) {=
-        self->waveform_id = waveform->value;
-    =}
-    
-    reaction(note) {=
-        if (self->waveform_id < 0 || self->waveform_id > NUM_WAVEFORMS) {
-            lf_play_audio_waveform(NULL, note->value, get_logical_time());
-        } else {
-            lf_play_audio_waveform(waveforms[self->waveform_id], note->value, get_logical_time());
-        }
-    =} deadline (10 msec) {=  // NOTE: deadline has to match BUFFER_DURATION_NS.
-        warning_print("Missed deadline!");
     =}
     
     reaction(shutdown) {=
-        lf_stop_audio_loop();
+        end_sensor_simulator();
     =}
 }
 
-main reactor RhythmMac {
+main reactor {
     source = new RhythmSource();
     play = new PlayWaveform();
     source.note -> play.note;

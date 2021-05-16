@@ -210,6 +210,10 @@ class TimeValue {
      * @return A new TimeValue (the current value will not be affected) 
      */
     def TimeValue add(TimeValue b) {
+        // Prevent overflow
+        if (b.toNanoSeconds() >= MAX_VALUE.toNanoSeconds - this.toNanoSeconds()) {
+            return MAX_VALUE;
+        }
         // Figure out the actual sum
         var sumOfNumbers = this.toNanoSeconds() + b.toNanoSeconds()
         // Unit of the return
