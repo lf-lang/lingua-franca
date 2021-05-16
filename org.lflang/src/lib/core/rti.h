@@ -405,9 +405,24 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////  case they might continue their execution until the stop tag has been reached.
 
 /**
- * Byte identifying a stop request. 
+ * Byte identifying a stop request. This message is first sent to the RTI by a federate
+ * that would like to stop execution at the specified tag. The RTI will forward
+ * the STOP_REQUEST to all other federates. Those federates will either agree to
+ * the requested tag or propose a larger tag. The RTI will collect all proposed
+ * tags and broadcast the largest of those to all federates. All federates
+ * will then be expected to stop at the granted tag.
+ *
  * The next 8 bytes will be the timestamp.
  * The next 4 bytes will be the microstep.
+ *
+ * NOTE: The RTI may reply with a larger tag than the one specified in this message.
+ * It has to be that way because if any federate can send a STOP_REQUEST message
+ * that specifies the stop time on all other federates, then every federate
+ * depends on every other federate and time cannot be advanced.
+ * Hence, the actual stop time may be nondeterministic.
+ * 
+ * If, on the other hand, the federate requesting the stop is upstream of every
+ * other federate, then it should be possible to respect its requested stop tag.
  */
 #define STOP_REQUEST 10
 #define STOP_REQUEST_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
@@ -418,8 +433,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 } while(0)
 
 /**
- * Byte indicating a federate's reply to a STOP_REQUEST that was originally sent
- * by the RTI.
+ * Byte indicating a federate's reply to a STOP_REQUEST that was sent
+ * by the RTI. The payload is a proposed stop tag that is at least as large
+ * as the one sent to the federate in a STOP_REQUEST message.
+ *
  * The next 8 bytes will be the timestamp.
  * The next 4 bytes will be the microstep.
  */
@@ -432,8 +449,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 } while(0)
 
 /**
- * Byte sent by the RTI indicating that the stop request from this federate
- * or from other federates has been granted.
+ * Byte sent by the RTI indicating that the stop request from some federate
+ * has been granted. The payload is the tag at which all federates have
+ * agreed that they can stop.
  * The next 8 bytes will be the time at which the federates will stop. * 
  * The next 4 bytes will be the microstep at which the federates will stop..
  */
@@ -444,6 +462,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     encode_ll(time, &(buffer[1])); \
     encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
+
 /////////// End of request_stop() messages ////////////////
 
 /**

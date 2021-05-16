@@ -74,7 +74,7 @@ reactor Receiver {
                      get_microstep());
         	request_stop();
         	// The receiver should receive a message at tag
-        	// (1 usec, 0) and trigger this reaction
+        	// (1 usec, 1) and trigger this reaction
         	self->reaction_invoked_correctly = true;
         }
         
@@ -90,7 +90,7 @@ reactor Receiver {
         // receiver.
         if (get_elapsed_logical_time() != USEC(1) ||
             get_microstep() != 1) {
-            error_print_and_exit("ERROR: Receiver failed to stop the federation in time. "
+            error_print_and_exit("ERROR: Receiver failed to stop the federation at the right time. "
                     "Stopping at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
