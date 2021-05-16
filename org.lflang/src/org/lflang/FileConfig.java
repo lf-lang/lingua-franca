@@ -3,12 +3,19 @@ package org.lflang;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
@@ -77,8 +84,12 @@ public class FileConfig {
     public final String name;
     
     /**
-     * The directory that is the root of the package in which the source
-     * file resides.
+     * The directory that is the root of the package in which the .lf source file resides. This path is determined
+     * differently depending on whether the compiler is invoked through the IDE or from the command line. In the former
+     * case, the package is the project root that the source resides in. In the latter case, it is the parent directory
+     * of the nearest `src` directory up the hierarchy, if there is one, or just the `outPath` if there is none. It is
+     * recommended to always keep the sources in a `src` directory regardless of the workflow, in which case the
+     * output behavior will be identical irrespective of the way the compiler is invoked.
      */
     public final Path srcPkgPath;
 
@@ -90,22 +101,33 @@ public class FileConfig {
     public final Resource resource;
     
     /**
+     * If running in an Eclipse IDE, the iResource refers to the
+     * IFile representing the Lingua Franca program.
+     * This is the XText view of the file, which is distinct
+     * from the Eclipse eCore view of the file and the OS view of the file.
+     */    
+    public final IResource iResource;
+    
+    /**
      * The full path to the file containing the .lf file including the
      * full filename with the .lf extension.
      */
     public final File srcFile;
 
     /**
-     * The directory in which the source file was found.
+     * The directory in which the source .lf file was found.
      */
     public final Path srcPath;
     
     // Protected fields.
     
     /**
-     * The parent of the specified directory for generated sources. Additional
-     * directories created during the build process should be created relative
-     * to this path.
+     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional 
+     * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources, 
+     * which means that such directories should be created relative to the path assigned to this class variable.
+     * 
+     * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
+     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
      */
     protected Path outPath;
    
@@ -168,10 +190,33 @@ public class FileConfig {
         this.srcGenPkgPath = this.srcGenPath;
         this.outPath = toPath(this.outputRoot);
         this.binPath = getBinPath(this.srcPkgPath, this.srcPath, this.outPath, context);
+        this.iResource = getIResource(resource);
     }
     
     // Getters to be overridden in derived classes.
     
+    /**
+     * Get the iResource corresponding to the provided resource if it can be
+     * found.
+     * @throws IOException
+     */
+    private IResource getIResource(Resource r) throws IOException {
+        IResource iResource = null;
+        java.net.URI uri = toPath(r).toFile().toURI();
+        if (r.getURI().isPlatform()) {
+            IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+            if (uri != null) {
+                 IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+                 if (files != null && files.length > 0 && files[0] != null) {
+                     iResource = files[0];
+                 }
+            }
+        } else {
+            // FIXME: find the iResource outside Eclipse
+        }
+        return iResource;
+    }
+
     /** 
      * Get the file name of a resource without file extension
      */
@@ -278,12 +323,63 @@ public class FileConfig {
         return relSrcPath;
     }
     
-    public void createDirectories() {
-        // FIXME
+    /**
+     * Create nested directories if the given path does not exist.
+     */
+    public static void createDirectories(Path path) {
+        File file = path.toFile();
+        if (!file.exists()) {
+            file.mkdirs();
+        }
     }
-    
-    
-    
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     */
+    public void cleanIfNeeded() {
+        if (context instanceof StandaloneContext) {
+            if (((StandaloneContext) context).getArgs().containsKey("clean")) {
+                try {
+                    doClean();
+                } catch (IOException e) {
+                    System.err.println("WARNING: IO Error during clean");
+                }
+            }
+        }
+    }
+
+    /**
+     * Recursively delete a directory if it exists.
+     * 
+     * @throws IOException
+     */
+    public void deleteDirectory(Path dir) throws IOException {
+        if (Files.isDirectory(dir)) {
+            System.out.println("Cleaning " + dir.toString());
+            List<Path> pathsToDelete = Files.walk(dir)
+                    .sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList());
+            for (Path path : pathsToDelete) {
+                Files.deleteIfExists(path);
+            }
+        }
+    }
+
+    /**
+     * Clean any artifacts produced by the code generator and target compilers.
+     * 
+     * The base implementation deletes the bin and src-gen directories. If the
+     * target code generator creates additional files or directories, the
+     * corresponding generator should override this method.
+     * 
+     * @throws IOException
+     */
+    public void doClean() throws IOException {
+        deleteDirectory(binPath);
+        deleteDirectory(srcGenBasePath);
+    }
+ 
     /**
      * Remove files in the bin directory that may have been created.
      * Call this if a compilation occurs so that files from a previous

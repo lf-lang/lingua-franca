@@ -909,7 +909,7 @@ PyObject* convert_C_action_to_py(void* action) {
 
     // Fill in the Python action struct
     ((generic_action_capsule_struct*)cap)->action = capsule;
-    ((generic_action_capsule_struct*)cap)->is_present = trigger->is_present;
+    ((generic_action_capsule_struct*)cap)->is_present = trigger->status;
 
     // If token is not initialized, that is all we need to set
     if (trigger->token == NULL) {

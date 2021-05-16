@@ -66,13 +66,13 @@ int host_is_big_endian() {
     return (host == HOST_BIG_ENDIAN);
 }
 
-/** 
+/**
  * Read the specified number of bytes from the specified socket into the
  * specified buffer. If an error or an EOF occurs during this
  * reading, then if format is non-null, close the socket,
  * report an error and exit.
- * If format is null, then report the error, but do not exit or close
- * the socket.
+ * If format is NULL, then just return 0 for EOF and a negative number
+ * for any other error.
  *
  * This function takes a formatted
  * string and additional optional arguments similar to printf(format, ...)
@@ -86,9 +86,17 @@ int host_is_big_endian() {
  * @return The number of bytes read, or 0 if an EOF is received, or
  *  a negative number for an error.
  */
-int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, char* format, ...) {
-    int bytes_read = 0;
+int read_from_socket_errexit(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		char* format, ...) {
     va_list args;
+	if (socket < 0 && format != NULL) {
+		error_print("Socket is no longer open.");
+        error_print_and_exit(format, args);
+	}
+    int bytes_read = 0;
     while (bytes_read < num_bytes) {
         int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
         if(more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
@@ -96,18 +104,19 @@ int read_from_socket_errexit(int socket, int num_bytes, unsigned char* buffer, c
             // that we should try again (@see man errno).
             DEBUG_PRINT("Reading from socket was blocked. Will try again.");
             continue;
-        } else if (more < 0) {
-            error_print("Socket read failed on socket %d: %s:", socket, strerror(errno));
+        } else if (more <= 0) {
             if (format != NULL) {
+                shutdown(socket, SHUT_RDWR);
                 close(socket);
+                error_print("Read %d bytes, but expected %d.",
+                		more + bytes_read, num_bytes);
                 error_print_and_exit(format, args);
-            }
-            return more;
-        } else if (more == 0) {
-            info_print("Peer sent EOF on socket %d.", socket);
-            if (format != NULL) {
-                close(socket);
-                error_print_and_exit(format, args);
+            } else if (more == 0) {
+                // According to this: https://stackoverflow.com/questions/4160347/close-vs-shutdown-socket,
+            	// upon receiving a zero length packet or an error, we can close the socket.
+            	// If there are any pending outgoing messages, this will attempt to send those
+            	// followed by an EOF.
+            	close(socket);
             }
             return more;
         }
@@ -147,13 +156,19 @@ int read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
  * @param socket The socket ID.
  * @param num_bytes The number of bytes to write.
  * @param buffer The buffer from which to get the bytes.
+ * @param mutex If non-NULL, the mutex to unlock before exiting.
  * @param format A format string for error messages, followed by any number of
  *  fields that will be used to fill the format string as in printf, or NULL
  *  to prevent exit on error.
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, char* format, ...) {
+int write_to_socket_errexit_with_mutex(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		lf_mutex_t* mutex,
+		char* format, ...) {
     int bytes_written = 0;
     va_list args;
     while (bytes_written < num_bytes) {
@@ -163,24 +178,49 @@ int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, ch
                     // that we should try again (@see man errno).
             DEBUG_PRINT("Writing to socket was blocked. Will try again.");
             continue;
-        } else if (more < 0) {
-            error_print("Socket write failed: %s:", strerror(errno));
+        } else if (more <= 0) {
             if (format != NULL) {
+                shutdown(socket, SHUT_RDWR);
             	close(socket);
-                error_print_and_exit(format, args);
-            }
-            return more;
-        } else if (more == 0) {
-            error_print("Peer sent EOF. ");
-            if (format != NULL) {
-                close(socket);
-                error_print_and_exit(format, args);
+            	if (mutex != NULL) {
+            		lf_mutex_unlock(mutex);
+            	}
+                error_print(format, args);
+                error_print_and_exit("Code %d: %s.", errno, strerror(errno));
             }
             return more;
         }
         bytes_written += more;
     }
     return bytes_written;
+}
+
+/**
+ * Write the specified number of bytes to the specified socket from the
+ * specified buffer. If an error or an EOF occurs during this
+ * reading, then if the format string is non-null, close the socket,
+ * report an error, and exit. If the format string is null,
+ * report an error or EOF and return.
+ *
+ * This function takes a formatted
+ * string and additional optional arguments similar to printf(format, ...)
+ * that is appended to the error messages.
+ *
+ * @param socket The socket ID.
+ * @param num_bytes The number of bytes to write.
+ * @param buffer The buffer from which to get the bytes.
+ * @param format A format string for error messages, followed by any number of
+ *  fields that will be used to fill the format string as in printf, or NULL
+ *  to prevent exit on error.
+ * @return The number of bytes written, or 0 if an EOF was received, or a negative
+ *  number if an error occurred.
+ */
+int write_to_socket_errexit(
+		int socket,
+		int num_bytes,
+		unsigned char* buffer,
+		char* format, ...) {
+	return write_to_socket_errexit_with_mutex(socket, num_bytes, buffer, NULL, format);
 }
 
 /**
@@ -198,7 +238,7 @@ int write_to_socket_errexit(int socket, int num_bytes, unsigned char* buffer, ch
  *  number if an error occurred.
  */
 int write_to_socket(int socket, int num_bytes, unsigned char* buffer) {
-    return write_to_socket_errexit(socket, num_bytes, buffer, NULL);
+    return write_to_socket_errexit_with_mutex(socket, num_bytes, buffer, NULL, NULL);
 }
 
 /** Write the specified data as a sequence of bytes starting
@@ -369,14 +409,15 @@ unsigned short extract_ushort(unsigned char* bytes) {
     return swap_bytes_if_big_endian_ushort(result.ushort);
 }
 
-/** Extract the core header information that all messages between
- *  federates share. The core header information is two bytes with
- *  the ID of the destination port, two bytes with the ID of the destination
- *  federate, and four bytes with the length of the message.
- *  @param buffer The buffer to read from.
- *  @param port_id The place to put the port ID.
- *  @param federate_id The place to put the federate ID.
- *  @param length The place to put the length.
+/**
+ * Extract the core header information that all messages between
+ * federates share. The core header information is two bytes with
+ * the ID of the destination port, two bytes with the ID of the destination
+ * federate, and four bytes with the length of the message.
+ * @param buffer The buffer to read from.
+ * @param port_id The place to put the port ID.
+ * @param federate_id The place to put the federate ID.
+ * @param length The place to put the length.
  */
 void extract_header(
         unsigned char* buffer,
@@ -397,4 +438,29 @@ void extract_header(
     *length = extract_int(&(buffer[sizeof(unsigned short) + sizeof(unsigned short)]));
 
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
+}
+
+/**
+ * Extract the timed header information for timed messages between
+ * federates. This is two bytes with the ID of the destination port,
+ * two bytes with the ID of the destination
+ * federate, four bytes with the length of the message,
+ * eight bytes with a timestamp, and four bytes with a microstep.
+ * @param buffer The buffer to read from.
+ * @param port_id The place to put the port ID.
+ * @param federate_id The place to put the federate ID.
+ * @param length The place to put the length.
+ * @param tag The place to put the tag.
+ */
+void extract_timed_header(
+        unsigned char* buffer,
+        unsigned short* port_id,
+        unsigned short* federate_id,
+        unsigned int* length,
+		tag_t* tag
+) {
+	extract_header(buffer, port_id, federate_id, length);
+
+    tag->time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    tag->microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
 }

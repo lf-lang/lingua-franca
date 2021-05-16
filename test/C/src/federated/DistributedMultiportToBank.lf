@@ -9,11 +9,12 @@ reactor Source {
     state count:int(0);
     reaction(t) -> out {=
         for (int i = 0; i < out_width; i++) {
-            SET(out[i], self->count++);
+            SET(out[i], self->count);
         }
+        self->count++;
     =}
 }
-
+ 
 reactor Destination {
     input in:int;
     state count:int(0);

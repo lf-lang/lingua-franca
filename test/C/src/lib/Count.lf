@@ -1,8 +1,8 @@
 target C;
-reactor Count {
+reactor Count(offset:time(0), period:time(1 sec)) {
     state count:int(1);
     output out:int;
-    timer t(0, 1 sec);
+    timer t(offset, period);
     reaction(t) -> out {=
         SET(out, self->count++);
     =}
