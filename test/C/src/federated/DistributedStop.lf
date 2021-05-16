@@ -1,4 +1,4 @@
-/**
+ /**
  * Test for request_stop() in federated execution.
  * 
  * @author Soroush Bateni
@@ -10,7 +10,7 @@ reactor Sender {
     timer t(0, 1 usec);
     logical action act;
     state reaction_invoked_correctly:bool(false);
-    reaction(t, act) -> out{=
+    reaction(t, act) -> out, act {=
         info_print("Sending 42 at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
