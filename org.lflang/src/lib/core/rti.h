@@ -342,7 +342,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This message from a federate tells the RTI the tag of the earliest event 
  * on that federate's event queue. In other words, absent any further inputs 
  * from other federates, this will be the least tag of the next set of
- * reactions on that federate.
+ * reactions on that federate. If the event queue is empty and a timeout
+ * time has been specified, then the timeout time will be sent. If there is
+ * no timeout time, then FOREVER will be sent. Note that this message should
+ * not be sent if there are physical actions and the earliest event on the event
+ * queue has a tag that is ahead of physical time (or the queue is empty).
+ * In that case, send TAN instead.
  */
 #define NEXT_EVENT_TAG 6
 
@@ -359,15 +364,19 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** 
  * Byte identifying a time advance grant (TAG) sent by the RTI to a federate
- * in centralized coordination.
+ * in centralized coordination. This message is a promise by the RTI to the federate
+ * that no later message sent to the federate will have a tag earlier than or
+ * equal to the tag carried by this TAG message.
  * The next eight bytes will be the timestamp.
  * The next four bytes will be the microstep.
  */
 #define TIME_ADVANCE_GRANT 7
 
 /** 
- * Byte identifying a provisional time advance grant (TAG) sent by the RTI to a federate
- * in centralized coordination.
+ * Byte identifying a provisional time advance grant (PTAG) sent by the RTI to a federate
+ * in centralized coordination. This message is a promise by the RTI to the federate
+ * that no later message sent to the federate will have a tag earlier than the tag
+ * carried by this PTAG message.
  * The next eight bytes will be the timestamp.
  * The next four bytes will be the microstep.
  */
@@ -599,7 +608,8 @@ typedef struct federate_t {
     bool clock_synchronization_enabled;    // Indicates the status of clock synchronization 
                                            // for this federate. Enabled by default.
     tag_t completed;        // The largest logical tag completed by the federate (or NEVER if no LTC has been received).
-    tag_t last_granted;     // The maximum tag that has been granted so far (or NEVER if none granted)
+    tag_t last_granted;     // The maximum TAG that has been granted so far (or NEVER if none granted)
+    tag_t last_provisionally_granted;      // The maximum PTAG that has been provisionally granted (or NEVER if none granted)
     tag_t next_event;       // Most recent NET received from the federate (or NEVER if none received).
     instant_t time_advance; // Most recent TAN received from the federate (or NEVER if none received).
     fed_state_t state;      // State of the federate.

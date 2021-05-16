@@ -1,4 +1,4 @@
-/**
+ /**
  * Test for request_stop() in federated execution.
  * 
  * @author Soroush Bateni
@@ -10,8 +10,8 @@ reactor Sender {
     timer t(0, 1 usec);
     logical action act;
     state reaction_invoked_correctly:bool(false);
-    reaction(t, act) -> out{=
-        printf("Sending 42 at (%lld, %u).\n",
+    reaction(t, act) -> out, act {=
+        info_print("Sending 42 at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
         SET(out, 42);
@@ -25,7 +25,7 @@ reactor Sender {
         if (get_elapsed_logical_time() == USEC(1)) {
             // Call request_stop() both at (1 usec, 0) and
             // (1 usec, 1)
-            printf("Requesting stop at (%lld, %u).\n",
+            info_print("Requesting stop at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
             request_stop();
@@ -37,27 +37,24 @@ reactor Sender {
 		    self->reaction_invoked_correctly = true;
         } else if (compare_tags(get_current_tag(), _1usec1) > 0) {
             // The reaction should not have been invoked at tags larger than (1 usec, 1)
-            fprintf(stderr, "ERROR: Invoked reaction(t, act) at tag bigger than shutdown.\n");
-            exit(1);            
+            error_print_and_exit("ERROR: Invoked reaction(t, act) at tag bigger than shutdown.");
         }
     =}
     
     reaction(shutdown) {=
         if (get_elapsed_logical_time() != USEC(1) ||
             get_microstep() != 1) {
-            fprintf(stderr, "ERROR: Sender failed to stop the federation in time. "
-                    "Stopping at (%lld, %u).\n",
+            error_print_and_exit("ERROR: Sender failed to stop the federation in time. "
+                    "Stopping at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
-            exit(1);
         } else if (self->reaction_invoked_correctly == false) {
-            fprintf(stderr, "ERROR: Sender reaction(t, act) was not invoked at (1 usec, 1). "
-                    "Stopping at (%lld, %u).\n",
+            error_print_and_exit("ERROR: Sender reaction(t, act) was not invoked at (1 usec, 1). "
+                    "Stopping at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
-            exit(1);            
         }
-        printf("SUCCESS: Successfully stopped the federation at (%lld, %u).\n",
+        info_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
     =}
@@ -67,12 +64,12 @@ reactor Receiver {
     input in:int;
     state reaction_invoked_correctly:bool(false);
     reaction(in) {=
-        printf("Received %d at (%lld, %u).\n",
+        info_print("Received %d at (%lld, %u).",
                      in->value,
                      get_elapsed_logical_time(),
                      get_microstep());
         if (get_elapsed_logical_time() == USEC(1)) {
-            printf("Requesting stop at (%lld, %u).\n",
+            info_print("Requesting stop at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
         	request_stop();
@@ -93,19 +90,17 @@ reactor Receiver {
         // receiver.
         if (get_elapsed_logical_time() != USEC(1) ||
             get_microstep() != 0) {
-            fprintf(stderr, "ERROR: Receiver failed to stop the federation in time. "
-                    "Stopping at (%lld, %u).\n",
+            error_print_and_exit("ERROR: Receiver failed to stop the federation in time. "
+                    "Stopping at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
-            exit(1);
         } else if (self->reaction_invoked_correctly == false) {            
-            fprintf(stderr, "ERROR: Receiver reaction(in) was not invoked the correct number of times. "
-                    "Stopping at (%lld, %u).\n",
+            error_print_and_exit("ERROR: Receiver reaction(in) was not invoked the correct number of times. "
+                    "Stopping at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
-            exit(1);            
         }
-        printf("SUCCESS: Successfully stopped the federation at (%lld, %u).\n",
+        info_print("SUCCESS: Successfully stopped the federation at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
     =}

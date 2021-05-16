@@ -135,7 +135,7 @@
   <setupTask
       xsi:type="setup:VariableTask"
       name="eclipse.target.platform"
-      defaultValue="2020-12"
+      defaultValue="2021-03"
       storageURI="scope://Workspace"/>
   <setupTask
       xsi:type="setup.p2:P2Task">
@@ -161,7 +161,7 @@
         name="org.eclipse.epp.mpc.feature.group"/>
     <requirement
         name="org.eclipse.xtext.sdk.feature.group"
-        versionRange="2.23.0"/>
+        versionRange="2.25.0"/>
     <repository
         url="http://download.eclipse.org/modeling/tmf/xtext/updates/composite/releases/"/>
     <description>Install the tools needed in the IDE to work with the source code for ${scope.project.label}</description>
@@ -303,7 +303,7 @@
           activeRepositoryList="DefaultRepositories"
           includeSources="false">
         <annotation
-            source="http:/www.eclipse.org/oomph/targlets/TargetDefinitionGenerator_DISABLED">
+            source="http:/www.eclipse.org/oomph/targlets/TargetDefinitionGenerator">
           <detail
               key="preferredRepositories">
             <value>http://download.eclipse.org/eclipse/updates/</value>
@@ -318,7 +318,7 @@
           </detail>
           <detail
               key="location">
-            <value>${git.clone.lingua.franca.location}/targetplatform/lingua-franca.target</value>
+            <value>${git.clone.lingua.franca.location}/org.lflang.targetplatform/org.lflang.targetplatform.target</value>
           </detail>
         </annotation>
         <requirement
@@ -338,14 +338,16 @@
         <requirement
             name="com.google.inject"/>
         <requirement
+            name="javax.annotation"/>
+        <requirement
             name="com.google.guava"
             versionRange="27.0.0"/>
         <requirement
             name="org.eclipse.xtext.runtime.feature.group"
-            versionRange="2.23.0"/>
+            versionRange="2.25.0"/>
         <requirement
             name="org.eclipse.xtext.sdk.feature.group"
-            versionRange="2.23.0"/>
+            versionRange="2.25.0"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
@@ -379,7 +381,7 @@
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2020-12"/>
+              url="http://download.eclipse.org/releases/2021-03"/>
           <repository
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
@@ -460,20 +462,20 @@
             versionRange="27.0.0"/>
         <requirement
             name="org.eclipse.xtext.runtime.feature.group"
-            versionRange="2.23.0"/>
+            versionRange="2.25.0"/>
         <requirement
             name="org.eclipse.xtext.sdk.feature.group"
-            versionRange="2.23.0"/>
+            versionRange="2.25.0"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2020-12"/>
+              url="http://download.eclipse.org/releases/2021-03"/>
           <repository
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
-              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.24.0/"/>
+              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
         </repositoryList>
       </targlet>
     </setupTask>

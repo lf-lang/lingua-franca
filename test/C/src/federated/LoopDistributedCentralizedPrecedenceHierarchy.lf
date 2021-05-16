@@ -40,6 +40,7 @@ reactor Looper(incr:int(1), delay:time(0 msec)) {
     c = new Contained(incr = incr);
     
     reaction(t) -> out {=
+        info_print("Sending network output %d", self->count); 
         SET(out, self->count);
         self->count += self->incr;
     =}

@@ -6,7 +6,7 @@
 
 $base="$PSScriptRoot\.."
 $lfbase="$base\org.lflang"
-$jarpath="$lfbase\build\libs\org.lflang-1.0.0-SNAPSHOT-all.jar"
+$jarpath="$lfbase\build\libs\org.lflang-0.1.0-SNAPSHOT-all.jar"
 
 # if there is no jar file, then build it first
 if (-not (Test-Path $jarpath -PathType leaf)) {

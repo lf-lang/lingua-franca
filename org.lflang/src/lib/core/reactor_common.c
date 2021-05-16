@@ -74,7 +74,7 @@ bool _lf_execution_started = false;
  * 
  * FIXME: This variable might need to be volatile
  */
-tag_t stop_tag = (tag_t) {.time = FOREVER, .microstep = UINT_MAX};
+tag_t stop_tag = FOREVER_TAG;
 
 /** Indicator of whether the keepalive command-line option was given. */
 bool keepalive_specified = false;
@@ -580,8 +580,14 @@ void __pop_events() {
         event = (event_t*)pqueue_pop(event_q);
         
         if (event->is_dummy) {
-            pqueue_insert(next_q, event->next);
+        	DEBUG_PRINT("Popped dummy event from the event queue.");
+        	if (event->next != NULL) {
+            	DEBUG_PRINT("Putting event from the event queue for the next microstep.");
+        		pqueue_insert(next_q, event->next);
+        	}
             _lf_recycle_event(event);
+            // Peek at the next event in the event queue.
+            event = (event_t*)pqueue_peek(event_q);
             continue;
         }
 
@@ -668,12 +674,13 @@ void __pop_events() {
         event = (event_t*)pqueue_peek(event_q);
     };
 
-    
 #ifdef FEDERATED
     // Insert network dependent reactions for network input ports into
     // the reaction queue
     enqueue_network_control_reactions(reaction_q);
 #endif // FEDERATED
+
+    DEBUG_PRINT("There are %d events deferred to the next microstep.", pqueue_size(next_q));
 
     // After populating the reaction queue, see if there are things on the
     // next queue to put back into the event queue.
@@ -760,16 +767,19 @@ void _lf_recycle_event(event_t* e) {
 event_t* _lf_create_dummy_events(trigger_t* trigger, instant_t time, event_t* next, microstep_t offset) {
     event_t* first_dummy = _lf_get_new_event();
     event_t* dummy = first_dummy;
+    dummy->time = time;
+    dummy->is_dummy = true;
+    dummy->trigger = trigger;
     while (offset > 0) {
-        dummy->time = time;
-        dummy->trigger = trigger;
-        dummy->is_dummy = true;
         if (offset == 1) {
             dummy->next = next;
             break;
         }
         dummy->next = _lf_get_new_event();
         dummy = dummy->next;
+        dummy->time = time;
+        dummy->is_dummy = true;
+        dummy->trigger = trigger;
         offset--;
     }
     return first_dummy;

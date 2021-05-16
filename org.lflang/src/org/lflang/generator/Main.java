@@ -195,7 +195,8 @@ public class Main {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
-        COMPILER("c", "target-compiler", true, false, "Target compiler to invoke.", true),
+        COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
+        CLEAN("c", "clean", false, false, "Clean before building.", true),
         HELP("h", "help", false, false, "Display this information.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         REBUILD("r", "rebuild", false, false, "Rebuild the LF compiler first.", false),
@@ -471,7 +472,7 @@ public class Main {
      * @return
      */
     private boolean rebuildAndFork() {
-        // jar:file:<root>org.lflang.linguafranca/build/libs/org.lflang.linguafranca-1.0.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
+        // jar:file:<root>org.lflang.linguafranca/build/libs/org.lflang.linguafranca-0.1.0-SNAPSHOT-all.jar!/org/icyphy/generator/Main.class
         if (needsUpdate()) {
             // Only rebuild if the jar is out-of-date.
             printInfo("Jar file is missing or out-of-date; running Gradle.");

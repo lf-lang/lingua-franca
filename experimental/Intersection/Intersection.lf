@@ -1,5 +1,5 @@
 /**
- * Program generating the DistributedDatabase figure.
+ * Rough starting point for a four-way stop system.
  * 
  * @author Edward A. Lee
  */
@@ -78,10 +78,11 @@ reactor IntersectionController (
 }
 
 /**
- * A mockup of a platform (e.g. a pod, a virtual machine, a physical
- * machine, etc.) that hosts a replicated database and a web server.
+ * A self-driving car that requests permission from a
+ * road-side unit (RSU) to pass through an intersection.
  * 
- * @param num_replicas The number of database replicas.
+ * @param distance The distance from the intersection at
+ *  which it makes the request.
  * 
  * @input update An update notification from another replica.
  * 
