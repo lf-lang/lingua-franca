@@ -2232,7 +2232,7 @@ void* listen_to_federates(void* fed_id_ptr) {
         }
         if (bad_message) {
             // FIXME: Better error handling needed.
-            error_print_and_exit("Received erroneous message type: %d. Closing the socket.", buffer[0]);
+            error_print("Received erroneous message type: %d. Closing the socket.", buffer[0]);
             break;
         }
     }
