@@ -819,27 +819,6 @@ void handle_time_advance_notice(federate_t* fed) {
     pthread_mutex_unlock(&rti_mutex);
 }
 
-/**
- * Broadcast a message to all federates.
- * 
- * If a federate is disconnected, this function will skip over it.
- * 
- * This function assumes that the mutex lock is already acquired by the caller.
- * 
- * @param buffer The buffer containing the message
- * @param size_of_message The size of the message
- */
-void _lf_rti_broadcast_message_to_federates_already_locked(unsigned char* buffer, size_t size_of_message) {
-    // Iterate over federates and send each the message.
-    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
-        if (federates[i].state == NOT_CONNECTED) {
-            continue;
-        }
-        write_to_socket_errexit(federates[i].socket, size_of_message, buffer,
-                "RTI failed to broadcast message to federate %d.", federates[i].id);
-    }
-}
-
 /////////////////// STOP functions ////////////////////
 /**
  * Boolean used to prevent the RTI from sending the
@@ -850,6 +829,8 @@ bool _lf_rti_stop_granted_already_sent_to_federates = false;
 /**
  * Once the RTI has seen proposed times from all connected federates,
  * it will broadcast a STOP_GRANTED carrying the max_stop_time.
+ * This function also checks the most recently received NET from
+ * each federate and resets that be no greater than the max_stop_time.
  * 
  * This function assumes the caller holds the rti_mutex lock.
  */
@@ -861,7 +842,24 @@ void _lf_rti_broadcast_stop_time_to_federates_already_locked() {
     unsigned char outgoing_buffer[1 + sizeof(instant_t)];
     outgoing_buffer[0] = STOP_GRANTED;
     encode_ll(max_stop_time, &(outgoing_buffer[1]));
-    _lf_rti_broadcast_message_to_federates_already_locked(outgoing_buffer, 1 + sizeof(instant_t));
+    int size_of_message = 1 + sizeof(instant_t);
+
+    // Iterate over federates and send each the message.
+    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
+        if (federates[i].state == NOT_CONNECTED) {
+            continue;
+        }
+        if (federates[i].next_event.time > max_stop_time
+        		|| (federates[i].next_event.time == max_stop_time
+        				&& federates[i].next_event.microstep > 0)
+		) {
+        	federates[i].next_event.time = max_stop_time;
+        	federates[i].next_event.microstep = 0;
+        }
+        write_to_socket_errexit(federates[i].socket, size_of_message, outgoing_buffer,
+                "RTI failed to broadcast message to federate %d.", federates[i].id);
+    }
+
     LOG_PRINT("RTI sent to federates STOP_GRANTED with (elapsed) time %lld.", max_stop_time - start_time);
     _lf_rti_stop_granted_already_sent_to_federates = true;
 }
