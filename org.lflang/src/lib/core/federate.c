@@ -2098,8 +2098,11 @@ void handle_stop_request_message() {
 
     // Encode the current logical tag or the stop tag, whichever is bigger.
     tag_t current_tag = get_current_tag();
-    if (compare_tags(tag_to_stop, current_tag) < 0) {
-        tag_to_stop = current_tag;
+    tag_t when_I_can_stop_earliest = current_tag;
+    // Can stop at the next tag at the earliest.
+    when_I_can_stop_earliest.microstep++;
+    if (compare_tags(tag_to_stop, when_I_can_stop_earliest) < 0) {
+        tag_to_stop = when_I_can_stop_earliest;
     }
 
     unsigned char outgoing_buffer[STOP_REQUEST_REPLY_MESSAGE_LENGTH];
