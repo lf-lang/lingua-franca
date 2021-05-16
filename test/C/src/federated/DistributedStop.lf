@@ -1,5 +1,5 @@
  /**
- * Test for request_stop() in federated execution.
+ * Test for request_stop() in federated execution with centralized coordination.
  * 
  * @author Soroush Bateni
  */
@@ -78,8 +78,8 @@ reactor Receiver {
         	self->reaction_invoked_correctly = true;
         }
         
-        tag_t _1usec0 = (tag_t) { .time = USEC(1) + get_start_time(), .microstep = 0u };
-        if (compare_tags(get_current_tag(), _1usec0) > 0) {
+        tag_t _1usec1 = (tag_t) { .time = USEC(1) + get_start_time(), .microstep = 1u };
+        if (compare_tags(get_current_tag(), _1usec1) > 0) {
         	self->reaction_invoked_correctly = false;            
         }
     =}
@@ -89,7 +89,7 @@ reactor Receiver {
         // Therefore, the shutdown events must occur at (1000, 0) on the
         // receiver.
         if (get_elapsed_logical_time() != USEC(1) ||
-            get_microstep() != 0) {
+            get_microstep() != 1) {
             error_print_and_exit("ERROR: Receiver failed to stop the federation in time. "
                     "Stopping at (%lld, %u).",
                      get_elapsed_logical_time(),
