@@ -827,10 +827,10 @@ void handle_time_advance_notice(federate_t* fed) {
 bool _lf_rti_stop_granted_already_sent_to_federates = false;
 
 /**
- * Once the RTI has seen proposed times from all connected federates,
- * it will broadcast a STOP_GRANTED carrying the max_stop_time.
+ * Once the RTI has seen proposed tags from all connected federates,
+ * it will broadcast a STOP_GRANTED carrying the max_stop_tag.
  * This function also checks the most recently received NET from
- * each federate and resets that be no greater than the max_stop_time.
+ * each federate and resets that be no greater than the max_stop_tag.
  * 
  * This function assumes the caller holds the rti_mutex lock.
  */
@@ -847,11 +847,12 @@ void _lf_rti_broadcast_stop_time_to_federates_already_locked() {
         if (federates[i].state == NOT_CONNECTED) {
             continue;
         }
-        if (compare_tags(federates[i].next_event, max_stop_tag) > 0) {
+        if (compare_tags(federates[i].next_event, max_stop_tag) >= 0) {
+        	// Need the next_event to be no greater than the stop tag.
         	federates[i].next_event = max_stop_tag;
         }
         write_to_socket_errexit(federates[i].socket, STOP_GRANTED_MESSAGE_LENGTH, outgoing_buffer,
-                "RTI failed to broadcast stop message to federate %d.", federates[i].id);
+                "RTI failed to send STOP_GRANTED message to federate %d.", federates[i].id);
     }
 
     LOG_PRINT("RTI sent to federates STOP_GRANTED with tag (%lld, %u).",
@@ -891,30 +892,34 @@ void _lf_rti_mark_federate_requesting_stop(federate_t* fed) {
  */
 void handle_stop_request_message(federate_t* fed) {
     DEBUG_PRINT("RTI handling stop_request from federate %d.", fed->id);
+    
     int bytes_to_read = STOP_REQUEST_MESSAGE_LENGTH - 1;
     unsigned char buffer[bytes_to_read];
-    read_from_socket_errexit(fed->socket, bytes_to_read, buffer, "RTI failed to read the stop message timestamp from federate %d.", fed->id);
+    read_from_socket_errexit(fed->socket, bytes_to_read, buffer, 
+    		"RTI failed to read the STOP_REQUEST payload from federate %d.", fed->id);
 
     // Acquire a mutex lock to ensure that this state does change while a
     // message is in transport or being used to determine a TAG.
     pthread_mutex_lock(&rti_mutex);    
+
+    // Check whether we have already received a stop_tag
+    // from this federate
+    if (federates[fed->id].requested_stop) {
+        // Ignore this request
+        pthread_mutex_unlock(&rti_mutex);
+        return;
+    }
+
     // Extract the proposed stop tag for the federate
     tag_t proposed_stop_tag;
     proposed_stop_tag.time = extract_ll(buffer);
-    proposed_stop_tag.microstep = extract_ushort(&(buffer[sizeof(instant_t)]));
+    proposed_stop_tag.microstep = extract_int(&(buffer[sizeof(instant_t)]));
     
     // Update the maximum stop tag received from federates
     if (compare_tags(proposed_stop_tag, max_stop_tag) > 0) {
         max_stop_tag = proposed_stop_tag;
     }
 
-    // Check if we have already received a stop_time
-    // from this federate
-    if (federates[fed->id].requested_stop) {
-        // Ignore this request
-        pthread_mutex_unlock(&rti_mutex);  
-        return;
-    }
     LOG_PRINT("RTI received from federate %d a STOP_REQUEST message with tag (%lld, %u).",
             fed->id, proposed_stop_tag.time - start_time, proposed_stop_tag.microstep);
 
@@ -929,6 +934,8 @@ void handle_stop_request_message(federate_t* fed) {
         pthread_mutex_unlock(&rti_mutex);    
         return;
     }
+    // Forward the stop request to all other federates that have not
+    // also issued a stop request.
     unsigned char stop_request_buffer[STOP_REQUEST_MESSAGE_LENGTH];
     ENCODE_STOP_REQUEST(stop_request_buffer, max_stop_tag.time, max_stop_tag.microstep);
 
@@ -941,10 +948,10 @@ void handle_stop_request_message(federate_t* fed) {
                 continue;
             }
             write_to_socket_errexit(federates[i].socket, STOP_REQUEST_MESSAGE_LENGTH, stop_request_buffer,
-                    "RTI failed to broadcast message to federate %d.", federates[i].id);
+                    "RTI failed to forward STOP_REQUEST message to federate %d.", federates[i].id);
         }
     }
-    LOG_PRINT("RTI broadcasted to federates STOP_REQUEST with tag (%lld, %u).",
+    LOG_PRINT("RTI forwarded to federates STOP_REQUEST with tag (%lld, %u).",
                 max_stop_tag.time - start_time,
                 max_stop_tag.microstep);
     pthread_mutex_unlock(&rti_mutex);
@@ -957,13 +964,14 @@ void handle_stop_request_message(federate_t* fed) {
 void handle_stop_request_reply(federate_t* fed) {
     int bytes_to_read = STOP_REQUEST_REPLY_MESSAGE_LENGTH - 1;
     unsigned char buffer_stop_time[bytes_to_read];
-    read_from_socket_errexit(fed->socket, bytes_to_read, buffer_stop_time, "RTI failed to read the reply to STOP_REQUEST message from federate %d.", fed->id);
+    read_from_socket_errexit(fed->socket, bytes_to_read, buffer_stop_time, 
+    		"RTI failed to read the reply to STOP_REQUEST message from federate %d.", fed->id);
     
     tag_t federate_stop_tag;
     federate_stop_tag.time = extract_ll(buffer_stop_time);
-    federate_stop_tag.microstep = extract_ushort(&(buffer_stop_time[sizeof(instant_t)]));
+    federate_stop_tag.microstep = extract_int(&(buffer_stop_time[sizeof(instant_t)]));
     
-    LOG_PRINT("RTI received from federate %d STOP tag (%lld, %u).", fed->id,
+    LOG_PRINT("RTI received from federate %d STOP reply tag (%lld, %u).", fed->id,
             federate_stop_tag.time - start_time,
             federate_stop_tag.microstep);
 
@@ -976,6 +984,7 @@ void handle_stop_request_reply(federate_t* fed) {
     _lf_rti_mark_federate_requesting_stop(fed);
     pthread_mutex_unlock(&rti_mutex);
 }
+
 //////////////////////////////////////////////////
 
 /** 

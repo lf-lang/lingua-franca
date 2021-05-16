@@ -155,7 +155,8 @@ void encode_ll(long long data, unsigned char* buffer);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
- *  order (lowest order byte first).
+ *  order (lowest order byte first). This works for either int or
+ *  unsigned int.
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */

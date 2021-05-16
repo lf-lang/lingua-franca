@@ -1970,19 +1970,21 @@ void handle_provisional_tag_advance_grant() {
 }
 
 /** 
- * Send a STOP_REQUEST message to the RTI.
+ * Send a STOP_REQUEST message to the RTI with payload equal
+ * to the current tag plus one microstep.
  * 
  * This function raises a global barrier on
- * logical time at the current time.
+ * logical tag at the current tag.
  * 
  * This function assumes the caller holds the mutex lock.
  */
 void _lf_fd_send_stop_request_to_rti() {
+	// Do not send a stop request twice.
     if (_fed.sent_a_stop_request_to_rti == true) {
         return;
     }
     LOG_PRINT("Requesting the whole program to stop.");
-    // Raise a logical time barrier at the current time
+    // Raise a logical time barrier at the current tag.
     _lf_increment_global_tag_barrier_already_locked(current_tag);
 
     // Send a stop request with the current tag to the RTI
@@ -1996,14 +1998,15 @@ void _lf_fd_send_stop_request_to_rti() {
         lf_mutex_unlock(&outbound_socket_mutex);
     	return;
     }
-    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, STOP_REQUEST_MESSAGE_LENGTH, buffer, &outbound_socket_mutex,
+    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, STOP_REQUEST_MESSAGE_LENGTH, 
+    		buffer, &outbound_socket_mutex,
             "Failed to send stop time %lld to the RTI.", current_tag.time - start_time);
     lf_mutex_unlock(&outbound_socket_mutex);
     _fed.sent_a_stop_request_to_rti = true;
 }
 
 /** 
- * Handle a STOP_GRANTED message from the RTI. * 
+ * Handle a STOP_GRANTED message from the RTI.
  * 
  * This function removes the global barrier on
  * logical time raised when request_stop() was
@@ -2011,10 +2014,6 @@ void _lf_fd_send_stop_request_to_rti() {
  * 
  * This function assumes the caller does not hold
  * the mutex lock, therefore, it acquires it.
- * 
- * FIXME: It should be possible to at least handle the situation
- * where the specified stop time is larger than current time.
- * This would require implementing a shutdown action.
  */
 void handle_stop_granted_message() {
     int bytes_to_read = STOP_GRANTED_MESSAGE_LENGTH - 1;
@@ -2030,24 +2029,15 @@ void handle_stop_granted_message() {
     received_stop_tag.time = extract_ll(buffer);
     received_stop_tag.microstep = extract_ll(&(buffer[sizeof(instant_t)]));
 
-    LOG_PRINT("Received from RTI a STOP_GRANTED message with elapsed time %lld.",
-            received_stop_tag.time - start_time);
+    LOG_PRINT("Received from RTI a STOP_GRANTED message with elapsed tag (%lld, %d).",
+            received_stop_tag.time - start_time, received_stop_tag.microstep);
     
-    
-    // Sanity checks
+    // Sanity check.
     tag_t current_tag = get_current_tag();
-    if (compare_tags(received_stop_tag, current_tag) == 0) {
-        error_print("RTI granted a STOP tag that is equal to this federate's current tag (%lld, %u). "
-                        "Stopping at the next microstep instead.",
-                        current_tag.time - start_time,
-                        current_tag.microstep);
-        received_stop_tag.microstep = current_tag.microstep + 1;
-    } else if (compare_tags(received_stop_tag, current_tag) < 0) {
-        error_print("Received a stop_time %lld from the RTI that is in the past. "
-                    "Stopping at the next microstep (%lld, %u).",
-                    received_stop_tag.time - start_time,
-                    current_tag.time - start_time,
-                    current_tag.microstep + 1);
+    if (compare_tags(received_stop_tag, current_tag) <= 0) {
+        error_print("RTI granted a STOP_GRANTED tag that is equal to or less than this federate's current tag (%lld, %u). "
+        		"Stopping at the next microstep instead.",
+                current_tag.time - start_time, current_tag.microstep);
         received_stop_tag = current_tag;
         received_stop_tag.microstep++;
     }
@@ -2080,9 +2070,10 @@ void handle_stop_request_message() {
     		"Failed to read stop request from RTI.");
 
     // Acquire a mutex lock to ensure that this state does change while a
-    // message is transport or being used to determine a TAG.
+    // message is being used to determine a TAG.
     lf_mutex_lock(&mutex);
-    // Don't send a stop tag twice
+    // Ignore the message if this federate originated a request.
+    // The federate is already blocked is awaiting a STOP_GRANTED message.
     if (_fed.sent_a_stop_request_to_rti == true) {
         lf_mutex_unlock(&mutex);
         return;
@@ -2090,19 +2081,18 @@ void handle_stop_request_message() {
 
     tag_t tag_to_stop;
     tag_to_stop.time = extract_ll(buffer); 
-    tag_to_stop.microstep = extract_ushort(&(buffer[sizeof(instant_t)]));
+    tag_to_stop.microstep = extract_int(&(buffer[sizeof(instant_t)]));
 
     LOG_PRINT("Received from RTI a STOP_REQUEST message with tag (%lld, %u).",
              tag_to_stop.time - start_time,
              tag_to_stop.microstep);
 
-    // Encode the current logical tag or the stop tag, whichever is bigger.
-    tag_t current_tag = get_current_tag();
-    tag_t when_I_can_stop_earliest = current_tag;
-    // Can stop at the next tag at the earliest.
-    when_I_can_stop_earliest.microstep++;
-    if (compare_tags(tag_to_stop, when_I_can_stop_earliest) < 0) {
-        tag_to_stop = when_I_can_stop_earliest;
+    // Encode the current logical time plus one microstep
+    // or the requested tag_to_stop, whichever is bigger.
+    if (compare_tags(tag_to_stop, current_tag) <= 0) {
+    	// Can't stop at the requested tag. Make a counteroffer.
+        tag_to_stop = current_tag;
+        tag_to_stop.microstep++;
     }
 
     unsigned char outgoing_buffer[STOP_REQUEST_REPLY_MESSAGE_LENGTH];
@@ -2112,15 +2102,17 @@ void handle_stop_request_message() {
     if (_fed.socket_TCP_RTI < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
         lf_mutex_unlock(&outbound_socket_mutex);
+        lf_mutex_unlock(&mutex);
     	return;
     }
     // Send the current logical time to the RTI. This message does not have an identifying byte since
     // since the RTI is waiting for a response from this federate.
-    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, STOP_REQUEST_REPLY_MESSAGE_LENGTH, outgoing_buffer, &outbound_socket_mutex,
+    write_to_socket_errexit_with_mutex(
+    		_fed.socket_TCP_RTI, STOP_REQUEST_REPLY_MESSAGE_LENGTH, outgoing_buffer, &outbound_socket_mutex,
             "Failed to send the answer to STOP_REQUEST to RTI.");
     lf_mutex_unlock(&outbound_socket_mutex);
 
-    // Raise a barrier at current time
+    // Raise a barrier at current tag
     // because we are sending it to the RTI
     _lf_increment_global_tag_barrier_already_locked(tag_to_stop);
 

@@ -414,7 +414,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENCODE_STOP_REQUEST(buffer, time, microstep) do { \
     buffer[0] = STOP_REQUEST; \
     encode_ll(time, &(buffer[1])); \
-    encode_ushort(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
@@ -428,7 +428,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENCODE_STOP_REQUEST_REPLY(buffer, time, microstep) do { \
     buffer[0] = STOP_REQUEST_REPLY; \
     encode_ll(time, &(buffer[1])); \
-    encode_ushort(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
@@ -442,7 +442,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENCODE_STOP_GRANTED(buffer, time, microstep) do { \
     buffer[0] = STOP_GRANTED; \
     encode_ll(time, &(buffer[1])); \
-    encode_ushort(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 /////////// End of request_stop() messages ////////////////
 
