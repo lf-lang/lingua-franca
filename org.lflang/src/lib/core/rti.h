@@ -395,11 +395,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////  When any federate calls request_stop(), it will
 ////  send a STOP_REQUEST message to the RTI, which will then forward a STOP_REQUEST message
 ////  to any federate that has not yet provided a stop time to the RTI. The federates will reply
-////  with a STOP_REQUEST_REPLY and a stop time (which shall be the maximum of their current logical time
-////  at the time they receive the STOP_REQUEST and the time of the stop
-////  request). When the RTI has gathered all the stop times
-////  from federates (that are still connected), it will decide on a common stop timestamp
-////  which is the maximum of the seen stop times and answer with a STOP_GRANTED. The federate
+////  with a STOP_REQUEST_REPLY and a stop tag (which shall be the maximum of their current logical tag
+////  at the time they receive the STOP_REQUEST and the tag of the stop
+////  request). When the RTI has gathered all the stop tags
+////  from federates (that are still connected), it will decide on a common stop tag
+////  which is the maximum of the seen stop tag and answer with a STOP_GRANTED. The federate
 ////  sending the STOP_REQUEST and federates sending the STOP_REQUEST_REPLY will freeze
 ////  the advancement of tag until they receive the STOP_GRANTED message, in which
 ////  case they might continue their execution until the stop tag has been reached.
@@ -407,28 +407,43 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Byte identifying a stop request. 
  * The next 8 bytes will be the timestamp.
- * 
- * NOTE: It is not clear whether sending a stopping timestamp is useful.
- * If any federate can send a STOP_REQUEST message that specifies the stop time on
- * all other federates, then every federate depends on every other federate
- * and time cannot be advanced. Hence, the current implementations may result
- * in nondeterministic stop times.
+ * The next 4 bytes will be the microstep.
  */
 #define STOP_REQUEST 10
+#define STOP_REQUEST_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define ENCODE_STOP_REQUEST(buffer, time, microstep) do { \
+    buffer[0] = STOP_REQUEST; \
+    encode_ll(time, &(buffer[1])); \
+    encode_ushort(microstep, &(buffer[1 + sizeof(instant_t)])); \
+} while(0)
 
 /**
  * Byte indicating a federate's reply to a STOP_REQUEST that was originally sent
  * by the RTI.
  * The next 8 bytes will be the timestamp.
+ * The next 4 bytes will be the microstep.
  */
 #define STOP_REQUEST_REPLY 11
+#define STOP_REQUEST_REPLY_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define ENCODE_STOP_REQUEST_REPLY(buffer, time, microstep) do { \
+    buffer[0] = STOP_REQUEST_REPLY; \
+    encode_ll(time, &(buffer[1])); \
+    encode_ushort(microstep, &(buffer[1 + sizeof(instant_t)])); \
+} while(0)
 
 /**
  * Byte sent by the RTI indicating that the stop request from this federate
- * or from other federates has been granted. The next 8 bytes will be the
- * time at which the federates will stop.
+ * or from other federates has been granted.
+ * The next 8 bytes will be the time at which the federates will stop. * 
+ * The next 4 bytes will be the microstep at which the federates will stop..
  */
 #define STOP_GRANTED 12
+#define STOP_GRANTED_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define ENCODE_STOP_GRANTED(buffer, time, microstep) do { \
+    buffer[0] = STOP_GRANTED; \
+    encode_ll(time, &(buffer[1])); \
+    encode_ushort(microstep, &(buffer[1 + sizeof(instant_t)])); \
+} while(0)
 /////////// End of request_stop() messages ////////////////
 
 /**
