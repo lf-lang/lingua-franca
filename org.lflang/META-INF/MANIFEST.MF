@@ -3,7 +3,7 @@ Automatic-Module-Name: org.lflang
 Bundle-ManifestVersion: 2
 Bundle-Name: Lingua Franca Language Implementation
 Bundle-Vendor: University of California, Berkeley
-Bundle-Version: 1.0.0.qualifier
+Bundle-Version: 0.1.0.qualifier
 Bundle-SymbolicName: org.lflang; singleton:=true
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.xtext,
@@ -16,7 +16,8 @@ Require-Bundle: org.eclipse.xtext,
  org.eclipse.xtend.lib;bundle-version="2.14.0",
  org.antlr.runtime;bundle-version="[3.2.0,3.2.1)",
  com.google.guava,
- org.eclipse.xtend.lib.macro
+ org.eclipse.xtend.lib.macro,
+ org.apache.commons.cli;bundle-version="1.4"
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang,
  org.lflang.generator,
