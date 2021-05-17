@@ -855,6 +855,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
+     * 
+     * The following environment variables will be available to the command:
+     * 
+     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
+     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
+     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
+     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
+     * 
      */
     protected def runBuildCommand() {
         var commands = newLinkedList
@@ -1087,6 +1095,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * it returns null. Otherwise, a correctly constructed ProcessBuilder
      * object is returned. 
      * 
+     * This command creates the following environment variables in the returned
+     * ProcessBuilder:
+     * 
+     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
+     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
+     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
+     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
+     * 
      * A bit more context:
      * If the command cannot be found directly, then a second attempt is made using a
      * Bash shell with the --login option, which sources the user's 
@@ -1234,6 +1250,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * environment will be set up to run the command within bash.
      * If the env argument is null, then report an error and return null.
      * 
+     * This command creates the following environment variables in the returned
+     * ProcessBuilder:
+     * 
+     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
+     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
+     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
+     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
+     * 
      * @param cmd The command to be executed.
      * @param args A list of arguments for the given command.
      * @param dir The directory to change into before executing the command.
@@ -1259,10 +1283,16 @@ abstract class GeneratorBase extends AbstractLFValidator {
             builder = new ProcessBuilder(newCmd + #[bash_arg])
             builder.directory(dir.toFile)
         } else {
-                println("FAILED")
-                reportError(
-                        "Was not able to determine an execution environment that contains " + cmd + ".")
+            println("FAILED")
+            reportError(
+                    "Was not able to determine an execution environment that contains " + cmd + ".")
         }
+        // Set environment variables.
+        val environment = builder.environment();
+        environment.put("LF_CURRENT_WORKING_DIRECTORY", dir.toString());
+        environment.put("LF_SOURCE_DIRECTORY", fileConfig.srcPath.toString());
+        environment.put("LF_SOURCE_GEN_DIRECTORY", fileConfig.srcGenPath.toString());
+        environment.put("LF_BIN_DIRECTORY", fileConfig.binPath.toString());
         return builder
     }
 
@@ -1272,6 +1302,14 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * be found without the settings in your bash profile), then the returned execution
      * environment will be set up to run the command within bash.
      * If the command cannot be found, then report an error and return null.
+     * 
+     * This command creates the following environment variables in the returned
+     * ProcessBuilder:
+     * 
+     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
+     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
+     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
+     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
      * 
      * @param cmd The command to be executed.
      * @param args A list of arguments for the given command.
