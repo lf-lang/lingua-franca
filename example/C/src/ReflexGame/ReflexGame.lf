@@ -2,6 +2,7 @@
  * This example illustrates the use of logical and physical actions,
  * asynchronous external inputs, the use of startup and shutdown
  * reactions, and the use of actions with values.
+ * 
  * @author Edward A. Lee
  * @author Marten Lohstroh
  */
@@ -9,8 +10,13 @@ target C {
     threads: 1,
     keepalive: true
 };
-// Produce a counting sequence at random times with a minimum
-// and maximum time between outputs specified as parameters.
+/**
+ * Produce a counting sequence at random times with a minimum
+ * and maximum time between outputs specified as parameters.
+ * 
+ * @param min_time The minimum time between outputs.
+ * @param max_time The maximum time between outputs.
+ */
 reactor RandomSource(min_time:time(2 sec), max_time:time(8 sec)) {
     preamble {=
         // Generate a random additional delay over the minimum. 
@@ -48,6 +54,12 @@ reactor RandomSource(min_time:time(2 sec), max_time:time(8 sec)) {
         schedule(prompt, additional_time(0, self->max_time - self->min_time));
     =}
 }
+/**
+ * Upon receiving a prompt, record the time of the prompt,
+ * then listen for user input. When the user hits return,
+ * then schedule a physical action that records the time
+ * of this event and then report the response time.
+ */
 reactor GetUserInput {
     preamble {=
         // Thread to read input characters until an EOF is received.
