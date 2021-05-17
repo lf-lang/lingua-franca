@@ -10,6 +10,19 @@
  * at identical times. In this version, there is no communication
  * between the components other than clock synchronization.
  * 
+ * To map these programs onto distinct machines, at the end
+ * of this file, change the lines like this:
+ * ```
+ *      player1 = new RhythmPlayer();
+ * ```
+ * to something like
+ * ```
+ *      player1 = new RhythmPlayer() at 10.0.0.42;
+ * ```
+ * where the last part is the IP address or machine name of
+ * a machine on which you want to run the particular component.
+ * See [[https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution]].
+ * 
  * @see RhythmMac.lf
  * @see RhythmMacDistributed.lf
  * @see RhythmMacDistributedIndependent.lf
