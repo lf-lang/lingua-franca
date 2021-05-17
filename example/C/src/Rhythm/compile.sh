@@ -34,7 +34,7 @@ then
     echo "*** Compiling for Linux"
     echo "*** Current directory is $LF_CURRENT_WORKING_DIRECTORY"
     $CC ${LF_SOURCE_GEN_DIRECTORY}/$1.c \
-        ${LF_SOURCE_GEN_DIRECTORY}/core/platform/lf_macos_support.c \
+        ${LF_SOURCE_GEN_DIRECTORY}/core/platform/lf_linux_support.c \
         -o ${LF_BIN_DIRECTORY}/$1 \
         -lpthread -DNUMBER_OF_WORKERS=2 \
         -lncurses -lasound -lm
