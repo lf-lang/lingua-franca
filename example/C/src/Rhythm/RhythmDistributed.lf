@@ -1,21 +1,33 @@
 /**
  * Demonstration of timed distributed Lingua Franca programs.
- * This program is not portable. It runs on MacOS.
+ * This program runs on MacOS and Linux, at least.
  * 
- * This program elaborates RhythmMac to have two players that
+ * This program elaborates Rhythm to have two players that
  * run on different machines. Both players can select a musical
  * instrument, but only one of the players can control the rhythm
  * and the tempo.
  * 
- * @see RhythmMac.lf
- * @see RhythmMacDistributedIndependent.lf
- * @see RhythmMacDistributedNoUI.lf
+ * To run this program, open three distinct terminal windows
+ * and run the following generated binaries, one in each window:
+ * 
+ * * bin/RhythmDistributed_RTI
+ * * bin/RhythmDistributed_player1
+ * * bin/RhythmDistributed_player2
+ * 
+ * You can also map these to distinct machines by specifying an `at` clause
+ * on the lines at the end of this file that instantiate the reactors.
+ * See [[https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution]].
+ * 
+ * @see Rhythm.lf
+ * @see RhythmDistributedNoUI.lf
  *
  * @author Edward A. Lee
  */
 target C {
     coordination: centralized,
-    flags: ["-lncurses", "-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
+    build: ["./compile.sh RhythmDistributed_RTI", 
+    		"./compile.sh RhythmDistributed_player1",
+    		"./compile.sh RhythmDistributed_player2"],
     files: ["/lib/C/util/sensor_simulator.c", "/lib/C/util/sensor_simulator.h",
             "/lib/C/util/wave_file_reader.c", "/lib/C/util/wave_file_reader.h",
             "/lib/C/util/audio_loop_mac.c", "/lib/C/util/audio_loop.h",
@@ -25,7 +37,7 @@ target C {
             "sounds/Ensoniq-ESQ-1-Snare.wav", "sounds/Floor-Tom-1.wav"]
 };
  
-import RhythmSource from "RhythmMac.lf"
+import RhythmSource from "Rhythm.lf"
 import PlayWaveform from "PlayWaveform.lf"
 
 reactor Player {

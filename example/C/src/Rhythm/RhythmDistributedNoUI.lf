@@ -2,7 +2,7 @@
  * Rhythm generator using samples of percussion instruments.
  * This version can run on multiple machines leveraging
  * synchronized clocks to stay in sync.
- * This program is not portable. It runs on MacOS.
+ * This program runs on MacOS and Linux, at least.
  * 
  * This program tests clock synchronization by producing
  * sounds on each of two computers that, if the clocks are
@@ -17,9 +17,10 @@
  * @author Edward A. Lee
  */
 target C {
-    flags: ["-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
+    build: ["./compile.sh RhythmDistributedNoUI_RTI", 
+    		"./compile.sh RhythmDistributedNoUI_player1",
+    		"./compile.sh RhythmDistributedNoUI_player2"],
     coordination: decentralized,
-    // logging: log,
     timeout: 10 sec,
     clock-sync: on,
     clock-sync-options: {
@@ -57,8 +58,8 @@ reactor RhythmPlayer {
     source.note -> play.note;
 }
 
-federated reactor RhythmMacDistributedNoUI at localhost {
-    player1 = new RhythmPlayer() at localhost;
-    player2 = new RhythmPlayer() at localhost;
+federated reactor {
+    player1 = new RhythmPlayer();
+    player2 = new RhythmPlayer();
 }
 
