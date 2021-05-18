@@ -1,4 +1,14 @@
-// Example that demonstrates the detection of deadline misses.
+/**
+ * Example that demonstrates the detection of deadline misses.
+ * This program models a sensor, some work done on the sensor
+ * data, and an actuator with a deadline.  The sensor is your
+ * keyboard Return or Enter button. The work that is done
+ * is simulated every second time to take more than 500 microseconds
+ * (by sleeping for 500 usecs). Hence, you should see that
+ * deadline is missed every second time you hit Return.
+ * 
+ * @author Edward A. Lee
+ */
 target C {
     threads: 1,
     keepalive: true

@@ -431,4 +431,11 @@
 			type="text">
 		</fileTypes>
 	</extension>
+ <extension
+       point="org.eclipse.ui.intro.configExtension">
+    <configExtension
+          configId="org.eclipse.ui.intro.universalConfig"
+          content="intro/lf-welcome.xml">
+    </configExtension>
+ </extension>
 </plugin>

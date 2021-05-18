@@ -2,13 +2,26 @@
  * Rhythm generator using samples of percussion instruments.
  * This version can run on multiple machines leveraging
  * synchronized clocks to stay in sync.
- * This program is not portable. It runs on MacOS.
+ * This program runs on MacOS and Linux, at least.
  * 
  * This program tests clock synchronization by producing
  * sounds on each of two computers that, if the clocks are
  * synchronized well enough, sound like they are occurring
  * at identical times. In this version, there is no communication
  * between the components other than clock synchronization.
+ * 
+ * To map these programs onto distinct machines, at the end
+ * of this file, change the lines like this:
+ * ```
+ *      player1 = new RhythmPlayer();
+ * ```
+ * to something like
+ * ```
+ *      player1 = new RhythmPlayer() at 10.0.0.42;
+ * ```
+ * where the last part is the IP address or machine name of
+ * a machine on which you want to run the particular component.
+ * See [[https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution]].
  * 
  * @see RhythmMac.lf
  * @see RhythmMacDistributed.lf
@@ -17,9 +30,10 @@
  * @author Edward A. Lee
  */
 target C {
-    flags: ["-framework", "AudioToolbox", "-framework", "CoreFoundation", "-lm"],
+    build: ["./compile.sh RhythmDistributedNoUI_RTI", 
+    		"./compile.sh RhythmDistributedNoUI_player1",
+    		"./compile.sh RhythmDistributedNoUI_player2"],
     coordination: decentralized,
-    // logging: log,
     timeout: 10 sec,
     clock-sync: on,
     clock-sync-options: {
@@ -57,8 +71,8 @@ reactor RhythmPlayer {
     source.note -> play.note;
 }
 
-federated reactor RhythmMacDistributedNoUI at localhost {
-    player1 = new RhythmPlayer() at localhost;
-    player2 = new RhythmPlayer() at localhost;
+federated reactor {
+    player1 = new RhythmPlayer();
+    player2 = new RhythmPlayer();
 }
 

@@ -1,3 +1,11 @@
+/**
+ * This (rather trivial) example illustrates a logical action used
+ * to model a delay. The delay is also realized a second time
+ * using the `after` keyword.
+ * 
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
+ */
 target C {timeout: 1 sec};
 
 main reactor {
@@ -6,8 +14,15 @@ main reactor {
 	print = new Print();
 	ramp.y -> delay.x;
 	delay.y -> print.x;
+	
+	ramp2 = new Ramp();
+	print2 = new Print();
+	ramp2.y -> print2.x after 50 msec;
 }
 
+/**
+ * Generate a counting sequence with outputs every 100 msec.
+ */
 reactor Ramp {
     timer t(0, 100 msec);
     output y:int;
@@ -18,6 +33,9 @@ reactor Ramp {
     =}
 }
 
+/**
+ * Realize a logical delay of 50 msec.
+ */
 reactor Delay2 {
     logical action a(50 msec):int;
 	input x:int;
@@ -30,6 +48,9 @@ reactor Delay2 {
     =}
 }
 
+/**
+ * Print the (elapsed) logical and physical times at which inputs are received.
+ */
 reactor Print {
     input x:int;
     reaction(x) {=

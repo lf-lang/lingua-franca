@@ -1,4 +1,12 @@
-// Minimal version of ReflexGame as presented in papers.
+/**
+ * Minimal version of the ReflexGame as presented in papers.
+ * This example illustrates the use of logical and physical actions,
+ * asynchronous external inputs, the use of startup and shutdown
+ * reactions, and the use of actions with values.
+ * 
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ */
 target C {
     threads: 1,
     keepalive: true
