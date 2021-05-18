@@ -58,4 +58,9 @@ subprojects {
 	configurations.all {
 		exclude group: 'asm'
 	}
+
+	// Delete generated sources on `gradle clean`
+	clean.doLast {
+		delete "${projectDir}/xtend-gen"
+	}
 }
