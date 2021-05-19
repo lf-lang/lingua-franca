@@ -8,13 +8,13 @@ import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import java.util.Map
 import java.util.function.Consumer
 import org.eclipse.elk.graph.properties.Property
-import org.lflang.graph.BreadCrumbTrail
 import org.lflang.graph.ReactionGraph
 import org.lflang.lf.Connection
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
+import org.lflang.graph.InstanceBinding
 
 /**
  * Dependency cycle detection for Lingua Franca diagrams.
@@ -33,7 +33,7 @@ class CycleVisualization extends AbstractSynthesisExtensions {
 	/**
 	 * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements
 	 */
-	def boolean detectAndHighlightCycles(Reactor reactor, Map<BreadCrumbTrail<Instantiation>, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
+	def boolean detectAndHighlightCycles(Reactor reactor, Map<InstanceBinding, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
 		val graph = new ReactionGraph(reactor)
 		
         if (!graph.cycles.empty && highlighter !== null) {

@@ -344,7 +344,7 @@ class LFValidator extends AbstractLFValidator {
                     if ((lp.container === null && cycle.exists [
                         it.node === lp.variable
                     ]) || cycle.exists [
-                        (it.node === lp.variable && it.instantiation === lp.container)
+                        (it.node === lp.variable && it.parent === lp.container)
                     ]) {
                         leftInCycle = true
                     }
@@ -352,7 +352,7 @@ class LFValidator extends AbstractLFValidator {
                     if ((rp.container === null && cycle.exists [
                         it.node === rp.variable
                     ]) || cycle.exists [
-                        (it.node === rp.variable && it.instantiation === rp.container)
+                        (it.node === rp.variable && it.parent === rp.container)
                     ]) {
                         if (leftInCycle) {
                             // Only report of _both_ referenced ports are in the cycle.

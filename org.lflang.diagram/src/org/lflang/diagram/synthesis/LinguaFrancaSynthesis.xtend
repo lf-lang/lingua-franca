@@ -58,7 +58,6 @@ import org.lflang.diagram.synthesis.util.CycleVisualization
 import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization
 import org.lflang.diagram.synthesis.util.ReactorIcons
 import org.lflang.diagram.synthesis.util.UtilityExtensions
-import org.lflang.graph.BreadCrumbTrail
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.Connection
@@ -77,6 +76,7 @@ import org.lflang.lf.VarRef
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import org.lflang.graph.InstanceBinding
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -104,7 +104,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 
 	// -- INTERNAL --
-	public static val REACTOR_INSTANCE = new Property<BreadCrumbTrail<Instantiation>>("org.lflang.linguafranca.diagram.synthesis.reactor.instantiation")
+	public static val REACTOR_INSTANCE = new Property<InstanceBinding>("org.lflang.linguafranca.diagram.synthesis.reactor.instantiation")
 	public static val REACTOR_RECURSIVE_INSTANTIATION = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.recursive.instantiation", false)
     public static val REACTOR_HAS_BANK_PORT_OFFSET = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.bank.offset", false)
     public static val REACTOR_INPUT = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.input", false)
@@ -238,8 +238,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		Instantiation instance,
 		Table<Instantiation, Input, KPort> inputPortsReg,
 		Table<Instantiation, Output, KPort> outputPortsReg,
-		Deque<Pair<Reactor, BreadCrumbTrail<Instantiation>>> parentReactors,
-		Map<BreadCrumbTrail<Instantiation>, KNode> allReactorNodes
+		Deque<Pair<Reactor, InstanceBinding>> parentReactors,
+		Map<InstanceBinding, KNode> allReactorNodes
 	) {
 		val node = createNode()
 		val nodes = newArrayList(node)
@@ -255,9 +255,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			allReactorNodes.get(parentReactors.head.value).setProperty(REACTOR_RECURSIVE_INSTANTIATION, true)
 		}
 		val instanceTrail = if (parentReactors.empty) {
-			new BreadCrumbTrail("", null, "")
+			new InstanceBinding(reactor)
 		} else if (instance !== null) {
-			new BreadCrumbTrail(parentReactors.getLast().value.trail, instance, instance.name)
+			new InstanceBinding(parentReactors.getLast().value, instance)
 		}
 		allReactorNodes.put(instanceTrail, node)
 		parentReactors.addLast(new Pair(reactor, instanceTrail))
@@ -445,7 +445,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 	}
 	
-	private def KNode detectAndAnnotateCycles(KNode node, Reactor reactor, Map<BreadCrumbTrail<Instantiation>, KNode> allReactorNodes) {
+	private def KNode detectAndAnnotateCycles(KNode node, Reactor reactor, Map<InstanceBinding, KNode> allReactorNodes) {
 		if (node.getProperty(REACTOR_RECURSIVE_INSTANTIATION)) {
 			node.resetCycleFiltering()
     		return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
@@ -525,8 +525,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		Reactor reactor,
 		Map<Input, KPort> parentInputPorts,
 		Map<Output, KPort> parentOutputPorts,
-		Deque<Pair<Reactor, BreadCrumbTrail<Instantiation>>> parentReactors,
-		Map<BreadCrumbTrail<Instantiation>, KNode> allReactorNodes
+		Deque<Pair<Reactor, InstanceBinding>> parentReactors,
+		Map<InstanceBinding, KNode> allReactorNodes
 	) {
 		val nodes = <KNode>newArrayList
 		val inputPorts = HashBasedTable.<Instantiation, Input, KPort>create
