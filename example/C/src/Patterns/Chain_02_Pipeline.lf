@@ -1,0 +1,37 @@
+/**
+ * Basic pipeline pattern where a periodic source feeds
+ * a chain of reactors that can all execute in parallel
+ * at each logical time step.
+ * 
+ * The threads argument specifies the number of worker
+ * threads, which enables the reactors in the chain to
+ * execute on multiple cores simultaneously.
+ * 
+ * This uses the TakeTime reactor to perform computation
+ * (it computes Fibonacci numbers). If you reduce the
+ * number of worker threads to 1, the execution time
+ * will be approximately four times as long.
+ * 
+ * @author Edward A. Lee
+ */
+target C {
+    threads: 4,
+    timeout: 1 sec
+}
+
+import SendCount, Receive from "lib/SendersAndReceivers.lf";
+import TakeTime from "lib/TakeTime.lf";
+
+main reactor {
+    r0 = new SendCount(period = 100 msec);
+    r1 = new TakeTime(approximate_time = 100 msec);
+    r2 = new TakeTime(approximate_time = 100 msec);
+    r3 = new TakeTime(approximate_time = 100 msec);
+    r4 = new TakeTime(approximate_time = 100 msec);
+    r5 = new Receive();
+    r0.out -> r1.in;
+    r1.out -> r2.in after 100 msec;
+    r2.out -> r3.in after 100 msec;
+    r3.out -> r4.in after 100 msec;
+    r4.out -> r5.in;
+}
