@@ -41,7 +41,7 @@ class CycleVisualization extends AbstractSynthesisExtensions {
             for (cycle : graph.cycles) {
             	val allAffectedElements = HashMultimap.create
             	for (elem : cycle) {
-            		allAffectedElements.put(elem.path, elem.node)
+            		allAffectedElements.put(elem, elem.node)
             	}
             	
             	for (reactorCrumb : allAffectedElements.keySet) {
