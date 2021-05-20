@@ -26,12 +26,23 @@
 
 package org.lflang.generator
 
+import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.generator.IFileSystemAccess2
+import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 
-class CppGenerator: GeneratorBase() {
+class CppGenerator : GeneratorBase() {
+
+    override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
+        super.doGenerate(resource, fsa, context)
+
+        // stop if there are any errors found in the program by doGeneratre() in GeneratorBase
+        if (generatorErrorsOccurred) return;
+    }
+
     override fun generateDelayBody(action: Action, port: VarRef) = null // TODO
     override fun generateForwardBody(action: Action, port: VarRef) = null // TODO
     override fun generateDelayGeneric() = null // TODO
@@ -43,7 +54,7 @@ class CppGenerator: GeneratorBase() {
     override fun getTargetTagIntervalType() = getTargetUndefinedType()
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int) = null // TODO
-    override fun  getTargetVariableSizeListType(baseType: String) = null // TODO
+    override fun getTargetVariableSizeListType(baseType: String) = null // TODO
 
     override fun getTargetUndefinedType() = null // TODO
 
