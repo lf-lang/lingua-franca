@@ -31,20 +31,19 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
 import org.lflang.Target
-import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 
 class CppGenerator : GeneratorBase() {
 
     /** Path to the Cpp lib directory (relative to class path)  */
-    val libDir = "/lib/Cpp"
+    private val libDir = "/lib/Cpp"
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
         // stop if there are any errors found in the program by doGeneratre() in GeneratorBase
-        if (generatorErrorsOccurred) return;
+        if (generatorErrorsOccurred) return
 
         // abort if there is no main reactor
         if (mainDef == null) {
@@ -55,8 +54,8 @@ class CppGenerator : GeneratorBase() {
     }
 
     private fun generateFiles(fsa: IFileSystemAccess2) {
-        val srcGenPath = this.fileConfig.getSrcGenPath();
-        val relSrcGenPath = this.fileConfig.srcGenBasePath.relativize(srcGenPath);
+        val srcGenPath = fileConfig.srcGenPath
+        val relSrcGenPath = fileConfig.srcGenBasePath.relativize(srcGenPath)
 
         // generate the cmake script
         fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), generateCmake())
@@ -100,7 +99,7 @@ class CppGenerator : GeneratorBase() {
             |ExternalProject_Add(dep-reactor-cpp
             |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
             |   GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-            |   GIT_TAG "${runtimeVersion}"
+            |   GIT_TAG "$runtimeVersion"
             |   CMAKE_ARGS
             |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
             |   -DCMAKE_INSTALL_PREFIX:PATH=$S{CMAKE_INSTALL_PREFIX}
@@ -169,7 +168,7 @@ class CppGenerator : GeneratorBase() {
     override fun getTargetTimeType() = "reactor::Duration"
     override fun getTargetTagType() = "reactor::Tag"
 
-    override fun getTargetTagIntervalType() = getTargetUndefinedType()
+    override fun getTargetTagIntervalType() = targetUndefinedType
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int) = TODO()
     override fun getTargetVariableSizeListType(baseType: String) = TODO()
