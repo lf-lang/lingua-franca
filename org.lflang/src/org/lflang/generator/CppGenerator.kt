@@ -161,20 +161,20 @@ class CppGenerator : GeneratorBase() {
     """.trimMargin()
     }
 
-    override fun generateDelayBody(action: Action, port: VarRef) = null // TODO
-    override fun generateForwardBody(action: Action, port: VarRef) = null // TODO
-    override fun generateDelayGeneric() = null // TODO
-    override fun supportsGenerics() = true // TODO
+    override fun generateDelayBody(action: Action, port: VarRef) = TODO()
+    override fun generateForwardBody(action: Action, port: VarRef) = TODO()
+    override fun generateDelayGeneric() = TODO()
+    override fun supportsGenerics() = true
 
     override fun getTargetTimeType() = "reactor::Duration"
     override fun getTargetTagType() = "reactor::Tag"
 
     override fun getTargetTagIntervalType() = getTargetUndefinedType()
 
-    override fun getTargetFixedSizeListType(baseType: String, size: Int) = null // TODO
-    override fun getTargetVariableSizeListType(baseType: String) = null // TODO
+    override fun getTargetFixedSizeListType(baseType: String, size: Int) = TODO()
+    override fun getTargetVariableSizeListType(baseType: String) = TODO()
 
-    override fun getTargetUndefinedType() = null // TODO
+    override fun getTargetUndefinedType() = TODO()
 
     override fun getTarget() = Target.CPP
 }
