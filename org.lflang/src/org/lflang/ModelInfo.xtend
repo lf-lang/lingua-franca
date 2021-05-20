@@ -30,7 +30,6 @@ package org.lflang
 import java.util.HashSet
 import java.util.Set
 import org.lflang.graph.InstantiationGraph
-import org.lflang.graph.ReactionGraph
 import org.lflang.lf.Assignment
 import org.lflang.lf.Deadline
 import org.lflang.lf.Instantiation
@@ -40,6 +39,9 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.TargetDecl
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.graph.TopologyGraph
+import org.lflang.generator.ReactorInstance
+import org.lflang.lf.LfFactory
 
 /**
  * A helper class for analyzing the AST. This class is instantiated once for each compilation. 
@@ -83,9 +85,9 @@ class ModelInfo {
     public Set<Parameter> overflowingParameters
 
     /**
-     * Data structure for tracking dependencies between reactions.
+     * Hierarchy of named instances.
      */
-    public ReactionGraph reactionGraph
+    public ReactorInstance main
     
     /**
      * Whether or not the model information has been updated at least once.
@@ -102,7 +104,7 @@ class ModelInfo {
         this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {
-            this.reactionGraph = new ReactionGraph(this.model)
+            this.main = new ReactorInstance(model, null, null) // FIXME: provide reference to validator
         }
         
         // Find the target. A target must exist because the grammar requires it.

@@ -88,6 +88,7 @@ import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.FedASTUtils
+import org.lflang.ErrorReporter
 
 /**
  * Generator base class for shared code between code generators.
@@ -99,7 +100,7 @@ import org.lflang.federated.FedASTUtils
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator {
+abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporter {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -1958,7 +1959,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Report an error.
      * @param message The error message.
      */
-    protected def reportError(String message) {
+    override reportError(String message) {
         return report(message, IMarker.SEVERITY_ERROR, null)
     }
 
@@ -1966,7 +1967,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Report a warning.
      * @param message The warning message.
      */
-    protected def reportWarning(String message) {
+    override reportWarning(String message) {
         return report(message, IMarker.SEVERITY_WARNING, null)
     }
 
@@ -1975,7 +1976,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  @param object The parse tree object.
      *  @param message The error message.
      */
-    protected def reportError(EObject object, String message) {
+    override reportError(EObject object, String message) {
         return report(message, IMarker.SEVERITY_ERROR, object)
     }
 
@@ -1983,7 +1984,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  @param object The parse tree object.
      *  @param message The error message.
      */
-    protected def reportWarning(EObject object, String message) {
+    override reportWarning(EObject object, String message) {
         return report(message, IMarker.SEVERITY_WARNING, object)
     }
 
