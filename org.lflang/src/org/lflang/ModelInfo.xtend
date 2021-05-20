@@ -104,7 +104,7 @@ class ModelInfo {
         this.instantiationGraph = new InstantiationGraph(model, true)
         
         if (this.instantiationGraph.cycles.size == 0) {
-            this.main = new ReactorInstance(model, null, null) // FIXME: provide reference to validator
+            this.main = new ReactorInstance(model.reactors.findFirst[it.isMain || it.isFederated], null, null) // FIXME: provide reference to validator
         }
         
         // Find the target. A target must exist because the grammar requires it.

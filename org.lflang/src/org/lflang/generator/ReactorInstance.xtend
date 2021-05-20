@@ -31,7 +31,9 @@ import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Set
 import org.lflang.ASTUtils
+import org.lflang.ErrorReporter
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
 import org.lflang.lf.Input
@@ -40,6 +42,7 @@ import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
 import org.lflang.lf.Timer
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
@@ -47,9 +50,6 @@ import org.lflang.lf.Variable
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.lf.Model
-import org.lflang.ErrorReporter
-import java.util.Set
 
 /**
  * Representation of a runtime instance of a reactor.
@@ -63,8 +63,6 @@ import java.util.Set
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
 
-    protected static var ReactorInstance main
-
     protected static var Set<Reaction> unorderedReactions = new LinkedHashSet()
 
     /**
@@ -74,16 +72,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     public static var ReactionInstanceGraph reactionGraph
 
     
-
-    new(Model model, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
-        this(ASTUtils.createMainInstance(model), null, reporter)
+    // FIXME: unorderReactions are passed from the generator because it performs
+    // AST transformations that this data structure is unaware of. If we operate
+    // on ReactorInstance indirectly, we don't have to do this.
+    new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
+        this(ASTUtils.createInstantiation(reactor), null, reporter)
         if (unorderedReactions !== null) {
             ReactorInstance.unorderedReactions = unorderedReactions    
         }
-        ReactorInstance.main = this
     }
-
-    
 
     /**
      * Create from the specified definition an object that represents a runtime instance 
@@ -681,14 +678,20 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return _instantiations;
     }
 
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
+    /**
+     * Return the main reactor is there exists one in the hierarchy, or null if there is none.
+     * @return The main reactor in this hierarchy if there is one, or null otherwise.
      */
     override ReactorInstance main() {
-        if (this.parent === null) {
-            this
+        val defn = this.definition.reactorClass.toDefinition
+        if (defn.isMain || defn.isFederated) {
+            return this
         } else {
-            parent.main() // FIXME: use static var instead of lookup?
+            if (parent !== null) {
+                return parent.main()
+            } else {
+                return null
+            }
         }
     }
     

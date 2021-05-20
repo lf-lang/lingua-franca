@@ -1835,11 +1835,10 @@ class ASTUtils {
         }
     }
     
-    def static createMainInstance(Model model) {
+    def static createInstantiation(Reactor reactor) {
         val inst = LfFactory.eINSTANCE.createInstantiation
-        val defn = model.reactors.findFirst[it.isMain || it.isFederated]
-        inst.reactorClass = defn
-        inst.setName(defn.name)
+        inst.reactorClass = reactor
+        inst.setName(reactor.name)
         return inst
     }
     
