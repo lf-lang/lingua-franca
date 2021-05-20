@@ -41,6 +41,11 @@ class CppGenerator : GeneratorBase() {
 
         // stop if there are any errors found in the program by doGeneratre() in GeneratorBase
         if (generatorErrorsOccurred) return;
+
+        // abort if there is no main reactor
+        if (mainDef == null) {
+            println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
+        }
     }
 
     override fun generateDelayBody(action: Action, port: VarRef) = null // TODO
