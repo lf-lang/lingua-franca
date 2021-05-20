@@ -69,6 +69,7 @@ import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
+import org.lflang.lf.Model
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -1832,6 +1833,14 @@ class ASTUtils {
         if (main !== null && main.name.isNullOrEmpty) {
             main.name = name
         }
+    }
+    
+    def static createMainInstance(Model model) {
+        val inst = LfFactory.eINSTANCE.createInstantiation
+        val defn = model.reactors.findFirst[it.isMain || it.isFederated]
+        inst.reactorClass = defn
+        inst.setName(defn.name)
+        return inst
     }
     
 }

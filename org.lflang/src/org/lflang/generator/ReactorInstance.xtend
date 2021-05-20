@@ -47,6 +47,9 @@ import org.lflang.lf.Variable
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.lf.Model
+import org.lflang.ErrorReporter
+import java.util.Set
 
 /**
  * Representation of a runtime instance of a reactor.
@@ -60,20 +63,36 @@ import static extension org.lflang.ASTUtils.*
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
 
+    protected static var ReactorInstance main
+
+    protected static var Set<Reaction> unorderedReactions = new LinkedHashSet()
+
     /**
      * A representation of the dependencies between reactions as they are
      * inferred from the main reactor instance.
      */
     public static var ReactionInstanceGraph reactionGraph
 
+    
+
+    new(Model model, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
+        this(ASTUtils.createMainInstance(model), null, reporter)
+        if (unorderedReactions !== null) {
+            ReactorInstance.unorderedReactions = unorderedReactions    
+        }
+        ReactorInstance.main = this
+    }
+
+    
+
     /**
-     * Create a runtime instance from the specified definition
-     * and with the specified parent that instantiated it.
+     * Create from the specified definition an object that represents a runtime instance 
+     * that stems from the specified parent instance.
      * @param instance The Instance statement in the AST.
      * @param parent The parent, or null for the main rector.
      * @param generator The generator (for error reporting).
      */
-    new(Instantiation definition, ReactorInstance parent, GeneratorBase generator) {
+    protected new(Instantiation definition, ReactorInstance parent, ErrorReporter generator) {
         // If the reactor is being instantiated with new[width], then pass -2
         // to the constructor, otherwise pass -1.
         this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
@@ -90,9 +109,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * reactor in a bank of reactors otherwise.
      */
     protected new(Instantiation definition, ReactorInstance parent,
-        GeneratorBase generator, int reactorIndex) {
+        ErrorReporter generator, int reactorIndex) {
         super(definition, parent)
-        this.generator = generator
+        this.reporter = generator
         this.bankIndex = reactorIndex
         
         // If this reactor is actually a bank of reactors, then instantiate
@@ -171,6 +190,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // In each connection statement, for each port instance on the left,
         // as obtained by the nextPort() function, connect to the next available
         // port on the right, as obtained by the nextPort() function.
+        // FIXME: put in function named establishPortConnections
+        // FIXME: Replication exists in ReactionGraph.collectNodes and GeneratorBase.analyzeFederates
         for (connection : definition.reactorClass.toDefinition.allConnections) {
             var leftPort = connection.leftPorts.get(0)
             var leftPortCount = 1
@@ -265,7 +286,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             // The reactor should be a bank.
             if (nextBank != 0 && nextBank < reactor.bankMembers.size) {
                 // Not all the bank members were used.
-                generator.reportWarning(portReference, "Not all bank members are connected.")
+                reporter.reportWarning(portReference, "Not all bank members are connected.")
             }
         }
         // Next, check multiports.
@@ -275,7 +296,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (portInstance instanceof MultiportInstance) {
                 if (nextPort != 0 && nextPort < portInstance.width) {
                     // Not all the ports were used.
-                    generator.reportWarning(portInstance.parent.definition,
+                    reporter.reportWarning(portInstance.parent.definition,
                             "Not all multiport input channels are connected.")
                 }
             }
@@ -350,7 +371,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         var portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
         
         if (portInstance === null) {
-            generator.reportError(portReference, "No such port.")
+            reporter.reportError(portReference, "No such port.")
             return null
         }
         
@@ -358,7 +379,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (portInstance instanceof MultiportInstance) {
             // Do not allow width 0 multiports.
             if (portInstance.width === 0) {
-                generator.reportError(portReference, "Multiport of width zero is not allowed")
+                reporter.reportError(portReference, "Multiport of width zero is not allowed")
                 return null
             }
             var portIndex = nextPortTable.get(portInstance)?:0
@@ -437,7 +458,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     def connectPortInstances(Connection connection, PortInstance srcInstance, PortInstance dstInstance) {
         srcInstance.dependentPorts.add(dstInstance)
         if (dstInstance.dependsOnPort !== null && dstInstance.dependsOnPort !== srcInstance) {
-            generator.reportError(
+            reporter.reportError(
                 connection,
                 "dstInstance port " + dstInstance.getFullName + " is already connected to " +
                     dstInstance.dependsOnPort.getFullName
@@ -667,7 +688,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (this.parent === null) {
             this
         } else {
-            parent.main
+            parent.main() // FIXME: use static var instead of lookup?
         }
     }
     
@@ -858,7 +879,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     protected int bankIndex = -1
 
     /** The generator that created this reactor instance. */
-    protected GeneratorBase generator
+    protected ErrorReporter reporter // FIXME: This accumulates a lot of redundant references
 
     // ////////////////////////////////////////////////////
     // // Protected methods
@@ -879,7 +900,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             for (Reaction reaction : reactions) {
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this,
-                    generator.isUnordered(reaction), count++)
+                    unorderedReactions.contains(reaction), count++)
                 
                 // Add the reaction instance to the map of reactions for this
                 // reactor.

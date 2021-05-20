@@ -27,11 +27,13 @@ package org.lflang.generator
 
 import java.util.ArrayList
 import org.lflang.lf.Port
+import org.lflang.ErrorReporter
 
-/** Representation of a runtime instance of a multiport.
- *  This contains an array of ports.
+/**
+ * Representation of a runtime instance of a multiport.
+ * This contains an array of ports.
  *  
- *  @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class MultiportInstance extends PortInstance {
             
@@ -39,9 +41,9 @@ class MultiportInstance extends PortInstance {
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
      *  @param parent The parent.
-     *  @param generator The generator (for error reporting).
+     *  @param errorReporter The error reporter.
      */
-    new(Port definition, ReactorInstance parent, GeneratorBase generator) {
+    new(Port definition, ReactorInstance parent, ErrorReporter reporter) {
         super(definition, parent)
         
         if (definition.widthSpec === null) {
@@ -49,7 +51,7 @@ class MultiportInstance extends PortInstance {
         }
         
         if (definition.widthSpec.ofVariableLength) {
-            generator.reportError(definition,
+            reporter.reportError(definition,
                     "Variable-width multiports not supported (yet): " + definition.name)
             return
         }
@@ -64,7 +66,7 @@ class MultiportInstance extends PortInstance {
                     // This could throw NumberFormatException
                     width += parameterValue
                 } else {
-                    generator.reportError(definition,
+                    reporter.reportError(definition,
                         "Width of a multiport must be given as an integer. It is: "
                         + parameterValue
                     )
