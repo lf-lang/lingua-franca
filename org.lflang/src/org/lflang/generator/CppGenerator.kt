@@ -36,6 +36,9 @@ import org.lflang.lf.VarRef
 
 class CppGenerator : GeneratorBase() {
 
+    /** Path to the Cpp lib directory (relative to class path)  */
+    val libDir = "/lib/Cpp"
+
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
@@ -46,6 +49,16 @@ class CppGenerator : GeneratorBase() {
         if (mainDef == null) {
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
         }
+
+        generateFiles()
+    }
+
+    private fun generateFiles() {
+        val srcGenPath = this.fileConfig.getSrcGenPath();
+        val genIncludeDir = srcGenPath.resolve("__include__")
+        copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
+        copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
+        copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
     }
 
     override fun generateDelayBody(action: Action, port: VarRef) = null // TODO
