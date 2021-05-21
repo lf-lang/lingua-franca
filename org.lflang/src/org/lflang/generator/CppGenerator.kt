@@ -29,12 +29,14 @@ package org.lflang.generator
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.FileConfig
+import org.lflang.*
 import org.lflang.Target
-import org.lflang.TargetProperty
 import org.lflang.lf.Action
 import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
+import java.io.File.separator
+import java.nio.file.Path
+import java.util.*
 
 /* *******************************************************************************************
  * The following definitions are shortcuts to access static members of FileConfig and ASTUtils
@@ -146,6 +148,11 @@ class CppGenerator : GeneratorBase() {
         // FIXME Is there a way to simplify this line?
         val includeFile = if (targetConfig.cmakeInclude.isNullOrBlank()) null else FileConfig.toUnixString(fileConfig.srcPath.resolve(targetConfig.cmakeInclude))
 
+        // compile a list of all source files produced by this generator
+        val reactorSourceFiles = reactors.filter { !it.isGeneric }.map { it.sourcPath.toUnixString() }
+        val preambleSourceFiles = resources.map { it.preambleSourcePath.toUnixString() }
+        val sourceFiles = reactorSourceFiles + preambleSourceFiles
+
         val S = '$' // a little trick to escape the dollar sign with $S
 
         return """
@@ -217,13 +224,7 @@ class CppGenerator : GeneratorBase() {
             |
             |add_executable($S{LF_MAIN_TARGET}
             |    main.cc
-            |#TODO
-            |#«FOR r : reactors»
-            |#«IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile.toUnixString»«ENDIF»
-            |#«ENDFOR»
-            |#«FOR r : resources»
-            |#«r.preambleSourceFile.toUnixString»
-            |#«ENDFOR»
+        ${" |    " .. sourceFiles.joinToString("\n")}
             |)
             |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
             |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
