@@ -95,43 +95,13 @@ class CppGenerator extends GeneratorBase {
         TimeUnit.WEEKS -> 'd*7'
     }
 
-    static public var logLevelsToInts = #{
-        LogLevel.ERROR -> 1,
-        LogLevel.WARN -> 2,
-        LogLevel.INFO -> 3,
-        LogLevel.LOG -> 3,
-        LogLevel.DEBUG -> 4
-    }
-
     /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
     Reactor mainReactor
-
-    /** Path to the Cpp lib directory (relative to class path)  */
-    val libDir = "/lib/Cpp"
-
-    /**
-     * Get a directory for code generation that corresponds to the given resource (source file)
-     *
-     * For instance a resource pointing to file foo/bar/baz.lf is represented by the target path foo/bar/baz.
-     */
-    def toDir(Resource r) {
-        fileConfig.getDirectory(r).resolve(r.name)
-    }
 
     override printInfo() {
         super.printInfo()
         println('******** generated binaries: ' + fileConfig.binPath)
     }
-
-    def preambleHeaderFile(Resource r) { r.toDir.resolve("_lf_preamble.hh") }
-
-    def preambleSourceFile(Resource r) { r.toDir.resolve("_lf_preamble.cc") }
-
-    def headerFile(Reactor r) { r.eResource.toDir.resolve('''«r.name».hh''') }
-
-    def headerImplFile(Reactor r) { r.eResource.toDir.resolve('''«r.name»_impl.hh''') }
-
-    def sourceFile(Reactor r) { r.eResource.toDir.resolve('''«r.name».cc''') }
 
     override setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         this.fileConfig = new CppFileConfig(resource, fsa, context)
@@ -140,23 +110,13 @@ class CppGenerator extends GeneratorBase {
 
     override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
         IGeneratorContext context) {
-        super.doGenerate(resource, fsa, context)
-        
-        if (generatorErrorsOccurred) return;
         
         mainReactor = this.mainDef?.reactorClass.toDefinition
-
-        if (mainReactor === null) {
-            // No main reactor. Nothing to do.
-            println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
-            return
-        }
 
         val srcGenPath = this.fileConfig.getSrcGenPath();
         val relSrcGenPath = this.fileConfig.srcGenBasePath.relativize(srcGenPath);
 
         fsa.generateFile(relSrcGenPath.resolve("main.cc").toString(), mainReactor.generateMain)
-        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), generateCmake)
         val genIncludeDir = srcGenPath.resolve("__include__")
         copyFileFromClassPath('''«libDir»/lfutil.hh''', genIncludeDir.resolve("lfutil.hh").toString)
         copyFileFromClassPath('''«libDir»/time_parser.hh''', genIncludeDir.resolve("time_parser.hh").toString)
@@ -935,94 +895,6 @@ class CppGenerator extends GeneratorBase {
         
           return 0;
         }
-    '''
-
-    def generateCmake() '''
-        cmake_minimum_required(VERSION 3.5)
-        project(«topLevelName» VERSION 1.0.0 LANGUAGES CXX)
-        
-        # require C++ 17
-        set(CMAKE_CXX_STANDARD 17)
-        set(CMAKE_CXX_STANDARD_REQUIRED ON)
-        set(CMAKE_CXX_EXTENSIONS OFF)
-        
-        include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
-        include(GNUInstallDirs)
-        
-        set(DEFAULT_BUILD_TYPE «IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»)
-        if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-          set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
-        endif()
-        
-        «IF targetConfig.externalRuntimePath!==null»
-            find_package(reactor-cpp PATHS "«targetConfig.externalRuntimePath»")
-        «ELSE»
-            if(NOT REACTOR_CPP_BUILD_DIR)
-              set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
-            endif()
-
-            ExternalProject_Add(
-            dep-reactor-cpp
-              PREFIX "${REACTOR_CPP_BUILD_DIR}"
-              GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-              GIT_TAG "«IF targetConfig.runtimeVersion !== null»«targetConfig.runtimeVersion»«ELSE»26e6e641916924eae2e83bbf40cbc9b933414310«ENDIF»"
-              CMAKE_ARGS
-                -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-                -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
-                -DCMAKE_INSTALL_BINDIR:PATH=${CMAKE_INSTALL_BINDIR}
-                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-                -DREACTOR_CPP_VALIDATE=«IF targetConfig.noRuntimeValidation»OFF«ELSE»ON«ENDIF»
-                -DREACTOR_CPP_TRACE=«IF targetConfig.tracing !== null»ON«ELSE»OFF«ENDIF»
-                «IF targetConfig.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetConfig.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
-            )
-
-            set(REACTOR_CPP_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
-            set(REACTOR_CPP_BIN_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}")
-            set(REACTOR_CPP_LIB_NAME "${CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp${CMAKE_SHARED_LIBRARY_SUFFIX}")
-            set(REACTOR_CPP_IMPLIB_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp${CMAKE_STATIC_LIBRARY_SUFFIX}")
-
-            add_library(reactor-cpp SHARED IMPORTED)
-            add_dependencies(reactor-cpp dep-reactor-cpp)
-            if(WIN32)
-                set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_IMPLIB_NAME}")
-                set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_BIN_DIR}/${REACTOR_CPP_LIB_NAME}")
-            else()
-                set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "${REACTOR_CPP_LIB_DIR}/${REACTOR_CPP_LIB_NAME}")
-            endif()
-
-            if (APPLE)
-              file(RELATIVE_PATH REL_LIB_PATH "${REACTOR_CPP_BIN_DIR}" "${REACTOR_CPP_LIB_DIR}")
-              set(CMAKE_INSTALL_RPATH "@executable_path/${REL_LIB_PATH}")
-            else ()
-              set(CMAKE_INSTALL_RPATH "${REACTOR_CPP_LIB_DIR}")
-            endif ()
-        «ENDIF»
-
-        set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-        
-        set(LF_MAIN_TARGET «topLevelName»)
-        
-        add_executable(${LF_MAIN_TARGET}
-          main.cc
-          «FOR r : reactors»
-              «IF !r.toDefinition.isGeneric»«r.toDefinition.sourceFile.toUnixString»«ENDIF»
-          «ENDFOR»
-          «FOR r : resources»
-              «r.preambleSourceFile.toUnixString»
-          «ENDFOR»
-        )
-        target_include_directories(${LF_MAIN_TARGET} PUBLIC
-            "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}"
-            "${PROJECT_SOURCE_DIR}"
-            "${PROJECT_SOURCE_DIR}/__include__"
-        )
-        target_link_libraries(${LF_MAIN_TARGET} reactor-cpp)
-        
-        install(TARGETS ${LF_MAIN_TARGET})
-        
-        «IF !targetConfig.cmakeInclude.isNullOrEmpty»
-            include("«fileConfig.srcPath.resolve(targetConfig.cmakeInclude).toUnixString»")
-        «ENDIF»
     '''
 
     def void doCompile(IFileSystemAccess2 fsa) {
