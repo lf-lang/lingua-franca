@@ -33,6 +33,7 @@ import org.lflang.*
 import org.lflang.Target
 import org.lflang.lf.Action
 import org.lflang.lf.Reactor
+import org.lflang.lf.TimeUnit
 import org.lflang.lf.VarRef
 import java.nio.file.Path
 
@@ -145,6 +146,35 @@ class CppGenerator : GeneratorBase() {
         copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
     }
 
+    /** Get a C++ representation of a LF unit. */
+    private val TimeValue.cppUnit
+        get() = when (this.unit) {
+            TimeUnit.NSEC -> "ns"
+            TimeUnit.NSECS -> "ns"
+            TimeUnit.USEC -> "us"
+            TimeUnit.USECS -> "us"
+            TimeUnit.MSEC -> "ms"
+            TimeUnit.MSECS -> "ms"
+            TimeUnit.SEC -> "s"
+            TimeUnit.SECS -> "s"
+            TimeUnit.SECOND -> "s"
+            TimeUnit.SECONDS -> "s"
+            TimeUnit.MIN -> "min"
+            TimeUnit.MINS -> "min"
+            TimeUnit.MINUTE -> "min"
+            TimeUnit.MINUTES -> "min"
+            TimeUnit.HOUR -> "h"
+            TimeUnit.HOURS -> "h"
+            TimeUnit.DAY -> "d"
+            TimeUnit.DAYS -> "d"
+            TimeUnit.WEEK -> "d*7"
+            TimeUnit.WEEKS -> "d*7"
+            TimeUnit.NONE -> ""
+            null -> ""
+        }
+
+    /** Convert a LF time value to a representation in C++ code */
+    private fun TimeValue.toCode() = "${this.time} ${this.cppUnit}"
     @Suppress("LocalVariableName") // allows us to use capital S as variable name below
     private fun generateCmake(): String {
         val runtimeVersion = targetConfig.runtimeVersion ?: "26e6e641916924eae2e83bbf40cbc9b933414310"
