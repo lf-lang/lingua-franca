@@ -40,15 +40,17 @@ import org.lflang.generator.ReactorInstance
 class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
 
     /**
-     * Construct a reaction graph based on the given reactor instance and run Tarjan's
+     * Construct a reaction graph based on the given reactor instances and run Tarjan's
      * algorithm to detect cyclic dependencies between reactions. It is
      * assumed that no instantiation cycles are present in the program.
      * Checks for instantiation cycles thus must be carried out prior to  
-     * constructing the reaction graph.
-     * @param model The reactor instance to construct the graph for.
+     * constructing this graph.
+     * @param model The reactor instances to construct the graph for.
      */
-    new(ReactorInstance reactor) {
-        collectNodesFrom(reactor)
+    new(ReactorInstance ...reactors) {
+        for (r : reactors) {
+            collectNodesFrom(r)    
+        }
         this.detectCycles()
     }
 
