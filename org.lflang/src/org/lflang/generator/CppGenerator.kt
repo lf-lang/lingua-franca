@@ -48,6 +48,7 @@ import java.time.format.DateTimeFormatter
 val Resource.name: String get() = FileConfig.getName(this)
 
 fun Path.toUnixString(): String = FileConfig.toUnixString(this)
+fun Path.createDirectories() = FileConfig.createDirectories(this)
 
 val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
 
@@ -113,9 +114,9 @@ class CppGenerator : GeneratorBase() {
     private val TargetProperty.LogLevel.severity
         get() = when (this) {
             TargetProperty.LogLevel.ERROR -> 1
-            TargetProperty.LogLevel.WARN -> 2
-            TargetProperty.LogLevel.INFO -> 3
-            TargetProperty.LogLevel.LOG -> 4
+            TargetProperty.LogLevel.WARN  -> 2
+            TargetProperty.LogLevel.INFO  -> 3
+            TargetProperty.LogLevel.LOG   -> 4
             TargetProperty.LogLevel.DEBUG -> 4
         }
 
@@ -132,6 +133,12 @@ class CppGenerator : GeneratorBase() {
         }
 
         generateFiles(fsa)
+
+        if (targetConfig.noCompile || generatorErrorsOccurred) {
+            println("Exiting before invoking target compiler.")
+        } else {
+            doCompile()
+        }
     }
 
     private fun generateFiles(fsa: IFileSystemAccess2) {
@@ -166,28 +173,28 @@ class CppGenerator : GeneratorBase() {
     /** Get a C++ representation of a LF unit. */
     private val TimeValue.cppUnit
         get() = when (this.unit) {
-            TimeUnit.NSEC -> "ns"
-            TimeUnit.NSECS -> "ns"
-            TimeUnit.USEC -> "us"
-            TimeUnit.USECS -> "us"
-            TimeUnit.MSEC -> "ms"
-            TimeUnit.MSECS -> "ms"
-            TimeUnit.SEC -> "s"
-            TimeUnit.SECS -> "s"
-            TimeUnit.SECOND -> "s"
+            TimeUnit.NSEC    -> "ns"
+            TimeUnit.NSECS   -> "ns"
+            TimeUnit.USEC    -> "us"
+            TimeUnit.USECS   -> "us"
+            TimeUnit.MSEC    -> "ms"
+            TimeUnit.MSECS   -> "ms"
+            TimeUnit.SEC     -> "s"
+            TimeUnit.SECS    -> "s"
+            TimeUnit.SECOND  -> "s"
             TimeUnit.SECONDS -> "s"
-            TimeUnit.MIN -> "min"
-            TimeUnit.MINS -> "min"
-            TimeUnit.MINUTE -> "min"
+            TimeUnit.MIN     -> "min"
+            TimeUnit.MINS    -> "min"
+            TimeUnit.MINUTE  -> "min"
             TimeUnit.MINUTES -> "min"
-            TimeUnit.HOUR -> "h"
-            TimeUnit.HOURS -> "h"
-            TimeUnit.DAY -> "d"
-            TimeUnit.DAYS -> "d"
-            TimeUnit.WEEK -> "d*7"
-            TimeUnit.WEEKS -> "d*7"
-            TimeUnit.NONE -> ""
-            null -> ""
+            TimeUnit.HOUR    -> "h"
+            TimeUnit.HOURS   -> "h"
+            TimeUnit.DAY     -> "d"
+            TimeUnit.DAYS    -> "d"
+            TimeUnit.WEEK    -> "d*7"
+            TimeUnit.WEEKS   -> "d*7"
+            TimeUnit.NONE    -> ""
+            null             -> ""
         }
 
     /** Convert a LF time value to a representation in C++ code */
@@ -291,7 +298,9 @@ class CppGenerator : GeneratorBase() {
         val runtimeVersion = targetConfig.runtimeVersion ?: "26e6e641916924eae2e83bbf40cbc9b933414310"
 
         // FIXME Is there a way to simplify this line?
-        val includeFile = if (targetConfig.cmakeInclude.isNullOrBlank()) null else FileConfig.toUnixString(fileConfig.srcPath.resolve(targetConfig.cmakeInclude))
+        val includeFile = if (targetConfig.cmakeInclude.isNullOrBlank()) null else FileConfig.toUnixString(
+            fileConfig.srcPath.resolve(targetConfig.cmakeInclude)
+        )
 
         // compile a list of all source files produced by this generator
         val reactorSourceFiles = reactors.filter { !it.isGeneric }.map { it.sourcePath.toUnixString() }
@@ -385,6 +394,69 @@ class CppGenerator : GeneratorBase() {
                 |include($includeFile)""".trimIndent()
         }
             """.trimMargin()
+    }
+
+    fun doCompile() {
+        val outPath = fileConfig.outPath
+
+        val buildPath = outPath.resolve("build").resolve(topLevelName)
+        val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
+
+        // make sure the build directory exists
+        FileConfig.createDirectories(buildPath)
+
+        val makeBuilder = createCommand(
+            "cmake",
+            listOf(
+                "--build", ".", "--target", "install", "--config",
+                targetConfig.cmakeBuildType?.toString() ?: "Release"
+            ),
+            outPath, // FIXME: it doesn't make sense to provide a search path here, createCommand() should accept null
+            "The C++ target requires CMAKE >= 3.02 to compile the generated code. " +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+            true
+        )
+        val cmakeBuilder = createCommand(
+            "cmake", listOf(
+                "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
+                "-DREACTOR_CPP_BUILD_DIR=${reactorCppPath.toUnixString()}",
+                "-DCMAKE_INSTALL_BINDIR=${outPath.relativize(fileConfig.binPath).toUnixString()}",
+                fileConfig.srcGenPath.toUnixString()
+            ),
+            outPath, // FIXME: it doesn't make sense to provide a search path here, createCommand() should accept null
+            "The C++ target requires CMAKE >= 3.02 to compile the generated code" +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
+            true
+        )
+        if (makeBuilder == null || cmakeBuilder == null) {
+            return
+        }
+
+        // prepare cmake
+        cmakeBuilder.directory(buildPath.toFile())
+        if (targetConfig.compiler != null) {
+            val cmakeEnv = cmakeBuilder.environment()
+            cmakeEnv["CXX"] = targetConfig.compiler
+        }
+
+        // run cmake
+        val cmakeReturnCode = executeCommand(cmakeBuilder)
+
+        if (cmakeReturnCode == 0) {
+            // If cmake succeeded, prepare and run make
+            makeBuilder.directory(buildPath.toFile())
+            val makeReturnCode = executeCommand(makeBuilder)
+
+            if (makeReturnCode == 0) {
+                println("SUCCESS (compiling generated C++ code)")
+                println("Generated source code is in ${fileConfig.srcGenPath}")
+                println("Compiled binary is in ${fileConfig.binPath}")
+            } else {
+                reportError("make failed with error code $makeReturnCode")
+            }
+        } else {
+            reportError("cmake failed with error code $cmakeReturnCode")
+        }
     }
 
     override fun generateDelayBody(action: Action, port: VarRef) = TODO()
