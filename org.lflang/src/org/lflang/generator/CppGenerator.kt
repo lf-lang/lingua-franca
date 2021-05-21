@@ -36,22 +36,57 @@ import org.lflang.lf.Action
 import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
 
-/** Name of a resource (i.e. name of the source file without extension) */
+/* *******************************************************************************************
+ * The following definitions are shortcuts to access static members of FileConfig and ASTUtils
+ *
+ * TODO these should likely be moved to a common place in the future
+ */
+
 val Resource.name: String get() = FileConfig.getName(this)
 
-//private operator fun String.rangeTo(str: String) = str.prependIndent(this)
+fun Path.toUnixString() = FileConfig.toUnixString(this)
+
+val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
+
+/* ********************************************************************************************/
+
+/** Prepend each line of the rhs multiline string with the lhs prefix.
+ *
+ * This is a neat little trick that allows for convenient insertion of multiline strings in string templates
+ * while correctly managing the indentation. Consider this multiline string:
+ * ```
+ * val foo = """
+ *    void foo() {
+ *        // do something useful
+ *    }""".trimIndent()
+ * ```
+ *
+ * It could be inserted into a higher level multiline string like this:
+ *
+ * ```
+ * val bar = """
+ *     |class Bar {
+ * ${" |    " .. foo}
+ *     |};""".trimMargin()
+ * ```
+ *
+ * This will produce the expected output:
+ * ```
+ * class Bar {
+ *     void foo() {
+ *         // do something useful
+ *     }
+ * };
+ * ```
+ */
+operator fun String.rangeTo(str: String) = str.prependIndent(this)
 
 class CppGenerator : GeneratorBase() {
 
     /** Path to the Cpp lib directory (relative to class path)  */
     private val libDir = "/lib/Cpp"
 
-    /** Relative path to the directory where all source files for this resource should be generated in.
-     *
-     * Path is relative to the src-gen directory
-     *
-     * FIXME: Probably this should return an absolute path, but would require changing the code for writing files.
-     */
+    /** Relative path to the directory where all source files for this resource should be generated in. */
     private val Resource.genDir get() = fileConfig.getDirectory(this).resolve(this.name)
 
     /** Path to the preamble header file corresponding to this resource */
