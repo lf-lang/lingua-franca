@@ -33,15 +33,40 @@ import org.lflang.FileConfig
 import org.lflang.Target
 import org.lflang.TargetProperty
 import org.lflang.lf.Action
+import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
+
+/** Name of a resource (i.e. name of the source file without extension) */
+val Resource.name: String get() = FileConfig.getName(this)
+
+//private operator fun String.rangeTo(str: String) = str.prependIndent(this)
 
 class CppGenerator : GeneratorBase() {
 
     /** Path to the Cpp lib directory (relative to class path)  */
     private val libDir = "/lib/Cpp"
 
+    /** Relative path to the directory where all source files for this resource should be generated in.
+     *
+     * Path is relative to the src-gen directory
+     *
+     * FIXME: Probably this should return an absolute path, but would require changing the code for writing files.
+     */
+    private val Resource.genDir get() = fileConfig.getDirectory(this).resolve(this.name)
+
+    /** Path to the preamble header file corresponding to this resource */
+    private val Resource.preambleHeaderPath get() = this.genDir.resolve("_lf_preamble.hh")
+    /** Path to the preamble source file corresponding to this resource */
+    private val Resource.preambleSourcePath get() = this.genDir.resolve("_lf_preamble.cc")
+    /** Path to the header file corresponding to this reactor */
+    private val Reactor.headerPath get() = this.eResource().genDir.resolve("${this.name}.hh")
+    /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
+    private val Reactor.headerImplPath get() = this.eResource().genDir.resolve("${this.name}_impl.hh")
+    /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
+    private val Reactor.sourcPath get() = this.eResource().genDir.resolve("${this.name}.cc")
+
     /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
-    private fun severity(level: TargetProperty.LogLevel?): Int = when (level) {
+    private val TargetProperty.LogLevel.severity get() = when (this) {
         TargetProperty.LogLevel.ERROR -> 1
         TargetProperty.LogLevel.WARN -> 2
         TargetProperty.LogLevel.INFO -> 3
@@ -125,7 +150,7 @@ class CppGenerator : GeneratorBase() {
                 |   -DCMAKE_CXX_COMPILER=$S{CMAKE_CXX_COMPILER}
                 |   -DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}
                 |   -DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"} 
-                |   -DREACTOR_CPP_LOG_LEVEL=${severity(targetConfig.logLevel)}
+                |   -DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}
                 |)
                 |
                 |set(REACTOR_CPP_LIB_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
