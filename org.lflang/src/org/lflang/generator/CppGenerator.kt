@@ -223,6 +223,13 @@ class CppGenerator : GeneratorBase() {
     /** Convert a LF time value to a representation in C++ code */
     private fun TimeValue.toCode() = "${this.time} ${this.cppUnit}"
 
+
+    private fun declareReactions(r: Reactor) =
+        r.reactions.joinToString(separator = "\n", prefix = "// reactions\n", postfix = "\n") { declare(it) }
+
+    private fun declare(n: Reaction) =
+        """reactor::Reaction ${n.name}{"${n.label}", ${n.priority}, this, [this]() { ${n.name}_body(); }};"""
+
     private fun generateMain(main: Reactor): String {
         return """
         ${" |"..fileComment(main.eResource())}
