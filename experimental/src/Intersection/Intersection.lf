@@ -30,6 +30,32 @@ preamble {=
         instant_t arrival_time;
     } grant_message_t;
     
+            
+    typedef struct {
+        // The CARLA vehicle control data
+
+		// 0. <= throttle <= 1.
+		float throttle;
+		
+		// -1. <= steer <= 1.
+		float steer;
+		
+		// 0. <= brake <= 1.
+		float brake;
+		
+		// hand_brake 0 or 1
+		bool hand_brake;
+		
+		// reverse 0 or 1
+		bool reverse;
+		
+		// gear
+		int gear;
+		
+		// manual gear shift
+		bool manual_gear_shift;
+    } vehicle_command_t;
+    
     // Table of offsets by vehicle bank_index:
     interval_t timer_offsets[] = {
         0LL,
@@ -54,7 +80,9 @@ reactor Vehicle (
 ) {
     input grant:grant_message_t;
     
-    output request:request_message_t;
+    output request:request_message_t;    
+    
+    output control:vehicle_command_t;
     
     logical action delay;
     
@@ -79,7 +107,20 @@ reactor Vehicle (
        	schedule(delay, timer_periods[self->bank_index]);
     =}
     
-    reaction(grant) {=
+    reaction(grant) -> control {=
+        // Calculate a throttle value for the vehicle
+        float throttle = (grant->value.target_speed/100);
+        vehicle_command_t cmd = {
+            .throttle = throttle,
+            .steer = 0,
+            .brake = 0,
+            .hand_brake = 0,
+            .reverse = 0,
+            .gear = 1,
+            .manual_gear_shift = 0
+        };
+        SET(control, cmd);
+        
         info_print("Granted access at elapsed logical time %lld. Physical time is %lld",
             get_elapsed_logical_time(),
             get_elapsed_physical_time()

@@ -1,0 +1,96 @@
+/**
+ * Model of a smart intersection with a road-side unit (RSU)
+ * that regulates the flow of automated vehicles through the
+ * intersection. Vehicles that are approaching the intersection
+ * send an initial message to the RTU with their speed and
+ * distance to the intersection. The RTU responds with a
+ * reservation for when the vehicle can enter the intersection
+ * and what its average speed through the intersection should be.
+ * 
+ * This is meant as a supervisory controller, and it assumes that
+ * the vehicle is equipped with a low-level controller (or a human)
+ * that is responsible for lane keeping, collision avoidance, etc.
+ * 
+ * This is a very rough starting point that needs a lot of work.
+ */
+target C {
+    timeout: 5 sec,
+    no-compile: true
+};
+
+import Vehicle, RSU from "../Intersection.lf";
+
+reactor VehicleInterface (num_entries:int(1)) {
+    output[num_entries] to_vehicle:vehicle_command_t;
+    
+    vehicles = new[num_entries] Vehicle(offset = 0);    
+    rsu = new RSU(num_entries = num_entries);
+    
+    vehicles.request -> rsu.request;
+    rsu.grant -> vehicles.grant;
+	
+	vehicles.control -> to_vehicle;
+}
+
+reactor Carla {
+    preamble {=
+	    #include <functional>
+	    #include <memory>
+	    #include <string>
+	    #include <iostream>
+	
+	    #include "rclcpp/rclcpp.hpp"
+	    #include "carla_msgs/msg/carla_ego_vehicle_control.hpp"
+        class LFCarlaPublisher : public rclcpp::Node {
+	        public:
+	            LFCarlaPublisher()
+	            : Node("LFCarlaPublisher")
+	            {
+	                publisher_ = this->create_publisher<carla_msgs::msg::CarlaEgoVehicleControl>("/carla/ego_vehicle/vehicle_control_cmd", 10);
+	            }
+	        
+	            rclcpp::Publisher<carla_msgs::msg::CarlaEgoVehicleControl>::SharedPtr publisher_;
+        }; 
+	=}
+    input throttle:float;
+    input steer:float;
+    input brake:float;
+    input reverse:bool;
+    input gear:int;
+    input command:vehicle_command_t;
+    state lf_carla_publisher:{=std::shared_ptr<LFCarlaPublisher>=};
+    reaction(startup) {=
+        char *argv[] = {(char*)"LFCarlaPublisher", NULL};
+        rclcpp::init(1, argv);
+        self->lf_carla_publisher = std::make_shared<LFCarlaPublisher>();        
+    =}
+    reaction(throttle, steer, brake, reverse, gear, command) {=
+        auto message = carla_msgs::msg::CarlaEgoVehicleControl();
+        if (command->is_present) {
+            message.throttle = command->value.throttle;
+	        message.steer = command->value.steer;
+	        message.brake = command->value.brake;
+	        message.reverse = command->value.reverse;
+	        message.gear = command->value.gear;
+        } else {
+	        message.throttle = throttle->value;
+	        message.steer = steer->value;
+	        message.brake = brake->value;
+	        message.reverse = reverse->value;
+	        message.gear = gear->value;
+        }
+        self->lf_carla_publisher->publisher_->publish(message);
+    =}
+    
+   reaction(shutdown) {=
+        // std::cout << "Executing shutdown reaction." << std::endl;
+    	rclcpp::shutdown();
+    =}
+}
+
+main reactor (num_entries:int(1)) {
+    carla = new[num_entries] Carla();
+    vehicleI = new VehicleInterface(num_entries = num_entries);
+    
+	vehicleI.to_vehicle -> carla.command;
+}
