@@ -31,6 +31,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
 import org.lflang.Target
+import org.lflang.TargetProperty
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 
@@ -38,6 +39,16 @@ class CppGenerator : GeneratorBase() {
 
     /** Path to the Cpp lib directory (relative to class path)  */
     private val libDir = "/lib/Cpp"
+
+    /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
+    private fun severity(level: TargetProperty.LogLevel?): Int = when (level) {
+        TargetProperty.LogLevel.ERROR -> 1
+        TargetProperty.LogLevel.WARN -> 2
+        TargetProperty.LogLevel.INFO -> 3
+        TargetProperty.LogLevel.LOG -> 4
+        TargetProperty.LogLevel.DEBUG -> 4
+        null -> 3
+    }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -114,7 +125,7 @@ class CppGenerator : GeneratorBase() {
                 |   -DCMAKE_CXX_COMPILER=$S{CMAKE_CXX_COMPILER}
                 |   -DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}
                 |   -DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"} 
-                |   # TODO «IF targetConfig.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetConfig.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
+                |   -DREACTOR_CPP_LOG_LEVEL=${severity(targetConfig.logLevel)}
                 |)
                 |
                 |set(REACTOR_CPP_LIB_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
