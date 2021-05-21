@@ -298,6 +298,12 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to go at the end of the __initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
 
+    /**
+     * A representation of the dependencies between reactions as they are
+     * inferred from the main reactor instance.
+     */
+    var ReactionInstanceGraph reactionGraph
+
     // The command to run the generated code if specified in the target directive.
     var runCommand = new ArrayList<String>()
 
@@ -486,7 +492,8 @@ class CGenerator extends GeneratorBase {
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.
-                    this.main = new ReactorInstance(mainDef, null, this) 
+                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, this, this.unorderedReactions)
+                    this.reactionGraph = new ReactionInstanceGraph(main)
                 }   
             }
         
@@ -2783,12 +2790,12 @@ class CGenerator extends GeneratorBase {
                 // Record the number of reactions that this reaction depends on.
                 // This is used for optimization. When that number is 1, the reaction can
                 // be executed immediately when its triggering reaction has completed.
-                var dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(reaction)
+                var dominatingReaction = this.reactionGraph.findSingleDominatingReaction(reaction)
                 // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
                 while (dominatingReaction !== null 
                     && !federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition
                 )) {
-                    dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(dominatingReaction);
+                    dominatingReaction = this.reactionGraph.findSingleDominatingReaction(dominatingReaction);
                 }
                 if (dominatingReaction !== null
                     && federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition)
