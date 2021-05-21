@@ -30,6 +30,9 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
+import org.lflang.Target
+import org.lflang.lf.Action
+import org.lflang.lf.VarRef
 
 class CppGenerator : GeneratorBase() {
 
@@ -39,12 +42,13 @@ class CppGenerator : GeneratorBase() {
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
-        // stop if there are any errors found in the program by doGeneratre() in GeneratorBase
+        // stop if there are any errors found in the program by doGenerate() in GeneratorBase
         if (generatorErrorsOccurred) return
 
         // abort if there is no main reactor
         if (mainDef == null) {
             println("WARNING: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.")
+            return
         }
 
         generateFiles(fsa)
@@ -159,7 +163,7 @@ class CppGenerator : GeneratorBase() {
             |
             |install(TARGETS $S{LF_MAIN_TARGET})
         ${
-            if (includeFile == null "" else """
+            if (includeFile == null) "" else """
                 |
                 |include($includeFile)""".trimIndent()
         }
