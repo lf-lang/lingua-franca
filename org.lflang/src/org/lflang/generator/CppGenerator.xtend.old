@@ -152,24 +152,6 @@ class CppGenerator extends GeneratorBase {
         return result
     }
 
-    def name(Reaction n) {
-        var r = n.eContainer as Reactor
-        'r' + r.reactions.lastIndexOf(n)
-    }
-    
-    def label(Reaction n) {
-        val label = ASTUtils.label(n)
-        if (label === null) {
-            n.name
-        } else {
-            label
-        }
-    }
-
-    def priority(Reaction n) {
-        var r = n.eContainer as Reactor
-        r.reactions.lastIndexOf(n) + 1
-    }
 
     def declare(Reaction n) '''
         reactor::Reaction «n.name»{"«n.label»", «n.priority», this, [this]() { «n.name»_body(); }};
