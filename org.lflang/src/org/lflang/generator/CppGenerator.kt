@@ -77,6 +77,8 @@ val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
  *         // do something useful
  *     }
  * };
+ *
+ * TODO We likely want to move this to a central place
  * ```
  */
 operator fun String.rangeTo(str: String) = str.prependIndent(this)
@@ -102,7 +104,7 @@ class CppGenerator : GeneratorBase() {
     private val Reactor.headerImplPath get() = this.eResource().genDir.resolve("${this.name}_impl.hh")
 
     /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
-    private val Reactor.sourcPath get() = this.eResource().genDir.resolve("${this.name}.cc")
+    private val Reactor.sourcePath get() = this.eResource().genDir.resolve("${this.name}.cc")
 
     /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
     private val TargetProperty.LogLevel.severity
@@ -151,7 +153,7 @@ class CppGenerator : GeneratorBase() {
         val includeFile = if (targetConfig.cmakeInclude.isNullOrBlank()) null else FileConfig.toUnixString(fileConfig.srcPath.resolve(targetConfig.cmakeInclude))
 
         // compile a list of all source files produced by this generator
-        val reactorSourceFiles = reactors.filter { !it.isGeneric }.map { it.sourcPath.toUnixString() }
+        val reactorSourceFiles = reactors.filter { !it.isGeneric }.map { it.sourcePath.toUnixString() }
         val preambleSourceFiles = resources.map { it.preambleSourcePath.toUnixString() }
         val sourceFiles = reactorSourceFiles + preambleSourceFiles
 
