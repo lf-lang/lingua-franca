@@ -30,9 +30,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
-import org.lflang.Target
-import org.lflang.lf.Action
-import org.lflang.lf.VarRef
 
 class CppGenerator : GeneratorBase() {
 
@@ -67,37 +64,41 @@ class CppGenerator : GeneratorBase() {
         copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
     }
 
+    @Suppress("LocalVariableName") // allows us to use capital S as variable name below
     private fun generateCmake(): String {
-        val runtimeVersion =
-                if (targetConfig.runtimeVersion != null) targetConfig.runtimeVersion else "26e6e641916924eae2e83bbf40cbc9b933414310"
+        val runtimeVersion = targetConfig.runtimeVersion ?: "26e6e641916924eae2e83bbf40cbc9b933414310"
+
+        // FIXME Is there a way to simplify this line?
+        val includeFile = if (targetConfig.cmakeInclude.isNullOrBlank()) null else FileConfig.toUnixString(fileConfig.srcPath.resolve(targetConfig.cmakeInclude))
 
         val S = '$' // a little trick to escape the dollar sign with $S
 
-        val sb = StringBuilder()
-        sb.append("""
+        return """
             |cmake_minimum_required(VERSION 3.5)
             |project(${topLevelName} VERSION 1.0.0 LANGUAGES CXX)
-
+            |
             |# require C++ 17
             |set(CMAKE_CXX_STANDARD 17)
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
-
+            |
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
             |include(GNUInstallDirs)
-
+            |
             |set(DEFAULT_BUILD_TYPE ${targetConfig.cmakeBuildType}"})
             |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
             |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
-            |endif()""")
-        if (targetConfig.externalRuntimePath != null) {
-            sb.append("|find_package(reactor-cpp PATHS ${targetConfig.externalRuntimePath}")
-        } else {
-            sb.append("""
+            |endif()
+            |
+        ${
+            if (targetConfig.externalRuntimePath != null) """
+                |find_package(reactor-cpp PATHS ${targetConfig.externalRuntimePath}")
+            """.trimIndent()
+            else """
                 |if(NOT REACTOR_CPP_BUILD_DIR)
                 |    set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
                 |endif()
-
+                |
                 |ExternalProject_Add(dep-reactor-cpp
                 |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
                 |   GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
@@ -111,12 +112,12 @@ class CppGenerator : GeneratorBase() {
                 |   -DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"} 
                 |   # TODO «IF targetConfig.logLevel !== null»-DREACTOR_CPP_LOG_LEVEL=«logLevelsToInts.get(targetConfig.logLevel)»«ELSE»«logLevelsToInts.get(LogLevel.INFO)»«ENDIF»
                 |)
-
+                |
                 |set(REACTOR_CPP_LIB_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
                 |set(REACTOR_CPP_BIN_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_BINDIR}")
                 |set(REACTOR_CPP_LIB_NAME "$S{CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_SHARED_LIBRARY_SUFFIX}")
                 |set(REACTOR_CPP_IMPLIB_NAME "$S{CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_STATIC_LIBRARY_SUFFIX}")
-
+                |
                 |add_library(reactor-cpp SHARED IMPORTED)
                 |add_dependencies(reactor-cpp dep-reactor-cpp)
                 |if(WIN32)
@@ -125,19 +126,20 @@ class CppGenerator : GeneratorBase() {
                 |else()
                 |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_LIB_NAME}")
                 |endif()
-
+                |
                 |if (APPLE)
                 |   file(RELATIVE_PATH REL_LIB_PATH "$S{REACTOR_CPP_BIN_DIR}" "$S{REACTOR_CPP_LIB_DIR}")
                 |   set(CMAKE_INSTALL_RPATH "@executable_path/$S{REL_LIB_PATH}")
                 |else ()
                 |   set(CMAKE_INSTALL_RPATH "$S{REACTOR_CPP_LIB_DIR}")
-                |endif ()""")
+                |endif ()
+            """.trimIndent()
         }
-        sb.append("""
+            |
             |set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-
+            |
             |set(LF_MAIN_TARGET ${topLevelName})
-
+            |
             |add_executable($S{LF_MAIN_TARGET}
             |    main.cc
             |#TODO
@@ -154,18 +156,14 @@ class CppGenerator : GeneratorBase() {
             |    "$S{PROJECT_SOURCE_DIR}/__include__"
             |)
             |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
-
-            |install(TARGETS $S{LF_MAIN_TARGET})""")
-
-        if (!targetConfig.cmakeInclude.isNullOrEmpty()) {
-            val includeFile = FileConfig.toUnixString(fileConfig.srcPath.resolve(targetConfig.cmakeInclude))
-            sb.append("""
-
-            |include($includeFile)
-            """)
+            |
+            |install(TARGETS $S{LF_MAIN_TARGET})
+        ${
+            if (includeFile == null "" else """
+                |
+                |include($includeFile)""".trimIndent()
         }
-
-        return sb.toString().trimMargin()
+            """.trimMargin()
     }
 
     override fun generateDelayBody(action: Action, port: VarRef) = TODO()
