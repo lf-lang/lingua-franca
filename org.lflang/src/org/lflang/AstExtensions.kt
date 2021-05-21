@@ -124,12 +124,9 @@ fun Element.toText(): String =
     literal?.withoutQuotes()?.trim() ?: id ?: ""
 
 
-fun Delay.toText(): String {
-    if (parameter !== null) {
-        return parameter.name
-    }
-    return "$interval $unit"
-}
+fun Delay.toText(): String =
+    parameter?.name ?: "$interval $unit"
+
 
 /**
  * Remove quotation marks surrounding the specified string.
@@ -146,7 +143,7 @@ fun String.withoutQuotes(): String {
  * @receiver The variable reference.
  */
 fun VarRef.toText(): String =
-    if (container !== null) "${container.name}.${variable.name}"
+    if (container != null) "${container.name}.${variable.name}"
     else variable.name
 
 
