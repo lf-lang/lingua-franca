@@ -135,12 +135,6 @@ class CppGenerator extends GeneratorBase {
             fsa.generateFile(relSrcGenPath.resolve(r.preambleSourceFile).toString(), r.generatePreambleSource)
             fsa.generateFile(relSrcGenPath.resolve(r.preambleHeaderFile).toString(), r.generatePreambleHeader)
         }
-
-        if (!targetConfig.noCompile && !errorsOccurred()) {
-            doCompile(fsa)
-        } else {
-            println("Exiting before invoking target compiler.")
-        }
     }
 
     def extractDir(String path) {
@@ -801,71 +795,6 @@ class CppGenerator extends GeneratorBase {
           «ENDFOR»
         }
     '''
-
-    def void doCompile(IFileSystemAccess2 fsa) {
-        // FIXME: Cmake can only handle unix-style paths. Therefore, we should replace `\' by '/' in the
-        // absolute path in case we are running on Windows. All other platforms should not
-        // be affected.
-        // There is a utility function for this in CodeGenConfig
-
-        val outPath = this.fileConfig.outPath
-
-        val buildPath = outPath.resolve("build").resolve(topLevelName)
-        val reactorCppPath = outPath.resolve("build").resolve("reactor-cpp")
-        
-        // make sure the build directory exists
-        FileConfig.createDirectories(buildPath)
-
-        val makeBuilder = createCommand("cmake", #[
-            "--build",
-            ".",
-            "--target",
-            "install",
-            "--config",
-            '''«IF targetConfig.cmakeBuildType === null»"Release"«ELSE»"«targetConfig.cmakeBuildType»"«ENDIF»'''],
-            outPath, 
-            "The C++ target requires CMAKE >= 3.16 and g++ >= 7 or MSVC >= 14.20 - 1920 (Visual Studio 2019) to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true)
-        val cmakeBuilder = createCommand("cmake", #[
-            '''-DCMAKE_INSTALL_PREFIX=«FileConfig.toUnixString(outPath)»''',
-            '''-DREACTOR_CPP_BUILD_DIR=«FileConfig.toUnixString(reactorCppPath)»''',
-            '''-DCMAKE_INSTALL_BINDIR=«FileConfig.toUnixString(outPath.relativize(fileConfig.binPath))»''',
-            fileConfig.getSrcGenPath.toString],
-            fileConfig.getSrcGenPath, 
-            "The C++ target requires CMAKE >= 3.16 and g++ >= 7 or MSVC >= 14.20 - 1920 (Visual Studio 2019) to compile the generated code. " +
-            "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
-            true)
-        if (makeBuilder === null || cmakeBuilder === null) {
-            return
-        }
-
-        // prepare cmake
-        cmakeBuilder.directory(buildPath.toFile())
-        if (targetConfig.compiler !== null) {
-            val cmakeEnv = cmakeBuilder.environment();
-            cmakeEnv.put("CXX", targetConfig.compiler);
-        }
-        
-        // run cmake
-        val cmakeReturnCode = cmakeBuilder.executeCommand();
-
-        if (cmakeReturnCode == 0) {
-            // If cmake succeeded, prepare and run make
-            makeBuilder.directory(buildPath.toFile())
-            val makeReturnCode = makeBuilder.executeCommand()
-
-            if (makeReturnCode == 0) {
-                println("SUCCESS (compiling generated C++ code)")
-                println('''Generated source code is in «fileConfig.getSrcGenPath»''')
-                println('''Compiled binary is in «fileConfig.binPath»''')
-            } else {
-                reportError('''make failed with error code «makeReturnCode»''')
-            }
-        } else {
-            reportError('''cmake failed with error code «cmakeReturnCode»''')
-        }
-    }
 
     // //////////////////////////////////////////////
     // // Protected methods
