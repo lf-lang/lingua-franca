@@ -34,9 +34,7 @@ import org.lflang.Target
 import org.lflang.lf.Action
 import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
-import java.io.File.separator
 import java.nio.file.Path
-import java.util.*
 
 /* *******************************************************************************************
  * The following definitions are shortcuts to access static members of FileConfig and ASTUtils
@@ -46,7 +44,7 @@ import java.util.*
 
 val Resource.name: String get() = FileConfig.getName(this)
 
-fun Path.toUnixString() = FileConfig.toUnixString(this)
+fun Path.toUnixString(): String = FileConfig.toUnixString(this)
 
 val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
 
@@ -68,7 +66,7 @@ val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
  * ```
  * val bar = """
  *     |class Bar {
- * ${" |    " .. foo}
+ * ${" |    "..foo}
  *     |};""".trimMargin()
  * ```
  *
@@ -93,24 +91,28 @@ class CppGenerator : GeneratorBase() {
 
     /** Path to the preamble header file corresponding to this resource */
     private val Resource.preambleHeaderPath get() = this.genDir.resolve("_lf_preamble.hh")
+
     /** Path to the preamble source file corresponding to this resource */
     private val Resource.preambleSourcePath get() = this.genDir.resolve("_lf_preamble.cc")
+
     /** Path to the header file corresponding to this reactor */
     private val Reactor.headerPath get() = this.eResource().genDir.resolve("${this.name}.hh")
+
     /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
     private val Reactor.headerImplPath get() = this.eResource().genDir.resolve("${this.name}_impl.hh")
+
     /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
     private val Reactor.sourcPath get() = this.eResource().genDir.resolve("${this.name}.cc")
 
     /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
-    private val TargetProperty.LogLevel.severity get() = when (this) {
-        TargetProperty.LogLevel.ERROR -> 1
-        TargetProperty.LogLevel.WARN -> 2
-        TargetProperty.LogLevel.INFO -> 3
-        TargetProperty.LogLevel.LOG -> 4
-        TargetProperty.LogLevel.DEBUG -> 4
-        null -> 3
-    }
+    private val TargetProperty.LogLevel.severity
+        get() = when (this) {
+            TargetProperty.LogLevel.ERROR -> 1
+            TargetProperty.LogLevel.WARN -> 2
+            TargetProperty.LogLevel.INFO -> 3
+            TargetProperty.LogLevel.LOG -> 4
+            TargetProperty.LogLevel.DEBUG -> 4
+        }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -224,7 +226,7 @@ class CppGenerator : GeneratorBase() {
             |
             |add_executable($S{LF_MAIN_TARGET}
             |    main.cc
-        ${" |    " .. sourceFiles.joinToString("\n")}
+        ${" |    "..sourceFiles.joinToString("\n")}
             |)
             |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
             |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
