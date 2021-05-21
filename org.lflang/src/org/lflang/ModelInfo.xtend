@@ -87,6 +87,9 @@ class ModelInfo {
      */
     public Set<Parameter> overflowingParameters
     
+    /**
+     * A graph of ports and reactions.
+     */
     public TopologyGraph topologyGraph
     
     public List<ReactorInstance> topLevelReactorInstances
@@ -116,7 +119,6 @@ class ModelInfo {
                 model.reactors.forEach[ topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))]
             }
             this.topologyGraph = new TopologyGraph(topLevelReactorInstances)
-            
         }
         
         // Find the target. A target must exist because the grammar requires it.

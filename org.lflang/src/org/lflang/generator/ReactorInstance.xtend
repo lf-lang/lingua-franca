@@ -64,17 +64,10 @@ import static extension org.lflang.ASTUtils.*
 class ReactorInstance extends NamedInstance<Instantiation> {
 
     protected static var Set<Reaction> unorderedReactions = new LinkedHashSet()
-
-    /**
-     * A representation of the dependencies between reactions as they are
-     * inferred from the main reactor instance.
-     */
-    public static var ReactionInstanceGraph reactionGraph
-
     
-    // FIXME: unorderReactions are passed from the generator because it performs
-    // AST transformations that this data structure is unaware of. If we operate
-    // on ReactorInstance indirectly, we don't have to do this.
+    /**
+     * Create a new instantiation hierarchy that starts with the given reactor.
+     */
     new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
         this(ASTUtils.createInstantiation(reactor), null, reporter)
         if (unorderedReactions !== null) {
@@ -89,7 +82,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param parent The parent, or null for the main rector.
      * @param generator The generator (for error reporting).
      */
-    protected new(Instantiation definition, ReactorInstance parent, ErrorReporter generator) {
+    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator) {
         // If the reactor is being instantiated with new[width], then pass -2
         // to the constructor, otherwise pass -1.
         this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
@@ -105,10 +98,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * placeholder for a bank of reactors, or the index of the
      * reactor in a bank of reactors otherwise.
      */
-    protected new(Instantiation definition, ReactorInstance parent,
-        ErrorReporter generator, int reactorIndex) {
+    private new(Instantiation definition, ReactorInstance parent,
+        ErrorReporter reporter, int reactorIndex) {
         super(definition, parent)
-        this.reporter = generator
+        this.reporter = reporter
         this.bankIndex = reactorIndex
         
         // If this reactor is actually a bank of reactors, then instantiate
@@ -121,13 +114,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (width > 0) {
                 this.bankMembers = new ArrayList<ReactorInstance>(width)
                 for (var index = 0; index < width; index++) {
-                    var childInstance = new ReactorInstance(definition, parent, generator, index)
+                    var childInstance = new ReactorInstance(definition, parent, reporter, index)
                     this.bankMembers.add(childInstance)
                     childInstance.bank = this
                     childInstance.bankIndex = index
                 }
             } else {
-                generator.reportError(definition, "Cannot infer width.")
+                reporter.reportError(definition, "Cannot infer width.")
             }
             return
         }
@@ -139,7 +132,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Instantiate children for this reactor instance
         for (child : definition.reactorClass.toDefinition.allInstantiations) {
-            var childInstance = new ReactorInstance(child, this, generator)
+            var childInstance = new ReactorInstance(child, this, reporter)
             this.children.add(childInstance)
             // If the child is a bank of instances, add all the bank instances.
             // These must be added after the bank itself.
@@ -153,7 +146,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (inputDecl.widthSpec === null) {
                 this.inputs.add(new PortInstance(inputDecl, this))
             } else {
-                this.inputs.add(new MultiportInstance(inputDecl, this, generator))
+                this.inputs.add(new MultiportInstance(inputDecl, this, reporter))
             }
         }
 
@@ -162,7 +155,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (outputDecl.widthSpec === null) {
                 this.outputs.add(new PortInstance(outputDecl, this))
             } else {
-                this.outputs.add(new MultiportInstance(outputDecl, this, generator))
+                this.outputs.add(new MultiportInstance(outputDecl, this, reporter))
             }
         }
 
@@ -176,75 +169,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             this.actions.add(new ActionInstance(actionDecl, this))
         }
 
-        // Populate destinations map and the connectivity information
-        // in the port instances.
-        // Note that this can only happen _after_ the children and 
-        // port instances have been created.
-        
-        // Unfortunately, we have to do some complicated things here
-        // to support multiport-to-multiport, multiport-to-bank,
-        // and bank-to-multiport communication.  The principle being followed is:
-        // In each connection statement, for each port instance on the left,
-        // as obtained by the nextPort() function, connect to the next available
-        // port on the right, as obtained by the nextPort() function.
-        // FIXME: put in function named establishPortConnections
-        // FIXME: Replication exists in ReactionGraph.collectNodes and GeneratorBase.analyzeFederates
-        for (connection : definition.reactorClass.toDefinition.allConnections) {
-            var leftPort = connection.leftPorts.get(0)
-            var leftPortCount = 1
-            for (rightPort : connection.rightPorts) {
-                var rightPortInstance = nextPort(rightPort)
-                while (rightPortInstance !== null) {
-                    var leftPortInstance = nextPort(leftPort)
-                    if (leftPortInstance === null) {
-                        // We have run out of left ports. We may have also run out of
-                        // right ports, so get a new left port only if there is one.
-                        // We do not rely on the validator to ensure that the connection is balanced.
-                        if (leftPortCount < connection.leftPorts.length) {
-                            leftPort = connection.leftPorts.get(leftPortCount++)
-                            leftPortInstance = nextPort(leftPort)
-                        } else {
-                            // If left ports are to be iterated, then start over here.
-                            if (connection.isIterated) {
-                                leftPort = connection.leftPorts.get(0)
-                                // The left port may be in a bank.
-                                if (leftPort.container !== null) {
-                                    val reactor = getChildReactorInstance(leftPort.container)
-                                    if (reactor !== null && reactor.bankMembers !== null) {
-                                        for (bankReactor : reactor.bankMembers) {
-                                            // Also reset the bank index.
-                                            nextBankTable.put(leftPort, 0)
-                                            // Since we are starting over with the bank, need to
-                                            // remove all portInstances in each bank reactor that
-                                            // match the left port.
-                                            var portInstance = bankReactor.lookupPortInstance(leftPort.variable as Port)
-                                            nextPortTable.remove(portInstance)
-                                        }
-                                    }
-                                }
-                                leftPortCount = 1
-                                leftPortInstance = nextPort(leftPort)
-                            } else {
-                                leftPortInstance = null
-                                generator.reportWarning(rightPort, "Unconnected ports on the right.")
-                            }
-                        }
-                    }
-                    // Do not make a connection if there is no new left port.
-                    if (leftPortInstance !== null) {
-                        connectPortInstances(connection, leftPortInstance, rightPortInstance)
-                    }
-                    rightPortInstance = nextPort(rightPort)
-                }
-                // At this point, rightPortInstance is null.
-                // Go to the next right port if there is one.
-            }
-            // We are out of right ports.
-            // Make sure we are out of left ports also.
-            if (nextPort(leftPort) !== null || leftPortCount < connection.leftPorts.length - 1) {
-                generator.reportWarning(leftPort, "Source is wider than the destination. Outputs will be lost.")
-            }
-        }
+        establishPortConnections()
         
         // Check for dangling inputs or outputs and issue a warning.
         checkForDanglingConnections()
@@ -254,11 +179,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         // Note that this can only happen _after_ the children, 
         // port, action, and timer instances have been created.
         createReactionInstances()
-
-        // If this is the main reactor, then perform static analysis.
-        if (parent === null) {
-            ReactorInstance.reactionGraph = new ReactionInstanceGraph(this)
-        }
+        
     }
         
     /** Data structure used by nextPort() to keep track of the next available bank. */
@@ -296,6 +217,76 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                     reporter.reportWarning(portInstance.parent.definition,
                             "Not all multiport input channels are connected.")
                 }
+            }
+        }
+    }
+    
+    /**
+     * Populate destinations map and the connectivity information in the port instances.
+     * Note that this can only happen _after_ the children and port instances have been created.
+     * Unfortunately, we have to do some complicated things here
+     * to support multiport-to-multiport, multiport-to-bank,
+     * and bank-to-multiport communication.  The principle being followed is:
+     * in each connection statement, for each port instance on the left,
+     * as obtained by the nextPort() function, connect to the next available
+     * port on the right, as obtained by the nextPort() function.
+     */
+    def establishPortConnections() {
+        // FIXME: Replication of this logic exists in GeneratorBase.analyzeFederates
+        for (connection : definition.reactorClass.toDefinition.allConnections) {
+            var leftPort = connection.leftPorts.get(0)
+            var leftPortCount = 1
+            for (rightPort : connection.rightPorts) {
+                var rightPortInstance = nextPort(rightPort)
+                while (rightPortInstance !== null) {
+                    var leftPortInstance = nextPort(leftPort)
+                    if (leftPortInstance === null) {
+                        // We have run out of left ports. We may have also run out of
+                        // right ports, so get a new left port only if there is one.
+                        // We do not rely on the validator to ensure that the connection is balanced.
+                        if (leftPortCount < connection.leftPorts.length) {
+                            leftPort = connection.leftPorts.get(leftPortCount++)
+                            leftPortInstance = nextPort(leftPort)
+                        } else {
+                            // If left ports are to be iterated, then start over here.
+                            if (connection.isIterated) {
+                                leftPort = connection.leftPorts.get(0)
+                                // The left port may be in a bank.
+                                if (leftPort.container !== null) {
+                                    val reactor = getChildReactorInstance(leftPort.container)
+                                    if (reactor !== null && reactor.bankMembers !== null) {
+                                        for (bankReactor : reactor.bankMembers) {
+                                            // Also reset the bank index.
+                                            nextBankTable.put(leftPort, 0)
+                                            // Since we are starting over with the bank, need to
+                                            // remove all portInstances in each bank reactor that
+                                            // match the left port.
+                                            var portInstance = bankReactor.lookupPortInstance(leftPort.variable as Port)
+                                            nextPortTable.remove(portInstance)
+                                        }
+                                    }
+                                }
+                                leftPortCount = 1
+                                leftPortInstance = nextPort(leftPort)
+                            } else {
+                                leftPortInstance = null
+                                reporter.reportWarning(rightPort, "Unconnected ports on the right.")
+                            }
+                        }
+                    }
+                    // Do not make a connection if there is no new left port.
+                    if (leftPortInstance !== null) {
+                        connectPortInstances(connection, leftPortInstance, rightPortInstance)
+                    }
+                    rightPortInstance = nextPort(rightPort)
+                }
+                // At this point, rightPortInstance is null.
+                // Go to the next right port if there is one.
+            }
+            // We are out of right ports.
+            // Make sure we are out of left ports also.
+            if (nextPort(leftPort) !== null || leftPortCount < connection.leftPorts.length - 1) {
+                reporter.reportWarning(leftPort, "Source is wider than the destination. Outputs will be lost.")
             }
         }
     }
