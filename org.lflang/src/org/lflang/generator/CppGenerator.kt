@@ -30,11 +30,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
-import org.lflang.Target
-import org.lflang.lf.Action
-import org.lflang.lf.Reactor
-import org.lflang.lf.TimeUnit
-import org.lflang.lf.VarRef
+import org.lflang.lf.*
 import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -51,6 +47,33 @@ fun Path.toUnixString(): String = FileConfig.toUnixString(this)
 fun Path.createDirectories() = FileConfig.createDirectories(this)
 
 val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
+
+/* *******************************************************************************************
+ *
+ * The following definition provide extension that are likely useful across targets
+ *
+ * TODO Move these definitions to a common place and check if they are already implemented elsewhere
+ */
+
+/** Get the "name" a reaction is represented with in target code.*/
+val Reaction.name
+    get() :String {
+        val r = this.eContainer() as Reactor
+        return "r" + r.reactions.lastIndexOf(this)
+    }
+
+/** Get a label representing the reaction.
+ *
+ * If the reactions is annotated with a label, then the label is returned. Otherwise, the reactions name is returned.
+ */
+val Reaction.label get() :String = ASTUtils.label(this) ?: this.name
+
+/** Get the reactions priority */
+val Reaction.priority
+    get() :Int {
+        val r = this.eContainer() as Reactor
+        return r.reactions.lastIndexOf(this) + 1
+    }
 
 /* ********************************************************************************************/
 
