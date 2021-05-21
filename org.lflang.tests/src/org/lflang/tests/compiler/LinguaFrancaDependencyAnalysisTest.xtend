@@ -42,6 +42,9 @@ import org.junit.jupiter.api.^extension.ExtendWith
 import org.lflang.ModelInfo
 import org.lflang.tests.LFInjectorProvider
 
+import static extension org.lflang.ASTUtils.*
+import org.lflang.DefaultErrorReporter
+
 @ExtendWith(InjectionExtension)
 @InjectWith(LFInjectorProvider)
 
@@ -103,7 +106,7 @@ class LinguaFrancaDependencyAnalysisTest {
         var gen = new CGenerator()
         var message = ""
         try {
-            new ReactorInstance(mainDef, null, gen)    
+            new ReactorInstance(mainDef.reactorClass.toDefinition, gen, null)    
         } catch(Exception e) {
             message = e.message
         }
@@ -132,7 +135,7 @@ class LinguaFrancaDependencyAnalysisTest {
         Assertions.assertNotNull(model)
 		
 		var info = new ModelInfo()
-		info.update(model)
+		info.update(model, DefaultErrorReporter.DEFAULT)
 		Assertions.assertTrue(info.instantiationGraph.hasCycles == true, 
         	"Did not detect cyclic instantiation.")
     }

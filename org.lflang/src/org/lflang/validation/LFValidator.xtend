@@ -38,6 +38,8 @@ import org.eclipse.core.runtime.Path
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.EStructuralFeature
 import org.eclipse.xtext.validation.Check
+import org.lflang.DefaultErrorReporter
+import org.lflang.ErrorReporter
 import org.lflang.FileConfig
 import org.lflang.ModelInfo
 import org.lflang.Target
@@ -57,6 +59,7 @@ import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.KeyValuePair
 import org.lflang.lf.KeyValuePairs
+import org.lflang.lf.LfPackage.Literals
 import org.lflang.lf.Model
 import org.lflang.lf.NamedHost
 import org.lflang.lf.Output
@@ -65,6 +68,7 @@ import org.lflang.lf.Port
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.TargetDecl
 import org.lflang.lf.TimeUnit
@@ -78,8 +82,6 @@ import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.lf.LfPackage.Literals
-import org.lflang.lf.STP
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -95,6 +97,7 @@ import org.lflang.lf.STP
 class LFValidator extends AbstractLFValidator {
 
     var Target target
+    
     public var info = new ModelInfo()
 
     /**
@@ -335,24 +338,24 @@ class LFValidator extends AbstractLFValidator {
     def checkConnection(Connection connection) {
 
         // Report if connection is part of a cycle.
-        for (cycle : this.info.reactionGraph.cycles) {
+        for (cycle : this.info.topologyGraph.cycles) {
             for (lp : connection.leftPorts) {
                 for (rp : connection.rightPorts) {
                     var leftInCycle = false
                     val reactorName = (connection.eContainer as Reactor).name
             
                     if ((lp.container === null && cycle.exists [
-                        it.node === lp.variable
+                        it.definition === lp.variable
                     ]) || cycle.exists [
-                        (it.node === lp.variable && it.parent === lp.container)
+                        (it.definition === lp.variable && it.parent === lp.container)
                     ]) {
                         leftInCycle = true
                     }
 
                     if ((rp.container === null && cycle.exists [
-                        it.node === rp.variable
+                        it.definition === rp.variable
                     ]) || cycle.exists [
-                        (it.node === rp.variable && it.parent === rp.container)
+                        (it.definition === rp.variable && it.parent === rp.container)
                     ]) {
                         if (leftInCycle) {
                             // Only report of _both_ referenced ports are in the cycle.
@@ -683,14 +686,18 @@ class LFValidator extends AbstractLFValidator {
 
     @Check(FAST)
     def checkModel(Model model) {
+        // Since we're doing a fast check, we only want to update
+        // if the model info hasn't been initialized yet. If it has,
+        // we use the old information and update it during a normal
+        // check (see below).
         if (!info.updated) {
-            info.update(model)
+            info.update(model, DefaultErrorReporter.DEFAULT)
         }
     }
     
     @Check(NORMAL)
     def updateModelInfo(Model model) {
-        info.update(model)
+        info.update(model, DefaultErrorReporter.DEFAULT)
     }
 
     @Check(FAST)
@@ -839,14 +846,14 @@ class LFValidator extends AbstractLFValidator {
         }
 
         // Report error if this reaction is part of a cycle.
-        for (cycle : this.info.reactionGraph.cycles) {
+        for (cycle : this.info.topologyGraph.cycles) {
             val reactor = (reaction.eContainer) as Reactor
-            if (cycle.exists[it.node === reaction]) {
+            if (cycle.exists[it.definition === reaction]) {
                 // Report involved triggers.
                 val trigs = new LinkedList()
                 reaction.triggers.forEach [ t |
                     (t instanceof VarRef && cycle.exists [ c |
-                        c.node === (t as VarRef).variable
+                        c.definition === (t as VarRef).variable
                     ]) ? trigs.add((t as VarRef).toText) : {
                     }
                 ]
@@ -858,7 +865,7 @@ class LFValidator extends AbstractLFValidator {
                 // Report involved sources.
                 val sources = new LinkedList()
                 reaction.sources.forEach [ t |
-                    (cycle.exists[c|c.node === t.variable])
+                    (cycle.exists[c|c.definition === t.variable])
                         ? sources.add(t.toText)
                         : {
                     }
@@ -871,7 +878,7 @@ class LFValidator extends AbstractLFValidator {
                 // Report involved effects.
                 val effects = new LinkedList()
                 reaction.effects.forEach [ t |
-                    (cycle.exists[c|c.node === t.variable])
+                    (cycle.exists[c|c.definition === t.variable])
                         ? effects.add(t.toText)
                         : {
                     }
