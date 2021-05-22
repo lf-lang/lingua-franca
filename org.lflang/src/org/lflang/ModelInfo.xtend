@@ -93,7 +93,8 @@ class ModelInfo {
     public TopologyGraph topologyGraph
     
     public List<ReactorInstance> topLevelReactorInstances
-    //public HashMultimap<Reactor, ReactorInstance> defToInstances = HashMultimap.<Reactor, ReactorInstance>create
+    
+    public HashMultimap<Reactor, ReactorInstance> reactorToInstances = HashMultimap.<Reactor, ReactorInstance>create
     
     /**
      * Whether or not the model information has been updated at least once.
@@ -113,10 +114,10 @@ class ModelInfo {
             val main = model.reactors.findFirst[it.isMain || it.isFederated]
             topLevelReactorInstances = new LinkedList()
             if (main !== null) {
-                val inst = new ReactorInstance(main, reporter, null)
+                val inst = new ReactorInstance(main, reporter, reactorToInstances, null)
                 topLevelReactorInstances.add(inst)
             } else {
-                model.reactors.forEach[ topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))]
+                model.reactors.forEach[ topLevelReactorInstances.add(new ReactorInstance(it, reporter, reactorToInstances, null))]
             }
             this.topologyGraph = new TopologyGraph(topLevelReactorInstances)
         }

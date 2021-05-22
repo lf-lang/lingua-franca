@@ -44,6 +44,8 @@ import org.lflang.tests.LFInjectorProvider
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.DefaultErrorReporter
+import com.google.common.collect.HashMultimap
+import org.lflang.generator.ReactionInstanceGraph
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LFInjectorProvider)
@@ -106,7 +108,9 @@ class LinguaFrancaDependencyAnalysisTest {
         var gen = new CGenerator()
         var message = ""
         try {
-            new ReactorInstance(mainDef.reactorClass.toDefinition, gen, null)    
+            new ReactionInstanceGraph(
+                new ReactorInstance(mainDef.reactorClass.toDefinition, gen,
+                    HashMultimap.<Reactor, ReactorInstance>create, null))
         } catch(Exception e) {
             message = e.message
         }
