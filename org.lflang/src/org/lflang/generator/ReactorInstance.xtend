@@ -50,6 +50,7 @@ import org.lflang.lf.Variable
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
+import com.google.common.collect.HashMultimap
 
 /**
  * Representation of a runtime instance of a reactor.
@@ -66,10 +67,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     protected static var Set<Reaction> unorderedReactions = new LinkedHashSet()
     
     /**
-     * Create a new instantiation hierarchy that starts with the given reactor.
+     * Create a new instantiation hierarchy that starts with the given top-level reactor.
      */
-    new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter)
+    new(Reactor reactor, ErrorReporter reporter, HashMultimap<Reactor, ReactorInstance> reactorToInstances, Set<Reaction> unorderedReactions) {
+        this(ASTUtils.createInstantiation(reactor), null, reporter, reactorToInstances)
         if (unorderedReactions !== null) {
             ReactorInstance.unorderedReactions = unorderedReactions    
         }
@@ -82,10 +83,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param parent The parent, or null for the main rector.
      * @param generator The generator (for error reporting).
      */
-    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator) {
+    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator, HashMultimap<Reactor, ReactorInstance> reactorToInstances) {
         // If the reactor is being instantiated with new[width], then pass -2
         // to the constructor, otherwise pass -1.
-        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
+        this(definition, parent, generator, reactorToInstances, (definition.widthSpec !== null)? -2 : -1)
     }
 
     /**
@@ -99,7 +100,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * reactor in a bank of reactors otherwise.
      */
     private new(Instantiation definition, ReactorInstance parent,
-        ErrorReporter reporter, int reactorIndex) {
+        ErrorReporter reporter, HashMultimap<Reactor, ReactorInstance> reactorToInstances, int reactorIndex) {
         super(definition, parent)
         this.reporter = reporter
         this.bankIndex = reactorIndex
@@ -114,7 +115,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (width > 0) {
                 this.bankMembers = new ArrayList<ReactorInstance>(width)
                 for (var index = 0; index < width; index++) {
-                    var childInstance = new ReactorInstance(definition, parent, reporter, index)
+                    var childInstance = new ReactorInstance(definition, parent, reporter, reactorToInstances, index)
                     this.bankMembers.add(childInstance)
                     childInstance.bank = this
                     childInstance.bankIndex = index
@@ -132,8 +133,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
         // Instantiate children for this reactor instance
         for (child : definition.reactorClass.toDefinition.allInstantiations) {
-            var childInstance = new ReactorInstance(child, this, reporter)
+            var childInstance = new ReactorInstance(child, this, reporter, reactorToInstances)
             this.children.add(childInstance)
+            reactorToInstances.put(child.reactorClass.toDefinition, childInstance)
             // If the child is a bank of instances, add all the bank instances.
             // These must be added after the bank itself.
             if (childInstance.bankMembers !== null) {
@@ -355,7 +357,9 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
             memberReactor = reactor.bankMembers.get(bankIdx)
         }
-        
+        // FIXME: the following line sometimes causes a class cast exception:
+        // class org.lflang.lf.impl.VariableImpl cannot be cast to class org.lflang.lf.Port
+        // (org.lflang.lf.impl.VariableImpl and org.lflang.lf.Port are in unnamed module of loader 'app')
         var portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
         
         if (portInstance === null) {
