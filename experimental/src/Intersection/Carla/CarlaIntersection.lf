@@ -21,10 +21,13 @@ target C {
 import Vehicle, RSU from "../Intersection.lf";
 
 reactor VehicleInterface (num_entries:int(1)) {
+    input[num_entries] from_vehicle:vehicle_status_t;
     output[num_entries] to_vehicle:vehicle_command_t;
     
     vehicles = new[num_entries] Vehicle(offset = 0);    
     rsu = new RSU(num_entries = num_entries);
+    
+    from_vehicle -> vehicles.vehicle_stat;
     
     vehicles.request -> rsu.request;
     rsu.grant -> vehicles.grant;
@@ -41,45 +44,44 @@ reactor Carla {
 	
 	    #include "rclcpp/rclcpp.hpp"
 	    #include "carla_msgs/msg/carla_ego_vehicle_control.hpp"
-        class LFCarlaPublisher : public rclcpp::Node {
+		#include "geometry_msgs/msg/twist.hpp"
+		#include "geometry_msgs/msg/vector3.hpp"
+        class LFCarlaInterface : public rclcpp::Node {
 	        public:
-	            LFCarlaPublisher()
-	            : Node("LFCarlaPublisher")
+	            LFCarlaInterface()
+	            : Node("LFCarlaPublisher"), physical_action_(physical_action)
 	            {
-	                publisher_ = this->create_publisher<carla_msgs::msg::CarlaEgoVehicleControl>("/carla/ego_vehicle/vehicle_control_cmd", 10);
+	                publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/carla/ego_vehicle/control/set_target_velocity", 10);
+	                subscription_ = this->create_subscription<carla_msgs::msg::CarlaEgoVehicleStatus>(
+                    	"/carla/ego_vehicle/vehicle_status", 10, std::bind(&LFCarlaInterface::topic_callback, this, std::placeholders::_1));
 	            }
+	            
+	            void topic_callback(const carla_msgs::msg::CarlaEgoVehicleStatus msg) const {
+                    vehicle_status_t stat = {.velocity = msg.x_target_velocity};
+                    schedule_copy(physical_action_, 0, stat, sizeof(stat));
+                }
 	        
-	            rclcpp::Publisher<carla_msgs::msg::CarlaEgoVehicleControl>::SharedPtr publisher_;
+	            rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
+	            rclcpp::Subscriber<carla_msgs::msg::CarlaEgoVehicleStatus>::SharedPtr subscription_;
+            	void* physical_action_;
         }; 
 	=}
-    input throttle:float;
-    input steer:float;
-    input brake:float;
-    input reverse:bool;
-    input gear:int;
+    physical action vehicle_stat:vehicle_status_t;
     input command:vehicle_command_t;
-    state lf_carla_publisher:{=std::shared_ptr<LFCarlaPublisher>=};
-    reaction(startup) {=
+    output status:vehicle_status_t;
+    state lf_carla_interface:{=std::shared_ptr<LFCarlaInterface>=};
+    reaction(startup) -> vehicle_stat {=
         char *argv[] = {(char*)"LFCarlaPublisher", NULL};
         rclcpp::init(1, argv);
-        self->lf_carla_publisher = std::make_shared<LFCarlaPublisher>();        
+        self->lf_carla_interface = std::make_shared<LFCarlaInterface>(vehicle_stat);        
     =}
-    reaction(throttle, steer, brake, reverse, gear, command) {=
-        auto message = carla_msgs::msg::CarlaEgoVehicleControl();
-        if (command->is_present) {
-            message.throttle = command->value.throttle;
-	        message.steer = command->value.steer;
-	        message.brake = command->value.brake;
-	        message.reverse = command->value.reverse;
-	        message.gear = command->value.gear;
-        } else {
-	        message.throttle = throttle->value;
-	        message.steer = steer->value;
-	        message.brake = brake->value;
-	        message.reverse = reverse->value;
-	        message.gear = gear->value;
-        }
-        self->lf_carla_publisher->publisher_->publish(message);
+    reaction(vehicle_stat) -> status {=
+        SET(status, vehicle_stat->value);
+    =}
+    reaction(command) {=
+        auto message = geometry_msgs::msg::Twist();
+		message.linear.x = command->value.x_target_velocity;
+        self->lf_carla_interface->publisher_->publish(message);
     =}
     
    reaction(shutdown) {=
@@ -93,4 +95,5 @@ main reactor (num_entries:int(1)) {
     vehicleI = new VehicleInterface(num_entries = num_entries);
     
 	vehicleI.to_vehicle -> carla.command;
+	carla.status -> vehicleI.from_vehicle;
 }

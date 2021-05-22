@@ -1,4 +1,5 @@
 #!/bin/bash
+#!/bin/bash
 # usage: ./build-ROS-node name-of-lf-file-without-.lf name-of-ROS-package
 lfc -r $1.lf
 cp -R src-gen/$1/* $2/src/

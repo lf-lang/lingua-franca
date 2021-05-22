@@ -14,6 +14,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(carla_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 include_directories(src/core)
 
@@ -25,7 +26,7 @@ add_executable(lf_carla_publisher src/CarlaIntersection.cpp)
 
 target_link_libraries(lf_carla_publisher platform_support)
 
-ament_target_dependencies(lf_carla_publisher rclcpp carla_msgs)
+ament_target_dependencies(lf_carla_publisher rclcpp carla_msgs geometry_msgs)
 
 install(TARGETS
   platform_support
