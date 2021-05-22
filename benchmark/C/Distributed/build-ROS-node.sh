@@ -1,7 +1,7 @@
 #!/bin/bash
 # usage: ./build-ROS-node name-of-lf-file-without-.lf name-of-ROS-package
 lfc -r -n $1.lf
-cp -R src-gen/* $2/src/
+cp -R src-gen/$1/* $2/src/
 mv $2/src/$1.c $2/src/$1.cpp
 pushd $2
 colcon build --packages-select $2

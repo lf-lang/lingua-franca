@@ -14,10 +14,27 @@
  * This is a very rough starting point that needs a lot of work.
  */
 target C {
-    timeout: 5 sec
+    timeout: 5 sec,
+    flags: ["-lm"]
 }
 
 preamble {=
+    #include <math.h>
+    
+    typedef struct {
+        double x;
+        double y;
+        double z;
+    } coordinate_t;
+    
+    double distance (coordinate_t coordinate1, coordinate_t coordinate2) {
+        double sqr_x = coordinate2.x - coordinate1.x;
+        double sqr_y = coordinate2.y - coordinate1.y;
+        double sqr_z = coordinate2.z - coordinate1.z;
+        
+        return sqrt(sqr_x + sqr_y + sqr_z);
+    }
+    
     typedef struct {
         double speed;
         double distance;
@@ -28,33 +45,46 @@ preamble {=
         double target_speed;  // FIXME: Deadline.  = t/w
         // Time at which the vehicle can enter the intersection.
         instant_t arrival_time;
+        // The position of the intersection
+        coordinate_t intersection_pos;
     } grant_message_t;
     
             
     typedef struct {
         // The CARLA vehicle control data
+        // Target velocity in the x direction
+        float x_target_velocity;
+        // FIXME velocity in the y and z direction
+        // FIXME angular velocity  (x, y, z)
 
 		// 0. <= throttle <= 1.
-		float throttle;
+		// float throttle;
 		
 		// -1. <= steer <= 1.
-		float steer;
+		// float steer;
 		
 		// 0. <= brake <= 1.
-		float brake;
+		// float brake;
 		
 		// hand_brake 0 or 1
-		bool hand_brake;
+		// bool hand_brake;
 		
 		// reverse 0 or 1
-		bool reverse;
+		// bool reverse;
 		
 		// gear
-		int gear;
+		// int gear;
 		
 		// manual gear shift
-		bool manual_gear_shift;
+		// bool manual_gear_shift;
     } vehicle_command_t;
+    
+    typedef struct {
+        float velocity; // Velocity of the vehicle in m/s
+        // Fetching acceleration and orientation is also possible,
+        // but both involve very complex structures.
+        coordinate_t current_pos; // Current GPS position of the vehicle
+    } vehicle_status_t;
     
     // Table of offsets by vehicle bank_index:
     interval_t timer_offsets[] = {
@@ -70,6 +100,8 @@ preamble {=
         SEC(16),
         SEC(32)
     };
+    
+    #define SAFETY_THRESHOLD MSEC(200)
 =}
 
 reactor Vehicle (
@@ -78,6 +110,8 @@ reactor Vehicle (
     speed:double(42.0),    // in km per hour. About 11.7 m/sec
     distance:double(42.0)  // in meters.  About 4 sec to traverse.
 ) {
+    input vehicle_stat:vehicle_status_t;
+
     input grant:grant_message_t;
     
     output request:request_message_t;    
@@ -107,17 +141,31 @@ reactor Vehicle (
        	schedule(delay, timer_periods[self->bank_index]);
     =}
     
-    reaction(grant) -> control {=
+    reaction(grant, vehicle_stat) -> control {=
+        // Time remaining to reach the intersection
+        interval_t tr = get_logical_time() - grant->value.arrival_time;
+        if (tr < 0) {
+            error_print("Negative time remaining to reach the intersection! Stopping.");
+        }
+        
+        // Calculate the distance to the intersection
+        double dr = distance(grant->value.intersection_pos, vehicle_stat->value.current_pos);
+        
+        // Calculate the target velocity
+        
+        double target_velocity = fmax(0, ((2 * dr)/(tr)) - vehicle_stat->value.velocity);
+        
         // Calculate a throttle value for the vehicle
-        float throttle = (grant->value.target_speed/100);
+        // float throttle = (target_velocity/100);
+        // float brake = 0;
+        // float gear = 1;
+        // if (target_velocity == 0 && tr <= SAFETY_THRESHOLD) {
+        //     throttle = 0;
+        //     brake = 1;
+        //     gear = 0;
+        // }
         vehicle_command_t cmd = {
-            .throttle = throttle,
-            .steer = 0,
-            .brake = 0,
-            .hand_brake = 0,
-            .reverse = 0,
-            .gear = 1,
-            .manual_gear_shift = 0
+            .x_target_velocity = target_velocity
         };
         SET(control, cmd);
         
@@ -133,7 +181,8 @@ reactor RSU (
 	intersection_width:double(42.0), // in meters.
 	// If the vehicle is told to slow down, then its target
 	// average speed in the intersection should be at least this.
-	nominal_speed_in_intersection:double(10.0) // In km/hr. 2.8 m/sec. 15 sec to traverse.
+	nominal_speed_in_intersection:double(10.0), // In km/hr. 2.8 m/sec. 15 sec to traverse.
+	intersection_pos:coordinate_t({=(coordinate_t){0,0,0}=}) // GPS coordinates for the intersection
 ) {
     input[num_entries] request:request_message_t;
     output[num_entries] grant:grant_message_t;
@@ -166,6 +215,7 @@ reactor RSU (
                     // Could be smarter than this, but just send the nominal speed in intersection.
                     response.target_speed = self->nominal_speed_in_intersection;
                 }
+                response.intersection_pos = self->intersection_pos;
                 SET(grant[i], response);
                 // Update earliest free on the assumption that the vehicle
                 // maintains its target speed (on average) within the intersection.
