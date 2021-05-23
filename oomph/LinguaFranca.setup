@@ -349,6 +349,8 @@
             name="org.eclipse.xtext.sdk.feature.group"
             versionRange="2.25.0"/>
         <requirement
+            name="org.eclipse.platform.source.feature.group"/>
+        <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
             name="org.eclipse.elk.sdk.feature.feature.group"/>
