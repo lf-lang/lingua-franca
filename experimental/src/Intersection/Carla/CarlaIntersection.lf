@@ -14,17 +14,17 @@
  * This is a very rough starting point that needs a lot of work.
  */
 target C {
-    timeout: 5 sec,
+    threads: 4,
     no-compile: true
 };
 
 import Vehicle, RSU from "../Intersection.lf";
 
-reactor VehicleInterface (num_entries:int(1)) {
+reactor VehicleInterface (num_entries:int(1)) {    
     input[num_entries] from_vehicle:vehicle_status_t;
     output[num_entries] to_vehicle:vehicle_command_t;
     
-    vehicles = new[num_entries] Vehicle(offset = 0);    
+    vehicles = new[num_entries] Vehicle();    
     rsu = new RSU(num_entries = num_entries);
     
     from_vehicle -> vehicles.vehicle_stat;
@@ -44,11 +44,12 @@ reactor Carla {
 	
 	    #include "rclcpp/rclcpp.hpp"
 	    #include "carla_msgs/msg/carla_ego_vehicle_control.hpp"
+	    #include "carla_msgs/msg/carla_ego_vehicle_status.hpp"
 		#include "geometry_msgs/msg/twist.hpp"
 		#include "geometry_msgs/msg/vector3.hpp"
         class LFCarlaInterface : public rclcpp::Node {
 	        public:
-	            LFCarlaInterface()
+	            LFCarlaInterface(void* physical_action)
 	            : Node("LFCarlaPublisher"), physical_action_(physical_action)
 	            {
 	                publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/carla/ego_vehicle/control/set_target_velocity", 10);
@@ -56,13 +57,14 @@ reactor Carla {
                     	"/carla/ego_vehicle/vehicle_status", 10, std::bind(&LFCarlaInterface::topic_callback, this, std::placeholders::_1));
 	            }
 	            
-	            void topic_callback(const carla_msgs::msg::CarlaEgoVehicleStatus msg) const {
-                    vehicle_status_t stat = {.velocity = msg.x_target_velocity};
-                    schedule_copy(physical_action_, 0, stat, sizeof(stat));
+	            void topic_callback(const carla_msgs::msg::CarlaEgoVehicleStatus::SharedPtr msg) const {
+                    vehicle_status_t stat = {.velocity = msg->velocity};
+        			info_print("Got velocity %f", stat.velocity);
+                    schedule_copy(physical_action_, 0, &stat, sizeof(stat));
                 }
 	        
 	            rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
-	            rclcpp::Subscriber<carla_msgs::msg::CarlaEgoVehicleStatus>::SharedPtr subscription_;
+	            rclcpp::Subscription<carla_msgs::msg::CarlaEgoVehicleStatus>::SharedPtr subscription_;
             	void* physical_action_;
         }; 
 	=}
@@ -71,9 +73,10 @@ reactor Carla {
     output status:vehicle_status_t;
     state lf_carla_interface:{=std::shared_ptr<LFCarlaInterface>=};
     reaction(startup) -> vehicle_stat {=
-        char *argv[] = {(char*)"LFCarlaPublisher", NULL};
+        char *argv[] = {(char*)"LFCarlaInterface", NULL};
         rclcpp::init(1, argv);
-        self->lf_carla_interface = std::make_shared<LFCarlaInterface>(vehicle_stat);        
+        self->lf_carla_interface = std::make_shared<LFCarlaInterface>(vehicle_stat);
+        // Give an initial velocity to the vehicle       
     =}
     reaction(vehicle_stat) -> status {=
         SET(status, vehicle_stat->value);
@@ -81,7 +84,14 @@ reactor Carla {
     reaction(command) {=
         auto message = geometry_msgs::msg::Twist();
 		message.linear.x = command->value.x_target_velocity;
+		info_print("*** Setting velocity to %f.", message.linear.x);
         self->lf_carla_interface->publisher_->publish(message);
+    =}
+    
+    timer t(0, 10 msec);
+    reaction(t) {=       
+        rclcpp::spin_some(self->lf_carla_interface);
+        // std::cout << "Timer triggered." << std::endl;
     =}
     
    reaction(shutdown) {=
