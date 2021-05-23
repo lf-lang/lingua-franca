@@ -30,6 +30,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
+import org.lflang.Target
 import org.lflang.lf.*
 import java.nio.file.Path
 import java.time.LocalDateTime
