@@ -27,3 +27,11 @@ ros2 run lf_carla lf_carla_publisher
 
 
 
+
+*** Note: It is recommended to use rmw_cyclonedds_cpp as the RMW implementation:
+```
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+```
+
+
+
