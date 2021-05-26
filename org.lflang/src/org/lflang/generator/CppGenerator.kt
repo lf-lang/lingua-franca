@@ -109,7 +109,7 @@ val Reaction.priority
  * TODO We likely want to move this to a central place
  * ```
  */
-operator fun String.rangeTo(str: String) = str.prependIndent(this)
+operator fun String.rangeTo(str: String) = str.replaceIndent(this)
 
 class CppGenerator : GeneratorBase() {
 
