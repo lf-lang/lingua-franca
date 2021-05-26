@@ -113,8 +113,13 @@ operator fun String.rangeTo(str: String) = str.prependIndent(this)
 
 class CppGenerator : GeneratorBase() {
 
-    /** Path to the Cpp lib directory (relative to class path)  */
-    private val libDir = "/lib/Cpp"
+    companion object {
+        /** Path to the Cpp lib directory (relative to class path)  */
+        const val libDir = "/lib/Cpp"
+
+        /** Default version of the reactor-cpp runtime to be used during compilation */
+        const val defaultRuntimeVersion = "26e6e641916924eae2e83bbf40cbc9b933414310"
+    }
 
     /** Relative path to the directory where all source files for this resource should be generated in. */
     private val Resource.genDir get() = fileConfig.getDirectory(this).resolve(this.name)
@@ -326,7 +331,7 @@ class CppGenerator : GeneratorBase() {
 
     @Suppress("LocalVariableName") // allows us to use capital S as variable name below
     private fun generateCmake(): String {
-        val runtimeVersion = targetConfig.runtimeVersion ?: "26e6e641916924eae2e83bbf40cbc9b933414310"
+        val runtimeVersion = targetConfig.runtimeVersion ?: defaultRuntimeVersion
 
         // FIXME Is there a way to simplify this line?
         val includeFile = if (targetConfig.cmakeInclude.isNullOrBlank()) null else FileConfig.toUnixString(
