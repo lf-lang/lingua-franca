@@ -24,13 +24,14 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-package org.lflang.generator
+package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.*
 import org.lflang.Target
+import org.lflang.generator.GeneratorBase
 import org.lflang.lf.*
 import java.nio.file.Path
 import java.time.LocalDateTime
