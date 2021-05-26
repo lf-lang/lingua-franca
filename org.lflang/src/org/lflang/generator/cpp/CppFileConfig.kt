@@ -23,7 +23,7 @@
  ***************/
 
 
-package org.lflang.generator
+package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -33,7 +33,6 @@ import java.io.IOException
 
 class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) :
     FileConfig(resource, fsa, context) {
-
 
     /**
      * Clean any artifacts produced by the C++ code generator.
