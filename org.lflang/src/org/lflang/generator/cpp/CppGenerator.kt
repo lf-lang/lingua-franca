@@ -100,6 +100,16 @@ class CppGenerator : GeneratorBase() {
         copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
         copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
         copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
+
+        // generate header and source files for all reactors
+        for (r in reactors) {
+            val generator = CppReactorGenerator(r, cppFileConfig)
+            val headerFile = cppFileConfig.getReactorHeaderPath(r)
+            val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
+
+            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.header())
+            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.source())
+        }
     }
 
     private fun generateMain(main: Reactor) = """

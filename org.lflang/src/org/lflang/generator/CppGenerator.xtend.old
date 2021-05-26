@@ -583,41 +583,6 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
-    def generateReactorHeader(Reactor r) '''
-        «r.eResource.header»
-        
-        #pragma once
-        
-        #include "reactor-cpp/reactor-cpp.hh"
-        
-        #include "«r.eResource.preambleHeaderFile.toUnixString»"
-        
-        «r.includeInstances»
-        «r.publicPreamble»
-        
-        «IF r.isGeneric»«r.templateLine»«ENDIF»
-        class «r.name» : public reactor::Reactor {
-         private:
-          «r.declareParameters»
-          «r.declareStateVariables»
-          «r.declareInstances»
-          «r.declareTimers»
-          «r.declareActions»
-          «r.declareReactions»
-          «r.declareReactionBodies»
-          «r.declareDeadlineHandlers»
-         public:
-          «r.declarePorts»
-          «r.declareConstructor»
-          
-          void assemble() override;
-        };
-        «IF r.isGeneric»
-        
-        #include "«r.headerImplFile.toUnixString»"
-        «ENDIF»
-    '''
-
     def templateLine(Reactor r) '''
         template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>
     '''
