@@ -2,9 +2,7 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.TimeUnit
+import org.lflang.lf.*
 import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -52,6 +50,9 @@ val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
  *
  * TODO Move these definitions to a common place and check if they are already implemented elsewhere
  */
+
+/** Get the LF Model of a resource */
+val Resource.model: Model get() = this.allContents.asSequence().filter { it is Model }.first() as Model
 
 /** Get the "name" a reaction is represented with in target code.*/
 val Reaction.name
@@ -151,6 +152,12 @@ val TimeValue.cppUnit
 
 /** Convert a LF time value to a representation in C++ code */
 fun TimeValue.toCode() = "${this.time} ${this.cppUnit}"
+
+/** True if the preamble is public */
+val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
+
+/** True if the preamble is private */
+val Preamble.isPrivate: Boolean get() = this.visibility == Visibility.PRIVATE
 
 /** Return a comment to be inserted at the top of generated files. */
 fun fileComment(r: Resource) = """
