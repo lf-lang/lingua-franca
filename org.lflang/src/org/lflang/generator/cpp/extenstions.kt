@@ -1,11 +1,10 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.ASTUtils
-import org.lflang.FileConfig
+import org.lflang.*
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
-import org.lflang.toDefinition
+import org.lflang.lf.TimeUnit
 import java.nio.file.Path
 
 /*************
@@ -106,3 +105,47 @@ val Reaction.priority
  * ```
  */
 operator fun String.rangeTo(str: String) = str.replaceIndent(this)
+
+/* **********************************************************************************************
+ * C++ specific extensions shared across classes
+ */
+
+/** Convert a log level to a severity number understood by the reactor-cpp runtime. */
+val TargetProperty.LogLevel.severity
+    get() = when (this) {
+        TargetProperty.LogLevel.ERROR -> 1
+        TargetProperty.LogLevel.WARN  -> 2
+        TargetProperty.LogLevel.INFO  -> 3
+        TargetProperty.LogLevel.LOG   -> 4
+        TargetProperty.LogLevel.DEBUG -> 4
+    }
+
+/** Get a C++ representation of a LF unit. */
+val TimeValue.cppUnit
+    get() = when (this.unit) {
+        TimeUnit.NSEC    -> "ns"
+        TimeUnit.NSECS   -> "ns"
+        TimeUnit.USEC    -> "us"
+        TimeUnit.USECS   -> "us"
+        TimeUnit.MSEC    -> "ms"
+        TimeUnit.MSECS   -> "ms"
+        TimeUnit.SEC     -> "s"
+        TimeUnit.SECS    -> "s"
+        TimeUnit.SECOND  -> "s"
+        TimeUnit.SECONDS -> "s"
+        TimeUnit.MIN     -> "min"
+        TimeUnit.MINS    -> "min"
+        TimeUnit.MINUTE  -> "min"
+        TimeUnit.MINUTES -> "min"
+        TimeUnit.HOUR    -> "h"
+        TimeUnit.HOURS   -> "h"
+        TimeUnit.DAY     -> "d"
+        TimeUnit.DAYS    -> "d"
+        TimeUnit.WEEK    -> "d*7"
+        TimeUnit.WEEKS   -> "d*7"
+        TimeUnit.NONE    -> ""
+        null             -> ""
+    }
+
+/** Convert a LF time value to a representation in C++ code */
+fun TimeValue.toCode() = "${this.time} ${this.cppUnit}"
