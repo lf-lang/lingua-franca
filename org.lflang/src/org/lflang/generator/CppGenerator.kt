@@ -329,20 +329,20 @@ class CppGenerator : GeneratorBase() {
         """.trimMargin()
     }
 
-    @Suppress("LocalVariableName") // allows us to use capital S as variable name below
     private fun generateCmake(): String {
         val runtimeVersion = targetConfig.runtimeVersion ?: defaultRuntimeVersion
 
-        // FIXME Is there a way to simplify this line?
-        val includeFile = if (targetConfig.cmakeInclude.isNullOrBlank()) null else FileConfig.toUnixString(
-            fileConfig.srcPath.resolve(targetConfig.cmakeInclude)
-        )
+        // Resolve path to the cmake include file if one was provided
+        val includeFile = targetConfig.cmakeInclude
+            ?.takeIf { it.isNotBlank() }
+            ?.let { fileConfig.srcPath.resolve(it).toUnixString() }
 
         // compile a list of all source files produced by this generator
         val reactorSourceFiles = reactors.filter { !it.isGeneric }.map { it.sourcePath.toUnixString() }
         val preambleSourceFiles = resources.map { it.preambleSourcePath.toUnixString() }
         val sourceFiles = reactorSourceFiles + preambleSourceFiles
 
+        @Suppress("LocalVariableName") // allows us to use capital S as variable name below
         val S = '$' // a little trick to escape the dollar sign with $S
 
         return """
