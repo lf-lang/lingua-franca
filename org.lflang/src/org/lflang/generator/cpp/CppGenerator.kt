@@ -161,8 +161,8 @@ class CppGenerator : GeneratorBase() {
         |  unsigned threads = ${if (targetConfig.threads != 0) targetConfig.threads else "std::thread::hardware_concurrency()"};
         |  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
         |
-        |  reactor::Duration timeout = ${targetConfig.timeout?.toCode() ?: "reactor::Duration::zero()"}
-        |  auto opt_timeout = app . add_option ("-o,--timeout", timeout, "Time after which the execution is aborted.");
+        |  reactor::Duration timeout = ${targetConfig.timeout?.toCode() ?: "reactor::Duration::zero()"};
+        |  auto opt_timeout = app.add_option ("-o,--timeout", timeout, "Time after which the execution is aborted.");
         |
         |  opt_timeout->check([](const std::string& val ){ return validate_time_string(val); });
         |  opt_timeout->type_name("'FLOAT UNIT'");
@@ -194,7 +194,7 @@ class CppGenerator : GeneratorBase() {
         |  reactor::Environment e{threads, keepalive, fast};
         |
         |  // instantiate the main reactor
-        |  auto main = std ::make_unique<${main.name}> ("${main.name}")
+        |  auto main = std ::make_unique<${main.name}> ("${main.name}");
         |  // TODO support parameters: , &e«FOR p : mainReactor.parameters BEFORE ", " SEPARATOR ", "»«p.name»«ENDFOR»);
         |
         |  // optionally instantiate the timeout reactor
