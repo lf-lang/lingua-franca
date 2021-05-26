@@ -112,7 +112,7 @@ preamble {=
     
     #define SAFETY_THRESHOLD MSEC(200)
     #define SPEED_LIMIT 14.0
-    #define SAFETY_BUFFER SEC(3)
+    #define SAFETY_BUFFER SEC(20)
 =}
 
 reactor Vehicle (
@@ -135,6 +135,7 @@ reactor Vehicle (
     
     state granted_time_to_enter:time(0);
     state intersection_pos:coordinate_t;
+    state intersection_reached:bool(false);
     
     reaction(vehicle_pos) {=
         self->current_pos = vehicle_pos->value.current_pos;        
@@ -176,10 +177,19 @@ reactor Vehicle (
         	float target_speed = 0;
             // double target_speed = distance_remaining/time_remaining;
             
-            if (time_remaining <= 0.1 && distance_remaining > 1) {
+            if (self->intersection_reached ||
+                   distance_remaining < 30) {
+                // In the intersection, continue
+                target_speed = SPEED_LIMIT;
+                // Simulation is over
+                self->intersection_reached = true;
+            } else if (time_remaining <= 2.0 && distance_remaining > 30.0) {
+                // No time to make it to the intersection
+                // Stop and ask the RSU again
                 target_speed = 0.0;
 				self->granted_time_to_enter = 0LL;
             } else {
+                // Not in the intersection 
             	target_speed = ((2 * distance_remaining) / (time_remaining)) - self->speed;
             	// target_speed = distance_remaining / time_remaining;
             }
@@ -204,9 +214,9 @@ reactor Vehicle (
                 target_speed = 0.0f;
             } */
             
-            /* if ((target_speed - SPEED_LIMIT) > 0) {
+            if ((target_speed - SPEED_LIMIT) > 0) {
                 target_speed = SPEED_LIMIT;
-            } */
+            }
         
             // Prepare and send the target velocity as a vehicle command
             vehicle_command_t cmd = {
@@ -230,7 +240,7 @@ reactor Vehicle (
 
 reactor RSU (
 	num_entries:int(4),
-	intersection_width:double(15.0), // in meters.
+	intersection_width:double(50.0), // in meters.
 	// If the vehicle is told to slow down, then its target
 	// average speed in the intersection should be at least this.
 	nominal_speed_in_intersection:double(10.0), // In m/sec 0.6 sec to traverse.
@@ -256,7 +266,7 @@ reactor RSU (
         		instant_t time_message_sent = get_logical_time();
         		
         		// Convert the time interval to nsec (it is in seconds).
-        		interval_t arrival_time_ns = time_message_sent + (interval_t) (arrival_in * BILLION);
+        		interval_t arrival_time_ns = time_message_sent + (interval_t) (arrival_in * BILLION) + SAFETY_BUFFER;
         		
         		grant_message_t response;
         		if (arrival_time_ns >= self->earliest_free) {

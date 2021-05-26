@@ -215,7 +215,7 @@ main reactor (num_entries:int(2)) {
     carla = new[num_entries] Carla(vehicle_name = "ego_vehicle");
     
     vehicles = new[num_entries] Vehicle();    
-    rsu = new RSU(num_entries = num_entries, intersection_pos = {=(coordinate_t){-0.00003,-0.0011,2.0016}=});
+    rsu = new RSU(num_entries = num_entries, intersection_pos = {=(coordinate_t){-0.00000534,-0.00114776,2.00155615}=});
     
     
     vehicles.request -> rsu.request;
