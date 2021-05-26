@@ -50,23 +50,20 @@ class CppGenerator : GeneratorBase() {
         const val defaultRuntimeVersion = "26e6e641916924eae2e83bbf40cbc9b933414310"
     }
 
-    /** Relative path to the directory where all source files for this resource should be generated in. */
-    private val Resource.genDir get() = fileConfig.getDirectory(this).resolve(this.name)
+    /** Get the file configuration object as `CppFileConfig` */
+    private val cppFileConfig: CppFileConfig get() = super.fileConfig!! as CppFileConfig
 
-    /** Path to the preamble header file corresponding to this resource */
-    private val Resource.preambleHeaderPath get() = this.genDir.resolve("_lf_preamble.hh")
-
-    /** Path to the preamble source file corresponding to this resource */
-    private val Resource.preambleSourcePath get() = this.genDir.resolve("_lf_preamble.cc")
-
-    /** Path to the header file corresponding to this reactor */
-    private val Reactor.headerPath get() = this.eResource().genDir.resolve("${this.name}.hh")
-
-    /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
-    private val Reactor.headerImplPath get() = this.eResource().genDir.resolve("${this.name}_impl.hh")
-
-    /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
-    private val Reactor.sourcePath get() = this.eResource().genDir.resolve("${this.name}.cc")
+    /**
+     * Set the fileConfig field to point to the specified resource using the specified
+     * file-system access and context.
+     * @param resource The resource (Eclipse-speak for a file).
+     * @param fsa The Xtext abstraction for the file system.
+     * @param context The generator context (whatever that is).
+     */
+    override fun setFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
+        super.fileConfig = CppFileConfig(resource, fsa, context)
+        topLevelName = fileConfig.name
+    }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -140,7 +137,7 @@ class CppGenerator : GeneratorBase() {
         |
         |#include "CLI/CLI11.hpp"
         |
-        |#include "${main.headerPath.toUnixString()}"
+        |#include "${cppFileConfig.getReactorHeaderPath(main).toUnixString()}"
         |
         |class Timeout : public reactor::Reactor {
         | private:
@@ -223,8 +220,8 @@ class CppGenerator : GeneratorBase() {
             ?.let { fileConfig.srcPath.resolve(it).toUnixString() }
 
         // compile a list of all source files produced by this generator
-        val reactorSourceFiles = reactors.filter { !it.isGeneric }.map { it.sourcePath.toUnixString() }
-        val preambleSourceFiles = resources.map { it.preambleSourcePath.toUnixString() }
+        val reactorSourceFiles = reactors.filter { !it.isGeneric }.map { cppFileConfig.getReactorSourcePath(it).toUnixString() }
+        val preambleSourceFiles = resources.map { cppFileConfig.getPreambleSourcePath(it).toUnixString() }
         val sourceFiles = reactorSourceFiles + preambleSourceFiles
 
         @Suppress("LocalVariableName") // allows us to use capital S as variable name below

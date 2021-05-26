@@ -29,7 +29,9 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
+import org.lflang.lf.Reactor
 import java.io.IOException
+import java.nio.file.Path
 
 class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) :
     FileConfig(resource, fsa, context) {
@@ -45,4 +47,22 @@ class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGener
         deleteDirectory(outPath.resolve("include"))
         deleteDirectory(outPath.resolve("share"))
     }
+
+    /** Relative path to the directory where all source files for this resource should be generated in. */
+    private fun getGenDir(r: Resource): Path = getDirectory(r).resolve(r.name)
+
+    /** Path to the preamble header file corresponding to this resource */
+    fun getPreambleHeaderPath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.hh")
+
+    /** Path to the preamble source file corresponding to this resource */
+    fun getPreambleSourcePath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.cc")
+
+    /** Path to the header file corresponding to this reactor */
+    fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${this.name}.hh")
+
+    /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
+    fun getReactorHeaderImplPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${this.name}_impl.hh")
+
+    /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
+    fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${this.name}.cc")
 }
