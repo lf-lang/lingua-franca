@@ -17,6 +17,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(carla_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 include_directories(include/core)
 
@@ -30,7 +31,7 @@ add_executable(lf_carla_publisher src/CarlaIntersection.cpp)
 
 target_link_libraries(lf_carla_publisher platform_support)
 
-ament_target_dependencies(lf_carla_publisher rclcpp carla_msgs geometry_msgs)
+ament_target_dependencies(lf_carla_publisher rclcpp carla_msgs geometry_msgs sensor_msgs)
 
 
 install(TARGETS
@@ -42,6 +43,12 @@ install(TARGETS
   lf_carla_publisher
   DESTINATION lib/${PROJECT_NAME}
 )
+
+install(DIRECTORY launch/
+          DESTINATION share/${PROJECT_NAME}/)
+
+install(DIRECTORY config/ 
+          DESTINATION share/${PROJECT_NAME}/config)
 
 install(DIRECTORY src/core/ DESTINATION core)
 
