@@ -33,84 +33,8 @@ import org.lflang.*
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.*
-import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
-/* *******************************************************************************************
- * The following definitions are shortcuts to access static members of FileConfig and ASTUtils
- *
- * TODO these should likely be moved to a common place in the future
- */
-
-val Resource.name: String get() = FileConfig.getName(this)
-
-fun Path.toUnixString(): String = FileConfig.toUnixString(this)
-fun Path.createDirectories() = FileConfig.createDirectories(this)
-
-val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
-
-/* *******************************************************************************************
- *
- * The following definition provide extension that are likely useful across targets
- *
- * TODO Move these definitions to a common place and check if they are already implemented elsewhere
- */
-
-/** Get the "name" a reaction is represented with in target code.*/
-val Reaction.name
-    get() :String {
-        val r = this.eContainer() as Reactor
-        return "r" + r.reactions.lastIndexOf(this)
-    }
-
-/** Get a label representing the reaction.
- *
- * If the reactions is annotated with a label, then the label is returned. Otherwise, the reactions name is returned.
- */
-val Reaction.label get() :String = ASTUtils.label(this) ?: this.name
-
-/** Get the reactions priority */
-val Reaction.priority
-    get() :Int {
-        val r = this.eContainer() as Reactor
-        return r.reactions.lastIndexOf(this) + 1
-    }
-
-/* ********************************************************************************************/
-
-/** Prepend each line of the rhs multiline string with the lhs prefix.
- *
- * This is a neat little trick that allows for convenient insertion of multiline strings in string templates
- * while correctly managing the indentation. Consider this multiline string:
- * ```
- * val foo = """
- *    void foo() {
- *        // do something useful
- *    }""".trimIndent()
- * ```
- *
- * It could be inserted into a higher level multiline string like this:
- *
- * ```
- * val bar = """
- *     |class Bar {
- * ${" |    "..foo}
- *     |};""".trimMargin()
- * ```
- *
- * This will produce the expected output:
- * ```
- * class Bar {
- *     void foo() {
- *         // do something useful
- *     }
- * };
- *
- * TODO We likely want to move this to a central place
- * ```
- */
-operator fun String.rangeTo(str: String) = str.replaceIndent(this)
 
 class CppGenerator : GeneratorBase() {
 
