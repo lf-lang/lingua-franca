@@ -110,6 +110,16 @@ class CppGenerator : GeneratorBase() {
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.header())
             fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.source())
         }
+
+        // generate file level preambles for all resources
+        for (r in resources) {
+            val generator = CppPreambleGenerator(r, cppFileConfig)
+            val sourceFile = relSrcGenPath.resolve(cppFileConfig.getPreambleSourcePath(r)).toString()
+            val headerFile = relSrcGenPath.resolve(cppFileConfig.getPreambleHeaderPath(r)).toString()
+
+            fsa.generateFile(headerFile, generator.header())
+            fsa.generateFile(sourceFile, generator.source())
+        }
     }
 
     private fun generateMain(main: Reactor) = """

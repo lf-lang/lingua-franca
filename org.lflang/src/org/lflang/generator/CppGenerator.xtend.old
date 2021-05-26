@@ -550,39 +550,6 @@ class CppGenerator extends GeneratorBase {
         «ENDIF»
     '''
 
-    def generatePreambleHeader(Resource r) '''
-        «r.header»
-        
-        #pragma once
-        
-        #include <vector>
-        #include <array>
-
-        #include "reactor-cpp/reactor-cpp.hh"
-        «FOR i : scopeProvider?.getImportedResources(r) ?: emptyList BEFORE "// include the preambles from imported resource \n"»
-            #include "«i.preambleHeaderFile.toUnixString»"
-        «ENDFOR»
-        
-        «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
-            «IF p.visibility === Visibility.PUBLIC»«p.code.toText»«ENDIF»
-        «ENDFOR»
-    '''
-
-    def generatePreambleSource(Resource r) '''
-        «r.header»
-        
-        #include "reactor-cpp/reactor-cpp.hh"
-        
-        #include "«r.preambleHeaderFile.toUnixString»"
-        
-        using namespace std::chrono_literals;
-        using namespace reactor::operators;
-        
-        «FOR p : r.allContents.toIterable.filter(Model).iterator().next().preambles»
-            «IF p.visibility === Visibility.PRIVATE»«p.code.toText»«ENDIF»
-        «ENDFOR»
-    '''
-
     def templateLine(Reactor r) '''
         template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>
     '''
