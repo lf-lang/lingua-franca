@@ -29,10 +29,14 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.*
+import org.lflang.FileConfig
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.VarRef
+import org.lflang.toDefinition
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -63,16 +67,6 @@ class CppGenerator : GeneratorBase() {
 
     /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
     private val Reactor.sourcePath get() = this.eResource().genDir.resolve("${this.name}.cc")
-
-    /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
-    private val TargetProperty.LogLevel.severity
-        get() = when (this) {
-            TargetProperty.LogLevel.ERROR -> 1
-            TargetProperty.LogLevel.WARN  -> 2
-            TargetProperty.LogLevel.INFO  -> 3
-            TargetProperty.LogLevel.LOG   -> 4
-            TargetProperty.LogLevel.DEBUG -> 4
-        }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -123,37 +117,6 @@ class CppGenerator : GeneratorBase() {
          * Date: ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}
          */
         """.trimIndent()
-
-    /** Get a C++ representation of a LF unit. */
-    private val TimeValue.cppUnit
-        get() = when (this.unit) {
-            TimeUnit.NSEC    -> "ns"
-            TimeUnit.NSECS   -> "ns"
-            TimeUnit.USEC    -> "us"
-            TimeUnit.USECS   -> "us"
-            TimeUnit.MSEC    -> "ms"
-            TimeUnit.MSECS   -> "ms"
-            TimeUnit.SEC     -> "s"
-            TimeUnit.SECS    -> "s"
-            TimeUnit.SECOND  -> "s"
-            TimeUnit.SECONDS -> "s"
-            TimeUnit.MIN     -> "min"
-            TimeUnit.MINS    -> "min"
-            TimeUnit.MINUTE  -> "min"
-            TimeUnit.MINUTES -> "min"
-            TimeUnit.HOUR    -> "h"
-            TimeUnit.HOURS   -> "h"
-            TimeUnit.DAY     -> "d"
-            TimeUnit.DAYS    -> "d"
-            TimeUnit.WEEK    -> "d*7"
-            TimeUnit.WEEKS   -> "d*7"
-            TimeUnit.NONE    -> ""
-            null             -> ""
-        }
-
-    /** Convert a LF time value to a representation in C++ code */
-    private fun TimeValue.toCode() = "${this.time} ${this.cppUnit}"
-
 
     private fun declareReactions(r: Reactor) =
         r.reactions.joinToString(separator = "\n", prefix = "// reactions\n", postfix = "\n") { declare(it) }
