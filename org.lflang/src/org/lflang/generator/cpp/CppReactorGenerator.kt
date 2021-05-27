@@ -43,12 +43,12 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     /** The header file that contains the public file-level preamble of the file containing `reactor` */
     private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
 
-    private val state = CppReactorStateGenerator(reactor)
-    private val timers = CppReactorTimerGenerator(reactor)
-    private val actions = CppReactorActionGenerator(reactor)
-    private val reactions = CppReactorReactionGenerator(reactor)
-    private val constructor = CppReactorConstructorGenerator(reactor, state, timers, actions)
-    private val assemble = CppReactorAssembleMethodGenerator(reactor)
+    private val state = CppStateGenerator(reactor)
+    private val timers = CppTimerGenerator(reactor)
+    private val actions = CppActionGenerator(reactor)
+    private val reactions = CppReactionGenerator(reactor)
+    private val constructor = CppConstructorGenerator(reactor, state, timers, actions)
+    private val assemble = CppAssembleMethodGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
@@ -120,11 +120,11 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     }
 }
 
-class CppReactorConstructorGenerator(
+class CppConstructorGenerator(
     private val reactor: Reactor,
-    private val state: CppReactorStateGenerator,
-    private val timers: CppReactorTimerGenerator,
-    private val actions: CppReactorActionGenerator
+    private val state: CppStateGenerator,
+    private val timers: CppTimerGenerator,
+    private val actions: CppActionGenerator
 ) {
 
     /**
@@ -184,7 +184,7 @@ class CppReactorConstructorGenerator(
     }
 }
 
-class CppReactorAssembleMethodGenerator(private val reactor: Reactor) {
+class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String {
         // check if the trigger is a multiport
@@ -261,7 +261,7 @@ class CppReactorAssembleMethodGenerator(private val reactor: Reactor) {
     }
 }
 
-class CppReactorReactionGenerator(private val reactor: Reactor) {
+class CppReactionGenerator(private val reactor: Reactor) {
 
     private fun declaration(r: Reaction) =
         """reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { ${r.name}_body(); }};"""
@@ -299,7 +299,7 @@ class CppReactorReactionGenerator(private val reactor: Reactor) {
         reactor.reactions.joinToString(separator = "\n", postfix = "\n") { bodyDefinition(it) }
 }
 
-class CppReactorActionGenerator(private val reactor: Reactor) {
+class CppActionGenerator(private val reactor: Reactor) {
 
     private val Action.cppType get() = if (this.isLogical) "reactor::LogicalAction" else "reactor::PhysicalAction"
 
@@ -347,7 +347,7 @@ class CppReactorActionGenerator(private val reactor: Reactor) {
         reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { initialize(it) }
 }
 
-class CppReactorTimerGenerator(private val reactor: Reactor) {
+class CppTimerGenerator(private val reactor: Reactor) {
 
     private fun initialize(timer: Timer): String {
         val offset = timer.offset?.toTime() ?: "reactor::Duration::zero()"
@@ -364,7 +364,7 @@ class CppReactorTimerGenerator(private val reactor: Reactor) {
         reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") { ", ${initialize(it)}" }
 }
 
-class CppReactorStateGenerator(private val reactor: Reactor) {
+class CppStateGenerator(private val reactor: Reactor) {
 
     /**
      * Create a list of state initializers in target code.
