@@ -157,7 +157,7 @@ val TimeValue.cppUnit
     }
 
 /** Convert a LF time value to a representation in C++ code */
-fun TimeValue.toCode() = "${this.time} ${this.cppUnit}"
+fun TimeValue.toCode() = "${this.time}${this.cppUnit}"
 
 /** Convert a Time to a representation in C++ code
  *
