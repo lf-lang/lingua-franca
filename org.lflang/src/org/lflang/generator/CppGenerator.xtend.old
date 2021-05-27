@@ -298,74 +298,6 @@ class CppGenerator extends GeneratorBase {
         return '''«n.name».declare_trigger(&«t.name»);'''
     }
 
-    def declareTriggers(Reaction n) '''
-        «FOR t : n.triggers»
-            «n.declareTrigger(t)»
-        «ENDFOR»
-    '''
-
-    def name(VarRef v) {
-        if (v.container !== null) {
-            '''«v.container.name»->«v.variable.name»'''
-        } else {
-            '''«v.variable.name»'''
-        }
-    }
-
-    def name(TriggerRef t) {
-        if (t instanceof VarRef) {
-            t.name
-        } else {
-            if (t.isShutdown) {
-                LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
-            } else if (t.isStartup) {
-                LfPackage.Literals.TRIGGER_REF__STARTUP.name
-            }
-        }
-    }
-    
-    def declareDependency(Reaction n, VarRef v) {
-        val p = v.variable as Port
-        if (p.widthSpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «v.name».size(); i++) {
-                    «n.name».declare_dependency(&«v.name»[i]);
-                }
-            '''
-        }
-        // FIXME: support other cases
-        return '''«n.name».declare_dependency(&«v.name»);'''
-    }
-
-    def declareDependencies(Reaction n) '''
-        «FOR v : n.sources»
-            «n.declareDependency(v)»
-        «ENDFOR»
-    '''
-
-    def declareAntidependency(Reaction n, VarRef v) {
-        val p = v.variable as Port
-        if (p.widthSpec !== null) {
-            return '''
-                for (unsigned i = 0; i < «v.name».size(); i++) {
-                    «n.name».declare_antidependency(&«v.name»[i]);
-                }
-            '''
-        }
-        // FIXME: support other cases
-        return '''«n.name».declare_antidependency(&«v.name»);'''
-    }
-
-    def declareAntidependencies(Reaction n) '''
-        «FOR v : n.effects»
-            «IF v.variable instanceof Action»
-                «n.name».declare_scheduable_action(&«v.variable.name»);
-            «ELSE»
-                «n.declareAntidependency(v)»
-            «ENDIF»
-        «ENDFOR»
-    '''
-
     def String getTargetInitializer(StateVar state) {
         '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
     }
@@ -443,17 +375,6 @@ class CppGenerator extends GeneratorBase {
         }
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
-
-
-    def assembleReaction(Reactor r, Reaction n) '''
-        // «n.name»
-        «n.declareTriggers»
-        «n.declareDependencies»
-        «n.declareAntidependencies»
-        «IF n.deadline !== null»
-            «n.name».set_deadline(«n.deadline.delay.targetTime», [this]() { «n.name»_deadline_handler(); });
-        «ENDIF»
-    '''
 
     def templateLine(Reactor r) '''
         template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>
@@ -601,18 +522,6 @@ class CppGenerator extends GeneratorBase {
 
         «r.implementReactionBodies»
         «r.implementReactionDeadlineHandlers»
-    '''
-    
-    def defineAssembleMethod(Reactor r) '''
-        «IF r.isGeneric»«r.templateLine»«ENDIF»
-        void «r.templateName»::assemble() {
-          «FOR n : r.reactions»
-             «r.assembleReaction(n)»
-          «ENDFOR»
-          «FOR c : r.connections BEFORE "  // connections\n"»
-             «c.generate»
-          «ENDFOR»
-        }
     '''
 
     // //////////////////////////////////////////////

@@ -174,6 +174,20 @@ val Preamble.isPrivate: Boolean get() = this.visibility == Visibility.PRIVATE
 /** Get templated name of a reactor class */
 val Reactor.templateName: String get() = this.name  // TODO '''«r.name»«IF r.isGeneric»<«FOR t : r.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»'''
 
+/** Get a C++ code representation of the given variable */
+val VarRef.name: String
+    get() = if (this.container == null) this.variable.name
+    else "${this.container.name}->${this.variable.name}"
+
+/** Get a C++ code representation of the given trigger */
+val TriggerRef.name: String
+    get() = when {
+        this is VarRef  -> this.name
+        this.isShutdown -> LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
+        this.isStartup  -> LfPackage.Literals.TRIGGER_REF__STARTUP.name
+        else            -> throw AssertionError()
+    }
+
 /** Return a comment to be inserted at the top of generated files. */
 fun fileComment(r: Resource) = """
     /*
