@@ -278,7 +278,7 @@ class CppReactorActionGenerator(private val reactor: Reactor) {
     private val startupName = LfPackage.Literals.TRIGGER_REF__STARTUP.name
     private val shutdownName = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
 
-    private fun declaration(action: Action) = "${action.cppType}<${action.targetType}> ${action.name}"
+    private fun declaration(action: Action) = "${action.cppType}<${action.targetType}> ${action.name};"
 
     private fun initialize(action: Action) = if (action.isLogical) initializeLogical(action) else initializePhysical(action)
 
