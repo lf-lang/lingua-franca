@@ -20,6 +20,7 @@
  */
 package org.lflang.generator
 
+import com.google.inject.Inject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
@@ -27,6 +28,7 @@ import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.Target
 import org.lflang.generator.cpp.CppGenerator
 import org.lflang.lf.TargetDecl
+import org.lflang.scoping.LFGlobalScopeProvider
 
 /**
  * Generates code from your model files on save.
@@ -34,6 +36,9 @@ import org.lflang.lf.TargetDecl
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
 class LFGenerator : AbstractGenerator() {
+
+    @Inject
+    lateinit var scopeProvider: LFGlobalScopeProvider
 
     /**
      * Is set if errors occurred in the last call to doGenerate().
@@ -45,34 +50,26 @@ class LFGenerator : AbstractGenerator() {
         this.generatorErrorsOccurred = generateImpl(resource, fsa, context)
     }
 
+    private fun getGenerator(target: Target): GeneratorBase =
+        when (target) {
+            Target.C      -> CGenerator()
+            Target.CCPP   -> CCppGenerator()
+            Target.CPP    -> CppGenerator(scopeProvider)
+            Target.TS     -> TypeScriptGenerator()
+            Target.Python -> PythonGenerator()
+        }
+
+    /** Returns true if some errors occurred. */
+    private fun generateImpl(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): Boolean {
+        // Determine which target is desired.
+        val targetName = findTargetNameOrThrow(resource)
+        val target = Target.forName(targetName) ?: throw AssertionError("Not a target '$targetName'")
+        val generator = getGenerator(target)
+        generator.doGenerate(resource, fsa, context)
+        return generator.errorsOccurred()
+    }
+
     companion object {
-
-        private val TARGET_MAP: Map<Target, Class<out GeneratorBase>> = mapOf(
-            Target.C to CGenerator::class.java,
-            Target.CCPP to CCppGenerator::class.java,
-            Target.CPP to CppGenerator::class.java,
-            Target.TS to TypeScriptGenerator::class.java,
-            Target.Python to PythonGenerator::class.java
-        )
-
-        private fun getGenerator(target: Target): GeneratorBase {
-            val generatorClass = TARGET_MAP[target]!!
-            return try {
-                generatorClass.getConstructor().newInstance()
-            } catch (e: Exception) {
-                throw AssertionError("Missing constructor in $generatorClass", e)
-            }
-        }
-
-        /** Returns true if some errors occurred. */
-        private fun generateImpl(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): Boolean {
-            // Determine which target is desired.
-            val targetName = findTargetNameOrThrow(resource)
-            val target = Target.forName(targetName) ?: throw AssertionError("Not a target '$targetName'")
-            return getGenerator(target).also {
-                it.doGenerate(resource, fsa, context)
-            }.errorsOccurred()
-        }
 
         private fun findTargetNameOrThrow(resource: Resource): String =
             resource.allContents.asSequence()

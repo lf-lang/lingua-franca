@@ -35,9 +35,10 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
+import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.toDefinition
 
-class CppGenerator : GeneratorBase() {
+class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : GeneratorBase() {
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
@@ -113,7 +114,7 @@ class CppGenerator : GeneratorBase() {
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r, cppFileConfig)
+            val generator = CppPreambleGenerator(r, cppFileConfig, scopeProvider)
             val sourceFile = relSrcGenPath.resolve(cppFileConfig.getPreambleSourcePath(r)).toString()
             val headerFile = relSrcGenPath.resolve(cppFileConfig.getPreambleHeaderPath(r)).toString()
 
