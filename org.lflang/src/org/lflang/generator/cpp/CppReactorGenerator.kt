@@ -24,7 +24,9 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.toText
 
 /**
  * A class responsible for generating code for a single given reactor.
@@ -40,7 +42,9 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     /** The header file that contains the public file-level preamble of the file containing `reactor` */
     private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
 
-    private val construcor = CppReactorConstructorGenerator(reactor)
+    private val reactions = CppReactorReactionGenerator(reactor)
+
+    private val constructor = CppReactorConstructorGenerator(reactor)
 
     /** Generate a C++ header file declaring the given reactor. */
     fun header() = """
@@ -63,12 +67,12 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |  // TODO «r.declareInstances»
         |  // TODO «r.declareTimers»
         |  // TODO «r.declareActions»
-        |  // TODO «r.declareReactions»
-        |  // TODO «r.declareReactionBodies»
+    ${" |  "..reactions.declarations()}
+    ${" |  "..reactions.bodyDeclarations()}
         |  // TODO «r.declareDeadlineHandlers»
         | public:
         |  // TODO «r.declarePorts»
-    ${" |  "..construcor.declaration()}
+    ${" |  "..constructor.declaration()}
         |
         |  void assemble() override;
         |};
@@ -91,11 +95,11 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |
         |// TODO «r.privatePreamble»
         |
-    ${" |"..construcor.definition()}
+    ${" |"..constructor.definition()}
         |
         |// «r.defineAssembleMethod»
         |
-        |// TODO «r.implementReactionBodies»
+    ${" |"..reactions.bodyDefinitions()}
         |// TODO «r.implementReactionDeadlineHandlers»
     """.trimMargin()
 
@@ -155,4 +159,40 @@ class CppReactorConstructorGenerator(private val reactor: Reactor) {
             |{}
         """.trimMargin()
     }
+}
+
+class CppReactorReactionGenerator(private val reactor: Reactor) {
+
+    private fun declaration(r: Reaction) =
+        """reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { ${r.name}_body(); }};"""
+
+    private fun bodyDeclaration(r: Reaction) = "void ${r.name}_body();"
+
+    private fun bodyDefinition(reaction: Reaction) = """
+        |// reaction ${reaction.label}
+        |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+        |void ${reactor.templateName}::${reaction.name}_body() {
+        |  // prepare scope
+        |  /* TODO
+        |     «FOR i : r.instantiations»
+        |       «IF i.widthSpec === null»auto& «i.name» = *(this->«i.name»);«ENDIF»
+        |    «ENDFOR»
+        |  */
+        |
+        |  // reaction code
+    ${" |  "..reaction.code.toText()}
+        |}
+        |
+    """.trimMargin()
+
+    /** Get all reaction declarations. */
+    fun declarations() =
+        reactor.reactions.joinToString(separator = "\n", prefix = "// reactions\n", postfix = "\n") { declaration(it) }
+
+    /** Get all declarations of reaction bodies. */
+    fun bodyDeclarations() =
+        reactor.reactions.joinToString(separator = "\n", prefix = "// reaction bodies\n", postfix = "\n") { bodyDeclaration(it) }
+
+    fun bodyDefinitions() =
+        reactor.reactions.joinToString(separator = "\n", postfix = "\n") { bodyDefinition(it) }
 }
