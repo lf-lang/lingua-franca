@@ -24,6 +24,8 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.isInitialized
+import org.lflang.isOfTimeType
 import org.lflang.lf.*
 import org.lflang.toText
 
@@ -41,10 +43,11 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     /** The header file that contains the public file-level preamble of the file containing `reactor` */
     private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
 
+    private val state = CppReactorStateGenerator(reactor)
     private val timers = CppReactorTimerGenerator(reactor)
     private val actions = CppReactorActionGenerator(reactor)
     private val reactions = CppReactorReactionGenerator(reactor)
-    private val constructor = CppReactorConstructorGenerator(reactor, timers, actions)
+    private val constructor = CppReactorConstructorGenerator(reactor, state, timers, actions)
     private val assemble = CppReactorAssembleMethodGenerator(reactor)
 
     /** Generate a C++ header file declaring the given reactor. */
@@ -64,7 +67,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |class ${reactor.name} : public reactor::Reactor {
         | private:
         |  // TODO «r.declareParameters»
-        |  // TODO «r.declareStateVariables»
+    ${" |  "..state.declarations()}
         |  // TODO «r.declareInstances»
     ${" |  "..timers.declarations()}
     ${" |  "..actions.declarations()}
@@ -108,6 +111,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
 
 class CppReactorConstructorGenerator(
     private val reactor: Reactor,
+    private val state: CppReactorStateGenerator,
     private val timers: CppReactorTimerGenerator,
     private val actions: CppReactorActionGenerator
 ) {
@@ -158,7 +162,7 @@ class CppReactorConstructorGenerator(
             |${reactor.name}::${signature()}
             |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
             |  // TODO «r.initializeParameters»
-            |  // TODO «r.initializeStateVariables»
+        ${" |  "..state.initializers()}
             |  // TODO «r.initializeInstances»
         ${" |  "..timers.initializers()}
         ${" |  "..actions.initializers()}
@@ -337,4 +341,36 @@ class CppReactorTimerGenerator(private val reactor: Reactor) {
     /** Get all timer initializers */
     fun initializers() =
         reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") { ", ${initialize(it)}" }
+}
+
+class CppReactorStateGenerator(private val reactor: Reactor) {
+
+    /**
+     * Create a list of state initializers in target code.
+     *
+     * TODO This is redundant to GeneratorBase.getInitializerList
+     */
+    private fun getInitializerList(state: StateVar) = state.init.map {
+        when {
+            it.parameter != null -> it.parameter.name
+            state.isOfTimeType   -> it.toTime()
+            else                 -> it.toCode()
+        }
+    }
+
+    private fun initialize(state: StateVar): String {
+        return "${state.name}{${getInitializerList(state).joinToString(separator = ", ")}}"
+    }
+
+    /** Get all state declarations */
+    fun declarations() =
+        reactor.stateVars.joinToString(
+            separator = "\n",
+            prefix = "// state variable\n",
+            postfix = "\n"
+        ) { "${it.targetType} ${it.name};" }
+
+    /** Get all timer initializers */
+    fun initializers(): String = reactor.stateVars.filter { it.isInitialized }
+        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${initialize(it)}" }
 }

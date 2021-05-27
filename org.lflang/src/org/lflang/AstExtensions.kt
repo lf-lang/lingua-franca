@@ -93,11 +93,24 @@ val Reactor.allStateVars: List<StateVar> get() = this.superClassRecursor { this.
 val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
 
 private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): List<T> =
-
-
     superClasses.orEmpty().mapNotNull { it.toDefinition().collector() }.flatten() + this.collector()
 
+/**
+ * Report whether the given parameter has been declared a type or has been
+ * inferred to be a type. Note that if the parameter was declared to be a
+ * time, its initialization may still be faulty (assigning a value that is
+ * not actually a valid time).
+ * @see ASTUtils.isOfTimeType
+ * @return True if the receiver denotes a time, false otherwise.
+ */
 val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
+
+/**
+ * Report whether the given state variable denotes a time or not.
+ * @see ASTUtils.isOfTimeType
+ * @return True if the receiver denotes a time, false otherwise.
+ */
+val StateVar.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
 /**
  * Translate this code element into its textual representation.
@@ -336,3 +349,10 @@ val Action.inferredType: InferredType get() = ASTUtils.getInferredType(this)
  * @return The inferred type, or "undefined" if none was declared.
  */
 val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Report whether a state variable has been initialized or not.
+ * @receiver The state variable to be checked.
+ * @return True if the variable was initialized, false otherwise.
+ */
+val StateVar.isInitialized :Boolean get() = (this.parens.size == 2)

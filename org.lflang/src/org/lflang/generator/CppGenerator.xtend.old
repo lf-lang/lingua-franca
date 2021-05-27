@@ -152,17 +152,6 @@ class CppGenerator extends GeneratorBase {
         return result
     }
 
-
-    def declare(Reaction n) '''
-        reactor::Reaction «n.name»{"«n.label»", «n.priority», this, [this]() { «n.name»_body(); }};
-    '''
-
-    def declareStateVariables(Reactor r) '''
-        «FOR s : r.stateVars BEFORE '// state variables\n' AFTER '\n'»
-            «s.targetType» «s.name»;
-        «ENDFOR»
-    '''
-
     def declareParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
             std::add_const<«p.targetType»>::type «p.name»;
@@ -199,7 +188,8 @@ class CppGenerator extends GeneratorBase {
         }
         throw new Exception("Only multiport widths with literal integer values are supported for now.")
     }
-    
+    }
+
     def declarePorts(Reactor r) '''
         «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
             «IF i.isMultiport»
@@ -286,10 +276,6 @@ class CppGenerator extends GeneratorBase {
         return '''«n.name».declare_trigger(&«t.name»);'''
     }
 
-    def String getTargetInitializer(StateVar state) {
-        '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
-    }
-
     def private String getTargetInitializerHelper(Parameter param,
         List<String> list) {
         if (list.size == 0) {
@@ -312,12 +298,6 @@ class CppGenerator extends GeneratorBase {
     def initializeParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE "// parameters\n"»
             , «p.name»(«p.name»)
-        «ENDFOR»
-    '''
-
-    def initializeStateVariables(Reactor r) '''
-        «FOR s : r.stateVars.filter[s | s.isInitialized] BEFORE "// state variables\n"»
-            , «s.name»{«s.targetInitializer»} // «s.isInitialized»
         «ENDFOR»
     '''
 
