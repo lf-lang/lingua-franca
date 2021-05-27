@@ -176,6 +176,14 @@ fun Value.toTime() :String = when  {
     else -> this.toText()
 }
 
+/**
+ * Get textual representation of a value in C++ code
+ *
+ * If the value evaluates to 0, it is interpreted as a normal value.
+ * FIXME this is redundant to GeneratorBase.getTargetValue
+ */
+fun Value.toCode() :String = this.time?.toCode() ?: this.toText()
+
 /** True if the preamble is public */
 val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
 
