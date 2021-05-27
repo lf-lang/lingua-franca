@@ -123,95 +123,97 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
         }
     }
 
-    private fun generateMain(main: Reactor) = """
-    ${" |"..fileComment(main.eResource())}
-        |
-        |#include <chrono>
-        |#include <thread>
-        |#include <memory>
-        |
-        |#include "reactor-cpp/reactor-cpp.hh"
-        |
-        |using namespace std::chrono_literals;
-        |using namespace reactor::operators;
-        |
-        |#include "time_parser.hh"
-        |
-        |#include "CLI/CLI11.hpp"
-        |
-        |#include "${cppFileConfig.getReactorHeaderPath(main).toUnixString()}"
-        |
-        |class Timeout : public reactor::Reactor {
-        | private:
-        |  reactor::Timer timer;
-        |
-        |  reactor::Reaction r_timer{"r_timer", 1, this, [this]() { environment()->sync_shutdown(); }};
-        |
-        |
-        | public:
-        |  Timeout(const std ::string& name, reactor::Environment* env, reactor::Duration timeout)
-        |    : reactor::Reactor(name, env)
-        |    , timer{ "timer", this, reactor::Duration::zero(), timeout } {}
-        |
-        |  void assemble () override { r_timer.declare_trigger(& timer); }
-        |};
-        |
-        |int main(int argc, char **argv) {
-        |  CLI::App app ("$topLevelName Reactor Program");
-        |
-        |  unsigned threads = ${if (targetConfig.threads != 0) targetConfig.threads else "std::thread::hardware_concurrency()"};
-        |  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
-        |
-        |  reactor::Duration timeout = ${targetConfig.timeout?.toCode() ?: "reactor::Duration::zero()"};
-        |  auto opt_timeout = app.add_option ("-o,--timeout", timeout, "Time after which the execution is aborted.");
-        |
-        |  opt_timeout->check([](const std::string& val ){ return validate_time_string(val); });
-        |  opt_timeout->type_name("'FLOAT UNIT'");
-        |  opt_timeout->default_str(time_to_quoted_string(timeout));
-        |
-        |  bool fast{${targetConfig.fastMode}};
-        |  app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
-        |
-        |  bool keepalive {${targetConfig.keepalive}};
-        |  app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
-        |
-        |  /* TODO!
-        |  «FOR p : mainReactor.parameters»
-        |
-        |    «p.targetType» «p.name» = «p.targetInitializer»;
-        |    auto opt_«p.name» = app.add_option("--«p.name»", «p.name», "The «p.name» parameter passed to the main reactor «mainReactor.name».");
-        |    «IF p.inferredType.isTime»
-        |          opt_«p.name»->check([](const std::string& val){ return validate_time_string(val); });
-        |          opt_«p.name»->type_name("'FLOAT UNIT'");
-        |          opt_«p.name»->default_str(time_to_quoted_string(«p.name»));
-        |    «ENDIF»
-        |  «ENDFOR»
-        |  */
-        |
-        |  app.get_formatter()->column_width(50);
-        |
-        |  CLI11_PARSE(app, argc, argv);
-        |
-        |  reactor::Environment e{threads, keepalive, fast};
-        |
-        |  // instantiate the main reactor
-        |  auto main = std ::make_unique<${main.name}> ("${main.name}", &e);
-        |  // TODO support parameters: , &e«FOR p : mainReactor.parameters BEFORE ", " SEPARATOR ", "»«p.name»«ENDFOR»);
-        |
-        |  // optionally instantiate the timeout reactor
-        |  std::unique_ptr<Timeout> t{nullptr};
-        |  if (timeout != reactor::Duration::zero()) {
-        |    t = std::make_unique<Timeout>("Timeout", & e, timeout);
-        |  }
-        |
-        |  // execute the reactor program
-        |  e.assemble();
-        |  auto thread = e . startup ();
-        |  thread.join();
-        |
-        |  return 0;
-        |}
+    private fun generateMain(main: Reactor) = with(prependOperator) {
+        """
+        ${" |"..fileComment(main.eResource())}
+            |
+            |#include <chrono>
+            |#include <thread>
+            |#include <memory>
+            |
+            |#include "reactor-cpp/reactor-cpp.hh"
+            |
+            |using namespace std::chrono_literals;
+            |using namespace reactor::operators;
+            |
+            |#include "time_parser.hh"
+            |
+            |#include "CLI/CLI11.hpp"
+            |
+            |#include "${cppFileConfig.getReactorHeaderPath(main).toUnixString()}"
+            |
+            |class Timeout : public reactor::Reactor {
+            | private:
+            |  reactor::Timer timer;
+            |
+            |  reactor::Reaction r_timer{"r_timer", 1, this, [this]() { environment()->sync_shutdown(); }};
+            |
+            |
+            | public:
+            |  Timeout(const std ::string& name, reactor::Environment* env, reactor::Duration timeout)
+            |    : reactor::Reactor(name, env)
+            |    , timer{ "timer", this, reactor::Duration::zero(), timeout } {}
+            |
+            |  void assemble () override { r_timer.declare_trigger(& timer); }
+            |};
+            |
+            |int main(int argc, char **argv) {
+            |  CLI::App app ("$topLevelName Reactor Program");
+            |
+            |  unsigned threads = ${if (targetConfig.threads != 0) targetConfig.threads else "std::thread::hardware_concurrency()"};
+            |  app.add_option("-t,--threads", threads, "the number of worker threads used by the scheduler", true);
+            |
+            |  reactor::Duration timeout = ${targetConfig.timeout?.toCode() ?: "reactor::Duration::zero()"};
+            |  auto opt_timeout = app.add_option ("-o,--timeout", timeout, "Time after which the execution is aborted.");
+            |
+            |  opt_timeout->check([](const std::string& val ){ return validate_time_string(val); });
+            |  opt_timeout->type_name("'FLOAT UNIT'");
+            |  opt_timeout->default_str(time_to_quoted_string(timeout));
+            |
+            |  bool fast{${targetConfig.fastMode}};
+            |  app.add_flag("-f,--fast", fast, "Allow logical time to run faster than physical time.");
+            |
+            |  bool keepalive {${targetConfig.keepalive}};
+            |  app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
+            |
+            |  /* TODO!
+            |  «FOR p : mainReactor.parameters»
+            |
+            |    «p.targetType» «p.name» = «p.targetInitializer»;
+            |    auto opt_«p.name» = app.add_option("--«p.name»", «p.name», "The «p.name» parameter passed to the main reactor «mainReactor.name».");
+            |    «IF p.inferredType.isTime»
+            |          opt_«p.name»->check([](const std::string& val){ return validate_time_string(val); });
+            |          opt_«p.name»->type_name("'FLOAT UNIT'");
+            |          opt_«p.name»->default_str(time_to_quoted_string(«p.name»));
+            |    «ENDIF»
+            |  «ENDFOR»
+            |  */
+            |
+            |  app.get_formatter()->column_width(50);
+            |
+            |  CLI11_PARSE(app, argc, argv);
+            |
+            |  reactor::Environment e{threads, keepalive, fast};
+            |
+            |  // instantiate the main reactor
+            |  auto main = std ::make_unique<${main.name}> ("${main.name}", &e);
+            |  // TODO support parameters: , &e«FOR p : mainReactor.parameters BEFORE ", " SEPARATOR ", "»«p.name»«ENDFOR»);
+            |
+            |  // optionally instantiate the timeout reactor
+            |  std::unique_ptr<Timeout> t{nullptr};
+            |  if (timeout != reactor::Duration::zero()) {
+            |    t = std::make_unique<Timeout>("Timeout", & e, timeout);
+            |  }
+            |
+            |  // execute the reactor program
+            |  e.assemble();
+            |  auto thread = e . startup ();
+            |  thread.join();
+            |
+            |  return 0;
+            |}
         """.trimMargin()
+    }
 
     private fun generateCmake(): String {
         val runtimeVersion = targetConfig.runtimeVersion ?: defaultRuntimeVersion
@@ -229,91 +231,93 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
         @Suppress("LocalVariableName") // allows us to use capital S as variable name below
         val S = '$' // a little trick to escape the dollar sign with $S
 
-        return """
-            |cmake_minimum_required(VERSION 3.5)
-            |project(${topLevelName} VERSION 1.0.0 LANGUAGES CXX)
-            |
-            |# require C++ 17
-            |set(CMAKE_CXX_STANDARD 17)
-            |set(CMAKE_CXX_STANDARD_REQUIRED ON)
-            |set(CMAKE_CXX_EXTENSIONS OFF)
-            |
-            |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
-            |include(GNUInstallDirs)
-            |
-            |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
-            |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-            |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
-            |endif()
-            |
-        ${
-            if (targetConfig.externalRuntimePath != null) """
-                |find_package(reactor-cpp PATHS ${targetConfig.externalRuntimePath}")
-            """.trimIndent()
-            else """
-                |if(NOT REACTOR_CPP_BUILD_DIR)
-                |    set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
+        return with(prependOperator) {
+            """
+                |cmake_minimum_required(VERSION 3.5)
+                |project(${topLevelName} VERSION 1.0.0 LANGUAGES CXX)
+                |
+                |# require C++ 17
+                |set(CMAKE_CXX_STANDARD 17)
+                |set(CMAKE_CXX_STANDARD_REQUIRED ON)
+                |set(CMAKE_CXX_EXTENSIONS OFF)
+                |
+                |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
+                |include(GNUInstallDirs)
+                |
+                |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
+                |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+                |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
                 |endif()
                 |
-                |ExternalProject_Add(dep-reactor-cpp
-                |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
-                |   GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-                |   GIT_TAG "$runtimeVersion"
-                |   CMAKE_ARGS
-                |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
-                |   -DCMAKE_INSTALL_PREFIX:PATH=$S{CMAKE_INSTALL_PREFIX}
-                |   -DCMAKE_INSTALL_BINDIR:PATH=$S{CMAKE_INSTALL_BINDIR}
-                |   -DCMAKE_CXX_COMPILER=$S{CMAKE_CXX_COMPILER}
-                |   -DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}
-                |   -DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"} 
-                |   -DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}
+            ${
+                if (targetConfig.externalRuntimePath != null) """
+                    |find_package(reactor-cpp PATHS ${targetConfig.externalRuntimePath}")
+                """.trimIndent() else """
+                    |if(NOT REACTOR_CPP_BUILD_DIR)
+                    |    set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
+                    |endif()
+                    |
+                    |ExternalProject_Add(dep-reactor-cpp
+                    |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
+                    |   GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
+                    |   GIT_TAG "$runtimeVersion"
+                    |   CMAKE_ARGS
+                    |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
+                    |   -DCMAKE_INSTALL_PREFIX:PATH=$S{CMAKE_INSTALL_PREFIX}
+                    |   -DCMAKE_INSTALL_BINDIR:PATH=$S{CMAKE_INSTALL_BINDIR}
+                    |   -DCMAKE_CXX_COMPILER=$S{CMAKE_CXX_COMPILER}
+                    |   -DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}
+                    |   -DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"} 
+                    |   -DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}
+                    |)
+                    |
+                    |set(REACTOR_CPP_LIB_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
+                    |set(REACTOR_CPP_BIN_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_BINDIR}")
+                    |set(REACTOR_CPP_LIB_NAME "$S{CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_SHARED_LIBRARY_SUFFIX}")
+                    |set(REACTOR_CPP_IMPLIB_NAME "$S{CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_STATIC_LIBRARY_SUFFIX}")
+                    |
+                    |add_library(reactor-cpp SHARED IMPORTED)
+                    |add_dependencies(reactor-cpp dep-reactor-cpp)
+                    |if(WIN32)
+                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_IMPLIB_NAME}")
+                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_BIN_DIR}/$S{REACTOR_CPP_LIB_NAME}")
+                    |else()
+                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_LIB_NAME}")
+                    |endif()
+                    |
+                    |if (APPLE)
+                    |   file(RELATIVE_PATH REL_LIB_PATH "$S{REACTOR_CPP_BIN_DIR}" "$S{REACTOR_CPP_LIB_DIR}")
+                    |   set(CMAKE_INSTALL_RPATH "@executable_path/$S{REL_LIB_PATH}")
+                    |else ()
+                    |   set(CMAKE_INSTALL_RPATH "$S{REACTOR_CPP_LIB_DIR}")
+                    |endif ()
+                """.trimIndent()
+            }
+                |
+                |set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+                |
+                |set(LF_MAIN_TARGET ${topLevelName})
+                |
+                |add_executable($S{LF_MAIN_TARGET}
+                |    main.cc
+            ${" |    "..sourceFiles.joinToString("\n")}
                 |)
+                |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
+                |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
+                |    "$S{PROJECT_SOURCE_DIR}"
+                |    "$S{PROJECT_SOURCE_DIR}/__include__"
+                |)
+                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
                 |
-                |set(REACTOR_CPP_LIB_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
-                |set(REACTOR_CPP_BIN_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_BINDIR}")
-                |set(REACTOR_CPP_LIB_NAME "$S{CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_SHARED_LIBRARY_SUFFIX}")
-                |set(REACTOR_CPP_IMPLIB_NAME "$S{CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_STATIC_LIBRARY_SUFFIX}")
-                |
-                |add_library(reactor-cpp SHARED IMPORTED)
-                |add_dependencies(reactor-cpp dep-reactor-cpp)
-                |if(WIN32)
-                |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_IMPLIB_NAME}")
-                |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_BIN_DIR}/$S{REACTOR_CPP_LIB_NAME}")
-                |else()
-                |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_LIB_NAME}")
-                |endif()
-                |
-                |if (APPLE)
-                |   file(RELATIVE_PATH REL_LIB_PATH "$S{REACTOR_CPP_BIN_DIR}" "$S{REACTOR_CPP_LIB_DIR}")
-                |   set(CMAKE_INSTALL_RPATH "@executable_path/$S{REL_LIB_PATH}")
-                |else ()
-                |   set(CMAKE_INSTALL_RPATH "$S{REACTOR_CPP_LIB_DIR}")
-                |endif ()
-            """.trimIndent()
-        }
-            |
-            |set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-            |
-            |set(LF_MAIN_TARGET ${topLevelName})
-            |
-            |add_executable($S{LF_MAIN_TARGET}
-            |    main.cc
-        ${" |    "..sourceFiles.joinToString("\n")}
-            |)
-            |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
-            |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
-            |    "$S{PROJECT_SOURCE_DIR}"
-            |    "$S{PROJECT_SOURCE_DIR}/__include__"
-            |)
-            |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
-            |
-            |install(TARGETS $S{LF_MAIN_TARGET})
-        ${
-            if (includeFile == null) "" else """
-                |
-                |include($includeFile)""".trimIndent()
-        }
+                |install(TARGETS $S{LF_MAIN_TARGET})
+            ${
+                if (includeFile == null) "" else """
+                    |
+                    |include($includeFile)
+                """.trimIndent()
+            }
             """.trimMargin()
+        }
     }
 
     fun doCompile() {

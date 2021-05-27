@@ -51,69 +51,73 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     private val assemble = CppReactorAssembleMethodGenerator(reactor)
 
     private fun publicPreamble() =
-        reactor.preambles.filter {it.isPublic}
+        reactor.preambles.filter { it.isPublic }
             .joinToString(separator = "\n", prefix = "// public preamble\n") { it.code.toText() }
 
     private fun privatePreamble() =
-        reactor.preambles.filter {it.isPrivate}
+        reactor.preambles.filter { it.isPrivate }
             .joinToString(separator = "\n", prefix = "// private preamble\n") { it.code.toText() }
 
     /** Generate a C++ header file declaring the given reactor. */
-    fun header() = """
-    ${" |"..fileComment}
-        | 
-        |#pragma once
-        |
-        |#include "reactor-cpp/reactor-cpp.hh"
-        |
-        |#include "$preambleHeaderFile"
-        |
-        |// TODO «r.includeInstances»
-    ${" |  "..publicPreamble()}
-        |
-        |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
-        |class ${reactor.name} : public reactor::Reactor {
-        | private:
-        |  // TODO «r.declareParameters»
-    ${" |  "..state.declarations()}
-        |  // TODO «r.declareInstances»
-    ${" |  "..timers.declarations()}
-    ${" |  "..actions.declarations()}
-    ${" |  "..reactions.declarations()}
-    ${" |  "..reactions.bodyDeclarations()}
-        |  // TODO «r.declareDeadlineHandlers»
-        | public:
-        |  // TODO «r.declarePorts»
-    ${" |  "..constructor.declaration()}
-        |
-        |  void assemble() override;
-        |};
-        |/* TODO
-        |«IF r.isGeneric»
-        |
-        |#include "«r.headerImplFile.toUnixString»"
-        |«ENDIF»*/
-    """.trimMargin()
+    fun header() = with(prependOperator) {
+        """
+        ${" |"..fileComment}
+            | 
+            |#pragma once
+            |
+            |#include "reactor-cpp/reactor-cpp.hh"
+            |
+            |#include "$preambleHeaderFile"
+            |
+            |// TODO «r.includeInstances»
+        ${" |  "..publicPreamble()}
+            |
+            |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+            |class ${reactor.name} : public reactor::Reactor {
+            | private:
+            |  // TODO «r.declareParameters»
+        ${" |  "..state.declarations()}
+            |  // TODO «r.declareInstances»
+        ${" |  "..timers.declarations()}
+        ${" |  "..actions.declarations()}
+        ${" |  "..reactions.declarations()}
+        ${" |  "..reactions.bodyDeclarations()}
+            |  // TODO «r.declareDeadlineHandlers»
+            | public:
+            |  // TODO «r.declarePorts»
+        ${" |  "..constructor.declaration()}
+            |
+            |  void assemble() override;
+            |};
+            |/* TODO
+            |«IF r.isGeneric»
+            |
+            |#include "«r.headerImplFile.toUnixString»"
+            |«ENDIF»*/
+        """.trimMargin()
+    }
 
     /** Generate a C++ source file implementing the given reactor. */
-    fun source() = """
-    ${" |"..fileComment}
-        |
-        |${if (!reactor.isGeneric) """#include "$headerFile"""" else ""}
-        |#include "lfutil.hh"
-        |
-        |using namespace std::chrono_literals;
-        |using namespace reactor::operators;
-        |
-    ${" |  "..privatePreamble()}
-        |
-    ${" |"..constructor.definition()}
-        |
-    ${" |"..assemble.definition()}
-        |
-    ${" |"..reactions.bodyDefinitions()}
-        |// TODO «r.implementReactionDeadlineHandlers»
-    """.trimMargin()
+    fun source() = with(prependOperator) {
+        """
+        ${" |"..fileComment}
+            |
+            |${if (!reactor.isGeneric) """#include "$headerFile"""" else ""}
+            |#include "lfutil.hh"
+            |
+            |using namespace std::chrono_literals;
+            |using namespace reactor::operators;
+            |
+        ${" |  "..privatePreamble()}
+            |
+        ${" |"..constructor.definition()}
+            |
+        ${" |"..assemble.definition()}
+            |
+        ${" |"..reactions.bodyDefinitions()}
+            |// TODO «r.implementReactionDeadlineHandlers»
+        """.trimMargin()
+    }
 }
 
 class CppReactorConstructorGenerator(
@@ -165,16 +169,18 @@ class CppReactorConstructorGenerator(
             «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
             «ELSE»
          */
-        return """
-            |${reactor.name}::${signature()}
-            |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
-            |  // TODO «r.initializeParameters»
-        ${" |  "..state.initializers()}
-            |  // TODO «r.initializeInstances»
-        ${" |  "..timers.initializers()}
-        ${" |  "..actions.initializers()}
-            |{}
-        """.trimMargin()
+        return with(prependOperator) {
+            """
+                |${reactor.name}::${signature()}
+                |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
+                |  // TODO «r.initializeParameters»
+            ${" |  "..state.initializers()}
+                |  // TODO «r.initializeInstances»
+            ${" |  "..timers.initializers()}
+            ${" |  "..actions.initializers()}
+                |{}
+            """.trimMargin()
+        }
     }
 }
 
@@ -225,30 +231,34 @@ class CppReactorAssembleMethodGenerator(private val reactor: Reactor) {
         else "${reaction.name}.declare_antidependency(&${antidependency.name});"
     }
 
-    private fun assembleReaction(reaction: Reaction) = """
-        |// ${reaction.name}
-    ${" |"..reaction.triggers.joinToString(separator = "\n") { declareTrigger(reaction, it) }}
-    ${" |"..reaction.sources.joinToString(separator = "\n") { declareDependency(reaction, it) }}
-    ${" |"..reaction.effects.joinToString(separator = "\n") { declareAntidependency(reaction, it) }}
-        |// TODO «IF n.deadline !== null»
-        |// TODO «n.name».set_deadline(«n.deadline.delay.targetTime», [this]() { «n.name»_deadline_handler(); });
-        |// TODO «ENDIF»
-    """.trimMargin()
+    private fun assembleReaction(reaction: Reaction) = with(prependOperator) {
+        """
+            |// ${reaction.name}
+        ${" |"..reaction.triggers.joinToString(separator = "\n") { declareTrigger(reaction, it) }}
+        ${" |"..reaction.sources.joinToString(separator = "\n") { declareDependency(reaction, it) }}
+        ${" |"..reaction.effects.joinToString(separator = "\n") { declareAntidependency(reaction, it) }}
+            |// TODO «IF n.deadline !== null»
+            |// TODO «n.name».set_deadline(«n.deadline.delay.targetTime», [this]() { «n.name»_deadline_handler(); });
+            |// TODO «ENDIF»
+        """.trimMargin()
+    }
 
     /**
      * Generate the definition of the reactor's assemble() method
      *
      * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
      */
-    fun definition() = """
-        |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
-        |void ${reactor.templateName}::assemble() {
-    ${" |  "..reactor.reactions.joinToString(separator = "\n\n") { assembleReaction(it) }}
-        |  // TODO «FOR c : r.connections BEFORE "  // connections\n"»
-        |  // TODO «c.generate»
-        |  // TODO «ENDFOR»
-        |}
-    """.trimMargin()
+    fun definition() = with(prependOperator) {
+        """
+            |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+            |void ${reactor.templateName}::assemble() {
+        ${" |  "..reactor.reactions.joinToString(separator = "\n\n") { assembleReaction(it) }}
+            |  // TODO «FOR c : r.connections BEFORE "  // connections\n"»
+            |  // TODO «c.generate»
+            |  // TODO «ENDFOR»
+            |}
+        """.trimMargin()
+    }
 }
 
 class CppReactorReactionGenerator(private val reactor: Reactor) {
@@ -258,22 +268,24 @@ class CppReactorReactionGenerator(private val reactor: Reactor) {
 
     private fun bodyDeclaration(r: Reaction) = "void ${r.name}_body();"
 
-    private fun bodyDefinition(reaction: Reaction) = """
-        |// reaction ${reaction.label}
-        |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
-        |void ${reactor.templateName}::${reaction.name}_body() {
-        |  // prepare scope
-        |  /* TODO
-        |     «FOR i : r.instantiations»
-        |       «IF i.widthSpec === null»auto& «i.name» = *(this->«i.name»);«ENDIF»
-        |    «ENDFOR»
-        |  */
-        |
-        |  // reaction code
-    ${" |  "..reaction.code.toText()}
-        |}
-        |
-    """.trimMargin()
+    private fun bodyDefinition(reaction: Reaction) = with(prependOperator) {
+        """
+            |// reaction ${reaction.label}
+            |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+            |void ${reactor.templateName}::${reaction.name}_body() {
+            |  // prepare scope
+            |  /* TODO
+            |     «FOR i : r.instantiations»
+            |       «IF i.widthSpec === null»auto& «i.name» = *(this->«i.name»);«ENDIF»
+            |    «ENDFOR»
+            |  */
+            |
+            |  // reaction code
+        ${" |  "..reaction.code.toText()}
+            |}
+            |
+        """.trimMargin()
+    }
 
     /** Get all reaction declarations. */
     fun declarations() =
@@ -321,12 +333,14 @@ class CppReactorActionGenerator(private val reactor: Reactor) {
     }
 
     /** Get all action declarations */
-    fun declarations() = """
-    ${" |"..reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { declaration(it) }}
-        |// default actions
-        |reactor::StartupAction $startupName {"$startupName", this};
-        |reactor::ShutdownAction $shutdownName {"$shutdownName", this};
-    """.trimMargin()
+    fun declarations() = with(prependOperator) {
+        """
+        ${" |"..reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { declaration(it) }}
+            |// default actions
+            |reactor::StartupAction $startupName {"$startupName", this};
+            |reactor::ShutdownAction $shutdownName {"$shutdownName", this};
+        """.trimMargin()
+    }
 
     /** Get all action initializiers */
     fun initializers() =
