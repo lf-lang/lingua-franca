@@ -40,31 +40,6 @@
                 <artifactId>xtend-maven-plugin</artifactId>
             </plugin>
             <plugin>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>cleanup-xtend</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <!-- XTend uses a Junit 4 class, but the bundle doesn't export it?                               -->
-                                <replace token="import org.junit.Assert;"
-                                         value="import static org.junit.jupiter.api.Assertions.assertTrue;">
-                                    <fileset file="${project.basedir}/xtend-gen/org/lflang/tests/runtime/TestBase.java"/>
-                                </replace>
-                                <replace token="Assert.assertTrue(" value="assertTrue(">
-                                    <fileset file="${project.basedir}/xtend-gen/org/lflang/tests/runtime/TestBase.java"/>
-                                </replace>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
             </plugin>
