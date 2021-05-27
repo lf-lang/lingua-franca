@@ -52,11 +52,11 @@ val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
  */
 
 /** Get the LF Model of a resource */
-val Resource.model: Model get() = this.allContents.asSequence().filter { it is Model }.first() as Model
+val Resource.model: Model get() = this.allContents.asSequence().filterIsInstance<Model>().first()
 
 /** Get the "name" a reaction is represented with in target code.*/
 val Reaction.name
-    get() :String {
+    get(): String {
         val r = this.eContainer() as Reactor
         return "r" + r.reactions.lastIndexOf(this)
     }
@@ -65,11 +65,11 @@ val Reaction.name
  *
  * If the reactions is annotated with a label, then the label is returned. Otherwise, the reactions name is returned.
  */
-val Reaction.label get() :String = ASTUtils.label(this) ?: this.name
+val Reaction.label get(): String = ASTUtils.label(this) ?: this.name
 
 /** Get the reactions priority */
 val Reaction.priority
-    get() :Int {
+    get(): Int {
         val r = this.eContainer() as Reactor
         return r.reactions.lastIndexOf(this) + 1
     }
@@ -111,6 +111,7 @@ val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
  * };
  *
  * TODO We likely want to move this to a central place
+ * TODO We should also restrict the scope
  * ```
  */
 operator fun String.rangeTo(str: String) = str.replaceIndent(this)
@@ -170,10 +171,10 @@ fun Time.toCode() = TimeValue(this.interval.toLong(), this.unit).toCode()
  * If the value evaluates to 0, it is interpreted as a time.
  * FIXME this is redundant to GeneratorBase.getTargetTime
  */
-fun Value.toTime() :String = when  {
+fun Value.toTime(): String = when {
     this.time != null -> this.time.toCode()
-    this.isZero -> TimeValue(0, TimeUnit.NONE).toCode()
-    else -> this.toText()
+    this.isZero       -> TimeValue(0, TimeUnit.NONE).toCode()
+    else              -> this.toText()
 }
 
 /**
@@ -182,7 +183,7 @@ fun Value.toTime() :String = when  {
  * If the value evaluates to 0, it is interpreted as a normal value.
  * FIXME this is redundant to GeneratorBase.getTargetValue
  */
-fun Value.toCode() :String = this.time?.toCode() ?: this.toText()
+fun Value.toCode(): String = this.time?.toCode() ?: this.toText()
 
 /** True if the preamble is public */
 val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
