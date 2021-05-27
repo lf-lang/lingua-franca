@@ -46,8 +46,8 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.^extension.ExtendWith
 
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.TargetProperty.UnionType
