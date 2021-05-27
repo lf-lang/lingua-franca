@@ -50,6 +50,14 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     private val constructor = CppReactorConstructorGenerator(reactor, state, timers, actions)
     private val assemble = CppReactorAssembleMethodGenerator(reactor)
 
+    private fun publicPreamble() =
+        reactor.preambles.filter {it.isPublic}
+            .joinToString(separator = "\n", prefix = "// public preamble\n") { it.code.toText() }
+
+    private fun privatePreamble() =
+        reactor.preambles.filter {it.isPrivate}
+            .joinToString(separator = "\n", prefix = "// private preamble\n") { it.code.toText() }
+
     /** Generate a C++ header file declaring the given reactor. */
     fun header() = """
     ${" |"..fileComment}
@@ -61,7 +69,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |#include "$preambleHeaderFile"
         |
         |// TODO «r.includeInstances»
-        |// TODO «r.publicPreamble»
+    ${" |  "..publicPreamble()}
         |
         |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
         |class ${reactor.name} : public reactor::Reactor {
@@ -97,7 +105,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |using namespace std::chrono_literals;
         |using namespace reactor::operators;
         |
-        |// TODO «r.privatePreamble»
+    ${" |  "..privatePreamble()}
         |
     ${" |"..constructor.definition()}
         |
@@ -106,7 +114,6 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     ${" |"..reactions.bodyDefinitions()}
         |// TODO «r.implementReactionDeadlineHandlers»
     """.trimMargin()
-
 }
 
 class CppReactorConstructorGenerator(
