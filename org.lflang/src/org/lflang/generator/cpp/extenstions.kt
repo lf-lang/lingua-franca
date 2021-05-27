@@ -153,6 +153,12 @@ val TimeValue.cppUnit
 /** Convert a LF time value to a representation in C++ code */
 fun TimeValue.toCode() = "${this.time} ${this.cppUnit}"
 
+/** Convert a Time to a representation in C++ code
+ *
+ * FIXME this is redundant to GeneratorBase.getTargetTime
+ */
+fun Time.toCode() = TimeValue(this.interval.toLong(), this.unit).toCode()
+
 /** True if the preamble is public */
 val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
 
@@ -171,3 +177,35 @@ fun fileComment(r: Resource) = """
      * Date: ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}
      */
     """.trimIndent()
+
+/* *************************************************************************************************
+ * FIXME The following extensions for handling types are actually defined in `GeneratorBase` and should be overridden by the
+ *  derived CppGenerator Class. However, this causes a weird design because we would need to pass around a reference
+ *  to CppGenerator to derive target types from AST nodes... Moreover, it would not be possible to use the convenient extension
+ *  mechanism. The code below is a workaround, but a more general solution should be found.
+ */
+
+val Parameter.targetType get():String = this.inferredType.targetType
+val StateVar.targetType get():String = this.inferredType.targetType
+val Port.targetType get():String = this.inferredType.targetType
+val Action.targetType: String
+    get() {
+        val inferred = this.inferredType
+        return if (inferred.isUndefined) "void" else inferred.targetType
+    }
+
+private fun fixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
+private fun variableSizeListType(baseType: String) = "std::vector<$baseType>"
+
+val InferredType.targetType: String
+    get() = when {
+        this.isUndefined        -> "/* undefined type */"
+        this.isTime             -> when {
+            this.isFixedSizeList    -> fixedSizeListType("reactor::Duration", this.listSize)
+            this.isVariableSizeList -> variableSizeListType("reactor::Duraction")
+            else                    -> "reactor::Duration"
+        }
+        this.isFixedSizeList    -> fixedSizeListType(this.baseType(), this.listSize)
+        this.isVariableSizeList -> variableSizeListType(this.baseType())
+        else                    -> this.toText()
+    }
