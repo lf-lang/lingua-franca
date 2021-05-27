@@ -24,6 +24,8 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.lf.Action
+import org.lflang.lf.LfPackage
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.toText
@@ -42,9 +44,11 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     /** The header file that contains the public file-level preamble of the file containing `reactor` */
     private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
 
+    private val actions = CppReactorActionGenerator(reactor)
+
     private val reactions = CppReactorReactionGenerator(reactor)
 
-    private val constructor = CppReactorConstructorGenerator(reactor)
+    private val constructor = CppReactorConstructorGenerator(reactor, actions)
 
     /** Generate a C++ header file declaring the given reactor. */
     fun header() = """
@@ -66,7 +70,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |  // TODO «r.declareStateVariables»
         |  // TODO «r.declareInstances»
         |  // TODO «r.declareTimers»
-        |  // TODO «r.declareActions»
+    ${" |  "..actions.declarations()}
     ${" |  "..reactions.declarations()}
     ${" |  "..reactions.bodyDeclarations()}
         |  // TODO «r.declareDeadlineHandlers»
@@ -105,14 +109,15 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
 
 }
 
-class CppReactorConstructorGenerator(private val reactor: Reactor) {
+class CppReactorConstructorGenerator(private val reactor: Reactor, private val actions: CppReactorActionGenerator) {
 
     /**
-     *  Constructor argument that provides a reference to the next higher level
+     * Constructor argument that provides a reference to the next higher level
      *
      * For the main reactor, the next higher level in the environment. For all other reactors, it is the containing reactor.
      */
-    val environmentOrContainer = if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
+    private val environmentOrContainer =
+        if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
 
     private fun signature(): String {
         if (reactor.parameters.size > 0) {
@@ -154,7 +159,7 @@ class CppReactorConstructorGenerator(private val reactor: Reactor) {
             |  // TODO «r.initializeParameters»
             |  // TODO «r.initializeStateVariables»
             |  // TODO «r.initializeInstances»
-            |  // TODO «r.initializeActions»
+        ${" |  "..actions.initializers()}
             |  // TODO «r.initializeTimers»
             |{}
         """.trimMargin()
@@ -195,4 +200,50 @@ class CppReactorReactionGenerator(private val reactor: Reactor) {
 
     fun bodyDefinitions() =
         reactor.reactions.joinToString(separator = "\n", postfix = "\n") { bodyDefinition(it) }
+}
+
+class CppReactorActionGenerator(private val reactor: Reactor) {
+
+    private val Action.cppType get() = if (this.isLogical) "reactor::LogicalAction" else "reactor::PhysicalAction"
+
+    private val startupName = LfPackage.Literals.TRIGGER_REF__STARTUP.name
+    private val shutdownName = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
+
+    private fun declaration(action: Action) = "${action.cppType}<${action.targetType}> ${action.name}"
+
+    private fun initialize(action: Action) = if (action.isLogical) initializeLogical(action) else initializePhysical(action)
+
+    private fun initializeLogical(action: Action): String {
+        return if (action.minSpacing != null || !action.policy.isNullOrEmpty()) {
+            TODO("How to report errors from here?")
+            //action.reportError(
+            //    "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!");
+        } else if (action.minDelay != null) {
+            """, ${action.name}{"${action.name}", this, ${action.minDelay.time.toCode()}}"""
+        } else {
+            """, ${action.name}{"${action.name}", this}"""
+        }
+    }
+
+    private fun initializePhysical(action: Action): String {
+        return if (action.minDelay != null || action.minSpacing != null || action.policy.isNullOrEmpty()) {
+            TODO("How to report errors from here?")
+            //a.reportError(
+            //"minDelay, minSpacing and spacing violation policies are not yet supported for physical actions in reactor-ccp!");
+        } else {
+            """, ${action.name}{"${action.name}", this}"""
+        }
+    }
+
+    /** Get all action declarations */
+    fun declarations() = """
+    ${" |"..reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { declaration(it) }}
+        |// default actions
+        |reactor::StartupAction $startupName {"$startupName", this};
+        |reactor::ShutdownAction $shutdownName {"$shutdownName", this};
+    """.trimMargin()
+
+    /** Get all action initializiers */
+    fun initializers() =
+        reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { initialize(it) }
 }
