@@ -195,7 +195,7 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
         |  reactor::Environment e{threads, keepalive, fast};
         |
         |  // instantiate the main reactor
-        |  auto main = std ::make_unique<${main.name}> ("${main.name}");
+        |  auto main = std ::make_unique<${main.name}> ("${main.name}", &e);
         |  // TODO support parameters: , &e«FOR p : mainReactor.parameters BEFORE ", " SEPARATOR ", "»«p.name»«ENDFOR»);
         |
         |  // optionally instantiate the timeout reactor

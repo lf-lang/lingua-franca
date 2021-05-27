@@ -40,6 +40,8 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     /** The header file that contains the public file-level preamble of the file containing `reactor` */
     private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
 
+    private val construcor = CppReactorConstructorGenerator(reactor)
+
     /** Generate a C++ header file declaring the given reactor. */
     fun header() = """
     ${" |"..fileComment}
@@ -66,7 +68,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |  // TODO «r.declareDeadlineHandlers»
         | public:
         |  // TODO «r.declarePorts»
-        |  // TODO declareConstructor(r)
+    ${" |  "..construcor.declaration()}
         |
         |  void assemble() override;
         |};
@@ -89,11 +91,68 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |
         |// TODO «r.privatePreamble»
         |
-        |// TODO «r.defineConstructor»
+    ${" |"..construcor.definition()}
         |
         |// «r.defineAssembleMethod»
         |
         |// TODO «r.implementReactionBodies»
         |// TODO «r.implementReactionDeadlineHandlers»
     """.trimMargin()
+
+}
+
+class CppReactorConstructorGenerator(private val reactor: Reactor) {
+
+    /**
+     *  Constructor argument that provides a reference to the next higher level
+     *
+     * For the main reactor, the next higher level in the environment. For all other reactors, it is the containing reactor.
+     */
+    val environmentOrContainer = if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
+
+    private fun signature(): String {
+        if (reactor.parameters.size > 0) {
+            TODO("Main reactors with parameters are not supported yet")
+            /*
+            «r.name»(const std::string& name,
+            «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
+            «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name» = «p.targetInitializer»«ENDFOR»
+            */
+            /*  // from constructorDefinition()
+            «IF r.isGeneric»«r.templateLine»«ENDIF»
+            «IF r.parameters.length > 0»
+            «r.templateName»::«r.name»(const std::string& name,
+            «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
+            «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
+            «ELSE»
+         */
+        } else {
+            return "${reactor.name}(const std::string& name, $environmentOrContainer)"
+        }
+    }
+
+    /** Get the constructor declaration */
+    fun declaration() = "${signature()};"
+
+    /** Get the constructor definition */
+    fun definition(): String {
+        /*  TODO
+            «IF r.isGeneric»«r.templateLine»«ENDIF»
+            «IF r.parameters.length > 0»
+            «r.templateName»::«r.name»(const std::string& name,
+            «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
+            «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
+            «ELSE»
+         */
+        return """
+            |${reactor.name}::${signature()}
+            |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
+            |  // TODO «r.initializeParameters»
+            |  // TODO «r.initializeStateVariables»
+            |  // TODO «r.initializeInstances»
+            |  // TODO «r.initializeActions»
+            |  // TODO «r.initializeTimers»
+            |{}
+        """.trimMargin()
+    }
 }
