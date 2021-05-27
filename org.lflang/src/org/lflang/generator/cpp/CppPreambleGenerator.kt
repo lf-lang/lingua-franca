@@ -24,7 +24,6 @@
 
 package org.lflang.generator.cpp
 
-import com.google.inject.Inject
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.lf.Preamble
@@ -35,12 +34,10 @@ import java.util.*
 class CppPreambleGenerator(
     private val resource: Resource,
     private val fileConfig: CppFileConfig,
+    private val scopeProvider: LFGlobalScopeProvider
 ) {
     /** A list of all preambles defined in the resource (file) */
     private val preambles: EList<Preamble> = resource.model.preambles
-
-    @Inject
-    lateinit var scopeProvider: LFGlobalScopeProvider
 
     fun header(): String {
         val importedResources = LinkedList<Resource>()
