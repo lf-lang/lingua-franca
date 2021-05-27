@@ -49,7 +49,7 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
     }
 
     /** Get the file configuration object as `CppFileConfig` */
-    private val cppFileConfig: CppFileConfig get() = super.fileConfig!! as CppFileConfig
+    private val cppFileConfig: CppFileConfig get() = super.fileConfig as CppFileConfig
 
     /**
      * Set the fileConfig field to point to the specified resource using the specified
