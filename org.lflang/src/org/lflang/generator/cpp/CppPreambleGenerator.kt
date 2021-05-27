@@ -50,35 +50,39 @@ class CppPreambleGenerator(
 
         val publicPreambles = preambles.filter { it.isPublic }
 
-        return """
-        ${" |"..fileComment(resource)}
-            |
-            |#pragma once
-            |
-            |#include <vector>
-            |#include <array>
-            |
-            |#include "reactor-cpp/reactor-cpp.hh"
-        ${" |"..includes.joinToString(separator = "\n", prefix = "// include the preambles from imported files \n")}
-            |
-        ${" |"..publicPreambles.joinToString(separator = "\n")}
-        """.trimMargin()
+        return with(prependOperator) {
+            """
+            ${" |"..fileComment(resource)}
+                |
+                |#pragma once
+                |
+                |#include <vector>
+                |#include <array>
+                |
+                |#include "reactor-cpp/reactor-cpp.hh"
+            ${" |"..includes.joinToString(separator = "\n", prefix = "// include the preambles from imported files \n")}
+                |
+            ${" |"..publicPreambles.joinToString(separator = "\n")}
+            """.trimMargin()
+        }
     }
 
     fun source(): String {
         val privatePreambles = preambles.filter { it.isPrivate }
 
-        return """
-        ${" |"..fileComment(resource)}
-            |
-            |#include "reactor-cpp/reactor-cpp.hh"
-            |
-            |#include "${fileConfig.getPreambleHeaderPath(resource).toUnixString()}"
-            |
-            |using namespace std::chrono_literals;
-            |using namespace reactor::operators;
-            |
-        ${" |"..privatePreambles.joinToString(separator = "\n")}
-        """.trimMargin()
+        return with(prependOperator) {
+            """
+            ${" |"..fileComment(resource)}
+                |
+                |#include "reactor-cpp/reactor-cpp.hh"
+                |
+                |#include "${fileConfig.getPreambleHeaderPath(resource).toUnixString()}"
+                |
+                |using namespace std::chrono_literals;
+                |using namespace reactor::operators;
+                |
+            ${" |"..privatePreambles.joinToString(separator = "\n")}
+            """.trimMargin()
+        }
     }
 }
