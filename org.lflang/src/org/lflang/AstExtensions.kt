@@ -24,6 +24,7 @@
 
 package org.lflang
 
+import org.eclipse.emf.common.util.EList
 import org.lflang.lf.*
 
 /**
@@ -281,3 +282,52 @@ fun <T> List<T>.tail() = subList(1, size)
  * @throws NoSuchElementException if the list is empty
  */
 fun <T> List<T>.headAndTail() = Pair(first(), tail())
+
+/**
+ * Given an initialization list, return an inferred type. Only two types
+ * can be inferred: "time" and "timeList". Return the "undefined" type if
+ * neither can be inferred.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none could be inferred.
+ */
+val EList<Value>.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Given a parameter, return an inferred type. Only two types can be
+ * inferred: "time" and "timeList". Return the "undefined" type if
+ * neither can be inferred.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none could be inferred.
+ */
+val Parameter.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Given a state variable, return an inferred type. Only two types can be
+ * inferred: "time" and "timeList". Return the "undefined" type if
+ * neither can be inferred.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none could be inferred.
+ */
+val StateVar.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Construct an inferred type from an "action" AST node based
+ * on its declared type. If no type is declared, return the "undefined"
+ * type.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none was declared.
+ */
+val Action.inferredType: InferredType get() = ASTUtils.getInferredType(this)
+
+/**
+ * Construct an inferred type from a "port" AST node based on its declared
+ * type. If no type is declared, return the "undefined" type.
+ *
+ * @see ASTUtils.getInferredType
+ * @return The inferred type, or "undefined" if none was declared.
+ */
+val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
