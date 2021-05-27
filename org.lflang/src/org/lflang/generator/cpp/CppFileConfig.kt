@@ -58,11 +58,11 @@ class CppFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGener
     fun getPreambleSourcePath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.cc")
 
     /** Path to the header file corresponding to this reactor */
-    fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${this.name}.hh")
+    fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.hh")
 
     /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
-    fun getReactorHeaderImplPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${this.name}_impl.hh")
+    fun getReactorHeaderImplPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}_impl.hh")
 
     /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
-    fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${this.name}.cc")
+    fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
 }
