@@ -159,6 +159,9 @@ val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
 /** True if the preamble is private */
 val Preamble.isPrivate: Boolean get() = this.visibility == Visibility.PRIVATE
 
+/** Get templated name of a reactor class */
+val Reactor.templateName: String get() = this.name  // TODO '''«r.name»«IF r.isGeneric»<«FOR t : r.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»'''
+
 /** Return a comment to be inserted at the top of generated files. */
 fun fileComment(r: Resource) = """
     /*
