@@ -24,10 +24,7 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.lf.Action
-import org.lflang.lf.LfPackage
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
+import org.lflang.lf.*
 import org.lflang.toText
 
 /**
@@ -45,10 +42,9 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
 
     private val actions = CppReactorActionGenerator(reactor)
-
     private val reactions = CppReactorReactionGenerator(reactor)
-
     private val constructor = CppReactorConstructorGenerator(reactor, actions)
+    private val assemble = CppReactorAssembleMethodGenerator(reactor)
 
     /** Generate a C++ header file declaring the given reactor. */
     fun header() = """
@@ -101,7 +97,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         |
     ${" |"..constructor.definition()}
         |
-        |// «r.defineAssembleMethod»
+    ${" |"..assemble.definition()}
         |
     ${" |"..reactions.bodyDefinitions()}
         |// TODO «r.implementReactionDeadlineHandlers»
@@ -164,6 +160,79 @@ class CppReactorConstructorGenerator(private val reactor: Reactor, private val a
             |{}
         """.trimMargin()
     }
+}
+
+class CppReactorAssembleMethodGenerator(private  val reactor: Reactor) {
+
+    private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String {
+        // check if the trigger is a multiport
+        if (trigger is VarRef && trigger.variable is Port) {
+            val port = trigger.variable as Port
+            if (port.widthSpec != null) {
+                return """
+                    for (unsigned i = 0; i < ${trigger.name}.size(); i++) {
+                      ${reaction.name}.declare_trigger(&${trigger.name}[i]);
+                    }
+                """.trimIndent()
+            }
+        }
+        // treat as single trigger otherwise
+        return "${reaction.name}.declare_trigger(&${trigger.name});"
+    }
+
+    private fun declareDependency(reaction: Reaction, dependency: VarRef): String {
+        val variable = dependency.variable
+        // check if the dependency is a multiport
+        if (variable is Port && variable.widthSpec != null) {
+            return """
+                for (unsigned i = 0; i < ${dependency.name}.size(); i++) {
+                  ${reaction.name}.declare_dependency(&${dependency.name}[i]);
+                }
+            """.trimIndent()
+        }
+        // treat as single dependency otherwise
+        return "${reaction.name}.declare_dependency(&${dependency.name});"
+    }
+
+    private fun declareAntidependency(reaction: Reaction, antidependency: VarRef): String {
+        val variable = antidependency.variable
+        // check if the dependency is a multiport
+        if (variable is Port && variable.widthSpec != null) {
+            return """
+                for (unsigned i = 0; i < ${antidependency.name}.size(); i++) {
+                  ${reaction.name}.declare_antidependency(&${antidependency.name}[i]);
+                }
+            """.trimIndent()
+        }
+        // treat as single antidependency otherwise
+        return if (variable is Action) "${reaction.name}.declare_scheduable_action(&${antidependency.name});"
+        else "${reaction.name}.declare_antidependency(&${antidependency.name});"
+    }
+
+    private fun assembleReaction(reaction: Reaction) = """
+        |// ${reaction.name}
+    ${" |"..reaction.triggers.joinToString(separator = "\n") { declareTrigger(reaction, it) }}
+    ${" |"..reaction.sources.joinToString(separator = "\n") { declareDependency(reaction, it) }}
+    ${" |"..reaction.effects.joinToString(separator = "\n") { declareAntidependency(reaction, it) }}
+        |// TODO «IF n.deadline !== null»
+        |// TODO «n.name».set_deadline(«n.deadline.delay.targetTime», [this]() { «n.name»_deadline_handler(); });
+        |// TODO «ENDIF»
+    """.trimMargin()
+
+    /**
+     * Generate the definition of the reactor's assemble() method
+     *
+     * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
+     */
+    fun definition() = """
+        |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+        |void ${reactor.templateName}::assemble() {
+    ${" |  "..reactor.reactions.joinToString(separator = "\n\n") { assembleReaction(it) }}
+        |  // TODO «FOR c : r.connections BEFORE "  // connections\n"»
+        |  // TODO «c.generate»
+        |  // TODO «ENDFOR»
+        |}
+    """.trimMargin()
 }
 
 class CppReactorReactionGenerator(private val reactor: Reactor) {
