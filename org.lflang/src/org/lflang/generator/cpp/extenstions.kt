@@ -157,13 +157,24 @@ val TimeValue.cppUnit
     }
 
 /** Convert a LF time value to a representation in C++ code */
-fun TimeValue.toCode() = "${this.time}${this.cppUnit}"
+fun TimeValue.toCode() = if (this.time == 0L) "reactor::Duration::zero()" else "${this.time}${this.cppUnit}"
 
 /** Convert a Time to a representation in C++ code
  *
  * FIXME this is redundant to GeneratorBase.getTargetTime
  */
 fun Time.toCode() = TimeValue(this.interval.toLong(), this.unit).toCode()
+
+/** Convert a value to a time representation in C++ code*
+ *
+ * If the value evaluates to 0, it is interpreted as a time.
+ * FIXME this is redundant to GeneratorBase.getTargetTime
+ */
+fun Value.toTime() :String = when  {
+    this.time != null -> this.time.toCode()
+    this.isZero -> TimeValue(0, TimeUnit.NONE).toCode()
+    else -> this.toText()
+}
 
 /** True if the preamble is public */
 val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC

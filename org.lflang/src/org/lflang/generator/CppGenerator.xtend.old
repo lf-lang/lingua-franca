@@ -183,18 +183,6 @@ class CppGenerator extends GeneratorBase {
             «ENDIF»
         «ENDFOR»
     '''
-
-    def declareTimers(Reactor r) '''
-        «FOR t : r.timers BEFORE '// timers\n' AFTER '\n'»
-            reactor::Timer «t.name»;
-        «ENDFOR»
-    '''
-
-    def declareReactions(Reactor r) '''
-        «FOR n : r.reactions BEFORE '// reactions\n' AFTER '\n'»
-            «n.declare»
-        «ENDFOR»
-    '''
     
     /**
      * If the argument is a multiport with width given as an integer,
@@ -349,18 +337,6 @@ class CppGenerator extends GeneratorBase {
             «ELSE»
                 , «i.name»(std::make_unique<«i.instanceType»>(«i.initializerList»))
             «ENDIF»
-        «ENDFOR»
-    '''
-
-    def initializeActions(Reactor r) '''
-        «FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
-            «a.initialize»
-        «ENDFOR»
-    '''
-
-    def initializeTimers(Reactor r) '''
-        «FOR t : r.timers BEFORE "// timers\n"»
-            «t.initialize»
         «ENDFOR»
     '''
 

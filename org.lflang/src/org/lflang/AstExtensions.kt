@@ -224,13 +224,18 @@ val String.isZero: Boolean get() = this.toIntOrNull() == 0
 
 val Code.isZero: Boolean get() = this.toText().isZero
 
+
+
 /**
- * Return whether the given [value] is zero or not.
+ * Report whether the given value is zero or not.
+ * @receiver AST node to inspect.
+ * @return True if the given value denotes the constant `0`, false otherwise.
  */
-fun isZero(value: Value): Boolean =
-    value.literal?.isZero
-        ?: value.code?.isZero
-        ?: false
+val Value.isZero: Boolean
+    get() =
+        this.literal?.isZero
+            ?: this.code?.isZero
+            ?: false
 
 /**
  * Given the specification of the width of either a bank of reactors
