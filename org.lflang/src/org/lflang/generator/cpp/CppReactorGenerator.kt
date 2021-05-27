@@ -325,8 +325,8 @@ class CppReactorActionGenerator(private val reactor: Reactor) {
 class CppReactorTimerGenerator(private val reactor: Reactor) {
 
     private fun initialize(timer: Timer): String {
-        val period = timer.offset?.toTime() ?: "reactor::Duration::zero()"
-        val offset = timer.period?.toTime() ?: "reactor::Duration::zero()"
+        val offset = timer.offset?.toTime() ?: "reactor::Duration::zero()"
+        val period = timer.period?.toTime() ?: "reactor::Duration::zero()"
         return """${timer.name}{"${timer.name}", this, $period, $offset}"""
     }
 
