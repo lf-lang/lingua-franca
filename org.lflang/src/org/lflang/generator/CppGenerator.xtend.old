@@ -402,45 +402,7 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
-    def declareConstructor(Reactor r) {
-        if (r.parameters.length > 0) {
-            '''
-                «r.name»(const std::string& name,
-                    «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                    «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name» = «p.targetInitializer»«ENDFOR»
-            '''
-        } else {
-            if (r == mainReactor) {
-                '''«r.name»(const std::string& name, reactor::Environment* environment);'''
-            } else {
-                '''«r.name»(const std::string& name, reactor::Reactor* container);'''
-            }
-        }
-    }
-
     def templateName(Reactor r) '''«r.name»«IF r.isGeneric»<«FOR t : r.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»'''
-
-    def defineConstructor(Reactor r) '''
-        «IF r.isGeneric»«r.templateLine»«ENDIF»
-        «IF r.parameters.length > 0»
-            «r.templateName»::«r.name»(const std::string& name,
-                «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-                «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
-        «ELSE»
-            «IF r == mainReactor»
-                «r.name»::«r.name»(const std::string& name, reactor::Environment* environment)
-            «ELSE»
-                «r.name»::«r.name»(const std::string& name, reactor::Reactor* container)
-            «ENDIF»
-        «ENDIF»
-          : reactor::Reactor(name, «IF r == mainReactor»environment«ELSE»container«ENDIF»)
-          «r.initializeParameters»
-          «r.initializeStateVariables»
-          «r.initializeInstances»
-          «r.initializeActions»
-          «r.initializeTimers»
-        {}
-    '''
 
     def String getTargetInitializer(StateVar state) {
         '''«FOR init : state.initializerList SEPARATOR ", "»«init»«ENDFOR»'''
