@@ -28,7 +28,6 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.lf.Preamble
 import org.lflang.scoping.LFGlobalScopeProvider
-import java.util.*
 
 
 class CppPreambleGenerator(
