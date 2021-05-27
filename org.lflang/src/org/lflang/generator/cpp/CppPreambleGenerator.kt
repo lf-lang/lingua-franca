@@ -40,12 +40,7 @@ class CppPreambleGenerator(
     private val preambles: EList<Preamble> = resource.model.preambles
 
     fun header(): String {
-        val importedResources = LinkedList<Resource>()
-        /*
-         * TODO The following code does not work
-         * It throws: kotlin.UninitializedPropertyAccessException: lateinit property scopeProvider has not been initialized
-         */
-        //val importedResources = scopeProvider.getImportedResources(resource)
+        val importedResources = scopeProvider.getImportedResources(resource)
         val includes = importedResources.map { fileConfig.getPreambleHeaderPath(it) }
 
         val publicPreambles = preambles.filter { it.isPublic }
