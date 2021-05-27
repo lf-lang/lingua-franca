@@ -74,6 +74,12 @@ val Reaction.priority
         return r.reactions.lastIndexOf(this) + 1
     }
 
+/** Return true if the given action is logical */
+val Action.isLogical get() = this.origin == ActionOrigin.LOGICAL
+
+/** Return true if the given action is physical */
+val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
+
 /* ********************************************************************************************/
 
 /** Prepend each line of the rhs multiline string with the lhs prefix.

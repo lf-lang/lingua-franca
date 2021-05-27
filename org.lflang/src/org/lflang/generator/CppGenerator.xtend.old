@@ -229,28 +229,7 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
-    def declareActions(Reactor r) '''
-        «FOR a : r.actions BEFORE '// actions\n' AFTER '\n'»
-            «a.implementationType» «a.name»;
-        «ENDFOR»
-        // default actions
-        reactor::StartupAction «LfPackage.Literals.TRIGGER_REF__STARTUP.name» {"startup", this};
-        reactor::ShutdownAction «LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name» {"shutdown", this};
-    '''
 
-    def implementationType(Action a) {
-        if (a.origin == ActionOrigin.LOGICAL) {
-            '''reactor::LogicalAction<«a.targetType»>'''
-        } else {
-            '''reactor::PhysicalAction<«a.targetType»>'''
-        }
-    }
-
-    def declareReactionBodies(Reactor r) '''
-        «FOR n : r.reactions BEFORE '// reactions bodies\n' AFTER '\n'»
-            void «n.name»_body();
-        «ENDFOR»
-    '''
 
     def declareDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '// local deadline handlers\n' AFTER '\n'»
@@ -465,25 +444,6 @@ class CppGenerator extends GeneratorBase {
         ''', «t.name»{"«t.name»", this, «period», «offset»}'''
     }
 
-    def initialize(Action a) {
-        if (a.origin == ActionOrigin.LOGICAL) {
-            if (a.minSpacing !== null || !a.policy.isNullOrEmpty) {
-                a.reportError(
-                    "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!");
-            } else if (a.minDelay !== null) {
-                ''', «a.name»{"«a.name»", this, «a.minDelay.targetTime»}'''
-            } else {
-                ''', «a.name»{"«a.name»", this}'''
-            }
-        } else {
-            if (a.minDelay !== null || a.minSpacing !== null || !a.policy.isNullOrEmpty) {
-                a.reportError(
-                    "minDelay, minSpacing and spacing violation policies are not yet supported for physical actions in reactor-ccp!");
-            } else {
-                ''', «a.name»{"«a.name»", this}'''
-            }
-        }
-    }
 
     def assembleReaction(Reactor r, Reaction n) '''
         // «n.name»
