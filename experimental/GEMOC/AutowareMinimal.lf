@@ -1,0 +1,117 @@
+/**
+ * A minimal example that demonstrates how fusion between two sensors
+ *  can result in implicit constraint violations. Specifically, if a system
+ *  had a constraint on the response time to each sensor (e.g., 33 msec), it
+ *  can violate that constraint if one of the sensors is faster than the other.
+ *  This can be expanded to multiple sensors.
+ * 
+ * The tentative constraints for these example are:
+ * - Sensors: Camera(phase=3, period=33) and LIDAR(phase=10, period=10)
+ * - The point-to-point deadline from each sensor to the second reaction of the Semantics reactor
+ *    is 33 msec
+ * - Each time the aforementioned deadline is violated, an "Error" output is produced
+ * 
+ * @author Soroush Bateni {soroush@utdallas.edu}
+ */
+
+target Simulation {
+	threads: 2,
+};
+
+// Send a periodic image out
+reactor Camera {
+    output image:int;
+	timer tCamera(3 msec , 33 msec);
+	state alternator:bool(false);
+
+    reaction (tCamera) -> image {=
+        if (self->alternator) {
+            SET(image, 1);
+        } else {
+            SET(image, 2);
+        }    
+        self->alternator != self->alternator;
+    =}
+}
+
+// Send a periodic LIDAR pointcloud out
+reactor LIDAR {
+    output pointcloud:int;
+    timer tLidar(10 msec, 10 msec);
+
+   reaction (tLidar) -> pointcloud {=
+        SET(pointcloud, 1);
+    =}
+}
+
+// Fuse LIDAR and Camera detected objects
+reactor DataFusion(threshold:time(20 msec)) {
+    input imageobject:int;
+    input LIDARobject:int;
+    output fusedobject:int;
+    logical action both_ports_are_present(8 msec):int;
+
+    state lastImageobject:int(0);
+    state lastLIDARobject:int(0);
+
+
+    // Handle two ports
+    reaction (imageobject, LIDARobject) -> both_ports_are_present {=
+        if (isPresent(imageobject)) {
+           self->lastImageobject = imageobject->value;
+        } 
+        
+        if (isPresent(LIDARobject)) {
+           self->lastLIDARobject = LIDARobject->value;
+        }
+        
+        // We assume that work is being done that takes 8 msec, simulated by a 8 msec delay, but
+        // even without this, violations can occur.
+	    schedule_int(both_ports_are_present, 0, self->lastImageobject + self->lastLIDARobject);
+    
+    =}
+
+    // Fuse
+    reaction (both_ports_are_present) -> fusedobject {=
+        println("Fusion scheduled at: balbla \n");
+        SET(fusedobject, both_ports_are_present->value);
+    =}
+}
+
+// Reports if an implicit violation is detected
+reactor Semantics {
+    input fusedObject:int;
+    
+    timer t(0, 40 msec);
+    
+    state staleState:int(2);
+    
+    state newState:int(3);
+    
+    reaction(fusedObject) {=
+        self->newState = fusedObject->value;
+    =}
+
+    reaction (t) {=
+        if (self->staleState == self->newState) {
+            println("Error: Acting on stale data (more than 33 msec old!");
+        }
+		self->staleState = self->newState;
+    =}
+}
+
+main  realtime reactor AutowareMinimal {
+
+    camera = new Camera(); // Camera has a phase (startup time) of 3 msec and a period of 33 msec
+    lidar = new LIDAR(); // Lidar has a phase (spooling up time) of 10 msec and a period of 10 msec
+    
+
+    // Choke point
+    dataFusion = new DataFusion();
+    camera.image -> dataFusion.imageobject;
+    lidar.pointcloud -> dataFusion.LIDARobject;
+    
+    semantic = new Semantics();
+    dataFusion.fusedobject -> semantic.fusedObject;
+
+}
