@@ -97,7 +97,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      *
      * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
      */
-    fun definition() = with(prependOperator) {
+    fun generateDefinition() = with(prependOperator) {
         """
             |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
             |void ${reactor.templateName}::assemble() {

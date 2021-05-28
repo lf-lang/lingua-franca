@@ -64,10 +64,10 @@ class CppConstructorGenerator(
     }
 
     /** Get the constructor declaration */
-    fun declaration() = "${signature()};"
+    fun generateDeclaration() = "${signature()};"
 
     /** Get the constructor definition */
-    fun definition(): String {
+    fun generateDefinition(): String {
         /*  TODO
             «IF r.isGeneric»«r.templateLine»«ENDIF»
             «IF r.parameters.length > 0»
@@ -81,10 +81,10 @@ class CppConstructorGenerator(
                 |${reactor.name}::${signature()}
                 |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
                 |  // TODO «r.initializeParameters»
-            ${" |  "..state.initializers()}
+            ${" |  "..state.generateInitializers()}
                 |  // TODO «r.initializeInstances»
-            ${" |  "..timers.initializers()}
-            ${" |  "..actions.initializers()}
+            ${" |  "..timers.generateInitializers()}
+            ${" |  "..actions.geberateInitializers()}
                 |{}
             """.trimMargin()
         }

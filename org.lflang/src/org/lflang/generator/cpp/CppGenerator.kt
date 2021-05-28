@@ -114,8 +114,8 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
             if (!r.isGeneric)
                 cppSources.add(sourceFile)
 
-            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.header())
-            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.source())
+            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
+            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.generateSource())
         }
 
         // generate file level preambles for all resources
@@ -125,8 +125,8 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
             val headerFile = cppFileConfig.getPreambleHeaderPath(r)
             cppSources.add(sourceFile)
 
-            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.header())
-            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.source())
+            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.generateHeader())
+            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.generateSource())
         }
 
         // generate the cmake script

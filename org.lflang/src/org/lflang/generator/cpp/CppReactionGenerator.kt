@@ -31,12 +31,12 @@ import org.lflang.toText
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(private val reactor: Reactor) {
 
-    private fun declaration(r: Reaction) =
+    private fun generateDeclaration(r: Reaction) =
         """reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { ${r.name}_body(); }};"""
 
-    private fun bodyDeclaration(r: Reaction) = "void ${r.name}_body();"
+    private fun generateBodyDeclaration(r: Reaction) = "void ${r.name}_body();"
 
-    private fun bodyDefinition(reaction: Reaction) = with(prependOperator) {
+    private fun generateBodyDefinition(reaction: Reaction) = with(prependOperator) {
         """
             |// reaction ${reaction.label}
             |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
@@ -56,13 +56,14 @@ class CppReactionGenerator(private val reactor: Reactor) {
     }
 
     /** Get all reaction declarations. */
-    fun declarations() =
-        reactor.reactions.joinToString(separator = "\n", prefix = "// reactions\n", postfix = "\n") { declaration(it) }
+    fun generateDeclarations() =
+        reactor.reactions.joinToString(separator = "\n", prefix = "// reactions\n", postfix = "\n") { generateDeclaration(it) }
 
     /** Get all declarations of reaction bodies. */
-    fun bodyDeclarations() =
-        reactor.reactions.joinToString(separator = "\n", prefix = "// reaction bodies\n", postfix = "\n") { bodyDeclaration(it) }
+    fun generateBodyDeclarations() =
+        reactor.reactions.joinToString("\n", "// reaction bodies\n", "\n") { generateBodyDeclaration(it) }
 
-    fun bodyDefinitions() =
-        reactor.reactions.joinToString(separator = "\n", postfix = "\n") { bodyDefinition(it) }
+    /** Get all definitions of reaction bodies. */
+    fun generateBodyDefinitions() =
+        reactor.reactions.joinToString(separator = "\n", postfix = "\n") { generateBodyDefinition(it) }
 }
