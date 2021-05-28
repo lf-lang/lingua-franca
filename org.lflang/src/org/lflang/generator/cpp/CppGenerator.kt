@@ -143,10 +143,12 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
         // make sure the build directory exists
         FileConfig.createDirectories(buildPath)
 
+        val cores = Runtime.getRuntime().availableProcessors()
+
         val makeBuilder = createCommand(
             "cmake",
             listOf(
-                "--build", ".", "--target", "install", "--config",
+                "--build", ".", "--target", "install", "--parallel", cores.toString(), "--config",
                 targetConfig.cmakeBuildType?.toString() ?: "Release"
             ),
             outPath, // FIXME: it doesn't make sense to provide a search path here, createCommand() should accept null
