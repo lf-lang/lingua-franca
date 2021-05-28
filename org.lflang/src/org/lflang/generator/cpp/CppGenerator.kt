@@ -33,10 +33,11 @@ import org.lflang.FileConfig
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
-import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.toDefinition
+import java.nio.file.Path
+import java.nio.file.Paths
 
 class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : GeneratorBase() {
 
@@ -90,24 +91,28 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
 
         val mainReactor = mainDef.reactorClass.toDefinition()
 
-        // generate the main source file (containing main())
-        val mainGenerator = CppMainGenerator(mainReactor, targetConfig, cppFileConfig)
-        fsa.generateFile(relSrcGenPath.resolve("main.cc").toString(), mainGenerator.generateCode())
-
-        // generate the cmake script
-        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), generateCmake())
-
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
         copyFileFromClassPath("${libDir}/lfutil.hh", genIncludeDir.resolve("lfutil.hh").toString())
         copyFileFromClassPath("${libDir}/time_parser.hh", genIncludeDir.resolve("time_parser.hh").toString())
         copyFileFromClassPath("${libDir}/3rd-party/CLI11.hpp", genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString())
 
+        // keep a list of all source files we generate
+        val cppSources = mutableListOf<Path>()
+
+        // generate the main source file (containing main())
+        val mainGenerator = CppMainGenerator(mainReactor, targetConfig, cppFileConfig)
+        val mainFile = Paths.get("main.cc")
+        cppSources.add(mainFile)
+        fsa.generateFile(relSrcGenPath.resolve(mainFile).toString(), mainGenerator.generateCode())
+
         // generate header and source files for all reactors
         for (r in reactors) {
             val generator = CppReactorGenerator(r, cppFileConfig)
             val headerFile = cppFileConfig.getReactorHeaderPath(r)
             val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
+            if (!r.isGeneric)
+                cppSources.add(sourceFile)
 
             fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.header())
             fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.source())
@@ -116,117 +121,17 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
         // generate file level preambles for all resources
         for (r in resources) {
             val generator = CppPreambleGenerator(r, cppFileConfig, scopeProvider)
-            val sourceFile = relSrcGenPath.resolve(cppFileConfig.getPreambleSourcePath(r)).toString()
-            val headerFile = relSrcGenPath.resolve(cppFileConfig.getPreambleHeaderPath(r)).toString()
+            val sourceFile = cppFileConfig.getPreambleSourcePath(r)
+            val headerFile = cppFileConfig.getPreambleHeaderPath(r)
+            cppSources.add(sourceFile)
 
-            fsa.generateFile(headerFile, generator.header())
-            fsa.generateFile(sourceFile, generator.source())
+            fsa.generateFile(relSrcGenPath.resolve(headerFile).toString(), generator.header())
+            fsa.generateFile(relSrcGenPath.resolve(sourceFile).toString(), generator.source())
         }
-    }
 
-    private fun generateCmake(): String {
-        val runtimeVersion = targetConfig.runtimeVersion ?: defaultRuntimeVersion
-
-        // Resolve path to the cmake include file if one was provided
-        val includeFile = targetConfig.cmakeInclude
-            ?.takeIf { it.isNotBlank() }
-            ?.let { fileConfig.srcPath.resolve(it).toUnixString() }
-
-        // compile a list of all source files produced by this generator
-        val reactorSourceFiles = reactors.filter { !it.isGeneric }.map { cppFileConfig.getReactorSourcePath(it).toUnixString() }
-        val preambleSourceFiles = resources.map { cppFileConfig.getPreambleSourcePath(it).toUnixString() }
-        val sourceFiles = reactorSourceFiles + preambleSourceFiles
-
-        @Suppress("LocalVariableName") // allows us to use capital S as variable name below
-        val S = '$' // a little trick to escape the dollar sign with $S
-
-        return with(prependOperator) {
-            """
-                |cmake_minimum_required(VERSION 3.5)
-                |project(${topLevelName} VERSION 1.0.0 LANGUAGES CXX)
-                |
-                |# require C++ 17
-                |set(CMAKE_CXX_STANDARD 17)
-                |set(CMAKE_CXX_STANDARD_REQUIRED ON)
-                |set(CMAKE_CXX_EXTENSIONS OFF)
-                |
-                |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
-                |include(GNUInstallDirs)
-                |
-                |set(DEFAULT_BUILD_TYPE "${targetConfig.cmakeBuildType}")
-                |if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-                |set    (CMAKE_BUILD_TYPE "$S{DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the type of build." FORCE)
-                |endif()
-                |
-            ${
-                if (targetConfig.externalRuntimePath != null) """
-                    |find_package(reactor-cpp PATHS ${targetConfig.externalRuntimePath}")
-                """.trimIndent() else """
-                    |if(NOT REACTOR_CPP_BUILD_DIR)
-                    |    set(REACTOR_CPP_BUILD_DIR "" CACHE STRING "Choose the directory to build reactor-cpp in." FORCE)
-                    |endif()
-                    |
-                    |ExternalProject_Add(dep-reactor-cpp
-                    |   PREFIX "$S{REACTOR_CPP_BUILD_DIR}"
-                    |   GIT_REPOSITORY "https://github.com/tud-ccc/reactor-cpp.git"
-                    |   GIT_TAG "$runtimeVersion"
-                    |   CMAKE_ARGS
-                    |   -DCMAKE_BUILD_TYPE:STRING=$S{CMAKE_BUILD_TYPE}
-                    |   -DCMAKE_INSTALL_PREFIX:PATH=$S{CMAKE_INSTALL_PREFIX}
-                    |   -DCMAKE_INSTALL_BINDIR:PATH=$S{CMAKE_INSTALL_BINDIR}
-                    |   -DCMAKE_CXX_COMPILER=$S{CMAKE_CXX_COMPILER}
-                    |   -DREACTOR_CPP_VALIDATE=${if (targetConfig.noRuntimeValidation) "OFF" else "ON"}
-                    |   -DREACTOR_CPP_TRACE=${if (targetConfig.tracing != null) "ON" else "OFF"} 
-                    |   -DREACTOR_CPP_LOG_LEVEL=${targetConfig.logLevel.severity}
-                    |)
-                    |
-                    |set(REACTOR_CPP_LIB_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
-                    |set(REACTOR_CPP_BIN_DIR "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_BINDIR}")
-                    |set(REACTOR_CPP_LIB_NAME "$S{CMAKE_SHARED_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_SHARED_LIBRARY_SUFFIX}")
-                    |set(REACTOR_CPP_IMPLIB_NAME "$S{CMAKE_STATIC_LIBRARY_PREFIX}reactor-cpp$S{CMAKE_STATIC_LIBRARY_SUFFIX}")
-                    |
-                    |add_library(reactor-cpp SHARED IMPORTED)
-                    |add_dependencies(reactor-cpp dep-reactor-cpp)
-                    |if(WIN32)
-                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_IMPLIB "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_IMPLIB_NAME}")
-                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_BIN_DIR}/$S{REACTOR_CPP_LIB_NAME}")
-                    |else()
-                    |   set_target_properties(reactor-cpp PROPERTIES IMPORTED_LOCATION "$S{REACTOR_CPP_LIB_DIR}/$S{REACTOR_CPP_LIB_NAME}")
-                    |endif()
-                    |
-                    |if (APPLE)
-                    |   file(RELATIVE_PATH REL_LIB_PATH "$S{REACTOR_CPP_BIN_DIR}" "$S{REACTOR_CPP_LIB_DIR}")
-                    |   set(CMAKE_INSTALL_RPATH "@executable_path/$S{REL_LIB_PATH}")
-                    |else ()
-                    |   set(CMAKE_INSTALL_RPATH "$S{REACTOR_CPP_LIB_DIR}")
-                    |endif ()
-                """.trimIndent()
-            }
-                |
-                |set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-                |
-                |set(LF_MAIN_TARGET ${topLevelName})
-                |
-                |add_executable($S{LF_MAIN_TARGET}
-                |    main.cc
-            ${" |    "..sourceFiles.joinToString("\n")}
-                |)
-                |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
-                |    "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_INCLUDEDIR}"
-                |    "$S{PROJECT_SOURCE_DIR}"
-                |    "$S{PROJECT_SOURCE_DIR}/__include__"
-                |)
-                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
-                |
-                |install(TARGETS $S{LF_MAIN_TARGET})
-            ${
-                if (includeFile == null) "" else """
-                    |
-                    |include($includeFile)
-                """.trimIndent()
-            }
-            """.trimMargin()
-        }
+        // generate the cmake script
+        val cmakeGenerator = CppCmakeGenerator(targetConfig, cppFileConfig)
+        fsa.generateFile(relSrcGenPath.resolve("CMakeLists.txt").toString(), cmakeGenerator.generateCode(cppSources))
     }
 
     fun doCompile() {
