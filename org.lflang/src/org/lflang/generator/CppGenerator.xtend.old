@@ -72,69 +72,9 @@ import org.lflang.scoping.LFGlobalScopeProvider
  */
 class CppGenerator extends GeneratorBase {
 
-    @Inject
-    LFGlobalScopeProvider scopeProvider;
-    
-
-    static public var timeUnitsToCppUnits = #{
-        TimeUnit.NSEC -> 'ns',
-        TimeUnit.NSECS -> 'ns',
-        TimeUnit.USEC -> 'us',
-        TimeUnit.USECS -> 'us',
-        TimeUnit.MSEC -> 'ms',
-        TimeUnit.MSECS -> 'ms',
-        TimeUnit.SEC -> 's',
-        TimeUnit.SECS -> 's',
-        TimeUnit.MIN -> 'min',
-        TimeUnit.MINS -> 'min',
-        TimeUnit.HOUR -> 'h',
-        TimeUnit.HOURS -> 'h',
-        TimeUnit.DAY -> 'd',
-        TimeUnit.DAYS -> 'd',
-        TimeUnit.WEEK -> 'd*7',
-        TimeUnit.WEEKS -> 'd*7'
-    }
-
-    /** The main Reactor (vs. ReactorInstance, which is in the variable "main"). */
-    Reactor mainReactor
-
     override printInfo() {
         super.printInfo()
         println('******** generated binaries: ' + fileConfig.binPath)
-    }
-
-    override setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        this.fileConfig = new CppFileConfig(resource, fsa, context)
-        this.topLevelName = fileConfig.name
-    }
-
-    override void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-        IGeneratorContext context) {
-        
-        mainReactor = this.mainDef?.reactorClass.toDefinition
-
-        val srcGenPath = this.fileConfig.getSrcGenPath();
-        val relSrcGenPath = this.fileConfig.srcGenBasePath.relativize(srcGenPath);
-
-        fsa.generateFile(relSrcGenPath.resolve("main.cc").toString(), mainReactor.generateMain)
-        val genIncludeDir = srcGenPath.resolve("__include__")
-        copyFileFromClassPath('''«libDir»/lfutil.hh''', genIncludeDir.resolve("lfutil.hh").toString)
-        copyFileFromClassPath('''«libDir»/time_parser.hh''', genIncludeDir.resolve("time_parser.hh").toString)
-        copyFileFromClassPath('''«libDir»/3rd-party/CLI11.hpp''', 
-            genIncludeDir.resolve("CLI").resolve("CLI11.hpp").toString
-        )
-
-        for (r : reactors) {
-            fsa.generateFile(relSrcGenPath.resolve(r.toDefinition.headerFile).toString(),
-                r.toDefinition.generateReactorHeader)
-            val implFile = r.toDefinition.isGeneric ? r.toDefinition.headerImplFile : r.toDefinition.sourceFile
-            fsa.generateFile(relSrcGenPath.resolve(implFile).toString(), r.toDefinition.generateReactorSource)
-        }
-        
-        for (r : this.resources ?: emptyList) {
-            fsa.generateFile(relSrcGenPath.resolve(r.preambleSourceFile).toString(), r.generatePreambleSource)
-            fsa.generateFile(relSrcGenPath.resolve(r.preambleHeaderFile).toString(), r.generatePreambleHeader)
-        }
     }
 
     def extractDir(String path) {
@@ -188,26 +128,6 @@ class CppGenerator extends GeneratorBase {
         }
         throw new Exception("Only multiport widths with literal integer values are supported for now.")
     }
-    }
-
-    def declarePorts(Reactor r) '''
-        «FOR i : r.inputs BEFORE '// input ports\n' AFTER '\n'»
-            «IF i.isMultiport»
-                std::array<reactor::Input<«i.targetType»>, «calcPortWidth(i)»> «i.name»{{«FOR id : IntStream.range(0, calcPortWidth(i)).toArray SEPARATOR ", "»{"«i.name»_«id»", this}«ENDFOR»}};
-            «ELSE»
-                reactor::Input<«i.targetType»> «i.name»{"«i.name»", this};
-            «ENDIF»
-        «ENDFOR»
-        «FOR o : r.outputs BEFORE '// output ports\n' AFTER '\n'»
-            «IF o.isMultiport»
-                std::array<reactor::Output<«o.targetType»>, «calcPortWidth(o)»> «o.name»{{«FOR id : IntStream.range(0, calcPortWidth(o)).toArray SEPARATOR ", "»{"«o.name»_«id»", this}«ENDFOR»}};
-            «ELSE»
-                reactor::Output<«o.targetType»> «o.name»{"«o.name»", this};
-            «ENDIF»
-        «ENDFOR»
-    '''
-
-
 
     def declareDeadlineHandlers(Reactor r) '''
         «FOR n : r.reactions.filter([Reaction x | x.deadline !== null]) BEFORE '// local deadline handlers\n' AFTER '\n'»
@@ -319,18 +239,6 @@ class CppGenerator extends GeneratorBase {
             «ENDIF»
         «ENDFOR»
     '''
-
-    def initialize(Timer t) {
-        var String period = "reactor::Duration::zero()"
-        var String offset = "reactor::Duration::zero()"
-        if (t.offset !== null) {
-            offset = '''«t.offset.targetTime»'''
-        }
-        if (t.period !== null) {
-            period = '''«t.period.targetTime»'''
-        }
-        ''', «t.name»{"«t.name»", this, «period», «offset»}'''
-    }
 
     def templateLine(Reactor r) '''
         template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>

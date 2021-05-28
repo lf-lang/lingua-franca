@@ -24,7 +24,7 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.lf.*
+import org.lflang.lf.Reactor
 import org.lflang.toText
 
 /**
@@ -45,6 +45,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor)
+    private val ports = CppPortGenerator(reactor)
     private val constructor = CppConstructorGenerator(reactor, state, timers, actions)
     private val assemble = CppAssembleMethodGenerator(reactor)
 
@@ -82,7 +83,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         ${" |  "..reactions.generateBodyDeclarations()}
             |  // TODO «r.declareDeadlineHandlers»
             | public:
-            |  // TODO «r.declarePorts»
+        ${" |  "..ports.generateDeclarations()}
         ${" |  "..constructor.generateDeclaration()}
             |
             |  void assemble() override;
