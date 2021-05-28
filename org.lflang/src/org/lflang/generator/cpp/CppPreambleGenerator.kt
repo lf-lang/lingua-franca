@@ -38,7 +38,7 @@ class CppPreambleGenerator(
     /** A list of all preambles defined in the resource (file) */
     private val preambles: EList<Preamble> = resource.model.preambles
 
-    fun header(): String {
+    fun generateHeader(): String {
         val importedResources = scopeProvider.getImportedResources(resource)
         val includes = importedResources.map { fileConfig.getPreambleHeaderPath(it) }
 
@@ -61,7 +61,7 @@ class CppPreambleGenerator(
         }
     }
 
-    fun source(): String {
+    fun generateSource(): String {
         val privatePreambles = preambles.filter { it.isPrivate }
 
         return with(prependOperator) {

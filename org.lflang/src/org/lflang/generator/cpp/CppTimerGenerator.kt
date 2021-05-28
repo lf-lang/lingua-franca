@@ -30,17 +30,17 @@ import org.lflang.lf.Timer
 /** A C++ code generator for timers */
 class CppTimerGenerator(private val reactor: Reactor) {
 
-    private fun initialize(timer: Timer): String {
+    private fun generateInitializer(timer: Timer): String {
         val offset = timer.offset?.toTime() ?: "reactor::Duration::zero()"
         val period = timer.period?.toTime() ?: "reactor::Duration::zero()"
         return """${timer.name}{"${timer.name}", this, $period, $offset}"""
     }
 
     /** Get all timer declarations */
-    fun declarations() =
+    fun generateDeclarations() =
         reactor.timers.joinToString(separator = "\n", prefix = "// timers\n", postfix = "\n") { "reactor::Timer ${it.name};" }
 
     /** Get all timer initializers */
-    fun initializers() =
-        reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") { ", ${initialize(it)}" }
+    fun generateInitializers() =
+        reactor.timers.joinToString(separator = "\n", prefix = "// timers\n") { ", ${generateInitializer(it)}" }
 }

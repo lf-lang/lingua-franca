@@ -36,11 +36,12 @@ class CppActionGenerator(private val reactor: Reactor) {
     private val startupName = LfPackage.Literals.TRIGGER_REF__STARTUP.name
     private val shutdownName = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
 
-    private fun declaration(action: Action) = "${action.cppType}<${action.targetType}> ${action.name};"
+    private fun generateDeclaration(action: Action) = "${action.cppType}<${action.targetType}> ${action.name};"
 
-    private fun initialize(action: Action) = if (action.isLogical) initializeLogical(action) else initializePhysical(action)
+    private fun generateInitializer(action: Action) =
+        if (action.isLogical) generateLogicalInitializer(action) else initializePhysicalInitializer(action)
 
-    private fun initializeLogical(action: Action): String {
+    private fun generateLogicalInitializer(action: Action): String {
         return if (action.minSpacing != null || !action.policy.isNullOrEmpty()) {
             TODO("How to report errors from here?")
             //action.reportError(
@@ -52,7 +53,7 @@ class CppActionGenerator(private val reactor: Reactor) {
         }
     }
 
-    private fun initializePhysical(action: Action): String {
+    private fun initializePhysicalInitializer(action: Action): String {
         return if (action.minDelay != null || action.minSpacing != null || action.policy.isNullOrEmpty()) {
             TODO("How to report errors from here?")
             //a.reportError(
@@ -63,9 +64,11 @@ class CppActionGenerator(private val reactor: Reactor) {
     }
 
     /** Get all action declarations */
-    fun declarations() = with(prependOperator) {
+    fun generateDeclarations() = with(prependOperator) {
         """
-        ${" |"..reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { declaration(it) }}
+        ${
+            " |"..reactor.actions.joinToString("\n", "// actions\n", "\n") { generateDeclaration(it) }
+        }
             |// default actions
             |reactor::StartupAction $startupName {"$startupName", this};
             |reactor::ShutdownAction $shutdownName {"$shutdownName", this};
@@ -73,6 +76,6 @@ class CppActionGenerator(private val reactor: Reactor) {
     }
 
     /** Get all action initializiers */
-    fun initializers() =
-        reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { initialize(it) }
+    fun geberateInitializers() =
+        reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { generateInitializer(it) }
 }

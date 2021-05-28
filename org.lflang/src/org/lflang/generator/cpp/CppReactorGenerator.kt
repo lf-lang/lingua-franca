@@ -57,7 +57,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
             .joinToString(separator = "\n", prefix = "// private preamble\n") { it.code.toText() }
 
     /** Generate a C++ header file declaring the given reactor. */
-    fun header() = with(prependOperator) {
+    fun generateHeader() = with(prependOperator) {
         """
         ${" |"..fileComment}
             | 
@@ -74,16 +74,16 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
             |class ${reactor.name} : public reactor::Reactor {
             | private:
             |  // TODO «r.declareParameters»
-        ${" |  "..state.declarations()}
+        ${" |  "..state.generateDeclarations()}
             |  // TODO «r.declareInstances»
-        ${" |  "..timers.declarations()}
-        ${" |  "..actions.declarations()}
-        ${" |  "..reactions.declarations()}
-        ${" |  "..reactions.bodyDeclarations()}
+        ${" |  "..timers.generateDeclarations()}
+        ${" |  "..actions.generateDeclarations()}
+        ${" |  "..reactions.generateDeclarations()}
+        ${" |  "..reactions.generateBodyDeclarations()}
             |  // TODO «r.declareDeadlineHandlers»
             | public:
             |  // TODO «r.declarePorts»
-        ${" |  "..constructor.declaration()}
+        ${" |  "..constructor.generateDeclaration()}
             |
             |  void assemble() override;
             |};
@@ -96,7 +96,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     }
 
     /** Generate a C++ source file implementing the given reactor. */
-    fun source() = with(prependOperator) {
+    fun generateSource() = with(prependOperator) {
         """
         ${" |"..fileComment}
             |
@@ -108,11 +108,11 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
             |
         ${" |  "..privatePreamble()}
             |
-        ${" |"..constructor.definition()}
+        ${" |"..constructor.generateDefinition()}
             |
-        ${" |"..assemble.definition()}
+        ${" |"..assemble.generateDefinition()}
             |
-        ${" |"..reactions.bodyDefinitions()}
+        ${" |"..reactions.generateBodyDefinitions()}
             |// TODO «r.implementReactionDeadlineHandlers»
         """.trimMargin()
     }

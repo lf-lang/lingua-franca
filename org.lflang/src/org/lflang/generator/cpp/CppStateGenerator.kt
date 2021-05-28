@@ -45,19 +45,15 @@ class CppStateGenerator(private val reactor: Reactor) {
         }
     }
 
-    private fun initialize(state: StateVar): String {
+    private fun generateInitializer(state: StateVar): String {
         return "${state.name}{${getInitializerList(state).joinToString(separator = ", ")}}"
     }
 
     /** Get all state declarations */
-    fun declarations() =
-        reactor.stateVars.joinToString(
-            separator = "\n",
-            prefix = "// state variable\n",
-            postfix = "\n"
-        ) { "${it.targetType} ${it.name};" }
+    fun generateDeclarations() =
+        reactor.stateVars.joinToString("\n", "// state variable\n", "\n") { "${it.targetType} ${it.name};" }
 
     /** Get all timer initializers */
-    fun initializers(): String = reactor.stateVars.filter { it.isInitialized }
-        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${initialize(it)}" }
+    fun generateInitializers(): String = reactor.stateVars.filter { it.isInitialized }
+        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${generateInitializer(it)}" }
 }
