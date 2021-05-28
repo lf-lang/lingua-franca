@@ -80,6 +80,14 @@ val Action.isLogical get() = this.origin == ActionOrigin.LOGICAL
 /** Return true if the given action is physical */
 val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
 
+/**
+ * Return true if the specified port is a multiport.
+ * @receiver The port.
+ * @return True if the port is a multiport.
+ * TODO This is a duplicate of GeneratorBase.isMultiport
+ */
+val Port.isMultiport get() = this.widthSpec != null
+
 /* ********************************************************************************************/
 
 /** An object that defines the ,, (rangeTo) operator to prepend each line of the rhs multiline string with the lhs prefix.

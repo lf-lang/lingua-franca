@@ -356,3 +356,31 @@ val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
  * @return True if the variable was initialized, false otherwise.
  */
 val StateVar.isInitialized :Boolean get() = (this.parens.size == 2)
+
+/**
+ * Given the width specification of port or instantiation
+ * and an (optional) list of nested intantiations, return
+ * the width if it can be determined and -1 if not.
+ * It will not be able to be determined if either the
+ * width is variable (in which case you should use
+ * {@link inferPortWidth(VarRef, Connection, List<Instantiation>})
+ * or the list of instantiations is incomplete or missing.
+ * If there are parameter references in the width, they are
+ * evaluated to the extent possible given the instantiations list.
+ *
+ * The instantiations list is as in
+ * {@link initialValue(Parameter, List<Instantiation>}.
+ * If the spec belongs to an instantiation (for a bank of reactors),
+ * then the first element on this list should be the instantiation
+ * that contains this instantiation. If the spec belongs to a port,
+ * then the first element on the list should be the instantiation
+ * of the reactor that contains the port.
+ *
+ * @param instantiations The (optional) list of instantiations.
+ *
+ * @receiver The width, or -1 if the width could not be determined.
+ *
+ * @throws IllegalArgumentException If an instantiation provided is not as
+ *  given above or if the chain of instantiations is not nested.
+ */
+fun WidthSpec.getWidth(instantiations: List<Instantiation>? = null) = ASTUtils.width(this, instantiations)
