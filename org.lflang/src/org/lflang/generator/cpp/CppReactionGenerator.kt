@@ -31,10 +31,10 @@ import org.lflang.toText
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(private val reactor: Reactor) {
 
+    private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
+
     private fun generateDeclaration(r: Reaction) =
         """reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { ${r.name}_body(); }};"""
-
-    private fun generateBodyDeclaration(r: Reaction) = "void ${r.name}_body();"
 
     private fun generateBodyDefinition(reaction: Reaction) = with(prependOperator) {
         """
@@ -55,15 +55,36 @@ class CppReactionGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
+    private fun generateDeadlineHandlerDefinition(reaction: Reaction): String = with(prependOperator) {
+        // TODO Should provide the same context as in reactions
+        // TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+        return """
+            |void ${reactor.templateName}::${reaction.name}_deadline_handler() {
+        ${" |  "..reaction.deadline.code.toText()}
+            |}
+            |
+        """.trimMargin()
+    }
+
     /** Get all reaction declarations. */
     fun generateDeclarations() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// reactions\n", postfix = "\n") { generateDeclaration(it) }
 
     /** Get all declarations of reaction bodies. */
     fun generateBodyDeclarations() =
-        reactor.reactions.joinToString("\n", "// reaction bodies\n", "\n") { generateBodyDeclaration(it) }
+        reactor.reactions.joinToString("\n", "// reaction bodies\n", "\n") { "void ${it.name}_body();" }
 
     /** Get all definitions of reaction bodies. */
     fun generateBodyDefinitions() =
         reactor.reactions.joinToString(separator = "\n", postfix = "\n") { generateBodyDefinition(it) }
+
+    /** Get all declarations of deadline handlers. */
+    fun generateDeadlineHandlerDeclarations(): String =
+        reactionsWithDeadlines.joinToString("\n", "// deadline handlers\n", "\n") {
+            "void ${it.name}_deadline_handler();"
+        }
+
+    /** Get all definitions of deadline handlers. */
+    fun generateDeadlineHandlerDefinitions() =
+        reactionsWithDeadlines.joinToString(separator = "\n", postfix = "\n") { generateDeadlineHandlerDefinition(it) }
 }

@@ -86,7 +86,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         ${" |  "..actions.generateDeclarations()}
         ${" |  "..reactions.generateDeclarations()}
         ${" |  "..reactions.generateBodyDeclarations()}
-            |  // TODO «r.declareDeadlineHandlers»
+        ${" |  "..reactions.generateDeadlineHandlerDeclarations()}
             | public:
         ${" |  "..ports.generateDeclarations()}
         ${" |  "..constructor.generateDeclaration()}
@@ -118,7 +118,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
         ${" |"..assemble.generateDefinition()}
             |
         ${" |"..reactions.generateBodyDefinitions()}
-            |// TODO «r.implementReactionDeadlineHandlers»
+        ${" |"..reactions.generateDeadlineHandlerDefinitions()}
         """.trimMargin()
     }
 }
