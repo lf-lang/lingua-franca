@@ -68,6 +68,8 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
             |
             |#include "reactor-cpp/reactor-cpp.hh"
             |
+            |using namespace std::chrono_literals;
+            |
             |#include "$preambleHeaderFile"
             |
         ${" |  "..instances.generateIncludes()}
@@ -107,7 +109,6 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
             |${if (!reactor.isGeneric) """#include "$headerFile"""" else ""}
             |#include "lfutil.hh"
             |
-            |using namespace std::chrono_literals;
             |using namespace reactor::operators;
             |
         ${" |  "..privatePreamble()}
