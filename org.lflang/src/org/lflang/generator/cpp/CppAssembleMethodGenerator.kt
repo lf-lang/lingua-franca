@@ -80,15 +80,16 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         else "${reaction.name}.declare_antidependency(&${antidependency.name});"
     }
 
+    private fun setDeadline(reaction: Reaction): String =
+        "${reaction.name}.set_deadline(${reaction.deadline.delay.toTime()}, [this]() { ${reaction.name}_deadline_handler(); });"
+
     private fun assembleReaction(reaction: Reaction) = with(prependOperator) {
         """
             |// ${reaction.name}
         ${" |"..reaction.triggers.joinToString(separator = "\n") { declareTrigger(reaction, it) }}
         ${" |"..reaction.sources.joinToString(separator = "\n") { declareDependency(reaction, it) }}
         ${" |"..reaction.effects.joinToString(separator = "\n") { declareAntidependency(reaction, it) }}
-            |// TODO «IF n.deadline !== null»
-            |// TODO «n.name».set_deadline(«n.deadline.delay.targetTime», [this]() { «n.name»_deadline_handler(); });
-            |// TODO «ENDIF»
+        ${" |"..if (reaction.deadline != null) setDeadline(reaction) else ""}
         """.trimMargin()
     }
 
