@@ -24,11 +24,17 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.isOfTimeType
 import org.lflang.lf.Instantiation
+import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 
 /** A code genarator for reactor instances */
-class CppInstanceGenerator(private val reactor: Reactor, private val fileConfig: CppFileConfig) {
+class CppInstanceGenerator(
+    private val reactor: Reactor,
+    private val parameterGenerator: CppParameterGenerator,
+    private val fileConfig: CppFileConfig
+) {
 
     private val Instantiation.type: String
         get() {
@@ -45,36 +51,46 @@ class CppInstanceGenerator(private val reactor: Reactor, private val fileConfig:
             "std::unique_ptr<${inst.type}> ${inst.name};"
     }
 
+    private fun Instantiation.getParameterValue(param: Parameter, instanceId: Int? = null): String {
+        val assignment = this.parameters.firstOrNull { it.lhs === param }
+
+        return if (instanceId != null && param.name == "instance") {
+            // If we are in a bank instantiation (instanceId != null), then assign the instanceId
+            // to the parameter named "instance"
+            instanceId.toString()
+        } else if (assignment == null) {
+            // If no assignment was found, then the parameter is not overwritten and we assign the
+            // default value
+            with(parameterGenerator) { param.defaultValue }
+        } else {
+            // Otherwise, we use the assigned value.
+            val initializers = assignment.rhs.map { if (param.isOfTimeType) it.toTime() else it.toCode() }
+            with(parameterGenerator) { param.generateInstance(initializers) }
+        }
+    }
+
     private fun generateInitializer(inst: Instantiation): String {
+        val parameters = inst.reactor.parameters
         return if (inst.isBank) {
-            val initializations = (0 until inst.width).map {
-                """std::make_unique<${inst.type}>("${inst.name}_$it", this, $it)"""
-            }.joinToString(", ")
+            val initializations = if (parameters.isEmpty()) {
+                (0 until inst.width).joinToString(", ") {
+                    """std::make_unique<${inst.type}>("${inst.name}_$it", this)"""
+                }
+            } else {
+                (0 until inst.width).joinToString(", ") {
+                    val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, it) }
+                    """, ${inst.name}(std::make_unique<${inst.type}>("${inst.name}", this, $params))"""
+                }
+            }
             """, ${inst.name}{{$initializations}}"""
         } else {
-            """, ${inst.name}(std::make_unique<${inst.type}>("${inst.name}", this))"""
+            if (parameters.isEmpty())
+                """, ${inst.name}(std::make_unique<${inst.type}>("${inst.name}", this))"""
+            else {
+                val params = parameters.joinToString(", ") { inst.getParameterValue(it) }
+                """, ${inst.name}(std::make_unique<${inst.type}>("${inst.name}", this, $params))"""
+            }
         }
-
-        // TODO Support parameters
-        /*
-        def initializerList(Instantiation i) '''
-            "«i.name»", this«FOR p : i.reactorClass.toDefinition.parameters», «p.getTargetInitializer(i)»«ENDFOR»
-        '''
-
-        def initializerList(Instantiation i, Integer id) '''
-            "«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "instance"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»
-        '''
-
-        def initializeInstances(Reactor r) '''
-            «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-                «IF i.widthSpec !== null»
-                    , «i.name»{{«FOR id : IntStream.range(0, i.widthSpecification).toArray SEPARATOR ", "»std::make_unique<«i.instanceType»>(«i.initializerList(id)»)«ENDFOR»}}
-                «ELSE»
-                    , «i.name»(std::make_unique<«i.instanceType»>(«i.initializerList»))
-                «ENDIF»
-            «ENDFOR»
-        '''
-         */
     }
 
     /** Generate C++ include statements for each reactor that is instantiated */
@@ -86,7 +102,10 @@ class CppInstanceGenerator(private val reactor: Reactor, private val fileConfig:
     /** Generate declaration statements for all reactor instantiations */
     fun generateDeclarations(): String {
         // FIXME: Does not support parameter values for widths.
-        return reactor.instantiations.joinToString(prefix = "// reactor instances\n", separator = "\n") { generateDeclaration(it) }
+        return reactor.instantiations.joinToString(
+            prefix = "// reactor instances\n",
+            separator = "\n"
+        ) { generateDeclaration(it) }
     }
 
     /** Generate constructor initializers for all reactor instantiations */
