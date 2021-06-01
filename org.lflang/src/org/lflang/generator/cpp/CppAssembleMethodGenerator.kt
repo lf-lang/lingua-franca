@@ -99,7 +99,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         val leftPort = c.leftPorts[0]
         val rightPort = c.rightPorts[0]
 
-        return "${leftPort.name}.bind_to(${rightPort.name});"
+        return "${leftPort.name}.bind_to(&${rightPort.name});"
 
         // TODO Support multiports and banks
         /*val result = StringBuffer()
@@ -218,7 +218,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
             |void ${reactor.templateName}::assemble() {
         ${" |  "..reactor.reactions.joinToString(separator = "\n\n") { assembleReaction(it) }}
-        ${" |  "..reactor.connections.joinToString(separator = "\n", prefix = "// connections") { declareConnection(it) }}
+        ${" |  "..reactor.connections.joinToString(separator = "\n", prefix = "// connections\n") { declareConnection(it) }}
             |}
         """.trimMargin()
     }
