@@ -41,20 +41,16 @@ class CppParameterGenerator(private val reactor: Reactor) {
         else it.toCode()
     }
 
-    /** Get the default value of the receiver parameter in C++ code */
-    val Parameter.defaultValue: String
-        get() {
-            val initializers = getInitializerList(this)
-            return when {
-                initializers.size > 1  -> "${this.targetType}{${initializers.joinToString(", ")}}"
-                initializers.size == 1 -> initializers[0]
-                else                   -> {
-                    // TODO
-                    //param.reportError("Parameters must have a default value!")
-                    "/* Error: No default value */"
-                }
-            }
+    /** Get a parameter instantiated from the given initializer list */
+    fun Parameter.generateInstance(initializers: List<String>) =
+        when {
+            initializers.size > 1  -> "${this.targetType}{${initializers.joinToString(", ")}}"
+            initializers.size == 1 -> initializers[0]
+            else                   -> "${this.targetType}{}"
         }
+
+    /** Get the default value of the receiver parameter in C++ code */
+    val Parameter.defaultValue: String get() = this.generateInstance(getInitializerList(this))
 
     /** Get a C++ type that is a const reference to the parameter type */
     val Parameter.constRefType: String
