@@ -92,6 +92,122 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
+    private fun declareConnection(c: Connection): String {
+        assert(c.leftPorts.size == 1)
+        assert(c.rightPorts.size == 1)
+
+        val leftPort = c.leftPorts[0]
+        val rightPort = c.rightPorts[0]
+
+        return "${leftPort.name}.bind_to(${rightPort.name});"
+
+        // TODO Support multiports and banks
+        /*val result = StringBuffer()
+        var leftPort = c.leftPorts[0]
+        var leftPortCount = 1
+        // The index will go from zero to mulitportWidth - 1.
+        var leftPortIndex = 0
+        // FIXME: Support parameterized widths and check for matching widths with parallel connections.
+        var leftWidth = leftPort.portWidth(c)
+        var leftContainer = leftPort.container
+        var rightPortCount = 0
+        for (rightPort in c.rightPorts) {
+            rightPortCount++
+            var rightPortIndex = 0
+            val rightContainer = rightPort.container
+            val rightWidth = rightPort.portWidth(c)
+            while (rightPortIndex < rightWidth) {
+                // Figure out how many bindings to do.
+                var remainingRightPorts = rightWidth - rightPortIndex
+                var remainingLeftPorts = leftWidth - leftPortIndex
+                var min = (remainingRightPorts < remainingLeftPorts)?
+                remainingRightPorts : remainingLeftPorts
+                // If the right or left port is a port in a bank of reactors,
+                // then we need to construct the index for the bank.
+                // Start with the right port.
+                var rightContainerRef = ''
+                var rightPortArrayIndex = ''
+                if (rightContainer !== null) {
+                    if (rightContainer.widthSpec !== null) {
+                        // The right port is within a bank of reactors.
+                        var rightMultiportWidth = 1
+                        if ((rightPort.variable as Port).widthSpec !== null) {
+                            // The right port is also a multiport.
+                            rightMultiportWidth = calcPortWidth(rightPort.variable as Port)
+                            rightPortArrayIndex = '''[(«rightPortIndex» + i) % «rightMultiportWidth»]'''
+                        }
+                        rightContainerRef = '''«rightContainer.name»[(«rightPortIndex» + i) / «rightMultiportWidth»]->'''
+                    } else {
+                        rightContainerRef = '''«rightContainer.name»->'''
+                        if ((rightPort.variable as Port).widthSpec !== null) {
+                            rightPortArrayIndex = '''[«rightPortIndex» + i]'''
+                        }
+                    }
+                } else if ((rightPort.variable as Port).widthSpec !== null) {
+                    // The right port is not within a bank of reactors but is a multiport.
+                    rightPortArrayIndex = '''[«rightPortIndex» + i]'''
+                }
+                // Next, do the left port.
+                var leftContainerRef = ''
+                var leftPortArrayIndex = ''
+                if (leftContainer !== null) {
+                    if (leftContainer.widthSpec !== null) {
+                        // The left port is within a bank of reactors.
+                        var leftMultiportWidth = 1
+                        if ((leftPort.variable as Port).widthSpec !== null) {
+                            // The left port is also a multiport.
+                            // FIXME: Does not support parameter values for widths.
+                            leftMultiportWidth = calcPortWidth(leftPort.variable as Port)
+                            leftPortArrayIndex = '''[(«leftPortIndex» + i) % «leftMultiportWidth»]'''
+                        }
+                        leftContainerRef = '''«leftContainer.name»[(«leftPortIndex» + i) / «leftMultiportWidth»]->'''
+                    } else {
+                        leftContainerRef = '''«leftContainer.name»->'''
+                        if ((leftPort.variable as Port).widthSpec !== null) {
+                            leftPortArrayIndex = '''[«leftPortIndex» + i]'''
+                        }
+                    }
+                } else if ((leftPort.variable as Port).widthSpec !== null) {
+                    // The left port is not within a bank of reactors but is a multiport.
+                    leftPortArrayIndex = '''[«leftPortIndex» + i]'''
+                }
+                result.append('''
+                    for (unsigned i = 0; i < «min»; i++) {
+                    «leftContainerRef»«leftPort.variable.name»«leftPortArrayIndex»
+                    .bind_to(&«rightContainerRef»«rightPort.variable.name»«rightPortArrayIndex»);
+                }
+                ''')
+                rightPortIndex += min
+                leftPortIndex += min
+                if (leftPortIndex == leftPort.portWidth(c)) {
+                    if (leftPortCount < c.leftPorts.length) {
+                        // Get the next left port. Here we rely on the validator to
+                        // have checked that the connection is balanced, which it does only
+                        // when widths are given as literal constants.
+                        leftPort = c.leftPorts.get(leftPortCount++)
+                        leftWidth = leftPort.portWidth(c)
+                        leftPortIndex = 0
+                        leftContainer = leftPort.container
+                    } else {
+                        // We have run out of left ports.
+                        // If the connection is a broadcast connection,
+                        // then start over.
+                        if (c.isIterated) {
+                            leftPort = c.leftPorts.get(0)
+                            leftPortCount = 1
+                            leftWidth = leftPort.portWidth(c)
+                            leftPortIndex = 0
+                            leftContainer = leftPort.container
+                        } else if (rightPortCount < c.rightPorts.length || rightPortIndex < rightWidth - 1) {
+                            c.reportWarning("More right ports than left ports. Some right ports will be unconnected.")
+                        }
+                    }
+                }
+            }
+        }
+        return result.toString*/
+    }
+
     /**
      * Generate the definition of the reactor's assemble() method
      *
@@ -102,9 +218,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
             |void ${reactor.templateName}::assemble() {
         ${" |  "..reactor.reactions.joinToString(separator = "\n\n") { assembleReaction(it) }}
-            |  // TODO «FOR c : r.connections BEFORE "  // connections\n"»
-            |  // TODO «c.generate»
-            |  // TODO «ENDFOR»
+        ${" |  "..reactor.connections.joinToString(separator = "\n", prefix = "// connections") { declareConnection(it) }}
             |}
         """.trimMargin()
     }
