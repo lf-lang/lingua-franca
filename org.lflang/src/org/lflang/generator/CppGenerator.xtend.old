@@ -97,21 +97,6 @@ class CppGenerator extends GeneratorBase {
             std::add_const<«p.targetType»>::type «p.name»;
         «ENDFOR»
     '''
-
-    def instanceType(Instantiation i) '''
-        «i.reactorClass.name»«IF i.reactorClass.toDefinition.isGeneric»<«FOR t : i.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»
-    '''
-
-    // FIXME: Does not support parameter values for widths.
-    def declareInstances(Reactor r) '''
-        «FOR i : r.instantiations BEFORE '// reactor instantiations\n' AFTER '\n'»
-            «IF i.widthSpec !== null»
-                std::array<std::unique_ptr<«i.instanceType»>, «i.widthSpecification»> «i.name»;
-            «ELSE»
-                std::unique_ptr<«i.instanceType»> «i.name»;
-            «ENDIF»
-        «ENDFOR»
-    '''
     
     /**
      * If the argument is a multiport with width given as an integer,
@@ -145,12 +130,6 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
-    def includeInstances(Reactor r) '''
-        «FOR i : r.instantiations AFTER '\n'»
-            #include "«i.reactorClass.toDefinition.headerFile.toUnixString»"
-        «ENDFOR»
-    '''
-
     def private String getTargetInitializerHelper(Parameter param,
         List<String> list) {
         if (list.size == 0) {
@@ -173,25 +152,6 @@ class CppGenerator extends GeneratorBase {
     def initializeParameters(Reactor r) '''
         «FOR p : r.parameters BEFORE "// parameters\n"»
             , «p.name»(«p.name»)
-        «ENDFOR»
-    '''
-
-    def initializerList(Instantiation i) '''
-        "«i.name»", this«FOR p : i.reactorClass.toDefinition.parameters», «p.getTargetInitializer(i)»«ENDFOR»
-    '''
-
-    def initializerList(Instantiation i, Integer id) '''
-        "«i.name»_«id»", this«FOR p : i.reactorClass.toDefinition.parameters», «IF p.name == "instance"»«id»«ELSE»«p.getTargetInitializer(i)»«ENDIF»«ENDFOR»
-    '''
-
-    // FIXME: Does not support parameter values for widths.
-    def initializeInstances(Reactor r) '''
-        «FOR i : r.instantiations BEFORE "// reactor instantiations \n"»
-            «IF i.widthSpec !== null»
-                , «i.name»{{«FOR id : IntStream.range(0, i.widthSpecification).toArray SEPARATOR ", "»std::make_unique<«i.instanceType»>(«i.initializerList(id)»)«ENDFOR»}}
-            «ELSE»
-                , «i.name»(std::make_unique<«i.instanceType»>(«i.initializerList»))
-            «ENDIF»
         «ENDFOR»
     '''
 

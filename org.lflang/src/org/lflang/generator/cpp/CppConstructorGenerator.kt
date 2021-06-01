@@ -30,6 +30,7 @@ import org.lflang.lf.Reactor
 class CppConstructorGenerator(
     private val reactor: Reactor,
     private val state: CppStateGenerator,
+    private val instances: CppInstanceGenerator,
     private val timers: CppTimerGenerator,
     private val actions: CppActionGenerator
 ) {
@@ -82,7 +83,7 @@ class CppConstructorGenerator(
                 |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
                 |  // TODO «r.initializeParameters»
             ${" |  "..state.generateInitializers()}
-                |  // TODO «r.initializeInstances»
+            ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.geberateInitializers()}
                 |{}
