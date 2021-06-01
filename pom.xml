@@ -30,6 +30,7 @@
     </modules>
 
     <properties>
+        <kotlin.version>1.5.0-RC</kotlin.version> <!-- Sync with build.gradle -->
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <tycho-version>2.3.0</tycho-version>
@@ -73,6 +74,8 @@
                     <version>${xtext.version}</version>
                     <executions>
                         <execution>
+                            <id>generate-xtend</id>
+                            <phase>generate-sources</phase>
                             <goals>
                                 <goal>compile</goal>
                                 <goal>xtend-install-debug-info</goal>
@@ -84,6 +87,40 @@
                     <configuration>
                         <outputDirectory>xtend-gen</outputDirectory>
                     </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-maven-plugin</artifactId>
+                    <version>${kotlin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>kotlin-compile</id>
+                            <phase>process-sources</phase>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                            <configuration>
+                                <srcDirs>
+                                    <sourceDir>${project.basedir}/src</sourceDir>
+                                    <sourceDir>${project.basedir}/src-gen</sourceDir>
+                                    <sourceDir>${project.basedir}/xtend-gen</sourceDir>
+                                </srcDirs>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.eclipse.tycho</groupId>
+                    <artifactId>tycho-compiler-plugin</artifactId>
+                    <version>${tycho-version}</version>
+                    <executions>
+                        <execution>
+                            <id>default-compile</id>
+                            <phase>compile</phase>
+                        </execution>
+                    </executions>
                 </plugin>
 
                 <!-- <plugin>
@@ -198,5 +235,15 @@
         </plugins>
 
     </build>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-osgi-bundle</artifactId>
+                <version>${kotlin.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>

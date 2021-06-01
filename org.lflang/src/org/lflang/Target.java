@@ -22,9 +22,6 @@ package org.lflang;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
-
-import org.jetbrains.annotations.Nullable;
 
 /** 
  * Enumeration of targets and their associated properties. These classes are
