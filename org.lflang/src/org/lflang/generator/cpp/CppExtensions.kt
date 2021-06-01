@@ -88,6 +88,15 @@ val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
  */
 val Port.isMultiport get() = this.widthSpec != null
 
+/** Get the reactor that is instantiated in the receiving instantiation */
+val Instantiation.reactor get() = this.reactorClass.toDefinition()
+
+/** Check if the receiver is a bank instantiation */
+val Instantiation.isBank get(): Boolean = this.widthSpec != null
+
+/** Get the width of a bank instantiation */
+val Instantiation.width get(): Int = this.widthSpec.getWidth(listOf(this))
+
 /* ********************************************************************************************/
 
 /** An object that defines the ,, (rangeTo) operator to prepend each line of the rhs multiline string with the lhs prefix.

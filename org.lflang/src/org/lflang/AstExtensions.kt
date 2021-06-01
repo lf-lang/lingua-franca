@@ -384,3 +384,4 @@ val StateVar.isInitialized :Boolean get() = (this.parens.size == 2)
  *  given above or if the chain of instantiations is not nested.
  */
 fun WidthSpec.getWidth(instantiations: List<Instantiation>? = null) = ASTUtils.width(this, instantiations)
+
