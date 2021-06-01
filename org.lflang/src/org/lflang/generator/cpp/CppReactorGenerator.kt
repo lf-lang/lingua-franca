@@ -41,13 +41,14 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
     /** The header file that contains the public file-level preamble of the file containing `reactor` */
     private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
 
+    private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
     private val instances = CppInstanceGenerator(reactor, fileConfig)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor)
     private val ports = CppPortGenerator(reactor)
-    private val constructor = CppConstructorGenerator(reactor, state, instances, timers, actions)
+    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions)
     private val assemble = CppAssembleMethodGenerator(reactor)
 
     private fun publicPreamble() =
@@ -76,7 +77,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
             |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
             |class ${reactor.name} : public reactor::Reactor {
             | private:
-            |  // TODO «r.declareParameters»
+        ${" |  "..parameters.generateDeclarations()}
         ${" |  "..state.generateDeclarations()}
         ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}

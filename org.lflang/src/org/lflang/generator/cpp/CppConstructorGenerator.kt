@@ -29,6 +29,7 @@ import org.lflang.lf.Reactor
 /** A code generator for the C++ constructor of a reactor class */
 class CppConstructorGenerator(
     private val reactor: Reactor,
+    private val parameters: CppParameterGenerator,
     private val state: CppStateGenerator,
     private val instances: CppInstanceGenerator,
     private val timers: CppTimerGenerator,
@@ -43,21 +44,20 @@ class CppConstructorGenerator(
     private val environmentOrContainer =
         if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
 
-    private fun signature(): String {
+    private fun signature(withDefaults: Boolean): String {
         if (reactor.parameters.size > 0) {
-            TODO("Main reactors with parameters are not supported yet")
-            /*
-            «r.name»(const std::string& name,
-            «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-            «FOR p : r.parameters SEPARATOR ",\n" AFTER ");"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name» = «p.targetInitializer»«ENDFOR»
-            */
-            /*  // from constructorDefinition()
+            val parameterArgs = with(parameters) {
+                if (withDefaults) reactor.parameters.map { "${it.constRefType} ${it.name} = ${it.defaultValue}" }
+                else reactor.parameters.map { "${it.constRefType} ${it.name}" }
+            }
+            return """
+                ${reactor.name}(
+                    const std::string& name,
+                    $environmentOrContainer,
+                    ${parameterArgs.joinToString(",\n", postfix = ")")}
+                """.trimIndent()
+            /* TODO
             «IF r.isGeneric»«r.templateLine»«ENDIF»
-            «IF r.parameters.length > 0»
-            «r.templateName»::«r.name»(const std::string& name,
-            «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-            «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
-            «ELSE»
          */
         } else {
             return "${reactor.name}(const std::string& name, $environmentOrContainer)"
@@ -65,23 +65,18 @@ class CppConstructorGenerator(
     }
 
     /** Get the constructor declaration */
-    fun generateDeclaration() = "${signature()};"
+    fun generateDeclaration() = "${signature(true)};"
 
     /** Get the constructor definition */
     fun generateDefinition(): String {
         /*  TODO
             «IF r.isGeneric»«r.templateLine»«ENDIF»
-            «IF r.parameters.length > 0»
-            «r.templateName»::«r.name»(const std::string& name,
-            «IF r == mainReactor»reactor::Environment* environment«ELSE»reactor::Reactor* container«ENDIF»,
-            «FOR p : r.parameters SEPARATOR ",\n" AFTER ")"»std::add_lvalue_reference<std::add_const<«p.targetType»>::type>::type «p.name»«ENDFOR»
-            «ELSE»
          */
         return with(prependOperator) {
             """
-                |${reactor.name}::${signature()}
+                |${reactor.name}::${signature(false)}
                 |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
-                |  // TODO «r.initializeParameters»
+            ${" |  "..parameters.generateInitializers()}
             ${" |  "..state.generateInitializers()}
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}

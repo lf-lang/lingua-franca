@@ -91,12 +91,6 @@ class CppGenerator extends GeneratorBase {
         }
         return result
     }
-
-    def declareParameters(Reactor r) '''
-        «FOR p : r.parameters BEFORE '// parameters\n' AFTER '\n'»
-            std::add_const<«p.targetType»>::type «p.name»;
-        «ENDFOR»
-    '''
     
     /**
      * If the argument is a multiport with width given as an integer,
@@ -127,31 +121,6 @@ class CppGenerator extends GeneratorBase {
             void «r.templateName»::«n.name»_deadline_handler() {
               «n.deadline.code.toText»
             }
-        «ENDFOR»
-    '''
-
-    def private String getTargetInitializerHelper(Parameter param,
-        List<String> list) {
-        if (list.size == 0) {
-            param.reportError("Parameters must have a default value!")
-        } else if (list.size == 1) {
-            return list.get(0)
-        } else {
-            '''«param.targetType»{«FOR init : list SEPARATOR ", "»«init»«ENDFOR»}'''
-        }
-    }
-
-    def String getTargetInitializer(Parameter param) {
-        return getTargetInitializerHelper(param, param.initializerList)
-    }
-
-    def String getTargetInitializer(Parameter param, Instantiation i) {
-        return getTargetInitializerHelper(param, param.getInitializerList(i))
-    }
-
-    def initializeParameters(Reactor r) '''
-        «FOR p : r.parameters BEFORE "// parameters\n"»
-            , «p.name»(«p.name»)
         «ENDFOR»
     '''
 
