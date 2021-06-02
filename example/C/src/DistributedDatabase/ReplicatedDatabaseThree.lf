@@ -1,12 +1,14 @@
 /**
- * A version of BetterReplicatedDatabase.lf with three replicas arranged in
+ * A version of ReplicatedDatabase.lf with three replicas arranged in
  * a broadcast pattern.
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
     timeout: 5 sec
 }
 
-import Platform from "BetterReplicatedDatabase.lf"
+import Platform from "ReplicatedDatabase.lf"
 
 main reactor (
     query_period:time(1 sec),

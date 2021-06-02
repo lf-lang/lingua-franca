@@ -3,7 +3,7 @@
  * within a reactor. It encodes and decodes a very simple protocol
  * buffer definition in hello_string.proto. This reactor is heavily
  * based on the examples at https: * github.com/protobuf-c/protobuf-c/wiki/Examples.
-
+ *
  * To run this example first install the protocol buffers compiler
  * from https: * github.com/protocolbuffers/protobuf. For Mac, it is
  * available from homebrew via
