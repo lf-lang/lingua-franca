@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?pde version="3.8"?>
-<target name="Generated from Lingua Franca" sequenceNumber="3">
+<target name="Generated from Lingua Franca" sequenceNumber="4">
   <locations>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="jakarta.xml.bind" version="0.0.0"/>
@@ -19,6 +19,8 @@
       <unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.jdt.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.lsp4e.debug" version="0.0.0"/>
+      <unit id="org.eclipse.m2e.jdt" version="0.0.0"/>
+      <unit id="org.eclipse.platform.doc.isv" version="0.0.0"/>
       <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.tm4e.languageconfiguration" version="0.0.0"/>
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
@@ -39,6 +41,10 @@
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.eclipse.wildwebdeveloper.feature.feature.group" version="0.0.0"/>
       <repository location="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
+    </location>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+      <unit id="org.jetbrains.kotlin.feature.feature.group" version="0.0.0"/>
+      <repository location="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="de.cau.cs.kieler.klighd.freehep.feature.feature.group" version="0.0.0"/>
