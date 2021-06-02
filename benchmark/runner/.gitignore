@@ -1,3 +1,5 @@
 outputs
 multirun
 __pycache__
+*.csv
+*.txt
