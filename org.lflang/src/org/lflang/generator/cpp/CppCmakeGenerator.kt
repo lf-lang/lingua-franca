@@ -118,7 +118,9 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
                 |)
                 |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
                 |
-                |install(TARGETS $S{LF_MAIN_TARGET})
+                |install(TARGETS $S{LF_MAIN_TARGET}
+                |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
+                |)
             ${
                 if (includeFile == null) "" else """
                     |
