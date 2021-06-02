@@ -1,13 +1,16 @@
 /**
- * FIXME: Centralized coordination does not tolerate zero-delay loops between federates.
- * These are required for this database application to work.
+ * Federated version of ReplicatedDatabase.
+ * This is identical, except that it is federated.
+ * 
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 target C {
     timeout: 5 sec,
     coordination: centralized
 }
 
-import Platform from "BetterReplicatedDatabase.lf"
+import Platform from "ReplicatedDatabase.lf"
 
 federated reactor (
     query_period:time(1 sec),
