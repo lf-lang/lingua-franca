@@ -216,7 +216,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      */
     fun generateDefinition() = with(prependOperator) {
         """
-            |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+            |${reactor.templateLine}
             |void ${reactor.templateName}::assemble() {
         ${" |  "..reactor.reactions.joinToString(separator = "\n\n") { assembleReaction(it) }}
         ${" |  "..reactor.connections.joinToString(separator = "\n", prefix = "// connections\n") { declareConnection(it) }}

@@ -124,9 +124,6 @@ class CppGenerator extends GeneratorBase {
         «ENDFOR»
     '''
 
-    def templateLine(Reactor r) '''
-        template<«FOR t: r.typeParms SEPARATOR ", "»class «t.toText»«ENDFOR»>
-    '''
 
     // //////////////////////////////////////////////
     // // Protected methods
