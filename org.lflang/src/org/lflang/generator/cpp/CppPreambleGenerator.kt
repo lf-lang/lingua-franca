@@ -40,7 +40,7 @@ class CppPreambleGenerator(
 
     fun generateHeader(): String {
         val importedResources = scopeProvider.getImportedResources(resource)
-        val includes = importedResources.map { fileConfig.getPreambleHeaderPath(it) }
+        val includes = importedResources.map { """#include "${fileConfig.getPreambleHeaderPath(it)}"""" }
 
         val publicPreambles = preambles.filter { it.isPublic }
 
