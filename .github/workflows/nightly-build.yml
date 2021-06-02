@@ -1,0 +1,33 @@
+name: Nightly Build
+
+# trigger the workflow every day at midnight & on releases
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  release:
+    types: [created]
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # Setup Build dependencies
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1.4.3
+        with:
+          # The Java version to make available on the path. Takes a whole or semver Java version, or 1.x syntax (e.g. 1.8 => Java 8.x). Early access versions can be specified in the form of e.g. 14-ea, 14.0.0-ea, or 14.0.0-ea.28
+          java-version: 11
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4
+        with:
+          maven-version: 3.8.1
+      # Checks-out the repository under $GITHUB_WORKSPACE, so the job can access it
+      - uses: actions/checkout@v2
+      - name: Build Eclipse product
+        run: mvn compile
+      - name: Package IDE
+        run: mvn package
+      # TODO: Upload the nightly builds somewhere
