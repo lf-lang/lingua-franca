@@ -1018,7 +1018,9 @@ class CppGenerator extends GeneratorBase {
         )
         target_link_libraries(${LF_MAIN_TARGET} reactor-cpp)
         
-        install(TARGETS ${LF_MAIN_TARGET})
+        install(TARGETS ${LF_MAIN_TARGET}
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
         
         «IF !targetConfig.cmakeInclude.isNullOrEmpty»
             include("«fileConfig.srcPath.resolve(targetConfig.cmakeInclude).toUnixString»")
