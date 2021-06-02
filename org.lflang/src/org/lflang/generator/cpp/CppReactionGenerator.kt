@@ -37,16 +37,14 @@ class CppReactionGenerator(private val reactor: Reactor) {
         """reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { ${r.name}_body(); }};"""
 
     private fun generateBodyDefinition(reaction: Reaction) = with(prependOperator) {
+        // TODO this doesn't work for banks...
+        val scopeAssignemts = reactor.instantiations.filter { !it.isBank }.map { "auto& ${it.name} = *(this->${it.name});" }
         """
             |// reaction ${reaction.label}
             |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
             |void ${reactor.templateName}::${reaction.name}_body() {
             |  // prepare scope
-            |  /* TODO
-            |     «FOR i : r.instantiations»
-            |       «IF i.widthSpec === null»auto& «i.name» = *(this->«i.name»);«ENDIF»
-            |    «ENDFOR»
-            |  */
+        ${" |  "..scopeAssignemts.joinToString("\n")}
             |
             |  // reaction code
         ${" |  "..reaction.code.toText()}
