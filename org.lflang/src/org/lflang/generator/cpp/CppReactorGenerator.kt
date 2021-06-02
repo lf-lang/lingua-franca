@@ -30,13 +30,16 @@ import org.lflang.toText
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
-class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: CppFileConfig) {
+class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfig) {
 
     /** Comment to be inserted at the top of generated files */
     private val fileComment = fileComment(reactor.eResource())
 
     /** The header file that declares `reactor` */
     private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
+
+    /** The implementation header file that declares a `reactor` if it is generic*/
+    private val implHeaderFile = fileConfig.getReactorHeaderImplPath(reactor).toUnixString()
 
     /** The header file that contains the public file-level preamble of the file containing `reactor` */
     private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
@@ -76,7 +79,7 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
             |
         ${" |  "..publicPreamble()}
             |
-            |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+            |${reactor.templateLine}
             |class ${reactor.name} : public reactor::Reactor {
             | private:
         ${" |  "..parameters.generateDeclarations()}
@@ -93,11 +96,8 @@ class CppReactorGenerator(private val reactor: Reactor, private val fileConfig: 
             |
             |  void assemble() override;
             |};
-            |/* TODO
-            |«IF r.isGeneric»
             |
-            |#include "«r.headerImplFile.toUnixString»"
-            |«ENDIF»*/
+        ${" |".. if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
         """.trimMargin()
     }
 

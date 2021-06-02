@@ -39,7 +39,7 @@ class CppConstructorGenerator(
     /**
      * Constructor argument that provides a reference to the next higher level
      *
-     * For the main reactor, the next higher level in the environment. For all other reactors, it is the containing reactor.
+     * For the main reactor, the next higher level is the environment. For all other reactors, it is the containing reactor.
      */
     private val environmentOrContainer =
         if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
@@ -56,9 +56,6 @@ class CppConstructorGenerator(
                     $environmentOrContainer,
                     ${parameterArgs.joinToString(",\n", postfix = ")")}
                 """.trimIndent()
-            /* TODO
-            «IF r.isGeneric»«r.templateLine»«ENDIF»
-         */
         } else {
             return "${reactor.name}(const std::string& name, $environmentOrContainer)"
         }
@@ -69,12 +66,10 @@ class CppConstructorGenerator(
 
     /** Get the constructor definition */
     fun generateDefinition(): String {
-        /*  TODO
-            «IF r.isGeneric»«r.templateLine»«ENDIF»
-         */
         return with(prependOperator) {
             """
-                |${reactor.name}::${signature(false)}
+                |${reactor.templateLine}
+                |${reactor.templateName}::${signature(false)}
                 |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
             ${" |  "..parameters.generateInitializers()}
             ${" |  "..state.generateInitializers()}

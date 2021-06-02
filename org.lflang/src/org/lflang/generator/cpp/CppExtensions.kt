@@ -235,8 +235,14 @@ val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
 /** True if the preamble is private */
 val Preamble.isPrivate: Boolean get() = this.visibility == Visibility.PRIVATE
 
+/** The template line preceding the class declaration and any member definitions for a `reactor */
+val Reactor.templateLine
+    get() =
+        if (isGeneric) """template<${typeParms.joinToString(", ") { "class ${it.toText()}" }}>"""
+        else ""
+
 /** Get templated name of a reactor class */
-val Reactor.templateName: String get() = this.name  // TODO '''«r.name»«IF r.isGeneric»<«FOR t : r.typeParms SEPARATOR ", "»«t.toText»«ENDFOR»>«ENDIF»'''
+val Reactor.templateName: String get() = if (isGeneric) "$name<${typeParms.joinToString(", ") { it.toText() }}>" else name
 
 /** Get a C++ code representation of the given variable */
 val VarRef.name: String

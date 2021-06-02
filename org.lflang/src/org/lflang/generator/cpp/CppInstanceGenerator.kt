@@ -28,6 +28,7 @@ import org.lflang.isOfTimeType
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.toText
 
 /** A code genarator for reactor instances */
 class CppInstanceGenerator(
@@ -39,7 +40,7 @@ class CppInstanceGenerator(
     private val Instantiation.type: String
         get() {
             return if (this.reactor.isGeneric)
-                """${this.reactor.name}<${this.typeParms.joinToString(", ")}>}"""
+                """${this.reactor.name}<${this.typeParms.joinToString(", ") { it.toText() }}>"""
             else
                 this.reactor.name
         }

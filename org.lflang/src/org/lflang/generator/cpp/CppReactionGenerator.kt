@@ -41,7 +41,7 @@ class CppReactionGenerator(private val reactor: Reactor) {
         val scopeAssignemts = reactor.instantiations.filter { !it.isBank }.map { "auto& ${it.name} = *(this->${it.name});" }
         """
             |// reaction ${reaction.label}
-            |// TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
+            |${reactor.templateLine}
             |void ${reactor.templateName}::${reaction.name}_body() {
             |  // prepare scope
         ${" |  "..scopeAssignemts.joinToString("\n")}
@@ -55,8 +55,8 @@ class CppReactionGenerator(private val reactor: Reactor) {
 
     private fun generateDeadlineHandlerDefinition(reaction: Reaction): String = with(prependOperator) {
         // TODO Should provide the same context as in reactions
-        // TODO «IF r.isGeneric»«r.templateLine»«ENDIF»
         return """
+            |${reactor.templateLine}
             |void ${reactor.templateName}::${reaction.name}_deadline_handler() {
         ${" |  "..reaction.deadline.code.toText()}
             |}
