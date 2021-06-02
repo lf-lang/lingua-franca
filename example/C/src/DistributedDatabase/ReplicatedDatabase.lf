@@ -1,77 +1,99 @@
 /**
  * Test program illustrating the architecture of a replicated distributed
- * database. It models a web server in each of two platforms that accepts
- * queries and updates to the database and passes them on to the database
- * reactor.
+ * database. This models a simple banking system that maintains a single
+ * balance in multiple locations. Deposits and withdrawals (updates) can
+ * be performed at any of the locations. In the model, these updates
+ * are performed by a "Server" model emulating a web server. The server
+ * also periodically queries for the balance. All locations are required
+ * to report the same balance given the same time-stamped query.
  * 
- * If the two servers attempt to simultaneously update the database,
- * then platform a will force b to discard its update and go instead
- * with the one provided by a. When platform b updates its record locally,
- * the update gets sent to platform a with one microstep delay.
- * If platform a performs a local update at that microstep-delayed tag,
- * then its local update will be rejected in favor of the remote update.
- * As written, this program has no mechanism for platform a to perform
- * such a microstep-delayed update, so updates at a will always prevail
- * over updates at b, and updates at b will only be rejected if their
- * tag matches an update at a.
+ * If the two servers simultaneously update the record, then both updates
+ * are applied.  Any query at the time of these updates is required to
+ * report the result after both updates have been performed.
  * 
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
 target C {
-    timeout: 1 sec
+    timeout: 5 sec
+}
+
+main reactor (
+    query_period:time(1 sec),
+    num_remote_inputs:int(1)
+) {
+    a = new Platform(
+            query_period = query_period,
+            update_period = 5 sec,
+            update_amount = 100,
+            name = "San Francisco",
+            num_remote_inputs = num_remote_inputs);
+    b = new Platform(
+            query_period = query_period,
+            update_period = 1 sec,
+            update_amount = -20,
+            name = "Berkeley",
+            num_remote_inputs = num_remote_inputs);
+    b.publish -> a.update;
+    a.publish -> b.update;
 }
 
 /**
- * Mockup for a web server. This reactor simply produces a
- * query output periodically with period query_period, and
- * an update output periodically with period update_period.
+ * Mockup for a web server that issues deposits or withdrawals
+ * as well as periodic queries for the balance in the database.
+ * The queries and updates are issued periodically with the period
+ * and amount of the update controlled by parameters.
  * In a real server, these outputs would not be periodic, but
  * rather would be triggered by external events, such as incoming
  * HTTP requests.
- * 
- * The value of the update output is a counting sequence starting
- * at the value given by the parameter start.
  * 
  * This reactor expects a reply to each query. It prints those
  * replies. It produces an error in its shutdown reaction if
  * the number of replies does not match the number of queries.
  * 
- * @param query_offset The offset of query outputs.
  * @param query_period The period of query outputs.
- * @param update_offset The offset of update outputs.
  * @param update_period The period of update outputs.
- * @param start The starting value of the counting sequence.
- * @input reply Accepts the reply.
+ * @param update_amount The amount of each deposit (or withdrawal if negative).
+ * @param server_name The name (for reporting).
+ * 
+ * @input reply Accepts the reply to a query for the balance.
+ * 
  * @output query Issue a query, expecting a reply.
  * @output update Issue an update.
  */
 reactor Server(
-    query_offset:time(0),
+    name:char*("unnamed server"),
     query_period:time(150 msec),
-    update_offset:time(0),
     update_period:time(100 msec),
-    start:int(0),
-    server_name:char*("")
+    update_deadline:time(200 msec), 
+    update_amount:int(0),
+    server_name:char*("unnamed server")
 ) {
-    timer query_trigger(query_offset, query_period);
-    timer update_trigger(update_offset, update_period);
+    timer query_trigger(0, query_period);
+    timer update_trigger(0, update_period);
     input reply:int;
     output query:bool;
     output update:int;
     state queries_outstanding:int(0);
-    state count:int(start);
     reaction(query_trigger) -> query {=
         SET(query, true);
         self->queries_outstanding++;
     =}
     
     reaction(update_trigger) -> update {=
-        SET(update, self->count++);
+        SET(update, self->update_amount);
+    =} deadline(update_deadline) {=
+        error_print("At tag (%lld, %u), deadline missed at database \"%s\". Rejecting update.\n"
+                "     Elapsed physical time is %lld.",
+                get_logical_time() - start_time, 
+                get_microstep(),
+                self->name,
+                get_elapsed_physical_time()
+        );
     =}
     
     reaction(reply) {=
-        info_print("At tag (%lld, %u), server \"%s\" received reply to query: %d.",
+        info_print("***** At tag (%lld, %u), server \"%s\" reports balance: %d.",
             get_elapsed_logical_time(), get_microstep(), self->server_name, reply->value
         );
         self->queries_outstanding--;
@@ -83,161 +105,152 @@ reactor Server(
                 self->server_name,
                 self->queries_outstanding
             );
+        } else {
+            info_print("Server \"%s\" successfully replied to all queries.", 
+                self->server_name
+            );
         }
     =}
 }
 
 /**
- * A mockup for a database. This simple database contains only one
- * record, and the value of that record is an integer.
- * The `query` input is used to retrieve the record. The most recently
- * stored value will be sent to the `reply` output in response.
- * If a `query` and an update arrive simultaneously, the reply
- * will match the update.
+ * A mockup for a replicated database. This simple database contains 
+ * only one record, and the value of that record is an integer.
+ * It represents a bank balance, where deposits and withdrawals
+ * (updates) can occur at any node in the system.
+ * If two or more updates occur at the same logical time, then all
+ * are applied.
  * 
  * This reactor has two update inputs, `local_update` and `remote_update`.
  * The first is intended to be used for updates to the database that are
  * generated on the local platform. The second receives notifications
- * of updates on a remote platform. When a `local_update` is received,
- * the updated value will be sent to the `publish` output.
- * When a `remote_update` input arrives, its value will be recorded,
- * overwriting any simultaneously received `local_update` input.
- * If the `remote_update` input results in a change of value, then
- * the new value will be sent to the `publish` output.
+ * of updates on remote platforms. When a `local_update` is received,
+ * the update will also be sent to the `publish` output so that it can
+ * be forwarded to other replicas. When any `remote_update` input arrives,
+ * its value will be added to the balance.
+ *
+ * The `query` input is used to retrieve the current balance. The
+ * balance will be sent to the `balance` output in response.
+ * If a `query` and an update arrive simultaneously, the reply
+ * will include the cumulative effect of all the updates.
  * 
- * Instances of these `Database` reactors can be arranged in ring.
- * An `after` delay will be needed somewhere in the ring to break the resulting
- * causality loop. The position of that delay will establish the
- * priorities assigned to simultaneous updates. The first `Database`
- * after the delay has the highest priority. If more than one of
- * databases in the ring has a simultaneous `local_update`, the value
- * of the first one after the delay will overwrite any simultaneous
- * local updates downstream in the ring. If that first reactor is not
- * immediately after the delay, then any upstream databases will be
- * updated after the amount of the delay.
+ * Instances of these `Database` reactors can be arranged in ring
+ * or in a broadcast configuration, where each replica sends updates to
+ * all other replicas.
  * 
- * Note that if the delay is larger than 0, then some odd effects
- * become possible.  In particular, the database values can
- * oscillate if an update occurs in an upstream database before
- * it receives notice of an update in a downstream federate.
- * Here "upstream" and "downstream" are referring the chain that
- * results from breaking the ring at the point of the delay.
+ * There is a deadline on the `local_update` inputs. If this deadline is
+ * violated, then the update is rejected and has no effect on the balance.
  * 
- * @param update_deadline A deadline imposed on the reaction to update inputs.
- * @input update A time-valued update to the record.
- * @output publish This is just the update passed through.
+ * @param update_deadline A deadline imposed on the reaction to `local_update` inputs.
+ * @param name A name for the database instance (used in reporting).
+ * @param num_remote_inputs The number of inputs from other database replicas.
+ * 
+ * @input local_update An update (deposit or withdrawal) to add to the record.
+ * @input remote_update A multiport input for receiving updates from other replicas.
  * @input query A trigger to read the current value of the record.
- * @output reply The time value of the record.
+ *
+ * @output publish This is just the update passed through.
+ * @output balance The time value of the record.
  */
-reactor Database(update_deadline:time(200 msec),
-    database_name:char*(""), 
-    STP_offset:time(0)      // Used for decentralized coordination of federation only.
-    ) {
+reactor Database(
+    name:char*("unnamed database"),
+    num_remote_inputs:int(1)
+) {
     input local_update:int;
-    input remote_update:int;
+    input[num_remote_inputs] remote_update:int;
     input query:bool;
-    output publish:int;
-    output reply:int;
+    output balance:int;
     state record:int(0);
     
-    reaction(local_update, remote_update) -> publish {=
+    reaction(local_update, remote_update) {=
         if (local_update->is_present) {
-            self->record = local_update->value;
-            SET(publish, self->record);
-            info_print("At tag (%lld, %u), database \"%s\" locally updated to %d.",
-                get_logical_time() - start_time, get_microstep(), self->database_name, self->record
-            );
+            self->record += local_update->value;
         }
-        if (remote_update->is_present && remote_update->value != self->record) {
-            self->record = remote_update->value;            
-            SET(publish, self->record); // May overwrite the SET above.
-            info_print("At tag (%lld, %u), database \"%s\" updated to %d to match upstream remote update.\n"
+        for (int i = 0; i < remote_update_width; i++) {
+            if (remote_update[i]->is_present) {
+                self->record += remote_update[i]->value;
+            }
+        }
+        info_print("At tag (%lld, %u), database \"%s\" updated balance to %d.\n"
                 "     Elapsed physical time is %lld.",
                 get_logical_time() - start_time, get_microstep(),
-                self->database_name,
+                self->name,
                 self->record,
                 get_elapsed_physical_time()
-            );
-        }
-    =} STP (STP_offset) {=
+        );
+    =} STP (4 msec) {=
 #ifdef FEDERATED_DECENTRALIZED
-        if (remote_update->is_present) {
-            error_print("At tag (%lld, %u), database \"%s\" "
-                "received remote update (%d) with intended tag (%lld, %u). Rejecting update.\n"
-                "     Elapsed physical time is %lld.",
-                current_tag.time - start_time,
-                current_tag.microstep,
-                self->database_name,
-                remote_update->value,
-                remote_update->intended_tag.time - start_time,
-                remote_update->intended_tag.microstep,
-                get_elapsed_physical_time()
-            );
-        } else if (local_update->is_present) {            
-            error_print_and_exit("FATAL: Database \"%s\": Local update (%d) is tardy by (%lld, %u). "
-                "Local update should never be tardy.",
-                self->database_name,
-                local_update->value,
-                current_tag.time - remote_update->intended_tag.time,
-                current_tag.microstep - remote_update->intended_tag.microstep
-            );
+        for (int i = 0; i < remote_update_width; i++) {
+            if (remote_update[i]->is_present) {
+                warning_print("At tag (%lld, %u), database \"%s\" "
+                        "received remote update (%d) with intended tag (%lld, %u).\n"
+                        "     Balance previously reported may have been incorrect.\n"
+                        "     Elapsed physical time is %lld.",
+                        current_tag.time - start_time,
+                        current_tag.microstep,
+                        self->name,
+                        remote_update[i]->value,
+                        remote_update[i]->intended_tag.time - start_time,
+                        remote_update[i]->intended_tag.microstep,
+                        get_elapsed_physical_time()
+                );
+                self->record += remote_update[i]->value;
+            }
         }
 #else
         // The tardy handler should not be invoked
-        error_print_and_exit("FATAL: Update is tardy t coordination is not decentralized.");
+        error_print_and_exit("FATAL: Update is tardy and coordination is not decentralized.");
 #endif
-    =} deadline(update_deadline) {=
-        error_print("Deadline missed. Rejecting update.");
     =}
     
-    reaction(query) -> reply {=
-        SET(reply, self->record);
+    reaction(query) -> balance {=
+        SET(balance, self->record);
     =}
 }
 
 /**
  * A mockup of a platform (e.g. a pod, a virtual machine, a physical
  * machine, etc.) that hosts a replicated database and a web server.
- * When the platform receives an update input, it publishes that
- * update on its publish output.
+ * The platform performs local updates and accepts remote updates.
+ * Instances of this platform can be arranged in a ring or in a
+ * broadcast configuration, where each platform broadcasts updates
+ * to all other platforms.
  * 
- * @param query_offset The offset of query outputs.
- * @param query_period The period of query outputs.
- * @param update_offset The offset of update outputs.
- * @param update_period The period of update outputs.
+ * @param query_period The period at which the balance is queried.
+ * @param update_period The period at which local updates are generated.
+ * @param update_amount The amount of each local update.
+ * @param num_remote_inputs The number of remote inputs from other replicas.
+ * @param STP The safe-to-process offset (used only in decentralized coordination).
+ * @param name The name assigned to this platform (for reporting).
+ * 
  * @input update An update notification from another replica.
- * @output publish A copy of the update just received.
+ * 
+ * @output publish A copy of any local updates.
  */
 reactor Platform(
-    query_offset:time(0),
     query_period:time(150 msec),
-    update_offset:time(0),
     update_period:time(100 msec),
-    start:int(0),
-    STP_offset:time(0),      // Used for decentralized coordination of federation only.
-    database_name:char*("") // Used for more visible logging
+    update_amount:int(0),
+    num_remote_inputs:int(1),
+    name:char*("unnamed platform")  // Used for more visible logging
 ) {
-    input update:int;
+    input[num_remote_inputs] update:int;
     output publish:int;
     server = new Server(
-        query_offset = query_offset,
+        name = name,
         query_period = query_period,
-        update_offset = update_offset,
         update_period = update_period,
-        start = start,
-        server_name = database_name
+        update_amount = update_amount,
+        server_name = name
     );
-    database = new Database(database_name = database_name, STP_offset = STP_offset);
+    database = new Database(
+        name = name,
+        num_remote_inputs = num_remote_inputs
+    );
     server.query -> database.query;
     server.update -> database.local_update;
-    database.reply -> server.reply;
-    database.publish -> publish;
+    database.balance -> server.reply;
+    server.update -> publish;
     update -> database.remote_update;
 }
 
-main reactor ReplicatedDatabase {
-    a = new Platform(query_offset = 10 sec, database_name = "a");
-    b = new Platform(query_offset = 10 sec, update_period = 50 msec, start = 100, database_name = "b");
-    a.publish -> b.update;
-    b.publish -> a.update after 0;
-}
