@@ -80,7 +80,7 @@ class CppInstanceGenerator(
             } else {
                 (0 until inst.width).joinToString(", ") {
                     val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, it) }
-                    """, ${inst.name}(std::make_unique<${inst.type}>("${inst.name}", this, $params))"""
+                    """std::make_unique<${inst.type}>("${inst.name}", this, $params)"""
                 }
             }
             """, ${inst.name}{{$initializations}}"""
