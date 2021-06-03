@@ -565,6 +565,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (this.bankIndex >= 0) {
             result += "[" + this.bankIndex + "]"
         }
+        if (result === null) return "";
         result
     }
 
