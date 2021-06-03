@@ -574,16 +574,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					]
 				}
  
-                if (trigger instanceof ActionInstance) {
-                    if (trigger.startup) {
-                        createDependencyEdge(trigger).connect(startupNode, port)
-                        startupUsed = true
-                    } if (trigger.shutdown) {
-                        createDelayEdge(trigger).connect(shutdownNode, port)
-                        shutdownUsed = true
-                    } else {
-                        actionDestinations.put(trigger, port)
-                    }
+                if (trigger.startup) {
+                    createDependencyEdge(trigger.definition).connect(startupNode, port)
+                    startupUsed = true
+                } else if (trigger.shutdown) {
+                    createDelayEdge(trigger.definition).connect(shutdownNode, port)
+                    shutdownUsed = true
+                } else if (trigger instanceof ActionInstance) {
+                    actionDestinations.put(trigger, port)
                 } else if (trigger instanceof PortInstance) {
                     var KPort src = null
                     if (trigger.parent === reactorInstance) {
@@ -592,12 +590,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         src = outputPorts.get(trigger.parent, trigger)
                     }
                     if (src !== null) {
-                        createDependencyEdge(trigger).connect(src, port)
+                        createDependencyEdge(trigger.definition).connect(src, port)
                     }
                 } else if (trigger instanceof TimerInstance) {
                     val src = timerNodes.get(trigger)
                     if (src !== null) {
-                        createDependencyEdge(trigger).connect(src, port)
+                        createDependencyEdge(trigger.definition).connect(src, port)
                     }
                 }
 			}
