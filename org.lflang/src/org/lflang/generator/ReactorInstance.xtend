@@ -36,6 +36,7 @@ import java.util.Set
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
+import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
 import org.lflang.lf.Input
@@ -46,6 +47,7 @@ import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.Timer
+import org.lflang.lf.TriggerRef
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
@@ -546,12 +548,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** List of reaction instances for this reactor instance. */
     public val reactions = new LinkedList<ReactionInstance>();
 
-    /** If non-null, then this reactor has a shutdown action that
-     *  needs to be scheduled prior to shutting down the program.
-     */
-    @Accessors(PUBLIC_GETTER)
-    protected var ActionInstance shutdownActionInstance = null
-
     /** The timer instances belonging to this reactor instance. */
     public val timers = new LinkedList<TimerInstance>
 
@@ -570,34 +566,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             result += "[" + this.bankIndex + "]"
         }
         result
-    }
-
-    /** 
-     * Return the shutdown action within this reactor instance.
-     * 
-     * @return The corresponding shutdown action instance or null
-     *  if this reactor instance does not have a shutdown action.
-     */
-    def getShutdownAction() {
-        for (actionInstance : actions) {
-            if (actionInstance.isShutdown) {
-                return actionInstance
-            }
-        }
-    }
-
-    /** 
-     * Return the startup timer within this reactor instance.
-     * 
-     * @return The corresponding startup timer instance or null
-     *  if this reactor instance does not have a shutdown timer.
-     */
-    def getStartupTimer() {
-        for (timerInstance : timers) {
-            if (timerInstance.isStartup) {
-                return timerInstance
-            }
-        }
     }
 
     /** 
@@ -747,6 +715,27 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         var result = new LinkedHashSet<PortInstance>();
         transitiveClosure(source, result);
         result
+    }
+    
+
+    /**
+     * Returns the startup trigger or create a new one if none exists.
+     */
+    def getOrCreateStartup(TriggerRef trigger) {
+        if (startupTrigger === null) {
+            startupTrigger = new TriggerInstance(TriggerInstance.BuiltinTrigger.STARTUP, trigger, this)
+        }
+        return startupTrigger
+    }
+    
+    /**
+     * Returns the shutdown trigger or create a new one if none exists.
+     */
+    def getOrCreateShutdown(TriggerRef trigger) {
+        if (shutdownTrigger === null) {
+            shutdownTrigger = new TriggerInstance(TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this)
+        }
+        return shutdownTrigger
     }
     
     ///////////////////////////////////////////////////
@@ -935,6 +924,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** The generator that created this reactor instance. */
     protected ErrorReporter reporter // FIXME: This accumulates a lot of redundant references
+    
+    /** The startup trigger. Null if not used in any reaction. */
+    @Accessors(PUBLIC_GETTER)
+    protected var TriggerInstance<BuiltinTriggerVariable> startupTrigger = null
+    
+    /** The startup trigger. Null if not used in any reaction. */
+    @Accessors(PUBLIC_GETTER)
+    protected var TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null
 
     // ////////////////////////////////////////////////////
     // // Protected methods
@@ -960,35 +957,6 @@ class ReactorInstance extends NamedInstance<Instantiation> {
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
                 this.reactions.add(reactionInstance);
-                
-                // Check for startup and shutdown triggers.
-                var startupTrigger = null as TimerInstance;
-                var shutdownTrigger = null as ActionInstance;
-                for (trigger : reaction.triggers) {
-                    if (trigger.isStartup) {
-                        if (startupTrigger === null) {
-                            // Null argument to TimerInstance makes this a startup trigger.
-                            startupTrigger = new TimerInstance(null, this);
-                            // Although this is a TimerInstance, it is treated differently from other timers.
-                            // Do not add it to the list of timers.
-                            // this.timers.add(startupTrigger);
-                        }
-                    } else if (trigger.isShutdown) {
-                        if (shutdownTrigger === null) {
-                             // Null argument to ActionInstance makes this a shutdown trigger.
-                            shutdownTrigger = new ActionInstance(null, this);
-                            // Although this is an ActionInstance, it is treated differently from other actions.
-                            // Do not add it to the list of actions.
-                            // this.actions.add(shutdownTrigger);
-                        }
-                    }
-                }
-                if (startupTrigger !== null) {
-                    reactionInstance.triggers.add(startupTrigger);
-                }
-                if (shutdownTrigger !== null) {
-                    reactionInstance.triggers.add(shutdownTrigger);
-                }
             }
         }
     }

@@ -26,11 +26,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import org.lflang.ASTUtils
 import org.lflang.TimeValue
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
-import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 
@@ -57,11 +55,7 @@ class TimerInstance extends TriggerInstance<Timer> {
         if (parent === null) {
             throw new Exception('Cannot create an TimerInstance with no parent.')
         }
-        if (definition === null) {
-            this.startup = true;
-            // Create an AST node for the definition.
-            this.definition = ASTUtils.makeStartupTimer();
-        } else {
+        if (definition !== null) {
             if (definition.offset !== null) {
                 if (definition.offset.parameter !== null) {
                     val parm = definition.offset.parameter

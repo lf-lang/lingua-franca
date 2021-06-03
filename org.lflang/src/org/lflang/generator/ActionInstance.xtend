@@ -69,11 +69,7 @@ class ActionInstance extends TriggerInstance<Action> {
         if (parent === null) {
             throw new Exception('Cannot create an ActionInstance with no parent.')
         }
-        if (definition === null) {
-            this.shutdown = true;
-            // Create an AST node for the definition.
-            this.definition = ASTUtils.makeShutdownAction();
-        } else {
+        if (definition !== null) {
             if (definition.minDelay !== null) {
                 if (definition.minDelay.parameter !== null) {
                     val parm = definition.minDelay.parameter

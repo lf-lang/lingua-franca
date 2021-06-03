@@ -72,6 +72,7 @@ import org.lflang.lf.Model
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
+import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -575,10 +576,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				}
  
                 if (trigger.startup) {
-                    createDependencyEdge(trigger.definition).connect(startupNode, port)
+                    createDependencyEdge((trigger.definition as BuiltinTriggerVariable).definition).connect(startupNode, port)
                     startupUsed = true
                 } else if (trigger.shutdown) {
-                    createDelayEdge(trigger.definition).connect(shutdownNode, port)
+                    createDelayEdge((trigger.definition as BuiltinTriggerVariable).definition).connect(shutdownNode, port)
                     shutdownUsed = true
                 } else if (trigger instanceof ActionInstance) {
                     actionDestinations.put(trigger, port)
