@@ -36,9 +36,6 @@ import org.lflang.graph.DirectedGraph
  * Upon creation, reactions are assigned levels, chainIDs, and their
  * deadlines are propagated.
  * 
- * This class is distinct from the ReactionGraph class in the graph
- * package because it deals with instance objects rather than AST nodes.
- * 
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
@@ -90,17 +87,9 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
      * null otherwise.
      */
     def findSingleDominatingReaction(ReactionInstance reaction) {
-        this.nodes.forEach[node|node.visitsLeft = 1]
-        val reactions = reaction.upstreamAdjacentNodes
-        if (reactions.size > 0) {
-            val minLevel = reactions.fold(newLinkedList, [ list, r |
-                list.add(r.level)
-                return list
-            ]).min
-            val maximalReactions = maximal(reactions.toSet, minLevel)
-            if (maximalReactions.size == 1) {
-                return maximalReactions.get(0)
-            }
+        val reactions = getUpstreamAdjacentNodes(reaction)
+        if (reactions.size == 1) {
+            return reactions.get(0)
         }
         return null
     }
