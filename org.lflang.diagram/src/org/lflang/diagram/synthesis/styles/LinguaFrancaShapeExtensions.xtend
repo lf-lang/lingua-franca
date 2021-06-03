@@ -390,13 +390,11 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 		).boldLineSelectionStyle
 		
 		val labelParts = newArrayList
-		if (timer.definition.offset !== null) {
-		    // TODO handle unresolved variable
-			labelParts += timer.offset.toString//.toText
+		if (timer.offset !== TimerInstance.DEFAULT_OFFSET) {
+			labelParts += timer.offset.toString
 		}
-		if (timer.definition.period !== null) {
-		    // TODO handle unresolved variable
-			labelParts += timer.period.toString//.toText
+		if (timer.period !== TimerInstance.DEFAULT_PERIOD) {
+			labelParts += timer.period.toString
 		}
 		if (!labelParts.empty) {
 			node.addOutsideBottomCenteredNodeLabel(labelParts.join("(", ", ", ")")[it], 8)

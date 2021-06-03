@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.TimeValue
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
@@ -39,10 +40,16 @@ import static extension org.lflang.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class TimerInstance extends TriggerInstance<Timer> {
-	
-	public TimeValue offset = new TimeValue(0, TimeUnit.NONE)
     
-    public TimeValue period = new TimeValue(0, TimeUnit.NONE)
+    /** The global default for offset. */
+    public static val DEFAULT_OFFSET = new TimeValue(0, TimeUnit.NONE)
+    /** The global default for period. */
+    public static val DEFAULT_PERIOD = new TimeValue(0, TimeUnit.NONE)
+    
+    @Accessors(PUBLIC_GETTER)
+	protected TimeValue offset = DEFAULT_OFFSET
+    @Accessors(PUBLIC_GETTER)
+    protected TimeValue period = DEFAULT_PERIOD
 	
 	/**
 	 * Create a new timer instance.
