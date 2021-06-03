@@ -26,12 +26,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
+import com.google.common.collect.HashMultimap
 import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
 import org.lflang.lf.Action
@@ -50,7 +52,6 @@ import org.lflang.lf.Variable
 import org.lflang.lf.WidthSpec
 
 import static extension org.lflang.ASTUtils.*
-import com.google.common.collect.HashMultimap
 
 /**
  * Representation of a runtime instance of a reactor.
@@ -104,6 +105,25 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         super(definition, parent)
         this.reporter = reporter
         this.bankIndex = reactorIndex
+        this.reactorDefinition = definition.reactorClass.toDefinition
+        
+        // check for recursive instantiation
+        var currentParent = parent
+        var foundSelfAsParent = false
+        do {
+            if (currentParent !== null) {
+                if (currentParent.reactorDefinition === this.reactorDefinition) {
+                    foundSelfAsParent = true
+                    currentParent = null // break
+                } else {
+                    currentParent = currentParent.parent
+                }
+            }
+        } while(currentParent !== null)
+        this.recursive = foundSelfAsParent
+        if (recursive) {
+            reporter.reportError(definition, "Recursive reactor instantiation.")
+        }
         
         // If this reactor is actually a bank of reactors, then instantiate
         // each individual reactor in the bank and skip the rest of the
@@ -127,24 +147,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         
         // Apply overrides and instantiate parameters for this reactor instance.
-        for (parameter : definition.reactorClass.toDefinition.allParameters) {
+        for (parameter : reactorDefinition.allParameters) {
             this.parameters.add(new ParameterInstance(parameter, this))
         }
 
-        // Instantiate children for this reactor instance
-        for (child : definition.reactorClass.toDefinition.allInstantiations) {
-            var childInstance = new ReactorInstance(child, this, reporter, reactorToInstances)
-            this.children.add(childInstance)
-            reactorToInstances.put(child.reactorClass.toDefinition, childInstance)
-            // If the child is a bank of instances, add all the bank instances.
-            // These must be added after the bank itself.
-            if (childInstance.bankMembers !== null) {
-                this.children.addAll(childInstance.bankMembers)
-            }
-        }
-
         // Instantiate inputs for this reactor instance
-        for (inputDecl : definition.reactorClass.toDefinition.allInputs) {
+        for (inputDecl : reactorDefinition.allInputs) {
             if (inputDecl.widthSpec === null) {
                 this.inputs.add(new PortInstance(inputDecl, this))
             } else {
@@ -153,7 +161,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
 
         // Instantiate outputs for this reactor instance
-        for (outputDecl : definition.reactorClass.toDefinition.allOutputs) {
+        for (outputDecl : reactorDefinition.allOutputs) {
             if (outputDecl.widthSpec === null) {
                 this.outputs.add(new PortInstance(outputDecl, this))
             } else {
@@ -161,34 +169,57 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
 
-        // Instantiate timers for this reactor instance
-        for (timerDecl : definition.reactorClass.toDefinition.allTimers) {
-            this.timers.add(new TimerInstance(timerDecl, this))
-        }
+		// Do not proccess content (except interface above) if recursive
+		if (!recursive) {
+        	// Instantiate children for this reactor instance
+        	for (child : reactorDefinition.allInstantiations) {
+            	var childInstance = new ReactorInstance(child, this, reporter, reactorToInstances)
+            	this.children.add(childInstance)
+            	reactorToInstances.put(child.reactorClass.toDefinition, childInstance)
+            	// If the child is a bank of instances, add all the bank instances.
+            	// These must be added after the bank itself.
+            	if (childInstance.bankMembers !== null) {
+            	    this.children.addAll(childInstance.bankMembers)
+            	}
+        	}
 
-        // Instantiate actions for this reactor instance
-        for (actionDecl : definition.reactorClass.toDefinition.allActions) {
-            this.actions.add(new ActionInstance(actionDecl, this))
-        }
+        	// Instantiate timers for this reactor instance
+        	for (timerDecl : reactorDefinition.allTimers) {
+        	    this.timers.add(new TimerInstance(timerDecl, this))
+        	}
 
-        establishPortConnections()
+        	// Instantiate actions for this reactor instance
+        	for (actionDecl : reactorDefinition.allActions) {
+        	    this.actions.add(new ActionInstance(actionDecl, this))
+        	}
+
+        	establishPortConnections()
         
-        // Check for dangling inputs or outputs and issue a warning.
-        checkForDanglingConnections()
+        	// Check for dangling inputs or outputs and issue a warning.
+        	checkForDanglingConnections()
 
-        // Create the reaction instances in this reactor instance.
-        // This also establishes all the implied dependencies.
-        // Note that this can only happen _after_ the children, 
-        // port, action, and timer instances have been created.
-        createReactionInstances()
-        
+        	// Create the reaction instances in this reactor instance.
+        	// This also establishes all the implied dependencies.
+        	// Note that this can only happen _after_ the children, 
+        	// port, action, and timer instances have been created.
+        	createReactionInstances()
+        }
     }
+    
+    /** The reactor definition in the AST. */
+    public final Reactor reactorDefinition
+    
+    public final boolean recursive
         
     /** Data structure used by nextPort() to keep track of the next available bank. */
-    var nextBankTable = new LinkedHashMap<VarRef,Integer>()
+    val nextBankTable = new LinkedHashMap<VarRef,Integer>()
 
     /** Data structure used by nextPort() to keep track of the next available port. */
-    var nextPortTable = new LinkedHashMap<PortInstance,Integer>()
+    val nextPortTable = new LinkedHashMap<PortInstance,Integer>()
+    
+    /** Data structure that maps connections to their port instances. */
+    @Accessors(PUBLIC_GETTER)
+    val connections = HashMultimap.<Connection, Pair<PortInstance, PortInstance>>create()
     
     /**
      * Check for dangling connections.
@@ -235,7 +266,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      */
     def establishPortConnections() {
         // FIXME: Replication of this logic exists in GeneratorBase.analyzeFederates
-        for (connection : definition.reactorClass.toDefinition.allConnections) {
+        for (connection : reactorDefinition.allConnections) {
             var leftPort = connection.leftPorts.get(0)
             var leftPortCount = 1
             for (rightPort : connection.rightPorts) {
@@ -464,6 +495,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             this.destinations.put(srcInstance, dstInstances)
         }
         dstInstances.add(dstInstance)
+        
+        connections.put(connection, new Pair(srcInstance, dstInstance))
     }
     
     /** 
@@ -484,7 +517,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     // // Public fields.
     
     /** The action instances belonging to this reactor instance. */
-    public var actions = new LinkedList<ActionInstance>
+    public val actions = new LinkedList<ActionInstance>
     
     /** 
      * The contained reactor instances, in order of declaration.
@@ -492,34 +525,35 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * Reactor (which has bankIndex == -2) followed by each of the
      * bank members (which have bankIndex >= 0).
      */
-    public var LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
+    public val LinkedList<ReactorInstance> children = new LinkedList<ReactorInstance>()
 
     /** A map from sources to destinations as specified by the connections
      *  of this reactor instance. Note that this is redundant, because the same
      *  information is available in the port instances of this reactor and its
      *  children, but it is sometimes convenient to have it collected here.
      */
-    public var LinkedHashMap<PortInstance, LinkedHashSet<PortInstance>> destinations = new LinkedHashMap();
+    public val LinkedHashMap<PortInstance, LinkedHashSet<PortInstance>> destinations = new LinkedHashMap();
 
     /** The input port instances belonging to this reactor instance. */
-    public var inputs = new LinkedList<PortInstance>
+    public val inputs = new LinkedList<PortInstance>
 
     /** The output port instances belonging to this reactor instance. */
-    public var outputs = new LinkedList<PortInstance>
+    public val outputs = new LinkedList<PortInstance>
 
     /** The parameters of this instance. */
-    public var parameters = new LinkedList<ParameterInstance>
+    public val parameters = new LinkedList<ParameterInstance>
 
     /** List of reaction instances for this reactor instance. */
-    public var reactions = new LinkedList<ReactionInstance>();
+    public val reactions = new LinkedList<ReactionInstance>();
 
     /** If non-null, then this reactor has a shutdown action that
      *  needs to be scheduled prior to shutting down the program.
      */
-    public var ActionInstance shutdownActionInstance = null
+    @Accessors(PUBLIC_GETTER)
+    protected var ActionInstance shutdownActionInstance = null
 
     /** The timer instances belonging to this reactor instance. */
-    public var timers = new LinkedList<TimerInstance>
+    public val timers = new LinkedList<TimerInstance>
 
     // ////////////////////////////////////////////////////
     // // Public methods.
@@ -591,7 +625,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @return The trigger instances belonging to this reactor instance.
      */
     def getTriggers() {
-        var triggers = new LinkedHashSet<TriggerInstance<Variable>>
+        var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>
         for (reaction : this.reactions) {
             triggers.addAll(reaction.triggers)
         }
@@ -606,7 +640,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @return The trigger instances belonging to this reactor instance.
      */
     def getTriggersAndReads() {
-        var triggers = new LinkedHashSet<TriggerInstance<Variable>>
+        var triggers = new LinkedHashSet<TriggerInstance<? extends Variable>>
         for (reaction : this.reactions) {
             triggers.addAll(reaction.triggers)
             triggers.addAll(reaction.reads)
@@ -672,22 +706,25 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return _instantiations;
     }
-
+    
     /**
-     * Return the main reactor is there exists one in the hierarchy, or null if there is none.
-     * @return The main reactor in this hierarchy if there is one, or null otherwise.
+     * {@inheritDoc}
      */
-    override ReactorInstance main() {
-        val defn = this.definition.reactorClass.toDefinition
-        if (defn.isMain || defn.isFederated) {
-            return this
+    override ReactorInstance root() {
+        if (parent !== null) {
+            return parent.root()
         } else {
-            if (parent !== null) {
-                return parent.main()
-            } else {
-                return null
-            }
+            return this
         }
+    }
+    
+    /**
+     * Returns whether this is a main or federated reactor.
+     * @return true if reactor definition is marked as main or federated, false otherwise.
+     */
+    def boolean isMainOrFederated() {
+        val defn = this.reactorDefinition
+        return defn !== null && (defn.isMain || defn.isFederated)
     }
     
     /** Return a descriptive string. */
@@ -853,6 +890,26 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return ASTUtils.width(widthSpec, instantiations());
     }
     
+    /**
+     * Returns true if this is a bank of reactors.
+     * @return true if a reactor is a bank, false otherwise
+     */
+    def isBank() {
+        // FIXME magic number
+        return bankIndex == -2
+    }
+    
+    /**
+     * Returns the size of this bank.
+     * @return actual bank size
+     */
+    def int getBankSize() {
+        if (bankMembers !== null) {
+            return bankMembers.size
+        }
+        return -1
+    }
+    
     // ////////////////////////////////////////////////////
     // // Protected fields.
     
@@ -889,8 +946,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      *  that follows from the order in which they are defined.
      */
     protected def createReactionInstances() {
-        var reactions = this.definition.reactorClass.toDefinition.allReactions
-        if (this.definition.reactorClass.toDefinition.reactions !== null) {
+        var reactions = this.reactorDefinition.allReactions
+        if (this.reactorDefinition.reactions !== null) {
             
             var count = 0
 

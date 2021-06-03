@@ -34,7 +34,7 @@ import org.lflang.lf.Variable
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class TriggerInstance<T extends Variable> extends NamedInstance<Variable> {
+class TriggerInstance<T extends Variable> extends NamedInstance<T> {
 
     /** Construct a new instance with the specified definition
      *  and parent. E.g., for a action instance, the definition
@@ -44,7 +44,7 @@ class TriggerInstance<T extends Variable> extends NamedInstance<Variable> {
      *  @param definition The definition in the AST for this instance.
      *  @param parent The reactor instance that creates this instance.
      */
-    protected new(Variable definition, ReactorInstance parent) {
+    protected new(T definition, ReactorInstance parent) {
         super(definition, parent)
     }
 
@@ -82,11 +82,11 @@ class TriggerInstance<T extends Variable> extends NamedInstance<Variable> {
         this.startup
     }
 
-    /** Return the main reactor, which is the top-level parent.
-     *  @return The top-level parent.
+    /**
+     * {@inheritDoc}
      */
-    override ReactorInstance main() {
-        this.parent.main
+    override ReactorInstance root() {
+        this.parent.root()
     }
     
     /**

@@ -25,7 +25,6 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions
 import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis
 import de.cau.cs.kieler.klighd.util.KlighdProperties
 import java.util.Collection
-import java.util.Deque
 import java.util.EnumSet
 import java.util.List
 import java.util.Map
@@ -57,26 +56,22 @@ import org.lflang.diagram.synthesis.styles.ReactorFigureComponents
 import org.lflang.diagram.synthesis.util.CycleVisualization
 import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization
 import org.lflang.diagram.synthesis.util.ReactorIcons
+import org.lflang.diagram.synthesis.util.SynthesisErrorReporter
 import org.lflang.diagram.synthesis.util.UtilityExtensions
-import org.lflang.lf.Action
-import org.lflang.lf.ActionOrigin
+import org.lflang.generator.ActionInstance
+import org.lflang.generator.MultiportInstance
+import org.lflang.generator.ParameterInstance
+import org.lflang.generator.PortInstance
+import org.lflang.generator.ReactionInstance
+import org.lflang.generator.ReactorInstance
+import org.lflang.generator.TimerInstance
+import org.lflang.generator.TriggerInstance
 import org.lflang.lf.Connection
-import org.lflang.lf.Input
-import org.lflang.lf.Instantiation
 import org.lflang.lf.Model
-import org.lflang.lf.Output
-import org.lflang.lf.Parameter
-import org.lflang.lf.Port
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.Timer
-import org.lflang.lf.TriggerRef
-import org.lflang.lf.VarRef
 
 import static extension org.eclipse.emf.ecore.util.EcoreUtil.*
 import static extension org.lflang.ASTUtils.*
 import static extension org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction.*
-import org.lflang.graph.InstanceBinding
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -104,7 +99,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	// -------------------------------------------------------------------------
 
 	// -- INTERNAL --
-	public static val REACTOR_INSTANCE = new Property<InstanceBinding>("org.lflang.linguafranca.diagram.synthesis.reactor.instantiation")
+	public static val REACTOR_INSTANCE = new Property<ReactorInstance>("org.lflang.linguafranca.diagram.synthesis.reactor.instantiation")
 	public static val REACTOR_RECURSIVE_INSTANTIATION = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.recursive.instantiation", false)
     public static val REACTOR_HAS_BANK_PORT_OFFSET = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.bank.offset", false)
     public static val REACTOR_INPUT = new Property<Boolean>("org.lflang.linguafranca.diagram.synthesis.reactor.input", false)
@@ -183,9 +178,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
 		try {
 			// Find main
-			val main = model.reactors.findFirst[primary]
+			val main = model.reactors.findFirst[isMainOrFederated]
 			if (main !== null) {
-				rootNode.children += main.createReactorNode(true, true, null, null, null, newLinkedList, newHashMap)
+			    val reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter(), HashMultimap.create(), emptySet)
+				rootNode.children += reactorInstance.createReactorNode(true, null, null, newHashMap)
 			} else {
 				val messageNode = createNode()
 				messageNode.addErrorMessage(TEXT_NO_MAIN_REACTOR, null)
@@ -196,7 +192,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			if (main === null || SHOW_ALL_REACTORS.booleanValue) {
 				val reactorNodes = newArrayList()
 				for (reactor : model.reactors.filter[it !== main]) {
-					reactorNodes += reactor.createReactorNode(false, main === null, null, HashBasedTable.<Instantiation, Input, KPort>create, HashBasedTable.<Instantiation, Output, KPort>create, newLinkedList, newHashMap)
+				    val reactorInstance = new ReactorInstance(reactor, new SynthesisErrorReporter(), HashMultimap.create(), emptySet)
+					reactorNodes += reactorInstance.createReactorNode(main === null, HashBasedTable.<ReactorInstance, PortInstance, KPort>create, HashBasedTable.<ReactorInstance, PortInstance, KPort>create, newHashMap)
 				}
 				if (!reactorNodes.empty) {
 					// To allow ordering, we need box layout but we also need layered layout for ports thus wrap all node
@@ -232,57 +229,51 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 	
 	private def Collection<KNode> createReactorNode(
-		Reactor reactor,
-		boolean main,
+		ReactorInstance reactorInstance,
 		boolean expandDefault,
-		Instantiation instance,
-		Table<Instantiation, Input, KPort> inputPortsReg,
-		Table<Instantiation, Output, KPort> outputPortsReg,
-		Deque<Pair<Reactor, InstanceBinding>> parentReactors,
-		Map<InstanceBinding, KNode> allReactorNodes
+		Table<ReactorInstance, PortInstance, KPort> inputPortsReg,
+		Table<ReactorInstance, PortInstance, KPort> outputPortsReg,
+		Map<ReactorInstance, KNode> allReactorNodes
 	) {
+		val reactor = reactorInstance.reactorDefinition
+		
 		val node = createNode()
-		val nodes = newArrayList(node)
+        allReactorNodes.put(reactorInstance, node)
 		node.associateWith(reactor)
-		node.ID = main ? "main" : reactor?.name
+		node.ID = reactorInstance.uniqueID
+		node.setProperty(REACTOR_INSTANCE, reactorInstance) // save to distinguish nodes associated with the same reactor
+        
+		val nodes = newArrayList(node)
+		val label = reactorInstance.createReactorLabel()
 
-		val label = reactor?.createReactorLabel(instance)
-		val recursive = parentReactors.exists[key === reactor]
-		if (recursive) {
+		if (reactorInstance.recursive) {
 			// Mark this node
 			node.setProperty(REACTOR_RECURSIVE_INSTANTIATION, true)
 			// Mark root
-			allReactorNodes.get(parentReactors.head.value).setProperty(REACTOR_RECURSIVE_INSTANTIATION, true)
+			allReactorNodes.get(reactorInstance.root()).setProperty(REACTOR_RECURSIVE_INSTANTIATION, true)
 		}
-		val instanceTrail = if (parentReactors.empty) {
-			new InstanceBinding(reactor)
-		} else if (instance !== null) {
-			new InstanceBinding(parentReactors.getLast().value, instance)
-		}
-		allReactorNodes.put(instanceTrail, node)
-		parentReactors.addLast(new Pair(reactor, instanceTrail))
 		
 		if (reactor === null) {
 			node.addErrorMessage(TEXT_REACTOR_NULL, null)
-		} else if (main) {
-			val figure = node.addMainReactorFigure(reactor, label)
+		} else if (reactorInstance.mainOrFederated) {
+			val figure = node.addMainReactorFigure(reactorInstance, label)
 			
-			if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactor.parameters.empty) {
+			if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactorInstance.parameters.empty) {
 				figure.addRectangle() => [
 					invisible = true
 					setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
 					horizontalAlignment = HorizontalAlignment.LEFT
 					
-					addParameterList(reactor.parameters)
+					addParameterList(reactorInstance.parameters)
 				]
 			}
-		
-			if (recursive) {
+
+			if (reactorInstance.recursive) {
 				nodes += node.addErrorComment(TEXT_ERROR_RECURSIVE)
 				figure.errorStyle()
 			} else {
 				figure.addChildArea()
-				node.children += reactor.transformReactorNetwork(emptyMap, emptyMap, parentReactors, allReactorNodes)
+				node.children += reactorInstance.transformReactorNetwork(emptyMap, emptyMap, allReactorNodes)
 			}
 			
 			nodes += reactor.createUserComments(node)
@@ -303,7 +294,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 		} else {
 			// Expanded Rectangle
-			node.addReactorFigure(reactor, instance, label) => [ ReactorFigureComponents comps |
+			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
 				comps.figures.forEach[associateWith(reactor)]
 				comps.outer.setProperty(KlighdProperties.EXPANDED_RENDERING, true)
 				comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
@@ -318,7 +309,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					]
 				}
 				
-				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactor.parameters.empty) {
+				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactorInstance.parameters.empty) {
 					comps.reactor.addRectangle() => [
 						invisible = true
 						if (!SHOW_HYPERLINKS.booleanValue) {
@@ -328,11 +319,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						}
 						horizontalAlignment = HorizontalAlignment.LEFT
 						
-						addParameterList(reactor.parameters)
+						addParameterList(reactorInstance.parameters)
 					]
 				}
 				
-				if (recursive) {
+				if (reactorInstance.recursive) {
 					comps.figures.forEach[errorStyle()]
 				} else {
 					comps.reactor.addChildArea()
@@ -340,17 +331,17 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			]
 
 			// Collapse Rectangle
-			node.addReactorFigure(reactor, instance, label) => [ ReactorFigureComponents comps |
+			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
 				comps.figures.forEach[associateWith(reactor)]
 				comps.outer.setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
-				if (reactor.hasContent && !recursive) {
+				if (reactorInstance.hasContent && !reactorInstance.recursive) {
 					comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
 				}
 				comps.reactor.handleIcon(reactor, true)
 
 				if (SHOW_HYPERLINKS.booleanValue) {
 					// Expand button
-					if (reactor.hasContent && !recursive) {
+					if (reactorInstance.hasContent && !reactorInstance.recursive) {
 						comps.reactor.addTextButton(TEXT_SHOW_ACTION) => [
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
 							addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
@@ -359,46 +350,44 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					}
 				}
 				
-				if (recursive) {
+				if (reactorInstance.recursive) {
 					comps.figures.forEach[errorStyle()]
 				}
 			]
 			
 			// Create ports
-			val inputPorts = <Input, KPort>newHashMap
-			val outputPorts = <Output, KPort>newHashMap
-			for (input : reactor.allInputs.reverseView) {
-				inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), instance.isBank()))
+			val inputPorts = <PortInstance, KPort>newHashMap
+			val outputPorts = <PortInstance, KPort>newHashMap
+			for (input : reactorInstance.inputs.reverseView) {
+				inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
 			}
-			for (output : reactor.allOutputs) {
-				outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), instance.isBank()))
+			for (output : reactorInstance.outputs) {
+				outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
 			}
 			// Mark ports
 			inputPorts.values.forEach[setProperty(REACTOR_INPUT, true)]
             outputPorts.values.forEach[setProperty(REACTOR_OUTPUT, true)]
 
 			// Add content
-			if (reactor.hasContent && !recursive) {
-				node.children += reactor.transformReactorNetwork(inputPorts, outputPorts, parentReactors, allReactorNodes)
+			if (reactorInstance.hasContent && !reactorInstance.recursive) {
+				node.children += reactorInstance.transformReactorNetwork(inputPorts, outputPorts, allReactorNodes)
 			}
 			
 			// Pass port to given tables
-			if (instance !== null) {
+			if (!reactorInstance.isRoot) {
 				if (inputPortsReg !== null) {
 					for (entry : inputPorts.entrySet) {
-						inputPortsReg.put(instance, entry.key, entry.value)
+						inputPortsReg.put(reactorInstance, entry.key, entry.value)
 					}
 				}
 				if (outputPortsReg !== null) {
 					for (entry : outputPorts.entrySet) {
-						outputPortsReg.put(instance, entry.key, entry.value)
+						outputPortsReg.put(reactorInstance, entry.key, entry.value)
 					}
 				}
 			}
 			
-			node.setProperty(REACTOR_INSTANCE, instanceTrail) // save to distinguish nodes associated with the same reactor
-			
-			if (recursive) {
+			if (reactorInstance.recursive) {
 				node.setLayoutOption(KlighdProperties.EXPAND, false)
 				nodes += node.addErrorComment(TEXT_ERROR_RECURSIVE)
 			} else {
@@ -408,8 +397,8 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				node.addInterfaceDependencies(expandDefault)
 			}
 			
-			if (instance !== null) {
-				nodes += instance.createUserComments(node)
+			if (!reactorInstance.isRoot) {
+				nodes += reactor.createUserComments(node)
 				if (!SHOW_ALL_REACTORS.booleanValue) {
 					nodes += reactor.createUserComments(node)
 				}
@@ -419,16 +408,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			
 			node.configureReactorNodeLayout()
 		}
-		
+
 		// Find and annotate cycles
-		if (reactor !== null && instance === null && CYCLE_DETECTION.booleanValue) {
-			val errNode = node.detectAndAnnotateCycles(reactor, allReactorNodes)
+		if (CYCLE_DETECTION.booleanValue) {
+			val errNode = node.detectAndAnnotateCycles(reactorInstance, allReactorNodes)
 			if (errNode !== null) {
 				nodes += errNode
 			}
 		}
-		
-		parentReactors.removeLast()
+
 		return nodes
 	}
 	
@@ -445,13 +433,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 	}
 	
-	private def KNode detectAndAnnotateCycles(KNode node, Reactor reactor, Map<InstanceBinding, KNode> allReactorNodes) {
+	private def KNode detectAndAnnotateCycles(KNode node, ReactorInstance reactorInstance, Map<ReactorInstance, KNode> allReactorNodes) {
 		if (node.getProperty(REACTOR_RECURSIVE_INSTANTIATION)) {
 			node.resetCycleFiltering()
     		return node.addErrorComment(TEXT_ERROR_CONTAINS_RECURSION)
 		} else { // only detect dependency cycles if not recursive
 			try {
-				val hasCycle = reactor.detectAndHighlightCycles(allReactorNodes, [
+				val hasCycle = reactorInstance.detectAndHighlightCycles(allReactorNodes, [
 					if (it instanceof KNode) {
 						val renderings = it.data.filter(typeof(KRendering)).toList
 						if (renderings.size === 1) {
@@ -522,60 +510,59 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	}
 
 	private def Collection<KNode> transformReactorNetwork(
-		Reactor reactor,
-		Map<Input, KPort> parentInputPorts,
-		Map<Output, KPort> parentOutputPorts,
-		Deque<Pair<Reactor, InstanceBinding>> parentReactors,
-		Map<InstanceBinding, KNode> allReactorNodes
+		ReactorInstance reactorInstance,
+		Map<PortInstance, KPort> parentInputPorts,
+		Map<PortInstance, KPort> parentOutputPorts,
+		Map<ReactorInstance, KNode> allReactorNodes
 	) {
 		val nodes = <KNode>newArrayList
-		val inputPorts = HashBasedTable.<Instantiation, Input, KPort>create
-		val outputPorts = HashBasedTable.<Instantiation, Output, KPort>create
-		val reactionNodes = <Reaction, KNode>newHashMap
+		val inputPorts = HashBasedTable.<ReactorInstance, PortInstance, KPort>create
+		val outputPorts = HashBasedTable.<ReactorInstance, PortInstance, KPort>create
+		val reactionNodes = <ReactionInstance, KNode>newHashMap
         val directConnectionDummyNodes = <KPort, KNode>newHashMap
-		val actionDestinations = HashMultimap.<Action, KPort>create
-		val actionSources = HashMultimap.<Action, KPort>create
-		val timerNodes = <Timer, KNode>newHashMap
+		val actionDestinations = HashMultimap.<ActionInstance, KPort>create
+		val actionSources = HashMultimap.<ActionInstance, KPort>create
+		val timerNodes = <TimerInstance, KNode>newHashMap
 		val startupNode = createNode
 		var startupUsed = false
 		val shutdownNode = createNode
 		var shutdownUsed = false
 
 		// Transform instances
-		for (entry : reactor.allInstantiations.reverseView.indexed) {
-			val instance = entry.value
-			val rNodes = instance.reactorClass.toDefinition.createReactorNode(false, instance.getExpansionState?:false, instance, inputPorts, outputPorts, parentReactors, allReactorNodes)
+		for (entry : reactorInstance.children.reverseView.indexed) {
+			val child = entry.value
+			val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
 			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
 			nodes += rNodes
 		}
 		
 		// Create timers
-		for (Timer timer : reactor.allTimers?:emptyList) {
-			val node = createNode().associateWith(timer)
+		for (timer : reactorInstance.timers) {
+			val node = createNode().associateWith(timer.definition)
 			nodes += node
-			nodes += timer.createUserComments(node)
+			nodes += timer.definition.createUserComments(node)
 			timerNodes.put(timer, node)
 			
 			node.addTimerFigure(timer)
 		}
 
 		// Create reactions
-		for (reaction : reactor.allReactions.reverseView) {
-			val idx = reactor.allReactions.indexOf(reaction)
-			val node = createNode().associateWith(reaction)
+		for (reaction : reactorInstance.reactions.reverseView) {
+			val idx = reactorInstance.reactions.indexOf(reaction)
+			val node = createNode().associateWith(reaction.definition)
 			nodes += node
-			nodes += reaction.createUserComments(node)
+			nodes += reaction.definition.createUserComments(node)
 			reactionNodes.put(reaction, node)
-						
+			
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
-			node.setLayoutOption(CoreOptions.PRIORITY, (reactor.allReactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
+			node.setLayoutOption(CoreOptions.PRIORITY, (reactorInstance.reactions.size - idx) * 10 ) // always place with higher priority than reactor nodes
 			node.setLayoutOption(LayeredOptions.POSITION, new KVector(0, idx)) // try order reactions vertically if in one layer
 			
 			node.addReactionFigure(reaction)
 		
 			// connect input
 			var KPort port
-			for (TriggerRef trigger : reaction.triggers?:emptyList) {
+			for (TriggerInstance<?> trigger : reaction.triggers) {
 				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
 					port
 				} else {
@@ -586,33 +573,38 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						}
 					]
 				}
-				if (trigger instanceof VarRef) {
-					if (trigger.variable instanceof Action) {
-						actionDestinations.put(trigger.variable as Action, port)
-					} else {
-						val src = if (trigger.container !== null) {
-							outputPorts.get(trigger.container, trigger.variable)
-						} else if (parentInputPorts.containsKey(trigger.variable)) {
-							parentInputPorts.get(trigger.variable)
-						} else if (timerNodes.containsKey(trigger.variable)) {
-							timerNodes.get(trigger.variable)
-						}
-						if (src !== null) {
-							createDependencyEdge(trigger).connect(src, port)
-						}
-					}
-				} else if (trigger.startup) {
-					createDependencyEdge(trigger).connect(startupNode, port)
-					startupUsed = true
-				} else if (trigger.shutdown) {
-					createDelayEdge(trigger).connect(shutdownNode, port)
-					shutdownUsed = true
-				}
+ 
+                if (trigger instanceof ActionInstance) {
+                    if (trigger.startup) {
+                        createDependencyEdge(trigger).connect(startupNode, port)
+                        startupUsed = true
+                    } if (trigger.shutdown) {
+                        createDelayEdge(trigger).connect(shutdownNode, port)
+                        shutdownUsed = true
+                    } else {
+                        actionDestinations.put(trigger, port)
+                    }
+                } else if (trigger instanceof PortInstance) {
+                    var KPort src = null
+                    if (trigger.parent === reactorInstance) {
+                        src = parentInputPorts.get(trigger)
+                    } else {
+                        src = outputPorts.get(trigger.parent, trigger)
+                    }
+                    if (src !== null) {
+                        createDependencyEdge(trigger).connect(src, port)
+                    }
+                } else if (trigger instanceof TimerInstance) {
+                    val src = timerNodes.get(trigger)
+                    if (src !== null) {
+                        createDependencyEdge(trigger).connect(src, port)
+                    }
+                }
 			}
 			
 			// connect dependencies
 			//port = null // create new ports
-			for (VarRef dep : reaction.sources?:emptyList) {
+			for (TriggerInstance<?> dep : reaction.sources.filter[!reaction.triggers.contains(it)]) {
 				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
 					port
 				} else {
@@ -624,25 +616,22 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						}
 					]
 				}
-				if (dep.variable instanceof Action) { // TODO I think this case is forbidden
-					actionDestinations.put(dep.variable as Action, port)
-				} else {
-					val src = if (dep.container !== null) {
-						outputPorts.get(dep.container, dep.variable)
-					} else if (parentInputPorts.containsKey(dep.variable)) {
-						parentInputPorts.get(dep.variable)
-					} else if (timerNodes.containsKey(dep.variable)) { // TODO I think this is forbidden
-						timerNodes.get(dep.variable)
-					}
-					if (src !== null) {
-						createDependencyEdge(dep).connect(src, port)
-					}
-				}
+				if (dep instanceof PortInstance) {
+                    var KPort src = null
+                    if (dep.parent === reactorInstance) {
+                        src = parentInputPorts.get(dep)
+                    } else {
+                        src = outputPorts.get(dep.parent, dep)
+                    }
+                    if (src !== null) {
+                        createDependencyEdge(dep).connect(src, port)
+                    }
+                }
 			}
 			
 			// connect outputs
 			port = null // create new ports
-			for (VarRef effect : reaction.effects?:emptyList) {
+			for (TriggerInstance<?> effect : reaction.effects?:emptyList) {
 				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
 					port
 				} else {
@@ -650,13 +639,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
 					]
 				}
-				if (effect.variable instanceof Action) {
-					actionSources.put(effect.variable as Action, port)
-				} else {
-					val dst = if (effect.variable instanceof Output) {
-						parentOutputPorts.get(effect.variable)
+				if (effect instanceof ActionInstance) {
+					actionSources.put(effect, port)
+				} else if (effect instanceof PortInstance) {
+					var KPort dst = null
+					if (effect.isOutput) {
+						dst = parentOutputPorts.get(effect)
 					} else {
-						inputPorts.get(effect.container, effect.variable)
+						dst = inputPorts.get(effect.parent, effect)
 					}
 					if (dst !== null) {
 						createDependencyEdge(effect).connect(port, dst)
@@ -669,21 +659,23 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		val actions = newHashSet
 		actions += actionSources.keySet
 		actions += actionDestinations.keySet
-		for (Action action : actions) {
-			val node = createNode().associateWith(action)
+		for (ActionInstance action : actions) {
+			val node = createNode().associateWith(action.definition)
 			nodes += node
-			nodes += action.createUserComments(node)
+			nodes += action.definition.createUserComments(node)
 			
 			node.setLayoutOption(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE)
 			
-			val ports = node.addActionFigureAndPorts(action.origin === ActionOrigin.PHYSICAL ? "P" : "L")
-			if (action.minDelay !== null) {
-				node.addOutsideBottomCenteredNodeLabel('''min delay: «action.minDelay.toText»''', 7)
+			val ports = node.addActionFigureAndPorts(action.isPhysical ? "P" : "L")
+			// TODO handle variables?
+			if (action.minDelay !== null && action.minDelay !== ActionInstance.DEFAULT_MIN_DELAY) {
+				node.addOutsideBottomCenteredNodeLabel('''min delay: «action.minDelay.toString»''', 7)
 			}
-			if (action.minSpacing !== null) {
-                node.addOutsideBottomCenteredNodeLabel('''min spacing: «action.minSpacing.toText»''', 7)
+			// TODO default value?
+			if (action.definition.minSpacing !== null) {
+                node.addOutsideBottomCenteredNodeLabel('''min spacing: «action.minSpacing.toString»''', 7)
             }
-            if (!action.policy.isNullOrEmpty) {
+            if (!action.definition.policy.isNullOrEmpty) {
                 node.addOutsideBottomCenteredNodeLabel('''policy: «action.policy»''', 7)
             }
 			
@@ -699,58 +691,59 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 
 		// Transform connections
-		for (Connection connection : reactor.allConnections?:emptyList) {
-		    for (leftPort : connection.leftPorts) {
-		        for (rightPort : connection.rightPorts) {
-                    val source = if (leftPort?.container !== null) {
-                            outputPorts.get(leftPort.container, leftPort.variable)
-                        } else if (parentInputPorts.containsKey(leftPort?.variable)) {
-                            parentInputPorts.get(leftPort.variable)
-                        }
-                    val target = if (rightPort?.container !== null) {
-                            inputPorts.get(rightPort.container, rightPort.variable)
-                        } else if (parentOutputPorts.containsKey(rightPort?.variable)) {
-                            parentOutputPorts.get(rightPort.variable)
-                        }
-                    val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
-                    if (connection.delay !== null) {
-                        edge.addCenterEdgeLabel(connection.delay.toText) => [
-                            associateWith(connection.delay)
-                            if (connection.physical) {
-                                applyOnEdgePysicalDelayStyle(reactor.primary ? Colors.WHITE : Colors.GRAY_95)
-                            } else {
-                                applyOnEdgeDelayStyle()
-                            }
-                        ]
-                    } else if (connection.physical) {
-                        edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
-                            reactor.primary ? Colors.WHITE : Colors.GRAY_95)
-                    }
-                    if (source !== null && target !== null) {
-                        // check for inside loop (direct in -> out connection with delay)
-                        if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
-                            // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
-                            // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
-                            var dummy = createNode()
-                            if (directConnectionDummyNodes.containsKey(target)) {
-                                dummy = directConnectionDummyNodes.get(target)
-                            } else {
-                                nodes += dummy
-                                directConnectionDummyNodes.put(target, dummy)
-                                
-                                dummy.addInvisibleContainerRendering()
-                                dummy.setNodeSize(0, 0)
-                                
-                                val extraEdge = createIODependencyEdge(null, leftPort.isMultiport() || rightPort.isMultiport())
-                                extraEdge.connect(dummy, target)
-                            }
-                            edge.connect(source, dummy)
+		for (Connection connection : reactorInstance.connections.keySet) {
+		    // TODO check banks
+		    for(lrPair : reactorInstance.connections.get(connection)) {
+    		    val leftPort = lrPair.key
+    		    val rightPort = lrPair.value
+                val source = if (leftPort.parent == reactorInstance) {
+                    parentInputPorts.get(leftPort)
+                } else {
+                    outputPorts.get(leftPort.parent, leftPort)
+                }
+                val target = if (rightPort.parent == reactorInstance) {
+                    parentOutputPorts.get(rightPort)
+                } else {
+                    inputPorts.get(rightPort.parent, rightPort)
+                }
+                val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
+                if (connection.delay !== null) {
+                    edge.addCenterEdgeLabel(connection.delay.toText) => [
+                        associateWith(connection.delay)
+                        if (connection.physical) {
+                            applyOnEdgePysicalDelayStyle(reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
                         } else {
-                            edge.connect(source, target)
+                            applyOnEdgeDelayStyle()
                         }
+                    ]
+                } else if (connection.physical) {
+                    edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
+                        reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+                }
+                if (source !== null && target !== null) {
+                    // check for inside loop (direct in -> out connection with delay)
+                    if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
+                        // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
+                        // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
+                        var dummy = createNode()
+                        if (directConnectionDummyNodes.containsKey(target)) {
+                            dummy = directConnectionDummyNodes.get(target)
+                        } else {
+                            nodes += dummy
+                            directConnectionDummyNodes.put(target, dummy)
+                            
+                            dummy.addInvisibleContainerRendering()
+                            dummy.setNodeSize(0, 0)
+                            
+                            val extraEdge = createIODependencyEdge(null, leftPort.isMultiport() || rightPort.isMultiport())
+                            extraEdge.connect(dummy, target)
+                        }
+                        edge.connect(source, dummy)
+                    } else {
+                        edge.connect(source, target)
                     }
                 }
-		    }
+    		}
 		}
 		
 		// Add startup/shutdown
@@ -781,9 +774,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 		
 		// Add reaction order edges (add last to have them on top of other edges)
-		if (reactor.allReactions.size > 1) {
-			var prevNode = reactionNodes.get(reactor.allReactions.head)
-			for (node : reactor.allReactions.drop(1).map[reactionNodes.get(it)]) {
+		if (reactorInstance.reactions.size > 1) {
+			var prevNode = reactionNodes.get(reactorInstance.reactions.head)
+			for (node : reactorInstance.reactions.drop(1).map[reactionNodes.get(it)]) {
 				val edge = createOrderEdge()
 				edge.source = prevNode
 				edge.target = node
@@ -802,27 +795,26 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		return nodes
 	}
 	
-	private def String createReactorLabel(Reactor reactor,
-        Instantiation instance) {
+	private def String createReactorLabel(ReactorInstance reactorInstance) {
         val b = new StringBuilder
-        if (SHOW_INSTANCE_NAMES.booleanValue && instance !== null) {
-            if (!reactor.isMain && !reactor.isFederated) {
-                b.append(instance.name).append(" : ")
+        if (SHOW_INSTANCE_NAMES.booleanValue && !reactorInstance.isRoot) {
+            if (!reactorInstance.mainOrFederated) {
+                b.append(reactorInstance.name).append(" : ")
             }
         }
-        if (reactor.isMain || reactor.isFederated) {
-            b.append(FileConfig.nameWithoutExtension(reactor.eResource))
+        if (reactorInstance.mainOrFederated) {
+            b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDefinition.eResource))
         } else {
-            b.append(
-                reactor === null ? "<NULL>" : reactor.name ?:
-                    "<Unresolved Reactor>")
+            b.append(reactorInstance.name)
+            // TODO reactivate error handling
+//                reactor === null ? "<NULL>" : reactor.name ?:
+//                    "<Unresolved Reactor>")
         }
-        if (REACTOR_PARAMETER_MODE.objectValue ===
-            ReactorParameterDisplayModes.TITLE && reactor !== null) {
-            if (reactor.parameters.empty) {
+        if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE) {
+            if (reactorInstance.parameters.empty) {
                 b.append("()")
             } else {
-                b.append(reactor.parameters.join("(", ", ", ")") [
+                b.append(reactorInstance.parameters.join("(", ", ", ")") [
                     createParameterLabel(false)
                 ])
             }
@@ -830,7 +822,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         return b.toString()
     }
 	
-	private def addParameterList(KContainerRendering container, List<Parameter> parameters) {
+	private def addParameterList(KContainerRendering container, List<ParameterInstance> parameters) {
 		var cols = 1
 		try {
 			cols = REACTOR_PARAMETER_TABLE_COLS.intValue
@@ -847,13 +839,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		}
 	}
 	
-	private def String createParameterLabel(Parameter param, boolean bullet) {
+	private def String createParameterLabel(ParameterInstance param, boolean bullet) {
 		val b = new StringBuilder
 		if (bullet) {
 			b.append("\u2022 ")
 		}
 		b.append(param.name)
-		val t = ASTUtils.getInferredType(param).toText
+		val t = param.type.toText
 		if (!t.nullOrEmpty) {
 			b.append(":").append(t)
 		}
@@ -953,11 +945,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 	/**
 	 * Translate an input/output into a port.
 	 */
-	private def addIOPort(KNode node, Port lfPort, boolean input, boolean multiport, boolean bank) {
+	private def addIOPort(KNode node, PortInstance lfPort, boolean input, boolean multiport, boolean bank) {
 		val port = createPort
 		node.ports += port
 		
-		port.associateWith(lfPort)
+		port.associateWith(lfPort.definition)
 		port.setPortSize(6, 6)
 		
 		if (input) {
@@ -981,10 +973,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		port.addTrianglePort(multiport)
 		
 		var label = lfPort.name
-		if (SHOW_MULTIPORT_WIDTH.booleanValue && lfPort.widthSpec !== null) {
-		    label += lfPort.widthSpec.toText()
+		if (SHOW_MULTIPORT_WIDTH.booleanValue) {
+            if (lfPort instanceof MultiportInstance) {
+                // TODO Fix unresolvable references in ReactorInstance
+                label += lfPort.width//.toText()
+            }
 		}
-		port.addOutsidePortLabel(label, 8).associateWith(lfPort)
+		port.addOutsidePortLabel(label, 8).associateWith(lfPort.definition)
 
 		return port
 	}

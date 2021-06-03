@@ -10,15 +10,15 @@ import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.util.IndividualSpacings
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.ASTUtils
+import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
+import org.lflang.generator.MultiportInstance
+import org.lflang.generator.PortInstance
+import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Code
 import org.lflang.lf.Host
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Port
 import org.lflang.lf.Reactor
 import org.lflang.lf.Value
-import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
-import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 
 import static extension org.lflang.ASTUtils.*
 
@@ -88,36 +88,46 @@ class UtilityExtensions extends AbstractSynthesisExtensions {
 	/**
 	 * Returns true if the reactor is the primary reactor
 	 */
-	def isPrimary(Reactor reactor) {
+	def isMainOrFederated(Reactor reactor) {
 		return reactor.main || reactor.federated
 	}
 	
     /**
      * Returns true if the port is a multiport
      */
-    def boolean isMultiport(VarRef port) {
-        if (port.variable instanceof Port) {
-            return isMultiport(port.variable as Port)
-        }
-        return false
+    def boolean isMultiport(PortInstance port) {
+        return port instanceof MultiportInstance
     }
-    def boolean isMultiport(Port port) {
-        return port?.widthSpec !== null ? port.widthSpec.width !== 1 : false
-    }
+//    def boolean isMultiport(VarRef port) {
+//        if (port.variable instanceof Port) {
+//            return isMultiport(port.variable as Port)
+//        }
+//        return false
+//    }
+//    def boolean isMultiport(Port port) {
+//        return port?.widthSpec !== null ? port.widthSpec.width !== 1 : false
+//    }
 	
     /**
      * Returns true if the instance is a bank of reactors
      */
-    def boolean isBank(Instantiation ins) {
-        return ins?.widthSpec !== null ? ins.widthSpec.width !== 1 : false
-    }
+//    def boolean isBank(Instantiation ins) {
+//        return ins?.widthSpec !== null ? ins.widthSpec.width !== 1 : false
+//    }
 	
 	/**
 	 * Returns true if the reactor as has inner reactions or instances
 	 */
-	def hasContent(Reactor reactor) {
+	def hasContent(ReactorInstance reactor) {
 		return !reactor.reactions.empty || !reactor.instantiations.empty
 	}
+	
+    /**
+     * 
+     */
+    def isRoot(ReactorInstance ri) {
+        return ri.parent === null
+    }
 	
 	/**
 	 * Trims the hostcode of reactions.

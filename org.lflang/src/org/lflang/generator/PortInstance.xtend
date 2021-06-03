@@ -36,8 +36,8 @@ import org.lflang.lf.Variable
  *  @author{Marten Lohstroh <marten@berkeley.edu>}
  *  @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class PortInstance extends TriggerInstance<Variable> {
-        
+class PortInstance extends TriggerInstance<Port> {
+
     /** Create a runtime instance from the specified definition
      *  and with the specified parent that instantiated it.
      *  @param instance The Instance statement in the AST.
@@ -137,7 +137,7 @@ class PortInstance extends TriggerInstance<Variable> {
      * The index in a multiport array or -1 if this port is not in
      * a multiport array.
      */
-    protected int index
+    protected final int index
     
     /**
      * The enclosing MultiportInstance or null if this is not in a

@@ -8,13 +8,11 @@ import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared
 import java.util.Map
 import java.util.function.Consumer
 import org.eclipse.elk.graph.properties.Property
-import org.lflang.lf.Connection
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Reactor
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis
-import org.lflang.graph.InstanceBinding
+import org.lflang.generator.ReactorInstance
 import org.lflang.graph.TopologyGraph
+import org.lflang.lf.Connection
 
 /**
  * Dependency cycle detection for Lingua Franca diagrams.
@@ -33,15 +31,15 @@ class CycleVisualization extends AbstractSynthesisExtensions {
 	/**
 	 * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements
 	 */
-	def boolean detectAndHighlightCycles(Reactor reactor, Map<InstanceBinding, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
-		val graph = new TopologyGraph(reactor)
+	def boolean detectAndHighlightCycles(ReactorInstance reactorInstance, Map<ReactorInstance, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
+		val graph = new TopologyGraph(null)
 		
         if (!graph.cycles.empty && highlighter !== null) {
 			// Highlight cycles
             for (cycle : graph.cycles) {
             	val allAffectedElements = HashMultimap.create
             	for (elem : cycle) {
-            		allAffectedElements.put(elem, elem.node)
+            		allAffectedElements.put(elem, elem.definition)
             	}
             	
             	for (reactorCrumb : allAffectedElements.keySet) {

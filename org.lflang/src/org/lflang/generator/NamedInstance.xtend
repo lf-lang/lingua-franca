@@ -28,6 +28,7 @@ package org.lflang.generator
 
 import java.util.HashMap
 import org.eclipse.emf.ecore.EObject
+import org.eclipse.xtend.lib.annotations.Accessors
 
 /** Base class for instances with names in Lingua Franca.
  *  
@@ -53,13 +54,14 @@ abstract class NamedInstance<T extends EObject> {
     //// Public fields.
     
     /** The Instantiation AST object from which this was created. */
-    public var T definition
+    @Accessors(PUBLIC_GETTER)
+    protected var T definition
     
     /** A limit on the number of characters returned by uniqueID. */
     public static var identifierLengthLimit = 40
     
     /** The reactor instance that creates this instance. */
-    public var ReactorInstance parent
+    public val ReactorInstance parent
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -88,11 +90,24 @@ abstract class NamedInstance<T extends EObject> {
      */
     abstract def String getName();
     
-    /** Return the main reactor, which is the top-level parent.
+    /** Return the root reactor, which is the top-level parent.
      *  @return The top-level parent.
      */
-    abstract def ReactorInstance main();
-
+    abstract def ReactorInstance root();
+    
+    /** Returns the root reactor if it is marked as as main or federated, otherwise null.
+     *  @return The main/federated top-level parent.
+     */
+    // TODO check if still needed or can be replaced by root()
+    def ReactorInstance main() {
+        val r = this.root()
+        if (r !== null && r.isMainOrFederated()) {
+            return r
+        }
+        return null
+    }
+    
+    
     /** Return an identifier for this instance, which has the form "a_b_c"
      *  or "a_b_c_n", where "c" is the name of this instance, "b" is the name
      *  of its container, and "a" is the name of its container, stopping
@@ -121,7 +136,7 @@ abstract class NamedInstance<T extends EObject> {
             }
             
             // Ensure uniqueness.
-            var toplevel = main()
+            var toplevel = root()
             if (toplevel._uniqueIDCount === null) {
                 toplevel._uniqueIDCount = new HashMap<String,Integer>()
             }
