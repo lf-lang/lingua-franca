@@ -1820,7 +1820,16 @@ class ASTUtils {
     def static createInstantiation(Reactor reactor) {
         val inst = LfFactory.eINSTANCE.createInstantiation
         inst.reactorClass = reactor
-        inst.setName(reactor.name)
+        // If the reactor is federated or at the top level, then it
+        // may not have a name. In the generator's doGenerate()
+        // method, the name gets set using setMainName().
+        // But this may be called before that, e.g. during
+        // diagram synthesis.  We just assign an empty name here.
+        if (reactor.name === null) {
+            inst.setName("")
+        } else {
+            inst.setName(reactor.name)
+        }
         return inst
     }
     
