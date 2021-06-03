@@ -3379,7 +3379,7 @@ class CGenerator extends GeneratorBase {
      *  @param instance The port or action instance.
      *  @return The name of the trigger struct.
      */
-    static def triggerStructName(TriggerInstance<Variable> instance) {
+    static def triggerStructName(TriggerInstance<? extends Variable> instance) {
         return selfStructName(instance.parent) 
                 + '->___'
                 + instance.name

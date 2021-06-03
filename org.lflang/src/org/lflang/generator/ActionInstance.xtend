@@ -26,12 +26,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ASTUtils
 import org.lflang.TimeValue
 import org.lflang.lf.Action
 import org.lflang.lf.ActionOrigin
 import org.lflang.lf.TimeUnit
-import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 
@@ -40,13 +40,23 @@ import static extension org.lflang.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
-class ActionInstance extends TriggerInstance<Variable> {
-        
-    public TimeValue minDelay = new TimeValue(0, TimeUnit.NONE)
+class ActionInstance extends TriggerInstance<Action> {
     
-    public TimeValue minSpacing = null;
+    /** The constant default for a minimum delay. */
+    public static val DEFAULT_MIN_DELAY = new TimeValue(0, TimeUnit.NONE)
     
-    public boolean isPhysical = false;
+    @Accessors(PUBLIC_GETTER)
+    private TimeValue minDelay = DEFAULT_MIN_DELAY
+    
+    // TODO introduce default value?
+    @Accessors(PUBLIC_GETTER)
+    private TimeValue minSpacing = null;
+    
+    @Accessors(PUBLIC_GETTER)
+    private String policy = null;
+    
+    @Accessors(PUBLIC_GETTER)
+    private boolean isPhysical;
     
     /**
      * Create a new timer instance.
@@ -83,6 +93,7 @@ class ActionInstance extends TriggerInstance<Variable> {
             if (definition.origin === ActionOrigin.PHYSICAL) {
                 isPhysical = true
             }
+            policy = definition.policy
         }
     }
 }

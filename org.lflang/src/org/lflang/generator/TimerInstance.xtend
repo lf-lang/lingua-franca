@@ -40,7 +40,7 @@ import static extension org.lflang.ASTUtils.*
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class TimerInstance extends TriggerInstance<Variable> {
+class TimerInstance extends TriggerInstance<Timer> {
 	
 	public TimeValue offset = new TimeValue(0, TimeUnit.NONE)
     
