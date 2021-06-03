@@ -182,7 +182,7 @@
     <requirement
         name="org.jetbrains.kotlin.gradle.feature.feature.group"/>
     <repository
-        url="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last"/>
+        url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
   </setupTask>
   <setupTask
       xsi:type="setup:VariableTask"
@@ -351,6 +351,8 @@
         <requirement
             name="org.eclipse.platform.source.feature.group"/>
         <requirement
+            name="org.jetbrains.kotlin.feature.feature.group"/>
+        <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
             name="org.eclipse.elk.sdk.feature.feature.group"/>
@@ -396,6 +398,8 @@
               url="https://www.pydev.org/updates/"/>
           <repository
               url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
+          <repository
+              url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
         </repositoryList>
       </targlet>
     </setupTask>
