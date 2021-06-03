@@ -29,7 +29,6 @@ import java.util.LinkedHashSet
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port
-import org.lflang.lf.Variable
 
 /** Representation of a runtime instance of a port.
  *  
@@ -71,16 +70,29 @@ class PortInstance extends TriggerInstance<Port> {
 
     /** Set of port instances that receive messages from this port. */
     public LinkedHashSet<PortInstance> dependentPorts = new LinkedHashSet<PortInstance>();
-        
-    /** Port that sends messages to this port, if there is one. */
-    public PortInstance dependsOnPort = null;
-        
+
     /////////////////////////////////////////////
     //// Public Methods
     
-    /** Override the base class to append [index] if this port
-     *  is a multiport instance.
-     *  @return The full name of this instance.
+    /**
+     * Return the list of ports that this port depends on.
+     * For ordinary ports, there is at most one.
+     * For multiports, there may be more than one.
+     */
+    def LinkedHashSet<PortInstance> dependsOnPorts() {
+        if (_dependsOnPorts === null) {
+            _dependsOnPorts = new LinkedHashSet<PortInstance>();
+            if (dependsOnPort !== null) {
+                _dependsOnPorts.add(dependsOnPort);
+            }
+        }
+        return _dependsOnPorts;
+    }
+    
+    /** 
+     * Override the base class to append [index] if this port
+     * is a multiport instance.
+     * @return The full name of this instance.
      */
     override String getFullName() {
         var result = super.getFullName()
@@ -133,6 +145,9 @@ class PortInstance extends TriggerInstance<Port> {
     /////////////////////////////////////////////
     //// Protected Fields
 
+    /** Port that sends messages to this port, if there is one. */
+    protected PortInstance dependsOnPort = null;
+        
     /** 
      * The index in a multiport array or -1 if this port is not in
      * a multiport array.
@@ -143,5 +158,15 @@ class PortInstance extends TriggerInstance<Port> {
      * The enclosing MultiportInstance or null if this is not in a
      * multiport.
      */
-    protected MultiportInstance multiport = null
+    protected MultiportInstance multiport = null    
+
+    /////////////////////////////////////////////
+    //// Private Fields
+
+    /**
+     * List of ports that this port depends on.
+     * For ordinary ports, there is at most one.
+     * For multiports, there may be more than one.
+     */
+    LinkedHashSet<PortInstance> _dependsOnPorts
 }
