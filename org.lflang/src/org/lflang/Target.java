@@ -336,7 +336,16 @@ public enum Target {
             "_Static_assert", // (since C11)
             "_Thread_local" // (since C11)
             )
-            );
+    ),
+    Rust("Rust", true, Arrays.asList(
+            "as",
+            "fn",
+            "trait",
+            "impl",
+            "struct"
+            // todo
+    )
+    );
 
     /**
      * String representation of this target.
