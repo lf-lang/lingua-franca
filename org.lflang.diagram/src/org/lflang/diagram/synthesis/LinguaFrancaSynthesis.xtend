@@ -360,10 +360,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			val inputPorts = <PortInstance, KPort>newHashMap
 			val outputPorts = <PortInstance, KPort>newHashMap
 			for (input : reactorInstance.inputs.reverseView) {
-				inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
+			    // Add only single ports and multiports (not their contained individual ports).
+			    if (input.isMultiport() || input.multiportIndex < 0) {
+				    inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
+			    }
 			}
 			for (output : reactorInstance.outputs) {
-				outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
+                if (output.isMultiport() || output.multiportIndex < 0) {
+				    outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
+			    }
 			}
 			// Mark ports
 			inputPorts.values.forEach[setProperty(REACTOR_INPUT, true)]
@@ -689,57 +694,67 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 		}
 
-		// Transform connections
+		// Transform connections.
+		// The connections data structure maps connections to their connections as they appear
+        // in a visualization of the program. For each connection, there is map
+        // from source ports (single ports and multiports) on the left side of the
+        // connection to a set of destination ports (single ports and multiports)
+        // on the right side of the connection. The ports contained by the multiports
+        // are not represented.		
 		for (Connection connection : reactorInstance.connections.keySet) {
 		    // TODO check banks
-		    for(lrPair : reactorInstance.connections.get(connection)) {
-    		    val leftPort = lrPair.key
-    		    val rightPort = lrPair.value
-                val source = if (leftPort.parent == reactorInstance) {
-                    parentInputPorts.get(leftPort)
-                } else {
-                    outputPorts.get(leftPort.parent, leftPort)
-                }
-                val target = if (rightPort.parent == reactorInstance) {
-                    parentOutputPorts.get(rightPort)
-                } else {
-                    inputPorts.get(rightPort.parent, rightPort)
-                }
-                val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
-                if (connection.delay !== null) {
-                    edge.addCenterEdgeLabel(connection.delay.toText) => [
-                        associateWith(connection.delay)
-                        if (connection.physical) {
-                            applyOnEdgePysicalDelayStyle(reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+		    val connections = reactorInstance.connections.get(connection);
+		    for (leftPort : connections.keySet) {
+                val rightPorts = connections.get(leftPort);
+                for (rightPort : rightPorts) {
+                    val source = if (leftPort.parent == reactorInstance) {
+                            parentInputPorts.get(leftPort)
                         } else {
-                            applyOnEdgeDelayStyle()
+                            outputPorts.get(leftPort.parent, leftPort)
                         }
-                    ]
-                } else if (connection.physical) {
-                    edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
-                        reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
-                }
-                if (source !== null && target !== null) {
-                    // check for inside loop (direct in -> out connection with delay)
-                    if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
-                        // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
-                        // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
-                        var dummy = createNode()
-                        if (directConnectionDummyNodes.containsKey(target)) {
-                            dummy = directConnectionDummyNodes.get(target)
+                    val target = if (rightPort.parent == reactorInstance) {
+                            parentOutputPorts.get(rightPort)
                         } else {
-                            nodes += dummy
-                            directConnectionDummyNodes.put(target, dummy)
-                            
-                            dummy.addInvisibleContainerRendering()
-                            dummy.setNodeSize(0, 0)
-                            
-                            val extraEdge = createIODependencyEdge(null, leftPort.isMultiport() || rightPort.isMultiport())
-                            extraEdge.connect(dummy, target)
+                            inputPorts.get(rightPort.parent, rightPort)
                         }
-                        edge.connect(source, dummy)
-                    } else {
-                        edge.connect(source, target)
+                    val edge = createIODependencyEdge(connection, leftPort.isMultiport() || rightPort.isMultiport())
+                    if (connection.delay !== null) {
+                        edge.addCenterEdgeLabel(connection.delay.toText) => [
+                            associateWith(connection.delay)
+                            if (connection.physical) {
+                                applyOnEdgePysicalDelayStyle(
+                                    reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+                            } else {
+                                applyOnEdgeDelayStyle()
+                            }
+                        ]
+                    } else if (connection.physical) {
+                        edge.addCenterEdgeLabel("---").applyOnEdgePysicalStyle(
+                            reactorInstance.mainOrFederated ? Colors.WHITE : Colors.GRAY_95)
+                    }
+                    if (source !== null && target !== null) {
+                        // check for inside loop (direct in -> out connection with delay)
+                        if (parentInputPorts.values.contains(source) && parentOutputPorts.values.contains(target)) {
+                            // edge.setLayoutOption(CoreOptions.INSIDE_SELF_LOOPS_YO, true) // Does not work as expected
+                            // Introduce dummy node to enable direct connection (that is also hidden when collapsed)
+                            var dummy = createNode()
+                            if (directConnectionDummyNodes.containsKey(target)) {
+                                dummy = directConnectionDummyNodes.get(target)
+                            } else {
+                                nodes += dummy
+                                directConnectionDummyNodes.put(target, dummy)
+
+                                dummy.addInvisibleContainerRendering()
+                                dummy.setNodeSize(0, 0)
+
+                                val extraEdge = createIODependencyEdge(null,
+                                    leftPort.isMultiport() || rightPort.isMultiport())
+                                extraEdge.connect(dummy, target)
+                            }
+                            edge.connect(source, dummy)
+                        } else {
+                            edge.connect(source, target)
+                        }
                     }
                 }
     		}
@@ -804,7 +819,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         if (reactorInstance.mainOrFederated) {
             b.append(FileConfig.nameWithoutExtension(reactorInstance.reactorDefinition.eResource))
         } else {
-            b.append(reactorInstance.name)
+            b.append(reactorInstance.reactorDefinition.name)
             // TODO reactivate error handling
 //                reactor === null ? "<NULL>" : reactor.name ?:
 //                    "<Unresolved Reactor>")
