@@ -25,9 +25,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.generator
 
-import java.util.ArrayList
-import org.lflang.lf.Port
+import java.util.LinkedHashSet
 import org.lflang.ErrorReporter
+import org.lflang.lf.Port
 
 /**
  * Representation of a runtime instance of a multiport.
@@ -88,6 +88,24 @@ class MultiportInstance extends PortInstance {
         }
     }
     
+    /////////////////////////////////////////////
+    //// Public Fields
+
+    /** The array of instances. */ 
+    public val instances = new LinkedHashSet<PortInstance>()
+
+    /////////////////////////////////////////////
+    //// Public Methods
+
+    /**
+     * Return the list of ports that this port depends on.
+     * For ordinary ports, there is at most one.
+     * For multiports, there may be more than one.
+     */
+    override dependsOnPorts() {
+        return instances;
+    }
+
     /**
      * Return the specified port instance in this multiport.
      */
@@ -104,10 +122,4 @@ class MultiportInstance extends PortInstance {
     def getWidth() {
         instances.size
     }
-        
-    /////////////////////////////////////////////
-    //// Public Fields
-
-    /** The array of instances. */ 
-    public val instances = new ArrayList<PortInstance>()
 }
