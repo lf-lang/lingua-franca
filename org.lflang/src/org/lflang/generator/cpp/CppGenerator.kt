@@ -199,9 +199,40 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
         }
     }
 
-    override fun generateDelayBody(action: Action, port: VarRef) = TODO()
-    override fun generateForwardBody(action: Action, port: VarRef) = TODO()
-    override fun generateDelayGeneric() = TODO()
+    /**
+     * Generate code for the body of a reaction that takes an input and
+     * schedules an action with the value of that input.
+     * @param the action to schedule
+     * @param the port to read from
+     */
+    override fun generateDelayBody(action: Action, port: VarRef): String {
+        // Since we cannot easily decide whether a given type evaluates
+        // to void, we leave this job to the target compiler, by calling
+        // the template function below.
+        return """
+        // delay body for ${action.name}
+        lfutil::after_delay(&${action.name}, &${port.name});
+        """.trimIndent()
+    }
+
+    /**
+     * Generate code for the body of a reaction that is triggered by the
+     * given action and writes its value to the given port.
+     * @param the action that triggers the reaction
+     * @param the port to write to
+     */
+    override fun generateForwardBody(action: Action, port: VarRef): String {
+        // Since we cannot easily decide whether a given type evaluates
+        // to void, we leave this job to the target compiler, by calling
+        // the template function below.
+        return """
+        // forward body for ${action.name}
+        lfutil::after_forward(&${action.name}, &${port.name});
+        """.trimIndent()
+    }
+
+    override fun generateDelayGeneric() = "T"
+
     override fun supportsGenerics() = true
 
     override fun getTargetTimeType() = "reactor::Duration"
