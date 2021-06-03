@@ -292,7 +292,7 @@ val InferredType.targetType: String
         this.isUndefined        -> "/* undefined type */"
         this.isTime             -> when {
             this.isFixedSizeList    -> fixedSizeListType("reactor::Duration", this.listSize)
-            this.isVariableSizeList -> variableSizeListType("reactor::Duraction")
+            this.isVariableSizeList -> variableSizeListType("reactor::Duration")
             else                    -> "reactor::Duration"
         }
         this.isFixedSizeList    -> fixedSizeListType(this.baseType(), this.listSize)
