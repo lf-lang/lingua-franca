@@ -32,7 +32,7 @@ class CycleVisualization extends AbstractSynthesisExtensions {
 	 * Performs cycle detection based on the diagram's graph structure and applies given highlighting to the included elements
 	 */
 	def boolean detectAndHighlightCycles(ReactorInstance reactorInstance, Map<ReactorInstance, KNode> allReactorNodes, Consumer<KGraphElement> highlighter) {
-		val graph = new TopologyGraph(null)
+		val graph = new TopologyGraph(reactorInstance)
 		
         if (!graph.cycles.empty && highlighter !== null) {
 			// Highlight cycles
