@@ -58,7 +58,7 @@ class CppPortGenerator(public val reactor: Reactor) {
 
         return if (port.isMultiport) {
             val width = port.width
-            val initializerLists = (0..width).joinToString(", ") { """{"${port.name}_$width", this}""" }
+            val initializerLists = (0 until width).joinToString(", ") { """{"${port.name}_$it", this}""" }
             """std::array<$portType<${port.targetType}>, ${port.width}> ${port.name}{{$initializerLists}};"""
         } else {
             """$portType<${port.targetType}> ${port.name}{"${port.name}", this};"""
