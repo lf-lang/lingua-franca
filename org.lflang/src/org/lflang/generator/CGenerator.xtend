@@ -70,7 +70,6 @@ import org.lflang.lf.VarRef
 import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
-import com.google.common.collect.HashMultimap
 
 /** 
  * Generator for C target. This class generates C code definining each reactor
@@ -321,9 +320,6 @@ class CGenerator extends GeneratorBase {
      */
     var startTimeStepTokens = 0
 
-    public HashMultimap<Reactor, ReactorInstance> reactorToInstances = HashMultimap.<Reactor, ReactorInstance>create
-
-
     // Place to collect code to initialize timers for all reactors.
     protected var startTimers = new StringBuilder()
     var timerCount = 0
@@ -495,7 +491,7 @@ class CGenerator extends GeneratorBase {
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.
-                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, this, reactorToInstances, 
+                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, this, 
                         this.unorderedReactions)
                     this.reactionGraph = new ReactionInstanceGraph(main)
                 }   

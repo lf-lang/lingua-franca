@@ -30,22 +30,21 @@ import com.google.inject.Inject
 import org.eclipse.xtext.testing.InjectWith
 import org.eclipse.xtext.testing.extensions.InjectionExtension
 import org.eclipse.xtext.testing.util.ParseHelper
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.^extension.ExtendWith
+import org.lflang.DefaultErrorReporter
+import org.lflang.ModelInfo
 import org.lflang.generator.CGenerator
+import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Model
 import org.lflang.lf.Reactor
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.^extension.ExtendWith
-import org.lflang.ModelInfo
 import org.lflang.tests.LFInjectorProvider
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.DefaultErrorReporter
-import com.google.common.collect.HashMultimap
-import org.lflang.generator.ReactionInstanceGraph
 
 @ExtendWith(InjectionExtension)
 @InjectWith(LFInjectorProvider)
@@ -109,8 +108,7 @@ class LinguaFrancaDependencyAnalysisTest {
         var message = ""
         try {
             new ReactionInstanceGraph(
-                new ReactorInstance(mainDef.reactorClass.toDefinition, gen,
-                    HashMultimap.<Reactor, ReactorInstance>create, null))
+                new ReactorInstance(mainDef.reactorClass.toDefinition, gen, null))
         } catch(Exception e) {
             message = e.message
         }
