@@ -46,10 +46,9 @@ class CppActionGenerator(private val reactor: Reactor) {
             TODO("How to report errors from here?")
             //action.reportError(
             //    "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!");
-        } else if (action.minDelay?.time != null) {
-            """, ${action.name}{"${action.name}", this, ${action.minDelay.time.toCode()}}"""
         } else {
-            """, ${action.name}{"${action.name}", this}"""
+            val time = action.minDelay?.toTime() ?: "reactor::Duration::zero()"
+            """, ${action.name}{"${action.name}", this, $time}"""
         }
     }
 
