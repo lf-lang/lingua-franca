@@ -28,6 +28,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.lf.Preamble
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.toText
 
 
 class CppPreambleGenerator(
@@ -56,7 +57,7 @@ class CppPreambleGenerator(
                 |#include "reactor-cpp/reactor-cpp.hh"
             ${" |"..includes.joinToString(separator = "\n", prefix = "// include the preambles from imported files \n")}
                 |
-            ${" |"..publicPreambles.joinToString(separator = "\n")}
+            ${" |"..publicPreambles.joinToString(separator = "\n") { it.code.toText() }}
             """.trimMargin()
         }
     }
@@ -75,7 +76,7 @@ class CppPreambleGenerator(
                 |using namespace std::chrono_literals;
                 |using namespace reactor::operators;
                 |
-            ${" |"..privatePreambles.joinToString(separator = "\n")}
+            ${" |"..privatePreambles.joinToString(separator = "\n") { it.code.toText() }}
             """.trimMargin()
         }
     }
