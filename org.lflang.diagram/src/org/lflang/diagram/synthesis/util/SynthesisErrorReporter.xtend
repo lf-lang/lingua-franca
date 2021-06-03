@@ -16,7 +16,7 @@ import org.lflang.ErrorReporter
 import org.eclipse.emf.ecore.EObject
 
 /**
- * @author als
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 class SynthesisErrorReporter implements ErrorReporter {
     
