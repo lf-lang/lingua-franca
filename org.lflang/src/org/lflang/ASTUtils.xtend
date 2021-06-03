@@ -85,24 +85,6 @@ class ASTUtils {
     public static val factory = LfFactory.eINSTANCE
     
     /**
-     * Make a Timer with name "startup" and default parameters.
-     */
-    static def makeStartupTimer() {
-        val startupTimer = factory.createTimer();
-        startupTimer.name = LfPackage.Literals.TRIGGER_REF__STARTUP.name;
-        return startupTimer;
-    }
-    
-    /**
-     * Make an Action with name "shutdown" and default parameters.
-     */
-    static def makeShutdownAction() {
-        val shutdownAction = factory.createAction();
-        shutdownAction.name = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name;
-        return shutdownAction;
-    }
-    
-    /**
      * Find connections in the given resource that have a delay associated with them, 
      * and reroute them via a generated delay reactor.
      * @param resource The AST.
