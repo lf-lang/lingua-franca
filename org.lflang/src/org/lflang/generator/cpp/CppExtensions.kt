@@ -88,14 +88,17 @@ val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
  */
 val Port.isMultiport get() = this.widthSpec != null
 
+/** Get the width of a port */
+val Port.width: Int get() = this.widthSpec?.getWidth() ?: -1
+
 /** Get the reactor that is instantiated in the receiving instantiation */
 val Instantiation.reactor get() = this.reactorClass.toDefinition()
 
 /** Check if the receiver is a bank instantiation */
-val Instantiation.isBank get(): Boolean = this.widthSpec != null
+val Instantiation.isBank: Boolean get() = this.widthSpec != null
 
 /** Get the width of a bank instantiation */
-val Instantiation.width get(): Int = this.widthSpec.getWidth(listOf(this))
+val Instantiation.width: Int get() = this.widthSpec?.getWidth() ?: -1
 
 /* ********************************************************************************************/
 
