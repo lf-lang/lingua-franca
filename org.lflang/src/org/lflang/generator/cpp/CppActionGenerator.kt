@@ -53,7 +53,7 @@ class CppActionGenerator(private val reactor: Reactor) {
     }
 
     private fun initializePhysicalInitializer(action: Action): String {
-        return if (action.minDelay != null || action.minSpacing != null || action.policy.isNullOrEmpty()) {
+        return if (action.minDelay != null || action.minSpacing != null || !action.policy.isNullOrEmpty()) {
             TODO("How to report errors from here?")
             //a.reportError(
             //"minDelay, minSpacing and spacing violation policies are not yet supported for physical actions in reactor-ccp!");
