@@ -102,7 +102,7 @@
                                     <fileset dir="${project.basedir}/src" casesensitive="yes">
                                         <include name="org/lflang/validation/LFValidator.java"/>
                                         <include name="org/lflang/LFRuntimeModule.java"/>
-                                        <include name="org/lflang/LFStandaloneSetup.java"/>
+                                        <!-- <include name="org/lflang/LFStandaloneSetup.java"/>-->
                                         <include name="org/lflang/generator/LFGenerator.java"/>
                                         <include name="org/lflang/scoping/LFScopeProvider.java"/>
                                     </fileset>
