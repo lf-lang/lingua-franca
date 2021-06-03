@@ -71,7 +71,9 @@ class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
 
             reaction.sources.filter(PortInstance).forEach [
                 addEdge(reaction, it)
-                addEdge(it, it.dependsOnPort)
+                for (upstream : it.dependsOnPorts) {
+                    addEdge(it, upstream)
+                }
             ]
             
             // If this is not an unordered reaction, then create a dependency
