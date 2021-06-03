@@ -28,8 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang
 
 import java.util.HashSet
+import java.util.LinkedList
+import java.util.List
 import java.util.Set
+import org.lflang.generator.ReactorInstance
 import org.lflang.graph.InstantiationGraph
+import org.lflang.graph.TopologyGraph
 import org.lflang.lf.Assignment
 import org.lflang.lf.Deadline
 import org.lflang.lf.Instantiation
@@ -39,12 +43,6 @@ import org.lflang.lf.Reactor
 import org.lflang.lf.TargetDecl
 
 import static extension org.lflang.ASTUtils.*
-import org.lflang.graph.TopologyGraph
-import org.lflang.generator.ReactorInstance
-import org.lflang.lf.LfFactory
-import com.google.common.collect.HashMultimap
-import java.util.List
-import java.util.LinkedList
 
 /**
  * A helper class for analyzing the AST. This class is instantiated once for each compilation. 
@@ -94,8 +92,6 @@ class ModelInfo {
     
     public List<ReactorInstance> topLevelReactorInstances
     
-    public HashMultimap<Reactor, ReactorInstance> reactorToInstances = HashMultimap.<Reactor, ReactorInstance>create
-    
     /**
      * Whether or not the model information has been updated at least once.
      */
@@ -114,10 +110,10 @@ class ModelInfo {
             val main = model.reactors.findFirst[it.isMain || it.isFederated]
             topLevelReactorInstances = new LinkedList()
             if (main !== null) {
-                val inst = new ReactorInstance(main, reporter, reactorToInstances, null)
+                val inst = new ReactorInstance(main, reporter, null)
                 topLevelReactorInstances.add(inst)
             } else {
-                model.reactors.forEach[ topLevelReactorInstances.add(new ReactorInstance(it, reporter, reactorToInstances, null))]
+                model.reactors.forEach[ topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))]
             }
             this.topologyGraph = new TopologyGraph(topLevelReactorInstances)
         }

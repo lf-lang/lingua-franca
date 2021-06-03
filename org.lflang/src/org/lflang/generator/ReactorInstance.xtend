@@ -26,7 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import com.google.common.collect.HashMultimap
 import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
@@ -72,8 +71,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Create a new instantiation hierarchy that starts with the given top-level reactor.
      */
-    new(Reactor reactor, ErrorReporter reporter, HashMultimap<Reactor, ReactorInstance> reactorToInstances, Set<Reaction> unorderedReactions) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter, reactorToInstances)
+    new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
+        this(ASTUtils.createInstantiation(reactor), null, reporter)
         if (unorderedReactions !== null) {
             ReactorInstance.unorderedReactions = unorderedReactions    
         }
@@ -86,10 +85,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * @param parent The parent, or null for the main rector.
      * @param generator The generator (for error reporting).
      */
-    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator, HashMultimap<Reactor, ReactorInstance> reactorToInstances) {
+    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator) {
         // If the reactor is being instantiated with new[width], then pass -2
         // to the constructor, otherwise pass -1.
-        this(definition, parent, generator, reactorToInstances, (definition.widthSpec !== null)? -2 : -1)
+        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
     }
 
     /**
@@ -103,7 +102,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * reactor in a bank of reactors otherwise.
      */
     private new(Instantiation definition, ReactorInstance parent,
-        ErrorReporter reporter, HashMultimap<Reactor, ReactorInstance> reactorToInstances, int reactorIndex) {
+        ErrorReporter reporter, int reactorIndex) {
         super(definition, parent)
         this.reporter = reporter
         this.bankIndex = reactorIndex
@@ -137,7 +136,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             if (width > 0) {
                 this.bankMembers = new ArrayList<ReactorInstance>(width)
                 for (var index = 0; index < width; index++) {
-                    var childInstance = new ReactorInstance(definition, parent, reporter, reactorToInstances, index)
+                    var childInstance = new ReactorInstance(definition, parent, reporter, index)
                     this.bankMembers.add(childInstance)
                     childInstance.bank = this
                     childInstance.bankIndex = index
@@ -175,9 +174,8 @@ class ReactorInstance extends NamedInstance<Instantiation> {
 		if (!recursive) {
         	// Instantiate children for this reactor instance
         	for (child : reactorDefinition.allInstantiations) {
-            	var childInstance = new ReactorInstance(child, this, reporter, reactorToInstances)
+            	var childInstance = new ReactorInstance(child, this, reporter)
             	this.children.add(childInstance)
-            	reactorToInstances.put(child.reactorClass.toDefinition, childInstance)
             	// If the child is a bank of instances, add all the bank instances.
             	// These must be added after the bank itself.
             	if (childInstance.bankMembers !== null) {
@@ -917,8 +915,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
+     * If this reactor is in a bank of reactors, return the reactor instance
+     * representing the bank. Otherwise, return null.
+     */
+    def getBankMaster() {
+        return bank;
+    }
+    
+    /**
      * Returns the size of this bank.
-     * @return actual bank size
+     * @return actual bank size or -1 if this is not a bank master.
      */
     def int getBankSize() {
         if (bankMembers !== null) {

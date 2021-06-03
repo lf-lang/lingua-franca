@@ -181,7 +181,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// Find main
 			val main = model.reactors.findFirst[isMainOrFederated]
 			if (main !== null) {
-			    val reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter(), HashMultimap.create(), emptySet)
+			    val reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter(), emptySet)
 				rootNode.children += reactorInstance.createReactorNode(true, null, null, newHashMap)
 			} else {
 				val messageNode = createNode()
@@ -193,7 +193,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			if (main === null || SHOW_ALL_REACTORS.booleanValue) {
 				val reactorNodes = newArrayList()
 				for (reactor : model.reactors.filter[it !== main]) {
-				    val reactorInstance = new ReactorInstance(reactor, new SynthesisErrorReporter(), HashMultimap.create(), emptySet)
+				    val reactorInstance = new ReactorInstance(reactor, new SynthesisErrorReporter(), emptySet)
 					reactorNodes += reactorInstance.createReactorNode(main === null, HashBasedTable.<ReactorInstance, PortInstance, KPort>create, HashBasedTable.<ReactorInstance, PortInstance, KPort>create, newHashMap)
 				}
 				if (!reactorNodes.empty) {
