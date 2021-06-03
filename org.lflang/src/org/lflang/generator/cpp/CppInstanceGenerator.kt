@@ -40,7 +40,7 @@ class CppInstanceGenerator(
     private val Instantiation.type: String
         get() {
             return if (this.reactor.isGeneric)
-                """${this.reactor.name}<${this.typeParms.joinToString(", ") { it.toText() }}>s"""
+                """${this.reactor.name}<${this.typeParms.joinToString(", ") { it.toText() }}>"""
             else
                 this.reactor.name
         }
