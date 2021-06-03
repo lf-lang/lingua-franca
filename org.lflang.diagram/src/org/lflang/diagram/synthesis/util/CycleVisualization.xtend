@@ -37,6 +37,7 @@ class CycleVisualization extends AbstractSynthesisExtensions {
         if (!graph.cycles.empty && highlighter !== null) {
 			// Highlight cycles
             for (cycle : graph.cycles) {
+                // FIXME: Why is cycle being copied into a multimap?
             	val allAffectedElements = HashMultimap.create
             	for (elem : cycle) {
             		allAffectedElements.put(elem, elem.definition)
@@ -45,58 +46,68 @@ class CycleVisualization extends AbstractSynthesisExtensions {
             	for (reactorCrumb : allAffectedElements.keySet) {
             		val affectedElements = allAffectedElements.get(reactorCrumb)
             		val reactorNode = allReactorNodes.get(reactorCrumb)
-            		reactorNode.setProperty(DEPENDENCY_CYCLE, true)
-            		highlighter.accept(reactorNode)
-            		
-            		// Reactor edges
-            		for (cycleEgde : reactorNode.outgoingEdges.filter[
-            			affectedElements.contains(sourcePort.sourceElement()) &&
-            			(
+            		// FIXME: reactorNode may be null because allAffectedElements
+            		// includes ports as well as ReactorInstances, so we check here.
+            		// However, now the cycle does not get highlighted.
+            		if (reactorNode !== null) {
+                        reactorNode.setProperty(DEPENDENCY_CYCLE, true)
+                        highlighter.accept(reactorNode)
+
+                        // Reactor edges
+                        for (cycleEgde : reactorNode.outgoingEdges.filter [
+                            affectedElements.contains(sourcePort.sourceElement()) && (
             				(
-            					!target.sourceIsReactor() &&
-            					allAffectedElements.values.contains(target.sourceElement())
+            					!target.sourceIsReactor() && allAffectedElements.values.contains(target.sourceElement())
             				) || (
             					target.sourceIsReactor() &&
-            					allAffectedElements.keySet.contains(target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)) &&
-            					allAffectedElements.get(target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)).contains(targetPort.sourceElement())
+                                allAffectedElements.keySet.contains(
+                                    target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)) &&
+                                allAffectedElements.get(target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)).
+                                    contains(targetPort.sourceElement())
             				)
             			)
-            		]) {
-            			// FIXME: Still hard-coded semantics
-            			if (!(cycleEgde.sourceElement() instanceof Connection) || (cycleEgde.sourceElement() as Connection).delay === null) {
-	            			cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
-            				highlighter.accept(cycleEgde)
-            			}
-            		}
-            		
-            		// Reactor ports
-            		for (cyclePort : reactorNode.ports.filter[affectedElements.contains(it.sourceElement())]) {
-            			cyclePort.setProperty(DEPENDENCY_CYCLE, true)
-            			highlighter.accept(cyclePort)
-            		}
-            		
-            		// Child Nodes
-					for (childNode : reactorNode.children.filter[affectedElements.contains(it.sourceElement()) && !sourceIsReactor]) {
-            			childNode.setProperty(DEPENDENCY_CYCLE, true)
-            			highlighter.accept(childNode)
-            			
-						for (cycleEgde : childNode.outgoingEdges.filter[
-            				(
-            					!target.sourceIsReactor() &&
-            					affectedElements.contains(target.sourceElement())
+                        ]) {
+                            // FIXME: Still hard-coded semantics
+                            if (!(cycleEgde.sourceElement() instanceof Connection) ||
+                                (cycleEgde.sourceElement() as Connection).delay === null) {
+                                cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
+                                highlighter.accept(cycleEgde)
+                            }
+                        }
+
+                        // Reactor ports
+                        for (cyclePort : reactorNode.ports.filter[affectedElements.contains(it.sourceElement())]) {
+                            cyclePort.setProperty(DEPENDENCY_CYCLE, true)
+                            highlighter.accept(cyclePort)
+                        }
+
+                        // Child Nodes
+                        for (childNode : reactorNode.children.filter [
+                            affectedElements.contains(it.sourceElement()) && !sourceIsReactor
+                        ]) {
+                            childNode.setProperty(DEPENDENCY_CYCLE, true)
+                            highlighter.accept(childNode)
+
+                            for (cycleEgde : childNode.outgoingEdges.filter [
+                                (
+            					!target.sourceIsReactor() && affectedElements.contains(target.sourceElement())
             				) || (
             					target.sourceIsReactor() &&
-            					allAffectedElements.keySet.contains(target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)) &&
-            					allAffectedElements.get(target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)).contains(targetPort.sourceElement())
+                                    allAffectedElements.keySet.contains(
+                                        target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)) &&
+                                    allAffectedElements.get(target.getProperty(LinguaFrancaSynthesis.REACTOR_INSTANCE)).
+                                        contains(targetPort.sourceElement())
             				)
-	            		]) {
-	            			// FIXME: Still hard-coded semantics
-	            			if (!(cycleEgde.sourceElement() instanceof Connection) || (cycleEgde.sourceElement() as Connection).delay === null) {
-		            			cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
-		            			highlighter.accept(cycleEgde)
-	            			}
-	            		}
-            		}
+                            ]) {
+                                // FIXME: Still hard-coded semantics
+                                if (!(cycleEgde.sourceElement() instanceof Connection) ||
+                                    (cycleEgde.sourceElement() as Connection).delay === null) {
+                                    cycleEgde.setProperty(DEPENDENCY_CYCLE, true)
+                                    highlighter.accept(cycleEgde)
+                                }
+                            }
+                        }
+                    }
             	}
             }
             return true
