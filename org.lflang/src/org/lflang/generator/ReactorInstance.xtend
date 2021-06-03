@@ -219,9 +219,16 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     /** Data structure used by nextPort() to keep track of the next available port. */
     val nextPortTable = new LinkedHashMap<PortInstance,Integer>()
     
-    /** Data structure that maps connections to their port instances. */
+    /** 
+     * Data structure that maps connections to their connections as they appear
+     * in a visualization of the program. For each connection, there is map
+     * from source ports (single ports and multiports) on the left side of the
+     * connection to a set of destination ports (single ports and multiports)
+     * on the right side of the connection. The ports contained by the multiports
+     * are not represented.
+     */
     @Accessors(PUBLIC_GETTER)
-    val connections = HashMultimap.<Connection, Pair<PortInstance, PortInstance>>create()
+    val connections = new LinkedHashMap<Connection,LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>>()
     
     /**
      * Check for dangling connections.
@@ -498,7 +505,27 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         dstInstances.add(dstInstance)
         
-        connections.put(connection, new Pair(srcInstance, dstInstance))
+        // The diagram package needs to know, for each single port
+        // or multiport (not the ports within the multiport), which
+        // other single ports or multiports they are connected to.
+        // Record that here.
+        var src = srcInstance.multiport as PortInstance;
+        if (src === null) src = srcInstance; // Not in a multiport.
+        
+        var dst = dstInstance.multiport as PortInstance;
+        if (dst === null) dst = dstInstance; // Not in a multiport.
+
+        var links = connections.get(connection);
+        if (links === null) {
+            links = new LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>();
+            connections.put(connection, links);
+        }
+        var destinations = links.get(src);
+        if (destinations === null) {
+            destinations = new LinkedHashSet<PortInstance>();
+            links.put(src, destinations);
+        }
+        destinations.add(dst);
     }
     
     /** 
