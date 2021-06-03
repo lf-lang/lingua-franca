@@ -167,7 +167,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         val lhsPorts = enumarateAllPortsFromReferences(c.leftPorts)
         val rhsPorts = enumarateAllPortsFromReferences(c.rightPorts)
 
-        return (lhsPorts zip rhsPorts).joinToString(", ") {
+        return (lhsPorts zip rhsPorts).joinToString("\n") {
             "${it.first.toCode()}.bind_to(&${it.second.toCode()});"
         }
     }
