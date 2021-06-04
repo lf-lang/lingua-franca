@@ -1,3 +1,18 @@
+*.lft
+*.out
+*.class
+*.DS_Store
+*.xml_gen
+*.xtendbin
+*._trace
+.project/
+.settings/
+**/bin/
+!./bin/
+**/build/
+**/test-bin/
+**/src-gen/
+**/xtend-gen/
 # Created by https://www.toptal.com/developers/gitignore/api/intellij,gradle,eclipse,maven,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=intellij,gradle,eclipse,maven,visualstudiocode
 
@@ -135,22 +150,3 @@ gradle-app.setting
 **/build/
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,gradle,eclipse,maven,visualstudiocode
-
-# Custom entries
-*.lft
-*.out
-*.class
-*.DS_Store
-*.xml_gen
-*.xtendbin
-*._trace
-**/bin/
-!./bin/
-**/build/
-**/test-bin/
-**/src-gen/
-**/xtend-gen/
-test/Cpp/include
-test/Cpp/share
-test/Cpp/lib
-
