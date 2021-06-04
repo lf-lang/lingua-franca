@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.lf.*
+import kotlin.math.ceil
 
 /**
  * A code generator for the assemble() method of a C++ reactor class
@@ -152,7 +153,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             val port = ref.variable as Port
             val bankIndexes = if (container?.isBank == true) (0 until container.getValidWitdh()) else listOf<Int?>(null)
             val portIndexes = if (port.isMultiport) (0 until port.getValidWitdh()) else listOf<Int?>(null)
-            // calculate the cartesion product af both index lists defined above
+            // calculate the Cartesian product af both index lists defined above
             // TODO iterate over banks or ports first?
             val indexPairs = portIndexes.flatMap { portIdx -> bankIndexes.map { bankIdx -> portIdx to bankIdx } }
             ports.addAll(indexPairs.map { PortReference(port, it.first, container, it.second) })
@@ -161,13 +162,21 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     }
 
     private fun declareConnection(c: Connection): String {
-        if (c.isIsIterated)
-            TODO("Broadcast connections are not yet supported")
-
         val lhsPorts = enumarateAllPortsFromReferences(c.leftPorts)
         val rhsPorts = enumarateAllPortsFromReferences(c.rightPorts)
 
-        return (lhsPorts zip rhsPorts).joinToString("\n") {
+        // If the connection is a broadcast connection, then repeat the lhs ports until it is equal
+        // or greater to the number of rhs ports. Otherwise, continue with the unmodified list of lhs
+        // ports
+        val iteratedLhsPorts = if (c.isIsIterated) {
+            val numIterations = ceil(rhsPorts.size.toDouble() / lhsPorts.size.toDouble()).toInt()
+            (1..numIterations).flatMap { lhsPorts }
+        } else {
+            lhsPorts
+        }
+
+        // bind each pair of lhs and rhs ports individually
+        return (iteratedLhsPorts zip rhsPorts).joinToString("\n") {
             "${it.first.toCode()}.bind_to(&${it.second.toCode()});"
         }
     }
