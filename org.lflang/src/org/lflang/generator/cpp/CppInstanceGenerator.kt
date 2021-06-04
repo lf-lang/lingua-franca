@@ -33,7 +33,6 @@ import org.lflang.toText
 /** A code genarator for reactor instances */
 class CppInstanceGenerator(
     private val reactor: Reactor,
-    private val parameterGenerator: CppParameterGenerator,
     private val fileConfig: CppFileConfig
 ) {
 
@@ -62,11 +61,11 @@ class CppInstanceGenerator(
         } else if (assignment == null) {
             // If no assignment was found, then the parameter is not overwritten and we assign the
             // default value
-            with(parameterGenerator) { param.defaultValue }
+            with(CppParameterGenerator) { param.defaultValue }
         } else {
             // Otherwise, we use the assigned value.
             val initializers = assignment.rhs.map { if (param.isOfTimeType) it.toTime() else it.toCode() }
-            with(parameterGenerator) { param.generateInstance(initializers) }
+            with(CppParameterGenerator) { param.generateInstance(initializers) }
         }
     }
 
