@@ -537,9 +537,12 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		// Transform instances
 		for (entry : reactorInstance.children.reverseView.indexed) {
 			val child = entry.value
-			val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
-			rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
-			nodes += rNodes
+			// Do not render individual reactors in a bank.
+			if (child.getBankMaster() === null) {
+			    val rNodes = child.createReactorNode(child.getExpansionState?:false, inputPorts, outputPorts, allReactorNodes)
+			    rNodes.head.setLayoutOption(CoreOptions.PRIORITY, entry.key)
+			    nodes += rNodes
+		    }
 		}
 		
 		// Create timers
