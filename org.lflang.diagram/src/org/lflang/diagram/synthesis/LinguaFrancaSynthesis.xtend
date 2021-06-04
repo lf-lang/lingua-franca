@@ -259,7 +259,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 		} else if (reactorInstance.mainOrFederated) {
 			val figure = node.addMainReactorFigure(reactorInstance, label)
 			
-			if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactorInstance.parameters.empty) {
+			if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE 
+			    && !reactorInstance.parameters.empty
+			) {
 				figure.addRectangle() => [
 					invisible = true
 					setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 4, 0)
@@ -294,6 +296,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				node.setLayoutOption(LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.^default * 0.5f)
 			}
 		} else {
+            // If the reactor is a bank, then obtain the details from the first
+            // element of the bank rather than the bank itself.
+            val instance = if (reactorInstance.bankSize > 0) {
+                reactorInstance.bankMembers.get(0)
+            } else {
+                reactorInstance
+            }
+            
 			// Expanded Rectangle
 			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
 				comps.figures.forEach[associateWith(reactor)]
@@ -310,7 +320,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					]
 				}
 				
-				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE && !reactorInstance.parameters.empty) {
+				if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TABLE 
+				    && !instance.parameters.empty
+				) {
 					comps.reactor.addRectangle() => [
 						invisible = true
 						if (!SHOW_HYPERLINKS.booleanValue) {
@@ -320,11 +332,11 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 						}
 						horizontalAlignment = HorizontalAlignment.LEFT
 						
-						addParameterList(reactorInstance.parameters)
+						addParameterList(instance.parameters)
 					]
 				}
 				
-				if (reactorInstance.recursive) {
+				if (instance.recursive) {
 					comps.figures.forEach[errorStyle()]
 				} else {
 					comps.reactor.addChildArea()
@@ -335,14 +347,14 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			node.addReactorFigure(reactorInstance, label) => [ ReactorFigureComponents comps |
 				comps.figures.forEach[associateWith(reactor)]
 				comps.outer.setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
-				if (reactorInstance.hasContent && !reactorInstance.recursive) {
+				if (instance.hasContent && !instance.recursive) {
 					comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
 				}
 				comps.reactor.handleIcon(reactor, true)
 
 				if (SHOW_HYPERLINKS.booleanValue) {
 					// Expand button
-					if (reactorInstance.hasContent && !reactorInstance.recursive) {
+					if (instance.hasContent && !instance.recursive) {
 						comps.reactor.addTextButton(TEXT_SHOW_ACTION) => [
 							setGridPlacementData().from(LEFT, 8, 0, TOP, 0, 0).to(RIGHT, 8, 0, BOTTOM, 8, 0)
 							addSingleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)
@@ -351,7 +363,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 					}
 				}
 				
-				if (reactorInstance.recursive) {
+				if (instance.recursive) {
 					comps.figures.forEach[errorStyle()]
 				}
 			]
@@ -359,13 +371,13 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// Create ports
 			val inputPorts = <PortInstance, KPort>newHashMap
 			val outputPorts = <PortInstance, KPort>newHashMap
-			for (input : reactorInstance.inputs.reverseView) {
+			for (input : instance.inputs.reverseView) {
 			    // Add only single ports and multiports (not their contained individual ports).
 			    if (input.isMultiport() || input.multiportIndex < 0) {
 				    inputPorts.put(input, node.addIOPort(input, true, input.isMultiport(), reactorInstance.isBank()))
 			    }
 			}
-			for (output : reactorInstance.outputs) {
+			for (output : instance.outputs) {
                 if (output.isMultiport() || output.multiportIndex < 0) {
 				    outputPorts.put(output, node.addIOPort(output, false, output.isMultiport(), reactorInstance.isBank()))
 			    }
@@ -375,25 +387,25 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             outputPorts.values.forEach[setProperty(REACTOR_OUTPUT, true)]
 
 			// Add content
-			if (reactorInstance.hasContent && !reactorInstance.recursive) {
-				node.children += reactorInstance.transformReactorNetwork(inputPorts, outputPorts, allReactorNodes)
+			if (instance.hasContent && !instance.recursive) {
+				node.children += instance.transformReactorNetwork(inputPorts, outputPorts, allReactorNodes)
 			}
 			
 			// Pass port to given tables
-			if (!reactorInstance.isRoot) {
+			if (!instance.isRoot) {
 				if (inputPortsReg !== null) {
 					for (entry : inputPorts.entrySet) {
-						inputPortsReg.put(reactorInstance, entry.key, entry.value)
+						inputPortsReg.put(instance, entry.key, entry.value)
 					}
 				}
 				if (outputPortsReg !== null) {
 					for (entry : outputPorts.entrySet) {
-						outputPortsReg.put(reactorInstance, entry.key, entry.value)
+						outputPortsReg.put(instance, entry.key, entry.value)
 					}
 				}
 			}
 			
-			if (reactorInstance.recursive) {
+			if (instance.recursive) {
 				node.setLayoutOption(KlighdProperties.EXPAND, false)
 				nodes += node.addErrorComment(TEXT_ERROR_RECURSIVE)
 			} else {
@@ -403,7 +415,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				node.addInterfaceDependencies(expandDefault)
 			}
 			
-			if (!reactorInstance.isRoot) {
+			if (!instance.isRoot) {
 				nodes += reactor.createUserComments(node)
 				if (!SHOW_ALL_REACTORS.booleanValue) {
 					nodes += reactor.createUserComments(node)
@@ -828,10 +840,17 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 //                    "<Unresolved Reactor>")
         }
         if (REACTOR_PARAMETER_MODE.objectValue === ReactorParameterDisplayModes.TITLE) {
-            if (reactorInstance.parameters.empty) {
+            // If the reactor is a bank, then obtain the details from the first
+            // element of the bank rather than the bank itself.
+            val instance = if (reactorInstance.bankSize > 0) {
+                reactorInstance.bankMembers.get(0)
+            } else {
+                reactorInstance
+            }
+            if (instance.parameters.empty) {
                 b.append("()")
             } else {
-                b.append(reactorInstance.parameters.join("(", ", ", ")") [
+                b.append(instance.parameters.join("(", ", ", ")") [
                     createParameterLabel(false)
                 ])
             }
