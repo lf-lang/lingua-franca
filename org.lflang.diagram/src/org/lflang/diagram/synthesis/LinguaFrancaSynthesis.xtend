@@ -663,7 +663,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				} else if (effect instanceof PortInstance) {
 					var KPort dst = null
 					if (effect.isOutput) {
-						dst = parentOutputPorts.get(effect)
+					    // If this is a reaction driving a multiport
+					    // output of the container, only show one
+					    // connection, not one for each member of
+					    // the multiport.
+					    if (effect.multiportIndex() == 0) {
+					        dst = parentOutputPorts.get(effect.multiportParent)
+					    } else {
+						    dst = parentOutputPorts.get(effect)
+						}
 					} else {
 						dst = inputPorts.get(effect.parent, effect)
 					}
