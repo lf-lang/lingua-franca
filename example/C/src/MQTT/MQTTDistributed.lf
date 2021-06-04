@@ -37,14 +37,14 @@
  * MQTT broker, such as mosquitto, running.
  * 
  * The Eclipse Paho library for MQTT clients can be obtained here:
- * https://github.com/eclipse/paho.mqtt.c.
+ * [https://github.com/eclipse/paho.mqtt.c].
  * 
- * This openSSL library (see https://www.openssl.org) is here:
- * https://github.com/openssl/openssl.git
+ * This openSSL library (see [https://www.openssl.org]) is here:
+ * [https://github.com/openssl/openssl.git].
  * 
  * Finally, you need an MQTT broker to be running. For example,
  * the Mosquitto Eclipse project provides one that can be downloaded
- * at https://mosquitto.org/download/.
+ * at [https://mosquitto.org/download/].
  * Alternatively, on a Mac, you can use homebrew:
  * 
  *     brew install mosquitto
