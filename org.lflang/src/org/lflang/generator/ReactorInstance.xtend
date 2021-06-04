@@ -933,6 +933,14 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         return -1
     }
     
+    /**
+     * Returns the members of this bank, or null if there are none.
+     * @return actual bank size or -1 if this is not a bank master.
+     */
+    def getBankMembers() {
+        bankMembers
+    }
+
     // ////////////////////////////////////////////////////
     // // Protected fields.
     
