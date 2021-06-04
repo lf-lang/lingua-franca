@@ -111,6 +111,14 @@ class PortInstance extends TriggerInstance<Port> {
         return this.index
     }
     
+    /**
+     * Return the multiport parent if this port is an instance
+     * within a multiport, and return null otherwise.
+     */
+     def multiportParent() {
+         return multiport
+     }
+    
     /** Return true if the port is an input. */
     def isInput() {
         definition instanceof Input
