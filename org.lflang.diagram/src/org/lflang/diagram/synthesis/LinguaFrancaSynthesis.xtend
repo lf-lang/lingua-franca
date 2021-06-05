@@ -416,7 +416,9 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			}
 			
 			if (!instance.isRoot) {
-				nodes += reactor.createUserComments(node)
+				// If all reactors are being shown, then only put the label on
+				// the reactor definition, not on its instances. Otherwise,
+				// add the annotation now.
 				if (!SHOW_ALL_REACTORS.booleanValue) {
 					nodes += reactor.createUserComments(node)
 				}
