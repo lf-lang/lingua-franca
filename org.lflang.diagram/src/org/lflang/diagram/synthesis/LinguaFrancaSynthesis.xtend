@@ -653,34 +653,39 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// connect outputs
 			port = null // create new ports
 			for (TriggerInstance<?> effect : reaction.effects?:emptyList) {
-				port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
-					port
-				} else {
-					node.addInvisiblePort() => [
-						setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
-					]
-				}
-				if (effect instanceof ActionInstance) {
-					actionSources.put(effect, port)
-				} else if (effect instanceof PortInstance) {
-					var KPort dst = null
-					if (effect.isOutput) {
-					    // If this is a reaction driving a multiport
-					    // output of the container, only show one
-					    // connection, not one for each member of
-					    // the multiport.
-					    if (effect.multiportIndex() == 0) {
-					        dst = parentOutputPorts.get(effect.multiportParent)
-					    } else {
-						    dst = parentOutputPorts.get(effect)
-						}
-					} else {
-						dst = inputPorts.get(effect.parent, effect)
-					}
-					if (dst !== null) {
-						createDependencyEdge(effect).connect(port, dst)
-					}
-				}
+			    // Skip this effect if it is a multiport or a multiport instance other than index 0.
+			    if (!(effect instanceof PortInstance) 
+			        || (effect as PortInstance).multiportIndex <= 0
+			    ) {
+                    port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
+                        port
+                    } else {
+                        node.addInvisiblePort() => [
+                            setLayoutOption(CoreOptions.PORT_SIDE, PortSide.EAST)
+                        ]
+                    }
+                    if (effect instanceof ActionInstance) {
+                        actionSources.put(effect, port)
+                    } else if (effect instanceof PortInstance) {
+                        var KPort dst = null
+                        if (effect.isOutput) {
+                            // If this is a reaction driving a multiport
+                            // output of the container, only show one
+                            // connection, not one for each member of
+                            // the multiport. Also, skip the multiport itself.
+                            if (effect.multiportIndex() == 0) {
+                                dst = parentOutputPorts.get(effect.multiportParent)
+                            } else {
+                                dst = parentOutputPorts.get(effect)
+                            }
+                        } else {
+                            dst = inputPorts.get(effect.parent, effect)
+                        }
+                        if (dst !== null) {
+                            createDependencyEdge(effect).connect(port, dst)
+                        }
+                    }
+                }
 			}
 		}
 		
