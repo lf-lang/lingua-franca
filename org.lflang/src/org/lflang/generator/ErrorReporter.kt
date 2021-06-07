@@ -7,7 +7,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.generator.cpp.CppFileConfig
 
-class ErrorReporter(private val fileConfig: CppFileConfig) {
+class ErrorReporter(private val fileConfig: CppFileConfig) : IErrorReporter {
 
     private var errorsOccurred = false
 
@@ -43,18 +43,17 @@ class ErrorReporter(private val fileConfig: CppFileConfig) {
      * @param message The error message.
      * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
      * @param line The line number or null if it is not known.
-     * @param object The Ecore object, or null if it is not known.
      * @param resource The resource, or null if it is not known.
      */
-    fun report(
+    override fun report(
         message: String,
         severity: Int,
-        line: Int? = null,
-        resource: IResource? = null,
+        line: Int?,
+        resource: IResource?,
     ): String {
         val isError = severity == IMarker.SEVERITY_ERROR
         if (isError) {
-            errorsOccurred = true;
+            errorsOccurred = true
         }
 
         val header = if (isError) "ERROR" else "WARNING"
@@ -113,23 +112,39 @@ class ErrorReporter(private val fileConfig: CppFileConfig) {
      * Report an error.
      * @param message The error message.
      */
-    fun reportError(message: String): String = report(message, IMarker.SEVERITY_ERROR)
+    override fun reportError(message: String): String = report(message, IMarker.SEVERITY_ERROR, null, null)
 
     /**
      * Report a warning.
      * @param message The warning message.
      */
-    fun reportWarning(message: String): String = report(message, IMarker.SEVERITY_WARNING)
+    override fun reportWarning(message: String): String = report(message, IMarker.SEVERITY_WARNING, null, null)
+
+    /**
+     * Report an error on the receiving parse tree object.
+     *
+     * @param obj     The parse tree object.
+     * @param message The error message.
+     */
+    override fun reportError(obj: EObject, message: String): String = report(message, IMarker.SEVERITY_ERROR, obj)
+
+    /**
+     * Report a warning on the receiving parse tree object.
+     *
+     * @param obj     The parse tree object.
+     * @param message The error message.
+     */
+    override fun reportWaring(obj: EObject, message: String): String = report(message, IMarker.SEVERITY_WARNING, obj)
 
     /** Report an error on the receiving parse tree object.
      *  @receiver The parse tree object.
      *  @param message The error message.
      */
-    fun EObject.reportError(message: String): String = report(message, IMarker.SEVERITY_ERROR, obj = this)
+    fun EObject.extReportError(message: String): String = report(message, IMarker.SEVERITY_ERROR, obj = this)
 
     /** Report a warning on the receiving parse tree object.
      *  @receiver The parse tree object.
      *  @param message The error message.
      */
-    fun EObject.reportWarning(message: String): String = report(message, IMarker.SEVERITY_WARNING, obj = this)
+    fun EObject.extReportWarning(message: String): String = report(message, IMarker.SEVERITY_WARNING, obj = this)
 }
