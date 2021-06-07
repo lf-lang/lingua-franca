@@ -46,17 +46,17 @@ class ActionInstance extends TriggerInstance<Action> {
     public static val DEFAULT_MIN_DELAY = new TimeValue(0, TimeUnit.NONE)
     
     @Accessors(PUBLIC_GETTER)
-    private TimeValue minDelay = DEFAULT_MIN_DELAY
+    TimeValue minDelay = DEFAULT_MIN_DELAY
     
     // TODO introduce default value?
     @Accessors(PUBLIC_GETTER)
-    private TimeValue minSpacing = null;
+    TimeValue minSpacing = null;
     
     @Accessors(PUBLIC_GETTER)
-    private String policy = null;
+    String policy = null;
     
     @Accessors(PUBLIC_GETTER)
-    private boolean isPhysical;
+    boolean isPhysical;
     
     /**
      * Create a new timer instance.
