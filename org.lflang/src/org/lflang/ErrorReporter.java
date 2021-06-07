@@ -2,6 +2,12 @@ package org.lflang;
 
 import org.eclipse.emf.ecore.EObject;
 
+/**
+ * Interface for reporting errors.
+ * 
+ * @author Edward A. Lee <eal@berkeley.edu>
+ * @author Marten Lohstroh <marten@berkeley.edu>
+ */
 public interface ErrorReporter {
     
     /**

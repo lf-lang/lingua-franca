@@ -1824,9 +1824,14 @@ class ASTUtils {
         // may not have a name. In the generator's doGenerate()
         // method, the name gets set using setMainName().
         // But this may be called before that, e.g. during
-        // diagram synthesis.  We just assign an empty name here.
+        // diagram synthesis.  We assign a temporary name here.
         if (reactor.name === null) {
-            inst.setName("")
+            if (reactor.isFederated || reactor.isMain) {
+                inst.setName("main")    
+            } else {
+                inst.setName("")
+            }
+            
         } else {
             inst.setName(reactor.name)
         }
