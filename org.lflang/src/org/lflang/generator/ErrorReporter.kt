@@ -1,11 +1,13 @@
 package org.lflang.generator
 
 import org.eclipse.core.resources.IMarker
+import org.eclipse.core.resources.IResource
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
+import org.lflang.generator.cpp.CppFileConfig
 
-class ErrorReporter {
+class ErrorReporter(private val fileConfig: CppFileConfig) {
 
     private var errorsOccurred = false
 
@@ -13,6 +15,23 @@ class ErrorReporter {
     private fun Resource.toPath() = org.lflang.FileConfig.toPath(this)
 
     private val EObject.node get() = NodeModelUtils.getNode(this)
+
+    /**
+     * Report a warning or error on the specified object
+     *
+     * The caller should not throw an exception so execution can continue.
+     * This will print the error message to stderr.
+     * If running in INTEGRATED mode (within the Eclipse IDE), then this also
+     * adds a marker to the editor.
+     * @param message The error message.
+     * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
+     * @param obj The Ecore object, or null if it is not known.
+     */
+    private fun report(message: String, severity: Int, obj: EObject): String {
+        val line = obj.node.startLine
+        val resource = fileConfig.getIResource(obj.eResource())
+        return report(message, severity, line, resource)
+    }
 
     /**
      * Report a warning or error on the specified line of the specified resource.
@@ -27,21 +46,24 @@ class ErrorReporter {
      * @param object The Ecore object, or null if it is not known.
      * @param resource The resource, or null if it is not known.
      */
-    private fun report(message: String, severity: Int, obj: EObject? = null): String {
+    fun report(
+        message: String,
+        severity: Int,
+        line: Int? = null,
+        resource: IResource? = null,
+    ): String {
         val isError = severity == IMarker.SEVERITY_ERROR
         if (isError) {
             errorsOccurred = true;
         }
 
         val header = if (isError) "ERROR" else "WARNING"
-        val line = obj?.node?.startLine
-        val fullPath = obj?.eResource()?.toPath()?.toString()
+        val fullPath = resource?.fullPath?.toString() ?: "unknown path"
 
-        if (obj == null)
+        if (line == null || fullPath == "unknown path")
             System.err.println("$header:\n$message")
         else
             System.err.println("$header: $fullPath $line\n$message")
-
 
         /* TODO!
         // If running in INTEGRATED mode, create a marker in the IDE for the error.
