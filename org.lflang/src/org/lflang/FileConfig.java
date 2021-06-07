@@ -3,7 +3,6 @@ package org.lflang;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,10 +14,10 @@ import java.util.stream.Collectors;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
@@ -246,7 +245,7 @@ public class FileConfig {
      * 
      * @param uri A java.net.uri of the form "file://path".
      */
-    public IResource getIResource(URI uri) {
+    public IResource getIResource(java.net.URI uri) {
         IResource resource = iResource; // Default resource.
         // For some peculiar reason known only to Eclipse developers,
         // the resource cannot be used directly but has to be converted
