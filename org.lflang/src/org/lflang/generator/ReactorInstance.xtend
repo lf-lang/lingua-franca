@@ -962,6 +962,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
      * If this reactor is in a bank of reactors, its index, otherwise, -1
      * for an ordinary reactor and -2 for a placeholder for a bank of reactors.
      */
+    @Accessors(PUBLIC_GETTER)
     protected int bankIndex = -1
 
     /** The generator that created this reactor instance. */
