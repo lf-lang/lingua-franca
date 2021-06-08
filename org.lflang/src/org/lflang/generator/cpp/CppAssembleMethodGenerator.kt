@@ -95,10 +95,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
-    private fun Port.getValidWitdh(): Int {
-        val width = this.width
+    private fun Port.getValidWidth(): Int {
         if (width < 0) {
-            // TODO Support paramterized widths
+            // TODO Support parameterized widths
             // TODO Properly report the error
             throw RuntimeException(
                 "Cannot determine port width. " +
@@ -108,10 +107,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         return width
     }
 
-    private fun Instantiation.getValidWitdh(): Int {
-        val width = this.width
+    private fun Instantiation.getValidWidth(): Int {
         if (width < 0) {
-            // TODO Support paramterized widths
+            // TODO Support parameterized widths
             // TODO Properly report the error
             throw RuntimeException(
                 "Cannot determine port width. " +
@@ -152,8 +150,8 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         for (ref in references) {
             val container = ref.container
             val port = ref.variable as Port
-            val bankIndexes = if (container?.isBank == true) (0 until container.getValidWitdh()) else listOf<Int?>(null)
-            val portIndexes = if (port.isMultiport) (0 until port.getValidWitdh()) else listOf<Int?>(null)
+            val bankIndexes = if (container?.isBank == true) (0 until container.getValidWidth()) else listOf<Int?>(null)
+            val portIndexes = if (port.isMultiport) (0 until port.getValidWidth()) else listOf<Int?>(null)
             // calculate the Cartesian product af both index lists defined above
             // TODO iterate over banks or ports first?
             val indexPairs = portIndexes.flatMap { portIdx -> bankIndexes.map { bankIdx -> portIdx to bankIdx } }
