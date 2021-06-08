@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator
 
 import java.util.LinkedHashSet
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.ErrorReporter
 import org.lflang.lf.Port
 
@@ -91,8 +92,9 @@ class MultiportInstance extends PortInstance {
     /////////////////////////////////////////////
     //// Public Fields
 
-    /** The array of instances. */ 
-    public val instances = new LinkedHashSet<PortInstance>()
+    /** The array of instances. */
+    @Accessors(PUBLIC_GETTER)
+    val instances = new LinkedHashSet<PortInstance>()
 
     /////////////////////////////////////////////
     //// Public Methods
