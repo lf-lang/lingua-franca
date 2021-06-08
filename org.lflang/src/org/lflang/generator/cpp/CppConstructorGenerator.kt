@@ -46,7 +46,7 @@ class CppConstructorGenerator(
 
     private fun signature(withDefaults: Boolean): String {
         if (reactor.parameters.size > 0) {
-            val parameterArgs = with(parameters) {
+            val parameterArgs = with(CppParameterGenerator) {
                 if (withDefaults) reactor.parameters.map { "${it.constRefType} ${it.name} = ${it.defaultValue}" }
                 else reactor.parameters.map { "${it.constRefType} ${it.name}" }
             }

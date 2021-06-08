@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.inferredType
 import org.lflang.isOfTimeType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -31,32 +32,37 @@ import org.lflang.lf.Reactor
 /** A C++ code generator for reactor parameters */
 class CppParameterGenerator(private val reactor: Reactor) {
 
-    /**
-     * Create a list of initializers for the given parameter
-     *
-     * TODO This is redundant to GeneratorBase.getInitializerList
-     */
-    private fun getInitializerList(param: Parameter) = param.init.map {
-        if (param.isOfTimeType) it.toTime()
-        else it.toCode()
-    }
+    companion object {
 
-    /** Get a parameter instantiated from the given initializer list */
-    fun Parameter.generateInstance(initializers: List<String>) =
-        when {
-            initializers.size > 1  -> "${this.targetType}{${initializers.joinToString(", ")}}"
-            initializers.size == 1 -> initializers[0]
-            else                   -> "${this.targetType}{}"
+        /**
+         * Create a list of initializers for the given parameter
+         *
+         * TODO This is redundant to GeneratorBase.getInitializerList
+         */
+        private fun Parameter.getInitializerList() = init.map {
+            if (isOfTimeType) it.toTime()
+            else it.toCode()
         }
 
-    /** Get the default value of the receiver parameter in C++ code */
-    val Parameter.defaultValue: String get() = this.generateInstance(getInitializerList(this))
+        /** Type of the parameter in C++ code */
+        val Parameter.targetType get():String = this.inferredType.targetType
 
-    /** Get a C++ type that is a const reference to the parameter type */
-    val Parameter.constRefType: String
-        get() =
-            "std::add_lvalue_reference<std::add_const<${this.targetType}>::type>::type"
+        /** Get a parameter instantiated from the given initializer list */
+        fun Parameter.generateInstance(initializers: List<String>) =
+            when {
+                initializers.size > 1  -> "$targetType{${initializers.joinToString(", ")}}"
+                initializers.size == 1 -> initializers[0]
+                else                   -> "$targetType{}"
+            }
 
+        /** Get the default value of the receiver parameter in C++ code */
+        val Parameter.defaultValue: String get() = generateInstance(getInitializerList())
+
+        /** Get a C++ type that is a const reference to the parameter type */
+        val Parameter.constRefType: String
+            get() =
+                "std::add_lvalue_reference<std::add_const<$targetType>::type>::type"
+    }
 
     /** Generate all parameter declarations */
     fun generateDeclarations() =

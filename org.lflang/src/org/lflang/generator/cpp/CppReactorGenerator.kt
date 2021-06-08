@@ -46,7 +46,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
 
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
-    private val instances = CppInstanceGenerator(reactor, parameters, fileConfig)
+    private val instances = CppInstanceGenerator(reactor, fileConfig)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor)

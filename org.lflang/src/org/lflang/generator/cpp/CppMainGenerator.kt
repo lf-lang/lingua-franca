@@ -1,6 +1,8 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
+import org.lflang.inferredType
+import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 
 /** C++ code generator responsible for generating the main file including the main() function */
@@ -9,6 +11,34 @@ class CppMainGenerator(
     private val targetConfig: TargetConfig,
     private val fileConfig: CppFileConfig,
 ) {
+
+    private fun generateParmeterParser(param: Parameter): String {
+        with(CppParameterGenerator) {
+            with(param) {
+                val result = """
+                $targetType $name = $defaultValue;
+                auto opt_$name = app.add_option("--$name", $name, "The $name parameter passed to the main reactor ${main.name}.");
+            """.trimIndent()
+
+                return if (!inferredType.isTime)
+                    result
+                else {
+                    // need additional code for parsing times
+                    result + """
+                        opt_$name->check([](const std::string& val){ return validate_time_string(val); });
+                        opt_$name->type_name("'FLOAT UNIT'");
+                        opt_$name->default_str(time_to_quoted_string($name)); 
+                    """.trimIndent()
+                }
+            }
+        }
+    }
+
+    private fun generateMainReactorInstantiation(): String =
+        if (main.parameters.isEmpty())
+            """auto main = std ::make_unique<${main.name}> ("${main.name}", &e);"""
+        else
+            """auto main = std ::make_unique<${main.name}> ("${main.name}", &e, ${main.parameters.joinToString(", ") { it.name }});"""
 
     fun generateCode() = with(prependOperator) {
         """
@@ -63,18 +93,7 @@ class CppMainGenerator(
             |  bool keepalive {${targetConfig.keepalive}};
             |  app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
             |
-            |  /* TODO!
-            |  «FOR p : mainReactor.parameters»
-            |
-            |    «p.targetType» «p.name» = «p.targetInitializer»;
-            |    auto opt_«p.name» = app.add_option("--«p.name»", «p.name», "The «p.name» parameter passed to the main reactor «mainReactor.name».");
-            |    «IF p.inferredType.isTime»
-            |          opt_«p.name»->check([](const std::string& val){ return validate_time_string(val); });
-            |          opt_«p.name»->type_name("'FLOAT UNIT'");
-            |          opt_«p.name»->default_str(time_to_quoted_string(«p.name»));
-            |    «ENDIF»
-            |  «ENDFOR»
-            |  */
+        ${" |"..main.parameters.joinToString("\n\n") { generateParmeterParser(it) }}
             |
             |  app.get_formatter()->column_width(50);
             |
@@ -83,8 +102,7 @@ class CppMainGenerator(
             |  reactor::Environment e{threads, keepalive, fast};
             |
             |  // instantiate the main reactor
-            |  auto main = std ::make_unique<${main.name}> ("${main.name}", &e);
-            |  // TODO support parameters: , &e«FOR p : mainReactor.parameters BEFORE ", " SEPARATOR ", "»«p.name»«ENDFOR»);
+            |  ${generateMainReactorInstantiation()}
             |
             |  // optionally instantiate the timeout reactor
             |  std::unique_ptr<Timeout> t{nullptr};
