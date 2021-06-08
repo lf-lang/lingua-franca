@@ -13,7 +13,7 @@ class CppMainGenerator(
     private val fileConfig: CppFileConfig,
 ) {
 
-    private fun generateParmeterParser(param: Parameter): String {
+    private fun generateParameterParser(param: Parameter): String {
         with(CppParameterGenerator) {
             with(param) {
                 val result = """
@@ -94,7 +94,7 @@ class CppMainGenerator(
             |  bool keepalive {${targetConfig.keepalive}};
             |  app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
             |
-        ${" |"..main.parameters.joinToString("\n\n") { generateParmeterParser(it) }}
+        ${" |"..main.parameters.joinToString("\n\n") { generateParameterParser(it) }}
             |
             |  app.get_formatter()->column_width(50);
             |
