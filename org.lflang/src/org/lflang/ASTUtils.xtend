@@ -1463,26 +1463,6 @@ class ASTUtils {
     }
 
     /**
-     * Return the width of the port reference if it can be determined
-     * and otherwise return -1.  The width can be determined if the
-     * port is not a multiport in a bank of reactors (the width will 1)
-     * or if the width of the multiport and/or the bank is given by a
-     * literal constant.
-     * 
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param reference A reference to a port.
-     * @return The width of a port or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int multiportWidthIfLiteral(VarRef reference) {
-        return inferPortWidth(reference, null, null);
-    }   
-    
-    /**
      * Given the specification of the width of either a bank of reactors
      * or a multiport, return the width if it can be determined and otherwise
      * return -1. The width can be determined if it is given by one or more
