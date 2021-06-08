@@ -53,7 +53,6 @@ import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
-import org.lflang.lf.LfPackage
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
@@ -69,7 +68,6 @@ import org.lflang.lf.TypeParm
 import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 import org.lflang.lf.WidthSpec
-import org.lflang.lf.Model
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -1817,6 +1815,10 @@ class ASTUtils {
         }
     }
     
+    /**
+     * Create a new instantiation node with the given reactor as its defining class.
+     * @param reactor The reactor class to create an instantiation of.
+     */
     def static createInstantiation(Reactor reactor) {
         val inst = LfFactory.eINSTANCE.createInstantiation
         inst.reactorClass = reactor
