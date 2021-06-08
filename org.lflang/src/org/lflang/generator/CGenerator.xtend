@@ -4298,7 +4298,7 @@ class CGenerator extends GeneratorBase {
      * Generate code for the body of a reaction that handles an output
      * that is to be sent over the network.
      * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The ID of the destination port.
+     * @param receivingPort The variable reference to the destination port.
      * @param receivingPortID The ID of the destination port.
      * @param sendingFed The sending federate.
      * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
