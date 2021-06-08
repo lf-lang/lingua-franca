@@ -96,6 +96,13 @@ private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): Li
     superClasses.orEmpty().mapNotNull { it.toDefinition().collector() }.flatten() + this.collector()
 
 /**
+ * Check if the reactor class uses generics
+ * @receiver the reactor to check
+ * @true true if the reactor uses generics
+ */
+val Reactor.isGeneric get() = ASTUtils.isGeneric(toDefinition())
+
+/**
  * Report whether the given parameter has been declared a type or has been
  * inferred to be a type. Note that if the parameter was declared to be a
  * time, its initialization may still be faulty (assigning a value that is

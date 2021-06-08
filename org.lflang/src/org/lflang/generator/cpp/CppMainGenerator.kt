@@ -5,6 +5,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.toUnixString
 
 /** C++ code generator responsible for generating the main file including the main() function */
 class CppMainGenerator(
