@@ -107,7 +107,7 @@ class MultiportInstance extends PortInstance {
     override dependsOnPorts() {
         return instances;
     }
-
+    
     /**
      * Return the specified port instance in this multiport.
      */
