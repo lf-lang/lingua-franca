@@ -169,16 +169,6 @@ object prependOperator {
 // TODO: Most of the extensions defined here should be moved to companion objects of their
 //  corresponding generator classes. See for instance the CppParameterGenerator
 
-/** Convert a log level to a severity number understood by the reactor-cpp runtime. */
-val TargetProperty.LogLevel.severity
-    get() = when (this) {
-        TargetProperty.LogLevel.ERROR -> 1
-        TargetProperty.LogLevel.WARN  -> 2
-        TargetProperty.LogLevel.INFO  -> 3
-        TargetProperty.LogLevel.LOG   -> 4
-        TargetProperty.LogLevel.DEBUG -> 4
-    }
-
 /** Get a C++ representation of a LF unit. */
 val TimeValue.cppUnit
     get() = when (this.unit) {
