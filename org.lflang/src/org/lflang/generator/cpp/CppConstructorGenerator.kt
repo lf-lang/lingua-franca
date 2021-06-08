@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.Reactor
 
 /** A code generator for the C++ constructor of a reactor class */
@@ -66,7 +67,7 @@ class CppConstructorGenerator(
 
     /** Get the constructor definition */
     fun generateDefinition(): String {
-        return with(prependOperator) {
+        return with(PrependOperator) {
             """
                 |${reactor.templateLine}
                 |${reactor.templateName}::${signature(false)}

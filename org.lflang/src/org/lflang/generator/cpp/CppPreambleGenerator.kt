@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.Preamble
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.toText
@@ -45,7 +46,7 @@ class CppPreambleGenerator(
 
         val publicPreambles = preambles.filter { it.isPublic }
 
-        return with(prependOperator) {
+        return with(PrependOperator) {
             """
             ${" |"..fileComment(resource)}
                 |
@@ -65,7 +66,7 @@ class CppPreambleGenerator(
     fun generateSource(): String {
         val privatePreambles = preambles.filter { it.isPrivate }
 
-        return with(prependOperator) {
+        return with(PrependOperator) {
             """
             ${" |"..fileComment(resource)}
                 |

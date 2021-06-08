@@ -100,69 +100,6 @@ val Instantiation.isBank: Boolean get() = this.widthSpec != null
 /** Get the width of a bank instantiation */
 val Instantiation.width: Int get() = this.widthSpec?.getWidth() ?: -1
 
-/* ********************************************************************************************/
-
-/** An object that defines the ,, (rangeTo) operator to prepend each line of the rhs multiline string with the lhs prefix.
- *
- * This is a neat little trick that allows for convenient insertion of multiline strings in string templates
- * while correctly managing the indentation. Consider this multiline string:
- * ```
- * val foo = """
- *    void foo() {
- *        // do something useful
- *    }""".trimIndent()
- * ```
- * Inserting this multiline string into another one like this:
- * ```
- * val bar = """
- *     class Bar {
- *         $foo
- *     };""".trimIndent()
- * ```
- * will unfortunately not produce  correctly indented result. Instead, the result will look like this:
- * * ```
- *     class Bar {
- *         void foo()
- *     // do something useful
- * }
- *     };""".trimIndent()
- * ```
- * This is because kotlin will insert the plain multiline string `foo` into the higher level string
- * without preserving the indentation of the first line. Using the .. operator as defined below,
- * we can properly indent `foo` while keeping a nice looking syntax that visualizes the expected
- * indentation in the resulting string.
- *
- *
- *  With the ,, operator, `foo` could be inserted into a higher level multiline string like this:
- *
- * ```
- * with (prependOperator) {
- *      val bar = """
- *          |class Bar {
- *      ${" |    "..foo}
- *          |};
- *      """.trimMargin()
- *      }
- * ```
- *
- * This will produce the expected output:
- * ```
- * class Bar {
- *     void foo() {
- *         // do something useful
- * };
- * ```
- *
- * Note that we define the .. operator inside of an object in order to restrict its visiblity. Since
- * the meaning of .. might not be obvious in other contexts, it needs to be explicilty enabled with
- * `with(prependOperator)`.
- *
- * TODO We likely want to move this to a central place
- */
-object prependOperator {
-    operator fun String.rangeTo(str: String) = str.replaceIndent(this)
-}
-
 /* **********************************************************************************************
  * C++ specific extensions shared across classes
  */

@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import kotlin.math.ceil
 
@@ -84,7 +85,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     private fun setDeadline(reaction: Reaction): String =
         "${reaction.name}.set_deadline(${reaction.deadline.delay.toTime()}, [this]() { ${reaction.name}_deadline_handler(); });"
 
-    private fun assembleReaction(reaction: Reaction) = with(prependOperator) {
+    private fun assembleReaction(reaction: Reaction) = with(PrependOperator) {
         """
             |// ${reaction.name}
         ${" |"..reaction.triggers.joinToString(separator = "\n") { declareTrigger(reaction, it) }}
@@ -186,7 +187,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      *
      * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
      */
-    fun generateDefinition() = with(prependOperator) {
+    fun generateDefinition() = with(PrependOperator) {
         """
             |${reactor.templateLine}
             |void ${reactor.templateName}::assemble() {
