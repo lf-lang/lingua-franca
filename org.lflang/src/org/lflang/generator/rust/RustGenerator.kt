@@ -33,12 +33,10 @@ private data class RuntimeInfo(
     // options, etc
 )
 
-
 /**
  * Generates Rust code
  */
 class RustGenerator : GeneratorBase() {
-
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -61,10 +59,29 @@ class RustGenerator : GeneratorBase() {
         }
     }
 
+    fun generateFiles(fsa: IFileSystemAccess2) {
+        val fileConfig = fileConfig as RustFileConfig
 
-    private fun makeCargoFile(sb: StringBuilder, gen: GenerationInfo) {
+        val gen = makeGenerationInfo()
+
+        fileConfig.emit("Cargo.toml").use { it.makeCargoFile(gen) }
+        fileConfig.emit("src/bin/main.rs").use { it.makeMainFile(gen) }
+
+    }
+
+    private fun Emitter.makeMainFile(gen:GenerationInfo) {
+        this += """
+            |
+            |fn main() {
+            |
+            |
+            |}
+        """.trimIndent()
+    }
+
+    private fun Emitter.makeCargoFile(gen: GenerationInfo) {
         val (crate, runtime) = gen
-        """
+        this += """
             |[package]
             |name = "${crate.name}"
             |version = "${crate.version}"
@@ -74,8 +91,8 @@ class RustGenerator : GeneratorBase() {
             |# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
             |[dependencies]
-            |reactor-rust = {             $runtime            .toml_spec }
-        """.trimMargin()
+            |reactor-rust = { ${runtime.toml_spec} }
+        """
     }
 
 
