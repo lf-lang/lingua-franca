@@ -25,10 +25,21 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
+import org.lflang.TargetProperty
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generating C++ sources */
 class CppCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
+
+    /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
+    private val TargetProperty.LogLevel.severity
+        get() = when (this) {
+            TargetProperty.LogLevel.ERROR -> 1
+            TargetProperty.LogLevel.WARN  -> 2
+            TargetProperty.LogLevel.INFO  -> 3
+            TargetProperty.LogLevel.LOG   -> 4
+            TargetProperty.LogLevel.DEBUG -> 4
+        }
 
     fun generateCode(sources: List<Path>): String {
         val runtimeVersion = targetConfig.runtimeVersion ?: CppGenerator.defaultRuntimeVersion
