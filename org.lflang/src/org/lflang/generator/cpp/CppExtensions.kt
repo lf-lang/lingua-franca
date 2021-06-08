@@ -116,7 +116,7 @@ val TimeValue.cppUnit
         TimeUnit.WEEK    -> "d*7"
         TimeUnit.WEEKS   -> "d*7"
         TimeUnit.NONE    -> ""
-        null             -> ""
+        else             -> ""
     }
 
 /** Convert a LF time value to a representation in C++ code */
