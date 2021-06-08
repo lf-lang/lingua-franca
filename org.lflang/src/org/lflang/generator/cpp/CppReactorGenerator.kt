@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.isGeneric
 import org.lflang.lf.Reactor
 import org.lflang.toText
 import org.lflang.toUnixString
