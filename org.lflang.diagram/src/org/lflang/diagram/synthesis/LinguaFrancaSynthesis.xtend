@@ -679,7 +679,15 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                                 dst = parentOutputPorts.get(effect)
                             }
                         } else {
-                            dst = inputPorts.get(effect.parent, effect)
+                            // If this is a reaction driving a multiport
+                            // input of a contained reactor, only show one
+                            // connection, not one for each member of
+                            // the multiport. Also, skip the multiport itself.
+                            if (effect.multiportIndex() == 0) {
+                                dst = inputPorts.get(effect.multiportParent.parent, effect.multiportParent)
+                            } else {
+                                dst = inputPorts.get(effect.parent, effect)
+                            }
                         }
                         if (dst !== null) {
                             createDependencyEdge(effect).connect(port, dst)
