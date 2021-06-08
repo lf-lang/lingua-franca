@@ -27,6 +27,7 @@ package org.lflang.generator.cpp
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty
 import org.lflang.generator.PrependOperator
+import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generating C++ sources */

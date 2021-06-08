@@ -30,6 +30,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Preamble
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.toText
+import org.lflang.toUnixString
 
 
 class CppPreambleGenerator(

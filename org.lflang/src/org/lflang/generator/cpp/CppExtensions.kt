@@ -3,7 +3,6 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
 import org.lflang.lf.*
-import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -30,19 +29,6 @@ import java.time.format.DateTimeFormatter
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
-/* *******************************************************************************************
- * The following definitions are shortcuts to access static members of FileConfig and ASTUtils
- *
- * TODO these should likely be moved to a common place in the future
- */
-
-val Resource.name: String get() = FileConfig.getName(this)
-
-fun Path.toUnixString(): String = FileConfig.toUnixString(this)
-fun Path.createDirectories() = FileConfig.createDirectories(this)
-
-val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
 
 /* *******************************************************************************************
  *

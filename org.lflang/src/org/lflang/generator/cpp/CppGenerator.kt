@@ -36,6 +36,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.toDefinition
+import org.lflang.toUnixString
 import java.nio.file.Path
 import java.nio.file.Paths
 

@@ -27,6 +27,7 @@ package org.lflang.generator.cpp
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Reactor
 import org.lflang.toText
+import org.lflang.toUnixString
 
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
