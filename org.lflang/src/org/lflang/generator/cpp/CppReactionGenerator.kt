@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.toText
@@ -36,7 +37,7 @@ class CppReactionGenerator(private val reactor: Reactor) {
     private fun generateDeclaration(r: Reaction) =
         """reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { ${r.name}_body(); }};"""
 
-    private fun generateBodyDefinition(reaction: Reaction) = with(prependOperator) {
+    private fun generateBodyDefinition(reaction: Reaction) = with(PrependOperator) {
         // TODO this doesn't work for banks...
         val scopeAssignemts = reactor.instantiations.filter { !it.isBank }.map { "auto& ${it.name} = *(this->${it.name});" }
         """
@@ -53,7 +54,7 @@ class CppReactionGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
-    private fun generateDeadlineHandlerDefinition(reaction: Reaction): String = with(prependOperator) {
+    private fun generateDeadlineHandlerDefinition(reaction: Reaction): String = with(PrependOperator) {
         // TODO Should provide the same context as in reactions
         return """
             |${reactor.templateLine}

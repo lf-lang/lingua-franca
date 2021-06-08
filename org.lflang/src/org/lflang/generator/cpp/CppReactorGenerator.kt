@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.Reactor
 import org.lflang.toText
 
@@ -63,7 +64,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             .joinToString(separator = "\n", prefix = "// private preamble\n") { it.code.toText() }
 
     /** Generate a C++ header file declaring the given reactor. */
-    fun generateHeader() = with(prependOperator) {
+    fun generateHeader() = with(PrependOperator) {
         """
         ${" |"..fileComment}
             | 
@@ -102,7 +103,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     }
 
     /** Generate a C++ source file implementing the given reactor. */
-    fun generateSource() = with(prependOperator) {
+    fun generateSource() = with(PrependOperator) {
         """
         ${" |"..fileComment}
             |

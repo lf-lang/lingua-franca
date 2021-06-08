@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.TargetProperty
+import org.lflang.generator.PrependOperator
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generating C++ sources */
@@ -52,7 +53,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
         @Suppress("LocalVariableName") // allows us to use capital S as variable name below
         val S = '$' // a little trick to escape the dollar sign with $S
 
-        return with(prependOperator) {
+        return with(PrependOperator) {
             """
                 |cmake_minimum_required(VERSION 3.5)
                 |project(${fileConfig.name} VERSION 1.0.0 LANGUAGES CXX)

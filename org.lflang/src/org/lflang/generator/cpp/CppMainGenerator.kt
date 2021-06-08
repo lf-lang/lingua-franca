@@ -1,6 +1,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
+import org.lflang.generator.PrependOperator
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -40,7 +41,7 @@ class CppMainGenerator(
         else
             """auto main = std ::make_unique<${main.name}> ("${main.name}", &e, ${main.parameters.joinToString(", ") { it.name }});"""
 
-    fun generateCode() = with(prependOperator) {
+    fun generateCode() = with(PrependOperator) {
         """
         ${" |"..fileComment(main.eResource())}
             |
