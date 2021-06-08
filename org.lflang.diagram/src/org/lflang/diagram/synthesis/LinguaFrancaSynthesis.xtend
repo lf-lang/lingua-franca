@@ -654,8 +654,10 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			port = null // create new ports
 			for (TriggerInstance<?> effect : reaction.effects?:emptyList) {
 			    // Skip this effect if it is a multiport or a multiport instance other than index 0.
+			    // or contained in a bank with index other than 0.
 			    if (!(effect instanceof PortInstance) 
-			        || (effect as PortInstance).multiportIndex <= 0
+			        || ((effect as PortInstance).multiportIndex <= 0
+			           && effect.parent.bankIndex <= 0)
 			    ) {
                     port = if (REACTIONS_USE_HYPEREDGES.booleanValue && port !== null) {
                         port
