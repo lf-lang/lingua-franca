@@ -73,12 +73,12 @@
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.5.0-RC/6ffa2d0758a95541a9c369e4d383fcff74ed91fe/kotlin-reflect-1.5.0-RC-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.5.0-RC/d63a9e210c1e7093eada691daf9e6481b50434cf/kotlin-reflect-1.5.0-RC.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.5.10/7b213f1545669444fd7de998e6c53499f50652ba/kotlin-reflect-1.5.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.5.10/d6c70f3c0df2457ea0095c61c1fc1188017dc3bc/kotlin-reflect-1.5.10.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.5.0-RC/4d5b8f01ac55677f5c731d0bac4f94d4f2304041/kotlin-stdlib-1.5.0-RC-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.5.0-RC/28dc6214ce77b23d5aedc0b025875ec3720097dd/kotlin-stdlib-1.5.0-RC.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.5.10/6c9adfb286ecb30b4530913c4962383211d97295/kotlin-stdlib-1.5.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.5.10/da6a904b132f0402fa4d79169a3c1770598d4702/kotlin-stdlib-1.5.10.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
@@ -238,7 +238,7 @@
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.5.0-RC/fc6606dfc31a3af611a960ea39f352028f7d8a4e/kotlin-stdlib-common-1.5.0-RC-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.5.0-RC/381fba17fba4081fda231f04b9c01910aee93b6d/kotlin-stdlib-common-1.5.0-RC.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.5.10/86ff32fa15b7f66f3b5ced4164c2311c0530adde/kotlin-stdlib-common-1.5.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.5.10/6b84d926e28493be69daf673e40076f89492ef7/kotlin-stdlib-common-1.5.10.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
