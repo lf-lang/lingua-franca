@@ -41,55 +41,55 @@ fun ReactorDecl.toDefinition(): Reactor = when (this) {
  * Given a reactor class, return a list of all its actions,
  * which includes actions of base classes that it extends.
  */
-val Reactor.allActions: List<Action> get() = superClassRecursor { actions }
+val Reactor.allActions: List<Action> get() = collectInSupertypes { actions }
 
 /**
  * Given a reactor class, return a list of all its connections,
  * which includes connections of base classes that it extends.
  */
-val Reactor.allConnections: List<Connection> get() = superClassRecursor { connections }
+val Reactor.allConnections: List<Connection> get() = collectInSupertypes { connections }
 
 /**
  * Given a reactor class, return a list of all its inputs,
  * which includes inputs of base classes that it extends.
  */
-val Reactor.allInputs: List<Input> get() = superClassRecursor { inputs }
+val Reactor.allInputs: List<Input> get() = collectInSupertypes { inputs }
 
 /**
  * Given a reactor class, return a list of all its outputs,
  * which includes outputs of base classes that it extends.
  */
-val Reactor.allOutputs: List<Output> get() = superClassRecursor { outputs }
+val Reactor.allOutputs: List<Output> get() = collectInSupertypes { outputs }
 
 /**
  * Given a reactor class, return a list of all its instantiations,
  * which includes instantiations of base classes that it extends.
  */
-val Reactor.allInstantiations: List<Instantiation> get() = superClassRecursor { instantiations }
+val Reactor.allInstantiations: List<Instantiation> get() = collectInSupertypes { instantiations }
 
 /**
  * Given a reactor class, return a list of all its parameters,
  * which includes parameters of base classes that it extends.
  */
-val Reactor.allParameters: List<Parameter> get() = superClassRecursor { parameters }
+val Reactor.allParameters: List<Parameter> get() = collectInSupertypes { parameters }
 
 /**
  * Given a reactor class, return a list of all its reactions,
  * which includes reactions of base classes that it extends.
  */
-val Reactor.allReactions: List<Reaction> get() = superClassRecursor { reactions }
+val Reactor.allReactions: List<Reaction> get() = collectInSupertypes { reactions }
 
 /**
  * Given a reactor class, return a list of all its state variables,
  * which includes state variables of base classes that it extends.
  */
-val Reactor.allStateVars: List<StateVar> get() = this.superClassRecursor { this.stateVars }
+val Reactor.allStateVars: List<StateVar> get() = collectInSupertypes { stateVars }
 
 /**
  * Given a reactor class, return a list of all its  timers,
  * which includes timers of base classes that it extends.
  */
-val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
+val Reactor.allTimers: List<Timer> get() = collectInSupertypes { timers }
 
 /**
  * Apply the [collector] method recursively to the receiving reactor and all its superclasses.
@@ -97,8 +97,8 @@ val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
  * This collects the return values for indivudal reactors in a flat list, creating a collected list
  * over all visisted reactors.
  */
-private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): List<T> =
-    superClasses.orEmpty().mapNotNull { it.toDefinition().superClassRecursor(collector) }.flatten() + this.collector()
+private fun <T> Reactor.collectInSupertypes(collector: Reactor.() -> List<T>): List<T> =
+    superClasses.orEmpty().mapNotNull { it.toDefinition().collectInSupertypes(collector) }.flatten() + this.collector()
 
 val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
