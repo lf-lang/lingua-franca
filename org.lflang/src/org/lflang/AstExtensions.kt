@@ -91,10 +91,14 @@ val Reactor.allStateVars: List<StateVar> get() = this.superClassRecursor { this.
  */
 val Reactor.allTimers: List<Timer> get() = superClassRecursor { timers }
 
+/**
+ * Apply the [collector] method recursively to the receiving reactor and all its superclasses.
+ *
+ * This collects the return values for indivudal reactors in a flat list, creating a collected list
+ * over all visisted reactors.
+ */
 private fun <T> Reactor.superClassRecursor(collector: Reactor.() -> List<T>): List<T> =
-
-
-    superClasses.orEmpty().mapNotNull { it.toDefinition().collector() }.flatten() + this.collector()
+    superClasses.orEmpty().mapNotNull { it.toDefinition().superClassRecursor(collector) }.flatten() + this.collector()
 
 val Parameter.isOfTimeType: Boolean get() = ASTUtils.isOfTimeType(this)
 
