@@ -144,7 +144,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      * multiport, the result includes instances PortReference for each pair of bank and multiport
      * instance.
      */
-    private fun enumarateAllPortsFromReferences(references: List<VarRef>): List<PortReference> {
+    private fun enumerateAllPortsFromReferences(references: List<VarRef>): List<PortReference> {
         val ports = mutableListOf<PortReference>()
 
         for (ref in references) {
@@ -161,8 +161,8 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     }
 
     private fun declareConnection(c: Connection): String {
-        val lhsPorts = enumarateAllPortsFromReferences(c.leftPorts)
-        val rhsPorts = enumarateAllPortsFromReferences(c.rightPorts)
+        val lhsPorts = enumerateAllPortsFromReferences(c.leftPorts)
+        val rhsPorts = enumerateAllPortsFromReferences(c.rightPorts)
 
         // If the connection is a broadcast connection, then repeat the lhs ports until it is equal
         // or greater to the number of rhs ports. Otherwise, continue with the unmodified list of lhs
