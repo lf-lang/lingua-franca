@@ -412,7 +412,7 @@ class LFValidator extends AbstractLFValidator {
         // to the code generator to check it.
         var leftWidth = 0
         for (port : connection.leftPorts) {
-            val width = port.multiportWidthIfLiteral
+            val width = inferPortWidth(port, null, null) // null args imply incomplete check.
             if (width < 0 || leftWidth < 0) {
                 // Cannot determine the width of the left ports.
                 leftWidth = -1
@@ -422,7 +422,7 @@ class LFValidator extends AbstractLFValidator {
         }
         var rightWidth = 0
         for (port : connection.rightPorts) {
-            val width = port.multiportWidthIfLiteral
+            val width = inferPortWidth(port, null, null) // null args imply incomplete check.
             if (width < 0 || rightWidth < 0) {
                 // Cannot determine the width of the left ports.
                 rightWidth = -1
