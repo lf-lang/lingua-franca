@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.isGeneric
 import org.lflang.isOfTimeType
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
