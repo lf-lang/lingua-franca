@@ -934,6 +934,15 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
+     * Returns the index of this reactor within a bank, or -1 if it
+     * it is not within a bank, or -2 if it is itself the placeholder
+     * for a bank.
+     */
+    def getBankIndex() {
+        bankIndex
+    }
+    
+    /**
      * Returns the members of this bank, or null if there are none.
      * @return actual bank size or -1 if this is not a bank master.
      */
