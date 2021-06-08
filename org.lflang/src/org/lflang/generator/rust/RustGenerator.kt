@@ -8,6 +8,7 @@ import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
+import org.lflang.withDQuotes
 
 
 class VelocityGenerator(
@@ -16,13 +17,21 @@ class VelocityGenerator(
 
 }
 
-data class VCrateSpec(
-    val name: String,
-    val version: String,
-    val author: String,
+private data class GenerationInfo(
+    val crate: CrateInfo,
+    val runtime: RuntimeInfo,
 )
 
-data class VRuntimeSpec(val toml_spec: String)
+private data class CrateInfo(
+    val name: String,
+    val version: String,
+    val authors: List<String>,
+)
+
+private data class RuntimeInfo(
+    val toml_spec: String,
+    // options, etc
+)
 
 
 /**
@@ -50,6 +59,23 @@ class RustGenerator : GeneratorBase() {
         } else {
             invokeRustCompiler()
         }
+    }
+
+
+    private fun makeCargoFile(sb: StringBuilder, gen: GenerationInfo) {
+        val (crate, runtime) = gen
+        """
+            |[package]
+            |name = "${crate.name}"
+            |version = "${crate.version}"
+            |authors = [${crate.authors.joinToString(", ") { it.withDQuotes() }}]
+            |edition = "2018"
+
+            |# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+            |[dependencies]
+            |reactor-rust = {             $runtime            .toml_spec }
+        """.trimMargin()
     }
 
 
