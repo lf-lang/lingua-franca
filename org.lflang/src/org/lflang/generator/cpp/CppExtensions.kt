@@ -166,6 +166,8 @@ object prependOperator {
 /* **********************************************************************************************
  * C++ specific extensions shared across classes
  */
+// TODO: Most of the extensions defined here should be moved to companion objects of their
+//  corresponding generator classes. See for instance the CppParameterGenerator
 
 /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
 val TargetProperty.LogLevel.severity
@@ -278,7 +280,6 @@ fun fileComment(r: Resource) = """
  *  mechanism. The code below is a workaround, but a more general solution should be found.
  */
 
-val Parameter.targetType get():String = this.inferredType.targetType
 val StateVar.targetType get():String = this.inferredType.targetType
 val Port.targetType get():String = this.inferredType.targetType
 val Action.targetType: String
