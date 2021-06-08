@@ -238,7 +238,6 @@ val String.isZero: Boolean get() = this.toIntOrNull() == 0
 val Code.isZero: Boolean get() = this.toText().isZero
 
 
-
 /**
  * Report whether the given value is zero or not.
  * @receiver AST node to inspect.
@@ -355,7 +354,7 @@ val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
  * @receiver The state variable to be checked.
  * @return True if the variable was initialized, false otherwise.
  */
-val StateVar.isInitialized :Boolean get() = (this.parens.size == 2)
+val StateVar.isInitialized: Boolean get() = (this.parens.size == 2)
 
 /**
  * Given the width specification of port or instantiation
