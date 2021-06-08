@@ -263,26 +263,6 @@ val Value.isZero: Boolean
             ?: false
 
 /**
- * Given the specification of the width of either a bank of reactors
- * or a multiport, return the width if it can be determined and otherwise
- * return -1. The width can be determined if it is given by one or more
- * literal constants or if the widthSpec is null (it is not a multiport
- * or reactor bank).
- *
- * IMPORTANT: This method should not be used you really need to
- * determine the width! It will not evaluate parameter values.
- *
- * @receiver The width specification.
- *
- * @return The width or null if it cannot be determined.
- */
-val WidthSpec.width: Int?
-    get() = ASTUtils.width(this, null).takeIf { it >= 0 }
-
-
-// more general extensions
-
-/**
  * Parse and return an integer from this string, much
  * like [String.toIntOrNull], but allows any radix.
  *
