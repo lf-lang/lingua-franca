@@ -2209,9 +2209,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        val mainDefn = this.mainDef?.reactorClass.toDefinition
+        val mainReactor = this.mainDef?.reactorClass.toDefinition
 
-        if (this.mainDef === null || !mainDefn.isFederated) {
+        if (this.mainDef === null || !mainReactor.isFederated) {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, 0, this)
             federates.add(federateInstance)
@@ -2219,32 +2219,30 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         } else {
             // The Lingua Franca program is federated
             isFederated = true
-            if (mainDefn.host !== null) {
+            if (mainReactor.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
-                if (mainDefn.host.addr !== null) {
-                    federationRTIProperties.put('host', mainDefn.host.addr)
+                if (mainReactor.host.addr !== null) {
+                    federationRTIProperties.put('host', mainReactor.host.addr)
                 }
                 // Get the port information, if specified.
                 // If not specified, this defaults to 14045
-                if (mainDefn.host.port !== 0) {
-                    federationRTIProperties.put('port', mainDefn.host.port)
+                if (mainReactor.host.port !== 0) {
+                    federationRTIProperties.put('port', mainReactor.host.port)
                 }
                 // Get the user information, if specified.
-                if (mainDefn.host.user !== null) {
-                    federationRTIProperties.put('user', mainDefn.host.user)
+                if (mainReactor.host.user !== null) {
+                    federationRTIProperties.put('user', mainReactor.host.user)
                 }
-            // Get the directory information, if specified.
-            /* FIXME
-             * if (mainDef.reactorClass.host.dir !== null) {
-             *     federationRTIProperties.put('dir', mainDef.reactorClass.host.dir)                
-             * }
-             */
             }
 
             // Create a FederateInstance for each top-level reactor.
-            for (instantiation : mainDefn.allInstantiations) {
-                var bankWidth = ASTUtils.width(instantiation.widthSpec);
+            for (instantiation : mainReactor.allInstantiations) {
+                // Since federates are always within the main (federated) reactor,
+                // create a list containing just that one containing instantiation.
+                val instantiations = new LinkedList<Instantiation>();
+                instantiations.add(mainDef);
+                var bankWidth = ASTUtils.width(instantiation.widthSpec, instantiations);
                 if (bankWidth < 0) {
                     reportError(instantiation, "Cannot determine bank width!");
                     // Continue with a bank width of 1.
@@ -2292,7 +2290,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             // The action will be physical for physical connections and logical
             // for logical connections.
             var connectionsToRemove = new LinkedList<Connection>()
-            for (connection : mainDefn.connections) {
+            for (connection : mainReactor.connections) {
                 // Each connection object may represent more than one physical connection between
                 // federates because of banks and multiports. We need to generate communciation
                 // for each of these. This iteration assumes the balance of the connection has been
@@ -2391,7 +2389,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             }
             for (connection : connectionsToRemove) {
                 // Remove the original connection for the parent.
-                mainDefn.connections.remove(connection)
+                mainReactor.connections.remove(connection)
             }
         }
     }
