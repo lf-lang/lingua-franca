@@ -9,6 +9,22 @@ import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 
+
+class VelocityGenerator(
+    val templatePath: String,
+) {
+
+}
+
+data class VCrateSpec(
+    val name: String,
+    val version: String,
+    val author: String,
+)
+
+data class VRuntimeSpec(val toml_spec: String)
+
+
 /**
  * Generates Rust code
  */
