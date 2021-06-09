@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 import kotlin.math.ceil
 
@@ -84,7 +85,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     private fun setDeadline(reaction: Reaction): String =
         "${reaction.name}.set_deadline(${reaction.deadline.delay.toTime()}, [this]() { ${reaction.name}_deadline_handler(); });"
 
-    private fun assembleReaction(reaction: Reaction) = with(prependOperator) {
+    private fun assembleReaction(reaction: Reaction) = with(PrependOperator) {
         """
             |// ${reaction.name}
         ${" |"..reaction.triggers.joinToString(separator = "\n") { declareTrigger(reaction, it) }}
@@ -94,10 +95,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
-    private fun Port.getValidWitdh(): Int {
-        val width = this.width
+    private fun Port.getValidWidth(): Int {
         if (width < 0) {
-            // TODO Support paramterized widths
+            // TODO Support parameterized widths
             // TODO Properly report the error
             throw RuntimeException(
                 "Cannot determine port width. " +
@@ -107,10 +107,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         return width
     }
 
-    private fun Instantiation.getValidWitdh(): Int {
-        val width = this.width
+    private fun Instantiation.getValidWidth(): Int {
         if (width < 0) {
-            // TODO Support paramterized widths
+            // TODO Support parameterized widths
             // TODO Properly report the error
             throw RuntimeException(
                 "Cannot determine port width. " +
@@ -145,14 +144,14 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      * multiport, the result includes instances PortReference for each pair of bank and multiport
      * instance.
      */
-    private fun enumarateAllPortsFromReferences(references: List<VarRef>): List<PortReference> {
+    private fun enumerateAllPortsFromReferences(references: List<VarRef>): List<PortReference> {
         val ports = mutableListOf<PortReference>()
 
         for (ref in references) {
             val container = ref.container
             val port = ref.variable as Port
-            val bankIndexes = if (container?.isBank == true) (0 until container.getValidWitdh()) else listOf<Int?>(null)
-            val portIndexes = if (port.isMultiport) (0 until port.getValidWitdh()) else listOf<Int?>(null)
+            val bankIndexes = if (container?.isBank == true) (0 until container.getValidWidth()) else listOf<Int?>(null)
+            val portIndexes = if (port.isMultiport) (0 until port.getValidWidth()) else listOf<Int?>(null)
             // calculate the Cartesian product af both index lists defined above
             // TODO iterate over banks or ports first?
             val indexPairs = portIndexes.flatMap { portIdx -> bankIndexes.map { bankIdx -> portIdx to bankIdx } }
@@ -162,8 +161,8 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     }
 
     private fun declareConnection(c: Connection): String {
-        val lhsPorts = enumarateAllPortsFromReferences(c.leftPorts)
-        val rhsPorts = enumarateAllPortsFromReferences(c.rightPorts)
+        val lhsPorts = enumerateAllPortsFromReferences(c.leftPorts)
+        val rhsPorts = enumerateAllPortsFromReferences(c.rightPorts)
 
         // If the connection is a broadcast connection, then repeat the lhs ports until it is equal
         // or greater to the number of rhs ports. Otherwise, continue with the unmodified list of lhs
@@ -186,7 +185,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      *
      * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
      */
-    fun generateDefinition() = with(prependOperator) {
+    fun generateDefinition() = with(PrependOperator) {
         """
             |${reactor.templateLine}
             |void ${reactor.templateName}::assemble() {

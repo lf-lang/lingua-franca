@@ -1,9 +1,11 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
+import org.lflang.generator.PrependOperator
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.toUnixString
 
 /** C++ code generator responsible for generating the main file including the main() function */
 class CppMainGenerator(
@@ -12,7 +14,7 @@ class CppMainGenerator(
     private val fileConfig: CppFileConfig,
 ) {
 
-    private fun generateParmeterParser(param: Parameter): String {
+    private fun generateParameterParser(param: Parameter): String {
         with(CppParameterGenerator) {
             with(param) {
                 val result = """
@@ -40,7 +42,7 @@ class CppMainGenerator(
         else
             """auto main = std ::make_unique<${main.name}> ("${main.name}", &e, ${main.parameters.joinToString(", ") { it.name }});"""
 
-    fun generateCode() = with(prependOperator) {
+    fun generateCode() = with(PrependOperator) {
         """
         ${" |"..fileComment(main.eResource())}
             |
@@ -93,7 +95,7 @@ class CppMainGenerator(
             |  bool keepalive {${targetConfig.keepalive}};
             |  app.add_flag("-k,--keepalive", keepalive, "Continue execution even when there are no events to process.");
             |
-        ${" |"..main.parameters.joinToString("\n\n") { generateParmeterParser(it) }}
+        ${" |"..main.parameters.joinToString("\n\n") { generateParameterParser(it) }}
             |
             |  app.get_formatter()->column_width(50);
             |

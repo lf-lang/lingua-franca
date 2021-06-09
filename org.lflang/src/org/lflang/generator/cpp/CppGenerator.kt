@@ -29,13 +29,12 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.FileConfig
+import org.lflang.*
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.toDefinition
 import java.nio.file.Path
 import java.nio.file.Paths
 
