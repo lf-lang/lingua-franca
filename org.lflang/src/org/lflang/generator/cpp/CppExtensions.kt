@@ -56,10 +56,7 @@ val Resource.model: Model get() = this.allContents.asSequence().filterIsInstance
 
 /** Get the "name" a reaction is represented with in target code.*/
 val Reaction.name
-    get(): String {
-        val r = this.eContainer() as Reactor
-        return "r" + r.reactions.lastIndexOf(this)
-    }
+    get(): String = "r$indexInContainer"
 
 /** Get a label representing the reaction.
  *

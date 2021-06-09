@@ -146,7 +146,7 @@ object ReactorComponentEmitter {
 
     fun ReactorComponent.toBorrow() = when (this) {
         is PortData   ->
-            if (input) "&self.$name"
+            if (isInput) "&self.$name"
             else "&mut self.$name"
         is ActionData -> "&self.$name"
     }
@@ -156,7 +156,7 @@ object ReactorComponentEmitter {
             if (isLogical) "$rsLibPath::LogicalAction"
             else "$rsLibPath::PhysicalAction"
         is PortData   ->
-            if (input) "$rsLibPath::InputPort<$dataType>"
+            if (isInput) "$rsLibPath::InputPort<$dataType>"
             else "$rsLibPath::OutputPort<$dataType>"
     }
 
