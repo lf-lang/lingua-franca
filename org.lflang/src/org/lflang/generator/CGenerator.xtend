@@ -2014,7 +2014,7 @@ class CGenerator extends GeneratorBase {
             unindent(body)
             var width = maxContainedReactorBankWidth(containedReactor, null, 0);
             var array = "";
-            if (width >= 0) {
+            if (width > 1) {
                 array = "[" + width + "]";
             }
             pr(body, '''
@@ -2758,6 +2758,10 @@ class CGenerator extends GeneratorBase {
         LinkedList<Instantiation> breadcrumbs,
         int max
     ) {
+        // If the instantiation is not a bank, return 1.
+        if (containedReactor.widthSpec === null) {
+            return 1
+        }
         // If there is no main, then we just use the default width.
         if (mainDef === null) {
             return ASTUtils.width(containedReactor.widthSpec, null)
