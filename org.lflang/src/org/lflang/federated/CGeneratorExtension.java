@@ -213,29 +213,21 @@ public class CGeneratorExtension {
      * interval_t value of the additional delay that needs to be applied to the
      * outgoing message.
      * 
+     * The additional delay in absence of after is  NEVER. This has a special 
+     * meaning in C library functions that send network messages that carry 
+     * timestamps (@see send_timed_message and send_port_absent_to_federate 
+     * in lib/core/federate.c). In this case, the sender will send its current 
+     * tag as the timestamp of the outgoing message without adding a microstep delay.
+     * If the user has assigned an after delay (that can be zero) either as a time
+     * value (e.g., 200 msec) or as a literal (e.g., a parameter), that delay in nsec
+     * will be returned.
+     * 
      * @param delay
      * @param generator
      * @return
      */
     public static String getNetworkDelayLiteral(Delay delay,
             CGenerator generator) {
-        // The additional delay in absence of after
-        // is  NEVER. This has a special meaning
-        // in network messages that carry timestamps
-        // (@see send_timed_message and 
-        // send_port_absent_to_federate 
-        // in lib/core/federate.c). In this case, 
-        // the sender will send its current tag 
-        // as the timestamp of the outgoing message 
-        // without adding a microstep delay.
-        // If the user has assigned an after delay 
-        // (that can be zero) either as a time
-        // value (e.g., 200 msec) or as a literal
-        // (e.g., a parameter), that delay in nsec
-        // will be passed to send_timed_message and added to 
-        // the current timestamp. If after delay is 0,
-        // send_timed_message will use the current tag +
-        // a microstep as the timestamp of the outgoing message.
         String additionalDelayString = "NEVER";
         if (delay != null) {
             if (delay.getParameter() != null) {
