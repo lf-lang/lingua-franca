@@ -59,6 +59,11 @@ object RustEmitter {
                 |    // TODO state vars
                 |}
                 |
+                |impl $structName {
+                |
+                |   // todo reaction worker functions
+                |
+                |}
                 |
                 |struct $dispatcherName {
                 |    _impl: $structName,
