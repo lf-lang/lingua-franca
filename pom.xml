@@ -30,7 +30,7 @@
     </modules>
 
     <properties>
-        <kotlin.version>1.5.10</kotlin.version> <!-- Sync with build.gradle -->
+        <kotlin.version>1.5.10</kotlin.version> <!-- Sync with build.gradle and MANIFEST.mf -->
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <tycho-version>2.3.0</tycho-version>
