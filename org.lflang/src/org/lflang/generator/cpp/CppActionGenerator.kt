@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.isLogical
 import org.lflang.lf.Action
 import org.lflang.lf.LfPackage
 import org.lflang.lf.Reactor
