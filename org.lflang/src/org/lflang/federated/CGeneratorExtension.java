@@ -213,14 +213,15 @@ public class CGeneratorExtension {
      * interval_t value of the additional delay that needs to be applied to the
      * outgoing message.
      * 
-     * The additional delay in absence of after is  NEVER. This has a special 
+     * The returned additional delay in absence of after on network connection
+     * (i.e., if delay is passed as a null) is  NEVER. This has a special 
      * meaning in C library functions that send network messages that carry 
      * timestamps (@see send_timed_message and send_port_absent_to_federate 
      * in lib/core/federate.c). In this case, the sender will send its current 
      * tag as the timestamp of the outgoing message without adding a microstep delay.
-     * If the user has assigned an after delay (that can be zero) either as a time
-     * value (e.g., 200 msec) or as a literal (e.g., a parameter), that delay in nsec
-     * will be returned.
+     * If the user has assigned an after delay to the network connection (that 
+     * can be zero) either as a time value (e.g., 200 msec) or as a literal 
+     * (e.g., a parameter), that delay in nsec will be returned.
      * 
      * @param delay
      * @param generator
