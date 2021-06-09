@@ -395,11 +395,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             }
             memberReactor = reactor.bankMembers.get(bankIdx)
         }
-        // FIXME: the following line sometimes causes a class cast exception:
-        // class org.lflang.lf.impl.VariableImpl cannot be cast to class org.lflang.lf.Port
-        // (org.lflang.lf.impl.VariableImpl and org.lflang.lf.Port are in unnamed module of loader 'app')
-        var portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
-        
+        var portInstance = null as PortInstance
+        if (portReference.variable instanceof Port) {
+            portInstance = memberReactor.lookupPortInstance(portReference.variable as Port)
+        }
         if (portInstance === null) {
             reporter.reportError(portReference, "No such port.")
             return null
