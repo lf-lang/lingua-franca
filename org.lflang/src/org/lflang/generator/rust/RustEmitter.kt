@@ -24,17 +24,16 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.FileConfig
-import org.lflang.Target
-import org.lflang.generator.rust.RustEmitter.makeReactorModule
-import org.lflang.lf.Action
-import org.lflang.lf.VarRef
+import org.lflang.generator.cpp.prependOperator
+import org.lflang.generator.rust.RustEmitter.rsLibPath
+import org.lflang.joinWithCommas
 import org.lflang.withDQuotes
 
 /**
  * Generates Rust code
  */
 object RustEmitter {
+    const val rsLibPath = "reactorlib"
 
     fun generateFiles(fileConfig: RustFileConfig, gen: GenerationInfo) {
 
@@ -52,30 +51,63 @@ object RustEmitter {
     private fun Emitter.makeReactorModule(reactor: ReactorInfo) {
         val out = this
         with(reactor) {
-            out += """
-            |
-            |struct $structName { 
-            |    // state vars
-            |}
-            |
-            |
-            |struct $dispatcherName {
-            |    _impl: $structName,
-            |    // actions & components
-            |}
-            |
-            |
-            |reaction_ids!(
-            |  ${reactions.joinToString(", ", "enum $structName Reactions {", "}") { it.rustId } }
-            | );
-            |
-            |impl ReactorDispatcher for $dispatcherName {
-            |    type ReactionId = $reactionIdName;
-            |    type Wrapped = $structName;
-            |    type Params = $ctorParamTypes;
-            |
-            |}
+            with(ReactorComponentEmitter) {
+                with(prependOperator) {
+                    out += """
+                |
+                |struct $structName {
+                |    // TODO state vars
+                |}
+                |
+                |
+                |struct $dispatcherName {
+                |    _impl: $structName,
+${"             |    "..otherComponents.joinToString(",\n") { it.toStructField() }}
+                |}
+                |
+                |
+                |reaction_ids!(
+                |  ${reactions.joinToString(", ", "enum $reactionIdName {", "}") { it.rustId }}
+                | );
+                |
+                |impl $rsLibPath::ReactorDispatcher for $dispatcherName {
+                |    type ReactionId = $reactionIdName;
+                |    type Wrapped = $structName;
+                |    type Params = (${ctorParamTypes.joinWithCommas()});
+                |
+                |
+                |    fn assemble(_params: Self::Params) -> Self {
+                |        Self {
+                |            _impl: RandomSource,
+${"             |            "..otherComponents.joinToString(",\n") { it.toFieldInitializer() }}
+                |        }
+                |    }
+                |
+                |    fn react(&mut self, ctx: &mut $rsLibPath::LogicalCtx, rid: Self::ReactionId) {
+                |        match rid {
+${"             |            "..reactionWrappers(reactor)}
+                |        }
+                |    }
+                |
+                |
+                |}
         """.trimMargin()
+                }
+            }
+        }
+    }
+
+    private fun reactionWrappers(reactor: ReactorInfo): String {
+
+        fun joinDependencies(n: ReactionInfo): String =
+            n.depends.joinToString(", ") { with(ReactorComponentEmitter) { it.toBorrow() } }
+
+        return reactor.reactions.joinToString { n: ReactionInfo ->
+            """
+                ${reactor.reactionIdName}::${n.rustId} => {
+                    self._impl.${n.workerId}(ctx, ${joinDependencies(n)})
+                }
+            """
         }
     }
 
@@ -105,5 +137,35 @@ object RustEmitter {
         """
     }
 
+
+}
+
+
+object ReactorComponentEmitter {
+
+
+    fun ReactorComponent.toBorrow() = when (this) {
+        is PortData   ->
+            if (input) "&self.$name"
+            else "&mut self.$name"
+        is ActionData -> "&self.$name"
+    }
+
+    fun ReactorComponent.toType() = when (this) {
+        is ActionData ->
+            if (isLogical) "$rsLibPath::LogicalAction"
+            else "$rsLibPath::PhysicalAction"
+        is PortData   ->
+            if (input) "$rsLibPath::InputPort<$dataType>"
+            else "$rsLibPath::OutputPort<$dataType>"
+    }
+
+    fun ReactorComponent.toFieldInitializer() = when (this) {
+        is ActionData -> toType() + " (None, ${name.withDQuotes()})"
+        else          -> "Default::default()"
+    }
+
+    fun ReactorComponent.toStructField() =
+        "$name: ${toType()}"
 
 }
