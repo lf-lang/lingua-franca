@@ -2012,10 +2012,7 @@ class CGenerator extends GeneratorBase {
                 }
             }
             unindent(body)
-            // FIXME: To support parameterized bank widths, the following
-            // array needs to be malloc'd, which means this struct
-            // needs to be pulled out as an auxiliary typedef.
-            var width = containedReactorBankWidth(containedReactor);
+            var width = maxContainedReactorBankWidth(containedReactor, null, 0);
             var array = "";
             if (width >= 0) {
                 array = "[" + width + "]";
@@ -2736,27 +2733,67 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * FIXME: A temporary function that returns the width of a bank of reactors.
-     * If the width is not a literal constant, this throws an UnsupportedOperationException.
-     * If the reactor is not a bank, this returns -2.
-     * @param containedReactor The contained reactor instantiation. 
+     * Return the maximum bank width for the given instantiation within all
+     * instantiations of its parent reactor.
+     * On the first call to this method, the breadcrumbs should be null and the max
+     * argument should be zero. On recursive calls, breadcrumbs is a list of nested
+     * instantiations, the max is the maximum width found so far.  The search for
+     * instances of the parent reactor will begin with the last instantiation
+     * in the specified list.
+     * 
+     * This rather complicated method is used when a reaction sends or receives data
+     * to or from a bank of contained reactors. There will be an array of structs on
+     * the self struct of the parent, and the size of the array is conservatively set
+     * to the maximum of all the identified bank widths.  This is a bit wasteful of
+     * memory, but it avoids having to malloc the array for each instance, and in
+     * typical usage, there will be few instances or instances that are all the same
+     * width.
+     * 
+     * @param containedReactor The contained reactor instantiation.
+     * @param breadcrumbs null on first call (non-recursive).
+     * @param max 0 on first call.
      */
-    private def int containedReactorBankWidth(Instantiation containedReactor) {
-        // FIXME: Because the width of the bank may be given by a parameter, it is
-        // impossible to know a fixed width here.
-        if (containedReactor.widthSpec !== null) {
-            // FIXME: Using deprecated method here because of above FIXME.
-            val numericalWidth = ASTUtils.width(containedReactor.widthSpec);
-            if (numericalWidth <= 0) {
-                throw new UnsupportedOperationException(
-                        "Apologies, but parameterized widths are not yet supported here: "
-                        + containedReactor.name
-                        + "["
-                        + containedReactor.widthSpec);
-            }
-            return numericalWidth;
+    private def int maxContainedReactorBankWidth(
+        Instantiation containedReactor, 
+        LinkedList<Instantiation> breadcrumbs,
+        int max
+    ) {
+        // If there is no main, then we just use the default width.
+        if (mainDef === null) {
+            return ASTUtils.width(containedReactor.widthSpec, null)
         }
-        return -2;
+        var nestedBreadcrumbs = breadcrumbs
+        if (nestedBreadcrumbs === null) {
+            nestedBreadcrumbs = new LinkedList<Instantiation>
+            nestedBreadcrumbs.add(mainDef)
+        }
+        var result = max
+        var parent = containedReactor.eContainer as Reactor
+        // Search for instances of the parent within the tail of the breadcrumbs list.
+        val container = nestedBreadcrumbs.last.reactorClass.toDefinition
+        for (instantiation: container.instantiations) {
+            // Put this new instantation at the head of the list.
+            nestedBreadcrumbs.add(0, instantiation)
+            if (instantiation.reactorClass.toDefinition == parent) {
+                // Found a matching instantiation of the parent.
+                // Evaluate the original width specification in this context.
+                val candidate = ASTUtils.width(containedReactor.widthSpec, nestedBreadcrumbs)
+                if (candidate > result) {
+                    result = candidate
+                }
+            } else {
+                // Found some other instantiation, not the parent.
+                // Search within it for instantiations of the parent.
+                // Note that we assume here that the parent cannot contain
+                // instances of itself.
+                val candidate = maxContainedReactorBankWidth(containedReactor, nestedBreadcrumbs, result)
+                if (candidate > result) {
+                    result = candidate
+                }
+            }
+            nestedBreadcrumbs.remove
+        }
+        return result
     }
 
     /** 
