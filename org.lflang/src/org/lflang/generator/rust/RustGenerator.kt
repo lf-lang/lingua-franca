@@ -27,10 +27,12 @@ package org.lflang.generator.rust
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-import org.lflang.FileConfig
+import org.lflang.*
 import org.lflang.Target
 import org.lflang.generator.GeneratorBase
+import org.lflang.generator.cpp.name
 import org.lflang.lf.Action
+import org.lflang.lf.Reaction
 import org.lflang.lf.VarRef
 
 /**
@@ -54,7 +56,7 @@ class RustGenerator : GeneratorBase() {
             return
         }
 
-        val gen = makeGenerationInfo()
+        val gen = makeGenerationInfo(resource, fsa, context)
         RustEmitter.generateFiles(fileConfig as RustFileConfig, gen)
 
         if (targetConfig.noCompile || generatorErrorsOccurred) {
@@ -62,6 +64,42 @@ class RustGenerator : GeneratorBase() {
         } else {
             invokeRustCompiler()
         }
+    }
+
+    private fun makeGenerationInfo(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): GenerationInfo {
+        val reactors = makeReactorInfos()
+
+        return GenerationInfo(
+            crate = CrateInfo("mycrate_todo", "0.0.0", authors = listOf("todo")),
+            runtime = makeRuntimeInfo(),
+            reactors = reactors,
+            mainReactor = reactors.first { it.isMain }
+        )
+    }
+
+    private fun makeReactorInfos() = reactors.map { reactor ->
+        val components = mutableMapOf<String, ReactorComponent>()
+        for (component in reactor.allOutputs + reactor.allInputs + reactor.allActions) {
+            val irObj = ReactorComponent.from(component) ?: continue
+            components[irObj.name] = irObj
+        }
+
+        val reactions = reactor.reactions.map { n: Reaction ->
+            val dependencies = (n.effects + n.sources).mapTo(LinkedHashSet()) { components[it.name]!! }
+            ReactionInfo(idx = n.indexInContainer, depends = dependencies, body = n.code.body)
+        }
+
+        ReactorInfo(
+            lfName = reactor.name,
+            reactions = reactions,
+            otherComponents = components.values.toList(),
+            isMain = reactor.isMain
+        )
+    }
+
+    private fun makeRuntimeInfo(): RuntimeInfo {
+        // fixme
+        return RuntimeInfo("path: \"/home/clem/.eclipse/lingua-franca/git/lingua-franca/org.lflang/src/lib/Rust/reactor-rust\"")
     }
 
 
@@ -96,8 +134,6 @@ class RustGenerator : GeneratorBase() {
 
 
 
-
-
     override fun supportsGenerics(): Boolean = true
 
     override fun getTargetTimeType(): String = "LogicalTime"
@@ -128,9 +164,5 @@ class RustGenerator : GeneratorBase() {
     override fun generateDelayGeneric(): String {
         TODO("Not yet implemented")
     }
-
-}
-
-private fun makeGenerationInfo(): GenerationInfo {
 
 }

@@ -349,3 +349,15 @@ val StateVar.isInitialized :Boolean get() = (this.parens.size == 2)
  */
 fun WidthSpec.getWidth(instantiations: List<Instantiation>? = null) = ASTUtils.width(this, instantiations)
 
+
+
+/** The index of a reaction in its containing reactor. */
+val Reaction.indexInContainer
+    get(): Int = containingReactor.reactions.lastIndexOf(this)
+
+/** The reactor containing a given reaction. */
+val Reaction.containingReactor get() = this.eContainer() as Reactor
+
+/** Returns true if this is an input port (not an output port). */
+val Port.isInput get() = this is Input
+
