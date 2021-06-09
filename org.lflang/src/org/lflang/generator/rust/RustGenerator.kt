@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2021, TU Dresden.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
@@ -8,35 +32,15 @@ import org.lflang.Target
 import org.lflang.generator.GeneratorBase
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
-import org.lflang.withDQuotes
-
-
-class VelocityGenerator(
-    val templatePath: String,
-) {
-
-}
-
-private data class GenerationInfo(
-    val crate: CrateInfo,
-    val runtime: RuntimeInfo,
-)
-
-private data class CrateInfo(
-    val name: String,
-    val version: String,
-    val authors: List<String>,
-)
-
-private data class RuntimeInfo(
-    val toml_spec: String,
-    // options, etc
-)
 
 /**
- * Generates Rust code
+ * Generates Rust code.
  */
 class RustGenerator : GeneratorBase() {
+
+    override fun setFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
+        super.fileConfig = RustFileConfig(resource, fsa, context)
+    }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
@@ -50,49 +54,14 @@ class RustGenerator : GeneratorBase() {
             return
         }
 
-        generateFiles(fsa)
+        val gen = makeGenerationInfo()
+        RustEmitter.generateFiles(fileConfig as RustFileConfig, gen)
 
         if (targetConfig.noCompile || generatorErrorsOccurred) {
             println("Exiting before invoking target compiler.")
         } else {
             invokeRustCompiler()
         }
-    }
-
-    fun generateFiles(fsa: IFileSystemAccess2) {
-        val fileConfig = fileConfig as RustFileConfig
-
-        val gen = makeGenerationInfo()
-
-        fileConfig.emit("Cargo.toml").use { it.makeCargoFile(gen) }
-        fileConfig.emit("src/bin/main.rs").use { it.makeMainFile(gen) }
-
-    }
-
-    private fun Emitter.makeMainFile(gen:GenerationInfo) {
-        this += """
-            |
-            |fn main() {
-            |
-            |
-            |}
-        """.trimIndent()
-    }
-
-    private fun Emitter.makeCargoFile(gen: GenerationInfo) {
-        val (crate, runtime) = gen
-        this += """
-            |[package]
-            |name = "${crate.name}"
-            |version = "${crate.version}"
-            |authors = [${crate.authors.joinToString(", ") { it.withDQuotes() }}]
-            |edition = "2018"
-
-            |# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-            |[dependencies]
-            |reactor-rust = { ${runtime.toml_spec} }
-        """
     }
 
 
@@ -159,5 +128,9 @@ class RustGenerator : GeneratorBase() {
     override fun generateDelayGeneric(): String {
         TODO("Not yet implemented")
     }
+
+}
+
+private fun makeGenerationInfo(): GenerationInfo {
 
 }

@@ -27,6 +27,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.Target
 import org.lflang.generator.cpp.CppGenerator
+import org.lflang.generator.rust.RustGenerator
 import org.lflang.lf.TargetDecl
 import org.lflang.scoping.LFGlobalScopeProvider
 
@@ -57,6 +58,7 @@ class LFGenerator : AbstractGenerator() {
             Target.CPP    -> CppGenerator(scopeProvider)
             Target.TS     -> TypeScriptGenerator()
             Target.Python -> PythonGenerator()
+            Target.Rust   -> RustGenerator()
         }
 
     /** Returns true if some errors occurred. */
