@@ -28,7 +28,7 @@ package org.lflang.generator.rust
 import java.util.Locale
 
 /*
-
+    Model classes that serve as "intermediary representation" between the rust generator and emitter.
  */
 
 
@@ -39,16 +39,28 @@ data class GenerationInfo(
     val mainReactor: ReactorInfo // it's also in the list
 )
 
-data class ReactorInfo(val lfName: String, val reactions: List<ReactionInfo>) {
+data class ReactorInfo(
+    val lfName: String,
+    val reactions: List<ReactionInfo>,
+    val otherComponents: List<ReactorComponent>,
+    val ctorParamTypes: List<String> = emptyList()
+) {
     val modName = lfName.lowercase(Locale.ROOT)
-    val structName = lfName
+    val structName get() = lfName
     val dispatcherName = "${structName}Dispatcher"
+    val reactionIdName = "${structName}Reactions"
 }
 
 data class ReactionInfo(
     val idx: Int,
-    val rustId: String = "r$idx",
+    /** The ID of the reaction in the reaction enum. */
+    val rustId: String = "R$idx",
+    /** The name of the worker function for this reaction. */
+    val workerId: String = "react_$idx",
+    /** Dependencies declared by the reaction, which are served to the worker function. */
+    val depends: List<ReactorComponent>
 )
+
 
 data class CrateInfo(
     val name: String,
@@ -60,3 +72,15 @@ data class RuntimeInfo(
     val toml_spec: String,
     // options, etc
 )
+
+
+sealed class ReactorComponent {
+    abstract val name: String
+}
+
+/**
+ * @property dataType A piece of target code
+ */
+data class PortData(override val name: String, val input: Boolean, val dataType: String) : ReactorComponent()
+data class ActionData(override val name: String, val isLogical: Boolean) : ReactorComponent()
+

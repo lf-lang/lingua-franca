@@ -69,3 +69,9 @@ internal fun String.withoutQuotes(): String {
     val r = removeSurrounding("\"")
     return if (r !== this) this else removeSurrounding("'")
 }
+
+/**
+ * Join this list into a comma-separated string. The toString
+ * of members is used. Space must be irrelevant.
+ */
+internal fun List<CharSequence>.joinWithCommas() = joinToString(", ") { it }
