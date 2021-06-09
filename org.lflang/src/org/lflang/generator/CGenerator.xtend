@@ -2770,7 +2770,7 @@ class CGenerator extends GeneratorBase {
         var result = max
         var parent = containedReactor.eContainer as Reactor
         // Search for instances of the parent within the tail of the breadcrumbs list.
-        val container = nestedBreadcrumbs.last.reactorClass.toDefinition
+        val container = nestedBreadcrumbs.first.reactorClass.toDefinition
         for (instantiation: container.instantiations) {
             // Put this new instantation at the head of the list.
             nestedBreadcrumbs.add(0, instantiation)
