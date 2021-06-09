@@ -2012,9 +2012,12 @@ class CGenerator extends GeneratorBase {
                 }
             }
             unindent(body)
-            var width = maxContainedReactorBankWidth(containedReactor, null, 0);
             var array = "";
-            if (width > 1) {
+            var width = -2;
+            // If the instantiation is a bank, find the maximum bank width
+            // to define an array.
+            if (containedReactor.widthSpec !== null) {
+                width = maxContainedReactorBankWidth(containedReactor, null, 0);
                 array = "[" + width + "]";
             }
             pr(body, '''
@@ -2773,6 +2776,10 @@ class CGenerator extends GeneratorBase {
         }
         var result = max
         var parent = containedReactor.eContainer as Reactor
+        if (parent == mainDef.reactorClass.toDefinition) {
+            // The parent is main, so there can't be any other instantiations of it.
+            return ASTUtils.width(containedReactor.widthSpec, null)
+        }
         // Search for instances of the parent within the tail of the breadcrumbs list.
         val container = nestedBreadcrumbs.first.reactorClass.toDefinition
         for (instantiation: container.instantiations) {
