@@ -25,8 +25,11 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.isBank
+import org.lflang.label
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.priority
 import org.lflang.toText
 
 /** A C++ code generator for reactions and their function bodies */

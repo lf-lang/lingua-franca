@@ -24,13 +24,10 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.isGeneric
-import org.lflang.isOfTimeType
+import org.lflang.*
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
-import org.lflang.toText
-import org.lflang.toUnixString
 
 /** A code genarator for reactor instances */
 class CppInstanceGenerator(

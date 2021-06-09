@@ -25,6 +25,8 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.isBank
+import org.lflang.isMultiport
 import org.lflang.lf.*
 import kotlin.math.ceil
 

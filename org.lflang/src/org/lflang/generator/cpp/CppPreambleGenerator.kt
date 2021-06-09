@@ -28,6 +28,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Preamble
+import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.toText
 import org.lflang.toUnixString

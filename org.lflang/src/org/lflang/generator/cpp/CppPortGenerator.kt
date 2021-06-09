@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.getWidth
+import org.lflang.isMultiport
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port
