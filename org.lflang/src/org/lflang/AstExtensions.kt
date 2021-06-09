@@ -102,6 +102,13 @@ private fun <T> Reactor.collectInSupertypes(collector: Reactor.() -> List<T>): L
     superClasses.orEmpty().mapNotNull { it.toDefinition().collectInSupertypes(collector) }.flatten() + this.collector()
 
 /**
+ * Check if the reactor class uses generics
+ * @receiver the reactor to check
+ * @true true if the reactor uses generics
+ */
+val Reactor.isGeneric get() = ASTUtils.isGeneric(toDefinition())
+
+/**
  * Report whether the given parameter has been declared a type or has been
  * inferred to be a type. Note that if the parameter was declared to be a
  * time, its initialization may still be faulty (assigning a value that is
@@ -235,7 +242,6 @@ val String.isZero: Boolean get() = this.toIntOrNull() == 0
 val Code.isZero: Boolean get() = this.toText().isZero
 
 
-
 /**
  * Report whether the given value is zero or not.
  * @receiver AST node to inspect.
@@ -246,24 +252,6 @@ val Value.isZero: Boolean
         this.literal?.isZero
             ?: this.code?.isZero
             ?: false
-
-/**
- * Given the specification of the width of either a bank of reactors
- * or a multiport, return the width if it can be determined and otherwise
- * return -1. The width can be determined if it is given by one or more
- * literal constants or if the widthSpec is null (it is not a multiport
- * or reactor bank).
- *
- * IMPORTANT: This method should not be used you really need to
- * determine the width! It will not evaluate parameter values.
- *
- * @receiver The width specification.
- *
- * @return The width or null if it cannot be determined.
- */
-val WidthSpec.width: Int?
-    get() = ASTUtils.width(this, null).takeIf { it >= 0 }
-
 
 /**
  * Given an initialization list, return an inferred type. Only two types
@@ -319,7 +307,7 @@ val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
  * @receiver The state variable to be checked.
  * @return True if the variable was initialized, false otherwise.
  */
-val StateVar.isInitialized :Boolean get() = (this.parens.size == 2)
+val StateVar.isInitialized: Boolean get() = (this.parens.size == 2)
 
 /**
  * Given the width specification of port or instantiation

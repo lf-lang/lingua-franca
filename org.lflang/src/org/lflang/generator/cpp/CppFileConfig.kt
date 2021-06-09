@@ -30,6 +30,7 @@ import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
 import org.lflang.lf.Reactor
+import org.lflang.name
 import java.io.IOException
 import java.nio.file.Path
 

@@ -988,35 +988,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
     
     /**
-     * Get the specified file as an Eclipse IResource or, if it is not found, then
-     * return the iResource for the main file.
-     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
-     * system, and when running in INTEGRATED mode, for some things, you cannot access
-     * files by referring to their file system location. Instead, you have to refer
-     * to them relative the workspace root. This is required, for example, when marking
-     * the file with errors or warnings or when deleting those marks. 
-     * 
-     * @param uri A java.net.uri of the form "file://path".
-     */
-    protected def getEclipseResource(URI uri) {
-        var resource = fileConfig.iResource // Default resource.
-        // For some peculiar reason known only to Eclipse developers,
-        // the resource cannot be used directly but has to be converted
-        // a resource relative to the workspace root.
-        val workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
-        // The following uses a java.net.URI, which,
-        // pathetically, cannot be distinguished in xtend from a org.eclipse.emf.common.util.URI.
-        if (uri !== null) {
-             // Pathetically, Eclipse requires a java.net.uri, not a org.eclipse.emf.common.util.URI.
-             val files = workspaceRoot.findFilesForLocationURI(uri);
-             if (files !== null && files.length > 0 && files.get(0) !== null) {
-                 resource = files.get(0)
-             }
-        }
-        return resource;
-    }
-
-    /**
      * Clear markers in the IDE if running in integrated mode.
      * This has the side effect of setting the iResource variable to point to
      * the IFile for the Lingua Franca program. 
@@ -1025,7 +996,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     protected def clearMarkers() {
         if (mode == Mode.INTEGRATED) {
             try {
-                val resource = getEclipseResource(fileConfig.srcFile.toURI());
+                val resource = fileConfig.getIResource(fileConfig.srcFile);
                 // First argument can be null to delete all markers.
                 // But will that delete xtext markers too?
                 resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
@@ -1678,7 +1649,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
         var lineNumber = null as Integer
-        var resource = getEclipseResource(fileConfig.srcFile.toURI());
+        var resource = fileConfig.getIResource(fileConfig.srcFile);
         // In case errors occur within an imported file, record the original resource.
         val originalResource = resource;
         
@@ -1726,7 +1697,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 // Sadly, Eclipse defines an interface called "URI" that conflicts with the
                 // Java one, so we have to give the full class name here.
                 val uri = new URI(parsed.filepath);
-                resource = getEclipseResource(uri);
+                resource = fileConfig.getIResource(uri);
             } else {
                 // No line designator.
                 if (message.length > 0) {
@@ -1883,8 +1854,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 // Attempt to identify the IResource from the object.
                 val eResource = object.eResource
                 if (eResource !== null) {
-                    val uri = FileConfig.toPath(eResource).toUri();
-                    myResource = getEclipseResource(uri);
+                    myResource = fileConfig.getIResource(eResource);
                 }
             }
             // If the resource is still null, use the resource associated with

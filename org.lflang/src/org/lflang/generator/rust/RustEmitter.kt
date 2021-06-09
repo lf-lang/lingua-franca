@@ -24,7 +24,7 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.generator.cpp.prependOperator
+import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.rsLibPath
 import org.lflang.joinWithCommas
 import org.lflang.withDQuotes
@@ -52,7 +52,7 @@ object RustEmitter {
         val out = this
         with(reactor) {
             with(ReactorComponentEmitter) {
-                with(prependOperator) {
+                with(PrependOperator) {
                     out += """
                 |
                 |struct $structName {

@@ -25,10 +25,23 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
+import org.lflang.TargetProperty
+import org.lflang.generator.PrependOperator
+import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generating C++ sources */
 class CppCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
+
+    /** Convert a log level to a severity number understood by the reactor-cpp runtime. */
+    private val TargetProperty.LogLevel.severity
+        get() = when (this) {
+            TargetProperty.LogLevel.ERROR -> 1
+            TargetProperty.LogLevel.WARN  -> 2
+            TargetProperty.LogLevel.INFO  -> 3
+            TargetProperty.LogLevel.LOG   -> 4
+            TargetProperty.LogLevel.DEBUG -> 4
+        }
 
     fun generateCode(sources: List<Path>): String {
         val runtimeVersion = targetConfig.runtimeVersion ?: CppGenerator.defaultRuntimeVersion
@@ -41,7 +54,7 @@ class CppCmakeGenerator(private val targetConfig: TargetConfig, private val file
         @Suppress("LocalVariableName") // allows us to use capital S as variable name below
         val S = '$' // a little trick to escape the dollar sign with $S
 
-        return with(prependOperator) {
+        return with(PrependOperator) {
             """
                 |cmake_minimum_required(VERSION 3.5)
                 |project(${fileConfig.name} VERSION 1.0.0 LANGUAGES CXX)

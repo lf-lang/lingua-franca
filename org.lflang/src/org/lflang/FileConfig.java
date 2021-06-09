@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
@@ -200,7 +199,7 @@ public class FileConfig {
      * found.
      * @throws IOException
      */
-    private IResource getIResource(Resource r) throws IOException {
+    public IResource getIResource(Resource r) throws IOException {
         IResource iResource = null;
         java.net.URI uri = toPath(r).toFile().toURI();
         if (r.getURI().isPlatform()) {
@@ -215,6 +214,49 @@ public class FileConfig {
             // FIXME: find the iResource outside Eclipse
         }
         return iResource;
+    }
+    
+    /**
+     * Get the specified path as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * 
+     */
+    public IResource getIResource(Path path) {
+        return getIResource(path.toUri());
+    }
+    
+    /**
+     * Get the specified path as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * 
+     */
+    public IResource getIResource(File file) {
+        return getIResource(file.toURI());
+    }
+    
+    /**
+     * Get the specified uri as an Eclipse IResource or, if it is not found, then
+     * return the iResource for the main file.
+     * For some inexplicable reason, Eclipse uses a mysterious parallel to the file
+     * system, and when running in INTEGRATED mode, for some things, you cannot access
+     * files by referring to their file system location. Instead, you have to refer
+     * to them relative the workspace root. This is required, for example, when marking
+     * the file with errors or warnings or when deleting those marks. 
+     * 
+     * @param uri A java.net.uri of the form "file://path".
+     */
+    public IResource getIResource(java.net.URI uri) {
+        IResource resource = iResource; // Default resource.
+        // For some peculiar reason known only to Eclipse developers,
+        // the resource cannot be used directly but has to be converted
+        // a resource relative to the workspace root.
+        IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+         
+        IFile[] files = workspaceRoot.findFilesForLocationURI(uri);
+        if (files != null && files.length > 0 && files[0] != null) {
+            resource = files[0];
+        }
+        return resource;
     }
 
     /** 

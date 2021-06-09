@@ -3,7 +3,6 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.*
 import org.lflang.lf.*
-import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -30,19 +29,6 @@ import java.time.format.DateTimeFormatter
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
-/* *******************************************************************************************
- * The following definitions are shortcuts to access static members of FileConfig and ASTUtils
- *
- * TODO these should likely be moved to a common place in the future
- */
-
-val Resource.name: String get() = FileConfig.getName(this)
-
-fun Path.toUnixString(): String = FileConfig.toUnixString(this)
-fun Path.createDirectories() = FileConfig.createDirectories(this)
-
-val Reactor.isGeneric get() = ASTUtils.isGeneric(this.toDefinition())
 
 /* *******************************************************************************************
  *
@@ -97,84 +83,11 @@ val Instantiation.isBank: Boolean get() = this.widthSpec != null
 /** Get the width of a bank instantiation */
 val Instantiation.width: Int get() = this.widthSpec?.getWidth() ?: -1
 
-/* ********************************************************************************************/
-
-/** An object that defines the ,, (rangeTo) operator to prepend each line of the rhs multiline string with the lhs prefix.
- *
- * This is a neat little trick that allows for convenient insertion of multiline strings in string templates
- * while correctly managing the indentation. Consider this multiline string:
- * ```
- * val foo = """
- *    void foo() {
- *        // do something useful
- *    }""".trimIndent()
- * ```
- * Inserting this multiline string into another one like this:
- * ```
- * val bar = """
- *     class Bar {
- *         $foo
- *     };""".trimIndent()
- * ```
- * will unfortunately not produce  correctly indented result. Instead, the result will look like this:
- * * ```
- *     class Bar {
- *         void foo()
- *     // do something useful
- * }
- *     };""".trimIndent()
- * ```
- * This is because kotlin will insert the plain multiline string `foo` into the higher level string
- * without preserving the indentation of the first line. Using the .. operator as defined below,
- * we can properly indent `foo` while keeping a nice looking syntax that visualizes the expected
- * indentation in the resulting string.
- *
- *
- *  With the ,, operator, `foo` could be inserted into a higher level multiline string like this:
- *
- * ```
- * with (prependOperator) {
- *      val bar = """
- *          |class Bar {
- *      ${" |    "..foo}
- *          |};
- *      """.trimMargin()
- *      }
- * ```
- *
- * This will produce the expected output:
- * ```
- * class Bar {
- *     void foo() {
- *         // do something useful
- * };
- * ```
- *
- * Note that we define the .. operator inside of an object in order to restrict its visiblity. Since
- * the meaning of .. might not be obvious in other contexts, it needs to be explicilty enabled with
- * `with(prependOperator)`.
- *
- * TODO We likely want to move this to a central place
- */
-object prependOperator {
-    operator fun String.rangeTo(str: String) = str.replaceIndent(this)
-}
-
 /* **********************************************************************************************
  * C++ specific extensions shared across classes
  */
 // TODO: Most of the extensions defined here should be moved to companion objects of their
 //  corresponding generator classes. See for instance the CppParameterGenerator
-
-/** Convert a log level to a severity number understood by the reactor-cpp runtime. */
-val TargetProperty.LogLevel.severity
-    get() = when (this) {
-        TargetProperty.LogLevel.ERROR -> 1
-        TargetProperty.LogLevel.WARN  -> 2
-        TargetProperty.LogLevel.INFO  -> 3
-        TargetProperty.LogLevel.LOG   -> 4
-        TargetProperty.LogLevel.DEBUG -> 4
-    }
 
 /** Get a C++ representation of a LF unit. */
 val TimeValue.cppUnit
@@ -200,7 +113,7 @@ val TimeValue.cppUnit
         TimeUnit.WEEK    -> "d*7"
         TimeUnit.WEEKS   -> "d*7"
         TimeUnit.NONE    -> ""
-        null             -> ""
+        else             -> ""
     }
 
 /** Convert a LF time value to a representation in C++ code */

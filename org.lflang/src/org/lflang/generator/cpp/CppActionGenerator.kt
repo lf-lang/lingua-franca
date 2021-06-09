@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.Action
 import org.lflang.lf.LfPackage
 import org.lflang.lf.Reactor
@@ -63,7 +64,7 @@ class CppActionGenerator(private val reactor: Reactor) {
     }
 
     /** Get all action declarations */
-    fun generateDeclarations() = with(prependOperator) {
+    fun generateDeclarations() = with(PrependOperator) {
         """
         ${
             " |"..reactor.actions.joinToString("\n", "// actions\n", "\n") { generateDeclaration(it) }
