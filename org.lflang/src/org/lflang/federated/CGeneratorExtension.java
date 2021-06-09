@@ -27,13 +27,16 @@
 package org.lflang.federated;
 
 import org.lflang.ASTUtils;
+import org.lflang.TimeValue;
 import org.lflang.generator.CGenerator;
 import org.lflang.generator.FederateInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.lf.Delay;
 import org.lflang.lf.Input;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 
 /**
@@ -203,5 +206,56 @@ public class CGeneratorExtension {
             // done
         }
         return builder.toString();
+    }
+    
+    /**
+     * Given a connection 'delay' predicate, return a string that represents the 
+     * interval_t value of the additional delay that needs to be applied to the
+     * outgoing message.
+     * 
+     * @param delay
+     * @param generator
+     * @return
+     */
+    public static String getNetworkDelayLiteral(Delay delay,
+            CGenerator generator) {
+        // The additional delay in absence of after
+        // is  NEVER. This has a special meaning
+        // in network messages that carry timestamps
+        // (@see send_timed_message and 
+        // send_port_absent_to_federate 
+        // in lib/core/federate.c). In this case, 
+        // the sender will send its current tag 
+        // as the timestamp of the outgoing message 
+        // without adding a microstep delay.
+        // If the user has assigned an after delay 
+        // (that can be zero) either as a time
+        // value (e.g., 200 msec) or as a literal
+        // (e.g., a parameter), that delay in nsec
+        // will be passed to send_timed_message and added to 
+        // the current timestamp. If after delay is 0,
+        // send_timed_message will use the current tag +
+        // a microstep as the timestamp of the outgoing message.
+        String additionalDelayString = "NEVER";
+        if (delay != null) {
+            if (delay.getParameter() != null) {
+                // The parameter has to be parameter of the main reactor.
+                // And that value has to be a Time.
+                Value value = delay.getParameter().getInit().get(0);
+                if (value.getTime() != null) {
+                    additionalDelayString = (new TimeValue(value.getTime().getInterval(),
+                            value.getTime().getUnit()))
+                            .toNanoSeconds().toString();
+                } else if (value.getLiteral() != null) {
+                    // If no units are given, e.g. "0", then use the literal.
+                    additionalDelayString = value.getLiteral();
+                }
+            } else {
+                additionalDelayString = (new TimeValue(delay.getInterval(), 
+                        delay.getUnit()))
+                        .toNanoSeconds().toString();
+            }
+        }
+        return additionalDelayString;
     }
 }
