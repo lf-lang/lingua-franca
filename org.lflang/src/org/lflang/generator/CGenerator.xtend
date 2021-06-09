@@ -4325,7 +4325,7 @@ class CGenerator extends GeneratorBase {
         var String messageType;
         
         // The additional delay in absence of after
-        // is  -1. This has a special meaning
+        // is  NEVER. This has a special meaning
         // in send_timed_message
         // (@see send_timed_message in lib/core/federate.c).
         // In this case, the sender will send
@@ -4339,7 +4339,7 @@ class CGenerator extends GeneratorBase {
         // the current timestamp. If after delay is 0,
         // send_timed_message will use the current tag +
         // a microstep as the timestamp of the outgoing message.
-        var String additionalDelayString = '-1';
+        var String additionalDelayString = 'NEVER';
         // Name of the next immediate destination of this message
         var String next_destination_name = '''"federate «receivingFed.id»"'''
         if (delay !== null) {
@@ -4478,7 +4478,7 @@ class CGenerator extends GeneratorBase {
         var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
         
         // The additional delay in absence of after
-        // is  -1. This has a special meaning
+        // is  NEVER. This has a special meaning
         // in send_port_absent_to_federate
         // (@see send_port_absent_to_federate in lib/core/federate.c).
         // In this case, the sender will send
@@ -4493,7 +4493,7 @@ class CGenerator extends GeneratorBase {
         // the current timestamp. If after delay is 0,
         // send_port_absent_to_federate will use the current tag +
         // a microstep as the timestamp of the outgoing port absent message.
-        var String additionalDelayString = '-1';
+        var String additionalDelayString = 'NEVER';
         if (delay !== null) {
             if (delay.parameter !== null) {
                 // The parameter has to be parameter of the main reactor.
