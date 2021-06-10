@@ -2044,7 +2044,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         if (this.mainDef === null || !mainReactor.isFederated) {
             // Ensure federates is never empty.
-            var federateInstance = new FederateInstance(null, 0, 0, this)
+            var federateInstance = new FederateInstance(null, 0, 0, this, errorReporter)
             federates.add(federateInstance)
             federateByID.put(0, federateInstance)
         } else {
@@ -2084,7 +2084,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 for (var i = 0; i < bankWidth; i++) {
                     // Assign an integer ID to the federate.
                     var federateID = federates.size
-                    var federateInstance = new FederateInstance(instantiation, federateID, i, this)
+                    var federateInstance = new FederateInstance(instantiation, federateID, i, this, errorReporter)
                     federateInstance.bankIndex = i;
                     federates.add(federateInstance)
                     federateInstances.add(federateInstance)
