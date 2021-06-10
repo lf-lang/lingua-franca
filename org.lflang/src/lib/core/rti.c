@@ -1428,10 +1428,11 @@ void* federate_thread_TCP(void* fed) {
     return NULL;
 }
 
-/** Wait for one incoming connection request from each federate,
- *  and upon receiving it, create a thread to communicate with
- *  that federate. Return when all federates have connected.
- *  @param socket_descriptor The socket on which to accept connections.
+/**
+ * Wait for one incoming connection request from each federate,
+ * and upon receiving it, create a thread to communicate with
+ * that federate. Return when all federates have connected.
+ * @param socket_descriptor The socket on which to accept connections.
  */
 void connect_to_federates(int socket_descriptor) {
     for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
@@ -1456,7 +1457,8 @@ void connect_to_federates(int socket_descriptor) {
 
         // The first message from the federate should contain its ID and the federation ID.
         // Buffer for message ID, federate ID, and federation ID length.
-        int length = sizeof(ushort) + 2; // This should be 4.
+        // FIXME: Size of ushort may vary across architectures.
+        int length = 1 + sizeof(ushort) + 1; // Message ID, federate ID, length of fedration ID.
         unsigned char buffer[length];
 
         // Read bytes from the socket. We need 4 bytes.
@@ -1467,11 +1469,16 @@ void connect_to_federates(int socket_descriptor) {
         // If any error occurs, this will be set to non-zero.
         unsigned char error_code = 0;
 
-        ushort fed_id = NUMBER_OF_FEDERATES;
+        ushort fed_id = NUMBER_OF_FEDERATES; // Initialize to an invalid value.
 
-        // First byte received is the message ID.
+        // First byte received is the message type.
         if (buffer[0] != FED_ID) {
             if(buffer[0] == P2P_SENDING_FED_ID || buffer[0] == P2P_TIMED_MESSAGE) {
+            	// The federate is trying to connect to a peer, not to the RTI.
+            	// It has connected to the RTI instead.
+            	// FIXME: This should not happen, but apparently has been observed.
+            	// It should not happen because the peers get the port and IP address
+            	// of the peer they want to connect to from the RTI.
                 // If the connection is a peer-to-peer connection between two
                 // federates, reject the connection with the WRONG_SERVER error.
                 error_code = WRONG_SERVER;
@@ -1533,18 +1540,16 @@ void connect_to_federates(int socket_descriptor) {
             // Invalid federate. Try again.
             i--;
         } else {
-            // The FED_ID message matches.
-            // Assign the address information for federate
+            // The FED_ID message has the right federation ID.
+            // Assign the address information for federate.
             // The IP address is stored here as an in_addr struct (in .server_ip_addr) that can be useful
-            // to create sockets and can be efficiently sent over the network. If VERBOSE is defined
-            // in the target LF program, the IP address is also stored in a human readable format
-            // (stored in .server_hostname) that can be useful for log messages.
+            // to create sockets and can be efficiently sent over the network.
             // First, convert the sockaddr structure into a sockaddr_in that contains an internet address.
             struct sockaddr_in* pV4_addr = (struct sockaddr_in*)&client_fd;
             // Then extract the internet address (which is in IPv4 format) and assign it as the federate's socket server
             federates[fed_id].server_ip_addr = pV4_addr->sin_addr;
 
-#if LOG_LEVEL > 3
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
             // Then create the human readable format and copy that into
             // the .server_hostname field of the federate.
             char str[INET_ADDRSTRLEN];
@@ -1557,16 +1562,17 @@ void connect_to_federates(int socket_descriptor) {
 
             // Set the federate's state as pending
             // because it is waiting for the start time to be
-            // sent by the RTI before beginning its execution
+            // sent by the RTI before beginning its execution.
             federates[fed_id].state = PENDING;
 
             DEBUG_PRINT("RTI responding with ACK to federate %d.", fed_id);
-            // Send an ACK message and the server's TCP port number
+            // Send an ACK message.
             unsigned char ack_message = ACK;
             write_to_socket_errexit(socket_id, 1, &ack_message,
                     "RTI failed to write ACK message to federate %d.", fed_id);
             // Next, read the UDP_PORT message from the federate regardless of the status of
-            // clock synchronization.
+            // clock synchronization. This message will tell the RTI whether the federate
+            // is doing clock synchronization, and if it is, what port to use for UDP.
             DEBUG_PRINT("RTI waiting for UDP_PORT from federate %d.", fed_id);
             unsigned char response[1 + sizeof(ushort)];
             read_from_socket_errexit(socket_id, 1 + sizeof(ushort) , response,
@@ -1700,7 +1706,7 @@ void initialize_federate(int id) {
 }
 
 /**
- *
+ * Initialize logical time to match the physical clock.
  */
 void initialize_clock() {
     // Initialize logical time to match physical clock.
