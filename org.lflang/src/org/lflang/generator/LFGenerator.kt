@@ -50,14 +50,16 @@ class LFGenerator : AbstractGenerator() {
         this.generatorErrorsOccurred = generateImpl(resource, fsa, context)
     }
 
-    private fun getGenerator(target: Target): GeneratorBase =
-        when (target) {
-            Target.C      -> CGenerator()
-            Target.CCPP   -> CCppGenerator()
+    private fun getGenerator(target: Target): GeneratorBase {
+        val errorReporter = EclipseErrorReporter()
+        return when (target) {
+            Target.C      -> CGenerator(errorReporter)
+            Target.CCPP   -> CCppGenerator(errorReporter)
             Target.CPP    -> CppGenerator(scopeProvider)
-            Target.TS     -> TypeScriptGenerator()
-            Target.Python -> PythonGenerator()
+            Target.TS     -> TypeScriptGenerator(errorReporter)
+            Target.Python -> PythonGenerator(errorReporter)
         }
+    }
 
     /** Returns true if some errors occurred. */
     private fun generateImpl(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): Boolean {

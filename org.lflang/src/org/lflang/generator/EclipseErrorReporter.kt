@@ -7,7 +7,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.generator.cpp.CppFileConfig
 
-class ErrorReporter(private val fileConfig: CppFileConfig) : IErrorReporter {
+class EclipseErrorReporter(private val fileConfig: CppFileConfig) : IErrorReporter {
 
     private var errorsOccurred = false
 
