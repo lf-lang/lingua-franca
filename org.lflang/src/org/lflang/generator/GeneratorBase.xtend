@@ -140,8 +140,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
     protected var TargetConfig targetConfig = new TargetConfig()
     
     /**
-     * The current file configuration. NOTE: not initialized until the
-     * invocation of doGenerate, which calls setFileConfig.
+     * The current file configuration.
      */
     protected var FileConfig fileConfig
 
@@ -149,18 +148,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Collection of generated delay classes.
      */
     val delayClasses = new LinkedHashSet<Reactor>()
-    
-    /**
-     * Set the fileConfig field to point to the specified resource using the specified
-     * file-system access and context.
-     * @param resource The resource (Eclipse-speak for a file).
-     * @param fsa The Xtext abstraction for the file system.
-     * @param context The generator context (whatever that is).
-     */
-    def void setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        this.fileConfig = new FileConfig(resource, fsa, context);
-        this.topLevelName = fileConfig.name
-    }
 
     /**
      * Indicator of whether generator errors occurred.
@@ -292,7 +279,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Create a new GeneratorBase object.
      */
-    new(ErrorReporter errorReporter) {
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        this.fileConfig = fileConfig
+        this.topLevelName = fileConfig.name
         this.errorReporter = errorReporter
     }
 
@@ -392,7 +381,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
-        setFileConfig(resource, fsa, context)
         setTargetConfig(context)
 
         setMode()
