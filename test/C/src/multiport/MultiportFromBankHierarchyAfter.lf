@@ -5,45 +5,11 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source {
-    output out:int;
-    reaction(startup) -> out {=
-        SET(out, self->bank_index);
-    =}
-}
-reactor Container {
-    output[3] out:int;
-    s = new[3] Source();
-    s.out -> out;
-}
-reactor Destination {
-    input[3] in:int;
-    state received:bool(false);
-    reaction(in) {=
-        for (int i = 0; i < in_width; i++) {
-            printf("Destination channel %d received %d.\n", i, in[i]->value);
-            if (i != in[i]->value) {
-                printf("ERROR: Expected %d.\n", i);
-                exit(1);
-            }
-        }
-        if (get_elapsed_logical_time() != SEC(1)) {
-            printf("ERROR: Expected to receive input after one second.\n");
-            exit(2);
-        }
-        self->received = true;
-    =}
-    reaction(shutdown) {=
-        if (!self->received) {
-            fprintf(stderr, "ERROR: Destination received no input!\n");
-            exit(1);
-        }
-        printf("Success.\n");
-    =}
-}
+import Destination from "MultiportFromBank.lf"
+import Container from "MultiportFromBankHierarchy.lf"
 
 main reactor MultiportFromBankHierarchyAfter {
-    a = new Container();
-    b = new Destination();
+    a = new Container(port_width = 4);
+    b = new Destination(port_width = 4);
     a.out -> b.in after 1 sec;
 }
