@@ -6,4 +6,6 @@
 /*/test-bin/
 /*/src-gen/
 my_trace
-
+include
+lib
+share
