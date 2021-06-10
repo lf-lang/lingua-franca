@@ -18,9 +18,6 @@ import org.lflang.lf.Code
 import org.lflang.lf.Host
 import org.lflang.lf.Reactor
 import org.lflang.lf.Value
-import org.lflang.lf.WidthSpec
-
-import static extension org.lflang.ASTUtils.*
 
 /**
  * Extension class that provides various utility methods for the synthesis.
@@ -69,21 +66,6 @@ class UtilityExtensions extends AbstractSynthesisExtensions {
 		}
 		return sb.toString
 	}
-	
-    /**
-     * Converts a width spec into readable text
-     */
-    def String toText(WidthSpec spec) {
-        if (spec.ofVariableLength) {
-            return "[]"
-        } else if (spec.width !== -1) {
-            return "[" + spec.width + "]"
-        } else {
-            return spec.terms.join("[", "+", "]")[
-                parameter !== null ? parameter.name : width.toString
-            ]
-        }
-    }
 	
 	/**
 	 * Returns true if the reactor is the primary reactor
