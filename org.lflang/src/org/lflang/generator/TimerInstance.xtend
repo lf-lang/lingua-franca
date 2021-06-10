@@ -26,11 +26,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator
 
-import org.lflang.ASTUtils
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.lflang.TimeValue
 import org.lflang.lf.TimeUnit
 import org.lflang.lf.Timer
-import org.lflang.lf.Variable
 
 import static extension org.lflang.ASTUtils.*
 
@@ -40,11 +39,17 @@ import static extension org.lflang.ASTUtils.*
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-class TimerInstance extends TriggerInstance<Variable> {
-	
-	public TimeValue offset = new TimeValue(0, TimeUnit.NONE)
+class TimerInstance extends TriggerInstance<Timer> {
     
-    public TimeValue period = new TimeValue(0, TimeUnit.NONE)
+    /** The global default for offset. */
+    public static val DEFAULT_OFFSET = new TimeValue(0, TimeUnit.NONE)
+    /** The global default for period. */
+    public static val DEFAULT_PERIOD = new TimeValue(0, TimeUnit.NONE)
+    
+    @Accessors(PUBLIC_GETTER)
+	protected TimeValue offset = DEFAULT_OFFSET
+    @Accessors(PUBLIC_GETTER)
+    protected TimeValue period = DEFAULT_PERIOD
 	
 	/**
 	 * Create a new timer instance.
@@ -57,11 +62,7 @@ class TimerInstance extends TriggerInstance<Variable> {
         if (parent === null) {
             throw new Exception('Cannot create an TimerInstance with no parent.')
         }
-        if (definition === null) {
-            this.startup = true;
-            // Create an AST node for the definition.
-            this.definition = ASTUtils.makeStartupTimer();
-        } else {
+        if (definition !== null) {
             if (definition.offset !== null) {
                 if (definition.offset.parameter !== null) {
                     val parm = definition.offset.parameter
