@@ -1,19 +1,22 @@
 package org.lflang.generator
 
 import org.eclipse.core.resources.IMarker
+import org.eclipse.core.resources.IResource
 import org.eclipse.emf.ecore.EObject
-import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.ErrorReporter
 import org.lflang.FileConfig
+import org.lflang.Mode
+import org.lflang.toPath
 import java.nio.file.Path
 
+/**
+ * An error reporter that prints messages to the command line output and also sets markers
+ * in the Eclipse IDE if running in integrated mode.
+ */
 class EclipseErrorReporter(private val fileConfig: FileConfig) : ErrorReporter {
 
     private var errorsOccurred = false
-
-    // TODO move somewhere else
-    private fun Resource.toPath() = org.lflang.FileConfig.toPath(this)
 
     private val EObject.node get() = NodeModelUtils.getNode(this)
 
@@ -35,7 +38,7 @@ class EclipseErrorReporter(private val fileConfig: FileConfig) : ErrorReporter {
     }
 
     /**
-     * Report a warning or error on the specified line of the specified resource.
+     * Report a warning or error on the specified line of the specified file.
      *
      * The caller should not throw an exception so execution can continue.
      * This will print the error message to stderr.
@@ -44,7 +47,7 @@ class EclipseErrorReporter(private val fileConfig: FileConfig) : ErrorReporter {
      * @param message The error message.
      * @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
      * @param line The line number or null if it is not known.
-     * @param resource The resource, or null if it is not known.
+     * @param file The file, or null if it is not known.
      */
     private fun report(
         message: String,
@@ -64,49 +67,31 @@ class EclipseErrorReporter(private val fileConfig: FileConfig) : ErrorReporter {
         else
             System.err.println("$header: $file $line\n$message")
 
-        /* TODO!
         // If running in INTEGRATED mode, create a marker in the IDE for the error.
         // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (mode === Mode.INTEGRATED) {
-            var myResource = resource
-            if (myResource === null && object !== null) {
-                // Attempt to identify the IResource from the object.
-                val eResource = object.eResource
-                if (eResource !== null) {
-                    val uri = FileConfig.toPath(eResource).toUri();
-                    myResource = getEclipseResource(uri);
-                }
-            }
-            // If the resource is still null, use the resource associated with
-            // the top-level file.
-            if (myResource === null) {
-                myResource = fileConfig.iResource
-            }
-            if (myResource !== null) {
-                val marker = myResource.createMarker(IMarker.PROBLEM)
-                marker.setAttribute(IMarker.MESSAGE, message);
-                if (line !== null) {
-                    marker.setAttribute(IMarker.LINE_NUMBER, line);
-                } else {
-                    marker.setAttribute(IMarker.LINE_NUMBER, 1);
-                }
-                // Human-readable line number information.
-                marker.setAttribute(IMarker.LOCATION, lineAsString);
-                // Mark as an error or warning.
-                marker.setAttribute(IMarker.SEVERITY, severity);
-                marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
+        if (fileConfig.compilerMode == Mode.INTEGRATED) {
+            val iResource = if (file != null) fileConfig.getIResource(file) else fileConfig.iResource
 
-                marker.setAttribute(IMarker.USER_EDITABLE, false);
+            val marker = iResource.createMarker(IMarker.PROBLEM)
+            marker.setAttribute(IMarker.MESSAGE, message)
+            marker.setAttribute(IMarker.LINE_NUMBER, line ?: 1)
+            // Human-readable line number information.
+            marker.setAttribute(IMarker.LOCATION, line?.toString() ?: "1")
+            // Mark as an error or warning.
+            marker.setAttribute(IMarker.SEVERITY, severity)
+            marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH)
 
-                // NOTE: It might be useful to set a start and end.
-                // marker.setAttribute(IMarker.CHAR_START, 0);
-                // marker.setAttribute(IMarker.CHAR_END, 5);
-            }
-        }*/
+            marker.setAttribute(IMarker.USER_EDITABLE, false)
+
+            // NOTE: It might be useful to set a start and end.
+            // marker.setAttribute(IMarker.CHAR_START, 0);
+            // marker.setAttribute(IMarker.CHAR_END, 5);
+        }
 
         // Return a string that can be inserted into the generated code.
         return "$header: $message"
     }
+
 
     /**
      * Report an error.
@@ -156,4 +141,36 @@ class EclipseErrorReporter(private val fileConfig: FileConfig) : ErrorReporter {
      */
     override fun reportWarning(file: Path, line: Int, message: String): String =
         report(message, IMarker.SEVERITY_WARNING, line, file)
+
+    /**
+     * Check if errors where reported.
+     *
+     * @return true if errors where reported
+     */
+    override fun getErrorsOccurred(): Boolean {
+        return errorsOccurred
+    }
+
+    /**
+     * Clear markers in the IDE if running in integrated mode.
+     * This has the side effect of setting the iResource variable to point to
+     * the IFile for the Lingua Franca program.
+     * Also reset the flag indicating that generator errors occurred.
+     */
+    override fun reset() {
+        errorsOccurred = false
+
+        if (fileConfig.compilerMode == Mode.INTEGRATED) {
+            try {
+                val resource = fileConfig.getIResource(fileConfig.srcFile)
+                // First argument can be null to delete all markers.
+                // But will that delete xtext markers too?
+                resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE)
+            } catch (e: Exception) {
+                // Ignore, but print a warning
+                reportWarning("Deleting markers in the IDE failed: $e")
+            }
+        }
+    }
+
 }

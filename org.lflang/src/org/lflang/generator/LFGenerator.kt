@@ -68,7 +68,7 @@ class LFGenerator : AbstractGenerator() {
             Target.C      -> CGenerator(fileConfig, errorReporter)
             Target.CCPP   -> CCppGenerator(fileConfig, errorReporter)
             Target.CPP    -> CppGenerator(scopeProvider)
-            Target.TS     -> TypeScriptGenerator(fileConfig, errorReporter)
+            Target.TS     -> TypeScriptGenerator(fileConfig as TypeScriptFileConfig, errorReporter)
             Target.Python -> PythonGenerator(fileConfig, errorReporter)
         }
     }
