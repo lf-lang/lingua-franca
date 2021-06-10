@@ -1,13 +1,14 @@
 package org.lflang.generator
 
 import org.eclipse.core.resources.IMarker
-import org.eclipse.core.resources.IResource
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
-import org.lflang.generator.cpp.CppFileConfig
+import org.lflang.ErrorReporter
+import org.lflang.FileConfig
+import java.nio.file.Path
 
-class EclipseErrorReporter(private val fileConfig: CppFileConfig) : IErrorReporter {
+class EclipseErrorReporter(private val fileConfig: FileConfig) : ErrorReporter {
 
     private var errorsOccurred = false
 
@@ -29,8 +30,8 @@ class EclipseErrorReporter(private val fileConfig: CppFileConfig) : IErrorReport
      */
     private fun report(message: String, severity: Int, obj: EObject): String {
         val line = obj.node.startLine
-        val resource = fileConfig.getIResource(obj.eResource())
-        return report(message, severity, line, resource)
+        val file = obj.eResource().toPath()
+        return report(message, severity, line, file)
     }
 
     /**
@@ -45,11 +46,11 @@ class EclipseErrorReporter(private val fileConfig: CppFileConfig) : IErrorReport
      * @param line The line number or null if it is not known.
      * @param resource The resource, or null if it is not known.
      */
-    override fun report(
+    private fun report(
         message: String,
         severity: Int,
         line: Int?,
-        resource: IResource?,
+        file: Path?,
     ): String {
         val isError = severity == IMarker.SEVERITY_ERROR
         if (isError) {
@@ -57,12 +58,11 @@ class EclipseErrorReporter(private val fileConfig: CppFileConfig) : IErrorReport
         }
 
         val header = if (isError) "ERROR" else "WARNING"
-        val fullPath = resource?.fullPath?.toString() ?: "unknown path"
 
-        if (line == null || fullPath == "unknown path")
-            System.err.println("$header:\n$message")
+        if (line == null || file == null)
+            System.err.println("$header: $message")
         else
-            System.err.println("$header: $fullPath $line\n$message")
+            System.err.println("$header: $file $line\n$message")
 
         /* TODO!
         // If running in INTEGRATED mode, create a marker in the IDE for the error.
@@ -105,7 +105,7 @@ class EclipseErrorReporter(private val fileConfig: CppFileConfig) : IErrorReport
         }*/
 
         // Return a string that can be inserted into the generated code.
-        return "[[$header: $message]]"
+        return "$header: $message"
     }
 
     /**
@@ -134,17 +134,26 @@ class EclipseErrorReporter(private val fileConfig: CppFileConfig) : IErrorReport
      * @param obj     The parse tree object.
      * @param message The error message.
      */
-    override fun reportWaring(obj: EObject, message: String): String = report(message, IMarker.SEVERITY_WARNING, obj)
+    override fun reportWarning(obj: EObject, message: String): String = report(message, IMarker.SEVERITY_WARNING, obj)
 
-    /** Report an error on the receiving parse tree object.
-     *  @receiver The parse tree object.
-     *  @param message The error message.
+    /**
+     * Report an error at the specified line within a file.
+     *
+     * @param message The error message.
+     * @param line    The line number to report at.
+     * @param file    The file to report at.
+     * @return a string that describes the error.
      */
-    fun EObject.extReportError(message: String): String = report(message, IMarker.SEVERITY_ERROR, obj = this)
+    override fun reportError(file: Path, line: Int, message: String): String = report(message, IMarker.SEVERITY_ERROR, line, file)
 
-    /** Report a warning on the receiving parse tree object.
-     *  @receiver The parse tree object.
-     *  @param message The error message.
+    /**
+     * Report a warning at the specified line within a file.
+     *
+     * @param message The error message.
+     * @param line    The line number to report at.
+     * @param file    The file to report at.
+     * @return a string that describes the warning.
      */
-    fun EObject.extReportWarning(message: String): String = report(message, IMarker.SEVERITY_WARNING, obj = this)
+    override fun reportWarning(file: Path, line: Int, message: String): String =
+        report(message, IMarker.SEVERITY_WARNING, line, file)
 }
