@@ -67,9 +67,12 @@ class LFGenerator : AbstractGenerator() {
         return when (target) {
             Target.C      -> CGenerator(fileConfig, errorReporter)
             Target.CCPP   -> CCppGenerator(fileConfig, errorReporter)
-            Target.CPP    -> CppGenerator(scopeProvider)
+            Target.CPP    -> CppGenerator(fileConfig as CppFileConfig, errorReporter, scopeProvider)
             Target.TS     -> TypeScriptGenerator(fileConfig as TypeScriptFileConfig, errorReporter)
             Target.Python -> PythonGenerator(fileConfig, errorReporter)
+            // The list above is exhaustive and we actually don't need the else clause, but somehow eclipse still
+            // complains... So we add the else to make eclipse happy :)
+            else          -> TODO("Unexpected target")
         }
     }
 
