@@ -1,5 +1,7 @@
 package org.lflang;
 
+import java.nio.file.Path;
+
 import org.eclipse.emf.ecore.EObject;
 
 /**
@@ -7,11 +9,13 @@ import org.eclipse.emf.ecore.EObject;
  * 
  * @author Edward A. Lee <eal@berkeley.edu>
  * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Christian Menard <christian.menard@tu-dresden.de>
  */
 public interface ErrorReporter {
-    
+
     /**
      * Report an error.
+     * 
      * @param message The error message.
      * @return a string that describes the error.
      */
@@ -19,26 +23,48 @@ public interface ErrorReporter {
 
     /**
      * Report a warning.
+     * 
      * @param message The warning message.
-     * @return a string that describes the error.
+     * @return a string that describes the warning.
      */
     String reportWarning(String message);
 
-
-    /** 
+    /**
      * Report an error on the specified parse tree object.
-     * @param object The parse tree object.
+     * 
+     * @param object  The parse tree object.
      * @param message The error message.
      * @return a string that describes the error.
      */
     String reportError(EObject object, String message);
 
-    /** 
+    /**
      * Report a warning on the specified parse tree object.
-     * @param object The parse tree object.
+     * 
+     * @param object  The parse tree object.
      * @param message The error message.
-     * @return a string that describes the error.
+     * @return a string that describes the warning.
      */
     String reportWarning(EObject object, String message);
-    
+
+    /**
+     * Report an error at the specified line within a file.
+     * 
+     * @param message The error message.
+     * @param line    The line number to report at.
+     * @param file    The file to report at.
+     * @return a string that describes the error.
+     */
+    String reportError(Path file, Integer line, String message);
+
+    /**
+     * Report a warning at the specified line within a file.
+     * 
+     * @param message The error message.
+     * @param line    The line number to report at.
+     * @param file    The file to report at.
+     * @return a string that describes the warning.
+     */
+    String reportWarning(Path file, Integer line, String message);
+
 }
