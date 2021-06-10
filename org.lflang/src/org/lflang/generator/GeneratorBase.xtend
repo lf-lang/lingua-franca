@@ -88,6 +88,7 @@ import org.lflang.validation.AbstractLFValidator
 
 import static extension org.lflang.ASTUtils.*
 import org.lflang.federated.FedASTUtils
+import org.lflang.ErrorReporter
 
 /**
  * Generator base class for shared code between code generators.
@@ -99,7 +100,7 @@ import org.lflang.federated.FedASTUtils
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator {
+abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporter {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -1958,7 +1959,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Report an error.
      * @param message The error message.
      */
-    protected def reportError(String message) {
+    override reportError(String message) {
         return report(message, IMarker.SEVERITY_ERROR, null)
     }
 
@@ -1966,7 +1967,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Report a warning.
      * @param message The warning message.
      */
-    protected def reportWarning(String message) {
+    override reportWarning(String message) {
         return report(message, IMarker.SEVERITY_WARNING, null)
     }
 
@@ -1975,7 +1976,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  @param object The parse tree object.
      *  @param message The error message.
      */
-    protected def reportError(EObject object, String message) {
+    override reportError(EObject object, String message) {
         return report(message, IMarker.SEVERITY_ERROR, object)
     }
 
@@ -1983,7 +1984,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  @param object The parse tree object.
      *  @param message The error message.
      */
-    protected def reportWarning(EObject object, String message) {
+    override reportWarning(EObject object, String message) {
         return report(message, IMarker.SEVERITY_WARNING, object)
     }
 
@@ -2208,9 +2209,9 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        val mainDefn = this.mainDef?.reactorClass.toDefinition
+        val mainReactor = this.mainDef?.reactorClass.toDefinition
 
-        if (this.mainDef === null || !mainDefn.isFederated) {
+        if (this.mainDef === null || !mainReactor.isFederated) {
             // Ensure federates is never empty.
             var federateInstance = new FederateInstance(null, 0, 0, this)
             federates.add(federateInstance)
@@ -2218,32 +2219,30 @@ abstract class GeneratorBase extends AbstractLFValidator {
         } else {
             // The Lingua Franca program is federated
             isFederated = true
-            if (mainDefn.host !== null) {
+            if (mainReactor.host !== null) {
                 // Get the host information, if specified.
                 // If not specified, this defaults to 'localhost'
-                if (mainDefn.host.addr !== null) {
-                    federationRTIProperties.put('host', mainDefn.host.addr)
+                if (mainReactor.host.addr !== null) {
+                    federationRTIProperties.put('host', mainReactor.host.addr)
                 }
                 // Get the port information, if specified.
                 // If not specified, this defaults to 14045
-                if (mainDefn.host.port !== 0) {
-                    federationRTIProperties.put('port', mainDefn.host.port)
+                if (mainReactor.host.port !== 0) {
+                    federationRTIProperties.put('port', mainReactor.host.port)
                 }
                 // Get the user information, if specified.
-                if (mainDefn.host.user !== null) {
-                    federationRTIProperties.put('user', mainDefn.host.user)
+                if (mainReactor.host.user !== null) {
+                    federationRTIProperties.put('user', mainReactor.host.user)
                 }
-            // Get the directory information, if specified.
-            /* FIXME
-             * if (mainDef.reactorClass.host.dir !== null) {
-             *     federationRTIProperties.put('dir', mainDef.reactorClass.host.dir)                
-             * }
-             */
             }
 
             // Create a FederateInstance for each top-level reactor.
-            for (instantiation : mainDefn.allInstantiations) {
-                var bankWidth = ASTUtils.width(instantiation.widthSpec);
+            for (instantiation : mainReactor.allInstantiations) {
+                // Since federates are always within the main (federated) reactor,
+                // create a list containing just that one containing instantiation.
+                val instantiations = new LinkedList<Instantiation>();
+                instantiations.add(mainDef);
+                var bankWidth = ASTUtils.width(instantiation.widthSpec, instantiations);
                 if (bankWidth < 0) {
                     reportError(instantiation, "Cannot determine bank width!");
                     // Continue with a bank width of 1.
@@ -2290,8 +2289,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
             // AST with an action (which inherits the delay) and two reactions.
             // The action will be physical for physical connections and logical
             // for logical connections.
+            
+            // Since federates are all just within the main reactor, the context for evaluating
+            // parameter values is straightforward.
+            val context = null as LinkedList<Instantiation>
+            
             var connectionsToRemove = new LinkedList<Connection>()
-            for (connection : mainDefn.connections) {
+            for (connection : mainReactor.connections) {
                 // Each connection object may represent more than one physical connection between
                 // federates because of banks and multiports. We need to generate communciation
                 // for each of these. This iteration assumes the balance of the connection has been
@@ -2300,10 +2304,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
                 var rightPort = connection.rightPorts.get(rightIndex++);
                 var rightBankIndex = 0;
                 var rightChannelIndex = 0;
-                var rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                var rightPortWidth = width((rightPort.variable as Port).widthSpec, context);
                 for (leftPort: connection.leftPorts) {
-                    var leftPortWidth = width((leftPort.variable as Port).widthSpec);
-                    for (var leftBankIndex = 0; leftBankIndex < width(leftPort.container.widthSpec); leftBankIndex++) {
+                    var leftPortWidth = width((leftPort.variable as Port).widthSpec, context);
+                    for (var leftBankIndex = 0; leftBankIndex < width(leftPort.container.widthSpec, context); leftBankIndex++) {
                         var leftChannelIndex = 0;
                         while (rightPort !== null) {
                             var minWidth = (leftPortWidth - leftChannelIndex < rightPortWidth - rightChannelIndex)
@@ -2364,7 +2368,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                                     if (rightChannelIndex >= rightPortWidth) {
                                         // Ran out of channels on the right.
                                         // First, check whether there is another bank reactor.
-                                        if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
+                                        if (rightBankIndex < width(rightPort.container.widthSpec, context) - 1) {
                                             rightBankIndex++;
                                             rightChannelIndex = 0;
                                         } else if (rightIndex >= connection.rightPorts.size()) {
@@ -2376,7 +2380,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
                                             rightBankIndex = 0;
                                             rightPort = connection.rightPorts.get(rightIndex++);
                                             rightChannelIndex = 0;
-                                            rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                                            rightPortWidth = width((rightPort.variable as Port).widthSpec, context);
                                         }
                                     }
                                 }
@@ -2390,7 +2394,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
             }
             for (connection : connectionsToRemove) {
                 // Remove the original connection for the parent.
-                mainDefn.connections.remove(connection)
+                mainReactor.connections.remove(connection)
             }
         }
     }
