@@ -1,11 +1,11 @@
- // Test reaction sending messages to a contained bank of reactors.
- target C {
+// Test reaction sending messages to a contained bank of reactors.
+target C {
     timeout: 1 sec,
     fast: true
 };
 import TestCount from "../lib/TestCount.lf";
 
-main reactor ReactionToContainedBank(width:int(2)) {
+reactor ReactionToContainedBank(width:int(2)) {
     timer t(0, 100 msec);
     state count:int(1);
     
@@ -17,4 +17,9 @@ main reactor ReactionToContainedBank(width:int(2)) {
         }
         self->count++;
     =}
+}
+
+main reactor (width:int(2)) {
+    a = new ReactionToContainedBank(width = width);
+    b = new ReactionToContainedBank(width = 4);
 }

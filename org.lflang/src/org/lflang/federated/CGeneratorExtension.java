@@ -138,7 +138,7 @@ public class CGeneratorExtension {
             return builder;
         }
 
-        ReactorDecl reactorClass = instance.definition.getReactorClass();
+        ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(reactorClass);
         String nameOfSelfStruct = CGenerator.selfStructName(instance);
 
