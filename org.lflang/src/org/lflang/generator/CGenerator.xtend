@@ -330,8 +330,8 @@ class CGenerator extends GeneratorBase {
     // For each reactor, we collect a set of input and parameter names.
     var triggerCount = 0
 
-    new(ErrorReporter errorReporter) {
-        super(errorReporter)
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags.add("-O2") // -Wall -Wconversion"

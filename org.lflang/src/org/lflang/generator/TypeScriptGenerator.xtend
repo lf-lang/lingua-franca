@@ -107,8 +107,8 @@ class TypeScriptGenerator extends GeneratorBase {
      */
     var mainParameters = new HashSet<Parameter>()
 
-    new(ErrorReporter errorReporter) {
-        super(errorReporter)
+    new(TypeScriptFileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // Set defaults for federate compilation.
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags.add("-O2")
@@ -1408,10 +1408,6 @@ class TypeScriptGenerator extends GeneratorBase {
         } else {
             return "undefined"
         }
-    }
-
-    override setFileConfig(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
-        this.fileConfig = new TypeScriptFileConfig(resource, fsa, context)
     }
 
     override String getTargetTimeType() {

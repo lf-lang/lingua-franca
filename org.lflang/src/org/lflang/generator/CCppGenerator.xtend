@@ -37,6 +37,7 @@ import org.lflang.Target
 import org.lflang.lf.ReactorDecl
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.FileConfig
 
 /** 
  * Generator for CCpp target. This class generates C++ code definining each reactor
@@ -261,8 +262,8 @@ import static extension org.lflang.ASTUtils.*
  */
 class CCppGenerator extends CGenerator {
 
-    new(ErrorReporter errorReporter) {
-        super(errorReporter)
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // set defaults
         targetConfig.compiler = "g++"
         targetConfig.compilerFlags.add("-O2") // -Wall -Wconversion"

@@ -55,6 +55,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.FileConfig
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -76,8 +77,8 @@ class PythonGenerator extends CGenerator {
     // Used to add module requirements to setup.py (delimited with ,)
     var pythonRequiredModules = new StringBuilder()
 
-    new(ErrorReporter errorReporter) {
-        super(errorReporter)
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags = newArrayList // -Wall -Wconversion"
