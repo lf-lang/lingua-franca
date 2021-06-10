@@ -99,11 +99,10 @@ class ParameterInstance extends NamedInstance<Parameter> {
     }
 	
     /**
-     * Return the main reactor, which is the top-level parent.
-     * @return The top-level parent.
+     * {@inheritDoc}
      */
-    override ReactorInstance main() {
-        parent.main
+    override ReactorInstance root() {
+        parent.root()
     }
 
     /** Return a descriptive string. */
