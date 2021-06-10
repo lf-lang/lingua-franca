@@ -959,7 +959,7 @@ class PythonGenerator extends CGenerator {
 
         super.doGenerate(resource, fsa, context)
 
-        if (generatorErrorsOccurred) return;
+        if (errorsOccurred) return;
 
         var baseFileName = topLevelName
         for (federate : federates) {

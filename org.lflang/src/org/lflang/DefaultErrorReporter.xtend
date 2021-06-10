@@ -9,6 +9,8 @@ import java.nio.file.Path
  */
 class DefaultErrorReporter implements ErrorReporter {
 
+    var errorsOccurred = false
+
     /**
      * Default error reporter that prints to standard out.
      */
@@ -18,6 +20,7 @@ class DefaultErrorReporter implements ErrorReporter {
      * Print the given error message.
      */
     override reportError(String message) {
+        errorsOccurred = true
         println("ERROR: " + message)
     }
 
@@ -25,6 +28,7 @@ class DefaultErrorReporter implements ErrorReporter {
      * Print the given error message.
      */
     override reportError(EObject object, String message) {
+        errorsOccurred = true
         println("ERROR: " + message)
     }
 
@@ -32,6 +36,7 @@ class DefaultErrorReporter implements ErrorReporter {
      * Print the given error message.
      */
     override reportError(Path file, Integer line, String message) {
+        errorsOccurred = true
         println("ERROR: " + message)
     }
 
@@ -55,5 +60,17 @@ class DefaultErrorReporter implements ErrorReporter {
     override reportWarning(Path file, Integer line, String message) {
         println("WARNING: " + message)
     }
-
+   
+    /**
+     * Check if errors where reported.
+     *
+     * @return true if errors where reported
+     */
+    override getErrorsOccurred() { return errorsOccurred }
+    
+    /**
+     * Reset the error reporter.
+     * After this, getErrorsOccurred() returns false.
+     */
+    override reset() { errorsOccurred = false }
 }

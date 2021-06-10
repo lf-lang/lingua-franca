@@ -31,7 +31,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
-import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -148,13 +147,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Collection of generated delay classes.
      */
     val delayClasses = new LinkedHashSet<Reactor>()
-
-    /**
-     * Indicator of whether generator errors occurred.
-     * This is set to true by the report() method and returned by the
-     * errorsOccurred() method.
-     */
-    protected var generatorErrorsOccurred = false
 
     /**
      * Definition of the main (top-level) reactor.
@@ -389,9 +381,10 @@ abstract class GeneratorBase extends AbstractLFValidator {
 
         printInfo()
 
-        // Clear any markers that may have been created by a previous build.
+        // Reset the error reporter. If the reporter sets markers in the IDE, this will
+        // clear any markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        clearMarkers()
+        errorReporter.reset()
         
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name)
         
@@ -552,7 +545,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * @return True if errors occurred.
      */
     def errorsOccurred() {
-        return generatorErrorsOccurred;
+        return errorReporter.getErrorsOccurred();
     }
 
     /**
@@ -984,27 +977,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected def clearCode() {
         code = new StringBuilder
-    }
-    
-    /**
-     * Clear markers in the IDE if running in integrated mode.
-     * This has the side effect of setting the iResource variable to point to
-     * the IFile for the Lingua Franca program. 
-     * Also reset the flag indicating that generator errors occurred.
-     */
-    protected def clearMarkers() {
-        if (mode == Mode.INTEGRATED) {
-            try {
-                val resource = fileConfig.getIResource(fileConfig.srcFile);
-                // First argument can be null to delete all markers.
-                // But will that delete xtext markers too?
-                resource.deleteMarkers(IMarker.PROBLEM, true, IResource.DEPTH_INFINITE);
-            } catch (Exception e) {
-                // Ignore, but print a warning.
-                println("Warning: Deleting markers in the IDE failed: " + e)
-            }
-        }
-        generatorErrorsOccurred = false
     }
 
     /**
