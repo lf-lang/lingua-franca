@@ -108,14 +108,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
      * Constant that specifies how to name generated delay reactors.
      */
     public static val GEN_DELAY_CLASS_NAME = "__GenDelay"
-    
-    /**
-     * {@link #Mode.STANDALONE Mode.STANDALONE} if the code generator is being
-     * called from the command line, {@link #Mode.INTEGRATED Mode.INTEGRATED}
-     * if it is being called from the Eclipse IDE, and 
-     * {@link #Mode.UNDEFINED Mode.UNDEFINED} otherwise.
-     */
-    public var Mode mode = Mode.UNDEFINED
 
     /** 
      * The main (top-level) reactor instance.
@@ -374,8 +366,6 @@ abstract class GeneratorBase extends AbstractLFValidator {
     def void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         
         setTargetConfig(context)
-
-        setMode()
 
         fileConfig.cleanIfNeeded()
 
@@ -833,12 +823,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
         val stderr = new ByteArrayOutputStream()
         val returnCode = compile.executeCommand(stderr)
 
-        if (returnCode != 0 && mode !== Mode.INTEGRATED) {
+        if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
             errorReporter.reportError('''«targetConfig.compiler» returns error code «returnCode»''')
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
+        if (stderr.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
             reportCommandErrors(stderr.toString())
         }
         return (returnCode == 0)
@@ -881,13 +871,13 @@ abstract class GeneratorBase extends AbstractLFValidator {
             val stderr = new ByteArrayOutputStream()
             val returnCode = cmd.executeCommand(stderr)
 
-            if (returnCode != 0 && mode !== Mode.INTEGRATED) {
+            if (returnCode != 0 && fileConfig.compilerMode !== Mode.INTEGRATED) {
                 errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (stderr.toString.length > 0 && mode === Mode.INTEGRATED) {
+            if (stderr.toString.length > 0 && fileConfig.compilerMode === Mode.INTEGRATED) {
                 reportCommandErrors(stderr.toString())
                 return
             }
@@ -958,7 +948,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
         // In any case, a warning is helpful to draw attention to the fact that no binary was produced.
         if (doNotLinkIfNoMain && main === null) {
             compileArgs.add("-c") // FIXME: revisit
-            if (mode === Mode.STANDALONE) {
+            if (fileConfig.compilerMode === Mode.STANDALONE) {
                 errorReporter.reportError("ERROR: Did not output executable; no main reactor found.")
             }
         }
@@ -1749,7 +1739,7 @@ abstract class GeneratorBase extends AbstractLFValidator {
      *  any generated files become visible in the project.
      */
     protected def refreshProject() {
-        if (mode == Mode.INTEGRATED) {
+        if (fileConfig.compilerMode == Mode.INTEGRATED) {
             // Find name of current project
             val id = "((:?[a-z]|[A-Z]|_\\w)*)";
             var pattern = if (File.separator.equals("/")) { // Linux/Mac file separator
@@ -2191,29 +2181,12 @@ abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Determine which mode the compiler is running in.
-     * Integrated mode means that it is running within an Eclipse IDE.
-     * Standalone mode means that it is running on the command line.
-     */
-    private def setMode() {
-        val resource = fileConfig.resource
-        if (resource.URI.isPlatform) {
-            mode = Mode.INTEGRATED
-        } else if (resource.URI.isFile) {
-            mode = Mode.STANDALONE
-        } else {
-            mode = Mode.UNDEFINED
-            System.err.println("ERROR: Source file protocol is not recognized: " + resource.URI);
-        }
-    }
-
-    /**
      * Print to stdout information about what source file is being generated,
      * what mode the generator is in, and where the generated sources are to be put.
      */
     def printInfo() {
         println("Generating code for: " + fileConfig.resource.getURI.toString)
-        println('******** mode: ' + mode)
+        println('******** mode: ' + fileConfig.compilerMode)
         println('******** source file: ' + fileConfig.srcFile) // FIXME: redundant
         println('******** generated sources: ' + fileConfig.getSrcGenPath)
     }
