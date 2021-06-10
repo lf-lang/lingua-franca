@@ -2289,6 +2289,11 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             // AST with an action (which inherits the delay) and two reactions.
             // The action will be physical for physical connections and logical
             // for logical connections.
+            
+            // Since federates are all just within the main reactor, the context for evaluating
+            // parameter values is straightforward.
+            val context = null as LinkedList<Instantiation>
+            
             var connectionsToRemove = new LinkedList<Connection>()
             for (connection : mainReactor.connections) {
                 // Each connection object may represent more than one physical connection between
@@ -2299,10 +2304,10 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 var rightPort = connection.rightPorts.get(rightIndex++);
                 var rightBankIndex = 0;
                 var rightChannelIndex = 0;
-                var rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                var rightPortWidth = width((rightPort.variable as Port).widthSpec, context);
                 for (leftPort: connection.leftPorts) {
-                    var leftPortWidth = width((leftPort.variable as Port).widthSpec);
-                    for (var leftBankIndex = 0; leftBankIndex < width(leftPort.container.widthSpec); leftBankIndex++) {
+                    var leftPortWidth = width((leftPort.variable as Port).widthSpec, context);
+                    for (var leftBankIndex = 0; leftBankIndex < width(leftPort.container.widthSpec, context); leftBankIndex++) {
                         var leftChannelIndex = 0;
                         while (rightPort !== null) {
                             var minWidth = (leftPortWidth - leftChannelIndex < rightPortWidth - rightChannelIndex)
@@ -2363,7 +2368,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                                     if (rightChannelIndex >= rightPortWidth) {
                                         // Ran out of channels on the right.
                                         // First, check whether there is another bank reactor.
-                                        if (rightBankIndex < width(rightPort.container.widthSpec) - 1) {
+                                        if (rightBankIndex < width(rightPort.container.widthSpec, context) - 1) {
                                             rightBankIndex++;
                                             rightChannelIndex = 0;
                                         } else if (rightIndex >= connection.rightPorts.size()) {
@@ -2375,7 +2380,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                                             rightBankIndex = 0;
                                             rightPort = connection.rightPorts.get(rightIndex++);
                                             rightChannelIndex = 0;
-                                            rightPortWidth = width((rightPort.variable as Port).widthSpec);
+                                            rightPortWidth = width((rightPort.variable as Port).widthSpec, context);
                                         }
                                     }
                                 }
