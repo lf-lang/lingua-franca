@@ -298,6 +298,12 @@ class CGenerator extends GeneratorBase {
     // Place to collect code to go at the end of the __initialize_trigger_objects() function.
     var initializeTriggerObjectsEnd = new StringBuilder()
 
+    /**
+     * A representation of the dependencies between reactions as they are
+     * inferred from the main reactor instance.
+     */
+    var ReactionInstanceGraph reactionGraph
+
     // The command to run the generated code if specified in the target directive.
     var runCommand = new ArrayList<String>()
 
@@ -313,7 +319,6 @@ class CGenerator extends GeneratorBase {
      *  reference count decremented in __start_time_step().
      */
     var startTimeStepTokens = 0
-
 
     // Place to collect code to initialize timers for all reactors.
     protected var startTimers = new StringBuilder()
@@ -486,7 +491,9 @@ class CGenerator extends GeneratorBase {
                 if (this.main === null) {
                     // Recursively build instances. This is done once because
                     // it is the same for all federates.
-                    this.main = new ReactorInstance(mainDef, null, this) 
+                    this.main = new ReactorInstance(mainDef.reactorClass.toDefinition, this, 
+                        this.unorderedReactions)
+                    this.reactionGraph = new ReactionInstanceGraph(main)
                 }   
             }
         
@@ -2005,12 +2012,12 @@ class CGenerator extends GeneratorBase {
                 }
             }
             unindent(body)
-            // FIXME: To support parameterized bank widths, the following
-            // array needs to be malloc'd, which means this struct
-            // needs to be pulled out as an auxiliary typedef.
-            var width = containedReactorBankWidth(containedReactor);
             var array = "";
-            if (width >= 0) {
+            var width = -2;
+            // If the instantiation is a bank, find the maximum bank width
+            // to define an array.
+            if (containedReactor.widthSpec !== null) {
+                width = maxContainedReactorBankWidth(containedReactor, null, 0);
                 array = "[" + width + "]";
             }
             pr(body, '''
@@ -2729,27 +2736,75 @@ class CGenerator extends GeneratorBase {
     }
     
     /**
-     * FIXME: A temporary function that returns the width of a bank of reactors.
-     * If the width is not a literal constant, this throws an UnsupportedOperationException.
-     * If the reactor is not a bank, this returns -2.
-     * @param containedReactor The contained reactor instantiation. 
+     * Return the maximum bank width for the given instantiation within all
+     * instantiations of its parent reactor.
+     * On the first call to this method, the breadcrumbs should be null and the max
+     * argument should be zero. On recursive calls, breadcrumbs is a list of nested
+     * instantiations, the max is the maximum width found so far.  The search for
+     * instances of the parent reactor will begin with the last instantiation
+     * in the specified list.
+     * 
+     * This rather complicated method is used when a reaction sends or receives data
+     * to or from a bank of contained reactors. There will be an array of structs on
+     * the self struct of the parent, and the size of the array is conservatively set
+     * to the maximum of all the identified bank widths.  This is a bit wasteful of
+     * memory, but it avoids having to malloc the array for each instance, and in
+     * typical usage, there will be few instances or instances that are all the same
+     * width.
+     * 
+     * @param containedReactor The contained reactor instantiation.
+     * @param breadcrumbs null on first call (non-recursive).
+     * @param max 0 on first call.
      */
-    private def int containedReactorBankWidth(Instantiation containedReactor) {
-        // FIXME: Because the width of the bank may be given by a parameter, it is
-        // impossible to know a fixed width here.
-        if (containedReactor.widthSpec !== null) {
-            // FIXME: Using deprecated method here because of above FIXME.
-            val numericalWidth = ASTUtils.width(containedReactor.widthSpec);
-            if (numericalWidth <= 0) {
-                throw new UnsupportedOperationException(
-                        "Apologies, but parameterized widths are not yet supported here: "
-                        + containedReactor.name
-                        + "["
-                        + containedReactor.widthSpec);
-            }
-            return numericalWidth;
+    private def int maxContainedReactorBankWidth(
+        Instantiation containedReactor, 
+        LinkedList<Instantiation> breadcrumbs,
+        int max
+    ) {
+        // If the instantiation is not a bank, return 1.
+        if (containedReactor.widthSpec === null) {
+            return 1
         }
-        return -2;
+        // If there is no main, then we just use the default width.
+        if (mainDef === null) {
+            return ASTUtils.width(containedReactor.widthSpec, null)
+        }
+        var nestedBreadcrumbs = breadcrumbs
+        if (nestedBreadcrumbs === null) {
+            nestedBreadcrumbs = new LinkedList<Instantiation>
+            nestedBreadcrumbs.add(mainDef)
+        }
+        var result = max
+        var parent = containedReactor.eContainer as Reactor
+        if (parent == mainDef.reactorClass.toDefinition) {
+            // The parent is main, so there can't be any other instantiations of it.
+            return ASTUtils.width(containedReactor.widthSpec, null)
+        }
+        // Search for instances of the parent within the tail of the breadcrumbs list.
+        val container = nestedBreadcrumbs.first.reactorClass.toDefinition
+        for (instantiation: container.instantiations) {
+            // Put this new instantation at the head of the list.
+            nestedBreadcrumbs.add(0, instantiation)
+            if (instantiation.reactorClass.toDefinition == parent) {
+                // Found a matching instantiation of the parent.
+                // Evaluate the original width specification in this context.
+                val candidate = ASTUtils.width(containedReactor.widthSpec, nestedBreadcrumbs)
+                if (candidate > result) {
+                    result = candidate
+                }
+            } else {
+                // Found some other instantiation, not the parent.
+                // Search within it for instantiations of the parent.
+                // Note that we assume here that the parent cannot contain
+                // instances of itself.
+                val candidate = maxContainedReactorBankWidth(containedReactor, nestedBreadcrumbs, result)
+                if (candidate > result) {
+                    result = candidate
+                }
+            }
+            nestedBreadcrumbs.remove
+        }
+        return result
     }
 
     /** 
@@ -2783,12 +2838,12 @@ class CGenerator extends GeneratorBase {
                 // Record the number of reactions that this reaction depends on.
                 // This is used for optimization. When that number is 1, the reaction can
                 // be executed immediately when its triggering reaction has completed.
-                var dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(reaction)
+                var dominatingReaction = this.reactionGraph.findSingleDominatingReaction(reaction)
                 // The dominating reaction may not be included in this federate, in which case, we need to keep searching.
                 while (dominatingReaction !== null 
                     && !federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition
                 )) {
-                    dominatingReaction = ReactorInstance.reactionGraph.findSingleDominatingReaction(dominatingReaction);
+                    dominatingReaction = this.reactionGraph.findSingleDominatingReaction(dominatingReaction);
                 }
                 if (dominatingReaction !== null
                     && federate.containsReaction(reactorInstance.definition.reactorClass.toDefinition, dominatingReaction.definition)
@@ -3368,7 +3423,7 @@ class CGenerator extends GeneratorBase {
      *  @param instance The port or action instance.
      *  @return The name of the trigger struct.
      */
-    static def triggerStructName(TriggerInstance<Variable> instance) {
+    static def triggerStructName(TriggerInstance<? extends Variable> instance) {
         return selfStructName(instance.parent) 
                 + '->___'
                 + instance.name
@@ -4291,7 +4346,7 @@ class CGenerator extends GeneratorBase {
      * Generate code for the body of a reaction that handles an output
      * that is to be sent over the network.
      * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The ID of the destination port.
+     * @param receivingPort The variable reference to the destination port.
      * @param receivingPortID The ID of the destination port.
      * @param sendingFed The sending federate.
      * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
