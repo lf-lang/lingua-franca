@@ -512,6 +512,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         var dst = dstInstance.multiport as PortInstance;
         if (dst === null) dst = dstInstance; // Not in a multiport.
 
+        // The source may be at a bank index greater than 0.
+        // For visualization, this needs to be converted to the source
+        // at bank 0, because only that one is rendered.
+        // We want the rendering to represent all connections.
+        if (src.isOutput && src.parent.bankIndex > 0) {
+            // Replace the source with the corresponding port instance
+            // at bank index 0.
+            val newParent = src.parent.bankMaster.bankMembers.get(0)
+            val name = src.name
+            src = newParent.outputs.findFirst [ it.name.equals(name) ]
+        }
+
         var links = connections.get(connection);
         if (links === null) {
             links = new LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>();
@@ -521,6 +533,17 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         if (destinations === null) {
             destinations = new LinkedHashSet<PortInstance>();
             links.put(src, destinations);
+        }
+        // The destination may be at a bank index greater than 0.
+        // For visualization, this needs to be converted to the destination
+        // at bank 0, because only that one is rendered.
+        // We want the rendering to represent all connections.
+        if (dst.isInput && dst.parent.bankIndex > 0) {
+            // Replace the destination with the corresponding port instance
+            // at bank index 0.
+            val newParent = dst.parent.bankMaster.bankMembers.get(0)
+            val name = dst.name
+            dst = newParent.inputs.findFirst [ it.name.equals(name) ]
         }
         destinations.add(dst);
     }
