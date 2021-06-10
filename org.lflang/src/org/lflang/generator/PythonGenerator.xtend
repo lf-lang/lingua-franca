@@ -1446,7 +1446,7 @@ class PythonGenerator extends CGenerator {
         
     
     /**
-     * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
+     * Generate code for parameter variables of a reactor in the form "parameter.type parameter.name;"
      * 
      * FIXME: for now we assume all parameters are int. This is to circumvent the issue of parameterized
      * port widths for now.
@@ -1494,18 +1494,8 @@ class PythonGenerator extends CGenerator {
      * @return initialization code
      */
     override generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
-       var nameOfSelfStruct = selfStructName(instance)
-        for (parameter : instance.parameters) {            
-            if (parameter.init.size > 1) {
-                // Ignore the initialization in C for arrays
-                // The actual initialization will be done in Python
-            } else {
-                pr(builder, '''
-                    «nameOfSelfStruct»->«parameter.name» = «parameter.getInitializer»; 
-                ''')
-            }
-
-        }
+        // Ignore the initialization in C for arrays
+        // The actual initialization will be done in Python
     }
     
     /**

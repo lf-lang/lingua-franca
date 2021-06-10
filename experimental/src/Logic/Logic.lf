@@ -36,7 +36,7 @@ reactor LogicalAnd {
     input b:bool;
    
     reaction(a, b) {=
-        printf("output: %d, tag: (%lld, %u)\n", 
+        printf("Output: %d, tag: (%lld, %u)\n", 
             a->is_present & b->is_present, get_elapsed_logical_time(), get_microstep()
         );
     =}
