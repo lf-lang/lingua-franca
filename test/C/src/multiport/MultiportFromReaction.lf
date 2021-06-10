@@ -27,7 +27,7 @@ reactor Destination(width:int(1)) {
         printf("Success.\n");
     =}
 }
-main reactor MultiportFromReaction {
+main reactor MultiportFromReaction(width:int(4)) {
     timer t(0, 200 msec);
     state s:int(0);
     reaction(t) -> b.in {=
@@ -38,5 +38,6 @@ main reactor MultiportFromReaction {
             printf("AFTER set, b.in[%d]->value has value %d\n", i, b.in[i]->value);
         }
     =}
-    b = new Destination(width = 4);
+    b = new Destination(width = width);
 }
+

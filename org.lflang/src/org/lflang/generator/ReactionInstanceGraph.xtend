@@ -70,7 +70,7 @@ class ReactionInstanceGraph extends DirectedGraph<ReactionInstance> {
             // Assign a level to each reaction. 
             // If there are cycles present in the graph, it will be detected here.
             if (!assignLevels()) {
-                main.generator.reportError(main.generator.mainDef, "Reactions form a cycle!");
+                main.reporter.reportError("Reactions form a cycle!");
                 throw new Exception("Reactions form a cycle!")
             }
             // Traverse the graph again, now starting from the leaves,
