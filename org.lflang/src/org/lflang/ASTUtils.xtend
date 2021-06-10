@@ -1317,7 +1317,7 @@ class ASTUtils {
                         // Indicate that the port is on the left.
                         leftOrRight = -1
                     } else {
-                        leftWidth += portWidth(leftPort, c)
+                        leftWidth += inferPortWidth(leftPort, c, instantiations)
                     }
                 }
                 for (rightPort : c.rightPorts) {
@@ -1328,7 +1328,7 @@ class ASTUtils {
                         // Indicate that the port is on the right.
                         leftOrRight = 1
                     } else {
-                        rightWidth += portWidth(rightPort, c)
+                        rightWidth += inferPortWidth(rightPort, c, instantiations)
                     }
                 }
                 if (leftOrRight < 0) {
@@ -1460,56 +1460,6 @@ class ASTUtils {
         }
         // Argument is not a port.
         return -1;
-    }
-
-    /**
-     * Given the specification of the width of either a bank of reactors
-     * or a multiport, return the width if it can be determined and otherwise
-     * return -1. The width can be determined if it is given by one or more
-     * literal constants or if the widthSpec is null (it is not a multiport
-     * or reactor bank).
-     * 
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param widthSpec The width specification.
-     * 
-     * @return The width or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int width(WidthSpec widthSpec) {
-        return width(widthSpec, null);
-    }
-    
-    /**
-     * Calculate the width of a port reference in a connection.
-     * The width will be the product of the bank width and the multiport width,
-     * or 1 if the port is not in a bank and is not a multiport.
-     * This throws an exception if the width cannot be determined.
-     * The width cannot be determined if it depends on a parameter
-     * whose value cannot be determined because we are not given a
-     * specific instance of the port.
-     *
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param reference A reference to a port.
-     * @param connection The connection.
-     * 
-     * @return The width of a port or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int portWidth(VarRef reference, Connection connection) {
-        val result = inferPortWidth(reference, connection, null);
-        if (result < 0) {
-            throw new Exception("Cannot determine port width. " +
-                "Only multiport widths with literal integer values are supported for now.")
-        }
-        return result;
     }
     
     /**
