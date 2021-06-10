@@ -100,7 +100,7 @@ import org.lflang.ErrorReporter
  * @author{Christian Menard <christian.menard@tu-dresden.de}
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  */
-abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporter {
+abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -122,6 +122,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
      * The main (top-level) reactor instance.
      */
     public ReactorInstance main
+    
+    /** A error reporter for reporting any errors or warnings during the code generation */
+    public ErrorReporter errorReporter
     
     ////////////////////////////////////////////
     //// Protected fields.
@@ -285,6 +288,13 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         NATIVE,
         BASH
     }
+    
+    /**
+     * Create a new GeneratorBase object.
+     */
+    new(ErrorReporter errorReporter) {
+        this.errorReporter = errorReporter
+    }
 
     // //////////////////////////////////////////
     // // Code generation functions to override for a concrete code generator.
@@ -402,7 +412,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (mainDef !== null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
-                reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
+                errorReporter.reportError(this.mainDef.reactorClass, "Conflicting main reactor in " + conflict);
             }
         }
         
@@ -498,7 +508,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                             for (imp : (inst.eContainer as Model).imports) {
                                 for (decl : imp.reactorClasses) {
                                     if (decl.reactorClass.eResource === res) {
-                                        reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
+                                        errorReporter.reportError(imp, '''Unresolved compilation issues in '«imp.importURI»'.''')
                                         tainted.add(decl.eResource)
                                     }
                                 }
@@ -843,7 +853,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         val returnCode = compile.executeCommand(stderr)
 
         if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-            reportError('''«targetConfig.compiler» returns error code «returnCode»''')
+            errorReporter.reportError('''«targetConfig.compiler» returns error code «returnCode»''')
         }
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
@@ -891,7 +901,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             val returnCode = cmd.executeCommand(stderr)
 
             if (returnCode != 0 && mode !== Mode.INTEGRATED) {
-                reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
+                errorReporter.reportError('''Build command "«targetConfig.buildCommands»" returns error code «returnCode»''')
                 return
             }
             // For warnings (vs. errors), the return code is 0.
@@ -968,7 +978,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         if (doNotLinkIfNoMain && main === null) {
             compileArgs.add("-c") // FIXME: revisit
             if (mode === Mode.STANDALONE) {
-                reportError("ERROR: Did not output executable; no main reactor found.")
+                errorReporter.reportError("ERROR: Did not output executable; no main reactor found.")
             }
         }
         return createCommand(targetConfig.compiler,compileArgs, fileConfig.outPath, env)
@@ -1202,12 +1212,12 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             return ExecutionEnvironment.BASH
         }
         if (failError) {
-            reportError( 
+            errorReporter.reportError( 
             "The command " + cmd + " could not be found.\n" +
                 "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
                 "You can set PATH in ~/.bash_profile on Linux or Mac.\n" + messageIfNotFound)
         } else {
-            reportWarning( 
+            errorReporter.reportWarning( 
             "The command " + cmd + " could not be found.\n" +
                 "Make sure that your PATH variable includes the directory where " + cmd + " is installed.\n" +
                 "You can set PATH in ~/.bash_profile on Linux or Mac.\n" + messageIfNotFound)
@@ -1256,7 +1266,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             builder.directory(dir.toFile)
         } else {
             println("FAILED")
-            reportError(
+            errorReporter.reportError(
                     "Was not able to determine an execution environment that contains " + cmd + ".")
         }
         // Set environment variables.
@@ -1650,9 +1660,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         val lines = stderr.split("\\r?\\n")
         var message = new StringBuilder()
         var lineNumber = null as Integer
-        var resource = fileConfig.getIResource(fileConfig.srcFile);
-        // In case errors occur within an imported file, record the original resource.
-        val originalResource = resource;
+        var path = fileConfig.srcFile.toPath()
+        // In case errors occur within an imported file, record the original path.
+        val originalPath = path;
         
         var severity = IMarker.SEVERITY_ERROR
         for (line : lines) {
@@ -1661,18 +1671,17 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 // Found a new line number designator.
                 // If there is a previously accumulated message, report it.
                 if (message.length > 0) {
-                    report(message.toString(), severity, lineNumber, resource)
-                    if (originalResource != resource) {
+                    if (severity == IMarker.SEVERITY_ERROR)
+                        errorReporter.reportError(path, lineNumber, message.toString())
+                    else
+                        errorReporter.reportWarning(path, lineNumber, message.toString())
+                      
+                    if (originalPath != path) {
                         // Report an error also in the top-level resource.
                         // FIXME: It should be possible to descend through the import
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
-                        report(
-                            "Error in imported file: " + resource.fullPath,
-                            IMarker.SEVERITY_ERROR,
-                            null,
-                            originalResource
-                        )
+                        errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
                     }
                 }
                 if (parsed.isError) {
@@ -1694,11 +1703,8 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                     lineNumber = null
                 }
                 // FIXME: Ignoring the position within the line.
-                // Determine the resource within which the error occurred.
-                // Sadly, Eclipse defines an interface called "URI" that conflicts with the
-                // Java one, so we have to give the full class name here.
-                val uri = new URI(parsed.filepath);
-                resource = fileConfig.getIResource(uri);
+                // Determine the path within which the error occurred.
+                path = Paths.get(parsed.filepath)
             } else {
                 // No line designator.
                 if (message.length > 0) {
@@ -1712,18 +1718,17 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
             }
         }
         if (message.length > 0) {
-            report(message.toString, severity, lineNumber, resource)
-            if (originalResource != resource) {
+            if (severity == IMarker.SEVERITY_ERROR)
+                errorReporter.reportError(path, lineNumber, message.toString())
+            else
+                errorReporter.reportWarning(path, lineNumber, message.toString())
+
+            if (originalPath != path) {
                 // Report an error also in the top-level resource.
                 // FIXME: It should be possible to descend through the import
                 // statements to find which one matches and mark all the
                 // import statements down the chain. But what a pain!
-                report(
-                    "Error in imported file: " + resource.fullPath,
-                    IMarker.SEVERITY_ERROR,
-                    null,
-                    originalResource
-                )
+                errorReporter.reportError(originalPath, 0, "Error in imported file: " + path)
             }
         }
     }
@@ -1812,151 +1817,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 println("Unable to refresh workspace: " + e)
             }
         }
-    }
-
-    /** Report a warning or error on the specified line of the specified resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  This will print the error message to stderr.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param line The line number or null if it is not known.
-     *  @param object The Ecore object, or null if it is not known.
-     *  @param resource The resource, or null if it is not known.
-     */
-    protected def report(String message, int severity, Integer line, EObject object, IResource resource) {
-        if (severity === IMarker.SEVERITY_ERROR) {
-            generatorErrorsOccurred = true;
-        }
-        val header = (severity === IMarker.SEVERITY_ERROR) ? "ERROR: " : "WARNING: "
-        val lineAsString = (line === null) ? "" : "Line " + line
-        var fullPath = resource?.fullPath?.toString
-        if (fullPath === null) {
-            if (object !== null && object.eResource !== null) {
-                fullPath = FileConfig.toPath(object.eResource).toString()
-            } 
-        }
-        if (fullPath === null) {
-            if (line === null) {
-                fullPath = ""
-            } else {
-                fullPath = "path unknown"
-            }
-        }
-        val toPrint = header + fullPath + " " + lineAsString + "\n" + message
-        System.err.println(toPrint)
-
-        // If running in INTEGRATED mode, create a marker in the IDE for the error.
-        // See: https://help.eclipse.org/2020-03/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_markers.htm
-        if (mode === Mode.INTEGRATED) {
-            var myResource = resource
-            if (myResource === null && object !== null) {
-                // Attempt to identify the IResource from the object.
-                val eResource = object.eResource
-                if (eResource !== null) {
-                    myResource = fileConfig.getIResource(eResource);
-                }
-            }
-            // If the resource is still null, use the resource associated with
-            // the top-level file.
-            if (myResource === null) {
-                myResource = fileConfig.iResource
-            }
-            if (myResource !== null) {
-                val marker = myResource.createMarker(IMarker.PROBLEM)
-                marker.setAttribute(IMarker.MESSAGE, message);
-                if (line !== null) {
-                    marker.setAttribute(IMarker.LINE_NUMBER, line);
-                } else {
-                    marker.setAttribute(IMarker.LINE_NUMBER, 1);
-                }
-                // Human-readable line number information.
-                marker.setAttribute(IMarker.LOCATION, lineAsString);
-                // Mark as an error or warning.
-                marker.setAttribute(IMarker.SEVERITY, severity);
-                marker.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_HIGH);
-
-                marker.setAttribute(IMarker.USER_EDITABLE, false);
-
-            // NOTE: It might be useful to set a start and end.
-            // marker.setAttribute(IMarker.CHAR_START, 0);
-            // marker.setAttribute(IMarker.CHAR_END, 5);
-            }
-        }
-
-        // Return a string that can be inserted into the generated code.
-        if (severity === IMarker.SEVERITY_ERROR) {
-            return "[[ERROR: " + message + "]]"
-        }
-        return ""
-    }
-
-    /** Report a warning or error on the specified parse tree object in the
-     *  current resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param object The parse tree object or null if not known.
-     */
-    protected def report(String message, int severity, EObject object) {
-        var line = null as Integer
-        if (object !== null) {
-            val node = NodeModelUtils.getNode(object)
-            if (node !== null) {
-                line = node.getStartLine
-            }
-        }
-        return report(message, severity, line, object, null)
-    }
-
-    /** Report a warning or error on the specified parse tree object in the
-     *  current resource.
-     *  The caller should not throw an exception so execution can continue.
-     *  If running in INTEGRATED mode (within the Eclipse IDE), then this also
-     *  adds a marker to the editor.
-     *  @param message The error message.
-     *  @param severity One of IMarker.SEVERITY_ERROR or IMarker.SEVERITY_WARNING
-     *  @param resource The resource.
-     */
-    protected def report(String message, int severity, Integer line, IResource resource) {
-        return report(message, severity, line, null, resource)
-    }
-
-    /**
-     * Report an error.
-     * @param message The error message.
-     */
-    override reportError(String message) {
-        return report(message, IMarker.SEVERITY_ERROR, null)
-    }
-
-    /**
-     * Report a warning.
-     * @param message The warning message.
-     */
-    override reportWarning(String message) {
-        return report(message, IMarker.SEVERITY_WARNING, null)
-    }
-
-
-    /** Report an error on the specified parse tree object.
-     *  @param object The parse tree object.
-     *  @param message The error message.
-     */
-    override reportError(EObject object, String message) {
-        return report(message, IMarker.SEVERITY_ERROR, object)
-    }
-
-    /** Report a warning on the specified parse tree object.
-     *  @param object The parse tree object.
-     *  @param message The error message.
-     */
-    override reportWarning(EObject object, String message) {
-        return report(message, IMarker.SEVERITY_WARNING, object)
-    }
+    }  
 
     /** Reduce the indentation by one level for generated code
      *  in the default code buffer.
@@ -2214,7 +2075,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 instantiations.add(mainDef);
                 var bankWidth = ASTUtils.width(instantiation.widthSpec, instantiations);
                 if (bankWidth < 0) {
-                    reportError(instantiation, "Cannot determine bank width!");
+                    errorReporter.reportError(instantiation, "Cannot determine bank width!");
                     // Continue with a bank width of 1.
                     bankWidth = 1;
                 }
@@ -2285,7 +2146,7 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                                     : rightPortWidth - rightChannelIndex;
                             if (minWidth <= 0) {
                                 // FIXME: Not sure what to do here.
-                                reportError(connection, "Unexpected error: mismatched widths.");
+                                errorReporter.reportError(connection, "Unexpected error: mismatched widths.");
                                 rightPort = null;
                             } else {
                                 for (var j = 0; j < minWidth; j++) {
