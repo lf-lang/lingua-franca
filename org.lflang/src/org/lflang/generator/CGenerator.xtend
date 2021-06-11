@@ -4389,13 +4389,13 @@ class CGenerator extends GeneratorBase {
             );
         
         if (isPhysical) {
-            messageType = "P2P_MESSAGE"
+            messageType = "MSG_TYPE_P2P_MESSAGE"
         } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
-            messageType = "P2P_TIMED_MESSAGE"
+            messageType = "MSG_TYPE_P2P_TAGGED_MESSAGE"
         } else {
             // Logical connection
             // Send the message via rti
-            messageType = "TIMED_MESSAGE"
+            messageType = "MSG_TYPE_TAGGED_MESSAGE"
             next_destination_name = '''"federate «receivingFed.id» via the RTI"'''
         }
         

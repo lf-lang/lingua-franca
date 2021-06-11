@@ -377,6 +377,12 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         var reactor = this
         if (portReference.container !== null) {
             reactor = getChildReactorInstance(portReference.container)
+            // The above will be null only if there is an error in the code.
+            // Tolerate this so that diagram synthesis can complete, but
+            // do not return a next port.
+            if (reactor === null) {
+                return null
+            }
         }
         // The reactor may be a bank, in which case, we will also need
         // the member reactor within the bank.
