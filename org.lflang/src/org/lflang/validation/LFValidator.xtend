@@ -96,7 +96,7 @@ import static extension org.lflang.ASTUtils.*
 class LFValidator extends AbstractLFValidator {
 
     var Target target
-    
+
     public var info = new ModelInfo()
 
     /**
@@ -371,10 +371,9 @@ class LFValidator extends AbstractLFValidator {
                 }
             }
         }
-        
+
         // FIXME: look up all ReactorInstance objects that have a definition equal to the
         // container of this connection. For each of those occurrences, the widths have to match.
-        
         // For the C target, since C has such a weak type system, check that
         // the types on both sides of every connection match. For other languages,
         // we leave type compatibility that language's compiler or interpreter.
