@@ -141,7 +141,7 @@ unsigned short int setup_clock_synchronization_with_rti();
  * is required.
  *
  * This is a blocking function that expects
- * to read a PHYSICAL_CLOCK_SYNC_MESSAGE_T1 from the RTI TCP socket.
+ * to read a MSG_TYPE_CLOCK_SYNC_T1 from the RTI TCP socket.
  * It will then follow the PTP protocol to synchronize the local
  * physical clock with the RTI.
  * Failing to complete this protocol is treated as a catastrophic
