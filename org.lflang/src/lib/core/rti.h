@@ -43,7 +43,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * FIXME: What if a port is specified in the "at" of the federated statement?
  *
  * When it has successfully opened a TCP connection, the first message it sends
- * to the RTI is a FED_ID message, which contains the ID of this federate
+ * to the RTI is a MSG_TYPE_FED_IDS message, which contains the ID of this federate
  * within the federation, contained in the global variable _lf_my_fed_id
  * in the federate code
  * (which is initialized by the code generator) and the unique ID of
@@ -56,14 +56,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * its command line. If no ID is given on the command line, then the
  * default ID "Unidentified Federation" will be used.
  *
- * The RTI will respond with a REJECT message if the federation IDs
+ * The RTI will respond with a MSG_TYPE_REJECT message if the federation IDs
  * do not match and close the connection. At this point the federate
  * will increment the port number and try again to find an RTI that matches.
  *
  * When the federation IDs match, the RTI will respond with an
- * ACK.
+ * MSG_TYPE_ACK.
  *
- * The next message to the RTI will a UDP_PORT message, which has
+ * The next message to the RTI will a MSG_TYPE_UDP_PORT message, which has
  * payload USHRT_MAX if clock synchronization is disabled altogether, 0 if
  * only initial clock synchronization is enabled, and a port number for
  * UDP communication if runtime clock synchronization is enabled.
@@ -81,14 +81,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * better match the physical clock at the RTI.
  *
  * Clock synchronization is initiated by the RTI by sending a message
- * of type PHYSICAL_CLOCK_SYNC_MESSAGE_T1, the payload of which is the
+ * of type MSG_TYPE_CLOCK_SYNC_T1, the payload of which is the
  * current physical clock reading at the RTI. The federate records
  * the physical time when it receives this message (T2) and sends
- * a reply message of type PHYSICAL_CLOCK_SYNC_MESSAGE_T3 to the RTI.
+ * a reply message of type MSG_TYPE_CLOCK_SYNC_T3 to the RTI.
  * It records the time (T3) at which this message has gone out.
- * The payload of the PHYSICAL_CLOCK_SYNC_MESSAGE_T3 message is the
+ * The payload of the MSG_TYPE_CLOCK_SYNC_T3 message is the
  * federate ID.  The RTI responds to the T3 message with a message
- * of type PHYSICAL_CLOCK_SYNC_MESSAGE_T4, which has as a payload
+ * of type MSG_TYPE_CLOCK_SYNC_T4, which has as a payload
  * the physical time at which that response was sent. This cycle will happen
  * _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL times at startup to account for network delay variations
  * (see below).
@@ -107,13 +107,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * start a thread to listen for incoming UDP messages from the RTI.
  * With period given by _LF_CLOCK_SYNC_PERIOD_NS, the RTI
  * will initiate a clock synchronization round by sending to the
- * federate a PHYSICAL_CLOCK_SYNC_MESSAGE_T1 message. A similar
+ * federate a MSG_TYPE_CLOCK_SYNC_T1 message. A similar
  * protocol to that above is followed to estimate the average clock
  * synchronization error E, with two exceptions. First, a fraction
  * of E (given by _LF_CLOCK_SYNC_ATTENUATION) is used to adjust the
  * offset up or down rather than just setting the offset equal to E.
- * Second, after PHYSICAL_CLOCK_SYNC_MESSAGE_T4, the RTI immediately
- * sends a following message of type PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE.
+ * Second, after MSG_TYPE_CLOCK_SYNC_T4, the RTI immediately
+ * sends a following message of type MSG_TYPE_CLOCK_SYNC_CODED_PROBE.
  * The federate measures the time difference between its receipt of
  * T4 and this code probe and compares that time difference against
  * the time difference at the RTI (the difference between the two
@@ -130,13 +130,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * server to listen for incoming connections from those federates.
  * It attempts to create the server at the port given by STARTING_PORT,
  * and if this fails, increments the port number from there until a
- * port is available. It then sends to the RTI an ADDRESS_AD message
+ * port is available. It then sends to the RTI an MSG_TYPE_ADDRESS_AD message
  * with the port number as a payload. The federate then creates a thread
  * to listen for incoming socket connections and messages.
  *
  * If the federate has outbound connections to other federates, then it
  * establishes a socket connection to those federates.  It does this by
- * first sending to the RTI an ADDRESS_QUERY message with the payload
+ * first sending to the RTI an MSG_TYPE_ADDRESS_QUERY message with the payload
  * being the ID of the federate it wishes to connect to. If the RTI
  * responds with a -1, then the RTI does not (yet) know the remote federate's
  * port number and IP address, so the local federate will try again
@@ -150,7 +150,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Peer-to-peer sockets can be closed by the downstream federate.
  * For example, when a downstream federate reaches its stop time, then
  * it will stop accepting physical messages. To achieve an orderly shutdown,
- * the downstream federate sends a CLOSE_REQUEST message to the upstream
+ * the downstream federate sends a MSG_TYPE_CLOSE_REQUEST message to the upstream
  * one and the upstream federate handles closing the socket. This way, any
  * messages that are in the middle of being sent while the downstream
  * federate shuts down will successfully traverse the socket, even if
@@ -206,7 +206,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Number of nanoseconds that a federate waits before asking
  * the RTI again for the port and IP address of a federate
- * (an ADDRESS_QUERY message) after the RTI responds that it
+ * (an MSG_TYPE_ADDRESS_QUERY message) after the RTI responds that it
  * does not know.
  */
 #define ADDRESS_QUERY_RETRY_INTERVAL 100000000LL
@@ -265,28 +265,28 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The reason for the rejection is included as an additional byte
  * (uchar) (see below for encodings of rejection reasons).
  */
-#define REJECT 0
+#define MSG_TYPE_REJECT 0
 
 /**
  * Byte identifying an acknowledgment of the previously received message.
  * This message carries no payload.
  */
-#define ACK 255
+#define MSG_TYPE_ACK 255
 
 /**
- * Byte identifying an acknowledgment of the previously received FED_ID message
+ * Byte identifying an acknowledgment of the previously received MSG_TYPE_FED_IDS message
  * sent by the RTI to the federate
  * with a payload indicating the UDP port to use for clock synchronization.
  * The next four bytes will be the port number for the UDP server, or
  * 0 or USHRT_MAX if there is no UDP server.  0 means that initial clock synchronization
  * is enabled, whereas USHRT_MAX mean that no synchronization should be performed at all.
  */
-#define UDP_PORT 254
+#define MSG_TYPE_UDP_PORT 254
 
 /** Byte identifying a message from a federate to an RTI containing
  *  the federation ID and the federate ID. The message contains, in
  *  this order:
- *  * One byte equal to FED_ID.
+ *  * One byte equal to MSG_TYPE_FED_IDS.
  *  * Two bytes (ushort) giving the federate ID.
  *  * One byte (uchar) giving the length N of the federation ID.
  *  * N bytes containing the federation ID.
@@ -294,32 +294,34 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  NUMBER_OF_FEDERATES-1.
  *  Each federate, when starting up, should send this message
  *  to the RTI. This is its first message to the RTI.
- *  The RTI will respond with either REJECT, ACK, or UDP_PORT.
+ *  The RTI will respond with either MSG_TYPE_REJECT, MSG_TYPE_ACK, or MSG_TYPE_UDP_PORT.
  *  If the federate is a C target LF program, the generated federate
  *  code does this by calling synchronize_with_other_federates(),
  *  passing to it its federate ID.
  */
-#define FED_ID 1
+#define MSG_TYPE_FED_IDS 1
 
 /**
  * Byte identifying a timestamp message, which is 64 bits long.
- * FIXME: When is this used?
+ * Each federate sends its starting physical time as a message of this
+ * type, and the RTI broadcasts to all the federates the starting logical
+ * time as a message of this type.
  s*/
-#define TIMESTAMP 2
+#define MSG_TYPE_TIMESTAMP 2
 
 /** Byte identifying a message to forward to another federate.
  *  The next two bytes will be the ID of the destination port.
  *  The next two bytes are the destination federate ID.
  *  The four bytes after that will be the length of the message.
  *  The remaining bytes are the message.
- *  NOTE: This is currently not used. All messages are timed, even
+ *  NOTE: This is currently not used. All messages are tagged, even
  *  on physical connections, because if "after" is used, the message
  *  may preserve the logical timestamp rather than using the physical time.
  */
-#define MESSAGE 3
+#define MSG_TYPE_MESSAGE 3
 
 /** Byte identifying that the federate is ending its execution. */
-#define RESIGN 4
+#define MSG_TYPE_RESIGN 4
 
 /** Byte identifying a timestamped message to forward to another federate.
  *  The next two bytes will be the ID of the destination port.
@@ -329,10 +331,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  The next four bytes will be the microstep of the sender.
  *  The remaining bytes are the message.
  *
- *  FIXME: Clarify centralized or decentralized.
- *  FIXME: Rename TAGGED_MESSAGE
+ *  With centralized coordination, all such messages flow through the RTI.
+ *  With decentralized coordination, tagged messages are sent peer-to-peer
+ *  between federates and are marked with MSG_TYPE_P2P_TAGGED_MESSAGE.
  */
-#define TIMED_MESSAGE 5
+#define MSG_TYPE_TAGGED_MESSAGE 5
 
 /** 
  * Byte identifying a next event tag (NET) message sent from a federate
@@ -349,7 +352,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * queue has a tag that is ahead of physical time (or the queue is empty).
  * In that case, send TAN instead.
  */
-#define NEXT_EVENT_TAG 6
+#define MSG_TYPE_NEXT_EVENT_TAG 6
 
 /**
  * Byte identifying a time advance notice (TAN) message sent from
@@ -360,7 +363,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * timestamps less than the specified timestamp.
  * The next eight bytes will be the timestamp.
  */
-#define TIME_ADVANCE_NOTICE 253
+#define MSG_TYPE_TIME_ADVANCE_NOTICE 253
 
 /** 
  * Byte identifying a time advance grant (TAG) sent by the RTI to a federate
@@ -370,7 +373,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next eight bytes will be the timestamp.
  * The next four bytes will be the microstep.
  */
-#define TIME_ADVANCE_GRANT 7
+#define MSG_TYPE_TAG_ADVANCE_GRANT 7
 
 /** 
  * Byte identifying a provisional time advance grant (PTAG) sent by the RTI to a federate
@@ -380,7 +383,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next eight bytes will be the timestamp.
  * The next four bytes will be the microstep.
  */
-#define PROVISIONAL_TIME_ADVANCE_GRANT 8
+#define MSG_TYPE_PROVISIONAL_TAG_ADVANCE_GRANT 8
 
 /** 
  * Byte identifying a logical tag complete (LTC) message sent by a federate
@@ -388,26 +391,28 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next eight bytes will be the timestep of the completed tag.
  * The next four bytes will be the microsteps of the completed tag.
  */
-#define LOGICAL_TAG_COMPLETE 9
+#define MSG_TYPE_LOGICAL_TAG_COMPLETE 9
 
 /////////// Messages used in request_stop() ///////////////
 //// Overview of the algorithm:
 ////  When any federate calls request_stop(), it will
-////  send a STOP_REQUEST message to the RTI, which will then forward a STOP_REQUEST message
+////  send a MSG_TYPE_STOP_REQUEST message to the RTI, which will then
+////  forward a MSG_TYPE_STOP_REQUEST message
 ////  to any federate that has not yet provided a stop time to the RTI. The federates will reply
-////  with a STOP_REQUEST_REPLY and a stop tag (which shall be the maximum of their current logical tag
-////  at the time they receive the STOP_REQUEST and the tag of the stop
+////  with a MSG_TYPE_STOP_REQUEST_REPLY and a stop tag (which shall be the
+////  maximum of their current logical tag
+////  at the time they receive the MSG_TYPE_STOP_REQUEST and the tag of the stop
 ////  request). When the RTI has gathered all the stop tags
 ////  from federates (that are still connected), it will decide on a common stop tag
-////  which is the maximum of the seen stop tag and answer with a STOP_GRANTED. The federate
-////  sending the STOP_REQUEST and federates sending the STOP_REQUEST_REPLY will freeze
-////  the advancement of tag until they receive the STOP_GRANTED message, in which
+////  which is the maximum of the seen stop tag and answer with a MSG_TYPE_STOP_GRANTED. The federate
+////  sending the MSG_TYPE_STOP_REQUEST and federates sending the MSG_TYPE_STOP_REQUEST_REPLY will freeze
+////  the advancement of tag until they receive the MSG_TYPE_STOP_GRANTED message, in which
 ////  case they might continue their execution until the stop tag has been reached.
 
 /**
  * Byte identifying a stop request. This message is first sent to the RTI by a federate
  * that would like to stop execution at the specified tag. The RTI will forward
- * the STOP_REQUEST to all other federates. Those federates will either agree to
+ * the MSG_TYPE_STOP_REQUEST to all other federates. Those federates will either agree to
  * the requested tag or propose a larger tag. The RTI will collect all proposed
  * tags and broadcast the largest of those to all federates. All federates
  * will then be expected to stop at the granted tag.
@@ -416,7 +421,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 4 bytes will be the microstep.
  *
  * NOTE: The RTI may reply with a larger tag than the one specified in this message.
- * It has to be that way because if any federate can send a STOP_REQUEST message
+ * It has to be that way because if any federate can send a MSG_TYPE_STOP_REQUEST message
  * that specifies the stop time on all other federates, then every federate
  * depends on every other federate and time cannot be advanced.
  * Hence, the actual stop time may be nondeterministic.
@@ -424,26 +429,26 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * If, on the other hand, the federate requesting the stop is upstream of every
  * other federate, then it should be possible to respect its requested stop tag.
  */
-#define STOP_REQUEST 10
+#define MSG_TYPE_STOP_REQUEST 10
 #define STOP_REQUEST_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_REQUEST(buffer, time, microstep) do { \
-    buffer[0] = STOP_REQUEST; \
+    buffer[0] = MSG_TYPE_STOP_REQUEST; \
     encode_ll(time, &(buffer[1])); \
     encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
- * Byte indicating a federate's reply to a STOP_REQUEST that was sent
+ * Byte indicating a federate's reply to a MSG_TYPE_STOP_REQUEST that was sent
  * by the RTI. The payload is a proposed stop tag that is at least as large
- * as the one sent to the federate in a STOP_REQUEST message.
+ * as the one sent to the federate in a MSG_TYPE_STOP_REQUEST message.
  *
  * The next 8 bytes will be the timestamp.
  * The next 4 bytes will be the microstep.
  */
-#define STOP_REQUEST_REPLY 11
+#define MSG_TYPE_STOP_REQUEST_REPLY 11
 #define STOP_REQUEST_REPLY_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_REQUEST_REPLY(buffer, time, microstep) do { \
-    buffer[0] = STOP_REQUEST_REPLY; \
+    buffer[0] = MSG_TYPE_STOP_REQUEST_REPLY; \
     encode_ll(time, &(buffer[1])); \
     encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
@@ -455,10 +460,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 8 bytes will be the time at which the federates will stop. * 
  * The next 4 bytes will be the microstep at which the federates will stop..
  */
-#define STOP_GRANTED 12
+#define MSG_TYPE_STOP_GRANTED 12
 #define STOP_GRANTED_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_GRANTED(buffer, time, microstep) do { \
-    buffer[0] = STOP_GRANTED; \
+    buffer[0] = MSG_TYPE_STOP_GRANTED; \
     encode_ll(time, &(buffer[1])); \
     encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
@@ -470,11 +475,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * to ask for another federate's address and port number.
  * The next two bytes are the other federate's ID.
  * The reply from the RTI will a port number (an int), which is -1
- * if the RTI does not know yet (it has not received ADDRESS_AD from
+ * if the RTI does not know yet (it has not received MSG_TYPE_ADDRESS_AD from
  * the other federate), followed by the IP address of the other
  * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
  */
-#define ADDRESS_QUERY 13
+#define MSG_TYPE_ADDRESS_QUERY 13
 
 /**
  * Byte identifying a message advertising the port for the physical connection server
@@ -483,18 +488,18 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The sending federate will not wait for a response from the RTI and assumes its
  * request will be processed eventually by the RTI.
  */
-#define ADDRESS_AD 14
+#define MSG_TYPE_ADDRESS_AD 14
 
 /**
  * Byte identifying a first message that is sent by a federate directly to another federate
  * after establishing a socket connection to send messages directly to the federate. This
  * first message contains two bytes identifying the sending federate (its ID), a byte
  * giving the length of the federation ID, followed by the federation ID (a string).
- * The response from the remote federate is expected to be ACK, but if the remote
+ * The response from the remote federate is expected to be MSG_TYPE_ACK, but if the remote
  * federate does not expect this federate or federation to connect, it will respond
- * instead with REJECT.
+ * instead with MSG_TYPE_REJECT.
  */
-#define P2P_SENDING_FED_ID 15
+#define MSG_TYPE_P2P_SENDING_FED_ID 15
 
 /**
  * Byte identifying a message to send directly to another federate.
@@ -505,11 +510,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The four bytes after will be the length of the message.
  * The ramaining bytes are the message.
  */
-#define P2P_MESSAGE 16
+#define MSG_TYPE_P2P_MESSAGE 16
 
 /**
  * Byte identifying a timestamped message to send directly to another federate.
- * This is a variant of @see TIMED_MESSAGE that is used in P2P connections between
+ * This is a variant of @see MSG_TYPE_TAGGED_MESSAGE that is used in P2P connections between
  * federates. Having a separate message type for P2P connections between federates
  * will be useful in preventing crosstalk.
  * 
@@ -522,7 +527,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next four bytes will be the microstep of the sender.
  * The ramaining bytes are the message.
  */
-#define P2P_TIMED_MESSAGE 17
+#define MSG_TYPE_P2P_TAGGED_MESSAGE 17
 
 /**
  * Byte identifying a message that a downstream federate sends to its
@@ -530,7 +535,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This is the only message that should flow upstream on such socket
  * connections.
  */
-#define CLOSE_REQUEST 18
+#define MSG_TYPE_CLOSE_REQUEST 18
 
 ////////////////////////////////////////////////
 /**
@@ -541,31 +546,31 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 8 bytes will be a timestamp sent according to
  * PTP.
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T1 19
+#define MSG_TYPE_CLOCK_SYNC_T1 19
 
 /*
  * Prompts the master to send a T4.
  * The next four bytes will be the sendin federate's id
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T3 20
+#define MSG_TYPE_CLOCK_SYNC_T3 20
 
 /*
  * The next 8 bytes will be a timestamp sent according to
  * PTP.
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4 21
+#define MSG_TYPE_CLOCK_SYNC_T4 21
 
 /**
  * Coded probe message.
  * This messages is sent by the server (master)
- * right after PHYSICAL_CLOCK_SYNC_MESSAGE_T4(t1) with a new physical clock snapshot t2.
- * At the receiver, the previous PHYSICAL_CLOCK_SYNC_MESSAGE_T4 message and this message
+ * right after MSG_TYPE_CLOCK_SYNC_T4(t1) with a new physical clock snapshot t2.
+ * At the receiver, the previous MSG_TYPE_CLOCK_SYNC_T4 message and this message
  * are assigned a receive timestamp r1 and r2. If |(r2 - r1) - (t2 - t1)| < GUARD_BAND,
  * then the current clock sync cycle is considered pure and can be processed.
  * @see Geng, Yilong, et al.
  * "Exploiting a natural network effect for scalable, fine-grained clock synchronization."
  */
-#define PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE 22
+#define MSG_TYPE_CLOCK_SYNC_CODED_PROBE 22
 
 
 /**
@@ -579,14 +584,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 8 bytes are the intended time of the absent message
  * The next 4 bytes are the intended microstep of the absent message
  */
-#define PORT_ABSENT 23
+#define MSG_TYPE_PORT_ABSENT 23
 
 
 /////////////////////////////////////////////
 //// Rejection codes
 
 /**
- * These codes are sent in a REJECT message.
+ * These codes are sent in a MSG_TYPE_REJECT message.
  * They are limited to one byte (uchar).
  */
 
@@ -622,7 +627,7 @@ typedef enum execution_mode_t {
 /** State of a federate during execution. */
 typedef enum fed_state_t {
     NOT_CONNECTED,  // The federate has not connected.
-    GRANTED,        // Most recent NEXT_EVENT_TAG has been granted.
+    GRANTED,        // Most recent MSG_TYPE_NEXT_EVENT_TAG has been granted.
     PENDING         // Waiting for upstream federates.
 } fed_state_t;
 
