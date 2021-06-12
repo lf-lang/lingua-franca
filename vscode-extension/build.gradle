@@ -5,6 +5,8 @@ node {
     download = true
 }
 
+// OLD language server without diagram support
+// INACTIVE, due to removed dependency in generateVSCodeExtension
 task copyLSJar(type: Sync) {
     def ide = project(':org.lflang.ide')
     dependsOn ide.tasks.generateLanguageServer
@@ -13,9 +15,28 @@ task copyLSJar(type: Sync) {
     into './ls'
 }
 
+task generateLDSJar(type: Exec) {
+    workingDir rootProject.getProjectDir()
+    // Run maven to build language server with diagram support (LDS)
+    // This requires mvn on PATH
+    commandLine 'mvn', 'package', '-P', 'lds'
+}
+task copySWTJars(type: Copy, dependsOn: generateLDSJar) {
+    from '../org.lflang.lds/target/repository/plugins'
+    include 'org.eclipse.swt.*.jar'
+    rename '(.+).x86(.+)', '$1.jar' // remove version numbers
+    into './ls'
+}
+task copyLDSJar(type: Copy, dependsOn: generateLDSJar) {
+    from '../org.lflang.lds/target/exe/lflang-lds.jar'
+    into './ls'
+}
+
 clean {
     doLast {
         delete copyLSJar.outputs
+        delete copySWTJars.outputs
+        delete copyLDSJar.outputs
         delete 'out' // output of npmInstall - don't want to delete node_modules
     }
 }
@@ -33,7 +54,7 @@ task compileVSCodeExtension(type: NpxTask, dependsOn: npmInstall) {
     outputs.dir('out')
 }
 
-task generateVSCodeExtension(type: NpxTask, dependsOn: [compileVSCodeExtension, copyLSJar]) {
+task generateVSCodeExtension(type: NpxTask, dependsOn: [compileVSCodeExtension, copyLDSJar, copySWTJars]) {
     ext.destDir = new File(buildDir, 'vscode')
     ext.archiveName = "lflang-extension-${project.version}.vsix"
     ext.destPath = "$destDir/$archiveName"
