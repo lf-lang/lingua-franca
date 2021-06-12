@@ -82,6 +82,7 @@ class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 			setGridPlacement(1)
 			lineWidth = 1
 			foreground = Colors.GRAY
+			background = Colors.WHITE
 			boldLineSelectionStyle
 		]
 		
