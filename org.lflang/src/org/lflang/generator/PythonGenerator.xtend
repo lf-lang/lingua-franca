@@ -1391,7 +1391,9 @@ class PythonGenerator extends CGenerator {
             pr(pyThreadMutexLockCode(0, reactor))
         }
         
-        pr('''PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
+        pr('''
+            DEBUG_PRINT("Calling reaction function «functionName»");
+            PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
         ''')
         pr('''
             if (rValue == NULL) {
@@ -1423,7 +1425,9 @@ class PythonGenerator extends CGenerator {
                 pr(pyThreadMutexLockCode(0, reactor))
             }
             
-            pr('''PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
+            pr('''
+                DEBUG_PRINT("Calling deadline function «deadlineFunctionName»");
+                PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
             ''')
             pr('''
                 if (rValue == NULL) {
