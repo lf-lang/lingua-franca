@@ -217,7 +217,7 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
 /**
  * Prototype for the main function.
  */
-int main(int argc, char *argv[]);
+int lf_reactor_c_main(int argc, char *argv[]);
 
 /**
  * Prototype for request_stop().
@@ -240,7 +240,9 @@ static PyObject* py_request_stop(PyObject *self) {
 //////////////////////////////////////////////////////////////
 ///////////// Main function callable from Python code
 static PyObject* py_main(PyObject *self, PyObject *args) {
-    main(1, NULL);
+    DEBUG_PRINT("Initializing main.");
+    const char *argv[] = {TOSTRING(MODULE_NAME), NULL };
+    lf_reactor_c_main(1, argv);
 
     Py_INCREF(Py_None);
     return Py_None;
