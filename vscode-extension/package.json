@@ -23,6 +23,9 @@
         "distributed",
         "deterministic actors"
     ],
+    "extensionDependencies": [
+        "kieler.klighd-diagram"
+    ],
     "activationEvents": [
         "onLanguage:lflang"
     ],
@@ -47,7 +50,30 @@
                 "path": "./syntaxes/lflang.tmLanguage.json"
             }
         ],
-        "commands": []
+        "commands": [],
+    	"menus": {
+            "editor/title": [
+                {
+                    "when": "resourceLangId == lflang",
+                    "command": "klighd-diagram.diagram.open",
+                    "group": "navigation"
+                }
+            ],
+            "editor/context": [
+                {
+                    "when": "resourceLangId == lflang",
+                    "command": "klighd-diagram.diagram.open",
+                    "group": "navigation"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "when": "resourceLangId == lflang",
+                    "command": "klighd-diagram.diagram.open",
+                    "group": "navigation"
+                }
+            ]
+    	}
     },
     "devDependencies": {
         "@types/node": "^13.13.25",
