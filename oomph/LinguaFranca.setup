@@ -360,6 +360,8 @@
             name="de.cau.cs.kieler.klighd.view.feature.source.feature.group"/>
         <requirement
             name="de.cau.cs.kieler.klighd.ui.contrib3x"/>
+        <requirement
+            name="de.cau.cs.kieler.klighd.lsp"/>
         <repositoryList
             name="DefaultRepositories">
           <repository
@@ -372,6 +374,8 @@
               url="http://download.eclipse.org/elk/updates/releases/0.7.0/"/>
           <repository
               url="https://kieler.github.io/KLighD/v2.0.0/"/>
+          <repository
+              url="https://rtsys.informatik.uni-kiel.de/~kieler/updatesite/sprotty/0.9.0/"/>
           <repository
               url="https://www.pydev.org/updates/"/>
           <repository
