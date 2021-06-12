@@ -315,47 +315,22 @@ int send_timed_message(interval_t additional_delay,
     // The next four bytes are the message length.
     encode_int(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
 
-    // Get current logical time
-    instant_t current_message_timestamp = get_logical_time();
-
-    // Note that we are getting the microstep here directly
-    // under the assumption that it does not change while
-    // this function is executing.
-    microstep_t current_message_microstep = get_microstep();
-    if (additional_delay == 0LL) {
-        // After was specified by the user
-        // on the connection with a delay of 0.
-        // In this case,
-        // the tag of the outgoing message
-        // should be (get_logical_time(), get_microstep() + 1).
-        current_message_microstep += 1;
-    } else if (additional_delay > 0LL) {
-        // After was specified by the user
-        // on the connection with a positive delay.
-        // In this case,
-        // the tag of the outgoing message
-        // should be (get_logical_time() + additional_delay, 0)
-
-        current_message_timestamp += additional_delay;
-        current_message_microstep = 0;
-    } else if (additional_delay == -1LL) {
-        // No after delay is given by the user
-        // In this case,
-        // the tag of the outgoing message
-        // should be (get_logical_time(), get_microstep())
-    }
+    // Apply the additional delay to the current tag and use that as the intended
+    // tag of the outgoing message
+    tag_t current_message_intended_tag = delay_tag(get_current_tag(),
+                                                    additional_delay);
 
     // Next 8 bytes are the timestamp.
-    encode_ll(current_message_timestamp, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    encode_ll(current_message_intended_tag.time, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     // Next 4 bytes are the microstep.
-    encode_int(current_message_microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
+    encode_int(current_message_intended_tag.microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
     LOG_PRINT("Sending message with tag (%lld, %u) to %s.",
-            current_message_timestamp - start_time, current_message_microstep, next_destination_str);
+            current_message_intended_tag.time - start_time, current_message_intended_tag.microstep, next_destination_str);
 
     // Header:  message_type + port_id + federate_id + length of message + timestamp + microstep
     const int header_length = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
 
-    if (_lf_is_tag_after_stop_tag((tag_t){.time=current_message_timestamp,.microstep=current_message_microstep})) {
+    if (_lf_is_tag_after_stop_tag(current_message_intended_tag)) {
         // Message tag is past the timeout time (the stop time) so it should
         // not be sent.
         return 0;
@@ -1098,7 +1073,14 @@ void update_last_known_status_on_input_ports(tag_t tag) {
 void update_last_known_status_on_input_port(tag_t tag, int port_id) {
     trigger_t* input_port_action = __action_for_port(port_id);
     if (compare_tags(tag,
-            input_port_action->last_known_status_tag) > 0) {
+            input_port_action->last_known_status_tag) >= 0) {
+                if (compare_tags(tag,
+                        input_port_action->last_known_status_tag) == 0) {
+                    // If the intended tag for an input port is equal to the last known status, we need
+                    // to increment the microstep. This is a direct result of the behavior of the delay_tag()
+                    // semantics in tag.h.
+                    tag.microstep++;
+                }
         input_port_action->last_known_status_tag = tag;
         // If any control reaction is waiting, notify them that the status has changed
         if (input_port_action->is_a_control_reaction_waiting) {
@@ -1231,6 +1213,8 @@ void enqueue_network_control_reactions(pqueue_t* reaction_q) {
  *  using after. The additional delay will be greater or equal to zero
  *  if an after is used on the connection. If no after is given in the
  *  program, -1 is passed.
+ * @param port_ID The ID of the receiving port.
+ * @param fed_ID The fed ID of the receiving federate.
  */
 void send_port_absent_to_federate(interval_t additional_delay,
                                     unsigned short port_ID, 
@@ -1238,47 +1222,23 @@ void send_port_absent_to_federate(interval_t additional_delay,
     // Construct the message
     int message_length = 1 + sizeof(port_ID) + sizeof(fed_ID) + sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[message_length];
-    // Get current logical time
-    instant_t current_message_timestamp = get_logical_time();
 
-    // Note that we are getting the microstep here directly
-    // under the assumption that it does not change while
-    // this function is executing.
-    microstep_t current_message_microstep = get_microstep();
-    if (additional_delay == 0LL) {
-        // After was specified by the user
-        // on the connection with a delay of 0.
-        // In this case,
-        // the tag of the outgoing message
-        // should be (get_logical_time(), get_microstep() + 1).
-        current_message_microstep += 1;
-    } else if (additional_delay > 0LL) {
-        // After was specified by the user
-        // on the connection with a positive delay.
-        // In this case,
-        // the tag of the outgoing message
-        // should be (get_logical_time() + additional_delay, 0)
-
-        current_message_timestamp += additional_delay;
-        current_message_microstep = 0;
-    } else if (additional_delay == -1LL) {
-        // No after delay is given by the user
-        // In this case,
-        // the tag of the outgoing message
-        // should be (get_logical_time(), get_microstep())
-    }
+    // Apply the additional delay to the current tag and use that as the intended
+    // tag of the outgoing message
+    tag_t current_message_intended_tag = delay_tag(get_current_tag(),
+                                                    additional_delay);
 
     LOG_PRINT("Sending port "
             "absent for tag (%lld, %u) for port %d to federate %d.",
-            current_message_timestamp - start_time,
-            current_message_microstep,
+            current_message_intended_tag.time - start_time,
+            current_message_intended_tag.microstep,
             port_ID, fed_ID);
 
     buffer[0] = MSG_TYPE_PORT_ABSENT;
     encode_ushort(port_ID, &(buffer[1]));
     encode_ushort(fed_ID, &(buffer[1+sizeof(port_ID)]));
-    encode_ll(current_message_timestamp, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
-    encode_int(current_message_microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
+    encode_ll(current_message_intended_tag.time, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
+    encode_int(current_message_intended_tag.microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
 
     lf_mutex_lock(&outbound_socket_mutex);
 #ifdef FEDERATED_CENTRALIZED
@@ -1552,7 +1512,7 @@ void handle_port_absent_message(int socket, int fed_id) {
 #ifdef FEDERATED_DECENTRALIZED
     trigger_t* network_input_port_action = __action_for_port(port_id);
     if (compare_tags(intended_tag,
-            network_input_port_action->last_known_status_tag) <= 0) {
+            network_input_port_action->last_known_status_tag) < 0) {
         lf_mutex_unlock(&mutex);
         error_print_and_exit("The following contract was violated for port absent messages: In-order "
                              "delivery of messages over a TCP socket. Had status for (%lld, %u), got "
@@ -1690,7 +1650,7 @@ void handle_tagged_message(int socket, int fed_id) {
     // Sanity checks
 #ifdef FEDERATED_DECENTRALIZED
     if (compare_tags(intended_tag,
-            action->last_known_status_tag) <= 0) {        
+            action->last_known_status_tag) < 0) {        
         error_print_and_exit("The following contract was violated for a timed message: In-order "
                              "delivery of messages over a TCP socket. Had status for (%lld, %u), got "
                              "timed message with intended tag (%lld, %u).",
