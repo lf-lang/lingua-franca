@@ -57,11 +57,11 @@ export async function activate(context: ExtensionContext) {
 
     if (hasDiagrams) {
         // Register with Klighd Diagram extension
-        const refId = await commands.executeCommand(
-            "klighd-diagram.setLanguageClient",
-            client,
-            ["lf"]
-        );
+        // const refId = await commands.executeCommand(
+        //     "klighd-diagram.setLanguageClient",
+        //     client,
+        //     ["lf"]
+        // );
     }
 
     client.start();
