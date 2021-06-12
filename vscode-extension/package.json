@@ -23,7 +23,7 @@
         "distributed",
         "deterministic actors"
     ],
-    "extensionDependencies": [
+    "DISABLED extensionDependencies": [
         "kieler.klighd-diagram"
     ],
     "activationEvents": [
@@ -51,7 +51,7 @@
             }
         ],
         "commands": [],
-    	"menus": {
+        "DISABLED menus": {
             "editor/title": [
                 {
                     "when": "resourceLangId == lflang",
@@ -73,7 +73,7 @@
                     "group": "navigation"
                 }
             ]
-    	}
+        }
     },
     "devDependencies": {
         "@types/node": "^13.13.25",
