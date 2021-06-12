@@ -4378,44 +4378,16 @@ class CGenerator extends GeneratorBase {
         // If the connection is logical and the coordination mode is centralized, send via RTI.
         // If the connection is logical and the coordination mode is decentralized, send directly
         var String messageType;
-        
-        // The additional delay in absence of after
-        // is  -1. This has a special meaning
-        // in send_timed_message
-        // (@see send_timed_message in lib/core/federate.c).
-        // In this case, the sender will send
-        // its current tag as the timestamp
-        // of the outgoing message without adding a microstep delay.
-        // If the user has assigned an after delay 
-        // (that can be zero) either as a time
-        // value (e.g., 200 msec) or as a literal
-        // (e.g., a parameter), that delay in nsec
-        // will be passed to send_timed_message and added to 
-        // the current timestamp. If after delay is 0,
-        // send_timed_message will use the current tag +
-        // a microstep as the timestamp of the outgoing message.
-        var String additionalDelayString = '-1';
         // Name of the next immediate destination of this message
         var String next_destination_name = '''"federate «receivingFed.id»"'''
-        if (delay !== null) {
-            if (delay.parameter !== null) {
-                // The parameter has to be parameter of the main reactor.
-                // And that value has to be a Time.
-                val value = delay.parameter.init.get(0)
-                if (value.time !== null) {
-                    additionalDelayString = (new TimeValue(value.time.interval, value.time.unit))
-                            .toNanoSeconds.toString;
-                } else if (value.literal !== null) {
-                    // If no units are given, e.g. "0", then use the literal.
-                    additionalDelayString = value.literal;
-                } else {
-                    // This should have been caught by the validator.
-                    reportError(delay.parameter, "Parameter is required to be a time to be used in an after clause.")
-                }
-            } else {
-                additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
-            }
-        }
+        
+        // Get the delay literal
+        var String additionalDelayString = 
+            CGeneratorExtension.getNetworkDelayLiteral(
+                delay, 
+                this
+            );
+        
         if (isPhysical) {
             messageType = "MSG_TYPE_P2P_MESSAGE"
         } else if (targetConfig.coordination === CoordinationType.DECENTRALIZED) {
@@ -4532,42 +4504,12 @@ class CGenerator extends GeneratorBase {
         val result = new StringBuilder();
         var sendRef = generatePortRef(port, sendingBankIndex, sendingChannelIndex);
         
-        // The additional delay in absence of after
-        // is  -1. This has a special meaning
-        // in send_port_absent_to_federate
-        // (@see send_port_absent_to_federate in lib/core/federate.c).
-        // In this case, the sender will send
-        // its current tag as the timestamp
-        // of the outgoing port absent message
-        // without adding a microstep delay.
-        // If the user has assigned an after delay 
-        // (that can be zero) either as a time
-        // value (e.g., 200 msec) or as a literal
-        // (e.g., a parameter), that delay in nsec
-        // will be passed to send_port_absent_to_federate and added to 
-        // the current timestamp. If after delay is 0,
-        // send_port_absent_to_federate will use the current tag +
-        // a microstep as the timestamp of the outgoing port absent message.
-        var String additionalDelayString = '-1';
-        if (delay !== null) {
-            if (delay.parameter !== null) {
-                // The parameter has to be parameter of the main reactor.
-                // And that value has to be a Time.
-                val value = delay.parameter.init.get(0)
-                if (value.time !== null) {
-                    additionalDelayString = (new TimeValue(value.time.interval, value.time.unit))
-                            .toNanoSeconds.toString;
-                } else if (value.literal !== null) {
-                    // If no units are given, e.g. "0", then use the literal.
-                    additionalDelayString = value.literal;
-                } else {
-                    // This should have been caught by the validator.
-                    reportError(delay.parameter, "Parameter is required to be a time to be used in an after clause.")
-                }
-            } else {
-                additionalDelayString = (new TimeValue(delay.interval, delay.unit)).toNanoSeconds.toString;
-            }
-        }
+        // Get the delay literal
+        var String additionalDelayString = 
+            CGeneratorExtension.getNetworkDelayLiteral(
+                delay, 
+                this
+            );
         
         result.append('''
             // If the output port has not been SET for the current logical time,
