@@ -553,8 +553,7 @@ class PythonGenerator extends CGenerator {
         
         
         // Do not instantiate delay reactors in Python
-        if(className.contains(GEN_DELAY_CLASS_NAME))
-        {
+        if(className.contains(GEN_DELAY_CLASS_NAME)) {
             return
         }
 
@@ -565,11 +564,18 @@ class PythonGenerator extends CGenerator {
                 // If this reactor is a placeholder for a bank of reactors, then generate
                 // a list of instances of reactors and return.         
                 pythonClassesInstantiation.
-                    append('''«instance.uniqueID»_lf = [«FOR member : instance.bankMembers SEPARATOR ", "»_«className»(bank_index = «member.bankIndex/* bank_index is specially assigned by us*/», «FOR param : member.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
+                    append('''
+                    «instance.uniqueID»_lf = \
+                        [«FOR member : instance.bankMembers SEPARATOR ", \\\n"»\
+                            _«className»(bank_index = «member.bankIndex/* bank_index is specially assigned by us*/»,\
+                                «FOR param : member.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
                     ''')
                 return
             } else if (instance.bankIndex === -1 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
-                pythonClassesInstantiation.append('''«instance.uniqueID»_lf = [_«className»(bank_index = 0«/* bank_index is specially assigned by us*/», «FOR param : instance.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)]
+                pythonClassesInstantiation.append('''
+                    «instance.uniqueID»_lf = \
+                        [_«className»(bank_index = 0«/* bank_index is specially assigned by us*/», \
+                            «FOR param : instance.parameters SEPARATOR ", \\\n"»«param.name»=«param.pythonInitializer»«ENDFOR»)]
                 ''')
             }
 
