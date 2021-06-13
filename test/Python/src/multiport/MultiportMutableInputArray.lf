@@ -35,7 +35,7 @@ reactor Scale(scale(2)) {
     =}
 }
 
-main reactor ArrayScale {
+main reactor MultiportMutableInputArray {
     s = new Source();
     c = new Scale();
     p = new Print(scale=2);
