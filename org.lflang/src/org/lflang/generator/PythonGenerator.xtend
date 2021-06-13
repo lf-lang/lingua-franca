@@ -398,6 +398,8 @@ class PythonGenerator extends CGenerator {
             if (reactorBelongsToFederate(instance, federate) && !instantiatedClasses.contains(className)) {
 
                 pythonClasses.append('''
+                                    
+                    # Python class for reactor «className»
                     class _«className»:
                 ''');
 
@@ -1392,12 +1394,17 @@ class PythonGenerator extends CGenerator {
         }
         
         pr('''
-            DEBUG_PRINT("Calling reaction function «functionName»");
+            DEBUG_PRINT("Calling reaction function «decl.name».«pythonFunctionName»");
             PyObject *rValue = PyObject_CallObject(self->__py_reaction_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
         ''')
         pr('''
             if (rValue == NULL) {
-                fprintf(stderr, "Failed to call reaction «pythonFunctionName».\n");
+                error_print("FATAL: Calling reaction «decl.name».«pythonFunctionName» failed.");
+                if (PyErr_Occurred()) {
+                    PyErr_PrintEx(0);
+                    PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                }
+                exit(1);
             }
         ''')
         
@@ -1426,12 +1433,19 @@ class PythonGenerator extends CGenerator {
             }
             
             pr('''
-                DEBUG_PRINT("Calling deadline function «deadlineFunctionName»");
+                DEBUG_PRINT("Calling deadline function «decl.name».«deadlineFunctionName»");
                 PyObject *rValue = PyObject_CallObject(self->__py_deadline_function_«reactionIndex», Py_BuildValue("(«pyObjectDescriptor»)" «pyObjects»));
             ''')
             pr('''
                 if (rValue == NULL) {
-                    fprintf(stderr, "Failed to call reaction «deadlineFunctionName».\n");
+                    error_print("FATAL: Calling reaction «decl.name».«deadlineFunctionName» failed.\n");
+                    if (rValue == NULL) {
+                        if (PyErr_Occurred()) {
+                            PyErr_PrintEx(0);
+                            PyErr_Clear(); // this will reset the error indicator so we can run Python code again
+                        }
+                    }
+                    exit(1);
                 }
             ''')
 
