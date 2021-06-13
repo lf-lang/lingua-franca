@@ -1,0 +1,307 @@
+/**
+ * Model of a smart intersection with a road-side unit (RSU)
+ * that regulates the flow of automated vehicles through the
+ * intersection. Vehicles that are approaching the intersection
+ * send an initial message to the RTU with their speed and
+ * distance to the intersection. The RTU responds with a
+ * reservation for when the vehicle can enter the intersection
+ * and what its average speed through the intersection should be.
+ * 
+ * This is meant as a supervisory controller, and it assumes that
+ * the vehicle is equipped with a low-level controller (or a human)
+ * that is responsible for lane keeping, collision avoidance, etc.
+ * 
+ * This is a very rough starting point that needs a lot of work.
+ * 
+ * Note: the vehicle control relies on an external vehicle interface
+ *  that provides 'vehicle_status' and a 'vehicle_position' (see the
+ *  preamble below). Without these inputs, this application will not
+ *  do anything when executed.
+ */
+target Python {
+    timeout: 5 sec
+}
+
+preamble {=
+from math import sin, cos, sqrt, atan2, radians
+
+class coordinate:
+    """
+    Represent a GPS coordinate in the form of x (lat),
+    y (lon), and z (alt).
+    """
+    
+    def __init__(self, x = 0.0, y = 0.0, z = 0.0):
+        self.x = x
+        self.y = y
+        self.z = z        
+    def distance(self, coordinate2):        
+        """
+        Calculate the great circle distance between two points 
+        on the earth (specified in decimal degrees)
+        Taken from: https://stackoverflow.com/a/15737218/783868
+        """
+        # Currently ignores altitude
+        # Convert decimal degrees to radians 
+        lat1 = radians(self.x)
+        lon1 = radians(self.y)
+        lat2 = radians(coordinate2.x)
+        lon2 = radians(coordinate2.y)
+        
+        # Haversine formula 
+        dlon = lon2 - lon1 
+        dlat = lat2 - lat1 
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a)) 
+        # Radius of earth in kilometers is 6371
+        km = 6371.0 * c
+        m = km * 1000.0
+        return m
+
+class intersection_request:
+    """
+    Represent a request to enter the intersection.
+    Sent by vehicles attempting to enter to the 
+    Road-Side Unit (RSU)
+    """
+    def __init__(self, speed = 0.0, current_pos = coordinate(0,0,0)):
+        self.speed = float(speed)
+        self.current_pos = current_pos # Current GPS position of the vehicle
+        
+class vehicle_grant:
+    """
+    Represent a grant issued by the Road-Side Unit (RSU)
+    to vehicles allowing them to enter the intersection
+    at a given 'arrival_time' with a given optional
+    'target_speed'.
+    """
+    
+    def __init__(self, target_speed = 0.0, arrival_time = None, intersection_pos = None):
+        self.target_speed = target_speed
+        self.arrival_time = arrival_time
+        self.intersection_pos = intersection_pos
+        
+class vehicle_command:
+    """
+    Command sent by the vehicle controller to the vehicle
+    interface.
+    """
+    
+    def __init__(self, throttle = 0.0, brake = 0.0):
+        self.throttle = throttle
+        self.brake = brake
+        
+class vehicle_status:
+    """
+    Current status of the vehicle received from the
+    vehicle interface. Currently only contains
+    'velocity'.
+    """
+    
+    def __init__(self, velocity):
+        self.velocity = velocity # Velocity of the vehicle in m/s
+        # Fetching acceleration and orientation is also possible,
+        # but both involve very complex structures.
+
+class vehicle_position:
+    """
+    Current GPS position of the vehicle, received from
+    the vehicle interface or a separate GNSS sensor.
+    """
+    
+    def __init__(self, current_pos):
+        self.current_pos = current_pos # Current GPS position of the vehicle
+    
+
+    
+# The speed limit of vehicles in m/s
+speed_limit = 14.0
+=}
+
+reactor Vehicle (
+    speed(11.0)    // in m/sec
+) {
+    input vehicle_stat;
+    input vehicle_pos;
+
+    input grant;
+    
+    output request;    
+    
+    output control;
+    
+    logical action delay;
+    
+    state current_pos({=coordinate(0.0, 0.0, 0.0)=});
+    
+    state last_pos;
+    
+    state granted_time_to_enter(0);
+    state intersection_pos;
+    state intersection_reached(false);
+    
+    reaction(vehicle_pos) {=
+        self.current_pos = vehicle_pos.value.current_pos;        
+    =}
+    reaction(vehicle_stat) -> request, control {=
+        # Record the speed
+        velocity = vehicle_stat.value.velocity
+        linear_speed = sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
+        self.speed = linear_speed
+        
+        # Check if we have received an initial pos
+        if self.current_pos.distance(coordinate(0.0, 0.0, 0.0)) <= 0.00000001:
+            print("Warning: Have not received initial pos yet.")
+            return
+        
+        # Send a new request to the RSU if no time to enter
+        # the intersection is granted
+        if self.granted_time_to_enter == 0:
+            message = intersection_request(speed = self.speed, current_pos = self.current_pos)
+            request.set(message)
+        else:
+            # We have a granted time from the RSU
+            # All we need to do is adjust our velocity
+            # to enter the intersection at the allocated
+            # time
+            
+            # First, how far are we from the intersection
+            distance_remaining = self.intersection_pos.distance(self.current_pos)
+            time_remaining = (self.granted_time_to_enter - get_logical_time()) / (BILLION * 1.0)
+            
+            if self.intersection_reached is not True:            
+                print("Vehicle {}: Distance to intersection: {}m.".format(self.bank_index + 1, distance_remaining))
+                print("Vehicle {}: Time to intersection: {}s.".format(self.bank_index + 1, time_remaining))
+                print("Vehicle {}: Current speed: {}m/s.".format(self.bank_index + 1, self.speed))
+        
+            target_speed = 0.0
+            # target_speed = distance_remaining/time_remaining
+            
+            if self.intersection_reached or distance_remaining < 20.0:
+                # In the intersection, continue
+                target_speed = speed_limit
+                # Simulation is over
+                self.intersection_reached = True
+            elif time_remaining <= 0.5 and distance_remaining > 20.0:
+                # No time to make it to the intersection
+                # Stop and ask the RSU again
+                target_speed = 0.0
+                self.granted_time_to_enter = 0
+            else:
+                # Not in the intersection 
+                target_speed = ((2 * distance_remaining) / (time_remaining)) - self.speed
+                # target_speed = distance_remaining / time_remaining
+            
+            if self.intersection_reached is not True:   
+                print("Vehicle {}: Calculated target speed: {}m/s.".format(self.bank_index + 1, target_speed))
+            
+            if (target_speed - speed_limit) > 0:
+                print("Warning: target speed exceeds the speed limit")
+                target_speed = 0
+                self.granted_time_to_enter = 0
+            
+            if target_speed <= 0:
+                print("Warning: target speed negative or zero")
+                target_speed = 0
+                self.granted_time_to_enter = 0
+            
+            # Calculate a proportional throttle
+            throttle = (target_speed - self.speed)/speed_limit
+            # Keep the boundaries of the throttle
+            if throttle < 0:
+                throttle = 0
+            elif throttle > 1:
+                throttle = 1
+                
+            brake = 0.0
+            
+            if target_speed == 0:
+                brake = 1.0
+            
+            # Prepare and send the target velocity as a vehicle command
+            cmd =  vehicle_command(throttle = throttle, brake = brake)
+            control.set(cmd)
+    =}
+    
+    reaction(grant) {=        
+        print("Granted access at elapsed logical time {}. Physical time is {}. ".format(
+            get_elapsed_logical_time(),
+            get_elapsed_physical_time())
+        )
+        
+        self.granted_time_to_enter = grant.value.arrival_time
+        self.intersection_pos = grant.value.intersection_pos
+    =}
+}
+
+reactor RSU (
+	num_entries(4),
+	intersection_width(42.0), // in meters.
+	// If the vehicle is told to slow down, then its target
+	// average speed in the intersection should be at least this.
+	nominal_speed_in_intersection(10.0), // In m/sec 0.6 sec to traverse.
+	intersection_pos({=coordinate(0.0, 0.0, 0.0)=}) // GPS coordinates for the intersection
+) {
+    input[num_entries] request;
+    output[num_entries] grant;
+    
+    state earliest_free(0 msec);
+    
+    reaction(request) -> grant {=
+        for i in range(self.num_entries):
+            if request[i].is_present:
+                # Calculate the time it will take the approaching vehicle to
+                # arrive at its current speed. Note that this is
+                # time from the time the vehicle sends the message
+                # according to the arriving vehicle's clock.
+                speed_in_m_per_sec = request[i].value.speed
+                if speed_in_m_per_sec == 0 :
+                    # Avoid division by zero
+                    speed_in_m_per_sec = 0.01
+                    request[i].value.speed = 0.01
+                dr = self.intersection_pos.distance(request[i].value.current_pos)
+                print("Vehicle {}: Distance to intersection is {}.".format(i+1, dr))
+                arrival_in = dr / speed_in_m_per_sec
+                    		
+                time_message_sent = get_logical_time()
+                
+                # Convert the time interval to nsec (it is in seconds).
+                arrival_time_ns = time_message_sent + (arrival_in * BILLION)
+                
+                response = vehicle_grant()
+                if arrival_time_ns >= self.earliest_free:
+                    # Vehicle can maintain speed.
+                    response.target_speed = request[i].value.speed
+                    response.arrival_time = arrival_time_ns
+                else:
+                    # Vehicle has to slow down and maybe stop.
+                    response.arrival_time = self.earliest_free
+                    # Could be smarter than this, but just send the nominal speed in intersection.
+                    response.target_speed = self.nominal_speed_in_intersection
+                
+                response.intersection_pos = self.intersection_pos
+                grant[i].set(response)
+                # Update earliest free on the assumption that the vehicle
+                # maintains its target speed (on average) within the intersection.
+                time_in_intersection = (BILLION * self.intersection_width) / (response.target_speed)
+                self.earliest_free = response.arrival_time + time_in_intersection
+                
+                start_time = get_logical_time() - get_elapsed_logical_time()
+                
+                print("*** Grant access to vehicle {} to enter at "
+                    "time {} with average target velocity {} m/s. Next available time is {}".format(
+                    i + 1,
+                    response.arrival_time - start_time,
+                    response.target_speed,
+                    self.earliest_free - start_time)
+                )
+    =}
+}
+
+main reactor {
+    vehicles = new[4] Vehicle();
+    
+    rsu = new RSU(intersection_pos = {=coordinate(-0.00003,-0.0011,2.0016)=});
+    vehicles.request -> rsu.request;
+    rsu.grant -> vehicles.grant;
+}
