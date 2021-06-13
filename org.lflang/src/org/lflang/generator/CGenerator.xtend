@@ -1107,16 +1107,23 @@ class CGenerator extends GeneratorBase {
                             candidate_tmp = FOREVER;
                         ''')
                         for (delay : delays) {
-                            var delayTime = delay.getTargetTime
-                            if (delay.parameter !== null) {
-                                // The delay is given as a parameter reference. Find its value.
-                                delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
-                            }
-                            pr(rtiCode, '''
-                                if («delayTime» < candidate_tmp) {
-                                    candidate_tmp = «delayTime»;
+                            if (delay === null) {
+                                // Use NEVER to encode no delay at all.
+                                pr(rtiCode, '''
+                                    candidate_tmp = NEVER;
+                                ''')
+                            } else {
+                                var delayTime = delay.getTargetTime
+                                if (delay.parameter !== null) {
+                                    // The delay is given as a parameter reference. Find its value.
+                                    delayTime = ASTUtils.getInitialTimeValue(delay.parameter).timeInTargetLanguage
                                 }
-                            ''')
+                                pr(rtiCode, '''
+                                    if («delayTime» < candidate_tmp) {
+                                        candidate_tmp = «delayTime»;
+                                    }
+                                ''')
+                            }
                         }
                         pr(rtiCode, '''
                             if (candidate_tmp < FOREVER) {
