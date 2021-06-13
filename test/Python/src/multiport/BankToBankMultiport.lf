@@ -1,7 +1,8 @@
  // Check bank of reactors sending to bank of reactors with multiports.
 target Python {
     timeout: 2 sec,
-    fast: true
+    fast: true,
+    logging: LOG
 };
 reactor Source(width(1)) {
     timer t(0, 200 msec);
@@ -10,6 +11,7 @@ reactor Source(width(1)) {
     reaction(t) -> out {=
         for i in range(len(out)):
             out[i].set(self.s)
+            print("Sending ", out[i].value)   
             self.s += 1
     =}
 }
@@ -18,13 +20,14 @@ reactor Destination(width(1)) {
     input[width] _in;
     reaction(_in) {=
         sm = 0
+        print("Got ", _in[0].value)   
         for i in range(len(_in)):
-            if _in[i].is_present is True:
-                sm += _in[i].value
+            # if _in[i].is_present is True:
+            sm += _in[i].value         
 
         print("Sum of received: ", sm)
         if sm != self.s:
-            sys.stderr.write("ERROR: Expected {:d}.".format(self.s))
+            sys.stderr.write("ERROR: Expected {:d}.\n".format(self.s))
             exit(1)
 
         self.s += 16
