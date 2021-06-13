@@ -733,10 +733,10 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
         ''')
         // Initialize the arrays indicating connectivity to upstream and downstream federates.
         for (federate : federates) {
-            if (!federate.dependsOn.keySet.isEmpty) {
+            if (federate.dependsOn.size > 0) {
                 // Federate receives non-physical messages from other federates.
                 // Initialize the upstream and upstream_delay arrays.
-                val numUpstream = federate.dependsOn.keySet.size
+                val numUpstream = federate.dependsOn.size
                 // Allocate memory for the arrays storing the connectivity information.
                 pr(rtiCode, '''
                     federates[«federate.id»].upstream = (int*)malloc(sizeof(federate_t*) * «numUpstream»);
@@ -745,12 +745,12 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                 ''')
                 // Next, populate these arrays.
                 // Find the minimum delay in the process.
-                // FIXME: Zero delay is not really the same as a microstep delay.
+                // No delay is encoded as NEVER.
                 var count = 0;
                 for (upstreamFederate : federate.dependsOn.keySet) {
                     pr(rtiCode, '''
                         federates[«federate.id»].upstream[«count»] = «upstreamFederate.id»;
-                        federates[«federate.id»].upstream_delay[«count»] = 0LL;
+                        federates[«federate.id»].upstream_delay[«count»] = NEVER;
                     ''')
                     // The minimum delay calculation needs to be made in the C code because it
                     // may depend on parameter values.
@@ -760,11 +760,14 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                     val delays = federate.dependsOn.get(upstreamFederate)
                     if (delays !== null) {
                         for (delay : delays) {
-                            pr(rtiCode, '''
-                                if (federates[«federate.id»].upstream_delay[«count»] < «delay.getRTITime») {
-                                    federates[«federate.id»].upstream_delay[«count»] = «delay.getRTITime»;
-                                }
-                            ''')
+                            // If delay is null, use the default, NEVER. Otherwise, override if less than seen.
+                            if (delay !== null) {
+                                pr(rtiCode, '''
+                                    if (federates[«federate.id»].upstream_delay[«count»] < «delay.getRTITime») {
+                                        federates[«federate.id»].upstream_delay[«count»] = «delay.getRTITime»;
+                                    }
+                                ''')
+                            }
                         }
                     }
                     count++;
@@ -2371,6 +2374,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                         }
                         if (connection.delay !== null) {
                             dependsOnDelays.add(connection.delay)
+                        } else {
+                            // To indicate that at least one connection has no delay, add a null entry.
+                            dependsOnDelays.add(null)
                         }
                         var sendsToDelays = leftFederate.sendsTo.get(rightFederate)
                         if (sendsToDelays === null) {
@@ -2379,6 +2385,9 @@ abstract class GeneratorBase extends AbstractLFValidator implements ErrorReporte
                         }
                         if (connection.delay !== null) {
                             sendsToDelays.add(connection.delay)
+                        } else {
+                            // To indicate that at least one connection has no delay, add a null entry.
+                            sendsToDelays.add(null)
                         }
                     }
 
