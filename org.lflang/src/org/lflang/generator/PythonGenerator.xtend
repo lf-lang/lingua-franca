@@ -1500,20 +1500,38 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
-     * Generate runtime initialization code for parameters of a given reactor instance
-     * All parameters are initialized in Python code
+     * Generate runtime initialization code in C for parameters of a given reactor instance.
+     * All parameters are also initialized in Python code, but those parameters that are
+     * used as width must be also initialized in C.
      * 
-     * FIXME: To allow for parameterized port widths, we assume that all parameters are int
-     * in C and try to assign the value. We don't need to do this for list types as they
-     * cannot be used to delineate port widths.
+     * FIXME: Here, we use a hack: we attempt to convert the parameter initialization to an integer.
+     * If it succeeds, we proceed with the C initialization. If it fails, we defer initialization
+     * to Python.
      * 
      * @param builder The StringBuilder used to append the initialization code to
      * @param instance The reactor instance
      * @return initialization code
      */
     override generateParameterInitialization(StringBuilder builder, ReactorInstance instance) {
-        // Ignore the initialization in C for arrays
+        // Mostly ignore the initialization in C
         // The actual initialization will be done in Python
+        // Except if the parameter is a width (an integer)
+        // Here, we attempt to convert the parameter value to 
+        // integer. If it succeeds, we also initialize it in C.
+        // If it fails, we defer the initialization to Python.
+        var nameOfSelfStruct = selfStructName(instance)
+        for (parameter : instance.parameters) {
+            val initializer =  parameter.getInitializer
+            try {
+                // Attempt to convert it to integer
+                val number = Integer.parseInt(initializer);
+                pr(builder, '''
+                    «nameOfSelfStruct»->«parameter.name» = «number»;
+                ''')
+            } catch (NumberFormatException ex){
+                // Ignore initialization in C for this parameter
+            }
+        }
     }
     
     /**
@@ -1549,23 +1567,37 @@ class PythonGenerator extends CGenerator {
         var reactor = instance.definition.reactorClass.toDefinition
         
          // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) || ((instance.definition.reactorClass === this.mainDef?.reactorClass) && reactor.isFederated))
-        {
+        if (reactor.name.contains(GEN_DELAY_CLASS_NAME) || 
+            ((instance.definition.reactorClass === this.mainDef?.reactorClass) 
+                && reactor.isFederated)
+        ) {
             return
         }
         
         // Initialize the name field to the unique name of the instance
-        pr(initializationCode, '''«nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
+        pr(initializationCode, '''
+            «nameOfSelfStruct»->__lf_name = "«instance.uniqueID»_lf";
         ''');
         
-        for (reaction : instance.reactions)
-        {
+        for (reaction : instance.reactions) {
             val pythonFunctionName = pythonReactionFunctionName(reaction.reactionIndex)
             // Create a PyObject for each reaction
-            pr(initializationCode, '''«nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = get_python_function("«topLevelName»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"«pythonFunctionName»");''')
+            pr(initializationCode, '''
+                «nameOfSelfStruct»->__py_reaction_function_«reaction.reactionIndex» = 
+                    get_python_function("«topLevelName»", 
+                        «nameOfSelfStruct»->__lf_name,
+                        «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
+                        "«pythonFunctionName»");
+                ''')
         
             if (reaction.definition.deadline !== null) {
-                pr(initializationCode, '''«nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = get_python_function("«topLevelName»", «nameOfSelfStruct»->__lf_name,«IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,"deadline_function_«reaction.reactionIndex»");''')
+                pr(initializationCode, '''
+                «nameOfSelfStruct»->__py_deadline_function_«reaction.reactionIndex» = 
+                    get_python_function("«topLevelName»", 
+                        «nameOfSelfStruct»->__lf_name,
+                        «IF (instance.bankIndex > -1)» «instance.bankIndex» «ELSE» «0» «ENDIF»,
+                        "deadline_function_«reaction.reactionIndex»");
+                ''')
             }
         
         }
