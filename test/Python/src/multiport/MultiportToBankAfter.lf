@@ -31,7 +31,7 @@ reactor Destination {
     =}
 }
 
-main reactor MultiportToBank { 
+main reactor MultiportToBankAfter { 
     a = new Source();
     b = new[3] Destination();
     a.out -> b._in after 1 sec; // Width of the bank of delays will be inferred.

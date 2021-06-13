@@ -34,7 +34,7 @@ reactor Scale(scale(2)) {
             out[j].set(_in[j].value)
     =}
 }
-main reactor ArrayScale {
+main reactor MultiportMutableInput {
     s = new Source();
     c = new Scale();
     p = new Print(scale=2);

@@ -37,7 +37,7 @@ reactor Destination(width(1)) {
         print("Success.")
     =}
 }
-main reactor MultiportParameterized(width(4)) { 
+main reactor MultiportToMultiportParameter (width(4)) { 
     a = new Source(width = width);
     b = new Destination(width = width);
     a.out -> b._in;
