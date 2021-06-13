@@ -113,9 +113,9 @@ int wait_until(instant_t logical_time_ns) {
 
 void print_snapshot() {
     if(LOG_LEVEL > 3) {
-        DEBUG_PRINT(">>> START Snapshot\n");
+        DEBUG_PRINT(">>> START Snapshot");
         pqueue_dump(reaction_q, reaction_q->prt);
-        DEBUG_PRINT(">>> END Snapshot\n");
+        DEBUG_PRINT(">>> END Snapshot");
     }
 }
 
@@ -141,7 +141,7 @@ void _lf_enqueue_reaction(reaction_t* reaction) {
 int _lf_do_step() {
     // Invoke reactions.
     while(pqueue_size(reaction_q) > 0) {
-        print_snapshot();
+        // print_snapshot();
         reaction_t* reaction = (reaction_t*)pqueue_pop(reaction_q);
         
         LOG_PRINT("Invoking reaction %s at elapsed logical tag (%lld, %d).",
