@@ -65,144 +65,37 @@ import static extension org.lflang.ASTUtils.*
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
 class ReactorInstance extends NamedInstance<Instantiation> {
-
-    protected static var Set<Reaction> unorderedReactions = new LinkedHashSet()
     
     /**
      * Create a new instantiation hierarchy that starts with the given top-level reactor.
+     * @param reactor The top-level reactor.
+     * @param reporter The error reporter.
+     */
+    new(Reactor reactor, ErrorReporter reporter) {
+        this(ASTUtils.createInstantiation(reactor), null, reporter, -1)
+    }
+
+    /**
+     * Create a new instantiation hierarchy that starts with the given top-level reactor
+     * but only creates contained reactors up to the specified depth.
+     * @param reactor The top-level reactor.
+     * @param reporter The error reporter.
+     * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
+     */
+    new(Reactor reactor, ErrorReporter reporter, int desiredDepth) {
+        this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth)
+    }
+
+    /**
+     * Create a new instantiation hierarchy that starts with the given reactor.
+     * @param reactor The top-level reactor.
+     * @param reporter The error reporter.
+     * @param unorderedReactions A list reactions that should be treated as unordered.
      */
     new(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter)
+        this(ASTUtils.createInstantiation(reactor), null, reporter, -1)
         if (unorderedReactions !== null) {
-            ReactorInstance.unorderedReactions = unorderedReactions    
-        }
-    }
-
-    /**
-     * Create from the specified definition an object that represents a runtime instance 
-     * that stems from the specified parent instance.
-     * @param instance The Instance statement in the AST.
-     * @param parent The parent, or null for the main rector.
-     * @param generator The generator (for error reporting).
-     */
-    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator) {
-        // If the reactor is being instantiated with new[width], then pass -2
-        // to the constructor, otherwise pass -1.
-        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1)
-    }
-
-    /**
-     * Create a runtime instance from the specified definition
-     * and with the specified parent that instantiated it.
-     * @param instance The Instance statement in the AST.
-     * @param parent The parent, or null for the main rector.
-     * @param generator The generator (for error reporting).
-     * @param reactorIndex -1 for an ordinary reactor, -2 for a
-     * placeholder for a bank of reactors, or the index of the
-     * reactor in a bank of reactors otherwise.
-     */
-    private new(Instantiation definition, ReactorInstance parent,
-        ErrorReporter reporter, int reactorIndex) {
-        super(definition, parent)
-        this.reporter = reporter
-        this.bankIndex = reactorIndex
-        this.reactorDefinition = definition.reactorClass.toDefinition
-        
-        // check for recursive instantiation
-        var currentParent = parent
-        var foundSelfAsParent = false
-        do {
-            if (currentParent !== null) {
-                if (currentParent.reactorDefinition === this.reactorDefinition) {
-                    foundSelfAsParent = true
-                    currentParent = null // break
-                } else {
-                    currentParent = currentParent.parent
-                }
-            }
-        } while(currentParent !== null)
-        this.recursive = foundSelfAsParent
-        if (recursive) {
-            reporter.reportError(definition, "Recursive reactor instantiation.")
-        }
-        
-        // If this reactor is actually a bank of reactors, then instantiate
-        // each individual reactor in the bank and skip the rest of the
-        // initialization for this reactor instance.
-        if (reactorIndex === -2) {
-            // If the bank width is variable, then we have to wait until the first connection
-            // before instantiating the children.
-            var width = width(definition.widthSpec)
-            if (width > 0) {
-                this.bankMembers = new ArrayList<ReactorInstance>(width)
-                for (var index = 0; index < width; index++) {
-                    var childInstance = new ReactorInstance(definition, parent, reporter, index)
-                    this.bankMembers.add(childInstance)
-                    childInstance.bank = this
-                    childInstance.bankIndex = index
-                }
-            } else {
-                reporter.reportError(definition, "Cannot infer width.")
-            }
-            return
-        }
-        
-        // Apply overrides and instantiate parameters for this reactor instance.
-        for (parameter : reactorDefinition.allParameters) {
-            this.parameters.add(new ParameterInstance(parameter, this))
-        }
-
-        // Instantiate inputs for this reactor instance
-        for (inputDecl : reactorDefinition.allInputs) {
-            if (inputDecl.widthSpec === null) {
-                this.inputs.add(new PortInstance(inputDecl, this))
-            } else {
-                this.inputs.add(new MultiportInstance(inputDecl, this, reporter))
-            }
-        }
-
-        // Instantiate outputs for this reactor instance
-        for (outputDecl : reactorDefinition.allOutputs) {
-            if (outputDecl.widthSpec === null) {
-                this.outputs.add(new PortInstance(outputDecl, this))
-            } else {
-                this.outputs.add(new MultiportInstance(outputDecl, this, reporter))
-            }
-        }
-
-		// Do not proccess content (except interface above) if recursive
-		if (!recursive) {
-        	// Instantiate children for this reactor instance
-        	for (child : reactorDefinition.allInstantiations) {
-            	var childInstance = new ReactorInstance(child, this, reporter)
-            	this.children.add(childInstance)
-            	// If the child is a bank of instances, add all the bank instances.
-            	// These must be added after the bank itself.
-            	if (childInstance.bankMembers !== null) {
-            	    this.children.addAll(childInstance.bankMembers)
-            	}
-        	}
-
-        	// Instantiate timers for this reactor instance
-        	for (timerDecl : reactorDefinition.allTimers) {
-        	    this.timers.add(new TimerInstance(timerDecl, this))
-        	}
-
-        	// Instantiate actions for this reactor instance
-        	for (actionDecl : reactorDefinition.allActions) {
-        	    this.actions.add(new ActionInstance(actionDecl, this))
-        	}
-
-        	establishPortConnections()
-        
-        	// Check for dangling inputs or outputs and issue a warning.
-        	checkForDanglingConnections()
-
-        	// Create the reaction instances in this reactor instance.
-        	// This also establishes all the implied dependencies.
-        	// Note that this can only happen _after_ the children, 
-        	// port, action, and timer instances have been created.
-        	createReactionInstances()
+            this.unorderedReactions = unorderedReactions    
         }
     }
     
@@ -211,25 +104,10 @@ class ReactorInstance extends NamedInstance<Instantiation> {
     
     public final boolean recursive
         
-    /** Data structure used by nextPort() to keep track of the next available bank. */
-    val nextBankTable = new LinkedHashMap<VarRef,Integer>()
-
-    /** Data structure used by nextPort() to keep track of the next available port. */
-    val nextPortTable = new LinkedHashMap<PortInstance,Integer>()
-    
-    /** 
-     * Data structure that maps connections to their connections as they appear
-     * in a visualization of the program. For each connection, there is map
-     * from source ports (single ports and multiports) on the left side of the
-     * connection to a set of destination ports (single ports and multiports)
-     * on the right side of the connection. The ports contained by the multiports
-     * are not represented.
-     */
-    @Accessors(PUBLIC_GETTER)
-    val connections = new LinkedHashMap<Connection,LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>>()
-    
     /**
-     * Check for dangling connections.
+     * Check for dangling connections and report a warning if there are some.
+     * Dangling connections occur when the left and right widths of a connection
+     * do not match.
      */
     def checkForDanglingConnections() {
         // FIXME identifies only dangling inputs
@@ -508,6 +386,13 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         dstInstances.add(dstInstance)
         
+        var destTable = connectionTable.get(srcInstance)
+        if (destTable === null) {
+            destTable = new LinkedHashMap<PortInstance,Connection>()
+            connectionTable.put(srcInstance, destTable)
+        }
+        destTable.put(dstInstance, connection)
+        
         // The diagram package needs to know, for each single port
         // or multiport (not the ports within the multiport), which
         // other single ports or multiports they are connected to.
@@ -518,6 +403,7 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         var dst = dstInstance.multiport as PortInstance;
         if (dst === null) dst = dstInstance; // Not in a multiport.
 
+        // The following is support for the diagram visualization.
         // The source may be at a bank index greater than 0.
         // For visualization, this needs to be converted to the source
         // at bank 0, because only that one is rendered.
@@ -552,6 +438,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
             dst = newParent.inputs.findFirst [ it.name.equals(name) ]
         }
         destinations.add(dst);
+    }
+    
+    /**
+     * Return the Connection that created the link between the specified source
+     * and destination, or null if there is no such link.
+     */
+    def Connection getConnection(PortInstance source, PortInstance destination) {
+        var table = connectionTable.get(source)
+        if (table !== null) {
+            return table.get(destination)
+        }
+        return null
     }
     
     /** 
@@ -978,9 +876,18 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         bankMembers
     }
 
-    // ////////////////////////////////////////////////////
-    // // Protected fields.
+    //////////////////////////////////////////////////////
+    //// Protected fields.
     
+    /**
+     * The LF syntax does not currently support declaring reactions unordered,
+     * but unordered reactions are created in the AST transformations handling
+     * federated communication and after delays. Unordered reactions can execute
+     * in any order and concurrently even though they are in the same reactor.
+     * FIXME: Remove this when the language provides syntax.
+     */
+    protected var Set<Reaction> unorderedReactions = new LinkedHashSet()
+
     /**
      * If this reactor is in a bank of reactors, then this member
      * refers to the reactor instance defining the bank.
@@ -1101,10 +1008,180 @@ class ReactorInstance extends NamedInstance<Instantiation> {
         }
         result
     }
+    
+    ////////////////////////////////////////
+    //// Private constructors
+    
+    /**
+     * Create reactor instance resulting from the specified top-level instantiation.
+     * @param instance The Instance statement in the AST.
+     * @param parent The parent, or null for the main rector.
+     * @param generator The generator (for error reporting).
+     * @param desiredDepth The depth to which to expand the hierarchy.
+     */
+    private new(Instantiation definition, ReactorInstance parent, ErrorReporter generator, int desiredDepth) {
+        // If the reactor is being instantiated with new[width], then pass -2
+        // to the constructor, otherwise pass -1.
+        this(definition, parent, generator, (definition.widthSpec !== null)? -2 : -1, 0, desiredDepth)
+    }
+
+    /**
+     * Create a runtime instance from the specified definition
+     * and with the specified parent that instantiated it.
+     * @param instance The Instance statement in the AST.
+     * @param parent The parent, or null for the main rector.
+     * @param generator The generator (for error reporting).
+     * @param reactorIndex -1 for an ordinary reactor, -2 for a
+     *  placeholder for a bank of reactors, or the index of the
+     *  reactor in a bank of reactors otherwise.
+     * @param depth The depth of this reactor in the hierarchy.
+     * @param desiredDepth The depth to which to expand the hierarchy.
+     */
+    private new(
+            Instantiation definition, 
+            ReactorInstance parent,
+            ErrorReporter reporter,
+            int reactorIndex,
+            int depth,
+            int desiredDepth) {
+        super(definition, parent)
+        this.reporter = reporter
+        this.bankIndex = reactorIndex
+        this.reactorDefinition = definition.reactorClass.toDefinition
+        this.depth = depth
+        
+        // check for recursive instantiation
+        var currentParent = parent
+        var foundSelfAsParent = false
+        do {
+            if (currentParent !== null) {
+                if (currentParent.reactorDefinition === this.reactorDefinition) {
+                    foundSelfAsParent = true
+                    currentParent = null // break
+                } else {
+                    currentParent = currentParent.parent
+                }
+            }
+        } while(currentParent !== null)
+        this.recursive = foundSelfAsParent
+        if (recursive) {
+            reporter.reportError(definition, "Recursive reactor instantiation.")
+        }
+        
+        // If this reactor is actually a bank of reactors, then instantiate
+        // each individual reactor in the bank and skip the rest of the
+        // initialization for this reactor instance.
+        if (reactorIndex === -2) {
+            // If the bank width is variable, then we have to wait until the first connection
+            // before instantiating the children.
+            var width = width(definition.widthSpec)
+            if (width > 0) {
+                this.bankMembers = new ArrayList<ReactorInstance>(width)
+                for (var index = 0; index < width; index++) {
+                    var childInstance = new ReactorInstance(
+                        definition, parent, reporter, index, depth, desiredDepth
+                    )
+                    this.bankMembers.add(childInstance)
+                    childInstance.bank = this
+                    childInstance.bankIndex = index
+                }
+            } else {
+                reporter.reportError(definition, "Cannot infer width.")
+            }
+            return
+        }
+        
+        // Apply overrides and instantiate parameters for this reactor instance.
+        for (parameter : reactorDefinition.allParameters) {
+            this.parameters.add(new ParameterInstance(parameter, this))
+        }
+
+        // Instantiate inputs for this reactor instance
+        for (inputDecl : reactorDefinition.allInputs) {
+            if (inputDecl.widthSpec === null) {
+                this.inputs.add(new PortInstance(inputDecl, this))
+            } else {
+                this.inputs.add(new MultiportInstance(inputDecl, this, reporter))
+            }
+        }
+
+        // Instantiate outputs for this reactor instance
+        for (outputDecl : reactorDefinition.allOutputs) {
+            if (outputDecl.widthSpec === null) {
+                this.outputs.add(new PortInstance(outputDecl, this))
+            } else {
+                this.outputs.add(new MultiportInstance(outputDecl, this, reporter))
+            }
+        }
+
+        // Do not process content (except interface above) if recursive
+        if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
+            // Instantiate children for this reactor instance
+            for (child : reactorDefinition.allInstantiations) {
+                var childInstance = new ReactorInstance(
+                    child, this, reporter, (child.widthSpec !== null)? -2 : -1, depth + 1, desiredDepth
+                )
+                this.children.add(childInstance)
+                // If the child is a bank of instances, add all the bank instances.
+                // These must be added after the bank itself.
+                if (childInstance.bankMembers !== null) {
+                    this.children.addAll(childInstance.bankMembers)
+                }
+            }
+
+            // Instantiate timers for this reactor instance
+            for (timerDecl : reactorDefinition.allTimers) {
+                this.timers.add(new TimerInstance(timerDecl, this))
+            }
+
+            // Instantiate actions for this reactor instance
+            for (actionDecl : reactorDefinition.allActions) {
+                this.actions.add(new ActionInstance(actionDecl, this))
+            }
+
+            establishPortConnections()
+        
+            // Check for dangling inputs or outputs and issue a warning.
+            checkForDanglingConnections()
+
+            // Create the reaction instances in this reactor instance.
+            // This also establishes all the implied dependencies.
+            // Note that this can only happen _after_ the children, 
+            // port, action, and timer instances have been created.
+            createReactionInstances()
+        }
+    }
 
     ////////////////////////////////////////
     //// Private variables
     
+    /** Table recording which connection created a link between a source and destination. */
+    var LinkedHashMap<PortInstance,LinkedHashMap<PortInstance,Connection>> connectionTable
+            = new LinkedHashMap<PortInstance,LinkedHashMap<PortInstance,Connection>>()
+    
     /** The nested list of instantiations that created this reactor instance. */
     var List<Instantiation> _instantiations;
+    
+    /** 
+     * The depth in the hierarchy of this reactor instance.
+     * This is 0 for main or federated, 1 for the reactors immediately contained, etc.
+     */
+    var int depth = 0;
+
+    /** Data structure used by nextPort() to keep track of the next available bank. */
+    val nextBankTable = new LinkedHashMap<VarRef,Integer>()
+
+    /** Data structure used by nextPort() to keep track of the next available port. */
+    val nextPortTable = new LinkedHashMap<PortInstance,Integer>()
+    
+    /** 
+     * Data structure that maps connections to their connections as they appear
+     * in a visualization of the program. For each connection, there is map
+     * from source ports (single ports and multiports) on the left side of the
+     * connection to a set of destination ports (single ports and multiports)
+     * on the right side of the connection. The ports contained by the multiports
+     * are not represented.
+     */
+    @Accessors(PUBLIC_GETTER)
+    val connections = new LinkedHashMap<Connection,LinkedHashMap<PortInstance,LinkedHashSet<PortInstance>>>()
 }
