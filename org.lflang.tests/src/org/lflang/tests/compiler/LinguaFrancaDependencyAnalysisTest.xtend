@@ -108,7 +108,7 @@ class LinguaFrancaDependencyAnalysisTest {
         var message = ""
         try {
             new ReactionInstanceGraph(
-                new ReactorInstance(mainDef.reactorClass.toDefinition, gen, null))
+                new ReactorInstance(mainDef.reactorClass.toDefinition, gen))
         } catch(Exception e) {
             message = e.message
         }

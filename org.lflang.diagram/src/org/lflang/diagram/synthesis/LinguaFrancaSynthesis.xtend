@@ -181,7 +181,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 			// Find main
 			val main = model.reactors.findFirst[isMainOrFederated]
 			if (main !== null) {
-			    val reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter(), emptySet)
+			    val reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter())
 				rootNode.children += reactorInstance.createReactorNode(true, null, null, newHashMap)
 			} else {
 				val messageNode = createNode()
