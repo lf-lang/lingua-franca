@@ -44,7 +44,7 @@ class CppPortGenerator(private val reactor: Reactor, private val errorReporter: 
         return if (port.isMultiport) {
             val width = port.getValidWidth()
             val initializerLists = (0 until width).joinToString(", ") { """{"${port.name}_$it", this}""" }
-            """std::array<$portType<${port.targetType}>, ${port.width}> ${port.name}{{$initializerLists}};"""
+            """std::array<$portType<${port.targetType}>, ${port.getValidWidth()}> ${port.name}{{$initializerLists}};"""
         } else {
             """$portType<${port.targetType}> ${port.name}{"${port.name}", this};"""
         }
@@ -56,6 +56,7 @@ class CppPortGenerator(private val reactor: Reactor, private val errorReporter: 
      * This reports an error on the receiving port if the width is not given as a literal integer.
      */
     fun Port.getValidWidth(): Int {
+        val width = widthSpec.getWidth()
         if (width < 0) {
             errorReporter.reportError(
                 this,
