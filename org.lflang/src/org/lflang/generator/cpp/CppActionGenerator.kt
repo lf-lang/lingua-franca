@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.isLogical
 import org.lflang.lf.Action
@@ -31,7 +32,7 @@ import org.lflang.lf.LfPackage
 import org.lflang.lf.Reactor
 
 /** A C++ code generator for actions */
-class CppActionGenerator(private val reactor: Reactor) {
+class CppActionGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
 
     private val Action.cppType get() = if (this.isLogical) "reactor::LogicalAction" else "reactor::PhysicalAction"
 
@@ -45,9 +46,10 @@ class CppActionGenerator(private val reactor: Reactor) {
 
     private fun generateLogicalInitializer(action: Action): String {
         return if (action.minSpacing != null || !action.policy.isNullOrEmpty()) {
-            TODO("How to report errors from here?")
-            //action.reportError(
-            //    "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!");
+            errorReporter.reportError(
+                action,
+                "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!"
+            )
         } else {
             val time = action.minDelay?.toTime() ?: "reactor::Duration::zero()"
             """, ${action.name}{"${action.name}", this, $time}"""
@@ -56,9 +58,10 @@ class CppActionGenerator(private val reactor: Reactor) {
 
     private fun initializePhysicalInitializer(action: Action): String {
         return if (action.minDelay != null || action.minSpacing != null || !action.policy.isNullOrEmpty()) {
-            TODO("How to report errors from here?")
-            //a.reportError(
-            //"minDelay, minSpacing and spacing violation policies are not yet supported for physical actions in reactor-ccp!");
+            errorReporter.reportError(
+                action,
+                "minDelay, minSpacing and spacing violation policies are not yet supported for physical actions in reactor-ccp!"
+            )
         } else {
             """, ${action.name}{"${action.name}", this}"""
         }
