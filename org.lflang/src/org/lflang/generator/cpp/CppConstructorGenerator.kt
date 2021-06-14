@@ -76,7 +76,7 @@ class CppConstructorGenerator(
             ${" |  "..state.generateInitializers()}
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
-            ${" |  "..actions.geberateInitializers()}
+            ${" |  "..actions.generateInitializers()}
                 |{}
             """.trimMargin()
         }
