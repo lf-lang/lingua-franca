@@ -44,12 +44,6 @@ val Reaction.name
         return "r" + r.reactions.lastIndexOf(this)
     }
 
-/** Get the width of a port */
-val Port.width: Int get() = this.widthSpec?.getWidth() ?: -1
-
-/** Get the width of a bank instantiation */
-val Instantiation.width: Int get() = this.widthSpec?.getWidth() ?: -1
-
 /* **********************************************************************************************
  * C++ specific extensions shared across classes
  */

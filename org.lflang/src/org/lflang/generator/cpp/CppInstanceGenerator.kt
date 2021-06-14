@@ -99,6 +99,7 @@ class CppInstanceGenerator(
      * This reports an error on the receiving port if the width is not given as a literal integer.
      */
     fun Instantiation.getValidWidth(): Int {
+        val width = widthSpec.getWidth()
         if (width < 0) {
             // TODO Support parameterized widths
             errorReporter.reportError(
