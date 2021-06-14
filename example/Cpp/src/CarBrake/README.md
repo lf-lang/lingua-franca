@@ -11,3 +11,9 @@ At the same time, the driver may brake at any given time.
 
 Currently, the braking mechanism can miss its deadline when hitting the brake, indicating a delayed braking.
 
+## Variant that fixes this
+
+The CarBrake2.lf variant, if made federated, decouples the vision system from the handling of brake pedal actions
+in a way that makes it impossible for the vision system to have any effect on the ability of the other component
+to make deadlines. The price for this decoupling is added nondeterminacy because the physical connection
+reassigns time stamps based on the current physical clock.
