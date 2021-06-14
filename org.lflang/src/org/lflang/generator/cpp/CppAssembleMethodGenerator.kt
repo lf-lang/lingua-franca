@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.isMultiport
@@ -37,7 +38,7 @@ import kotlin.math.ceil
  * responsible for declaring all triggers, dependencies and effects (antidependencies) of reactions.
  * It is also responsible for creating all connections within the reactor.
  */
-class CppAssembleMethodGenerator(private val reactor: Reactor) {
+class CppAssembleMethodGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
 
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String {
         // check if the trigger is a multiport
@@ -99,12 +100,11 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
     private fun Port.getValidWidth(): Int {
         if (width < 0) {
-            // TODO Support parameterized widths
-            // TODO Properly report the error
-            throw RuntimeException(
-                "Cannot determine port width. " +
-                        "Only multiport widths with literal integer values are supported for now."
+            errorReporter.reportError(
+                this,
+                "The C++ target only supports multiport widths specified as literal integer values for now"
             )
+            // TODO Support parameterized widths
         }
         return width
     }
@@ -112,10 +112,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     private fun Instantiation.getValidWidth(): Int {
         if (width < 0) {
             // TODO Support parameterized widths
-            // TODO Properly report the error
-            throw RuntimeException(
-                "Cannot determine port width. " +
-                        "Only multiport widths with literal integer values are supported for now."
+            errorReporter.reportError(
+                this,
+                "The C++ target only supports bank widths specified as literal integer values for now"
             )
         }
         return width
