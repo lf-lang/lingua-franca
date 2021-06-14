@@ -32,7 +32,8 @@ import org.lflang.lf.Reactor
 /** A code genarator for reactor instances */
 class CppInstanceGenerator(
     private val reactor: Reactor,
-    private val fileConfig: CppFileConfig
+    private val fileConfig: CppFileConfig,
+    private val errorReporter: ErrorReporter,
 ) {
 
     private val Instantiation.type: String
@@ -45,7 +46,7 @@ class CppInstanceGenerator(
 
     private fun generateDeclaration(inst: Instantiation): String {
         return if (inst.isBank)
-            "std::array<std::unique_ptr<${inst.type}>, ${inst.width}> ${inst.name};"
+            "std::array<std::unique_ptr<${inst.type}>, ${inst.getValidWidth()}> ${inst.name};"
         else
             "std::unique_ptr<${inst.type}> ${inst.name};"
     }
@@ -72,11 +73,11 @@ class CppInstanceGenerator(
         val parameters = inst.reactor.parameters
         return if (inst.isBank) {
             val initializations = if (parameters.isEmpty()) {
-                (0 until inst.width).joinToString(", ") {
+                (0 until inst.getValidWidth()).joinToString(", ") {
                     """std::make_unique<${inst.type}>("${inst.name}_$it", this)"""
                 }
             } else {
-                (0 until inst.width).joinToString(", ") {
+                (0 until inst.getValidWidth()).joinToString(", ") {
                     val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, it) }
                     """std::make_unique<${inst.type}>("${inst.name}", this, $params)"""
                 }
@@ -92,6 +93,22 @@ class CppInstanceGenerator(
         }
     }
 
+    /**
+     * Calculate the width of a multiport.
+     *
+     * This reports an error on the receiving port if the width is not given as a literal integer.
+     */
+    fun Instantiation.getValidWidth(): Int {
+        if (width < 0) {
+            // TODO Support parameterized widths
+            errorReporter.reportError(
+                this,
+                "The C++ target only supports bank widths specified as literal integer values for now"
+            )
+        }
+        return width
+    }
+
     /** Generate C++ include statements for each reactor that is instantiated */
     fun generateIncludes(): String =
         reactor.instantiations.map { fileConfig.getReactorHeaderPath(it.reactor) }
@@ -100,7 +117,6 @@ class CppInstanceGenerator(
 
     /** Generate declaration statements for all reactor instantiations */
     fun generateDeclarations(): String {
-        // FIXME: Does not support parameter values for widths.
         return reactor.instantiations.joinToString(
             prefix = "// reactor instances\n",
             separator = "\n"
@@ -108,7 +124,6 @@ class CppInstanceGenerator(
     }
 
     /** Generate constructor initializers for all reactor instantiations */
-    // FIXME: Does not support parameter values for widths.
     fun generateInitializers(): String =
         reactor.instantiations.joinToString(prefix = "//reactor instances\n", separator = "\n") { generateInitializer(it) }
 }

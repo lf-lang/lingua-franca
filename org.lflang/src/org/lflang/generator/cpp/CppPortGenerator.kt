@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.ErrorReporter
 import org.lflang.getWidth
 import org.lflang.isMultiport
 import org.lflang.lf.Input
@@ -31,24 +32,7 @@ import org.lflang.lf.Output
 import org.lflang.lf.Port
 import org.lflang.lf.Reactor
 
-class CppPortGenerator(public val reactor: Reactor) {
-
-    /**
-     * Calculate the width of a multiport.
-     *
-     * FIXME: This currently throws an exception if the width depends on a parameter value.
-     *  If the width depends on a parameter value, then this method
-     *  will need to determine that parameter for each instance, not
-     *  just class definition of the containing reactor.
-     */
-    private val Port.width: Int
-        get() {
-            val result = this.widthSpec.getWidth()
-            if (result < 0) {
-                throw RuntimeException("Only multiport widths with literal integer values are supported for now.")
-            } // TODO Report error instead?
-            return result
-        }
+class CppPortGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
 
     private fun generateDeclaration(port: Port): String {
         val portType = when (port) {
@@ -58,12 +42,28 @@ class CppPortGenerator(public val reactor: Reactor) {
         }
 
         return if (port.isMultiport) {
-            val width = port.width
+            val width = port.getValidWidth()
             val initializerLists = (0 until width).joinToString(", ") { """{"${port.name}_$it", this}""" }
             """std::array<$portType<${port.targetType}>, ${port.width}> ${port.name}{{$initializerLists}};"""
         } else {
             """$portType<${port.targetType}> ${port.name}{"${port.name}", this};"""
         }
+    }
+
+    /**
+     * Calculate the width of a multiport.
+     *
+     * This reports an error on the receiving port if the width is not given as a literal integer.
+     */
+    fun Port.getValidWidth(): Int {
+        if (width < 0) {
+            errorReporter.reportError(
+                this,
+                "The C++ target only supports multiport widths specified as literal integer values for now"
+            )
+            // TODO Support parameterized widths
+        }
+        return width
     }
 
     fun generateDeclarations() =

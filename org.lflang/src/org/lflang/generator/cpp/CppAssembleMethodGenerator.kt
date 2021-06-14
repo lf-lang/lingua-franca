@@ -24,7 +24,6 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.isMultiport
@@ -38,7 +37,11 @@ import kotlin.math.ceil
  * responsible for declaring all triggers, dependencies and effects (antidependencies) of reactions.
  * It is also responsible for creating all connections within the reactor.
  */
-class CppAssembleMethodGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
+class CppAssembleMethodGenerator(
+    private val reactor: Reactor,
+    private val portGenerator: CppPortGenerator,
+    private val instanceGenerator: CppInstanceGenerator,
+) {
 
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String {
         // check if the trigger is a multiport
@@ -98,28 +101,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor, private val error
         """.trimMargin()
     }
 
-    private fun Port.getValidWidth(): Int {
-        if (width < 0) {
-            errorReporter.reportError(
-                this,
-                "The C++ target only supports multiport widths specified as literal integer values for now"
-            )
-            // TODO Support parameterized widths
-        }
-        return width
-    }
-
-    private fun Instantiation.getValidWidth(): Int {
-        if (width < 0) {
-            // TODO Support parameterized widths
-            errorReporter.reportError(
-                this,
-                "The C++ target only supports bank widths specified as literal integer values for now"
-            )
-        }
-        return width
-    }
-
     /** A data class for holding all information that is relevant for reverencing one specific port
      *
      * The port could be a member of a bank instance and it could be an instance of a multiport.
@@ -151,8 +132,12 @@ class CppAssembleMethodGenerator(private val reactor: Reactor, private val error
         for (ref in references) {
             val container = ref.container
             val port = ref.variable as Port
-            val bankIndexes = if (container?.isBank == true) (0 until container.getValidWidth()) else listOf<Int?>(null)
-            val portIndexes = if (port.isMultiport) (0 until port.getValidWidth()) else listOf<Int?>(null)
+            val bankIndexes =
+                if (container?.isBank == true) with(instanceGenerator) { (0 until container.getValidWidth()) }
+                else listOf<Int?>(null)
+            val portIndexes =
+                if (port.isMultiport) with(portGenerator) { (0 until port.getValidWidth()) }
+                else listOf<Int?>(null)
             // calculate the Cartesian product af both index lists defined above
             // TODO iterate over banks or ports first?
             val indexPairs = portIndexes.flatMap { portIdx -> bankIndexes.map { bankIdx -> portIdx to bankIdx } }
