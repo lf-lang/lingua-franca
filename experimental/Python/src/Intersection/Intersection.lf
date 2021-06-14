@@ -116,6 +116,10 @@ class vehicle_position:
     
 # The speed limit of vehicles in m/s
 speed_limit = 14.0
+# The distance (in meters) at which the controller assumes it has reached its goal
+goal_reached_threshold = 33
+# The time threshold at which the vehicle has reached its time-based goal
+goal_reached_threshold_time = (goal_reached_threshold/speed_limit)
 =}
 
 reactor Vehicle (
@@ -138,16 +142,24 @@ reactor Vehicle (
     
     state granted_time_to_enter(0);
     state intersection_pos;
-    state intersection_reached(false);
+    state goal_reached(false);
     
     reaction(vehicle_pos) {=
         self.current_pos = vehicle_pos.value.current_pos;        
     =}
     reaction(vehicle_stat) -> request, control {=
+        if self.goal_reached:
+            # Nothing to do here
+            return
+        
         # Record the speed
         velocity = vehicle_stat.value.velocity
         linear_speed = sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
         self.speed = linear_speed
+        
+        if self.speed == 0:
+            # Prevent divisions by zero
+            self.speed = 0.001
         
         # Check if we have received an initial pos
         if self.current_pos.distance(coordinate(0.0, 0.0, 0.0)) <= 0.00000001:
@@ -169,31 +181,38 @@ reactor Vehicle (
             distance_remaining = self.intersection_pos.distance(self.current_pos)
             time_remaining = (self.granted_time_to_enter - get_logical_time()) / (BILLION * 1.0)
             
-            if self.intersection_reached is not True:            
-                print("Vehicle {}: Distance to intersection: {}m.".format(self.bank_index + 1, distance_remaining))
-                print("Vehicle {}: Time to intersection: {}s.".format(self.bank_index + 1, time_remaining))
-                print("Vehicle {}: Current speed: {}m/s.".format(self.bank_index + 1, self.speed))
-        
+            print("########################################")
+            print("Vehicle {}: Distance to intersection: {}m.".format(self.bank_index + 1, distance_remaining))
+            print("Vehicle {}: Time to intersection: {}s.".format(self.bank_index + 1, time_remaining))
+            print("Vehicle {}: Current speed: {}m/s.".format(self.bank_index + 1, self.speed))
+
             target_speed = 0.0
             # target_speed = distance_remaining/time_remaining
-            
-            if self.intersection_reached or distance_remaining < 20.0:
-                # In the intersection, continue
+                        
+            if distance_remaining <= goal_reached_threshold and \
+                    time_remaining <= goal_reached_threshold_time :
+                # Goal reached
+                # At this point, a normal controller should stop the vehicle until
+                # it receives a new goal. However, for the purposes of this demo,
+                # it will set the target speed to the speed limit so that vehicles
+                # can leave the intersection (otherwise, they will just stop at the
+                # intersection).
                 target_speed = speed_limit
                 # Simulation is over
-                self.intersection_reached = True
-            elif time_remaining <= 0.5 and distance_remaining > 20.0:
-                # No time to make it to the intersection
-                # Stop and ask the RSU again
-                target_speed = 0.0
+                self.goal_reached = True
+            elif time_remaining < (distance_remaining / speed_limit):
+                # No time to make it to the intersection even if we
+                # were going at the speed limit.
+                # Ask the RSU again
                 self.granted_time_to_enter = 0
+                # Apply the brake since we ran out of time
+                target_speed = 0
             else:
-                # Not in the intersection 
-                target_speed = ((2 * distance_remaining) / (time_remaining)) - self.speed
-                # target_speed = distance_remaining / time_remaining
+                # Has not reached the goal
+                # target_speed = ((2 * distance_remaining) / (time_remaining)) - self.speed
+                target_speed = distance_remaining / time_remaining
             
-            if self.intersection_reached is not True:   
-                print("Vehicle {}: Calculated target speed: {}m/s.".format(self.bank_index + 1, target_speed))
+            print("Vehicle {}: Calculated target speed: {}m/s.".format(self.bank_index + 1, target_speed))
             
             if (target_speed - speed_limit) > 0:
                 print("Warning: target speed exceeds the speed limit")
@@ -202,25 +221,34 @@ reactor Vehicle (
             
             if target_speed <= 0:
                 print("Warning: target speed negative or zero")
-                target_speed = 0
+                target_speed = 0.001
                 self.granted_time_to_enter = 0
             
-            # Calculate a proportional throttle
-            throttle = (target_speed - self.speed)/speed_limit
-            # Keep the boundaries of the throttle
-            if throttle < 0:
-                throttle = 0
-            elif throttle > 1:
-                throttle = 1
-                
             brake = 0.0
+            throttle = 0.0
             
-            if target_speed == 0:
-                brake = 1.0
+            if target_speed >= self.speed:            
+                # Calculate a proportional throttle (0.0 < throttle < 1.0)
+                throttle = min((target_speed - self.speed)/target_speed, 1)
+                # throttle = 1.0
+                brake = 0.0
+                # throttle = min(abs(target_speed / self.speed), 1)
+            else:
+                # Need to apply the brake
+                brake = min((self.speed - target_speed)/self.speed, 1)
+                # brake = 1.0
+                throttle = 0.0
+            
+            # Check throttle boundaries
+            if throttle < 0:
+                print("Error: negative throttle")
+                throttle = 0
             
             # Prepare and send the target velocity as a vehicle command
             cmd =  vehicle_command(throttle = throttle, brake = brake)
             control.set(cmd)
+            
+            print("Vehicle {}: Throttle: {}. Brake: {}".format(self.bank_index + 1, throttle, brake))
     =}
     
     reaction(grant) {=        
@@ -231,6 +259,7 @@ reactor Vehicle (
         
         self.granted_time_to_enter = grant.value.arrival_time
         self.intersection_pos = grant.value.intersection_pos
+        self.goal_reached = False
     =}
 }
 
@@ -239,7 +268,7 @@ reactor RSU (
 	intersection_width(42.0), // in meters.
 	// If the vehicle is told to slow down, then its target
 	// average speed in the intersection should be at least this.
-	nominal_speed_in_intersection(10.0), // In m/sec 0.6 sec to traverse.
+	nominal_speed_in_intersection(2.8), // In m/sec 0.6 sec to traverse.
 	intersection_pos({=coordinate(0.0, 0.0, 0.0)=}) // GPS coordinates for the intersection
 ) {
     input[num_entries] request;
@@ -250,17 +279,16 @@ reactor RSU (
     reaction(request) -> grant {=
         for i in range(self.num_entries):
             if request[i].is_present:
+                if request[i].value.speed == 0:
+                    # Avoid division by zero
+                    request[i].value.speed = 0.001
                 # Calculate the time it will take the approaching vehicle to
                 # arrive at its current speed. Note that this is
                 # time from the time the vehicle sends the message
                 # according to the arriving vehicle's clock.
                 speed_in_m_per_sec = request[i].value.speed
-                if speed_in_m_per_sec == 0 :
-                    # Avoid division by zero
-                    speed_in_m_per_sec = 0.01
-                    request[i].value.speed = 0.01
                 dr = self.intersection_pos.distance(request[i].value.current_pos)
-                print("Vehicle {}: Distance to intersection is {}.".format(i+1, dr))
+                print("*** RSU: Vehicle {}'s distance to intersection is {}.".format(i+1, dr))
                 arrival_in = dr / speed_in_m_per_sec
                     		
                 time_message_sent = get_logical_time()
@@ -274,10 +302,10 @@ reactor RSU (
                     response.target_speed = request[i].value.speed
                     response.arrival_time = arrival_time_ns
                 else:
-                    # Vehicle has to slow down and maybe stop.
-                    response.arrival_time = self.earliest_free
                     # Could be smarter than this, but just send the nominal speed in intersection.
                     response.target_speed = self.nominal_speed_in_intersection
+                    # Vehicle has to slow down and maybe stop.
+                    response.arrival_time = self.earliest_free
                 
                 response.intersection_pos = self.intersection_pos
                 grant[i].set(response)
@@ -288,7 +316,7 @@ reactor RSU (
                 
                 start_time = get_logical_time() - get_elapsed_logical_time()
                 
-                print("*** Grant access to vehicle {} to enter at "
+                print("*** RSU: Granted access to vehicle {} to enter at "
                     "time {} with average target velocity {} m/s. Next available time is {}".format(
                     i + 1,
                     response.arrival_time - start_time,
