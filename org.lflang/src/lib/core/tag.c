@@ -193,8 +193,8 @@ instant_t _lf_last_reported_unadjusted_physical_time_ns = NEVER;
  */
 instant_t get_physical_time() {
     // Get the current clock value
-    struct timespec physicalTime;
-    lf_clock_gettime(_LF_CLOCK, &physicalTime);
+    lf_time_spec_t physicalTime;
+    lf_clock_gettime(&physicalTime);
     _lf_last_reported_unadjusted_physical_time_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec)
             + _lf_epoch_offset;
     

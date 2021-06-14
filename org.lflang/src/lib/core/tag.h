@@ -61,9 +61,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Convenience for converting times
 #define BILLION 1000000000LL
 
-// The underlying physical clock
-#define _LF_CLOCK CLOCK_MONOTONIC
-
 /**
  * Time instant. Both physical and logical times are represented
  * using this typedef.
