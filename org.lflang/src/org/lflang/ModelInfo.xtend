@@ -110,7 +110,7 @@ class ModelInfo {
             val main = model.reactors.findFirst[it.isMain || it.isFederated]
             topLevelReactorInstances = new LinkedList()
             if (main !== null) {
-                val inst = new ReactorInstance(main, reporter, null)
+                val inst = new ReactorInstance(main, reporter)
                 topLevelReactorInstances.add(inst)
             } else {
                 model.reactors.forEach[ topLevelReactorInstances.add(new ReactorInstance(it, reporter, null))]

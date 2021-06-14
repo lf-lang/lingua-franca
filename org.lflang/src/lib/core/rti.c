@@ -1687,7 +1687,7 @@ void connect_to_federates(int socket_descriptor) {
     // over the UDP channel, but only if the UDP channel is open and at least one
     // federate is performing runtime clock synchronization.
     bool clock_sync_enabled = false;
-    for (int i = 0; i < NUMBER_OF_FEDERATED; i++) {
+    for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {
     	if (federates[i].clock_synchronization_enabled) {
     		clock_sync_enabled = true;
     		break;
