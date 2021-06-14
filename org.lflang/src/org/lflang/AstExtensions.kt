@@ -362,7 +362,7 @@ val StateVar.isInitialized: Boolean get() = (this.parens.size == 2)
  * If there are parameter references in the width, they are
  * evaluated to the extent possible given the instantiations list.
  *
- * The instantiations list is as in
+ * The [instantiations] list is as in
  * {@link initialValue(Parameter, List<Instantiation>}.
  * If the spec belongs to an instantiation (for a bank of reactors),
  * then the first element on this list should be the instantiation
