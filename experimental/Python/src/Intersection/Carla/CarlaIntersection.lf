@@ -14,7 +14,7 @@
  * 
  */
 target Python {
-    timeout: 100 sec,
+    timeout: 40 sec,
     // fast: true // You can enable fast to get a much faster simulation
 };
 
@@ -128,7 +128,7 @@ reactor Carla (
         for i in range(1):
             self.vehicle.set_target_velocity(target_speed)
             # self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=0.0))
-            self.world.tick()
+            # self.world.tick()
         
         print("Spawned vehicle")
         
@@ -138,6 +138,7 @@ reactor Carla (
         status.set(stat)      
         
         gps_pos = self.gps_queue.get()
+        # print(gps_pos.latitude, gps_pos.longitude, gps_pos.altitude)
         pos = vehicle_position(coordinate(x = gps_pos.latitude, y = gps_pos.longitude, z= gps_pos.altitude))
         position.set(pos)
     =}
@@ -172,7 +173,7 @@ reactor Carla (
  *  waits for a command from both clients before ticking). In
  *  practice, it seems to not work as expected.
  */
-reactor Ticker (interval(50 msec)){
+reactor Ticker (interval(16 msec)){
     output world;
     output tick;
     state client;
@@ -200,29 +201,30 @@ reactor Ticker (interval(50 msec)){
     
         self.world.set_weather(weather)
         
-        transform = carla.Transform(carla.Location(x=-124.163864, y=0.522205, z=66.172207), \
-            carla.Rotation(pitch=-88.821968, yaw=-179.649490, roll=0.000685))
+        transform = carla.Transform(carla.Location(x=-126.163864, y=3, z=67), \
+            carla.Rotation(pitch=-90, yaw=-180, roll=0))
         self.world.get_spectator().set_transform(transform)
         
         world.set(self.world)
     =}
-    timer t(0, interval);
+    timer t(1 nsec, interval);
     reaction(t) -> tick {=
         # print("Ticking")
         self.world.tick()
+        # self.world.wait_for_tick()
         tick.set(True)
     =}
 }
 
 main reactor (
-    num_entries(4), 
+    num_entries(4),
     positions({= [{   \
         'x': -122.0,  \
         'y': 39.6,    \
         'z': 0.3,     \
         'yaw': -90.0, \
         }, {          \
-        'x': -167.77, \
+        'x': -177.77, \
         'y': 6.48,    \
         'z': 0.3,     \
         'yaw': 0.0    \
@@ -260,8 +262,8 @@ main reactor (
     vehicles = new[num_entries] Vehicle();    
     rsu = new RSU(
         num_entries = num_entries, 
-        intersection_pos = {=coordinate(-0.00000534,-0.00114776,2.00155615)=},
-        intersection_width = 20,
+        intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.001687049)=},
+        intersection_width = 66,
         nominal_speed_in_intersection = 14
     );
     
@@ -270,7 +272,7 @@ main reactor (
     rsu.grant -> vehicles.grant;
 	
     
-	vehicles.control -> carla.command;
-	carla.status -> vehicles.vehicle_stat;
-	carla.position -> vehicles.vehicle_pos;
+	 vehicles.control -> carla.command;
+	 carla.status -> vehicles.vehicle_stat;
+	 carla.position -> vehicles.vehicle_pos;
 }
