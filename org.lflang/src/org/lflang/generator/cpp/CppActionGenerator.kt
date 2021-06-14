@@ -76,7 +76,7 @@ class CppActionGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
-    /** Get all action initializiers */
-    fun geberateInitializers() =
+    /** Get all action initializers */
+    fun generateInitializers() =
         reactor.actions.joinToString(separator = "\n", prefix = "// actions\n", postfix = "\n") { generateInitializer(it) }
 }
