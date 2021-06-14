@@ -42,10 +42,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /**
- * Fetch the value of clk_id and store it in tp.
+ * Fetch the value of _LF_CLOCK and store it in tp.
  */
-int lf_clock_gettime(_lf_clock_t clk_id, _lf_time_spec_t* tp) {
-    return clock_gettime((clockid_t)clk_id, (struct timespec*) tp);
+int lf_clock_gettime(_lf_time_spec_t* tp) {
+    return clock_gettime(_LF_CLOCK, (struct timespec*) tp);
 }
 
 /**

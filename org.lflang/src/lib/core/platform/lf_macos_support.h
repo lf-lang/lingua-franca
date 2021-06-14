@@ -43,4 +43,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct timespec _lf_time_spec_t;
 typedef int _lf_clock_t;
 
+// The underlying physical clock for MacOS
+#define _LF_CLOCK CLOCK_MONOTONIC
+
 #endif // LF_MACOS_SUPPORT_H

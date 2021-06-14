@@ -154,13 +154,13 @@ int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section
 }
 
 /**
- * Fetch the value of clk_id and store it in tp.
+ * Fetch the value _LF_CLOCK and store it in tp.
  */
-int lf_clock_gettime(_lf_clock_t clk_id, _lf_time_spec_t* tp) {
+int lf_clock_gettime(_lf_time_spec_t* tp) {
     int result = -1;
     int days_from_1601_to_1970 = 134774 /* there were no leap seconds during this time, so life is easy */;
     long long timestamp, counts, counts_per_sec;
-    switch (clk_id) {
+    switch (_LF_CLOCK) {
     case CLOCK_REALTIME:
         NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
         timestamp -= days_from_1601_to_1970 * 24LL * 60 * 60 * 1000 * 1000 * 10;

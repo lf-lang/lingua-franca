@@ -68,5 +68,8 @@ typedef int _lf_clock_t;
 
 #define _LF_TIMEOUT ETIMEDOUT
 
+// The underlying physical clock for Windows
+#define _LF_CLOCK CLOCK_MONOTONIC
+
 #endif // LF_WINDOWS_SUPPORT_H
 

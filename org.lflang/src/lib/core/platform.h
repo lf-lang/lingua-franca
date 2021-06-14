@@ -129,9 +129,15 @@ extern int lf_cond_timedwait(lf_cond_t* cond, lf_mutex_t* mutex, long long absol
 #endif
 
 /**
- * Fetch the value of clk_id and store it in tp.
+ * Fetch the value of an internal (and platform-specific) physical clock and 
+ * store it in tp. 
+ * 
+ * Ideally, the underlying platform clock should be monotonic. However, the
+ * core lib tries to enforce monotonicity at higher level APIs (see tag.h). 
+ * Nonetheless, if the underlying clock is not monotonic, it can result in 
+ * identical timestamps being presented to the user programs that use those APIs.
  */
-extern int lf_clock_gettime(lf_clock_t clk_id, lf_time_spec_t* tp);
+extern int lf_clock_gettime(lf_time_spec_t* tp);
 
 /**
  * Pause execution for a number of nanoseconds.
