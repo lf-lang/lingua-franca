@@ -110,8 +110,8 @@ class FederateInstance {
     /**
      * Map from the federates that this federate receives messages from
      * to the delays on connections from that federate. The delay set
-     * may be empty, meaning no delay (not even a microstep or 0 delay)
-     * was specified.
+     * may may include null, meaning that there is a connection
+     * from the federate instance that has no delay.
      */
     public var dependsOn = new LinkedHashMap<FederateInstance,Set<Delay>>()
     
@@ -121,13 +121,14 @@ class FederateInstance {
     /** The port, if specified using the 'at' keyword. */
     public var int port = 0
     
-    /** Map from the federates that this federate sends messages to
-     *  to the delays on connections to that federate. The delay set
-     *  may be empty, meaning no delay (not even a microstep or 0 delay)
-     *  was specified.
+    /** 
+     * Map from the federates that this federate sends messages to
+     * to the delays on connections to that federate. The delay set
+     * may may include null, meaning that there is a connection
+     * from the federate instance that has no delay.
      */
     public var sendsTo = new LinkedHashMap<FederateInstance,Set<Delay>>()
-    
+        
     /** The user, if specified using the 'at' keyword. */
     public var String user = null
     
