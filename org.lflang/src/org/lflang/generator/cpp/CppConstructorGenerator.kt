@@ -73,12 +73,12 @@ class CppConstructorGenerator(
     private fun innerSignature(): String {
         val args = parameterArguments(false)
         return when (args.size) {
-            0    -> "Inner(reactor::Environment* env)"
-            1    -> "Inner(reactor::Environment* env, ${args[0]})"
+            0    -> "Inner(reactor::Reactor* reactor)"
+            1    -> "Inner(reactor::Reactor* reactor, ${args[0]})"
             else -> with(PrependOperator) {
                 """
                     |Inner(
-                    |  reactor::Environment* env,
+                    |  reactor::Reactor* reactor,
                 ${" |  "..args.joinToString { ",\n" }})
                 """.trimMargin()
             }
@@ -90,8 +90,7 @@ class CppConstructorGenerator(
 
     /** Get the constructor definition of the outer reactor class */
     fun generateOuterDefinition(): String {
-        val envReference = if (reactor.isMain) "environment" else "container->environment()"
-        val innerParameters = listOf(envReference) + reactor.parameters.map { it.name }
+        val innerParameters = listOf("this") + reactor.parameters.map { it.name }
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
@@ -114,7 +113,7 @@ class CppConstructorGenerator(
             """
                 |${reactor.templateLine}
                 |${reactor.templateName}::Inner::${innerSignature()}
-                |  : __lf_env(env)
+                |  : LFScope(reactor)
             ${" |  "..parameters.generateInitializers()}
             ${" |  "..state.generateInitializers()}
                 |{}
