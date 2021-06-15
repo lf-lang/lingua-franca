@@ -46,4 +46,17 @@ void after_forward(reactor::Action<T>* action, reactor::Port<T>* port) {
   }
 }
 
+class LFScope {
+ private:
+  reactor::Reactor* reactor;
+ public:
+  LFScope(reactor::Reactor* reactor) : reactor(reactor) {}
+
+  reactor::TimePoint get_physical_time() const { return reactor->get_physical_time(); }
+  reactor::TimePoint get_logical_time() const { return reactor->get_logical_time(); }
+  reactor::Duration get_elapsed_logical_time() const { return reactor->get_elapsed_logical_time(); }
+  reactor::Duration get_elapsed_physical_time() const { return reactor->get_elapsed_physical_time(); }
+  reactor::Environment* environment() const { return reactor->environment(); }
+};
+
 }

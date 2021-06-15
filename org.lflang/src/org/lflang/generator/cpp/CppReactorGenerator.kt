@@ -74,6 +74,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |#pragma once
             |
             |#include "reactor-cpp/reactor-cpp.hh"
+            |#include "lfutil.hh"
             |
             |using namespace std::chrono_literals;
             |
@@ -84,16 +85,15 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |"..publicPreamble()}
             |
             |${reactor.templateLine}
-            |class ${reactor.name} : public reactor::Reactor {
+            |class ${reactor.name}: public reactor::Reactor {
             | private:
         ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}
         ${" |  "..actions.generateDeclarations()}
         ${" |  "..reactions.generateDeclarations()}
             |
-            |  class Inner {
+            |  class Inner: public lfutil::LFScope {
             |   private:
-            |    reactor::Environment* __lf_env;
         ${" |    "..parameters.generateDeclarations()}
         ${" |    "..state.generateDeclarations()}
             |   public:
@@ -121,7 +121,6 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |"..fileComment}
             |
             |${if (!reactor.isGeneric) """#include "$headerFile"""" else ""}
-            |#include "lfutil.hh"
             |
             |using namespace reactor::operators;
             |
