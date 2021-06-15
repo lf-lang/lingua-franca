@@ -93,6 +93,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
             |  class Inner {
             |   private:
+            |    reactor::Environment* __lf_env;
         ${" |    "..parameters.generateDeclarations()}
         ${" |    "..state.generateDeclarations()}
             |   public:
@@ -100,6 +101,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |    "..reactions.generateBodyDeclarations()}
         ${" |    "..reactions.generateDeadlineHandlerDeclarations()}
             |  };
+            |
+            |  Inner __lf_inner;
             |
             | public:
         ${" |  "..ports.generateDeclarations()}
@@ -124,7 +127,11 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
         ${" |  "..privatePreamble()}
             |
+            |// outer constructor
         ${" |"..constructor.generateOuterDefinition()}
+            |
+            |// inner constructor
+        ${" |"..constructor.generateInnerDefinition()}
             |
         ${" |"..assemble.generateDefinition()}
             |
