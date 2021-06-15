@@ -659,10 +659,9 @@ class CGenerator extends GeneratorBase {
                 
                 setReactionPriorities(main, federate)
                 
-                // Calculate the epoch offset so that subsequent calls
-                // to get_physical_time() return epoch time.
+                // Initialize the LF clock.
                 pr('''
-                    calculate_epoch_offset();
+                    lf_initialize_clock();
                 ''')
                 
                 initializeFederate(federate)

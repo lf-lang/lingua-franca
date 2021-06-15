@@ -38,6 +38,54 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lf_windows_support.h"
 #include "../platform.h"
 
+
+#include "lf_unix_clock_support.c"
+
+/**
+ * Offset to _LF_CLOCK that would convert it
+ * to epoch time.
+ * For CLOCK_REALTIME, this offset is always zero.
+ * For CLOCK_MONOTONIC, it is the difference between those
+ * clocks at the start of the execution.
+ */
+interval_t _lf_epoch_offset = 0LL;
+
+/**
+ * Initialize the LF clock.
+ */
+void lf_initialize_clock() {
+    // FIXME: We don't strictly need to convert Windows clock to epoch. It is
+    // done here for better uniformity across platforms. This requires access to
+    // an epoch-based clock to begin with, which many baremetal target platforms
+    // will most likely not have.
+    _lf_epoch_offset = calculate_epoch_offset(_LF_CLOCK);
+}
+
+/**
+ * Calculate the necessary offset to bring _LF_CLOCK in parity with the epoch
+ * time.
+ */
+void calculate_epoch_offset() {
+    if (_LF_CLOCK == CLOCK_REALTIME) {
+        // Set the epoch offset to zero (see tag.h)
+        _lf_epoch_offset = 0LL;
+    } else {
+        // Initialize _lf_epoch_offset to the difference between what is
+        // reported by whatever clock LF is using (e.g. CLOCK_MONOTONIC) and
+        // what is reported by CLOCK_REALTIME.
+        struct timespec physical_clock_snapshot, real_time_start;
+
+        clock_gettime(_LF_CLOCK, &physical_clock_snapshot);
+        instant_t physical_clock_snapshot_ns = physical_clock_snapshot.tv_sec * BILLION + physical_clock_snapshot.tv_nsec;
+
+        clock_gettime(CLOCK_REALTIME, &real_time_start);
+        instant_t real_time_start_ns = real_time_start.tv_sec * BILLION + real_time_start.tv_nsec;
+
+        _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
+    }
+    LOG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
+}
+
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
 
 NtDelayExecution_t *NtDelayExecution = NULL;
@@ -216,6 +264,8 @@ int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section
 
 /**
  * Fetch the value of _LF_CLOCK (see lf_windows_support.h) and store it in tp.
+ * The timestamp value in 'tp' will always be epoch time, which is the number of
+ * nanoseconds since January 1st, 1970.
  *
  * @return 0 for success, or -1 for failure. In case of failure, errno will be
  *  set to EINVAL.
@@ -247,7 +297,8 @@ int lf_clock_gettime(_lf_time_spec_t* tp) {
             result = -1;
             break;
     }
-    return result;
+    // Adjust the clock by the epoch offset, so epoch time is always reported.
+    return result + _lf_epoch_offset;
 }
 
 /**

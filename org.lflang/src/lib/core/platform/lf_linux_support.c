@@ -41,14 +41,35 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#include "lf_unix_clock_support.c"
+
 /**
- * Fetch the value of _LF_CLOCK (see lf_linux_support.h) and store it in tp.
+ * Offset to _LF_CLOCK that would convert it
+ * to epoch time.
+ * For CLOCK_REALTIME, this offset is always zero.
+ * For CLOCK_MONOTONIC, it is the difference between those
+ * clocks at the start of the execution.
+ */
+interval_t _lf_epoch_offset = 0LL;
+
+/**
+ * Initialize the LF clock.
+ */
+void lf_initialize_clock() {
+    _lf_epoch_offset = calculate_epoch_offset(_LF_CLOCK);
+}
+
+/**
+ * Fetch the value of _LF_CLOCK (see lf_linux_support.h) and store it in tp. The
+ * timestamp value in 'tp' will always be epoch time, which is the number of
+ * nanoseconds since January 1st, 1970.
  *
  * @return 0 for success, or -1 for failure. In case of failure, errno will be
  *  set appropriately (see `man 2 clock_gettime`).
  */
 int lf_clock_gettime(_lf_time_spec_t* tp) {
-    return clock_gettime(_LF_CLOCK, (struct timespec*) tp);
+    // Adjust the clock by the epoch offset, so epoch time is always reported.
+    return clock_gettime(_LF_CLOCK, (struct timespec*) tp) + _lf_epoch_offset;
 }
 
 /**
