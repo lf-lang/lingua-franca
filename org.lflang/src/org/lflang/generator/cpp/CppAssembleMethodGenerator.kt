@@ -84,7 +84,7 @@ class CppAssembleMethodGenerator(
             """.trimIndent()
         }
         // treat as single antidependency otherwise
-        return if (variable is Action) "${reaction.name}.declare_scheduable_action(&${antidependency.name});"
+        return if (variable is Action) "${reaction.name}.declare_schedulable_action(&${antidependency.name});"
         else "${reaction.name}.declare_antidependency(&${antidependency.name});"
     }
 
