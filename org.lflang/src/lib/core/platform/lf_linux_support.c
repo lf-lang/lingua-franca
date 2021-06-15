@@ -42,7 +42,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /**
- * Fetch the value of _LF_CLOCK and store it in tp.
+ * Fetch the value of _LF_CLOCK (see lf_linux_support.h) and store it in tp.
+ *
+ * @return 0 for success, or -1 for failure. In case of failure, errno will be
+ *  set appropriately (see `man 2 clock_gettime`).
  */
 int lf_clock_gettime(_lf_time_spec_t* tp) {
     return clock_gettime(_LF_CLOCK, (struct timespec*) tp);
@@ -50,7 +53,10 @@ int lf_clock_gettime(_lf_time_spec_t* tp) {
 
 /**
  * Pause execution for a number of nanoseconds.
+ *
+ * @return 0 for success, or -1 for failure. In case of failure, errno will be
+ *  set appropriately (see `man 2 clock_nanosleep`).
  */
-int lf_nanosleep(_lf_clock_t clk_id, const _lf_time_spec_t* requested_time, _lf_time_spec_t* remaining) {
-    return clock_nanosleep(clk_id, 0, (const struct timespec*)requested_time, (struct timespec*)remaining);
+int lf_nanosleep(const _lf_time_spec_t* requested_time, _lf_time_spec_t* remaining) {
+    return clock_nanosleep(_LF_CLOCK, 0, (const struct timespec*)requested_time, (struct timespec*)remaining);
 }
