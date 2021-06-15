@@ -106,7 +106,7 @@ int wait_until(instant_t logical_time_ns) {
         DEBUG_PRINT("Waiting %lld seconds, %lld nanoseconds.", ns_to_wait / BILLION, ns_to_wait % BILLION);
         struct timespec remaining_time;
         // FIXME: If the wait time is less than the time resolution, don't sleep.
-        return_value = lf_nanosleep(_LF_CLOCK, &wait_time, &remaining_time);
+        return_value = lf_nanosleep(&wait_time, &remaining_time);
     }
     return return_value;
 }
