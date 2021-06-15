@@ -26,30 +26,56 @@ package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
 import org.lflang.label
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.Timer
-import org.lflang.lf.VarRef
+import org.lflang.lf.*
 import org.lflang.priority
 import org.lflang.toText
 
 /** A C++ code generator for reactions and their function bodies */
-class CppReactionGenerator(private val reactor: Reactor) {
+class CppReactionGenerator(private val reactor: Reactor, private val actionGenerator: CppActionGenerator) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
 
-    private val Reaction.timerTriggersAndSources: List<Timer> get() =
-        triggers.mapNotNull { (it as? VarRef)?.variable as? Timer } + sources.mapNotNull { it.variable as? Timer }
+    private val Reaction.timerTriggersAndSources: List<Timer>
+        get() = triggers.mapNotNull { (it as? VarRef)?.variable as? Timer } + sources.mapNotNull { it.variable as? Timer }
+
+    private val Reaction.actionEffects: List<Action> get() = effects.mapNotNull { (it.variable as? Action) }
+
+    private val Reaction.actionTriggersAndSources: List<Action>
+        get() =
+            triggers.mapNotNull { (it as? VarRef)?.variable as? Action } + sources.mapNotNull { it.variable as? Action }
+                .filterNot { it in actionEffects }
+
+    private val Reaction.hasStartupAsTriggerOrSource: Boolean
+        get() = triggers.any { it.isStartup } || sources.any { it.isStartup }
+
+    private val Reaction.hasShutdownAsTriggerOrSource: Boolean
+        get() = triggers.any { it.isShutdown } || sources.any { it.isShutdown }
 
     private fun Reaction.getBodyParameters(): List<String> {
         val parameters = mutableListOf<String>()
-        parameters.addAll(timerTriggersAndSources.map { "const reactor::Timer& ${it.name}" })
+        timerTriggersAndSources.mapTo(parameters) { "const reactor::Timer& ${it.name}" }
+        with(actionGenerator) {
+            if (hasStartupAsTriggerOrSource)
+                parameters.add("reactor::StartupAction& $startupName")
+            if (hasShutdownAsTriggerOrSource)
+                parameters.add("reactor::ShutdownAction& $shutdownName")
+            actionEffects.mapTo(parameters) { "${it.cppType}& ${it.name}" }
+            actionTriggersAndSources.mapTo(parameters) { "const ${it.cppType}& ${it.name}" }
+        }
         return parameters
     }
 
     private fun generateDeclaration(r: Reaction): String {
         val parameters = mutableListOf<String>()
-        parameters.addAll(r.timerTriggersAndSources.map { it.name })
+        r.timerTriggersAndSources.mapTo(parameters) { it.name }
+        with(actionGenerator) {
+            if (r.hasStartupAsTriggerOrSource)
+                parameters.add(startupName)
+            if (r.hasShutdownAsTriggerOrSource)
+                parameters.add(shutdownName)
+        }
+        r.actionEffects.mapTo(parameters) { it.name }
+        r.actionTriggersAndSources.mapTo(parameters) { it.name }
         return """
             reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { 
               __lf_inner.${r.name}_body(${parameters.joinToString(", ")});
