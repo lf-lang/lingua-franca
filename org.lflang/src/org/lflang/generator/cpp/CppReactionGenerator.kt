@@ -25,10 +25,11 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
-import org.lflang.isBank
 import org.lflang.label
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.lf.Timer
+import org.lflang.lf.VarRef
 import org.lflang.priority
 import org.lflang.toText
 
@@ -37,24 +38,64 @@ class CppReactionGenerator(private val reactor: Reactor) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
 
-    private fun generateDeclaration(r: Reaction) =
-        """reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { ${r.name}_body(); }};"""
+    private val Reaction.timerTriggersAndSources: List<Timer> get() =
+        triggers.mapNotNull { (it as? VarRef)?.variable as? Timer } + sources.mapNotNull { it.variable as? Timer }
 
-    private fun generateBodyDefinition(reaction: Reaction) = with(PrependOperator) {
-        // TODO this doesn't work for banks...
-        val scopeAssignemts = reactor.instantiations.filter { !it.isBank }.map { "auto& ${it.name} = *(this->${it.name});" }
-        """
-            |// reaction ${reaction.label}
-            |${reactor.templateLine}
-            |void ${reactor.templateName}::${reaction.name}_body() {
-            |  // prepare scope
-        ${" |  "..scopeAssignemts.joinToString("\n")}
-            |
-            |  // reaction code
-        ${" |  "..reaction.code.toText()}
-            |}
-            |
-        """.trimMargin()
+    private fun Reaction.getBodyParameters(): List<String> {
+        val parameters = mutableListOf<String>()
+        parameters.addAll(timerTriggersAndSources.map { "const reactor::Timer& ${it.name}" })
+        return parameters
+    }
+
+    private fun generateDeclaration(r: Reaction): String {
+        val parameters = mutableListOf<String>()
+        parameters.addAll(r.timerTriggersAndSources.map { it.name })
+        return """
+            reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { 
+              __lf_inner.${r.name}_body(${parameters.joinToString(", ")});
+            }};
+        """.trimIndent()
+    }
+
+    private fun generateBodyDeclaration(reaction: Reaction): String {
+        val params = reaction.getBodyParameters()
+        return when (params.size) {
+            0    -> "void ${reaction.name}_body();"
+            1    -> "void ${reaction.name}_body(${params[0]});"
+            else -> with(PrependOperator) {
+                """
+                    |void ${reaction.name}_body(
+                ${" |  "..params.joinToString(",\n")}); 
+                """.trimMargin()
+            }
+        }
+    }
+
+    private fun generateBodyDefinition(reaction: Reaction): String {
+        // TODO this doesn't work for contained ports
+        // TODO this doesn't work for banks
+        val params = reaction.getBodyParameters()
+        val definitionSignature = when (params.size) {
+            0    -> "void ${reactor.templateName}::Inner::${reaction.name}_body()"
+            1    -> "void ${reactor.templateName}::Inner::${reaction.name}_body(${params[0]})"
+            else -> with(PrependOperator) {
+                """
+                    |void ${reactor.templateName}::Inner::${reaction.name}_body(
+                ${" |  "..params.joinToString(",\n")}) 
+                """.trimMargin()
+            }
+        }
+
+        return with(PrependOperator) {
+            """
+                |// reaction ${reaction.label}
+                |${reactor.templateLine}
+                |$definitionSignature {
+            ${" |  "..reaction.code.toText()}
+                |}
+                |
+            """.trimMargin()
+        }
     }
 
     private fun generateDeadlineHandlerDefinition(reaction: Reaction): String = with(PrependOperator) {
@@ -74,7 +115,7 @@ class CppReactionGenerator(private val reactor: Reactor) {
 
     /** Get all declarations of reaction bodies. */
     fun generateBodyDeclarations() =
-        reactor.reactions.joinToString("\n", "// reaction bodies\n", "\n") { "void ${it.name}_body();" }
+        reactor.reactions.joinToString("\n", "// reaction bodies\n", "\n") { generateBodyDeclaration(it) }
 
     /** Get all definitions of reaction bodies. */
     fun generateBodyDefinitions() =
