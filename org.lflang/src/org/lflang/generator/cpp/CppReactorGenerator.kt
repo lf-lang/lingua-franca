@@ -79,21 +79,27 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
             |#include "$preambleHeaderFile"
             |
-        ${" |  "..instances.generateIncludes()}
+        ${" |"..instances.generateIncludes()}
             |
-        ${" |  "..publicPreamble()}
+        ${" |"..publicPreamble()}
             |
             |${reactor.templateLine}
             |class ${reactor.name} : public reactor::Reactor {
             | private:
-        ${" |  "..parameters.generateDeclarations()}
-        ${" |  "..state.generateDeclarations()}
         ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}
         ${" |  "..actions.generateDeclarations()}
         ${" |  "..reactions.generateDeclarations()}
-        ${" |  "..reactions.generateBodyDeclarations()}
-        ${" |  "..reactions.generateDeadlineHandlerDeclarations()}
+            |
+            |  class Inner {
+            |   private:
+        ${" |    "..parameters.generateDeclarations()}
+        ${" |    "..state.generateDeclarations()}
+            |   public:
+        ${" |    "..reactions.generateBodyDeclarations()}
+        ${" |    "..reactions.generateDeadlineHandlerDeclarations()}
+            |  };
+            |
             | public:
         ${" |  "..ports.generateDeclarations()}
         ${" |  "..constructor.generateDeclaration()}
