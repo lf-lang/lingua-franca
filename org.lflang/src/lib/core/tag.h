@@ -62,24 +62,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BILLION 1000000000LL
 
 /**
- * Time instant. Both physical and logical times are represented
- * using this typedef.
- * WARNING: If this code is used after about the year 2262,
- * then representing time as a 64-bit long long will be insufficient.
- */
-typedef long long instant_t;
-
-/**
- * Interval of time.
- */
-typedef long long interval_t;
-
-/**
- * Microstep instant.
- */
-typedef unsigned int microstep_t;
-
-/**
  * A tag is a time, microstep pair.
  */
 typedef struct {

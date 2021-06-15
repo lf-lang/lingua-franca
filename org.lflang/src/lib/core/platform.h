@@ -65,6 +65,24 @@ typedef _lf_thread_t lf_thread_t;        // Type to hold handle to a thread
 typedef _lf_time_spec_t lf_time_spec_t;  // Type to hold time in a traditional {second, nanosecond} POSIX format
 typedef _lf_clock_t lf_clock_t;          // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
 
+/**
+ * Time instant. Both physical and logical times are represented
+ * using this typedef.
+ * WARNING: If this code is used after about the year 2262,
+ * then representing time as a 64-bit long long will be insufficient.
+ */
+typedef long long instant_t;
+
+/**
+ * Interval of time.
+ */
+typedef long long interval_t;
+
+/**
+ * Microstep instant.
+ */
+typedef unsigned int microstep_t;
+
 #ifdef NUMBER_OF_WORKERS
 
 /**
@@ -148,8 +166,13 @@ extern int lf_cond_timedwait(lf_cond_t* cond, lf_mutex_t* mutex, long long absol
 #endif
 
 /**
+ * Initialize the LF clock. Must be called before using other clock-related APIs.
+ */
+extern void lf_initialize_clock();
+
+/**
  * Fetch the value of an internal (and platform-specific) physical clock and 
- * store it in `tp`. 
+ * store it in `tp`.
  * 
  * Ideally, the underlying platform clock should be monotonic. However, the
  * core lib tries to enforce monotonicity at higher level APIs (see tag.h).
