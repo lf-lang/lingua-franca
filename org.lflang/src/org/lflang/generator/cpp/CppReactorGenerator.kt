@@ -96,18 +96,19 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |    "..parameters.generateDeclarations()}
         ${" |    "..state.generateDeclarations()}
             |   public:
+        ${" |    "..constructor.generateInnerDeclaration()}
         ${" |    "..reactions.generateBodyDeclarations()}
         ${" |    "..reactions.generateDeadlineHandlerDeclarations()}
             |  };
             |
             | public:
         ${" |  "..ports.generateDeclarations()}
-        ${" |  "..constructor.generateDeclaration()}
+        ${" |  "..constructor.generateOuterDeclaration()}
             |
             |  void assemble() override;
             |};
             |
-        ${" |".. if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
+        ${" |"..if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
         """.trimMargin()
     }
 
@@ -123,7 +124,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
         ${" |  "..privatePreamble()}
             |
-        ${" |"..constructor.generateDefinition()}
+        ${" |"..constructor.generateOuterDefinition()}
             |
         ${" |"..assemble.generateDefinition()}
             |
