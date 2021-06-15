@@ -73,11 +73,12 @@ class CppConstructorGenerator(
     private fun innerSignature(): String {
         val args = parameterArguments(false)
         return when (args.size) {
-            0    -> "Inner()"
-            1    -> "Inner(${args[0]})"
+            0    -> "Inner(reactor::Environment* env)"
+            1    -> "Inner(reactor::Environment* env, ${args[0]})"
             else -> with(PrependOperator) {
                 """
                     |Inner(
+                    |  reactor::Environment* env,
                 ${" |  "..args.joinToString { ",\n" }})
                 """.trimMargin()
             }
@@ -89,13 +90,14 @@ class CppConstructorGenerator(
 
     /** Get the constructor definition of the outer reactor class */
     fun generateOuterDefinition(): String {
+        val envReference = if (reactor.isMain) "environment" else "container->environment()"
+        val innerParameters = listOf(envReference) + reactor.parameters.map { it.name }
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
                 |${reactor.templateName}::${outerSignature(false)}
                 |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
-            ${" |  "..parameters.generateInitializers()}
-            ${" |  "..state.generateInitializers()}
+                |  , __lf_inner(${innerParameters.joinToString(", ") })
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
@@ -105,5 +107,18 @@ class CppConstructorGenerator(
     }
 
     /** Get the constructor declaration of the inner reactor class */
-    fun generateInnerDeclaration() = innerSignature()
+    fun generateInnerDeclaration() = "${innerSignature()};"
+
+    fun generateInnerDefinition(): String {
+        return with(PrependOperator) {
+            """
+                |${reactor.templateLine}
+                |${reactor.templateName}::Inner::${innerSignature()}
+                |  : __lf_env(env)
+            ${" |  "..parameters.generateInitializers()}
+            ${" |  "..state.generateInitializers()}
+                |{}
+            """.trimMargin()
+        }
+    }
 }
