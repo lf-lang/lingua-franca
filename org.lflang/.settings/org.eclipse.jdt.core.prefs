@@ -1,12 +1,12 @@
 #
-#Wed Jun 09 12:22:29 CEST 2021
+#Wed Jun 16 14:14:40 CEST 2021
 org.eclipse.jdt.core.formatter.insert_space_after_ellipsis=insert
 org.eclipse.jdt.core.formatter.insert_space_after_comma_in_enum_declarations=insert
 org.eclipse.jdt.core.formatter.insert_space_before_comma_in_allocation_expression=do not insert
 org.eclipse.jdt.core.formatter.insert_space_before_at_in_annotation_type_declaration=insert
 org.eclipse.jdt.core.formatter.parentheses_positions_in_for_statment=common_lines
-org.eclipse.jdt.core.formatter.comment.new_lines_at_block_boundaries=true
 org.eclipse.jdt.core.formatter.insert_space_after_logical_operator=insert
+org.eclipse.jdt.core.formatter.comment.new_lines_at_block_boundaries=true
 org.eclipse.jdt.core.formatter.insert_space_after_comma_in_constructor_declaration_parameters=insert
 org.eclipse.jdt.core.formatter.comment.insert_new_line_for_parameter=do not insert
 org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_package=insert
@@ -14,8 +14,8 @@ org.eclipse.jdt.core.formatter.insert_space_between_empty_parens_in_enum_constan
 org.eclipse.jdt.core.formatter.parentheses_positions_in_method_invocation=common_lines
 org.eclipse.jdt.core.formatter.blank_lines_after_imports=1
 org.eclipse.jdt.core.formatter.insert_space_before_closing_paren_in_while=do not insert
-org.eclipse.jdt.core.formatter.comment.insert_new_line_before_root_tags=insert
 org.eclipse.jdt.core.formatter.insert_space_between_empty_parens_in_annotation_type_member_declaration=do not insert
+org.eclipse.jdt.core.formatter.comment.insert_new_line_before_root_tags=insert
 org.eclipse.jdt.core.formatter.insert_space_before_comma_in_method_declaration_throws=do not insert
 org.eclipse.jdt.core.formatter.parentheses_positions_in_switch_statement=common_lines
 org.eclipse.jdt.core.formatter.comment.format_javadoc_comments=true
