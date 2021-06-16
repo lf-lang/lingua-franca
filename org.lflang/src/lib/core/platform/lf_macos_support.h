@@ -43,6 +43,24 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct timespec _lf_time_spec_t;
 typedef int _lf_clock_t;
 
+/**
+ * Time instant. Both physical and logical times are represented
+ * using this typedef.
+ * WARNING: If this code is used after about the year 2262,
+ * then representing time as a 64-bit long long will be insufficient.
+ */
+typedef long long _instant_t;
+
+/**
+ * Interval of time.
+ */
+typedef long long _interval_t;
+
+/**
+ * Microstep instant.
+ */
+typedef unsigned int _microstep_t;
+
 // The underlying physical clock for MacOS
 #define _LF_CLOCK CLOCK_MONOTONIC
 

@@ -68,20 +68,18 @@ typedef _lf_clock_t lf_clock_t;          // Type to hold a clock identifier (e.g
 /**
  * Time instant. Both physical and logical times are represented
  * using this typedef.
- * WARNING: If this code is used after about the year 2262,
- * then representing time as a 64-bit long long will be insufficient.
  */
-typedef long long instant_t;
+typedef _instant_t instant_t;
 
 /**
  * Interval of time.
  */
-typedef long long interval_t;
+typedef _interval_t interval_t;
 
 /**
  * Microstep instant.
  */
-typedef unsigned int microstep_t;
+typedef _microstep_t microstep_t;
 
 #ifdef NUMBER_OF_WORKERS
 
