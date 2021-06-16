@@ -18,7 +18,7 @@ Require-Bundle: org.eclipse.xtext,
  com.google.guava,
  org.eclipse.xtend.lib.macro,
  org.apache.commons.cli;bundle-version="1.4",
- org.jetbrains.kotlin.osgi-bundle;bundle-version="1.5.10"
+ org.jetbrains.kotlin.bundled-compiler
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Export-Package: org.lflang,
  org.lflang.generator,
