@@ -74,9 +74,9 @@ def generate_launch_description():
             default_value='ego_vehicle_1'
         ),
         launch.actions.DeclareLaunchArgument(
-            name='objects_definition_file_1',
+            name='objects_definition_file',
             default_value=get_package_share_directory(
-                'lf_carla') + '/config/ego_vehicle_1.json'
+                'lf_carla') + '/config/ego_vehicle.json'
         ),
         launch.actions.DeclareLaunchArgument(
             name='spawn_point_ego_vehicle_1',
@@ -90,7 +90,7 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[
                 {
-                    'objects_definition_file': launch.substitutions.LaunchConfiguration('objects_definition_file_1')
+                    'objects_definition_file': launch.substitutions.LaunchConfiguration('objects_definition_file')
                 },
                 {
                     'spawn_point_ego_vehicle_1': launch.substitutions.LaunchConfiguration('spawn_point_ego_vehicle_1')
@@ -146,11 +146,6 @@ def generate_launch_description():
             name='role_name_2',
             default_value='ego_vehicle_2'
         ),
-        launch.actions.DeclareLaunchArgument(
-            name='objects_definition_file_2',
-            default_value=get_package_share_directory(
-                'lf_carla') + '/config/ego_vehicle_2.json'
-        ),
         launch_ros.actions.Node(
             package='carla_spawn_objects',
             executable='carla_spawn_objects',
@@ -159,7 +154,7 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[
                 {
-                    'objects_definition_file': launch.substitutions.LaunchConfiguration('objects_definition_file_2')
+                    'objects_definition_file': launch.substitutions.LaunchConfiguration('objects_definition_file')
                 },
                 {
                     'spawn_point_ego_vehicle_2': launch.substitutions.LaunchConfiguration('spawn_point_ego_vehicle_2')

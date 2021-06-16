@@ -14,51 +14,13 @@
  * This is a very rough starting point that needs a lot of work.
  */
 target C {
-    timeout: 5 sec,
-    flags: ["-lm"]
+    timeout: 5 sec
 }
 
 preamble {=
-    #include <math.h>
-    
-    typedef struct {
-        double x;
-        double y;
-        double z;
-    } coordinate_t;
-        
-    double distance (coordinate_t coordinate1, coordinate_t coordinate2) {
-        // Currently ignores altitude
-        double lat1 = coordinate1.x;
-        double lon1 = coordinate1.y;
-        double lat2 = coordinate2.x;
-        double lon2 = coordinate2.y;
-        
-        info_print("%.15f, %.15f, %.15f, %.15f", lat1, lon1, lat2, lon2);
-        
-        double dLat;
-	    double dLon;
-	    dLat = (lat2 - lat1);
-	    dLon = (lon2 - lon1);
-	    dLat /= 57.29577951;
-	    dLon /= 57.29577951; 
-        info_print("%.15f, %.15f", dLat, dLon);
-	    double v_a;
-	    double v_c;
-	    double distance;
-	    
-	    double r = 6371;
-	
-	    v_a = sinf(dLat/2) * sinf(dLat/2) + cosf(lat1) * cosf(lat2) * sinf(dLon/2) * sinf(dLon/2);
-	    v_c = 2 * atan2f(sqrtf(v_a),sqrtf(1-v_a));
-        info_print("%.15f, %.15f", v_a, v_c);
-	    distance = r * v_c * 1000; // convert to meters
-	    return distance;
-    }
-    
     typedef struct {
         double speed;
-        coordinate_t current_pos; // Current GPS position of the vehicle;
+        double distance;
     } request_message_t;
     
     typedef struct {
@@ -66,185 +28,71 @@ preamble {=
         double target_speed;  // FIXME: Deadline.  = t/w
         // Time at which the vehicle can enter the intersection.
         instant_t arrival_time;
-        // Intersection position
-        coordinate_t intersection_pos;
     } grant_message_t;
     
-            
-    typedef struct {
-        // The CARLA vehicle control data
-        // Target velocity in the x direction
-        float x_target_velocity;
-        // FIXME velocity in the y and z direction
-        // FIXME angular velocity  (x, y, z)
-
-		// 0. <= throttle <= 1.
-		// double throttle;
-		
-		// -1. <= steer <= 1.
-		// double steer;
-		
-		// 0. <= brake <= 1.
-		// double brake;
-		
-		// hand_brake 0 or 1
-		// bool hand_brake;
-		
-		// reverse 0 or 1
-		// bool reverse;
-		
-		// gear
-		// int gear;
-		
-		// manual gear shift
-		// bool manual_gear_shift;
-    } vehicle_command_t;
-    
-    typedef struct {
-        double velocity; // Velocity of the vehicle in m/s
-        // Fetching acceleration and orientation is also possible,
-        // but both involve very complex structures.
-    } vehicle_status_t;
-    
-    typedef struct {        
-        coordinate_t current_pos; // Current GPS position of the vehicle
-    } vehicle_position_t;
-    
-    #define SAFETY_THRESHOLD MSEC(200)
-    #define SPEED_LIMIT 14.0
-    #define SAFETY_BUFFER SEC(20)
+    // Table of offsets by vehicle bank_index:
+    interval_t timer_offsets[] = {
+        0LL,
+        MSEC(200),
+        MSEC(400),
+        MSEC(600)
+    };
+    // Table of periods by vehicle bank_index:
+    interval_t timer_periods[] = {
+        SEC(4),
+        SEC(8),
+        SEC(16),
+        SEC(32)
+    };
 =}
 
 reactor Vehicle (
-    speed:double(11.0)    // in m/sec
+    offset:time(0),
+    period:time(1 sec),
+    speed:double(42.0),    // in km per hour. About 11.7 m/sec
+    distance:double(42.0)  // in meters.  About 4 sec to traverse.
 ) {
-    input vehicle_stat:vehicle_status_t;
-    input vehicle_pos:vehicle_position_t;
-
     input grant:grant_message_t;
     
-    output request:request_message_t;    
-    
-    output control:vehicle_command_t;
+    output request:request_message_t;
     
     logical action delay;
     
-    state current_pos:coordinate_t;
-    
-    state last_pos:coordinate_t;
-    
-    state granted_time_to_enter:time(0);
-    state intersection_pos:coordinate_t;
-    state intersection_reached:bool(false);
-    
-    reaction(vehicle_pos) {=
-        self->current_pos = vehicle_pos->value.current_pos;        
-    =}
-    reaction(vehicle_stat) -> request, control {=        
-        // Record the speed
-        self->speed = vehicle_stat->value.velocity;
-        
-        // Check if we have received an initial pos
-        if (self->current_pos.x - 0.0 <= 0.00000001 &&
-            self->current_pos.y - 0.0 <= 0.00000001 &&
-            self->current_pos.z - 0.0 <= 0.00000001
-        ) {
-            warning_print("Have not received initial pos yet.");
-            return;
-        }
-        
-        // Send a new request to the RSU if no time to enter
-        // the intersection is granted
-        if (self->granted_time_to_enter == 0LL) {
+    reaction(startup) -> request, delay {=
+        if (timer_offsets[self->bank_index] == 0LL) {
+			// Need to send a message at the start time.
 	        request_message_t message;
-	       	message.speed = self->speed;
-	       	message.current_pos = self->current_pos;
-	       	SET(request, message);
-       	} else {
-            // We have a granted time from the RSU
-            // All we need to do is adjust our velocity
-            // to enter the intersection at the allocated
-            // time
-            
-            // First, how far are we from the intersection
-            float distance_remaining = distance(self->intersection_pos, self->current_pos);
-            float time_remaining = (self->granted_time_to_enter - get_logical_time()) / (BILLION * 1.0);
-            
-            info_print("Vehicle %d: Distance to intersection: %fm.", self->bank_index + 1, distance_remaining);
-            info_print("Vehicle %d: Time to intersection: %fs.", self->bank_index + 1, time_remaining);
-            info_print("Vehicle %d: Current speed: %fm/s.", self->bank_index + 1, self->speed);
-        
-        	float target_speed = 0;
-            // double target_speed = distance_remaining/time_remaining;
-            
-            if (self->intersection_reached ||
-                   distance_remaining < 30) {
-                // In the intersection, continue
-                target_speed = SPEED_LIMIT;
-                // Simulation is over
-                self->intersection_reached = true;
-            } else if (time_remaining <= 2.0 && distance_remaining > 30.0) {
-                // No time to make it to the intersection
-                // Stop and ask the RSU again
-                target_speed = 0.0;
-				self->granted_time_to_enter = 0LL;
-            } else {
-                // Not in the intersection 
-            	target_speed = ((2 * distance_remaining) / (time_remaining)) - self->speed;
-            	// target_speed = distance_remaining / time_remaining;
-            }
-            
-            info_print("Vehicle %d: Calculated target speed: %fm/s.", self->bank_index + 1, target_speed);
-            
-            
-            /* if (target_speed < 0.0f || target_speed > SPEED_LIMIT) {
-                target_speed = 0;
-                // Ask the RSU again
-                self->granted_time_to_enter = 0LL;
-            } else if (time_remaining <= 0.0 && distance_remaining > 0.0) {
-                // Stop!
-                target_speed = 0.0f;
-                //Ask the RSU again
-                self->granted_time_to_enter = 0LL;
-            } */
-            
-            /* if (distance_remaining) {
-                // Past the intersection
-                request_stop();
-                target_speed = 0.0f;
-            } */
-            
-            if ((target_speed - SPEED_LIMIT) > 0) {
-                target_speed = SPEED_LIMIT;
-            }
-        
-            // Prepare and send the target velocity as a vehicle command
-            vehicle_command_t cmd = {
-                .x_target_velocity = (float)target_speed
-            };
-            SET(control, cmd);
-            
+        	message.speed = self->speed;
+        	message.distance = self->distance;
+        	SET(request, message);
+        	schedule(delay, timer_periods[self->bank_index]);
+        } else {
+           	schedule(delay, timer_offsets[self->bank_index]);
         }
     =}
+
+    reaction(delay) -> request, delay {=
+        request_message_t message;
+       	message.speed = self->speed;
+       	message.distance = self->distance;
+       	SET(request, message);
+       	schedule(delay, timer_periods[self->bank_index]);
+    =}
     
-    reaction(grant) {=        
-        info_print("Granted access at elapsed logical time %lld. Physical time is %lld. ",
+    reaction(grant) {=
+        info_print("Granted access at elapsed logical time %lld. Physical time is %lld",
             get_elapsed_logical_time(),
             get_elapsed_physical_time()
         );
-        
-        self->granted_time_to_enter = grant->value.arrival_time;
-        self->intersection_pos = grant->value.intersection_pos;
     =}
 }
 
 reactor RSU (
 	num_entries:int(4),
-	intersection_width:double(50.0), // in meters.
+	intersection_width:double(42.0), // in meters.
 	// If the vehicle is told to slow down, then its target
 	// average speed in the intersection should be at least this.
-	nominal_speed_in_intersection:double(10.0), // In m/sec 0.6 sec to traverse.
-	intersection_pos:coordinate_t({=(coordinate_t){0,0,0}=}) // GPS coordinates for the intersection
+	nominal_speed_in_intersection:double(10.0) // In km/hr. 2.8 m/sec. 15 sec to traverse.
 ) {
     input[num_entries] request:request_message_t;
     output[num_entries] grant:grant_message_t;
@@ -258,15 +106,13 @@ reactor RSU (
         		// arrive at its current speed. Note that this is
         		// time from the time the vehicle sends the message
         		// according to the arriving vehicle's clock.
-        		double speed_in_m_per_sec = request[i]->value.speed;
-        		double dr = distance(self->intersection_pos, request[i]->value.current_pos);
-        		info_print("Vehicle %d: Distance to intersection is %.15f.", i+1, dr);
-        		double arrival_in = dr / speed_in_m_per_sec;
-      		        		
+        		double speed_in_m_per_sec = request[i]->value.speed * 1000.0 / 3600.0;
+        		double arrival_in = request[i]->value.distance / speed_in_m_per_sec;
+        		
         		instant_t time_message_sent = get_logical_time();
         		
-        		// Convert the time interval to nsec (it is in seconds).
-        		interval_t arrival_time_ns = time_message_sent + (interval_t) (arrival_in * BILLION) + SAFETY_BUFFER;
+        		// Convert the time interval to nsec (it is seconds).
+        		interval_t arrival_time_ns = time_message_sent + (interval_t) (arrival_in * BILLION);
         		
         		grant_message_t response;
         		if (arrival_time_ns >= self->earliest_free) {
@@ -279,20 +125,18 @@ reactor RSU (
                     // Could be smarter than this, but just send the nominal speed in intersection.
                     response.target_speed = self->nominal_speed_in_intersection;
                 }
-                response.intersection_pos = self->intersection_pos;
                 SET(grant[i], response);
                 // Update earliest free on the assumption that the vehicle
                 // maintains its target speed (on average) within the intersection.
                 interval_t time_in_intersection 
-                		= (interval_t)(BILLION * self->intersection_width) 
-                		/ ((float)response.target_speed);
+                		= (interval_t)(BILLION * self->intersection_width * 3600 
+                            / (1000 * response.target_speed)
+                        );
                 self->earliest_free = response.arrival_time + time_in_intersection;
                 
-                info_print("*** Grant access to vehicle %d to enter at "
-                    "time %lld with average target velocity %.15f m/s. Next available time is %lld",
-                    i + 1,
+                info_print("*** Grant access to vehicle %d to enter at time %lld. Next available time is %lld",
+                    i,
                     response.arrival_time - start_time,
-                    response.target_speed,
                     self->earliest_free - start_time
                 );
             }
@@ -301,9 +145,9 @@ reactor RSU (
 }
 
 main reactor {
-    vehicles = new[4] Vehicle();
+    vehicles = new[4] Vehicle(offset = 0);
     
-    rsu = new RSU(intersection_pos = {=(coordinate_t){-0.00003,-0.0011,2.0016}=});
+    rsu = new RSU();
     vehicles.request -> rsu.request;
     rsu.grant -> vehicles.grant;
 }
