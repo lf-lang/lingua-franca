@@ -2,8 +2,8 @@
 #include <time.h>
 
 /**
- * Calculate the necessary offset to bring _LF_CLOCK in parity with the epoch
- * time.
+ * Calculate the necessary offset to bring 'clock_id' in parity with the epoch
+ * time reported by CLOCK_REALTIME.
  */
 long long calculate_epoch_offset(int clock_id) {
     long long epoch_offset;
