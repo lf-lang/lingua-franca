@@ -31,51 +31,40 @@ import org.lflang.priority
 import org.lflang.toText
 
 /** A C++ code generator for reactions and their function bodies */
-class CppReactionGenerator(private val reactor: Reactor, private val actionGenerator: CppActionGenerator) {
+class CppReactionGenerator(
+    private val reactor: Reactor,
+    private val actionGenerator: CppActionGenerator
+) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
 
-    private val Reaction.timerTriggersAndSources: List<Timer>
-        get() = triggers.mapNotNull { (it as? VarRef)?.variable as? Timer } + sources.mapNotNull { it.variable as? Timer }
+    private val Reaction.allTriggers get() = triggers.filterNot { it in effects }
+    private val Reaction.allEffects get() = effects
+    private val Reaction.allSources get() = effects.filterNot { it in effects }
 
-    private val Reaction.actionEffects: List<Action> get() = effects.mapNotNull { (it.variable as? Action) }
-
-    private val Reaction.actionTriggersAndSources: List<Action>
+    private val VarRef.cppType
         get() =
-            triggers.mapNotNull { (it as? VarRef)?.variable as? Action } + sources.mapNotNull { it.variable as? Action }
-                .filterNot { it in actionEffects }
+            when (val variable = this.variable) {
+                is Timer  -> "reactor::Timer"
+                is Action -> with(actionGenerator) { variable.cppType }
+                else      -> TODO("Unexpected variable type")
+            }
 
-    private val Reaction.hasStartupAsTriggerOrSource: Boolean
-        get() = triggers.any { it.isStartup } || sources.any { it.isStartup }
-
-    private val Reaction.hasShutdownAsTriggerOrSource: Boolean
-        get() = triggers.any { it.isShutdown } || sources.any { it.isShutdown }
-
-    private fun Reaction.getBodyParameters(): List<String> {
-        val parameters = mutableListOf<String>()
-        timerTriggersAndSources.mapTo(parameters) { "const reactor::Timer& ${it.name}" }
-        with(actionGenerator) {
-            if (hasStartupAsTriggerOrSource)
-                parameters.add("reactor::StartupAction& $startupName")
-            if (hasShutdownAsTriggerOrSource)
-                parameters.add("reactor::ShutdownAction& $shutdownName")
-            actionEffects.mapTo(parameters) { "${it.cppType}& ${it.name}" }
-            actionTriggersAndSources.mapTo(parameters) { "const ${it.cppType}& ${it.name}" }
+    private val TriggerRef.cppType
+        get() = when {
+            this.isStartup  -> "reactor::StartupAction"
+            this.isShutdown -> "reactor::StartupAction"
+            this is VarRef  -> cppType
+            else            -> TODO("Unexpected variable type")
         }
-        return parameters
-    }
+
+    fun Reaction.getBodyParameters(): List<String> =
+        allTriggers.map { "const ${it.cppType}& ${it.name}" } +
+                allSources.map { "const ${it.cppType}& ${it.name}" } +
+                allEffects.map { "${it.cppType}& ${it.name}" }
 
     private fun generateDeclaration(r: Reaction): String {
-        val parameters = mutableListOf<String>()
-        r.timerTriggersAndSources.mapTo(parameters) { it.name }
-        with(actionGenerator) {
-            if (r.hasStartupAsTriggerOrSource)
-                parameters.add(startupName)
-            if (r.hasShutdownAsTriggerOrSource)
-                parameters.add(shutdownName)
-        }
-        r.actionEffects.mapTo(parameters) { it.name }
-        r.actionTriggersAndSources.mapTo(parameters) { it.name }
+        val parameters = r.allTriggers.map{ it.name } + r.allSources.map{ it.name } + r.allEffects.map{ it.name }
         return """
             reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { 
               __lf_inner.${r.name}_body(${parameters.joinToString(", ")});
