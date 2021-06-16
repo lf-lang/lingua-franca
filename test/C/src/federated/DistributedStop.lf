@@ -60,7 +60,9 @@ reactor Sender {
     =}
 }
 
-reactor Receiver {
+reactor Receiver (
+    stp_offset:time(10 msec) // Used in the decentralized variant of the test
+) {
     input in:int;
     state reaction_invoked_correctly:bool(false);
     reaction(in) {=
@@ -90,12 +92,12 @@ reactor Receiver {
         // receiver.
         if (get_elapsed_logical_time() != USEC(1) ||
             get_microstep() != 1) {
-            error_print_and_exit("ERROR: Receiver failed to stop the federation at the right time. "
+            error_print_and_exit("Receiver failed to stop the federation at the right time. "
                     "Stopping at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());
         } else if (self->reaction_invoked_correctly == false) {            
-            error_print_and_exit("ERROR: Receiver reaction(in) was not invoked the correct number of times. "
+            error_print_and_exit("Receiver reaction(in) was not invoked the correct number of times. "
                     "Stopping at (%lld, %u).",
                      get_elapsed_logical_time(),
                      get_microstep());

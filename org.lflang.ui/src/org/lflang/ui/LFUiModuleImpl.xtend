@@ -20,6 +20,10 @@ import org.eclipse.xtext.ui.editor.autoedit.SingleLineTerminalsStrategy
 import com.google.inject.Provider
 import org.eclipse.xtext.resource.containers.IAllContainersState
 
+import org.eclipse.ui.console.MessageConsole
+import org.eclipse.ui.console.ConsolePlugin
+import java.io.PrintStream
+
 /**
  * Use this class to register components to be used within the Eclipse IDE.
  * 
@@ -31,6 +35,8 @@ import org.eclipse.xtext.resource.containers.IAllContainersState
  */
 @FinalFieldsConstructor
 class LFUiModuleImpl extends AbstractLFUiModule {
+    
+    static var consoleInitialized = false
     
     // Instead of classpath, use Properties -> Project Reference
     override Provider<IAllContainersState> provideIAllContainersState() {
@@ -132,8 +138,26 @@ class LFUiModuleImpl extends AbstractLFUiModule {
             acceptor.accept(new LFMultiLineTerminalsEditStrategy("{=", "=}", true), IDocument.DEFAULT_CONTENT_TYPE)
         }
         
+        /**
+         * Ensure that all text printed via println() is shown in the Console of the LF IDE.
+         */
+        protected def configureConsole() {
+            if (!consoleInitialized) {
+                val console = new MessageConsole("LF Output", null)
+                ConsolePlugin.getDefault().getConsoleManager().addConsoles(newArrayList(console))
+                ConsolePlugin.getDefault().getConsoleManager().showConsoleView(console)
+                val stream = console.newMessageStream()
+
+                System.setOut(new PrintStream(stream))
+                System.setErr(new PrintStream(stream))
+
+                consoleInitialized = true
+            }
+        }
+
         /** Specify these new acceptors. */
         override void configure(IEditStrategyAcceptor acceptor) {
+            configureConsole()
             configureMultilineCodeBlock(acceptor)
             super.configure(acceptor)
             configureCodeBlock(acceptor)
