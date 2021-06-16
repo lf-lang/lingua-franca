@@ -7,9 +7,9 @@ if(NOT CMAKE_C_STANDARD)
 endif()
 
 
-# Default to C++20
+# Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
+  set(CMAKE_CXX_STANDARD 14)
 endif()
 
 # find dependencies

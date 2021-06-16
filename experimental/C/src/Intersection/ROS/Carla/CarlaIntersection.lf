@@ -18,7 +18,7 @@ target C {
     no-compile: true
 };
 
-import Vehicle, RSU from "../Intersection.lf";
+import Vehicle, RSU from "../IntersectionROS.lf";
 
 preamble {=
     #include <functional>
