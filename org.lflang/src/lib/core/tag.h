@@ -33,6 +33,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TAG_H
 #define TAG_H
 
+#include "platform.h"
+
 /* Conversion of time to nanoseconds. */
 #define NSEC(t) (t * 1LL)
 #define NSECS(t) (t * 1LL)
