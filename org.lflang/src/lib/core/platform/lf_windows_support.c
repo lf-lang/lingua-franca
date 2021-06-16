@@ -38,9 +38,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "lf_windows_support.h"
 #include "../platform.h"
 
-
-#include "lf_unix_clock_support.c"
-
 /**
  * Offset to _LF_CLOCK that would convert it
  * to epoch time.
@@ -50,16 +47,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 interval_t _lf_epoch_offset = 0LL;
 
-/**
- * Initialize the LF clock.
- */
-void lf_initialize_clock() {
-    // FIXME: We don't strictly need to convert Windows clock to epoch. It is
-    // done here for better uniformity across platforms. This requires access to
-    // an epoch-based clock to begin with, which many baremetal target platforms
-    // will most likely not have.
-    _lf_epoch_offset = calculate_epoch_offset(_LF_CLOCK);
-}
 
 /**
  * Calculate the necessary offset to bring _LF_CLOCK in parity with the epoch
@@ -84,6 +71,17 @@ void calculate_epoch_offset() {
         _lf_epoch_offset = real_time_start_ns - physical_clock_snapshot_ns;
     }
     LOG_PRINT("Clock sync: Initial epoch offset set to %lld.", _lf_epoch_offset);
+}
+
+/**
+ * Initialize the LF clock.
+ */
+void lf_initialize_clock() {
+    // FIXME: We don't strictly need to convert Windows clock to epoch. It is
+    // done here for better uniformity across platforms. This requires access to
+    // an epoch-based clock to begin with, which many baremetal target platforms
+    // will most likely not have.
+    _lf_epoch_offset = calculate_epoch_offset(_LF_CLOCK);
 }
 
 #if __STDC_VERSION__ < 201112L || defined (__STDC_NO_THREADS__) // (Not C++11 or later) or no threads support
@@ -278,12 +276,14 @@ int lf_clock_gettime(_lf_time_spec_t* tp) {
         case CLOCK_REALTIME:
             NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
             timestamp -= days_from_1601_to_1970 * 24LL * 60 * 60 * 1000 * 1000 * 10;
+            timestamp += _lf_epoch_offset;
             tp->tv_sec = (time_t)(timestamp / (BILLION / 100));
             tp->tv_nsec = (long)((timestamp % (BILLION / 100)) * 100);
             result = 0;
             break;
         case CLOCK_MONOTONIC:
             if ((*NtQueryPerformanceCounter)((PLARGE_INTEGER)&counts, (PLARGE_INTEGER)&counts_per_sec) == 0) {
+                counts += _lf_epoch_offset;
                 tp->tv_sec = counts / counts_per_sec;
                 tp->tv_nsec = (long)((counts % counts_per_sec) * BILLION / counts_per_sec);
                 result = 0;
@@ -298,7 +298,7 @@ int lf_clock_gettime(_lf_time_spec_t* tp) {
             break;
     }
     // Adjust the clock by the epoch offset, so epoch time is always reported.
-    return result + _lf_epoch_offset;
+    return result;
 }
 
 /**

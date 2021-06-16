@@ -159,7 +159,7 @@ extern int lf_cond_wait(lf_cond_t* cond, lf_mutex_t* mutex);
  * @return 0 on success, LF_TIMEOUT on timeout, and platform-specific error
  *  number otherwise.
  */
-extern int lf_cond_timedwait(lf_cond_t* cond, lf_mutex_t* mutex, long long absolute_time_ns);
+extern int lf_cond_timedwait(lf_cond_t* cond, lf_mutex_t* mutex, instant_t absolute_time_ns);
 
 #endif
 
