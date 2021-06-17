@@ -133,7 +133,7 @@
         "target-specification": {
             "name": "meta.targetspec.lflang",
             "begin": "(?=^target\\b)",
-            "end": ";",
+            "end": ";|(?<=}.*)$|(?<=target[^\\{]*)$",
             "patterns": [
                 {
                     "include": "#general"
@@ -148,14 +148,21 @@
                 },
                 {
                     "name": "variable.parameter.lflang",
-                    "match": "\\b(build|compiler|fast|files|flags|keepalive|logging|no-compile|protobufs|threads|timeout)\\b"
+                    "match": "(?<=(^|,)(\\s)*)\\b(\\w+)\\b(?=(\\s)*:)"
                 }
             ]
         },
         "import-statement": {
+            "name": "meta.import.lflang",
+            "begin": "(?=^import\\b)",
+            "end": ";|(?<=}.*)$|(?<=import[^\\{]*)$",
             "patterns": [
                 {
                     "include": "#general"
+                },
+                {
+                    "name": "keyword.other.lflang",
+                    "match": "\\b(import)\\b|\\b(as)\\b|\\b(from)\\b"
                 }
             ]
         },
