@@ -34,6 +34,14 @@ import org.lflang.lf.Reactor
 /** A C++ code generator for actions */
 class CppActionGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
 
+    companion object {
+        val Action.cppType
+            get() = if (this.isLogical) "reactor::LogicalAction<$targetType>" else "reactor::PhysicalAction<$targetType>"
+
+        val startupName: String = LfPackage.Literals.TRIGGER_REF__STARTUP.name
+        val shutdownName: String = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
+    }
+
     private fun generateDeclaration(action: Action) = "${action.cppType} ${action.name};"
 
     private fun generateInitializer(action: Action) =
@@ -61,11 +69,6 @@ class CppActionGenerator(private val reactor: Reactor, private val errorReporter
             """, ${action.name}{"${action.name}", this}"""
         }
     }
-
-    val Action.cppType get() = if (this.isLogical) "reactor::LogicalAction<$targetType>" else "reactor::PhysicalAction<$targetType>"
-
-    val startupName = LfPackage.Literals.TRIGGER_REF__STARTUP.name
-    val shutdownName = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name
 
     /** Get all action declarations */
     fun generateDeclarations() = with(PrependOperator) {
