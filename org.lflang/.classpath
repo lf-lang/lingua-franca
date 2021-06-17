@@ -57,7 +57,7 @@
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/com.google.inject/guice/5.0.1/2c1282746b8307a049a95e2374c855378c9f29e2/guice-5.0.1-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/com.google.inject/guice/5.0.1/dae7556b441cada2b4f0a2314eb68e1ff423429/guice-5.0.1.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/com.google.inject/guice/3.0/d117c4481f64955cb1862ed38cb568add2f5fe05/guice-3.0-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/com.google.inject/guice/3.0/9d84f15fe35e2c716a02979fb62f50a29f38aefa/guice-3.0.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
@@ -67,17 +67,17 @@
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.4.10/d0b96b542fcc85544df2b7ac2f0fbceaded2d90a/kotlin-reflect-1.4.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.4.10/e2b3c6695eee6085e606d96d685396dce23a3a06/kotlin-reflect-1.4.10.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.5.10/7b213f1545669444fd7de998e6c53499f50652ba/kotlin-reflect-1.5.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.5.10/d6c70f3c0df2457ea0095c61c1fc1188017dc3bc/kotlin-reflect-1.5.10.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.4.10/4a5e4f984e6c3e380f100857f04aba4f3e5fbda8/kotlin-stdlib-1.4.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.4.10/ea29e063d2bbe695be13e9d044dcfb0c7add398e/kotlin-stdlib-1.4.10.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.5.10/6c9adfb286ecb30b4530913c4962383211d97295/kotlin-stdlib-1.5.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.5.10/da6a904b132f0402fa4d79169a3c1770598d4702/kotlin-stdlib-1.5.10.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.resources/3.15.0/feb702d2a88d6c205746e317f8a0807328d09885/org.eclipse.core.resources-3.15.0-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.resources/3.15.0/a1964a49431ffd325a20295f30ef3a0b595409b8/org.eclipse.core.resources-3.15.0.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.resources/3.13.900/f29764296a3d7a5fca85f3c17e4b050038db283b/org.eclipse.core.resources-3.13.900-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.resources/3.13.900/611a4dfec2adb2d2a9753aa2fcbb92645514a166/org.eclipse.core.resources-3.13.900.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
@@ -87,7 +87,7 @@
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.runtime/3.22.0/7f82fe44efdf407881f157b481d1ea4caec71e09/org.eclipse.core.runtime-3.22.0-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.runtime/3.22.0/32bdbd2b2073d6bbff090aa5b5cb10df2be8861b/org.eclipse.core.runtime-3.22.0.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.runtime/3.20.0/774846c8cf5c231177ae9d2d908fd79e2d06b5ad/org.eclipse.core.runtime-3.20.0-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.core.runtime/3.20.0/a6cb268691ea278ace617383a9fe602c664162e5/org.eclipse.core.runtime-3.20.0.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
@@ -172,7 +172,7 @@
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.registry/3.10.200/4778591c7fa3355ce561a5984a6736e027ab260b/org.eclipse.equinox.registry-3.10.200-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.registry/3.10.200/8cd7901c14184e49be065bec97081e041c1c140/org.eclipse.equinox.registry-3.10.200.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.registry/3.10.100/6dd55fff01dde8a2f5a9d34fa5f5b4e99b5cde60/org.eclipse.equinox.registry-3.10.100-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.registry/3.10.100/896c26f8452405c86fd2deb07a04903baa10714c/org.eclipse.equinox.registry-3.10.100.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
@@ -182,7 +182,7 @@
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.common/3.15.0/6dc2e2b7c22c4d9ceb38fb6cd7a6738a66f20c05/org.eclipse.equinox.common-3.15.0-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.common/3.15.0/bd08027a06f7c62fa281cacd887daa2f590f20d0/org.eclipse.equinox.common-3.15.0.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.common/3.14.100/99c188a18a4fe286f6d70d0e3b39af11a26497c6/org.eclipse.equinox.common-3.14.100-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.eclipse.platform/org.eclipse.equinox.common/3.14.100/92a269e95128851c957ba5c9c3a74ca7907e9861/org.eclipse.equinox.common-3.14.100.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
@@ -222,12 +222,17 @@
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.4.10/d971e5bb07a7f610eda65e5efc8decbd0548a270/kotlin-stdlib-common-1.4.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.4.10/6229be3465805c99db1142ad75e6c6ddeac0b04c/kotlin-stdlib-common-1.4.10.jar">
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.sonatype.sisu.inject/cglib/2.2.1-v20090111/65030c30094de36e3fddbc22442d47cbf547741f/cglib-2.2.1-v20090111-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.sonatype.sisu.inject/cglib/2.2.1-v20090111/7ce5e983fd0e6c78346f4c9cbfa39d83049dda2/cglib-2.2.1-v20090111.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/13.0/5991ca87ef1fb5544943d9abc5a9a37583fabe03/annotations-13.0-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/13.0/919f0dfe192fb4e063e7dacadee7f8bb9a2672a9/annotations-13.0.jar">
+		<attributes>
+			<attribute name="gradle_used_by_scope" value="main,test"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry sourcepath="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.5.10/86ff32fa15b7f66f3b5ced4164c2311c0530adde/kotlin-stdlib-common-1.5.10-sources.jar" kind="lib" path="/home/clem/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.5.10/6b84d926e28493be69daf673e40076f89492ef7/kotlin-stdlib-common-1.5.10.jar">
 		<attributes>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
 		</attributes>
