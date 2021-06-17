@@ -1,5 +1,5 @@
 buildscript {
-	ext.kotlinVersion = "1.5.10" // sync with pom.xml and MANIFEST.mf
+	ext.kotlinVersion = "1.4.10" // sync with pom.xml
 	repositories {
 		mavenCentral()
 	}
@@ -32,7 +32,7 @@ subprojects {
 	dependencies {
 		implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
 		// https://mvnrepository.com/artifact/com.google.inject/guice
-		implementation group: 'com.google.inject', name: 'guice', version: '3.0'
+		implementation group: 'com.google.inject', name: 'guice', version: '5.0.1'
 		// https://mvnrepository.com/artifact/commons-cli/commons-cli
 		implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
     }
