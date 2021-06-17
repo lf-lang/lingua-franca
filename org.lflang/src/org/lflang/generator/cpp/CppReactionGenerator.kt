@@ -29,11 +29,12 @@ import org.lflang.label
 import org.lflang.lf.*
 import org.lflang.priority
 import org.lflang.toText
+import java.lang.AssertionError
 
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(
     private val reactor: Reactor,
-    private val actionGenerator: CppActionGenerator
+    private val portGenerator: CppPortGenerator
 ) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
@@ -46,8 +47,9 @@ class CppReactionGenerator(
         get() =
             when (val variable = this.variable) {
                 is Timer  -> "reactor::Timer"
-                is Action -> with(actionGenerator) { variable.cppType }
-                else      -> TODO("Unexpected variable type")
+                is Action -> with(CppActionGenerator) { variable.cppType }
+                is Port   -> with(portGenerator) { variable.cppType }
+                else      -> AssertionError("Unexpected variable type")
             }
 
     private val TriggerRef.cppType
@@ -55,7 +57,7 @@ class CppReactionGenerator(
             this.isStartup  -> "reactor::StartupAction"
             this.isShutdown -> "reactor::StartupAction"
             this is VarRef  -> cppType
-            else            -> TODO("Unexpected variable type")
+            else      -> AssertionError("Unexpected trigger type")
         }
 
     fun Reaction.getBodyParameters(): List<String> =
@@ -64,7 +66,7 @@ class CppReactionGenerator(
                 allEffects.map { "${it.cppType}& ${it.name}" }
 
     private fun generateDeclaration(r: Reaction): String {
-        val parameters = r.allTriggers.map{ it.name } + r.allSources.map{ it.name } + r.allEffects.map{ it.name }
+        val parameters = r.allTriggers.map { it.name } + r.allSources.map { it.name } + r.allEffects.map { it.name }
         return """
             reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { 
               __lf_inner.${r.name}_body(${parameters.joinToString(", ")});
