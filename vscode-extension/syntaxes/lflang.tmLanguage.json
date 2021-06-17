@@ -5,7 +5,36 @@
         "lf"
     ],
     "repository": {
+        "global": {
+            "patterns": [
+                {
+                    "include": "#general"
+                },
+                {
+                    "include": "#c-target"
+                },
+                {
+                    "include": "#cpp-target"
+                },
+                {
+                    "include": "#ts-target"
+                },
+                {
+                    "include": "#py-target"
+                }
+            ]
+        },
         "general": {
+            "patterns": [
+                {
+                    "include": "#linecomment"
+                },
+                {
+                    "include": "#blockcomment"
+                }
+            ]
+        },
+        "top-level": {
             "patterns": [
                 {
                     "include": "#linecomment"
@@ -14,7 +43,80 @@
                     "include": "#blockcomment"
                 },
                 {
-                    "include": "#keyword"
+                    "include": "#target-specification"
+                },
+                {
+                    "include": "#import-statement"
+                },
+                {
+                    "include": "#reaction-declaration"
+                },
+                {
+                    "include": "#reactor-block"
+                }
+            ]
+        },
+        "c-target": {
+            "begin": "(?=^target C\\b)",
+            "patterns": [
+                {
+                    "include": "#top-level"
+                },
+                {
+                    "begin": "(\\{=)",
+                    "end": "(=\\})",
+                    "name": "meta.embedded.block.c",
+                    "patterns": [{
+                        "include": "source.cpp"
+                    }]
+                }
+            ]
+        },
+        "cpp-target": {
+            "begin": "(?=^target Cpp\\b)",
+            "patterns": [
+                {
+                    "include": "#top-level"
+                },
+                {
+                    "begin": "(\\{=)",
+                    "end": "(=\\})",
+                    "name": "meta.embedded.block.cpp",
+                    "patterns": [{
+                        "include": "source.cpp"
+                    }]
+                }
+            ]
+        },
+        "ts-target": {
+            "begin": "(?=^target TypeScript\\b)",
+            "patterns": [
+                {
+                    "include": "#top-level"
+                },
+                {
+                    "begin": "(\\{=)",
+                    "end": "(=\\})",
+                    "name": "meta.embedded.block.ts",
+                    "patterns": [{
+                        "include": "source.ts"
+                    }]
+                }
+            ]
+        },
+        "py-target": {
+            "begin": "(?=^target Python\\b)",
+            "patterns": [
+                {
+                    "include": "#top-level"
+                },
+                {
+                    "begin": "(\\{=)",
+                    "end": "(=\\})",
+                    "name": "meta.embedded.block.py",
+                    "patterns": [{
+                        "include": "source.python"
+                    }]
                 }
             ]
         },
@@ -28,14 +130,57 @@
             "begin": "/\\*(\\*)?(?!/)",
             "end": "\\*/"
         },
-        "keyword": {
-            "name": "keyword.control.lflang",
-            "match": "\\b(reactor)\\b|!"
+        "target-specification": {
+            "name": "meta.targetspec.lflang",
+            "begin": "(?=^target\\b)",
+            "end": ";",
+            "patterns": [
+                {
+                    "include": "#general"
+                },
+                {
+                    "name": "constant.language.lflang",
+                    "match": "\\b(C|Cpp|Python|TypeScript)\\b"
+                },
+                {
+                    "name": "keyword.control.lflang",
+                    "match": "\\b(target)\\b"
+                },
+                {
+                    "name": "variable.parameter.lflang",
+                    "match": "\\b(build|compiler|fast|files|flags|keepalive|logging|no-compile|protobufs|threads|timeout)\\b"
+                }
+            ]
+        },
+        "import-statement": {
+            "patterns": [
+                {
+                    "include": "#general"
+                }
+            ]
+        },
+        "reaction-declaration": {
+            "patterns": [
+                {
+                    "include": "#general"
+                },
+                {
+                    "name": "keyword.control.lflang",
+                    "match": "\\b(reactor)\\b|!|\\b(main reactor)\\b"
+                }
+            ]
+        },
+        "reactor-block": {
+            "patterns": [
+                {
+                    "include": "#general"
+                }
+            ]
         }
     },
     "patterns": [
         {
-            "include": "#general"
+            "include": "#global"
         }
     ],
     "uuid": "cd57a55d-0af5-4750-a6a0-3b7108553c2a"
