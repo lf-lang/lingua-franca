@@ -695,7 +695,7 @@ class CppGenerator extends GeneratorBase {
      * just class definition of the containing reactor.
      */
     def int calcPortWidth(Port port) {
-        val result = port.widthSpec.width
+        val result = ASTUtils.width(port.widthSpec, null)
         if (result < 0) {
             throw new Exception("Only multiport widths with literal integer values are supported for now.")
         }
@@ -709,14 +709,14 @@ class CppGenerator extends GeneratorBase {
         // The index will go from zero to mulitportWidth - 1.
         var leftPortIndex = 0
         // FIXME: Support parameterized widths and check for matching widths with parallel connections.
-        var leftWidth = leftPort.portWidth(c)
+        var leftWidth = ASTUtils.inferPortWidth(leftPort, c, null)
         var leftContainer = leftPort.container
         var rightPortCount = 0
         for (rightPort : c.rightPorts) {
             rightPortCount++
             var rightPortIndex = 0
             val rightContainer = rightPort.container
-            val rightWidth = rightPort.portWidth(c)
+            val rightWidth = ASTUtils.inferPortWidth(rightPort, c, null)
             while (rightPortIndex < rightWidth) {
                 // Figure out how many bindings to do.
                 var remainingRightPorts = rightWidth - rightPortIndex
@@ -780,13 +780,13 @@ class CppGenerator extends GeneratorBase {
                 ''')
                 rightPortIndex += min
                 leftPortIndex += min
-                if (leftPortIndex == leftPort.portWidth(c)) {
+                if (leftPortIndex == ASTUtils.inferPortWidth(leftPort, c, null)) {
                     if (leftPortCount < c.leftPorts.length) {
                         // Get the next left port. Here we rely on the validator to
                         // have checked that the connection is balanced, which it does only
                         // when widths are given as literal constants.
                         leftPort = c.leftPorts.get(leftPortCount++)
-                        leftWidth = leftPort.portWidth(c)
+                        leftWidth = ASTUtils.inferPortWidth(leftPort, c, null)
                         leftPortIndex = 0
                         leftContainer = leftPort.container
                     } else {
@@ -796,7 +796,7 @@ class CppGenerator extends GeneratorBase {
                         if (c.isIterated) {
                             leftPort = c.leftPorts.get(0)
                             leftPortCount = 1
-                            leftWidth = leftPort.portWidth(c)
+                            leftWidth = ASTUtils.inferPortWidth(leftPort, c, null)
                             leftPortIndex = 0
                             leftContainer = leftPort.container
                         } else if (rightPortCount < c.rightPorts.length || rightPortIndex < rightWidth - 1) {

@@ -289,8 +289,8 @@ public class FedASTUtils {
             VarRef portRef,
             FederateInstance instance,
             int receivingPortID, 
-            int channelIndex, 
             int bankIndex, 
+            int channelIndex, 
             int receivingFedID,
             GeneratorBase generator,
             Delay delay
