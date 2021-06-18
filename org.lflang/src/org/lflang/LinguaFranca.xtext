@@ -485,5 +485,7 @@ Token:
     // Assignment
     '=' |
     // Percentage
-    '%'
+    '%' |
+    // Annotation
+    '@'
 ;

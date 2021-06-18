@@ -196,7 +196,7 @@ ushort setup_clock_synchronization_with_rti() {
  * is required.
  *
  * This is a blocking function that expects
- * to read a PHYSICAL_CLOCK_SYNC_MESSAGE_T1 from the RTI TCP socket.
+ * to read a MSG_TYPE_CLOCK_SYNC_T1 from the RTI TCP socket.
  * It will then follow the PTP protocol to synchronize the local
  * physical clock with the RTI.
  * Failing to complete this protocol is treated as a catastrophic
@@ -211,7 +211,7 @@ void synchronize_initial_physical_clock_with_rti(int rti_socket_TCP) {
     unsigned char buffer[message_size];
 
     for (int i=0; i < _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL; i++) {
-        // The first message expected from the RTI is PHYSICAL_CLOCK_SYNC_MESSAGE_T1
+        // The first message expected from the RTI is MSG_TYPE_CLOCK_SYNC_T1
         read_from_socket_errexit(rti_socket_TCP, message_size, buffer,
                 "Federate %d did not get the initial clock synchronization message T1 from the RTI.",
                 _lf_my_fed_id);
@@ -220,7 +220,7 @@ void synchronize_initial_physical_clock_with_rti(int rti_socket_TCP) {
         instant_t receive_time = get_physical_time();
 
         // Check that this is the T1 message.
-        if (buffer[0] != PHYSICAL_CLOCK_SYNC_MESSAGE_T1) {
+        if (buffer[0] != MSG_TYPE_CLOCK_SYNC_T1) {
             error_print_and_exit("Initial clock sync: Expected T1 message from RTI. Got %x.", buffer[0]);
         }
         // Handle the message and send a reply T3 message.
@@ -230,13 +230,13 @@ void synchronize_initial_physical_clock_with_rti(int rti_socket_TCP) {
             error_print_and_exit("Initial clock sync: Failed to send T3 reply to RTI.");
         }
 
-        // Next message from the RTI is required to be PHYSICAL_CLOCK_SYNC_MESSAGE_T4
+        // Next message from the RTI is required to be MSG_TYPE_CLOCK_SYNC_T4
         read_from_socket_errexit(rti_socket_TCP, message_size, buffer,
                 "Federate %d did not get the clock synchronization message T4 from the RTI.",
                 _lf_my_fed_id);
 
         // Check that this is the T4 message.
-        if (buffer[0] != PHYSICAL_CLOCK_SYNC_MESSAGE_T4) {
+        if (buffer[0] != MSG_TYPE_CLOCK_SYNC_T4) {
             error_print_and_exit("Federate %d expected T4 message from RTI. Got %x.", _lf_my_fed_id, buffer[0]);
         }
 
@@ -273,7 +273,7 @@ int handle_T1_clock_sync_message(unsigned char* buffer, int socket, instant_t t2
 
     // Reply will have the federate ID as a payload.
     unsigned char reply_buffer[1 + sizeof(int)];
-    reply_buffer[0] = PHYSICAL_CLOCK_SYNC_MESSAGE_T3;
+    reply_buffer[0] = MSG_TYPE_CLOCK_SYNC_T3;
     encode_int(_lf_my_fed_id, &(reply_buffer[1]));
 
     // Write the reply to the socket.
@@ -348,7 +348,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
         instant_t r5 = get_physical_time();
 
         if (bytes_read < (int)(1 + sizeof(instant_t))
-                || buffer[0] != PHYSICAL_CLOCK_SYNC_MESSAGE_T4_CODED_PROBE) {
+                || buffer[0] != MSG_TYPE_CLOCK_SYNC_CODED_PROBE) {
             warning_print("Clock sync: Did not get the expected coded probe message from the RTI. "
                     "Skipping clock synchronization round.");
             return;
@@ -498,7 +498,7 @@ void* listen_to_rti_UDP_thread(void* args) {
 
         // Handle the message
         if (waiting_for_T1) {
-            if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T1) {
+            if (buffer[0] == MSG_TYPE_CLOCK_SYNC_T1) {
                 waiting_for_T1 = false;
                 // The reply (or return) address is given in RTI_UDP_addr.
                 // We utilize the connect() function to set the default address
@@ -526,10 +526,10 @@ void* listen_to_rti_UDP_thread(void* args) {
                 warning_print("Clock sync: Received %u message from RTI, but waiting for %u (T1). "
                         "Discarding the message.",
                         buffer[0],
-                        PHYSICAL_CLOCK_SYNC_MESSAGE_T1);
+						MSG_TYPE_CLOCK_SYNC_T1);
                 continue;
             }
-        } else if (buffer[0] == PHYSICAL_CLOCK_SYNC_MESSAGE_T4) {
+        } else if (buffer[0] == MSG_TYPE_CLOCK_SYNC_T4) {
             handle_T4_clock_sync_message(buffer, _lf_rti_socket_UDP, receive_time);
             waiting_for_T1 = true;
         } else {
