@@ -68,6 +68,15 @@
                 },
                 {
                     "include": "#type"
+                },
+                {
+                    "include": "#number"
+                },
+                {
+                    "include": "#string"
+                },
+                {
+                    "include": "#array"
                 }
             ]
         },
@@ -242,6 +251,22 @@
                     "name": "storage.type.lflang",
                     "match": "(?<=(input|output|action|state).*:(\\s*))(\\b(\\w*)\\b)"
                 }
+            ]
+        },
+        "number": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.lflang",
+                    "match": "(?<!\\w)(\\-?\\d+)(.\\d+)?\\b"
+                }
+            ]
+        },
+        "string": {
+            "patterns": [
+            ]
+        },
+        "array": {
+            "patterns": [
             ]
         }
     },
