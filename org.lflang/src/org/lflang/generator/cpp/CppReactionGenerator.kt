@@ -114,26 +114,27 @@ class CppReactionGenerator(
         }
     }
 
-    private fun generateBodyDefinition(reaction: Reaction): String {
-        // TODO this doesn't work for contained ports
-        // TODO this doesn't work for banks
+    private fun getFunctionSignature(reaction: Reaction, postfix: String): String {
         val params = reaction.getBodyParameters()
-        val definitionSignature = when (params.size) {
-            0    -> "void ${reactor.templateName}::Inner::${reaction.name}_body()"
-            1    -> "void ${reactor.templateName}::Inner::${reaction.name}_body(${params[0]})"
+        return when (params.size) {
+            0    -> "void ${reactor.templateName}::Inner::${reaction.name}_$postfix()"
+            1    -> "void ${reactor.templateName}::Inner::${reaction.name}_$postfix(${params[0]})"
             else -> with(PrependOperator) {
                 """
-                    |void ${reactor.templateName}::Inner::${reaction.name}_body(
+                    |void ${reactor.templateName}::Inner::${reaction.name}_$postfix(
                 ${" |  "..params.joinToString(",\n")}) 
                 """.trimMargin()
             }
         }
+    }
 
+    private fun generateBodyDefinition(reaction: Reaction): String {
+        // TODO this doesn't work for banks
         return with(PrependOperator) {
             """
                 |// reaction ${reaction.label}
                 |${reactor.templateLine}
-                |$definitionSignature {
+            ${" |"..getFunctionSignature(reaction, "body")} {
             ${" |  "..reaction.code.toText()}
                 |}
                 |
@@ -142,10 +143,10 @@ class CppReactionGenerator(
     }
 
     private fun generateDeadlineHandlerDefinition(reaction: Reaction): String = with(PrependOperator) {
-        // TODO Should provide the same context as in reactions
+        // TODO this doesn't work for banks
         return """
             |${reactor.templateLine}
-            |void ${reactor.templateName}::${reaction.name}_deadline_handler() {
+        ${" |"..getFunctionSignature(reaction, "deadline_handler")} {
         ${" |  "..reaction.deadline.code.toText()}
             |}
             |
