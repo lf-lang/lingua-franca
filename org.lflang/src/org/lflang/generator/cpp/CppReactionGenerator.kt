@@ -41,7 +41,7 @@ class CppReactionGenerator(
 
     private val Reaction.allTriggers get() = triggers.filterNot { it in effects }
     private val Reaction.allEffects get() = effects
-    private val Reaction.allSources get() = effects.filterNot { it in effects }
+    private val Reaction.allSources get() = sources.filterNot { it in effects }
 
     private val VarRef.cppType
         get() =
