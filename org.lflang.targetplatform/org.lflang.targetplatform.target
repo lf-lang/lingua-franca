@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?pde version="3.8"?>
-<target name="Generated from Lingua Franca" sequenceNumber="4">
+<target name="Generated from Lingua Franca" sequenceNumber="8">
   <locations>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="jakarta.xml.bind" version="0.0.0"/>
       <unit id="javaewah" version="0.0.0"/>
       <unit id="javax.xml" version="0.0.0"/>
       <unit id="net.i2p.crypto.eddsa" version="0.0.0"/>
+      <unit id="org.aopalliance" version="0.0.0"/>
       <unit id="org.apache.sshd.osgi" version="0.0.0"/>
       <unit id="org.apache.sshd.sftp" version="0.0.0"/>
       <unit id="org.bouncycastle.bcpg" version="0.0.0"/>
@@ -23,6 +24,8 @@
       <unit id="org.eclipse.platform.doc.isv" version="0.0.0"/>
       <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.tm4e.languageconfiguration" version="0.0.0"/>
+      <unit id="org.eclipse.wildwebdeveloper.embedder.node.linux.x86_64" version="0.0.0"/>
+      <unit id="org.eclipse.wildwebdeveloper.xml.feature.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
       <unit id="org.jsoup" version="0.0.0"/>
       <unit id="org.slf4j.api" version="0.0.0"/>
@@ -44,7 +47,11 @@
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.jetbrains.kotlin.feature.feature.group" version="0.0.0"/>
-      <repository location="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
+      <repository location="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last/"/>
+    </location>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+      <unit id="org.eclipse.contribution.weaving.feature.group" version="0.0.0"/>
+      <repository location="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="de.cau.cs.kieler.klighd.freehep.feature.feature.group" version="0.0.0"/>
@@ -53,6 +60,7 @@
       <repository location="https://kieler.github.io/KLighD/v2.0.0/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+      <unit id="com.google.inject" version="0.0.0"/>
       <unit id="jakarta.activation" version="0.0.0"/>
       <unit id="javax.activation" version="0.0.0"/>
       <repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
