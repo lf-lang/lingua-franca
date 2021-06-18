@@ -10,5 +10,35 @@
             application="org.eclipse.ui.ide.workbench">
       </product>
    </extension>
-
+   <extension
+         point="org.eclipse.ui.perspectives">
+      <perspective
+            class="org.lflang.product.LFPerspectiveFactory"
+            id="org.lflang.product.perspective"
+            name="Lingua Franca">
+      </perspective>
+   </extension>
+   <extension
+         point="org.eclipse.ui.navigator.navigatorContent">
+      <commonWizard
+            type="new"
+            wizardId="org.eclipse.ui.wizards.new.project">
+         <enablement>
+            <not>
+               <or>
+                  <adapt
+                        type="org.eclipse.core.resources.IFile">
+                  </adapt>
+                  <adapt
+                        type="org.eclipse.core.resources.IFolder">
+                  </adapt>
+                  <adapt
+                        type="org.eclipse.core.resources.IProject">
+                  </adapt>
+               </or>
+            </not>
+         </enablement>
+      </commonWizard>
+   </extension>
+   
 </plugin>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?pde version="3.8"?>
-<target name="Generated from Lingua Franca" sequenceNumber="4">
+<target name="Generated from Lingua Franca" sequenceNumber="5">
   <locations>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="jakarta.xml.bind" version="0.0.0"/>
@@ -8,10 +8,9 @@
       <unit id="javax.websocket" version="0.0.0"/>
       <unit id="javax.xml" version="0.0.0"/>
       <unit id="net.i2p.crypto.eddsa" version="0.0.0"/>
+      <unit id="org.aopalliance" version="0.0.0"/>
       <unit id="org.apache.sshd.osgi" version="0.0.0"/>
       <unit id="org.apache.sshd.sftp" version="0.0.0"/>
-      <unit id="org.bouncycastle.bcpg" version="0.0.0"/>
-      <unit id="org.bouncycastle.bcprov" version="0.0.0"/>
       <unit id="org.eclipse.cdt.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.egit.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.emf" version="0.0.0"/>
@@ -21,22 +20,16 @@
       <unit id="org.eclipse.jdt.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.lsp4e.debug" version="0.0.0"/>
       <unit id="org.eclipse.lsp4j.generator" version="0.0.0"/>
+      <unit id="org.eclipse.platform.doc.isv" version="0.0.0"/>
       <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.tm4e.languageconfiguration" version="0.0.0"/>
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
       <unit id="org.jsoup" version="0.0.0"/>
-      <unit id="org.slf4j.api" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/releases/2021-03"/>
+      <repository location="http://download.eclipse.org/releases/2021-06"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.python.pydev.feature.feature.group" version="0.0.0"/>
       <repository location="https://www.pydev.org/updates/"/>
-    </location>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="org.eclipse.elk.graphviz.feature.feature.group" version="0.0.0"/>
-      <unit id="org.eclipse.elk.sdk.feature.feature.group" version="0.0.0"/>
-      <unit id="org.eclipse.elk.ui.feature.feature.group" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/elk/updates/releases/0.7.0/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.eclipse.wildwebdeveloper.feature.feature.group" version="0.0.0"/>
@@ -50,13 +43,23 @@
       <repository location="https://kieler.github.io/KLighD/v2.0.0/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+<<<<<<< HEAD
       <unit id="org.eclipse.sprotty" version="0.0.0"/>
       <repository location="https://rtsys.informatik.uni-kiel.de/~kieler/updatesite/sprotty/0.9.0/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+=======
+      <unit id="org.eclipse.elk.graphviz.feature.feature.group" version="0.0.0"/>
+      <unit id="org.eclipse.elk.sdk.feature.feature.group" version="0.0.0"/>
+      <unit id="org.eclipse.elk.ui.feature.feature.group" version="0.0.0"/>
+      <repository location="http://download.eclipse.org/elk/updates/releases/0.7.1/"/>
+    </location>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+      <unit id="com.google.inject" version="0.0.0"/>
+>>>>>>> master
       <unit id="jakarta.activation" version="0.0.0"/>
       <unit id="javax.activation" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
+      <repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20210602031627/repository/"/>
     </location>
   </locations>
 </target>

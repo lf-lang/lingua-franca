@@ -1,0 +1,205 @@
+/**
+ * Library of reactors that are reused in various design pattern examples.
+ * 
+ * @author Edward A. Lee
+ */
+target C;
+
+/**
+ * Send an output (42) at startup.
+ */
+reactor SendOnce {
+    output out:int;
+    reaction(startup) -> out {=
+        SET(out, 42);
+    =}
+}
+
+/**
+ * Send counting sequence periodically.
+ * 
+ * @param offset The starting time.
+ * @param period The period.
+ * @param initial The first output.
+ * @param increment The increment between outputs
+ */
+reactor SendCount(
+    offset:time(0), 
+    period:time(1 sec),
+    initial:int(0),
+    increment:int(1)
+) {
+    state count:int(initial);
+    output out:int;
+    timer t(offset, period);
+    reaction(t) -> out {=
+        SET(out, self->count);
+        self->count += self->increment;
+    =}
+}
+
+/**
+ * Receive an input and report the elpased logical tag
+ * and the value of the input.
+ */
+reactor Receive {
+    input in:int;
+    reaction(in) {=
+        info_print("At elapsed tag (%lld, %d), received %d.",
+            get_elapsed_logical_time(), get_microstep(),
+            in->value
+        );
+    =}
+}
+
+reactor ReceiveAndSend {
+    input in:int;
+    output out:int;
+    reaction(in) -> out {=
+        SET(out, in->value);
+    =}
+}
+reactor SendOnceAndReceive {
+    input in:int;
+    output out:int;
+    reaction(startup) -> out {=
+        SET(out, 42);
+    =}
+    reaction(in) {=
+        info_print("At tag (%lld, %d), received %d.",
+            get_elapsed_logical_time(),
+            get_microstep(),
+            in->value
+        );
+    =}
+}
+
+/**
+ * This reactor periodically increments its state and sends it out.
+ * When an input is received, it simply reports the value.
+ * 
+ * @param offset The time of the first output.
+ * @param period The period of the outputs.
+ * @param initial The initial output value.
+ * @param increment The increment between outputs.
+ * 
+ * @input in The input to report.
+ * @output out The counting output.
+ * 
+ * @label Increment the state, send, report received.
+ */
+reactor SendPeriodicallyAndReceive extends SendCount, Receive {
+    // This reactor simply composes SendCount and Receive, in that order.
+}
+
+/**
+ * This reactor periodically increments its state and sends it out.
+ * When an input is received, it simply reports the value.
+ * 
+ * @param offset The time of the first output.
+ * @param period The period of the outputs.
+ * @param initial The initial output value.
+ * @param increment The increment between outputs.
+ * 
+ * @input in The input to report.
+ * @output out The counting output.
+ * 
+ * @label Increment the state, send, report received.
+ */
+reactor ReceiveAndSendPeriodically extends Receive, SendCount {
+    // This reactor simply composes Receive and SendCount, in that order.
+}
+
+/**
+ * This reactor periodically increments its state and sends it out.
+ * When an input is received, it simply reports the value.
+ * @label Increment the state, send, report received.
+ */
+reactor SendPeriodicallyAndReceiveMultiport (
+    offset:time(0),
+    period:time(1 sec),
+    initial:int(0),
+    increment:int(1),
+    width:int(4)
+) {
+    input[width] in:int;
+    output out:int;
+    
+    timer t(offset, period);
+    
+    state count:int(initial);
+    
+    reaction(t) -> out {=
+        SET(out, self->count);
+        self->count += self->increment;
+    =}
+    reaction(in) {=
+        info_print("At tag (%lld, %d), received:",
+            get_elapsed_logical_time(), get_microstep()
+        );
+        for (int i = 0; i < self->width; i++) {
+            info_print("  On channel %d: %d", i, in[i]->value);
+        }
+    =}
+}
+
+/**
+ * This reactor maintains a local state that periodically incremented
+ * and incremented whenever an input arrives.
+ * @label Increment the state, send increment, accept increment.
+ */
+reactor LocalRemoteUpdates(
+    offset:time(0),
+    period:time(1 sec),
+    increment:int(1)
+) {
+    input in:int;
+    output out:int;
+    
+    timer t(offset, period);
+    
+    state count:int(0);
+    
+    reaction(t) -> out {=
+        SET(out, self->increment);
+        self->count += self->increment;
+    =}
+    reaction(in) {=
+        self->count += in->value;
+        info_print("At tag (%lld, %d), count is %d",
+            get_elapsed_logical_time(), get_microstep(),
+            self->count
+        );
+    =}
+}
+// @label Accumulate local/remote increments, locally query.
+reactor SendAndReceiveWithLocalQuery(
+    query_offset:time(0),
+    query_period:time(1 sec)
+) extends LocalRemoteUpdates {
+    local_query = new SendPeriodicallyAndReceive(
+        offset = query_offset,
+        period = query_period
+    );
+    reaction(local_query.out) -> local_query.in {=
+        SET(local_query.in, self->count);
+    =}
+}
+// @label Accumulate local/remote increments, delayed query.
+reactor SendAndReceiveWithDelayedQuery(
+    query_offset:time(0),
+    query_period:time(1 sec),
+    query_delay:time(10 msec)
+) extends LocalRemoteUpdates {
+    local_query = new SendPeriodicallyAndReceive(
+        offset = query_offset,
+        period = query_period
+    );
+    logical action a(query_delay);
+    reaction(local_query.out) -> a {=
+        schedule(a, 0);
+    =}
+    reaction(a) -> local_query.in {=
+        SET(local_query.in, self->count);
+    =}
+}

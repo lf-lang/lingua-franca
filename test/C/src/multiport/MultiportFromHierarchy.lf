@@ -4,19 +4,19 @@ target C {
     threads: 4,
     fast: true
 }; 
-reactor Source {
+reactor Source(width:int(3)) {
 	timer t(0, 200 msec);
-	output[4] out:int;
+	output[width] out:int;
 	state s:int(0);
 	reaction(t) -> out {=
-        for(int i = 0; i < 4; i++) {
+        for(int i = 0; i < out_width; i++) {
             SET(out[i], self->s++);
         }
 	=}
 }
-reactor Destination {
+reactor Destination(width:int(3)) {
 	state s:int(6);
-	input[4] in:int;
+	input[width] in:int;
 	reaction(in) {=
 		int sum = 0;
 		for (int i = 0; i < in_width; i++) {
@@ -37,20 +37,20 @@ reactor Destination {
         printf("Success.\n");
     =}
 }
-reactor Container {
-    output[4] out:int;
-    src = new InsideContainer();
+reactor Container(width:int(3)) {
+    output[width] out:int;
+    src = new InsideContainer(width = width);
     src.out -> out;
 }
 
-reactor InsideContainer {
-    output[4] out:int;
-    src = new Source();
+reactor InsideContainer(width:int(3)) {
+    output[width] out:int;
+    src = new Source(width = width);
     src.out -> out;
 }
 
-main reactor MultiportFromHierarchy  { 
-	a = new Container();
-	b = new Destination();
+main reactor MultiportFromHierarchy(width:int(4))  { 
+	a = new Container(width = width);
+	b = new Destination(width = width);
 	a.out -> b.in;
 }
