@@ -169,20 +169,25 @@
   <setupTask
       xsi:type="setup.p2:P2Task">
     <requirement
-        name="202103162301.org.eclipse.ajdt"/>
-    <requirement
-        name="202103162301.org.eclipse.ajdt.other"/>
-    <repository
-        url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
-  </setupTask>
-  <setupTask
-      xsi:type="setup.p2:P2Task">
-    <requirement
         name="org.jetbrains.kotlin.feature.feature.group"/>
     <requirement
         name="org.jetbrains.kotlin.gradle.feature.feature.group"/>
+    <requirement
+        name="org.jetbrains.kotlin.weaving.feature.feature.group"/>
+    <requirement
+        name="org.eclipse.ajdt.feature.group"/>
+    <requirement
+        name="org.eclipse.contribution.weaving.feature.group"/>
+    <requirement
+        name="org.eclipse.equinox.weaving.sdk.feature.group"/>
+    <requirement
+        name="org.scala-ide.equinox-weaving-launcher.feature.feature.group"/>
+    <repository
+        url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
     <repository
         url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
+    <repository
+        url="http://download.scala-ide.org/plugins/equinox-weaving-launcher/releases/site/"/>
   </setupTask>
   <setupTask
       xsi:type="setup:VariableTask"
@@ -353,6 +358,12 @@
         <requirement
             name="org.jetbrains.kotlin.feature.feature.group"/>
         <requirement
+            name="org.jetbrains.kotlin.weaving.feature.feature.group"/>
+        <requirement
+            name="org.eclipse.equinox.weaving.sdk.feature.group"/>
+        <requirement
+            name="org.eclipse.contribution.weaving.feature.group"/>
+        <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
             name="org.eclipse.elk.sdk.feature.feature.group"/>
@@ -400,6 +411,8 @@
               url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
           <repository
               url="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last/"/>
+          <repository
+              url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
         </repositoryList>
       </targlet>
     </setupTask>
