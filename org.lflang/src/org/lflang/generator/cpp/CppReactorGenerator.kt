@@ -90,6 +90,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}
         ${" |  "..actions.generateDeclarations()}
+        ${" |  "..reactions.generateReactionViews()}
         ${" |  "..reactions.generateDeclarations()}
             |
             |  class Inner: public lfutil::LFScope {

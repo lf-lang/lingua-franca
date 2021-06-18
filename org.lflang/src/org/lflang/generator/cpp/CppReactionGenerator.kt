@@ -29,7 +29,6 @@ import org.lflang.label
 import org.lflang.lf.*
 import org.lflang.priority
 import org.lflang.toText
-import java.lang.AssertionError
 
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(
@@ -57,16 +56,37 @@ class CppReactionGenerator(
             this.isStartup  -> "reactor::StartupAction"
             this.isShutdown -> "reactor::ShutdownAction"
             this is VarRef  -> cppType
-            else      -> AssertionError("Unexpected trigger type")
+            else            -> AssertionError("Unexpected trigger type")
         }
 
-    fun Reaction.getBodyParameters(): List<String> =
-        allTriggers.map { "const ${it.cppType}& ${it.name}" } +
-                allSources.map { "const ${it.cppType}& ${it.name}" } +
-                allEffects.map { "${it.cppType}& ${it.name}" }
+    private val VarRef.isContainedRef: Boolean get() = container != null
+    private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
+
+    private fun Reaction.getBodyParameters(): List<String> =
+        allTriggers.filterNot { it.isContainedRef }.map { "const ${it.cppType}& ${it.name}" } +
+                allSources.filterNot { it.isContainedRef }.map { "const ${it.cppType}& ${it.name}" } +
+                allEffects.filterNot { it.isContainedRef }.map { "${it.cppType}& ${it.name}" } +
+                getAllReferencedContainers().map {
+                    if (it.isReadOnly(this))
+                        "const View_of_${name}_on_${it.name}& ${it.name}"
+                    else
+                        "View_of_${name}_on_${it.name}& ${it.name}"
+                }
+
+    private fun Instantiation.isReadOnly(r: Reaction) = r.getAllReferencedContainers().any { it == this }
 
     private fun generateDeclaration(r: Reaction): String {
-        val parameters = r.allTriggers.map { it.name } + r.allSources.map { it.name } + r.allEffects.map { it.name }
+        val parameters = mutableListOf<String>()
+        r.allTriggers.filterNot { it.isContainedRef }.mapTo(parameters) { it.name }
+        r.allSources.filterNot { it.isContainedRef }.mapTo(parameters) { it.name }
+        r.allEffects.filterNot { it.isContainedRef }.mapTo(parameters) { it.name }
+        r.getAllReferencedContainers().mapTo(parameters) {
+            if (it.isReadOnly(r))
+                "reinterpret_cast<const View_of_${r.name}_on_${it.name}&>(*${it.name})"
+            else
+                "reinterpret_cast<View_of_${r.name}_on_${it.name}&>(*${it.name})"
+        }
+
         return """
             reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { 
               __lf_inner.${r.name}_body(${parameters.joinToString(", ")});
@@ -125,6 +145,33 @@ class CppReactionGenerator(
             |
         """.trimMargin()
     }
+
+    private val Reaction.allVariableReferences
+        get() = allEffects + allSources + allTriggers.mapNotNull { it as? VarRef }
+
+    private fun Reaction.getAllReferencedContainers() =
+        allVariableReferences.mapNotNull { it.container }.distinct()
+
+    private fun Reaction.getAllReferencedVariablesForContainer(container: Instantiation) =
+        allVariableReferences.filter { it.container == container }.distinct()
+
+    private fun generateViewForContainer(r: Reaction, container: Instantiation): String {
+        val reactorClass = container.reactorClass.name
+        val variables = r.getAllReferencedVariablesForContainer(container)
+        return with(PrependOperator) {
+            """
+                |struct View_of_${r.name}_on_${container.name} : protected $reactorClass {
+            ${" |  "..variables.joinToString("\n") { "using $reactorClass::${it.variable.name};" }}
+                |};
+            """.trimMargin()
+        }
+    }
+
+    private fun generateViews(r: Reaction) =
+        r.getAllReferencedContainers().joinToString("\n") { generateViewForContainer(r, it) }
+
+    fun generateReactionViews() =
+        reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") { generateViews(it) }
 
     /** Get all reaction declarations. */
     fun generateDeclarations() =
