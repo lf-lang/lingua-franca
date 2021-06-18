@@ -8,7 +8,10 @@
         "global": {
             "patterns": [
                 {
-                    "include": "#general"
+                    "include": "#linecomment"
+                },
+                {
+                    "include": "#blockcomment"
                 },
                 {
                     "include": "#c-target"
@@ -24,35 +27,35 @@
                 }
             ]
         },
-        "general": {
+        "post-targetspec": {
             "patterns": [
                 {
-                    "include": "#linecomment"
-                },
-                {
-                    "include": "#blockcomment"
-                }
-            ]
-        },
-        "top-level": {
-            "patterns": [
-                {
-                    "include": "#linecomment"
-                },
-                {
-                    "include": "#blockcomment"
+                    "include": "#context-insensitive"
                 },
                 {
                     "include": "#target-specification"
                 },
                 {
                     "include": "#import-statement"
+                }
+            ]
+        },
+        "context-insensitive": {
+            "patterns": [
+                {
+                    "include": "#linecomment"
                 },
                 {
-                    "include": "#reaction-declaration"
+                    "include": "#blockcomment"
+                },
+                {
+                    "include": "#reactor-declaration"
                 },
                 {
                     "include": "#reactor-block"
+                },
+                {
+                    "include": "#preamble"
                 }
             ]
         },
@@ -60,7 +63,7 @@
             "begin": "(?=^target C\\b)",
             "patterns": [
                 {
-                    "include": "#top-level"
+                    "include": "#post-targetspec"
                 },
                 {
                     "begin": "(\\{=)",
@@ -76,7 +79,7 @@
             "begin": "(?=^target Cpp\\b)",
             "patterns": [
                 {
-                    "include": "#top-level"
+                    "include": "#post-targetspec"
                 },
                 {
                     "begin": "(\\{=)",
@@ -92,7 +95,7 @@
             "begin": "(?=^target TypeScript\\b)",
             "patterns": [
                 {
-                    "include": "#top-level"
+                    "include": "#post-targetspec"
                 },
                 {
                     "begin": "(\\{=)",
@@ -108,7 +111,7 @@
             "begin": "(?=^target Python\\b)",
             "patterns": [
                 {
-                    "include": "#top-level"
+                    "include": "#post-targetspec"
                 },
                 {
                     "begin": "(\\{=)",
@@ -117,6 +120,41 @@
                     "patterns": [{
                         "include": "source.python"
                     }]
+                }
+            ]
+        },
+        "target-specification": {
+            "name": "meta.targetspec.lflang",
+            "begin": "(?=^target\\b)",
+            "end": ";|(?<=}.*)$|(?<=target[^\\{]*)$",
+            "patterns": [
+                {
+                    "include": "#context-insensitive"
+                },
+                {
+                    "name": "constant.language.lflang",
+                    "match": "\\b(C|Cpp|Python|TypeScript)\\b"
+                },
+                {
+                    "name": "keyword.control.lflang",
+                    "match": "\\b(target)\\b"
+                },
+                {
+                    "name": "variable.parameter.lflang",
+                    "match": "(?<=(^|,|\\{)(\\s)*)\\b(\\w+)\\b(?=(\\s)*:)"
+                }
+            ]
+        },
+        "import-statement": {
+            "begin": "(?=^import\\b)",
+            "end": ";|(?<=}.*)$|(?<=import[^\\{]*)$",
+            "patterns": [
+                {
+                    "include": "#context-insensitive"
+                },
+                {
+                    "name": "keyword.control.import.lflang",
+                    "match": "\\b(import)\\b|\\b(as)\\b|\\b(from)\\b"
                 }
             ]
         },
@@ -130,57 +168,31 @@
             "begin": "/\\*(\\*)?(?!/)",
             "end": "\\*/"
         },
-        "target-specification": {
-            "name": "meta.targetspec.lflang",
-            "begin": "(?=^target\\b)",
-            "end": ";|(?<=}.*)$|(?<=target[^\\{]*)$",
+        "reactor-declaration": {
             "patterns": [
                 {
-                    "include": "#general"
+                    "name": "storage.modifier.lflang",
+                    "match": "\\b(reactor)\\b|\\b(federated)\\b|\\b(main)\\b|\\b(realtime)\\b|\\b(at)\\b|\\b(extends)\\b"
                 },
                 {
-                    "name": "constant.language.lflang",
-                    "match": "\\b(C|Cpp|Python|TypeScript)\\b"
-                },
-                {
-                    "name": "keyword.control.lflang",
-                    "match": "\\b(target)\\b"
-                },
-                {
-                    "name": "variable.parameter.lflang",
-                    "match": "(?<=(^|,)(\\s)*)\\b(\\w+)\\b(?=(\\s)*:)"
-                }
-            ]
-        },
-        "import-statement": {
-            "name": "meta.import.lflang",
-            "begin": "(?=^import\\b)",
-            "end": ";|(?<=}.*)$|(?<=import[^\\{]*)$",
-            "patterns": [
-                {
-                    "include": "#general"
-                },
-                {
-                    "name": "keyword.other.lflang",
-                    "match": "\\b(import)\\b|\\b(as)\\b|\\b(from)\\b"
-                }
-            ]
-        },
-        "reaction-declaration": {
-            "patterns": [
-                {
-                    "include": "#general"
-                },
-                {
-                    "name": "keyword.control.lflang",
-                    "match": "\\b(reactor)\\b|!|\\b(main reactor)\\b"
+                    "name": "entity.name.type.lflang",
+                    "match": "(?<=\\breactor\\b)(\\s*)(?!at)(?!extends)(\\w+)\\b"
                 }
             ]
         },
         "reactor-block": {
             "patterns": [
                 {
-                    "include": "#general"
+                    "name": "keyword.control.lflang",
+                    "match": "\\b(reaction)\\b"
+                }
+            ]
+        },
+        "preamble": {
+            "patterns": [
+                {
+                    "name": "keyword.control.lflang",
+                    "match": "\\b(preamble)\\b"
                 }
             ]
         }
