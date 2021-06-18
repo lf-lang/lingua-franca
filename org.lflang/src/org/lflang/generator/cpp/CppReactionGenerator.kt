@@ -38,9 +38,22 @@ class CppReactionGenerator(
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
 
-    private val Reaction.allTriggers get() = triggers.filterNot { it in effects }
-    private val Reaction.allEffects get() = effects
-    private val Reaction.allSources get() = sources.filterNot { it in effects }
+
+    private val VarRef.isContainedRef: Boolean get() = container != null
+    private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
+
+    private val Reaction.allUncontainedTriggers get() = triggers.filterNot { it in effects || it.isContainedRef }
+    private val Reaction.allUncontainedEffects get() = effects.filterNot { it.isContainedRef }
+    private val Reaction.allUncontainedSources get() = sources.filterNot { it in effects || it.isContainedRef }
+    private val Reaction.allVariableReferences get() = (effects + sources + triggers.mapNotNull { it as? VarRef }).distinct()
+    private val Reaction.allReferencedContainers get() = allVariableReferences.mapNotNull { it.container }.distinct()
+
+    private fun Reaction.getAllReferencedVariablesForContainer(container: Instantiation) =
+        allVariableReferences.filter { it.container == container }.distinct()
+
+    private fun Instantiation.isReadOnly(r: Reaction) = r.allReferencedContainers.any { it == this }
+
+    private fun Reaction.getViewName(container: Instantiation) = "View_of_${name}_on_${container.name}"
 
     private val VarRef.cppType
         get() =
@@ -59,34 +72,27 @@ class CppReactionGenerator(
             else            -> AssertionError("Unexpected trigger type")
         }
 
-    private val VarRef.isContainedRef: Boolean get() = container != null
-    private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
-
     private fun Reaction.getBodyParameters(): List<String> =
-        allTriggers.filterNot { it.isContainedRef }.map { "const ${it.cppType}& ${it.name}" } +
-                allSources.filterNot { it.isContainedRef }.map { "const ${it.cppType}& ${it.name}" } +
-                allEffects.filterNot { it.isContainedRef }.map { "${it.cppType}& ${it.name}" } +
-                getAllReferencedContainers().map {
+        allUncontainedTriggers.map { "const ${it.cppType}& ${it.name}" } +
+                allUncontainedSources.map { "const ${it.cppType}& ${it.name}" } +
+                allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
+                allReferencedContainers.map {
                     if (it.isReadOnly(this))
-                        "const View_of_${name}_on_${it.name}& ${it.name}"
+                        "const ${getViewName(it)}& ${it.name}"
                     else
-                        "View_of_${name}_on_${it.name}& ${it.name}"
+                        "${getViewName(it)}& ${it.name}"
                 }
 
-    private fun Instantiation.isReadOnly(r: Reaction) = r.getAllReferencedContainers().any { it == this }
-
     private fun generateDeclaration(r: Reaction): String {
-        val parameters = mutableListOf<String>()
-        r.allTriggers.filterNot { it.isContainedRef }.mapTo(parameters) { it.name }
-        r.allSources.filterNot { it.isContainedRef }.mapTo(parameters) { it.name }
-        r.allEffects.filterNot { it.isContainedRef }.mapTo(parameters) { it.name }
-        r.getAllReferencedContainers().mapTo(parameters) {
-            if (it.isReadOnly(r))
-                "reinterpret_cast<const View_of_${r.name}_on_${it.name}&>(*${it.name})"
-            else
-                "reinterpret_cast<View_of_${r.name}_on_${it.name}&>(*${it.name})"
-        }
-
+        val parameters = r.allUncontainedTriggers.map { it.name } +
+                r.allUncontainedSources.map { it.name } +
+                r.allUncontainedEffects.map { it.name } +
+                r.allReferencedContainers.map {
+                    if (it.isReadOnly(r))
+                        "reinterpret_cast<const ${r.getViewName(it)}&>(*${it.name})"
+                    else
+                        "reinterpret_cast<${r.getViewName(it)}&>(*${it.name})"
+                }
         return """
             reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { 
               __lf_inner.${r.name}_body(${parameters.joinToString(", ")});
@@ -146,21 +152,12 @@ class CppReactionGenerator(
         """.trimMargin()
     }
 
-    private val Reaction.allVariableReferences
-        get() = allEffects + allSources + allTriggers.mapNotNull { it as? VarRef }
-
-    private fun Reaction.getAllReferencedContainers() =
-        allVariableReferences.mapNotNull { it.container }.distinct()
-
-    private fun Reaction.getAllReferencedVariablesForContainer(container: Instantiation) =
-        allVariableReferences.filter { it.container == container }.distinct()
-
     private fun generateViewForContainer(r: Reaction, container: Instantiation): String {
         val reactorClass = container.reactorClass.name
         val variables = r.getAllReferencedVariablesForContainer(container)
         return with(PrependOperator) {
             """
-                |struct View_of_${r.name}_on_${container.name} : protected $reactorClass {
+                |struct ${r.getViewName(container)} : protected $reactorClass {
             ${" |  "..variables.joinToString("\n") { "using $reactorClass::${it.variable.name};" }}
                 |};
             """.trimMargin()
@@ -168,7 +165,7 @@ class CppReactionGenerator(
     }
 
     private fun generateViews(r: Reaction) =
-        r.getAllReferencedContainers().joinToString("\n") { generateViewForContainer(r, it) }
+        r.allReferencedContainers.joinToString("\n") { generateViewForContainer(r, it) }
 
     fun generateReactionViews() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") { generateViews(it) }
