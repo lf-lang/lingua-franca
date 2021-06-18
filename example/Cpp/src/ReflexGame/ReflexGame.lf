@@ -78,7 +78,7 @@ reactor GetUserInput {
 
     reaction(startup) -> user_response {=
         // Start the thread that listens for Enter or Return.
-        thread = std::thread([this] () {
+        thread = std::thread([&] () {
             int c;
             while(1) {
                 while((c = getchar()) != '\n') {
