@@ -628,4 +628,24 @@ public class FileConfig {
      public static String nameWithoutExtension(Resource r) throws IOException {
          return nameWithoutExtension(toPath(r.getURI()).toFile());
      }
+     
+     /**
+      * Determine which mode the compiler is running in.
+      * Integrated mode means that it is running within an Eclipse IDE.
+      * Standalone mode means that it is running on the command line.
+      * 
+      * FIXME: Not sure if that us the right place for this function. But
+      *  the decision which mode we are in depends on a file (the resource),
+      *  thus it seems to fit here.
+      */
+     public Mode getCompilerMode() {
+         if (resource.getURI().isPlatform()) {
+             return Mode.INTEGRATED;
+         } else if (resource.getURI().isFile()) {
+             return Mode.STANDALONE;
+         } else {
+             System.err.println("ERROR: Source file protocol is not recognized: " + resource.getURI());
+             return Mode.UNDEFINED;
+         }
+     }
 }

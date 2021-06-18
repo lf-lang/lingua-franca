@@ -32,6 +32,9 @@ import java.nio.file.Path
  */
 val Resource.name: String get() = FileConfig.getName(this)
 
+/** Get the path of the receiving resource */
+fun Resource.toPath() = FileConfig.toPath(this)
+
 /**
  * Convert a given path to a unix-style string.
  *
@@ -43,3 +46,4 @@ fun Path.toUnixString(): String = FileConfig.toUnixString(this)
  * Create nested directories if the given path does not exist.
  */
 fun Path.createDirectories() = FileConfig.createDirectories(this)
+

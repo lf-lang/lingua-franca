@@ -25,8 +25,11 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.lflang.FileConfig
 import org.lflang.Target
+import org.lflang.generator.cpp.CppFileConfig
 import org.lflang.generator.cpp.CppGenerator
+import org.lflang.generator.rust.RustFileConfig
 import org.lflang.generator.rust.RustGenerator
 import org.lflang.lf.TargetDecl
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -51,34 +54,47 @@ class LFGenerator : AbstractGenerator() {
         this.generatorErrorsOccurred = generateImpl(resource, fsa, context)
     }
 
-    private fun getGenerator(target: Target): GeneratorBase =
-        when (target) {
-            Target.C      -> CGenerator()
-            Target.CCPP   -> CCppGenerator()
-            Target.CPP    -> CppGenerator(scopeProvider)
-            Target.TS     -> TypeScriptGenerator()
-            Target.Python -> PythonGenerator()
-            Target.Rust   -> RustGenerator()
+    /** Returns true if some errors occurred. */
+    private fun getGenerator(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): GeneratorBase {
+        // Determine which target is desired.
+        val targetName = findTargetName(resource) ?: throw AssertionError("No target declaration")
+        val target = Target.forName(targetName) ?: throw AssertionError("Not a target '$targetName'")
+
+        val fileConfig = when (target) {
+            Target.CPP  -> CppFileConfig(resource, fsa, context)
+            Target.TS   -> TypeScriptFileConfig(resource, fsa, context)
+            Target.Rust -> RustFileConfig(resource, fsa, context)
+            else        -> FileConfig(resource, fsa, context)
         }
+        val errorReporter = EclipseErrorReporter(fileConfig)
+
+        return when (target) {
+            Target.C      -> CGenerator(fileConfig, errorReporter)
+            Target.CCPP   -> CCppGenerator(fileConfig, errorReporter)
+            Target.CPP    -> CppGenerator(fileConfig as CppFileConfig, errorReporter, scopeProvider)
+            Target.TS     -> TypeScriptGenerator(fileConfig as TypeScriptFileConfig, errorReporter)
+            Target.Python -> PythonGenerator(fileConfig, errorReporter)
+            Target.Rust   -> RustGenerator(fileConfig as RustFileConfig, errorReporter)
+            // The list above is exhaustive and we actually don't need the else clause, but somehow eclipse still
+            // complains... So we add the else to make eclipse happy :)
+            else          -> throw AssertionError("Unexpected target '$target'")
+        }
+    }
 
     /** Returns true if some errors occurred. */
     private fun generateImpl(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext): Boolean {
-        // Determine which target is desired.
-        val targetName = findTargetNameOrThrow(resource)
-        val target = Target.forName(targetName) ?: throw AssertionError("Not a target '$targetName'")
-        val generator = getGenerator(target)
+        val generator = getGenerator(resource, fsa, context)
         generator.doGenerate(resource, fsa, context)
         return generator.errorsOccurred()
     }
 
     companion object {
 
-        private fun findTargetNameOrThrow(resource: Resource): String =
+        private fun findTargetName(resource: Resource): String? =
             resource.allContents.asSequence()
                 .mapNotNull { it as? TargetDecl }
                 .firstOrNull()
                 ?.name
-                ?: throw AssertionError("No target declaration")
 
     }
 }

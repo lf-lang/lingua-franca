@@ -25,12 +25,11 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.generator.cpp.isLogical
 import org.lflang.generator.cpp.targetType
 import org.lflang.isInput
+import org.lflang.isLogical
 import org.lflang.lf.*
-import java.lang.UnsupportedOperationException
-import java.util.Locale
+import java.util.*
 
 /*
     Model classes that serve as "intermediary representation" between the rust generator and emitter.
@@ -51,7 +50,7 @@ data class ReactorInfo(
     val otherComponents: List<ReactorComponent>,
     val ctorParamTypes: List<String> = emptyList()
 ) {
-    val modName = lfName.lowercase(Locale.ROOT)
+    val modName = lfName.toLowerCase(Locale.ROOT) // note: toLowercase is deprecated in kotlin 1.5.0
     val structName get() = lfName
     val dispatcherName = "${structName}Dispatcher"
     val reactionIdName = "${structName}Reactions"

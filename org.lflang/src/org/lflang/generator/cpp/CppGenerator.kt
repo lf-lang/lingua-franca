@@ -38,36 +38,22 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import java.nio.file.Path
 import java.nio.file.Paths
 
-class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : GeneratorBase() {
+class CppGenerator(private val cppFileConfig: CppFileConfig, errorReporter: ErrorReporter, private val scopeProvider: LFGlobalScopeProvider) :
+    GeneratorBase(cppFileConfig, errorReporter) {
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
         const val libDir = "/lib/Cpp"
 
         /** Default version of the reactor-cpp runtime to be used during compilation */
-        const val defaultRuntimeVersion = "26e6e641916924eae2e83bbf40cbc9b933414310"
-    }
-
-    /** Get the file configuration object as `CppFileConfig` */
-    private val cppFileConfig: CppFileConfig get() = super.fileConfig as CppFileConfig
-
-    /**
-     * Set the fileConfig field to point to the specified resource using the specified
-     * file-system access and context.
-     * @param resource The resource (Eclipse-speak for a file).
-     * @param fsa The Xtext abstraction for the file system.
-     * @param context The generator context (whatever that is).
-     */
-    override fun setFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
-        super.fileConfig = CppFileConfig(resource, fsa, context)
-        topLevelName = fileConfig.name
+        const val defaultRuntimeVersion = "6af18555b41a82ea811edb78799903f16ee6757f"
     }
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
         // stop if there are any errors found in the program by doGenerate() in GeneratorBase
-        if (generatorErrorsOccurred) return
+        if (errorsOccurred()) return
 
         // abort if there is no main reactor
         if (mainDef == null) {
@@ -77,7 +63,7 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
 
         generateFiles(fsa)
 
-        if (targetConfig.noCompile || generatorErrorsOccurred) {
+        if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
         } else {
             doCompile()
@@ -107,7 +93,7 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
 
         // generate header and source files for all reactors
         for (r in reactors) {
-            val generator = CppReactorGenerator(r, cppFileConfig)
+            val generator = CppReactorGenerator(r, cppFileConfig, errorReporter)
             val headerFile = cppFileConfig.getReactorHeaderPath(r)
             val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
             if (!r.isGeneric)
@@ -191,18 +177,18 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
                 println("Generated source code is in ${fileConfig.srcGenPath}")
                 println("Compiled binary is in ${fileConfig.binPath}")
             } else {
-                reportError("make failed with error code $makeReturnCode")
+                errorReporter.reportError("make failed with error code $makeReturnCode")
             }
         } else {
-            reportError("cmake failed with error code $cmakeReturnCode")
+            errorReporter.reportError("cmake failed with error code $cmakeReturnCode")
         }
     }
 
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
-     * @param the action to schedule
-     * @param the port to read from
+     * @param action the action to schedule
+     * @param port the port to read from
      */
     override fun generateDelayBody(action: Action, port: VarRef): String {
         // Since we cannot easily decide whether a given type evaluates
@@ -217,8 +203,8 @@ class CppGenerator(private val scopeProvider: LFGlobalScopeProvider) : Generator
     /**
      * Generate code for the body of a reaction that is triggered by the
      * given action and writes its value to the given port.
-     * @param the action that triggers the reaction
-     * @param the port to write to
+     * @param action the action that triggers the reaction
+     * @param port the port to write to
      */
     override fun generateForwardBody(action: Action, port: VarRef): String {
         // Since we cannot easily decide whether a given type evaluates

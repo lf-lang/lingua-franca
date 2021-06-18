@@ -37,51 +37,9 @@ import java.time.format.DateTimeFormatter
  * TODO Move these definitions to a common place and check if they are already implemented elsewhere
  */
 
-/** Get the LF Model of a resource */
-val Resource.model: Model get() = this.allContents.asSequence().filterIsInstance<Model>().first()
-
 /** Get the "name" a reaction is represented with in target code.*/
 val Reaction.name
     get(): String = "r$indexInContainer"
-
-/** Get a label representing the reaction.
- *
- * If the reactions is annotated with a label, then the label is returned. Otherwise, the reactions name is returned.
- */
-val Reaction.label get(): String = ASTUtils.label(this) ?: this.name
-
-/** Get the reactions priority */
-val Reaction.priority
-    get(): Int {
-        val r = this.eContainer() as Reactor
-        return r.reactions.lastIndexOf(this) + 1
-    }
-
-/** Return true if the given action is logical */
-val Action.isLogical get() = this.origin == ActionOrigin.LOGICAL
-
-/** Return true if the given action is physical */
-val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
-
-/**
- * Return true if the specified port is a multiport.
- * @receiver The port.
- * @return True if the port is a multiport.
- * TODO This is a duplicate of GeneratorBase.isMultiport
- */
-val Port.isMultiport get() = this.widthSpec != null
-
-/** Get the width of a port */
-val Port.width: Int get() = this.widthSpec?.getWidth() ?: -1
-
-/** Get the reactor that is instantiated in the receiving instantiation */
-val Instantiation.reactor get() = this.reactorClass.toDefinition()
-
-/** Check if the receiver is a bank instantiation */
-val Instantiation.isBank: Boolean get() = this.widthSpec != null
-
-/** Get the width of a bank instantiation */
-val Instantiation.width: Int get() = this.widthSpec?.getWidth() ?: -1
 
 /* **********************************************************************************************
  * C++ specific extensions shared across classes

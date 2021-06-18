@@ -38,17 +38,13 @@ import org.lflang.lf.VarRef
 /**
  * Generates Rust code.
  */
-class RustGenerator : GeneratorBase() {
-
-    override fun setFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
-        super.fileConfig = RustFileConfig(resource, fsa, context)
-    }
+class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : GeneratorBase(fileConfig, errorReporter) {
 
     override fun doGenerate(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) {
         super.doGenerate(resource, fsa, context)
 
         // stop if there are any errors found in the program by doGenerate() in GeneratorBase
-        if (generatorErrorsOccurred) return
+        if (errorsOccurred()) return
 
         // abort if there is no main reactor
         if (mainDef == null) {
@@ -59,7 +55,7 @@ class RustGenerator : GeneratorBase() {
         val gen = makeGenerationInfo(resource, fsa, context)
         RustEmitter.generateFiles(fileConfig as RustFileConfig, gen)
 
-        if (targetConfig.noCompile || generatorErrorsOccurred) {
+        if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
         } else {
             invokeRustCompiler()
@@ -128,7 +124,7 @@ class RustGenerator : GeneratorBase() {
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
         } else {
-            reportError("cargo failed with error code $cargoReturnCode")
+            errorReporter.reportError("cargo failed with error code $cargoReturnCode")
         }
     }
 
