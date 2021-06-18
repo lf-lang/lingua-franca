@@ -89,7 +89,7 @@ class CppAssembleMethodGenerator(
     }
 
     private fun setDeadline(reaction: Reaction): String =
-        "${reaction.name}.set_deadline(${reaction.deadline.delay.toTime()}, [this]() { ${reaction.name}_deadline_handler(); });"
+        "${reaction.name}.set_deadline(${reaction.deadline.delay.toTime(true)}, [this]() { ${reaction.name}_deadline_handler(); });"
 
     private fun assembleReaction(reaction: Reaction) = with(PrependOperator) {
         """

@@ -38,7 +38,6 @@ class CppReactionGenerator(
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
 
-
     private val VarRef.isContainedRef: Boolean get() = container != null
     private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
 
@@ -84,37 +83,49 @@ class CppReactionGenerator(
                 }
 
     private fun generateDeclaration(r: Reaction): String {
-        val parameters = r.allUncontainedTriggers.map { it.name } +
-                r.allUncontainedSources.map { it.name } +
-                r.allUncontainedEffects.map { it.name } +
-                r.allReferencedContainers.map {
-                    if (it.isReadOnly(r))
-                        "reinterpret_cast<const ${r.getViewName(it)}&>(*${it.name})"
-                    else
-                        "reinterpret_cast<${r.getViewName(it)}&>(*${it.name})"
-                }
-        return """
-            reactor::Reaction ${r.name}{"${r.label}", ${r.priority}, this, [this]() { 
-              __lf_inner.${r.name}_body(${parameters.joinToString(", ")});
-            }};
-        """.trimIndent()
+        with(r) {
+            val parameters = allUncontainedTriggers.map { it.name } +
+                    allUncontainedSources.map { it.name } +
+                    allUncontainedEffects.map { it.name } +
+                    allReferencedContainers.map {
+                        if (it.isReadOnly(r))
+                            "reinterpret_cast<const ${getViewName(it)}&>(*${it.name})"
+                        else
+                            "reinterpret_cast<${getViewName(it)}&>(*${it.name})"
+                    }
+            val body = "void ${name}_body() { __lf_inner.${name}_body(${parameters.joinToString(", ")}); }"
+            val deadlineHandler =
+                "void ${name}_deadline_handler() { __lf_inner.${name}_deadline_handler(${parameters.joinToString(", ")}); }"
+
+            return if (deadline == null)
+                """
+                    $body
+                    reactor::Reaction $name{"$label", $priority, this, [this]() { ${name}_body(); }}; 
+                """.trimIndent()
+            else
+                """
+                    $body
+                    $deadlineHandler
+                    reactor::Reaction $name{"$label", $priority, this, [this]() { ${name}_body(); }}; 
+                """.trimIndent()
+        }
     }
 
-    private fun generateBodyDeclaration(reaction: Reaction): String {
+    private fun generateFunctionDeclaration(reaction: Reaction, postfix: String): String {
         val params = reaction.getBodyParameters()
         return when (params.size) {
-            0    -> "void ${reaction.name}_body();"
-            1    -> "void ${reaction.name}_body(${params[0]});"
+            0    -> "void ${reaction.name}_$postfix();"
+            1    -> "void ${reaction.name}_$postfix(${params[0]});"
             else -> with(PrependOperator) {
                 """
-                    |void ${reaction.name}_body(
+                    |void ${reaction.name}_$postfix(
                 ${" |  "..params.joinToString(",\n")}); 
                 """.trimMargin()
             }
         }
     }
 
-    private fun getFunctionSignature(reaction: Reaction, postfix: String): String {
+    private fun getFunctionDefinitionSignature(reaction: Reaction, postfix: String): String {
         val params = reaction.getBodyParameters()
         return when (params.size) {
             0    -> "void ${reactor.templateName}::Inner::${reaction.name}_$postfix()"
@@ -134,7 +145,7 @@ class CppReactionGenerator(
             """
                 |// reaction ${reaction.label}
                 |${reactor.templateLine}
-            ${" |"..getFunctionSignature(reaction, "body")} {
+            ${" |"..getFunctionDefinitionSignature(reaction, "body")} {
             ${" |  "..reaction.code.toText()}
                 |}
                 |
@@ -146,7 +157,7 @@ class CppReactionGenerator(
         // TODO this doesn't work for banks
         return """
             |${reactor.templateLine}
-        ${" |"..getFunctionSignature(reaction, "deadline_handler")} {
+        ${" |"..getFunctionDefinitionSignature(reaction, "deadline_handler")} {
         ${" |  "..reaction.deadline.code.toText()}
             |}
             |
@@ -177,7 +188,9 @@ class CppReactionGenerator(
 
     /** Get all declarations of reaction bodies. */
     fun generateBodyDeclarations() =
-        reactor.reactions.joinToString("\n", "// reaction bodies\n", "\n") { generateBodyDeclaration(it) }
+        reactor.reactions.joinToString("\n", "// reaction bodies\n", "\n") {
+            generateFunctionDeclaration(it, "body")
+        }
 
     /** Get all definitions of reaction bodies. */
     fun generateBodyDefinitions() =
@@ -186,7 +199,7 @@ class CppReactionGenerator(
     /** Get all declarations of deadline handlers. */
     fun generateDeadlineHandlerDeclarations(): String =
         reactionsWithDeadlines.joinToString("\n", "// deadline handlers\n", "\n") {
-            "void ${it.name}_deadline_handler();"
+            generateFunctionDeclaration(it, "deadline_handler")
         }
 
     /** Get all definitions of deadline handlers. */
