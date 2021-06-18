@@ -28,8 +28,8 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.lflang.FileConfig
-import org.lflang.generator.cpp.name
 import org.lflang.lf.Reactor
+import org.lflang.name
 import java.io.Closeable
 import java.io.IOException
 import java.nio.file.Path
@@ -46,15 +46,10 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGene
         deleteDirectory(outPath.resolve("target"))
     }
 
-    /** Relative path to the directory where all source files for this resource should be generated in. */
-    private fun getGenDir(r: Resource): Path = getDirectory(r).resolve(r.name)
-
     inline fun emit(p: Path, f: Emitter.() -> Unit) = Emitter(p).use { it.f() }
+
     fun emit(pathRelativeToOutDir: String, f: Emitter.() -> Unit) = emit(srcGenPath.resolve(pathRelativeToOutDir), f)
 
-
-    /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
-    fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
 }
 
 class Emitter(

@@ -53,7 +53,6 @@ import org.lflang.lf.ImportedReactor
 import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
-import org.lflang.lf.LfPackage
 import org.lflang.lf.Output
 import org.lflang.lf.Parameter
 import org.lflang.lf.Port
@@ -82,24 +81,6 @@ class ASTUtils {
      * The Lingua Franca factory for creating new AST nodes.
      */
     public static val factory = LfFactory.eINSTANCE
-    
-    /**
-     * Make a Timer with name "startup" and default parameters.
-     */
-    static def makeStartupTimer() {
-        val startupTimer = factory.createTimer();
-        startupTimer.name = LfPackage.Literals.TRIGGER_REF__STARTUP.name;
-        return startupTimer;
-    }
-    
-    /**
-     * Make an Action with name "shutdown" and default parameters.
-     */
-    static def makeShutdownAction() {
-        val shutdownAction = factory.createAction();
-        shutdownAction.name = LfPackage.Literals.TRIGGER_REF__SHUTDOWN.name;
-        return shutdownAction;
-    }
     
     /**
      * Find connections in the given resource that have a delay associated with them, 
@@ -1339,7 +1320,7 @@ class ASTUtils {
                         // Indicate that the port is on the left.
                         leftOrRight = -1
                     } else {
-                        leftWidth += portWidth(leftPort, c)
+                        leftWidth += inferPortWidth(leftPort, c, instantiations)
                     }
                 }
                 for (rightPort : c.rightPorts) {
@@ -1350,7 +1331,7 @@ class ASTUtils {
                         // Indicate that the port is on the right.
                         leftOrRight = 1
                     } else {
-                        rightWidth += portWidth(rightPort, c)
+                        rightWidth += inferPortWidth(rightPort, c, instantiations)
                     }
                 }
                 if (leftOrRight < 0) {
@@ -1482,76 +1463,6 @@ class ASTUtils {
         }
         // Argument is not a port.
         return -1;
-    }
-
-    /**
-     * Return the width of the port reference if it can be determined
-     * and otherwise return -1.  The width can be determined if the
-     * port is not a multiport in a bank of reactors (the width will 1)
-     * or if the width of the multiport and/or the bank is given by a
-     * literal constant.
-     * 
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param reference A reference to a port.
-     * @return The width of a port or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int multiportWidthIfLiteral(VarRef reference) {
-        return inferPortWidth(reference, null, null);
-    }   
-    
-    /**
-     * Given the specification of the width of either a bank of reactors
-     * or a multiport, return the width if it can be determined and otherwise
-     * return -1. The width can be determined if it is given by one or more
-     * literal constants or if the widthSpec is null (it is not a multiport
-     * or reactor bank).
-     * 
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param widthSpec The width specification.
-     * 
-     * @return The width or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int width(WidthSpec widthSpec) {
-        return width(widthSpec, null);
-    }
-    
-    /**
-     * Calculate the width of a port reference in a connection.
-     * The width will be the product of the bank width and the multiport width,
-     * or 1 if the port is not in a bank and is not a multiport.
-     * This throws an exception if the width cannot be determined.
-     * The width cannot be determined if it depends on a parameter
-     * whose value cannot be determined because we are not given a
-     * specific instance of the port.
-     *
-     * IMPORTANT: This method should not be used you really need to
-     * determine the width! It will not evaluate parameter values.
-     * @see width(WidthSpec, List<Instantiation> instantiations)
-     * @see inferPortWidth(VarRef, Connection, List<Instantiation>)
-     * 
-     * @param reference A reference to a port.
-     * @param connection The connection.
-     * 
-     * @return The width of a port or -1 if it cannot be determined.
-     * @deprecated
-     */
-    def static int portWidth(VarRef reference, Connection connection) {
-        val result = inferPortWidth(reference, connection, null);
-        if (result < 0) {
-            throw new Exception("Cannot determine port width. " +
-                "Only multiport widths with literal integer values are supported for now.")
-        }
-        return result;
     }
     
     /**
@@ -1835,6 +1746,31 @@ class ASTUtils {
         if (main !== null && main.name.isNullOrEmpty) {
             main.name = name
         }
+    }
+    
+    /**
+     * Create a new instantiation node with the given reactor as its defining class.
+     * @param reactor The reactor class to create an instantiation of.
+     */
+    def static createInstantiation(Reactor reactor) {
+        val inst = LfFactory.eINSTANCE.createInstantiation
+        inst.reactorClass = reactor
+        // If the reactor is federated or at the top level, then it
+        // may not have a name. In the generator's doGenerate()
+        // method, the name gets set using setMainName().
+        // But this may be called before that, e.g. during
+        // diagram synthesis.  We assign a temporary name here.
+        if (reactor.name === null) {
+            if (reactor.isFederated || reactor.isMain) {
+                inst.setName("main")    
+            } else {
+                inst.setName("")
+            }
+            
+        } else {
+            inst.setName(reactor.name)
+        }
+        return inst
     }
     
 }

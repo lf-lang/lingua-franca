@@ -25,6 +25,8 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.isBank
+import org.lflang.isMultiport
 import org.lflang.lf.*
 import kotlin.math.ceil
 
@@ -35,7 +37,11 @@ import kotlin.math.ceil
  * responsible for declaring all triggers, dependencies and effects (antidependencies) of reactions.
  * It is also responsible for creating all connections within the reactor.
  */
-class CppAssembleMethodGenerator(private val reactor: Reactor) {
+class CppAssembleMethodGenerator(
+    private val reactor: Reactor,
+    private val portGenerator: CppPortGenerator,
+    private val instanceGenerator: CppInstanceGenerator,
+) {
 
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String {
         // check if the trigger is a multiport
@@ -78,7 +84,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             """.trimIndent()
         }
         // treat as single antidependency otherwise
-        return if (variable is Action) "${reaction.name}.declare_scheduable_action(&${antidependency.name});"
+        return if (variable is Action) "${reaction.name}.declare_schedulable_action(&${antidependency.name});"
         else "${reaction.name}.declare_antidependency(&${antidependency.name});"
     }
 
@@ -93,30 +99,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         ${" |"..reaction.effects.joinToString(separator = "\n") { declareAntidependency(reaction, it) }}
         ${" |"..if (reaction.deadline != null) setDeadline(reaction) else ""}
         """.trimMargin()
-    }
-
-    private fun Port.getValidWidth(): Int {
-        if (width < 0) {
-            // TODO Support parameterized widths
-            // TODO Properly report the error
-            throw RuntimeException(
-                "Cannot determine port width. " +
-                        "Only multiport widths with literal integer values are supported for now."
-            )
-        }
-        return width
-    }
-
-    private fun Instantiation.getValidWidth(): Int {
-        if (width < 0) {
-            // TODO Support parameterized widths
-            // TODO Properly report the error
-            throw RuntimeException(
-                "Cannot determine port width. " +
-                        "Only multiport widths with literal integer values are supported for now."
-            )
-        }
-        return width
     }
 
     /** A data class for holding all information that is relevant for reverencing one specific port
@@ -150,8 +132,12 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         for (ref in references) {
             val container = ref.container
             val port = ref.variable as Port
-            val bankIndexes = if (container?.isBank == true) (0 until container.getValidWidth()) else listOf<Int?>(null)
-            val portIndexes = if (port.isMultiport) (0 until port.getValidWidth()) else listOf<Int?>(null)
+            val bankIndexes =
+                if (container?.isBank == true) with(instanceGenerator) { (0 until container.getValidWidth()) }
+                else listOf<Int?>(null)
+            val portIndexes =
+                if (port.isMultiport) with(portGenerator) { (0 until port.getValidWidth()) }
+                else listOf<Int?>(null)
             // calculate the Cartesian product af both index lists defined above
             // TODO iterate over banks or ports first?
             val indexPairs = portIndexes.flatMap { portIdx -> bankIndexes.map { bankIdx -> portIdx to bankIdx } }

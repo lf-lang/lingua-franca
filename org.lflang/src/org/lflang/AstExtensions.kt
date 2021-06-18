@@ -25,6 +25,8 @@
 package org.lflang
 
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.generator.cpp.name
 import org.lflang.lf.*
 
 /**
@@ -320,8 +322,8 @@ val StateVar.isInitialized: Boolean get() = (this.parens.size == 2)
  * If there are parameter references in the width, they are
  * evaluated to the extent possible given the instantiations list.
  *
- * The instantiations list is as in
- * {@link initialValue(Parameter, List<Instantiation>}.
+ * The [instantiations] list is as in
+ * [ASTUtils.initialValue]
  * If the spec belongs to an instantiation (for a bank of reactors),
  * then the first element on this list should be the instantiation
  * that contains this instantiation. If the spec belongs to a port,
@@ -337,6 +339,40 @@ val StateVar.isInitialized: Boolean get() = (this.parens.size == 2)
  */
 fun WidthSpec.getWidth(instantiations: List<Instantiation>? = null) = ASTUtils.width(this, instantiations)
 
+/** Get the LF Model of a resource */
+val Resource.model: Model get() = this.allContents.asSequence().filterIsInstance<Model>().first()
+
+/** Get a label representing the receiving reaction.
+ *
+ * If the reaction is annotated with a label, then the label is returned. Otherwise, a reaction name
+ * is generated based on its priority.
+ */
+val Reaction.label get(): String = ASTUtils.label(this) ?: "reaction_$priority"
+
+/** Get the priority of a receiving reaction */
+val Reaction.priority
+    get(): Int {
+        val r = this.eContainer() as Reactor
+        return r.reactions.lastIndexOf(this) + 1
+    }
+
+/** Return true if the receiving action is logical */
+val Action.isLogical get() = this.origin == ActionOrigin.LOGICAL
+
+/** Return true if the receiving action is physical */
+val Action.isPhysical get() = this.origin == ActionOrigin.PHYSICAL
+
+/**
+ * Return true if the receiving is a multiport.
+ * FIXME This is a duplicate of GeneratorBase.isMultiport
+ */
+val Port.isMultiport get() = this.widthSpec != null
+
+/** Get the reactor that is instantiated in the receiving instantiation. */
+val Instantiation.reactor get() = this.reactorClass.toDefinition()
+
+/** Check if the receiver is a bank instantiation. */
+val Instantiation.isBank: Boolean get() = this.widthSpec != null
 
 
 /** The index of a reaction in its containing reactor. */

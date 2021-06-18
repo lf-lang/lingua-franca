@@ -36,6 +36,7 @@ import java.util.regex.Pattern
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.lflang.ErrorReporter
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.lf.Action
@@ -54,6 +55,7 @@ import org.lflang.lf.Value
 import org.lflang.lf.VarRef
 
 import static extension org.lflang.ASTUtils.*
+import org.lflang.FileConfig
 
 /** 
  * Generator for Python target. This class generates Python code defining each reactor
@@ -75,8 +77,8 @@ class PythonGenerator extends CGenerator {
     // Used to add module requirements to setup.py (delimited with ,)
     var pythonRequiredModules = new StringBuilder()
 
-    new() {
-        super()
+    new(FileConfig fileConfig, ErrorReporter errorReporter) {
+        super(fileConfig, errorReporter)
         // set defaults
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags = newArrayList // -Wall -Wconversion"
@@ -717,7 +719,7 @@ class PythonGenerator extends CGenerator {
         if (executeCommand(installCmd) == 0) {
             println("Successfully installed python extension.")
         } else {
-            reportError("Failed to install python extension.")
+            errorReporter.reportError("Failed to install python extension.")
         }
     }
     
@@ -853,7 +855,7 @@ class PythonGenerator extends CGenerator {
         if (returnCode == 0) {
             pythonRequiredModules.append(''', 'google-api-python-client' ''')
         } else {
-            reportError("protoc returns error code " + returnCode)
+            errorReporter.reportError("protoc returns error code " + returnCode)
         }
     }
     
@@ -957,7 +959,7 @@ class PythonGenerator extends CGenerator {
 
         super.doGenerate(resource, fsa, context)
 
-        if (generatorErrorsOccurred) return;
+        if (errorsOccurred) return;
 
         var baseFileName = topLevelName
         for (federate : federates) {
@@ -1189,7 +1191,7 @@ class PythonGenerator extends CGenerator {
         fOut.write(shCode.toString().getBytes())
         fOut.close()
         if (!file.setExecutable(true, false)) {
-            reportWarning(null, "Unable to make launcher script executable.")
+            errorReporter.reportWarning("Unable to make launcher script executable.")
         }
         
         // Write the distributor file.
@@ -1203,7 +1205,7 @@ class PythonGenerator extends CGenerator {
             fOut.write(distCode.toString().getBytes())
             fOut.close()
             if (!file.setExecutable(true, false)) {
-                reportWarning(null, "Unable to make distributor script executable.")
+                errorReporter.reportWarning("Unable to make distributor script executable.")
             }
         }
     }
@@ -1365,7 +1367,7 @@ class PythonGenerator extends CGenerator {
                         // It is the input of a contained reactor.
                         generateVariablesForSendingToContainedReactors(pyObjectDescriptor, pyObjects, effect.container, effect.variable as Input, decl)                
                     } else {
-                        reportError(
+                        errorReporter.reportError(
                             reaction,
                             "In generateReaction(): " + effect.variable.name + " is neither an input nor an output."
                         )
@@ -1460,7 +1462,7 @@ class PythonGenerator extends CGenerator {
             // Check for targetBankIndex
             // FIXME: for now throw a reserved error
             if (parameter.name.equals(targetBankIndex)) {
-                reportError('''«targetBankIndex» is reserved.''')
+                errorReporter.reportError('''«targetBankIndex» is reserved.''')
             }
 
             prSourceLineNumber(builder, parameter)
