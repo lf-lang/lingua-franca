@@ -50,7 +50,7 @@ class CppReactionGenerator(
     private fun Reaction.getAllReferencedVariablesForContainer(container: Instantiation) =
         allVariableReferences.filter { it.container == container }.distinct()
 
-    private fun Instantiation.isReadOnly(r: Reaction) = r.allReferencedContainers.any { it == this }
+    private fun Instantiation.isReadOnly(r: Reaction) = r.effects.none { it.container == this }
 
     private fun Reaction.getViewName(container: Instantiation) = "View_of_${name}_on_${container.name}"
 
