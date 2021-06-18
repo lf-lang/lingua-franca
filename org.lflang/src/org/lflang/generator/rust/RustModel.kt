@@ -77,7 +77,7 @@ data class CrateInfo(
 )
 
 data class RuntimeInfo(
-    val toml_spec: String,
+    val local_crate_path: String
     // options, etc
 )
 

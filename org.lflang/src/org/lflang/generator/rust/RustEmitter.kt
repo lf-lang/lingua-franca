@@ -118,12 +118,11 @@ ${"             |            "..reactionWrappers(reactor)}
 
     private fun Emitter.makeMainFile(gen: GenerationInfo) {
         this += """
-            |
             |fn main() {
             |
             |
             |}
-        """.trimIndent()
+        """.trimMargin()
     }
 
     private fun Emitter.makeCargoFile(gen: GenerationInfo) {
@@ -137,9 +136,9 @@ ${"             |            "..reactionWrappers(reactor)}
 
             |# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-            |[dependencies]
-            |reactor-rust = { ${runtime.toml_spec} }
-        """
+            |[dependencies.reactor-rust]
+            |path = "${runtime.local_crate_path}"
+        """.trimMargin()
     }
 
 

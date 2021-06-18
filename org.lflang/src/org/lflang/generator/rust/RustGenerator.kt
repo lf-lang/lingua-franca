@@ -52,6 +52,8 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
             return
         }
 
+        FileConfig.createDirectories(fileConfig.srcGenPath)
+
         val gen = makeGenerationInfo(resource, fsa, context)
         RustEmitter.generateFiles(fileConfig as RustFileConfig, gen)
 
@@ -95,22 +97,14 @@ class RustGenerator(fileConfig: RustFileConfig, errorReporter: ErrorReporter) : 
 
     private fun makeRuntimeInfo(): RuntimeInfo {
         // fixme
-        return RuntimeInfo("path: \"/home/clem/.eclipse/lingua-franca/git/lingua-franca/org.lflang/src/lib/Rust/reactor-rust\"")
+        return RuntimeInfo(local_crate_path = "/home/clem/Documents/Cours/rust-reactors")
     }
 
 
     private fun invokeRustCompiler() {
-        // let's assume we use cargo
-        val outPath = fileConfig.outPath
-
-        val buildPath = outPath.resolve("build").resolve(topLevelName)
-
-        // make sure the build directory exists
-        FileConfig.createDirectories(buildPath)
-
         val cargoBuilder = createCommand(
             "cargo", listOf("build"),
-            outPath,
+            fileConfig.srcGenPath,
             "The Rust target requires Cargo in the path. " +
                     "Auto-compiling can be disabled using the \"no-compile: true\" target property.",
             true
