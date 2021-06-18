@@ -79,7 +79,7 @@ class CppConstructorGenerator(
                 """
                     |Inner(
                     |  reactor::Reactor* reactor,
-                ${" |  "..args.joinToString { ",\n" }})
+                ${" |  "..args.joinToString(",\n")})
                 """.trimMargin()
             }
         }
