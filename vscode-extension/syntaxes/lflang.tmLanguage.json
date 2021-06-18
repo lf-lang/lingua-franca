@@ -56,6 +56,18 @@
                 },
                 {
                     "include": "#preamble"
+                },
+                {
+                    "include": "#input-output"
+                },
+                {
+                    "include": "#action"
+                },
+                {
+                    "include": "#state"
+                },
+                {
+                    "include": "#type"
                 }
             ]
         },
@@ -193,6 +205,42 @@
                 {
                     "name": "keyword.control.lflang",
                     "match": "\\b(preamble)\\b"
+                }
+            ]
+        },
+        "input-output": {
+            "patterns": [
+                {
+                    "name": "storage.modifier.lflang",
+                    "match": "\\b(input|output|mutable)\\b"
+                }
+            ]
+        },
+        "action": {
+            "patterns": [
+                {
+                    "name": "storage.modifier.lflang",
+                    "match": "\\b(logical|physical)\\b"
+                },
+                {
+                    "name": "storage.modifier.lflang",
+                    "match": "\\b(action)\\b"
+                }
+            ]
+        },
+        "state": {
+            "patterns": [
+                {
+                    "name": "storage.modifier.lflang",
+                    "match": "\\b(state)\\b"
+                }
+            ]
+        },
+        "type": {
+            "patterns": [
+                {
+                    "name": "storage.type.lflang",
+                    "match": "(?<=(input|output|action|state).*:(\\s*))(\\b(\\w*)\\b)"
                 }
             ]
         }
