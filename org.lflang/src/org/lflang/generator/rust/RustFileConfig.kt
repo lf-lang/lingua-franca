@@ -32,7 +32,10 @@ import org.lflang.lf.Reactor
 import org.lflang.name
 import java.io.Closeable
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.OpenOption
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 
 class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGeneratorContext) :
     FileConfig(resource, fsa, context) {
@@ -50,6 +53,8 @@ class RustFileConfig(resource: Resource, fsa: IFileSystemAccess2, context: IGene
 
     fun emit(pathRelativeToOutDir: String, f: Emitter.() -> Unit) = emit(srcGenPath.resolve(pathRelativeToOutDir), f)
 
+    val srcGenRoot: Path get() = srcGenPath
+
 }
 
 class Emitter(
@@ -63,9 +68,11 @@ class Emitter(
     }
 
     override fun close() {
-        output.toFile().bufferedWriter().use {
-            it.write(sb.toString())
-        }
+        Files.createDirectories(output.parent)
+        Files.newBufferedWriter(output, StandardOpenOption.CREATE)
+            .use {
+                it.write(sb.toString())
+            }
     }
 }
 
