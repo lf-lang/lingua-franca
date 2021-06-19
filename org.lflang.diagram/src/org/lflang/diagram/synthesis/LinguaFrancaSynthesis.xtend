@@ -351,7 +351,7 @@ class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 				comps.figures.forEach[associateWith(reactor)]
 				comps.outer.setProperty(KlighdProperties.COLLAPSED_RENDERING, true)
 				if (instance.hasContent && !instance.recursive) {
-					comps.figures.forEach[addDoubleClickAction(MEM_EXPAND_COLLAPSE_ACTION_ID)]
+					comps.figures.forEach[addDoubleClickAction(MemorizingExpandCollapseAction.ID)]
 				}
 				comps.reactor.handleIcon(reactor, true)
 
