@@ -181,13 +181,27 @@
         },
         "linecomment": {
             "name": "comment.line.double-dash.lflang",
-            "begin": "(^[ \\t]+)?(?=//)",
+            "begin": "(^[ \\t]+)?(?=//|#)",
             "end": "(?=$)"
         },
         "blockcomment": {
-            "name": "comment.block.lflang",
-            "begin": "/\\*(\\*)?(?!/)",
-            "end": "\\*/"
+            "patterns": [
+                {
+                    "name": "comment.block.lflang",
+                    "begin": "/\\*(\\*)?(?!/)",
+                    "end": "\\*/"
+                },
+                {
+                    "name": "comment.block.lflang",
+                    "begin": "\"\"\"",
+                    "end": "\"\"\""
+                },
+                {
+                    "name": "comment.block.lflang",
+                    "begin": "'''",
+                    "end": "'''"
+                }
+            ]
         },
         "reactor-declaration": {
             "patterns": [
