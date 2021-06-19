@@ -77,6 +77,9 @@
                 },
                 {
                     "include": "#boolean"
+                },
+                {
+                    "include": "#time-units"
                 }
             ]
         },
@@ -296,6 +299,10 @@
                     "match": "\\b(true|false)\\b"
                 }
             ]
+        },
+        "time-units": {
+            "name": "support.constant.lflang",
+            "match": "\\b(nsec|nsecs|usec|usecs|msec|msecs|sec|secs|second|seconds|min|mins|minute|minutes|hour|hours|day|days|week|weeks)\\b"
         }
     },
     "patterns": [
