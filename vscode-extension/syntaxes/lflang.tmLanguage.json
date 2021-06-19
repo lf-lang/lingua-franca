@@ -67,6 +67,9 @@
                     "include": "#state"
                 },
                 {
+                    "include": "#timer"
+                },
+                {
                     "include": "#type"
                 },
                 {
@@ -79,7 +82,25 @@
                     "include": "#boolean"
                 },
                 {
-                    "include": "#time-units"
+                    "include": "#time-unit"
+                },
+                {
+                    "include": "#operator"
+                },
+                {
+                    "include": "#startup-shutdown"
+                },
+                {
+                    "include": "#time"
+                },
+                {
+                    "include": "#deadline"
+                },
+                {
+                    "include": "#instantiation"
+                },
+                {
+                    "include": "#after"
                 }
             ]
         },
@@ -231,6 +252,10 @@
                 {
                     "name": "keyword.control.lflang",
                     "match": "\\b(preamble)\\b"
+                },
+                {
+                    "name": "keyword.control.lflang",
+                    "match": "\\b(private|public)\\b"
                 }
             ]
         },
@@ -255,28 +280,20 @@
             ]
         },
         "state": {
-            "patterns": [
-                {
-                    "name": "storage.modifier.lflang",
-                    "match": "\\b(state)\\b"
-                }
-            ]
+            "name": "storage.modifier.lflang",
+            "match": "\\b(state)\\b"
+        },
+        "timer": {
+            "name": "storage.modifier.lflang",
+            "match": "\\b(timer)\\b"
         },
         "type": {
-            "patterns": [
-                {
-                    "name": "storage.type.lflang",
-                    "match": "(?<=(input|output|action|state).*:(\\s*))(\\b(\\w*)\\b)"
-                }
-            ]
+            "name": "storage.type.lflang",
+            "match": "(?<=(input|output|action|state|timer).*:(\\s*))(\\b(\\w*)\\b)"
         },
         "number": {
-            "patterns": [
-                {
-                    "name": "constant.numeric.lflang",
-                    "match": "(?<!\\w)(\\-?\\d+)(.\\d+)?\\b"
-                }
-            ]
+            "name": "constant.numeric.lflang",
+            "match": "(?<!\\w)(\\-?\\d+)(.\\d+)?\\b"
         },
         "string": {
             "patterns": [
@@ -293,16 +310,48 @@
             ]
         },
         "boolean": {
+            "name": "constant.language.lflang",
+            "match": "\\b(true|false)\\b"
+        },
+        "time-unit": {
+            "name": "support.constant.lflang",
+            "match": "\\b(nsec|nsecs|usec|usecs|msec|msecs|sec|secs|second|seconds|min|mins|minute|minutes|hour|hours|day|days|week|weeks)\\b"
+        },
+        "operator": {
+            "name": "keyword.operator.lflang",
+            "match": "->|\\+|-|\\*|/|=|%|@"
+        },
+        "startup-shutdown": {
+            "name": "support.variable.lflang",
+            "match": "\\b(startup|shutdown)\\b"
+        },
+        "time": {
+            "name": "storage.type.lflang",
+            "match": "\\b(time)\\b"
+        },
+        "deadline": {
+            "name": "keyword.control.lflang",
+            "match": "\\b(deadline)\\b"
+        },
+        "instantiation": {
             "patterns": [
                 {
-                    "name": "constant.language.lflang",
-                    "match": "\\b(true|false)\\b"
+                    "name": "keyword.control.new.lflang",
+                    "match": "\\b(new)\\b"
+                },
+                {
+                    "name": "variable.other.lflang",
+                    "match": "\\b(\\w+)(?=\\s*=\\s*new\\b)"
+                },
+                {
+                    "name": "entity.name.type.lflang",
+                    "match": "(?<=\\s*=\\s*new\\s+)\\w+\\b"
                 }
             ]
         },
-        "time-units": {
-            "name": "support.constant.lflang",
-            "match": "\\b(nsec|nsecs|usec|usecs|msec|msecs|sec|secs|second|seconds|min|mins|minute|minutes|hour|hours|day|days|week|weeks)\\b"
+        "after": {
+            "name": "keyword.control.lflang",
+            "match": "\\b(after)\\b"
         }
     },
     "patterns": [
