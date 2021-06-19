@@ -76,7 +76,7 @@
                     "include": "#string"
                 },
                 {
-                    "include": "#array"
+                    "include": "#boolean"
                 }
             ]
         },
@@ -263,10 +263,24 @@
         },
         "string": {
             "patterns": [
+                {
+                    "name": "string.quoted.double.lflang",
+                    "begin": "\"",
+                    "end": "(?<=(\\\\.|[^\"\\\\])*)\""
+                },
+                {
+                    "name": "string.quoted.single.lflang",
+                    "begin": "'",
+                    "end": "(?<=(\\\\.|[^'\\\\])*)'"
+                }
             ]
         },
-        "array": {
+        "boolean": {
             "patterns": [
+                {
+                    "name": "constant.language.lflang",
+                    "match": "\\b(true|false)\\b"
+                }
             ]
         }
     },
