@@ -50,6 +50,13 @@
                 "path": "./syntaxes/lflang.tmLanguage.json"
             }
         ],
+        "semanticTokenScopes": [
+            {
+                "scopes": {
+                    "type": ["storage.type.lflang"]
+                }
+            }
+        ],
         "commands": [],
         "DISABLED menus": {
             "editor/title": [
