@@ -5,8 +5,10 @@ import * as os from 'os';
 import * as fs from 'fs';
 
 import { Trace } from 'vscode-jsonrpc';
-import { commands, window, workspace, ExtensionContext, Uri } from 'vscode';
+import { commands, window, workspace, ExtensionContext, Uri, languages } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions } from 'vscode-languageclient';
+import { legend, semanticTokensProvider } from './highlight';
+
 
 let client: LanguageClient;
 
@@ -65,6 +67,12 @@ export async function activate(context: ExtensionContext) {
     }
 
     client.start();
+
+    context.subscriptions.push(languages.registerDocumentSemanticTokensProvider(
+        { language: 'lflang', scheme: 'file' },
+        semanticTokensProvider,
+        legend
+    ));
 }
 
 function createDebugEnv() {
