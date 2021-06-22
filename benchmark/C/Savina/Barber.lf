@@ -7,9 +7,10 @@
  * and send a `cut` message upon arrival. If the barber is 
  * sleeping, the customer get served right away, else the
  * barber either sent a `wait` message to sit in the waiting 
- * room or `full` message if all chairs are full. Customers
- * sent a `finish` message and leave upon receiving either
- * a `done` or `full` message from the barber.  
+ * room or `full` message if all chairs are full. When received
+ * a `full` message, customer leaves and retries latter. 
+ * Customers sent a `finish` message and leave upon receiving
+ * a `done` message from the barber.  
  */
  
 target C {
@@ -117,26 +118,32 @@ reactor SleepingBarber(
     =}
 }
 
-reactor Customer(instance:int(0)){
+reactor Customer(instance:int(0),retry_time:time(2sec)){
     input start:bool;
     input done:bool; 
     input wait:bool;
     input full:bool;
     
+    logical action enter;
+    
     output cut:bool;
     output finish:bool;
     
-    reaction(start) -> cut {=
+    reaction(start) -> enter {=
         self->instance = self->bank_index;
+        schedule(enter,0);
+        
+    =}
+    reaction(enter) -> cut{=
         SET(cut,true);
         printf("Customer %d arrived.\n", self->instance);
     =}
     reaction(wait){=
         printf("Customer %d is in the wait room.\n", self->instance);
     =}
-    reaction(full) -> finish {=
-        SET(finish,true);
+    reaction(full) -> enter {=
         printf("Waiting room full customer %d left.\n", self->instance);
+        schedule(enter,self->retry_time);
     =}
     reaction(done) -> finish {=
         SET(finish,true);
