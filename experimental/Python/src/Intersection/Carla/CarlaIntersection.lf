@@ -201,17 +201,23 @@ reactor Ticker (interval(16 msec)){
     
         self.world.set_weather(weather)
         
+        # Set the spectator (camera) position
         transform = carla.Transform(carla.Location(x=-126.163864, y=3, z=67), \
             carla.Rotation(pitch=-90, yaw=-180, roll=0))
         self.world.get_spectator().set_transform(transform)
         
+        # Send the world to Carla interface reactors
         world.set(self.world)
     =}
     timer t(1 nsec, interval);
     reaction(t) -> tick {=
         # print("Ticking")
+        
+        # Synchronous client mode
         self.world.tick()
-        # self.world.wait_for_tick()
+        
+        # self.world.wait_for_tick() # Use this instead for asynchronous client mode
+        
         tick.set(True)
     =}
 }
@@ -249,7 +255,7 @@ main reactor (
     ticker = new Ticker();
     carla = new[num_entries] Carla(
         vehicle_name = "ego_vehicle", 
-        positions = positions, 
+        positions = positions,
         spawn_point = {=lambda self: self.positions[self.bank_index]=},
         initial_speeds = initial_speeds,
         initial_speed = {=lambda self: self.initial_speeds[self.bank_index]=}
