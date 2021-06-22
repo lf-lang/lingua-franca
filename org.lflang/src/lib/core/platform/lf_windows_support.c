@@ -35,6 +35,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <windows.h>
 #include <process.h>
+#include <errno.h>
 #include "lf_windows_support.h"
 #include "../platform.h"
 
@@ -266,10 +267,15 @@ int lf_cond_timedwait(_lf_cond_t* cond, _lf_critical_section_t* critical_section
  * nanoseconds since January 1st, 1970.
  *
  * @return 0 for success, or -1 for failure. In case of failure, errno will be
- *  set to EINVAL.
+ *  set to EINVAL or EFAULT.
  */
-int lf_clock_gettime(_lf_time_spec_t* tp) {
+int lf_clock_gettime(instant_t* t) {
     int result = -1;
+    if (t == NULL) {
+        // The t argument address references invalid memory
+        errno = EFAULT;
+        return result;
+    }
     int days_from_1601_to_1970 = 134774 /* there were no leap seconds during this time, so life is easy */;
     long long timestamp, counts, counts_per_sec;
     switch (_LF_CLOCK) {
@@ -277,15 +283,13 @@ int lf_clock_gettime(_lf_time_spec_t* tp) {
             NtQuerySystemTime((PLARGE_INTEGER)&timestamp);
             timestamp -= days_from_1601_to_1970 * 24LL * 60 * 60 * 1000 * 1000 * 10;
             timestamp += _lf_epoch_offset;
-            tp->tv_sec = (time_t)(timestamp / (BILLION / 100));
-            tp->tv_nsec = (long)((timestamp % (BILLION / 100)) * 100);
+            *t = timestamp;
             result = 0;
             break;
         case CLOCK_MONOTONIC:
             if ((*NtQueryPerformanceCounter)((PLARGE_INTEGER)&counts, (PLARGE_INTEGER)&counts_per_sec) == 0) {
                 counts += _lf_epoch_offset;
-                tp->tv_sec = counts / counts_per_sec;
-                tp->tv_nsec = (long)((counts % counts_per_sec) * BILLION / counts_per_sec);
+                *t = counts;
                 result = 0;
             } else {
                 errno = EINVAL;

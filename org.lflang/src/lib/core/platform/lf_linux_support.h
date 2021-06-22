@@ -40,7 +40,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-typedef struct timespec _lf_time_spec_t;
 typedef int _lf_clock_t;
 
 /**
