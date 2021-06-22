@@ -63,7 +63,6 @@ typedef HANDLE _lf_thread_t;
 #endif
 #endif
 
-typedef struct timespec _lf_time_spec_t;
 typedef int _lf_clock_t;
 
 /**

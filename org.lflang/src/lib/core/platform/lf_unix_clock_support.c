@@ -1,5 +1,6 @@
 
 #include <time.h>
+#include <errno.h>
 
 /**
  * Offset to _LF_CLOCK that would convert it
@@ -16,7 +17,7 @@ interval_t _lf_epoch_offset = 0LL;
  *
  * @return nanoseconds (long long).
  */
-instant_t convert_timespec_to_ns(_lf_time_spec_t tp) {
+instant_t convert_timespec_to_ns(struct timespec tp) {
     return tp.tv_sec * 1000000000 + tp.tv_nsec;
 }
 
@@ -26,8 +27,8 @@ instant_t convert_timespec_to_ns(_lf_time_spec_t tp) {
  *
  * @return _lf_time_spec_t representation of 't'.
  */
-_lf_time_spec_t convert_ns_to_timespec(instant_t t) {
-    _lf_time_spec_t tp;
+struct timespec convert_ns_to_timespec(instant_t t) {
+    struct timespec tp;
     tp.tv_sec = t / 1000000000;
     tp.tv_nsec = (t % 1000000000);
     return tp;
@@ -67,18 +68,21 @@ void lf_initialize_clock() {
 
 /**
  * Fetch the value of _LF_CLOCK (see lf_linux_support.h) and store it in tp. The
- * timestamp value in 'tp' will always be epoch time, which is the number of
+ * timestamp value in 't' will always be epoch time, which is the number of
  * nanoseconds since January 1st, 1970.
  *
  * @return 0 for success, or -1 for failure. In case of failure, errno will be
  *  set appropriately (see `man 2 clock_gettime`).
  */
-int lf_clock_gettime(_lf_time_spec_t* tp) {
+int lf_clock_gettime(instant_t* t) {
+    struct timespec tp;
     // Adjust the clock by the epoch offset, so epoch time is always reported.
-    int return_value = clock_gettime(_LF_CLOCK, (struct timespec*) tp);
+    int return_value = clock_gettime(_LF_CLOCK, (struct timespec*) &tp);
     if (return_value < 0) {
-        return return_value;
+        return -1;
     }
+
+    instant_t tp_in_ns = convert_timespec_to_ns(tp);
 
     // We need to apply the epoch offset if it is not zero
     if (_lf_epoch_offset != 0) {
@@ -86,9 +90,15 @@ int lf_clock_gettime(_lf_time_spec_t* tp) {
         // add the epoch offset, and then convert back to _lf_time_spec_t. The
         // reason is simply to account for overflows from tv_nsec to tv_sec when
         // applying the offset.
-        instant_t tp_in_ns = convert_timespec_to_ns(*tp);
         tp_in_ns += _lf_epoch_offset;
-        *tp = convert_ns_to_timespec(tp_in_ns);
     }
+    
+    if (t == NULL) {
+        // The t argument address references invalid memory
+        errno = EFAULT;
+        return -1;
+    }
+
+    *t = tp_in_ns;
     return return_value;
 }

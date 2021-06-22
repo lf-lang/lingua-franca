@@ -62,7 +62,6 @@ typedef _lf_cond_t lf_cond_t;            // Type to hold handle to a condition v
 typedef _lf_thread_t lf_thread_t;        // Type to hold handle to a thread
 #endif
 
-typedef _lf_time_spec_t lf_time_spec_t;  // Type to hold time in a traditional {second, nanosecond} POSIX format
 typedef _lf_clock_t lf_clock_t;          // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
 
 /**
@@ -170,20 +169,20 @@ extern void lf_initialize_clock();
 
 /**
  * Fetch the value of an internal (and platform-specific) physical clock and 
- * store it in `tp`.
+ * store it in `t`.
  * 
  * Ideally, the underlying platform clock should be monotonic. However, the
  * core lib tries to enforce monotonicity at higher level APIs (see tag.h).
  * 
  * @return 0 for success, or -1 for failure
  */
-extern int lf_clock_gettime(lf_time_spec_t* tp);
+extern int lf_clock_gettime(instant_t* t);
 
 /**
  * Pause execution for a number of nanoseconds.
  * 
  * @return 0 for success, or -1 for failure.
  */
-extern int lf_nanosleep(const lf_time_spec_t* requested_time, lf_time_spec_t* remaining);
+extern int lf_nanosleep(instant_t requested_time);
 
 #endif // PLATFORM_H

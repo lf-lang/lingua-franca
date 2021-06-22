@@ -52,6 +52,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @return 0 for success, or -1 for failure. In case of failure, errno will be
  *  set appropriately (see `man 2 clock_nanosleep`).
  */
-int lf_nanosleep(const _lf_time_spec_t* requested_time, _lf_time_spec_t* remaining) {
-    return clock_nanosleep(_LF_CLOCK, 0, (const struct timespec*)requested_time, (struct timespec*)remaining);
+int lf_nanosleep(instant_t requested_time) {
+    const struct timespec tp = convert_ns_to_timespec(requested_time);
+    struct timespec remaining;
+    return clock_nanosleep(_LF_CLOCK, 0, (const struct timespec*)&tp, (struct timespec*)&remaining);
 }

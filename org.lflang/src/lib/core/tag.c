@@ -184,9 +184,7 @@ instant_t _lf_last_reported_unadjusted_physical_time_ns = NEVER;
  */
 instant_t get_physical_time() {
     // Get the current clock value
-    lf_time_spec_t physicalTime;
-    lf_clock_gettime(&physicalTime);
-    _lf_last_reported_unadjusted_physical_time_ns = (physicalTime.tv_sec * BILLION + physicalTime.tv_nsec);
+    lf_clock_gettime(&_lf_last_reported_unadjusted_physical_time_ns);
     
     // Adjust the reported clock with the appropriate offsets
     instant_t adjusted_clock_ns = _lf_last_reported_unadjusted_physical_time_ns
