@@ -59,9 +59,9 @@ reactor SleepingBarber(
 
     logical action done_cutting;
     logical action check_waitingroom;
+    logical action customers_arrive:int; // schedule customer arrival
     
-    
-    reaction(startup)-> customers_start {=
+    reaction(startup)-> customers_arrive {=
         self->chairs = calloc(self->num_chairs, sizeof(int));
         for (int i=0; i < self->num_chairs; i++){
             self->chairs[i] = -1;
@@ -69,16 +69,20 @@ reactor SleepingBarber(
         self->customer_served = 0;
         self->sleep = true;
     	self->customerID = -1;
-        //TODO: schedule random customer arrivals
+        // Schedule random customer arrivals
+        srand(0);
         for(int i = 0; i < self->num_customers; i++) {
-			SET(customers_start[i], true);
-			printf("Customer %d arrived.\n", i);
+			schedule_int(customers_arrive,rand()%(self->num_customers),i);
     	}
     =}
     
+    reaction(customers_arrive) -> customers_start {=
+        int i = customers_arrive->value;
+        SET(customers_start[i], true);
+    =}
     reaction(cut) -> done_cutting, wait, full {=
         for (int i = 0; i < self->num_customers; i++){
-            if (cut[i]){
+            if (cut[i]->is_present){
         		if (self->sleep){
             		self->sleep = false;
             		printf("*********** Barber wakes up at %lld\n", get_elapsed_logical_time());
@@ -86,17 +90,15 @@ reactor SleepingBarber(
             		self->customerID = i;
         		} else if (put_customer(self->chairs, self->num_chairs,i)){
             		SET(wait[i],true);
-            		printf("Customer %d is in the wait room.\n", i);
         		} else {
             		SET(full[i],true);
-            		printf("Waiting room full customer %d left.\n", i);
         		}
         	}
         }
     =}
     
     reaction(done_cutting)->check_waitingroom, done {=
-        printf("Barber is serving customer %d.\n", self->customerID);
+        printf("Barber is done serving customer %d.\n", self->customerID);
         SET(done[self->customerID],true);
         self->customerID = -1;
         self->customer_served++; 
@@ -125,12 +127,18 @@ reactor Customer(instance:int(0)){
     output finish:bool;
     
     reaction(start) -> cut {=
+        self->instance = self->bank_index;
         SET(cut,true);
+        printf("Customer %d arrived.\n", self->instance);
     =}
-    reaction(done) -> finish {=
-        SET(finish,true);
+    reaction(wait){=
+        printf("Customer %d is in the wait room.\n", self->instance);
     =}
     reaction(full) -> finish {=
+        SET(finish,true);
+        printf("Waiting room full customer %d left.\n", self->instance);
+    =}
+    reaction(done) -> finish {=
         SET(finish,true);
     =}
 }
