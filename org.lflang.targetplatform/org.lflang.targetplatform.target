@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?pde version="3.8"?>
-<target name="Generated from Lingua Franca" sequenceNumber="5">
+<target name="Generated from Lingua Franca" sequenceNumber="6">
   <locations>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="jakarta.xml.bind" version="0.0.0"/>
@@ -17,10 +17,12 @@
       <unit id="org.eclipse.epp.mpc.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.jdt.feature.group" version="0.0.0"/>
+      <unit id="org.eclipse.lsp4e" version="0.0.0"/>
       <unit id="org.eclipse.lsp4e.debug" version="0.0.0"/>
       <unit id="org.eclipse.platform.doc.isv" version="0.0.0"/>
       <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.tm4e.languageconfiguration" version="0.0.0"/>
+      <unit id="org.eclipse.wildwebdeveloper.embedder.node.macos.x86_64" version="0.0.0"/>
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
       <unit id="org.jsoup" version="0.0.0"/>
       <repository location="http://download.eclipse.org/releases/2021-06"/>
@@ -28,10 +30,6 @@
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.python.pydev.feature.feature.group" version="0.0.0"/>
       <repository location="https://www.pydev.org/updates/"/>
-    </location>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="org.eclipse.wildwebdeveloper.feature.feature.group" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="de.cau.cs.kieler.klighd.freehep.feature.feature.group" version="0.0.0"/>
@@ -44,6 +42,10 @@
       <unit id="org.eclipse.elk.sdk.feature.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.elk.ui.feature.feature.group" version="0.0.0"/>
       <repository location="http://download.eclipse.org/elk/updates/releases/0.7.1/"/>
+    </location>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
+      <unit id="org.eclipse.wildwebdeveloper.feature.feature.group" version="0.0.0"/>
+      <repository location="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="com.google.inject" version="0.0.0"/>
