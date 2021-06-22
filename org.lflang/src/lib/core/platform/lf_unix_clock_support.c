@@ -86,10 +86,6 @@ int lf_clock_gettime(instant_t* t) {
 
     // We need to apply the epoch offset if it is not zero
     if (_lf_epoch_offset != 0) {
-        // Here, we do a costly conversion from _lf_time_spec_t to nanoseconds,
-        // add the epoch offset, and then convert back to _lf_time_spec_t. The
-        // reason is simply to account for overflows from tv_nsec to tv_sec when
-        // applying the offset.
         tp_in_ns += _lf_epoch_offset;
     }
     
