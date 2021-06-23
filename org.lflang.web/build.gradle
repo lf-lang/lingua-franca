@@ -13,7 +13,6 @@ dependencies {
 	providedCompile "org.eclipse.jetty:jetty-annotations:9.4.14.v20181114"
 	providedCompile "org.slf4j:slf4j-simple:1.7.21"
 }
-
 task jettyRun(type:JavaExec) {
 	dependsOn(sourceSets.main.runtimeClasspath)
 	classpath = sourceSets.main.runtimeClasspath.filter{it.exists()}
