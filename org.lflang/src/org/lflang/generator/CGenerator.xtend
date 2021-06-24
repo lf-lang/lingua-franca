@@ -1828,6 +1828,7 @@ class CGenerator extends GeneratorBase {
                     free(self->__«input.name»);
                 ''')
             } else {
+                // input is not a multiport.
                 pr(input, body, '''
                     «variableStructType(input, decl)»* __«input.name»;
                     // width of -2 indicates that it is not a multiport.
@@ -1872,11 +1873,7 @@ class CGenerator extends GeneratorBase {
         // struct has a place to hold the data produced by this reactor's
         // reactions and a place to put pointers to data produced by
         // the contained reactors.
-        // The contents of the struct will be collected first so that
-        // we avoid duplicate entries and then the struct will be constructed.
-        val contained = new InteractingContainedReactors(reactor, federate);
-        // Next generate the relevant code.
-        generateInteractingContainedReactors(contained, body, constructorCode, destructorCode);
+        generateInteractingContainedReactors(reactor, federate, body, constructorCode, destructorCode);
                 
         // Next, generate the fields needed for each reaction.
         generateReactionAndTriggerStructs(body, decl, constructorCode, destructorCode, federate)
@@ -1909,23 +1906,42 @@ class CGenerator extends GeneratorBase {
      * reactions and a place to put pointers to data produced by
      * the contained reactors.
      * 
-     * To use this, first construct an instance of the inner class
-     * PortsReferencedInContainedReactors. The constructor for that class
-     * figures out which contained reactors are relevant and which ports
-     * and reactions interact.
-     * 
-     * @param contained An instance of PortsReferencedInContainedReactors.
+     * @param reactor The reactor.
+     * @param federate The federate instance.
      * @param body The place to put the struct definition for the contained reactors.
      * @param constructorCode The place to put matching code that goes in the container's constructor.
      * @param destructorCode The place to put matching code that goes in the container's destructor.
      */
     private def generateInteractingContainedReactors(
-        InteractingContainedReactors contained,
+        Reactor reactor,
+        FederateInstance federate,
         StringBuilder body,
         StringBuilder constructorCode,
         StringBuilder destructorCode
     ) {
+        // The contents of the struct will be collected first so that
+        // we avoid duplicate entries and then the struct will be constructed.
+        val contained = new InteractingContainedReactors(reactor, federate);
+        // Next generate the relevant code.
         for (containedReactor : contained.containedReactors) {
+            // First define an _width variable in case it is a bank.
+            var array = "";
+            var width = -2;
+            // If the instantiation is a bank, find the maximum bank width
+            // to define an array.
+            if (containedReactor.widthSpec !== null) {
+                width = maxContainedReactorBankWidth(containedReactor, null, 0);
+                array = "[" + width + "]";
+            }
+            // NOTE: The following needs to be done for each instance
+            // so that the width can be parameter, not in the constructor.
+            // Here, we conservatively use a width that is the largest of all isntances.
+            pr(constructorCode, '''
+                // Set the _width variable for all cases. This will be -2
+                // if the reactor is not a bank of reactors.
+                self->__«containedReactor.name»_width = «width»;
+            ''')
+
             // Generate one struct for each contained reactor that interacts.
             pr(body, "struct {")
             indent(body)
@@ -1974,9 +1990,17 @@ class CGenerator extends GeneratorBase {
                     pr(port, body, '''
                         trigger_t «port.name»_trigger;
                     ''')
+                    var reactorIndex = ''
+                    if (containedReactor.widthSpec !== null) {
+                        reactorIndex = '[reactorIndex]'
+                        pr(constructorCode, '''
+                            for (int reactorIndex = 0; reactorIndex < self->__«containedReactor.name»_width; reactorIndex++) {
+                        ''')
+                        indent(constructorCode)
+                    }
                     if (isFederatedAndDecentralized) {
                         pr(port, constructorCode, '''
-                            self->__«containedReactor.name».«port.name»_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
+                            self->__«containedReactor.name»«reactorIndex».«port.name»_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
                         ''')
                     }
                     val triggered = contained.reactionsTriggered(containedReactor, port)
@@ -1987,11 +2011,11 @@ class CGenerator extends GeneratorBase {
                         var triggeredCount = 0
                         for (index : triggered) {
                             pr(port, constructorCode, '''
-                                self->__«containedReactor.name».«port.name»_reactions[«triggeredCount++»] = &self->___reaction_«index»;
+                                self->__«containedReactor.name»«reactorIndex».«port.name»_reactions[«triggeredCount++»] = &self->___reaction_«index»;
                             ''')
                         }
                         pr(port, constructorCode, '''
-                            self->__«containedReactor.name».«port.name»_trigger.reactions = self->__«containedReactor.name».«port.name»_reactions;
+                            self->__«containedReactor.name»«reactorIndex».«port.name»_trigger.reactions = self->__«containedReactor.name»«reactorIndex».«port.name»_reactions;
                         ''')
                     } else {
                         // Since the self struct is created using calloc, there is no need to set
@@ -2006,38 +2030,28 @@ class CGenerator extends GeneratorBase {
                     // self->__«containedReactor.name».«port.name»_trigger.element_size = 0;
                     // self->__«containedReactor.name».«port.name»_trigger.intended_tag = (0, 0);
                     pr(port, constructorCode, '''
-                        self->__«containedReactor.name».«port.name»_trigger.last = NULL;
-                        self->__«containedReactor.name».«port.name»_trigger.number_of_reactions = «triggered.size»;
+                        self->__«containedReactor.name»«reactorIndex».«port.name»_trigger.last = NULL;
+                        self->__«containedReactor.name»«reactorIndex».«port.name»_trigger.number_of_reactions = «triggered.size»;
                     ''')
                     
                     if (isFederated) {
                         // Set the physical_time_of_arrival
                         pr(port, constructorCode, '''
-                            self->__«containedReactor.name».«port.name»_trigger.physical_time_of_arrival = NEVER;
+                            self->__«containedReactor.name»«reactorIndex».«port.name»_trigger.physical_time_of_arrival = NEVER;
                         ''')
+                    }
+                    if (containedReactor.widthSpec !== null) {
+                        unindent(constructorCode)
+                        pr(constructorCode, "}")
                     }
                 }
             }
             unindent(body)
-            var array = "";
-            var width = -2;
-            // If the instantiation is a bank, find the maximum bank width
-            // to define an array.
-            if (containedReactor.widthSpec !== null) {
-                width = maxContainedReactorBankWidth(containedReactor, null, 0);
-                array = "[" + width + "]";
-            }
             pr(body, '''
                 } __«containedReactor.name»«array»;
                 int __«containedReactor.name»_width;
             ''');
-            // FIXME: The following needs to be done for each instance
-            // so that the width can be parameter, not in the constructor.
-            pr(constructorCode, '''
-                // Set the _width variable for all cases. This will be -2
-                // if the reactor is not a bank of reactors.
-                self->__«containedReactor.name»_width = «width»;
-            ''')
+            
         }
     }
     
@@ -2645,8 +2659,11 @@ class CGenerator extends GeneratorBase {
         for (TriggerRef trigger : reaction.triggers ?: emptyList) {
             if (trigger instanceof VarRef) {
                 if (trigger.variable instanceof Port) {
-                    generatePortVariablesInReaction(reactionInitialization,
-                        fieldsForStructsForContainedReactors, trigger, decl)
+                    generatePortVariablesInReaction(
+                        reactionInitialization,
+                        fieldsForStructsForContainedReactors,
+                        trigger, 
+                        decl)
                 } else if (trigger.variable instanceof Action) {
                     generateActionVariablesInReaction(
                         reactionInitialization, trigger.variable as Action, decl
@@ -2695,7 +2712,11 @@ class CGenerator extends GeneratorBase {
                     }
                 } else {
                     if (effect.variable instanceof Output) {
-                        generateOutputVariablesInReaction(reactionInitialization, effect.variable as Output, decl)
+                        generateOutputVariablesInReaction(
+                            reactionInitialization, 
+                            effect,
+                            decl
+                        )
                     } else if (effect.variable instanceof Input) {
                         // It is the input of a contained reactor.
                         generateVariablesForSendingToContainedReactors(
@@ -2716,17 +2737,18 @@ class CGenerator extends GeneratorBase {
         // Before the reaction initialization,
         // generate the structs used for communication to and from contained reactors.
         for (containedReactor : fieldsForStructsForContainedReactors.keySet) {
-            pr('struct ' + containedReactor.name + '{')
-            indent();
-            pr(fieldsForStructsForContainedReactors.get(containedReactor).toString)
-            unindent();
             var array = "";
             if (containedReactor.widthSpec !== null) {
-                array = '''[self->__«containedReactor.name»_width]''';
+                pr('''
+                    int «containedReactor.name»_width = self->__«containedReactor.name»_width;
+                ''')
+                array = '''[«containedReactor.name»_width]''';
             }
             pr('''
+                struct «containedReactor.name» {
+                    «fieldsForStructsForContainedReactors.get(containedReactor)»
                 } «containedReactor.name»«array»;
-            ''');
+            ''')
         }
         // Next generate all the collected setup code.
         pr(reactionInitialization.toString)
@@ -5155,18 +5177,19 @@ class CGenerator extends GeneratorBase {
         ''')
     }
     
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for ports in a reaction function
-     *  from the "self" struct. The port may be an input of the
-     *  reactor or an output of a contained reactor. The second
-     *  argument provides, for each contained reactor, a place to
-     *  write the declaration of the output of that reactor that
-     *  is triggering reactions.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
-     *  @param port The port.
-     *  @param reactor The reactor.
+    /** 
+     * Generate into the specified string builder the code to
+     * initialize local variables for ports in a reaction function
+     * from the "self" struct. The port may be an input of the
+     * reactor or an output of a contained reactor. The second
+     * argument provides, for each contained reactor, a place to
+     * write the declaration of the output of that reactor that
+     * is triggering reactions.
+     * @param builder The string builder into which to write the code.
+     * @param structs A map from reactor instantiations to a place to write
+     *  struct fields.
+     * @param port The port.
+     * @param reactor The reactor or import statement.
      */
     private def generatePortVariablesInReaction(
         StringBuilder builder,
@@ -5179,7 +5202,6 @@ class CGenerator extends GeneratorBase {
         } else {
             // port is an output of a contained reactor.
             val output = port.variable as Output
-            val portName = output.name
             val portStructType = variableStructType(output, port.container.reactorClass)
             
             var structBuilder = structs.get(port.container)
@@ -5191,52 +5213,74 @@ class CGenerator extends GeneratorBase {
             // First define the struct containing the output value and indicator
             // of its presence.
             if (!output.isMultiport) {
+                // Output is not a multiport.
                 pr(structBuilder, '''
-                    «portStructType»* «portName»;
+                    «portStructType»* «output.name»;
                 ''')
             } else {
+                // Output is a multiport.
                 pr(structBuilder, '''
-                    «portStructType»** «portName»;
-                    int «portName»_width;
+                    «portStructType»** «output.name»;
+                    int «output.name»_width;
                 ''')
                 pr(builder, '''
-                    «reactorName».«portName»_width = self->__«reactorName».«portName»__width;
+                    «reactorName».«output.name»_width = self->__«reactorName».«output.name»__width;
                 ''')
             }
 
             // Next, initialize the struct with the current values.
-            pr(builder, '''
-                «reactorName».«portName» = self->__«reactorName».«portName»;
-            ''')
+            if (port.container.widthSpec !== null) {
+                // Output is in a bank.
+                pr(builder, '''
+                    for (int i = 0; i < «port.container.name»_width; i++) {
+                        «reactorName»[i].«output.name» = self->__«reactorName»[i].«output.name»;
+                    }
+                ''')                    
+            } else {
+                 // Output is not in a bank.
+                pr(builder, '''
+                    «reactorName».«output.name» = self->__«reactorName».«output.name»;
+                ''')                    
+            }
         }
     }
 
-    /** Generate into the specified string builder the code to
-     *  initialize local variables for outputs in a reaction function
-     *  from the "self" struct.
-     *  @param builder The string builder.
-     *  @param output The output statement from the AST.
+    /** 
+     * Generate into the specified string builder the code to
+     * initialize local variables for outputs in a reaction function
+     * from the "self" struct.
+     * @param builder The string builder.
+     * @param effect The effect declared by the reaction. This must refer to an output.
+     * @param decl The reactor containing the rection or the import statement.
      */
     private def generateOutputVariablesInReaction(
         StringBuilder builder,
-        Output output,
+        VarRef effect,
         ReactorDecl decl
     ) {
+        val output = effect.variable as Output
         if (output.type === null && target.requiresTypes === true) {
             reportError(output,
                 "Output is required to have a type: " + output.name)
         } else {
-            val outputStructType = variableStructType(output, decl)
+            // The container of the output may be a contained reactor or
+            // the reactor containing the reaction.
+            val outputStructType = (effect.container === null) ?
+                    variableStructType(output, decl)
+                    :
+                    variableStructType(output, effect.container.reactorClass)
             // Unfortunately, for the SET macros to work out-of-the-box for
             // multiports, we need an array of *pointers* to the output structs,
             // but what we have on the self struct is an array of output structs.
             // So we have to handle multiports specially here a construct that
             // array of pointers.
             if (!output.isMultiport) {
+                // Output port is not a multiport.
                 pr(builder, '''
                     «outputStructType»* «output.name» = &self->__«output.name»;
                 ''')
             } else {
+                // Output port is a multiport.
                 // Set the _width variable.
                 pr(builder, '''
                     int «output.name»_width = self->__«output.name»__width;
@@ -5278,24 +5322,21 @@ class CGenerator extends GeneratorBase {
         }
         val inputStructType = variableStructType(input, definition.reactorClass)
         if (!input.isMultiport) {
+            // Contained reactor's input is not a multiport.
             pr(structBuilder, '''
                 «inputStructType»* «input.name»;
             ''')
-            var bankIndex = "";
             if (definition.widthSpec !== null) {
+                // Contained reactor is a bank.
                 pr(builder, '''
                     for (int bankIndex = 0; bankIndex < self->__«definition.name»_width; bankIndex++) {
-                ''')
-                indent(builder);
-                bankIndex = "[bankIndex]";
-            }
-            pr(builder, '''
-                «definition.name»«bankIndex».«input.name» = &(self->__«definition.name»«bankIndex».«input.name»);
-            ''')
-            if (definition.widthSpec !== null) {
-                unindent(builder);
-                pr(builder, '''
+                        «definition.name»[bankIndex].«input.name» = &(self->__«definition.name»[bankIndex].«input.name»);
                     }
+                ''')
+            } else {
+                // Contained reactor is not a bank.
+                pr(builder, '''
+                    «definition.name».«input.name» = &(self->__«definition.name».«input.name»);
                 ''')
             }
         } else {
