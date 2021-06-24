@@ -23,9 +23,6 @@
       <unit id="org.eclipse.platform.doc.isv" version="0.0.0"/>
       <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.tm4e.languageconfiguration" version="0.0.0"/>
-      <unit id="org.eclipse.wildwebdeveloper.embedder.node.macos.x86_64" version="0.0.0"/>
-      <unit id="org.eclipse.wildwebdeveloper.embedder.node.linux.x86_64" version="0.0.0"/>
-      <unit id="org.eclipse.wildwebdeveloper.xml.feature.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
       <unit id="org.jsoup" version="0.0.0"/>
       <repository location="http://download.eclipse.org/releases/2021-06"/>
