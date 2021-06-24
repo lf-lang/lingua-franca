@@ -41,18 +41,23 @@ public class LFGenerator extends AbstractGenerator {
         switch (target) {
             case C: {
                 generator = new CGenerator();
+                break;
             }
             case CCPP: {
                 generator = new CCppGenerator();
+                break;
             }
             case CPP: {
                 generator = new CppGenerator();
+                break;
             }
             case TS: {
                 generator = new TypeScriptGenerator();
+                break;
             }
             case Python: {
                 generator = new PythonGenerator();
+                break;
             }
         }
 
