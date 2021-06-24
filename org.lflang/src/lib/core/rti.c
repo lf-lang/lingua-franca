@@ -302,16 +302,16 @@ void handle_port_absent_message(federate_t* sending_federate, unsigned char* buf
     pthread_mutex_unlock(&rti_mutex);
 }
 
-/** Handle a timed message being received from a federate via the RTI.
+/** Handle a timed message being received from a federate by the RTI to relay to another federate.
  *  @param sending_federate The sending federate.
  *  @param buffer The buffer to read into (the first byte is already there).
  */
 void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
     int header_size = 1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t) + sizeof(microstep_t);
-    // Read the header, minus the first byte which is already there.
+    // Read the header, minus the first byte which has already been read.
     read_from_socket_errexit(sending_federate->socket, header_size - 1, &(buffer[1]), "RTI failed to read the timed message header from remote federate.");
-    // Extract the header information.
-    unsigned short port_id;
+    // Extract the header information. of the sender
+    unsigned short port_id; // FIXME: Perhaps rename this to reactor_port_id to avoid confusion with network ports?
     unsigned short federate_id;
     unsigned int length;
     tag_t intended_tag;
@@ -320,8 +320,8 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
 
     unsigned int total_bytes_to_read = length + header_size;
     unsigned int bytes_to_read = length;
-    // Prevent a buffer overflow.
-    if (bytes_to_read + header_size > FED_COM_BUFFER_SIZE) {
+    // Cut up the payload in chunks.
+    if (bytes_to_read > FED_COM_BUFFER_SIZE - header_size) {
         bytes_to_read = FED_COM_BUFFER_SIZE - header_size;
     }
 
@@ -992,7 +992,7 @@ void handle_stop_request_reply(federate_t* fed) {
  * This function reads the body of a MSG_TYPE_ADDRESS_QUERY (@see rti.h) message
  * which is the requested destination federate ID and replies with the stored
  * port value for the socket server of that federate. The port values
- * are initialized to -1. If no MSG_TYPE_ADDRESS_AD message has been received from
+ * are initialized to -1. If no MSG_TYPE_ADDRESS_ADVERTISEMENT message has been received from
  * the destination federate, the RTI will simply reply with -1 for the port.
  * The sending federate is responsible for checking back with the RTI after a 
  * period of time. @see connect_to_federate() in federate.c.
@@ -1012,7 +1012,7 @@ void handle_address_query(ushort fed_id) {
 
     assert(federates[remote_fed_id].server_port < 65536);
     // NOTE: server_port initializes to -1, which means the RTI does not know
-    // the port number because it has not yet received an MSG_TYPE_ADDRESS_AD message
+    // the port number because it has not yet received an MSG_TYPE_ADDRESS_ADVERTISEMENT message
     // from this federate. It will respond by sending -1.
 
     // Encode the port number.
@@ -1033,7 +1033,7 @@ void handle_address_query(ushort fed_id) {
 }
 
 /**
- * Handle address advertisement messages (@see MSG_TYPE_ADDRESS_AD in rti.h).
+ * Handle address advertisement messages (@see MSG_TYPE_ADDRESS_ADVERTISEMENT in rti.h).
  * The federate is expected to send its server port number as the next
  * byte. The RTI will keep a record of this number in the .server_port
  * field of the federates[federate_id] array of structs.
@@ -1049,7 +1049,7 @@ void handle_address_ad(ushort federate_id) {
     // Read the port number of the federate that can be used for physical
     // connections to other federates
     int server_port = -1;
-    unsigned char buffer[sizeof(int)];
+    unsigned char buffer[sizeof(int)]; // FIXME: pay attention to data type/size
     int bytes_read = read_from_socket(federates[federate_id].socket, sizeof(int), (unsigned char *)buffer);
 
     if (bytes_read < sizeof(int)) {
@@ -1060,6 +1060,8 @@ void handle_address_ad(ushort federate_id) {
 
     server_port = extract_int(buffer);
     
+    // FIXME: move assert < 65K here.
+
     pthread_mutex_lock(&rti_mutex);
     federates[federate_id].server_port = server_port;
      LOG_PRINT("Received address advertisement from federate %d.", federate_id);
@@ -1071,7 +1073,8 @@ void handle_address_ad(ushort federate_id) {
  * This function assumes the caller does not hold the mutex.
  */
 void handle_timestamp(federate_t *my_fed) {
-    unsigned char buffer[8];
+    unsigned char buffer[8]; // FIXME: should be size(instant_t)
+    // FIXME: if we have different internal representations of instant_t, the number of bytes may vary.
     // Read bytes from the socket. We need 8 bytes.
     int bytes_read = read_from_socket(my_fed->socket, sizeof(long long), (unsigned char*)&buffer);
     if (bytes_read < 1) {
@@ -1098,6 +1101,8 @@ void handle_timestamp(federate_t *my_fed) {
         }
     }
 
+    // FIXME: release the lock here.
+
     // Send back to the federate the maximum time plus an offset.
     // Start by sending a timestamp marker.
     unsigned char message_marker = MSG_TYPE_TIMESTAMP;
@@ -1119,6 +1124,7 @@ void handle_timestamp(federate_t *my_fed) {
     // message has been sent. That MSG_TYPE_TIMESTAMP message grants time advance to
     // the federate to the start time.
     my_fed->state = GRANTED;
+    // FIXME: re-acquire the lock.
     pthread_cond_broadcast(&sent_start_time);
     LOG_PRINT("RTI sent start time %lld to federate %d.", start_time, my_fed->id);
     pthread_mutex_unlock(&rti_mutex);
@@ -1388,11 +1394,11 @@ void* federate_thread_TCP(void* fed) {
             case MSG_TYPE_ADDRESS_QUERY:
                 handle_address_query(my_fed->id);
                 break;
-            case MSG_TYPE_ADDRESS_AD:
+            case MSG_TYPE_ADDRESS_ADVERTISEMENT:
                 handle_address_ad(my_fed->id);
                 break;
             case MSG_TYPE_TAGGED_MESSAGE:
-                handle_timed_message(my_fed, buffer);
+                handle_timed_message(my_fed, buffer); // FIXME: Reviewed until here.
                 break;
             case MSG_TYPE_RESIGN:
                 handle_federate_resign(my_fed);
