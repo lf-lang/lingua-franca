@@ -173,21 +173,11 @@
     <requirement
         name="org.jetbrains.kotlin.gradle.feature.feature.group"/>
     <requirement
-        name="org.jetbrains.kotlin.weaving.feature.feature.group"/>
-    <requirement
         name="org.eclipse.ajdt.feature.group"/>
-    <requirement
-        name="org.eclipse.contribution.weaving.feature.group"/>
-    <requirement
-        name="org.eclipse.equinox.weaving.sdk.feature.group"/>
-    <requirement
-        name="org.scala-ide.equinox-weaving-launcher.feature.feature.group"/>
     <repository
         url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
     <repository
         url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
-    <repository
-        url="http://download.scala-ide.org/plugins/equinox-weaving-launcher/releases/site/"/>
   </setupTask>
   <setupTask
       xsi:type="setup:VariableTask"
@@ -357,12 +347,6 @@
             name="org.eclipse.platform.source.feature.group"/>
         <requirement
             name="org.jetbrains.kotlin.feature.feature.group"/>
-        <requirement
-            name="org.jetbrains.kotlin.weaving.feature.feature.group"/>
-        <requirement
-            name="org.eclipse.equinox.weaving.sdk.feature.group"/>
-        <requirement
-            name="org.eclipse.contribution.weaving.feature.group"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
         <requirement
