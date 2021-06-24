@@ -414,6 +414,7 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_macos_support.c")            
             coreFiles.add("platform/lf_macos_support.h")
+            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
                 targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_macos_support.c")
@@ -424,6 +425,8 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_windows_support.c")
             coreFiles.add("platform/lf_windows_support.h")
+            // For 64-bit epoch time
+            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
                 targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_windows_support.c")
@@ -436,6 +439,7 @@ class CGenerator extends GeneratorBase {
             coreFiles.add("platform/lf_C11_threads_support.h")
             coreFiles.add("platform/lf_linux_support.c")
             coreFiles.add("platform/lf_linux_support.h")
+            coreFiles.add("platform/lf_unix_clock_support.c")
             // If there is no main reactor, then compilation will produce a .o file requiring further linking.
             if (mainDef !== null) {
                 targetConfig.compileAdditionalSources.add(fileConfig.getSrcGenPath + File.separator + "core/platform/lf_linux_support.c")
@@ -659,10 +663,9 @@ class CGenerator extends GeneratorBase {
                 
                 setReactionPriorities(main, federate)
                 
-                // Calculate the epoch offset so that subsequent calls
-                // to get_physical_time() return epoch time.
+                // Initialize the LF clock.
                 pr('''
-                    calculate_epoch_offset();
+                    lf_initialize_clock();
                 ''')
                 
                 initializeFederate(federate)
