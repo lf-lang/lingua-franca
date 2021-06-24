@@ -130,7 +130,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * server to listen for incoming connections from those federates.
  * It attempts to create the server at the port given by STARTING_PORT,
  * and if this fails, increments the port number from there until a
- * port is available. It then sends to the RTI an MSG_TYPE_ADDRESS_AD message
+ * port is available. It then sends to the RTI an MSG_TYPE_ADDRESS_ADVERTISEMENT message
  * with the port number as a payload. The federate then creates a thread
  * to listen for incoming socket connections and messages.
  *
@@ -324,11 +324,11 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MSG_TYPE_RESIGN 4
 
 /** Byte identifying a timestamped message to forward to another federate.
- *  The next two bytes will be the ID of the destination port.
+ *  The next two bytes will be the ID of the destination reactor port.
  *  The next two bytes are the destination federate ID.
  *  The four bytes after that will be the length of the message.
- *  The next eight bytes will be the timestamp.
- *  The next four bytes will be the microstep of the sender.
+ *  The next eight bytes will be the timestamp of the message.
+ *  The next four bytes will be the microstep of the message.
  *  The remaining bytes are the message.
  *
  *  With centralized coordination, all such messages flow through the RTI.
@@ -475,20 +475,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * to ask for another federate's address and port number.
  * The next two bytes are the other federate's ID.
  * The reply from the RTI will a port number (an int), which is -1
- * if the RTI does not know yet (it has not received MSG_TYPE_ADDRESS_AD from
+ * if the RTI does not know yet (it has not received MSG_TYPE_ADDRESS_ADVERTISEMENT from
  * the other federate), followed by the IP address of the other
  * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
  */
 #define MSG_TYPE_ADDRESS_QUERY 13
 
 /**
- * Byte identifying a message advertising the port for the physical connection server
- * of a federate.
+ * Byte identifying a message advertising the port for the TCP connection server
+ * of a federate. This is utilized in decentralized coordination as well as for physical
+ * connections in centralized coordination.
  * The next four bytes (or sizeof(int)) will be the port number.
  * The sending federate will not wait for a response from the RTI and assumes its
  * request will be processed eventually by the RTI.
  */
-#define MSG_TYPE_ADDRESS_AD 14
+#define MSG_TYPE_ADDRESS_ADVERTISEMENT 14
 
 /**
  * Byte identifying a first message that is sent by a federate directly to another federate

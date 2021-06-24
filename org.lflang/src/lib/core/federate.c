@@ -100,7 +100,7 @@ void* listen_to_federates(void* args);
  * connections from remote federates. This function
  * only handles the creation of the server socket.
  * The reserved port for the server socket is then
- * sent to the RTI by sending an MSG_TYPE_ADDRESS_AD message
+ * sent to the RTI by sending an MSG_TYPE_ADDRESS_ADVERTISEMENT message
  * (@see rti.h). This function expects no response
  * from the RTI.
  * 
@@ -114,7 +114,7 @@ void* listen_to_federates(void* args);
  * @note This function is similar to create_server(...) in rti.c.
  * However, it contains specific log messages for the peer to
  * peer connections between federates. It also additionally 
- * sends an address advertisement (MSG_TYPE_ADDRESS_AD) message to the
+ * sends an address advertisement (MSG_TYPE_ADDRESS_ADVERTISEMENT) message to the
  * RTI informing it of the port.
  * 
  * @param specified_port The specified port by the user.
@@ -180,9 +180,9 @@ void create_server(int specified_port) {
     _fed.server_port = port;
 
     // Send the server port number to the RTI
-    // on an MSG_TYPE_ADDRESS_AD message (@see rti.h).
+    // on an MSG_TYPE_ADDRESS_ADVERTISEMENT message (@see rti.h).
     unsigned char buffer[sizeof(int) + 1];
-    buffer[0] = MSG_TYPE_ADDRESS_AD;
+    buffer[0] = MSG_TYPE_ADDRESS_ADVERTISEMENT;
     encode_int(_fed.server_port, &(buffer[1]));
     write_to_socket_errexit(_fed.socket_TCP_RTI, sizeof(int) + 1, (unsigned char*)buffer,
                     "Failed to send address advertisement.");
@@ -638,7 +638,7 @@ void connect_to_federate(ushort remote_federate_id) {
 
         // A reply of -1 for the port means that the RTI does not know
         // the port number of the remote federate, presumably because the
-        // remote federate has not yet sent an MSG_TYPE_ADDRESS_AD message to the RTI.
+        // remote federate has not yet sent an MSG_TYPE_ADDRESS_ADVERTISEMENT message to the RTI.
         // Sleep for some time before retrying.
         if (port == -1) {
             if (count_tries++ >= CONNECT_NUM_RETRIES) {
