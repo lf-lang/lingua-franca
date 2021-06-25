@@ -72,16 +72,20 @@ public class LFGenerator extends AbstractGenerator {
      * "Run as Eclipse Application", the Kotlin classes are unfortunately not
      * available at runtime due to bugs in the Eclipse Kotlin plugin. (See
      * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
-     * In this case, the method returns null
+     * 
+     * If the CppFileConfig class is found, this method returns an instance.
+     * Otherwise, it returns an Instance of FileConfig.
      * 
      * @return A CppFileConfig object if the class can be found
+     * @throws IOException
      */
     private FileConfig createCppFileConfig(Resource resource,
-            IFileSystemAccess2 fsa, IGeneratorContext context) {
+            IFileSystemAccess2 fsa, IGeneratorContext context)
+            throws IOException {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that CppFileConfig does not appear as an
-        // import. Instead we look the class up at runtime
-        // and instantiate it if found.
+        // import. Instead we look the class up at runtime and instantiate it if
+        // found.
         try {
             return (FileConfig) Class
                     .forName("org.lflang.generator.cpp.CppFileConfig")
@@ -92,7 +96,7 @@ public class LFGenerator extends AbstractGenerator {
                 | IllegalArgumentException | InvocationTargetException
                 | NoSuchMethodException | SecurityException
                 | ClassNotFoundException e) {
-            return null;
+            return new FileConfig(resource, fsa, context);
         }
     }
 
@@ -152,6 +156,15 @@ public class LFGenerator extends AbstractGenerator {
                 | IllegalArgumentException | InvocationTargetException
                 | NoSuchMethodException | SecurityException
                 | ClassNotFoundException e) {
+            generatorErrorsOccurred = true;
+            errorReporter.reportError(
+                    "The code generator for the C++ target could not be found. "
+                            + "This is likely because you are running the RCA from Eclipse. "
+                            + "The C++ code generator is written in Kotlin and, "
+                            + "unfortunately, the Eclipse Kotlin plugin is broken, "
+                            + "preventing us from loading the generator properly. "
+                            + "Please consider building the RCA via Maven.");
+            // FIXME: Add a link to the wiki with more information.
             return null;
         }
     }
@@ -173,8 +186,10 @@ public class LFGenerator extends AbstractGenerator {
         final GeneratorBase generator = createGenerator(target, fileConfig,
                 errorReporter);
 
-        generator.doGenerate(resource, fsa, context);
-        generatorErrorsOccurred = generator.errorsOccurred();
+        if (generator != null) {
+            generator.doGenerate(resource, fsa, context);
+            generatorErrorsOccurred = generator.errorsOccurred();
+        }
     }
 
     /** Return true if errors occurred in the last call to doGenerate(). */
