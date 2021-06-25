@@ -268,13 +268,16 @@ main reactor (
     vehicles = new[num_entries] Vehicle();    
     rsu = new RSU(
         num_entries = num_entries, 
-        intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.001687049)=},
+        intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.792485)=},
         intersection_width = 66,
         nominal_speed_in_intersection = 14
     );
     
     
     vehicles.request -> rsu.request;
+    // For the purposes of this simulations, we don't want the simulation
+    // to abruptly end once the last vehicle has reached the intersection.
+    // vehicles.goal_reached -> rsu.vehicle_reached_intersection;
     rsu.grant -> vehicles.grant;
 	
     
