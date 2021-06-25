@@ -271,7 +271,7 @@ void handle_port_absent_message(federate_t* sending_federate, unsigned char* buf
     // issue a TAG before this message has been forwarded.
     pthread_mutex_lock(&rti_mutex);
 
-    unsigned short port_id = extract_ushort(&(buffer[1]));
+    unsigned short reactor_port_id = extract_ushort(&(buffer[1]));
     unsigned short federate_id = extract_ushort(&(buffer[1 + sizeof(unsigned short)]));
 
     // If the destination federate is no longer connected, issue a warning
@@ -284,7 +284,7 @@ void handle_port_absent_message(federate_t* sending_federate, unsigned char* buf
     }
 
     LOG_PRINT("RTI forwarding port absent message for port %u to federate %u.",
-                port_id,
+                reactor_port_id,
                 federate_id);
 
     // Need to make sure that the destination federate's thread has already
@@ -311,12 +311,12 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
     // Read the header, minus the first byte which has already been read.
     read_from_socket_errexit(sending_federate->socket, header_size - 1, &(buffer[1]), "RTI failed to read the timed message header from remote federate.");
     // Extract the header information. of the sender
-    unsigned short port_id; // FIXME: Perhaps rename this to reactor_port_id to avoid confusion with network ports?
+    unsigned short reactor_port_id; // FIXME: Perhaps rename this to reactor_port_id to avoid confusion with network ports?
     unsigned short federate_id;
     unsigned int length;
     tag_t intended_tag;
     // Extract information from the header.
-    extract_timed_header(&(buffer[1]), &port_id, &federate_id, &length, &intended_tag);
+    extract_timed_header(&(buffer[1]), &reactor_port_id, &federate_id, &length, &intended_tag);
 
     unsigned int total_bytes_to_read = length + header_size;
     unsigned int bytes_to_read = length;
@@ -326,7 +326,7 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
     }
 
     LOG_PRINT("RTI received message from federate %d for federate %u port %u. Forwarding.",
-            sending_federate->id, federate_id, port_id);
+            sending_federate->id, federate_id, reactor_port_id);
 
     read_from_socket_errexit(sending_federate->socket, bytes_to_read, &(buffer[header_size]),
                      "RTI failed to read timed message from federate %d.", federate_id);
@@ -361,7 +361,7 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
     // Forward the message or message chunk.
     int destination_socket = federates[federate_id].socket;
 
-    DEBUG_PRINT("RTI forwarding message to port %d of federate %d of length %d.", port_id, federate_id, length);
+    DEBUG_PRINT("RTI forwarding message to port %d of federate %d of length %d.", reactor_port_id, federate_id, length);
     // Need to make sure that the destination federate's thread has already
     // sent the starting MSG_TYPE_TIMESTAMP message.
     while (federates[federate_id].state == PENDING) {
