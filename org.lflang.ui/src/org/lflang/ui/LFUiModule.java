@@ -8,7 +8,7 @@ import org.eclipse.ui.plugin.AbstractUIPlugin;
 /**
  * Use this class to register components to be used within the Eclipse IDE.
  */
-public class LFUiModule extends AbstractLFUiModule {
+public class LFUiModule extends LFUiModuleImpl {
 
 	public LFUiModule(AbstractUIPlugin plugin) {
 		super(plugin);
