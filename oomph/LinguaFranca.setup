@@ -169,18 +169,13 @@
   <setupTask
       xsi:type="setup.p2:P2Task">
     <requirement
-        name="202103162301.org.eclipse.ajdt"/>
-    <requirement
-        name="202103162301.org.eclipse.ajdt.other"/>
-    <repository
-        url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
-  </setupTask>
-  <setupTask
-      xsi:type="setup.p2:P2Task">
-    <requirement
         name="org.jetbrains.kotlin.feature.feature.group"/>
     <requirement
         name="org.jetbrains.kotlin.gradle.feature.feature.group"/>
+    <requirement
+        name="org.eclipse.ajdt.feature.group"/>
+    <repository
+        url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
     <repository
         url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
   </setupTask>
@@ -385,13 +380,13 @@
         <repositoryList
             name="DefaultRepositories">
           <repository
-              url="http://download.eclipse.org/releases/2021-03"/>
+              url="http://download.eclipse.org/releases/2021-06"/>
           <repository
-              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
+              url="http://download.eclipse.org/tools/orbit/downloads/drops/R20210602031627/repository/"/>
           <repository
-              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.24.0/"/>
+              url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
           <repository
-              url="http://download.eclipse.org/elk/updates/releases/0.7.0/"/>
+              url="http://download.eclipse.org/elk/updates/releases/0.7.1/"/>
           <repository
               url="https://kieler.github.io/KLighD/v2.0.0/"/>
           <repository
@@ -399,7 +394,9 @@
           <repository
               url="http://download.eclipse.org/wildwebdeveloper/releases/latest/"/>
           <repository
-              url="https://download.jetbrains.com/kotlin/eclipse-plugin/last"/>
+              url="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last/"/>
+          <repository
+              url="http://download.eclipse.org/tools/ajdt/410/dev/update"/>
         </repositoryList>
       </targlet>
     </setupTask>
@@ -474,6 +471,8 @@
             versionRange="2.25.0"/>
         <requirement
             name="org.eclipse.emf.mwe2.launcher.feature.group"/>
+        <requirement
+            name="org.jetbrains.kotlin.feature.feature.group"/>
         <repositoryList
             name="DefaultRepositories">
           <repository
@@ -482,6 +481,8 @@
               url="http://download.eclipse.org/tools/orbit/downloads/drops/R20201130205003/repository/"/>
           <repository
               url="https://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.25.0/"/>
+          <repository
+              url="https://dl.bintray.com/jetbrains/kotlin/eclipse-plugin/last/"/>
         </repositoryList>
       </targlet>
     </setupTask>
