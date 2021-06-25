@@ -269,7 +269,7 @@ main reactor (
     rsu = new RSU(
         num_entries = num_entries, 
         intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.792485)=},
-        intersection_width = 66,
+        intersection_width = 40,
         nominal_speed_in_intersection = 14
     );
     
