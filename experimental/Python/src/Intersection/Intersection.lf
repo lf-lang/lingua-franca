@@ -113,6 +113,15 @@ class vehicle_position:
         self.current_pos = current_pos # Current GPS position of the vehicle
     
 
+class vehicle_velocity:
+    """
+    Represent the current 3D velocity of the vehicle in a
+    .x, .y, .z format.
+    """
+    def __init__(self, x=0, y=0, z=0):
+        self.x = x
+        self.y = y
+        self.z = z
     
 # The speed limit of vehicles in m/s
 speed_limit = 14.0
@@ -252,7 +261,11 @@ reactor Vehicle (
     =}
     
     reaction(grant) {=        
-        print("Granted access at elapsed logical time {}. Physical time is {}. ".format(
+        print("Vehicle {} Granted access".format(self.bank_index + 1),
+            "to enter the intersection at elapsed logical time {:d}.\n".format(
+                int(grant.value.arrival_time) - get_start_time()
+            ),
+            "Current elapsed logical time: {:d}, Current physical time is {:d}.".format(
             get_elapsed_logical_time(),
             get_elapsed_physical_time())
         )
@@ -314,22 +327,116 @@ reactor RSU (
                 time_in_intersection = (BILLION * self.intersection_width) / (response.target_speed)
                 self.earliest_free = response.arrival_time + time_in_intersection
                 
-                start_time = get_logical_time() - get_elapsed_logical_time()
-                
                 print("*** RSU: Granted access to vehicle {} to enter at "
                     "time {} with average target velocity {} m/s. Next available time is {}".format(
                     i + 1,
-                    response.arrival_time - start_time,
+                    response.arrival_time - get_start_time(),
                     response.target_speed,
-                    self.earliest_free - start_time)
+                    self.earliest_free - get_start_time())
                 )
     =}
 }
 
-main reactor {
-    vehicles = new[4] Vehicle();
+main reactor (
+    num_vehicles(4),
+    positions({= [ \
+        coordinate(0.000042,-0.000701,2.794825), \
+        coordinate(-0.000501,0.001084,2.794891), \
+        coordinate(-0.000060,-0.001510,2.794854), \
+        coordinate(0.000481,-0.001186,2.794846)
+        ]=}),
+    initial_speeds({= \
+        [ \
+            vehicle_velocity(y = -8), vehicle_velocity(x = 8), \
+            vehicle_velocity(y = 8), vehicle_velocity(x = -8) \
+        ]
+      =})
+) {
+    vehicles = new[num_vehicles] Vehicle();
     
-    rsu = new RSU(intersection_pos = {=coordinate(-0.00003,-0.0011,2.0016)=});
+    rsu = new RSU(
+        num_entries = num_vehicles,
+        intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.001687049)=}
+    );
     vehicles.request -> rsu.request;
     rsu.grant -> vehicles.grant;
+    
+    // Handle simulation
+    simulators = new[num_vehicles] Simulator(
+        initial_speeds = initial_speeds,
+        initial_speed = {=lambda self: self.initial_speeds[self.bank_index]=},
+        positions = positions, 
+        start_pos={=lambda self: self.positions[self.bank_index]=}
+    )
+    
+    simulators.vehicle_stat -> vehicles.vehicle_stat;
+    simulators.vehicle_pos -> vehicles.vehicle_pos;
+    vehicles.control -> simulators.vehicle_command;
+}
+
+/**
+ * A simulator that interacts with the vehicle controllers.
+ * This enables this example to be self-contained, without a need
+ * for a simulator such as Carla.
+ */
+reactor Simulator(
+    interval(16 msec),
+    initial_speeds({=[]=}),
+    initial_speed({=vehicle_velocity(x = 12.0)=}),
+    positions({=[]=}),
+    start_pos({=coordinate(0.00010,-0.0011,2.0016)=}),
+    max_acceleration(0.5)
+){
+    
+    input vehicle_command;
+    output vehicle_stat;
+    output vehicle_pos;
+    
+    state current_pos;
+    state current_velocity;
+    state current_throttle(0);
+    state current_brake(0);
+    
+    reaction(startup) -> vehicle_stat, vehicle_pos {=
+        # Give initial values to the vehicle controller
+        self.current_pos = self.start_pos(self)
+        self.current_velocity = self.initial_speed(self)
+        
+        print("Vehicle {}:\n".format(self.bank_index + 1),
+            "initial position: x={:f}, y={:f}, z={:f}\n".format(
+                starting_position.x,
+                starting_position.y,
+                starting_position.z
+            ),
+            "initial velocity: x={:f}, y={:f}, z={:f}".format(
+                starting_velocity.x,
+                starting_velocity.y,
+                starting_velocity.z
+        ))
+        
+        vehicle_pos.set(vehicle_position(self.current_pos))
+        vehicle_stat.set(vehicle_status(self.current_velocity))
+    =}
+    
+    reaction(vehicle_command) {=
+        self.current_throttle = vechile_command.value.throttle
+        self.current_brake = vehicle_command.value.brake
+    =}
+    
+    timer tick(0, interval)
+    reaction(tick) {=
+        previous_velocity = self.current_velocity
+        
+        # Linearly calculate an acceleration based on the value of throttle
+        current_acceleration = self.current_throttle * self.max_acceleration
+        
+        # Apply acceleration
+        self.current_velocity.x += (current_acceleration / (self.interval / BILLION)) \
+            * (self.current_velocity.x/(self.current_velocity.x + 0.00001)) # Keep the direction
+        self.current_velocity.y += current_acceleration / (self.interval / BILLION) \
+            * (self.current_velocity.y/(self.current_velocity.y + 0.00001)) # Keep the direction
+            
+        # change the position of the vehicle
+        
+    =}
 }
