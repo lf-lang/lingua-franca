@@ -30,7 +30,10 @@ task generateXtextLanguage(type: JavaExec) {
 	args += "-p"
 	args += "rootPath=/${projectDir}/.."
 
-	doLast {
+	// Currently we don't need to delete any generated files because we use the
+	// Java/Xtend implementations.  However, if we commit to porting such files
+	// to Kotlin, we might to reintroduce the deletion mechanism below.
+	/*doLast {
 		def filesToDelete = [
 				"org.lflang.validation.LFValidator",
 				"org.lflang.LFRuntimeModule",
@@ -53,7 +56,7 @@ task generateXtextLanguage(type: JavaExec) {
 				project.logger.info("no ${projectDir.relativePath(ktFile)}, leaving the Java implementation in")
 			}
 		}
-	}
+	}*/
 }
 
 generateXtext.dependsOn(generateXtextLanguage)

@@ -86,8 +86,12 @@
                 <groupId>org.eclipse.xtend</groupId>
                 <artifactId>xtend-maven-plugin</artifactId>
             </plugin>
-            <plugin>
-                <!-- Cleanup files duplicated by Xtext. -->
+            <!-- Cleanup files duplicated by Xtext. -->
+            <!-- Currently we don't need to delete any generated files because
+                 we use the Java/Xtend implementations. However, if we commit
+                 to porting such files to Kotlin, we might to reintroduce the
+                 deletion mechanism below.-->
+            <!--plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>3.0.0</version>
                 <executions>
@@ -112,7 +116,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin-->
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
