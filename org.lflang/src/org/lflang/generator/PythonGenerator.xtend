@@ -414,41 +414,11 @@ class PythonGenerator extends CGenerator {
                 // Handle runtime initializations
                 pythonClasses.append('''    
                     «'    '»def __init__(self, **kwargs):
-                        «'    '»self.__dict__.update(kwargs)
                 ''')
                 
-                // Handle parameters first
-                for (param : decl.toDefinition.allParameters) {
-                    if (!param.inferredType.targetType.equals("PyObject*")) {
-                        // If type is given, use it
-                        pythonClasses.
-                            append('''        «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
-                            ''')
-                    } else {
-                        // If type is not given, just pass along the initialization
-                        pythonClasses.append('''        «param.name» = «param.pythonInitializer»
-                        ''')
-
-                    }
-                }
-
-                // Next, handle state variables
-                for (stateVar : reactor.allStateVars) {
-                    if (!stateVar.inferredType.targetType.equals("PyObject*")) {
-                        // If type is given, use it
-                        pythonClasses.
-                            append('''        «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
-                            ''')
-                    } else if (stateVar.isInitialized) {
-                        // If type is not given, pass along the initialization directly if it is present
-                        pythonClasses.append('''        «stateVar.name» = «stateVar.pythonInitializer»
-                        ''')
-                    } else {
-                        // If neither the type nor the initialization is given, use None
-                        pythonClasses.append('''        «stateVar.name» = None
-                        ''')                        
-                    }
-                }
+                
+                pythonClasses.append(generateParametersAndStateVariables(decl))
+                
 
                 var reactionIndex = 0
                 for (reaction : reactor.allReactions) {
@@ -462,6 +432,7 @@ class PythonGenerator extends CGenerator {
                     pythonClasses.append('''        «reaction.code.toText»
                     ''')
                     pythonClasses.append('''        return 0
+                    
                     ''')
 
                     // Now generate code for the deadline violation function, if there is one.
@@ -483,6 +454,75 @@ class PythonGenerator extends CGenerator {
     }
     
     /**
+     * Generate code that instantiates and initializes parameters and state variables for a reactor 'decl'.
+     * 
+     * @param decl The reactor declaration
+     * @return The generated code as a StringBuilder
+     */
+    protected def StringBuilder generateParametersAndStateVariables(ReactorDecl decl) {
+        val reactor = decl.toDefinition
+        var StringBuilder temporary_code = new StringBuilder()
+        
+        
+        temporary_code.append('''        # Define state variables
+        ''')
+        // Next, handle state variables
+        for (stateVar : reactor.allStateVars) {
+            if (!stateVar.inferredType.targetType.equals("PyObject*")) {
+                // If type is given, use it
+                temporary_code.
+                    append('''        self.«stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
+                    ''')
+            } else if (stateVar.isInitialized) {
+                // If type is not given, pass along the initialization directly if it is present
+                temporary_code.append('''        self.«stateVar.name» = «stateVar.pythonInitializer»
+                ''')
+            } else {
+                // If neither the type nor the initialization is given, use None
+                temporary_code.append('''        self.«stateVar.name» = None
+                ''')                        
+            }
+        }
+        
+        temporary_code.append('''        #Define parameters and their default values
+        ''')
+        
+        for (param : decl.toDefinition.allParameters) {
+            if (!param.inferredType.targetType.equals("PyObject*")) {
+                // If type is given, use it
+                temporary_code.
+                    append('''        self._«param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
+                    ''')
+            } else {
+                // If type is not given, just pass along the initialization
+                temporary_code.append('''        self._«param.name» = «param.pythonInitializer»
+                ''')
+        
+            }
+        }
+        
+        // Handle parameters that are set in instantiation
+        temporary_code.append('''        # Handle parameters that are set in instantiation
+        ''')
+        temporary_code.append('''        self.__dict__.update(kwargs)
+        
+        ''')
+        
+        // Next, create getters for parameters
+        for (param : decl.toDefinition.allParameters) {
+            temporary_code.append('''    @property
+            ''') 
+            temporary_code.append('''    def «param.name»(self):
+            ''')
+            temporary_code.append('''        return self._«param.name»
+            
+            ''')
+        }
+        
+        return temporary_code;
+    }
+    
+    /**
      * Generate the function that is executed whenever the deadline of the reaction
      * with the given reaction index is missed
      * @param reaction The reaction to generate deadline miss code for
@@ -495,6 +535,7 @@ class PythonGenerator extends CGenerator {
         def «deadlineFunctionName»(self «reactionParameters»):
             «reaction.deadline.code.toText»
             return 0
+        
     '''
     
     /**
@@ -568,14 +609,14 @@ class PythonGenerator extends CGenerator {
                     «instance.uniqueID»_lf = \
                         [«FOR member : instance.bankMembers SEPARATOR ", \\\n"»\
                             _«className»(bank_index = «member.bankIndex/* bank_index is specially assigned by us*/»,\
-                                «FOR param : member.parameters SEPARATOR ", "»«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
+                                «FOR param : member.parameters SEPARATOR ", "»_«param.name»=«param.pythonInitializer»«ENDFOR»)«ENDFOR»]
                     ''')
                 return
             } else if (instance.bankIndex === -1 && !instance.definition.reactorClass.toDefinition.allReactions.isEmpty) {
                 pythonClassesInstantiation.append('''
                     «instance.uniqueID»_lf = \
                         [_«className»(bank_index = 0«/* bank_index is specially assigned by us*/», \
-                            «FOR param : instance.parameters SEPARATOR ", \\\n"»«param.name»=«param.pythonInitializer»«ENDFOR»)]
+                            «FOR param : instance.parameters SEPARATOR ", \\\n"»_«param.name»=«param.pythonInitializer»«ENDFOR»)]
                 ''')
             }
 
