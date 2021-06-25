@@ -13,17 +13,24 @@
  * 
  * This is a very rough starting point that needs a lot of work.
  * 
- * Note: the vehicle control relies on an external vehicle interface
- *  that provides 'vehicle_status' and a 'vehicle_position' (see the
- *  preamble below). Without these inputs, this application will not
- *  do anything when executed.
+ * Note: 
+ *  The 'Vehicle' controller reactor relies on an external vehicle interface
+ *  that provides a 'vehicle_status' and a 'vehicle_position' (see the
+ *  preamble below). To make this example interactive, a toy Simulator
+ *  reactor is provided that outputs an initial velocity and position
+ *  for each vehicle, and updates these values continuously using an
+ *  input vehicle command (throttle and brake) from the vehicle controller.
  */
-target Python {
-    timeout: 5 sec
-}
+target Python;
 
 preamble {=
-from math import sin, cos, sqrt, atan2, radians
+from math import sin, cos, sqrt, atan2, radians, pi
+
+try:
+    from math import isclose
+except ImportError:
+    def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 class coordinate:
     """
@@ -118,7 +125,7 @@ class vehicle_velocity:
     Represent the current 3D velocity of the vehicle in a
     .x, .y, .z format.
     """
-    def __init__(self, x=0, y=0, z=0):
+    def __init__(self, x=0.0, y=0.0, z=0.0):
         self.x = x
         self.y = y
         self.z = z
@@ -126,14 +133,12 @@ class vehicle_velocity:
 # The speed limit of vehicles in m/s
 speed_limit = 14.0
 # The distance (in meters) at which the controller assumes it has reached its goal
-goal_reached_threshold = 33
+goal_reached_threshold = 14.0
 # The time threshold at which the vehicle has reached its time-based goal
 goal_reached_threshold_time = (goal_reached_threshold/speed_limit)
 =}
 
-reactor Vehicle (
-    speed(11.0)    // in m/sec
-) {
+reactor Vehicle {
     input vehicle_stat;
     input vehicle_pos;
 
@@ -142,6 +147,8 @@ reactor Vehicle (
     output request;    
     
     output control;
+    
+    output goal_reached;
     
     logical action delay;
     
@@ -152,23 +159,24 @@ reactor Vehicle (
     state granted_time_to_enter(0);
     state intersection_pos;
     state goal_reached(false);
+    state velocity(0.0);
     
     reaction(vehicle_pos) {=
         self.current_pos = vehicle_pos.value.current_pos;        
     =}
-    reaction(vehicle_stat) -> request, control {=
+    reaction(vehicle_stat) -> request, control, goal_reached {=
         if self.goal_reached:
             # Nothing to do here
             return
         
         # Record the speed
-        velocity = vehicle_stat.value.velocity
-        linear_speed = sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
-        self.speed = linear_speed
+        velocity_3d = vehicle_stat.value.velocity
+        linear_speed = sqrt(velocity_3d.x**2 + velocity_3d.y**2 + velocity_3d.z**2)
+        self.velocity = linear_speed
         
-        if self.speed == 0:
+        if self.velocity == 0:
             # Prevent divisions by zero
-            self.speed = 0.001
+            self.velocity = 0.001
         
         # Check if we have received an initial pos
         if self.current_pos.distance(coordinate(0.0, 0.0, 0.0)) <= 0.00000001:
@@ -178,7 +186,7 @@ reactor Vehicle (
         # Send a new request to the RSU if no time to enter
         # the intersection is granted
         if self.granted_time_to_enter == 0:
-            message = intersection_request(speed = self.speed, current_pos = self.current_pos)
+            message = intersection_request(speed = self.velocity, current_pos = self.current_pos)
             request.set(message)
         else:
             # We have a granted time from the RSU
@@ -193,7 +201,7 @@ reactor Vehicle (
             print("########################################")
             print("Vehicle {}: Distance to intersection: {}m.".format(self.bank_index + 1, distance_remaining))
             print("Vehicle {}: Time to intersection: {}s.".format(self.bank_index + 1, time_remaining))
-            print("Vehicle {}: Current speed: {}m/s.".format(self.bank_index + 1, self.speed))
+            print("Vehicle {}: Current speed: {}m/s.".format(self.bank_index + 1, self.velocity))
 
             target_speed = 0.0
             # target_speed = distance_remaining/time_remaining
@@ -209,6 +217,12 @@ reactor Vehicle (
                 target_speed = speed_limit
                 # Simulation is over
                 self.goal_reached = True
+                
+                print("\n\n*************************************************************\n\n".format(self.bank_index + 1))
+                print("************* Vehicle {}: Reached intersection! *************".format(self.bank_index + 1))
+                print("\n\n*************************************************************\n\n".format(self.bank_index + 1))
+
+                goal_reached.set(True)
             elif time_remaining < (distance_remaining / speed_limit):
                 # No time to make it to the intersection even if we
                 # were going at the speed limit.
@@ -218,7 +232,7 @@ reactor Vehicle (
                 target_speed = 0
             else:
                 # Has not reached the goal
-                # target_speed = ((2 * distance_remaining) / (time_remaining)) - self.speed
+                # target_speed = ((2 * distance_remaining) / (time_remaining)) - self.velocity
                 target_speed = distance_remaining / time_remaining
             
             print("Vehicle {}: Calculated target speed: {}m/s.".format(self.bank_index + 1, target_speed))
@@ -236,15 +250,15 @@ reactor Vehicle (
             brake = 0.0
             throttle = 0.0
             
-            if target_speed >= self.speed:            
+            if target_speed >= self.velocity:            
                 # Calculate a proportional throttle (0.0 < throttle < 1.0)
-                throttle = min((target_speed - self.speed)/target_speed, 1)
+                throttle = min((target_speed - self.velocity)/target_speed, 1)
                 # throttle = 1.0
                 brake = 0.0
-                # throttle = min(abs(target_speed / self.speed), 1)
+                # throttle = min(abs(target_speed / self.velocity), 1)
             else:
                 # Need to apply the brake
-                brake = min((self.speed - target_speed)/self.speed, 1)
+                brake = min((self.velocity - target_speed)/self.velocity, 1)
                 # brake = 1.0
                 throttle = 0.0
             
@@ -285,13 +299,16 @@ reactor RSU (
 	intersection_pos({=coordinate(0.0, 0.0, 0.0)=}) // GPS coordinates for the intersection
 ) {
     input[num_entries] request;
+    input[num_entries] vehicle_reached_intersection;
     output[num_entries] grant;
     
     state earliest_free(0 msec);
+    state active_participants({=[0] * 20=});
     
     reaction(request) -> grant {=
         for i in range(self.num_entries):
-            if request[i].is_present:
+            if request[i].is_present:                
+                self.active_participants[i] = 1
                 if request[i].value.speed == 0:
                     # Avoid division by zero
                     request[i].value.speed = 0.001
@@ -335,20 +352,32 @@ reactor RSU (
                     self.earliest_free - get_start_time())
                 )
     =}
+    
+    reaction(vehicle_reached_intersection) {=
+        sum_of_active_participants = 0
+        for i in range(len(vehicle_reached_intersection)):
+            if vehicle_reached_intersection[i].is_present:
+                self.active_participants[i] = 0
+            sum_of_active_participants += self.active_participants[i]
+        if sum_of_active_participants == 0:
+            # End the simulation if all vehicles have reached the intersection
+            request_stop()            
+            print("\n********* SUCCESS: All vehicles have reached the intersection. *********\n")
+    =}
 }
 
 main reactor (
     num_vehicles(4),
-    positions({= [ \
-        coordinate(0.000042,-0.000701,2.794825), \
-        coordinate(-0.000501,0.001084,2.794891), \
-        coordinate(-0.000060,-0.001510,2.794854), \
-        coordinate(0.000481,-0.001186,2.794846)
+    positions({= [                                # Direction (velocity vector)
+        coordinate(0.000038,-0.000674,2.794825),  # /|\ 
+        coordinate(-0.000501,-0.001084,2.794891),  # -> 
+        coordinate(-0.000060,-0.001510,2.794854), # \|/  
+        coordinate(0.000367,-0.001185,2.794846),  # <- 
         ]=}),
     initial_speeds({= \
         [ \
-            vehicle_velocity(y = -8), vehicle_velocity(x = 8), \
-            vehicle_velocity(y = 8), vehicle_velocity(x = -8) \
+            vehicle_velocity(y = -8.0), vehicle_velocity(x = 8.0), \
+            vehicle_velocity(y = 8.0), vehicle_velocity(x = -8.0) \
         ]
       =})
 ) {
@@ -356,9 +385,13 @@ main reactor (
     
     rsu = new RSU(
         num_entries = num_vehicles,
-        intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.001687049)=}
+        intersection_pos = {=coordinate(-0.000007632,-0.001124366,2.792485)=},
+        intersection_width = 28,
+        nominal_speed_in_intersection = 14
     );
     vehicles.request -> rsu.request;
+    // Simulation will end once all vehicles have reached the intersection
+    vehicles.goal_reached -> rsu.vehicle_reached_intersection;
     rsu.grant -> vehicles.grant;
     
     // Handle simulation
@@ -380,12 +413,16 @@ main reactor (
  * for a simulator such as Carla.
  */
 reactor Simulator(
-    interval(16 msec),
+    interval(1 sec),  // Note: For demonstration purposes, 
+                      // this interval is set to a very low frequency.
+                      // Set the interval to 16 msecs for a more
+                      // realistic simulation.
     initial_speeds({=[]=}),
     initial_speed({=vehicle_velocity(x = 12.0)=}),
     positions({=[]=}),
-    start_pos({=coordinate(0.00010,-0.0011,2.0016)=}),
-    max_acceleration(0.5)
+    start_pos({=coordinate(0.000042,-0.000701,2.794825)=}),
+    max_acceleration(4), // m/s/s
+    drag_acceleration({=-0.2=})
 ){
     
     input vehicle_command;
@@ -396,47 +433,102 @@ reactor Simulator(
     state current_velocity;
     state current_throttle(0);
     state current_brake(0);
+    state velocity_vector(
+        {={'x':0, 'y':0}=}
+    );
     
     reaction(startup) -> vehicle_stat, vehicle_pos {=
         # Give initial values to the vehicle controller
         self.current_pos = self.start_pos(self)
         self.current_velocity = self.initial_speed(self)
         
-        print("Vehicle {}:\n".format(self.bank_index + 1),
-            "initial position: x={:f}, y={:f}, z={:f}\n".format(
-                starting_position.x,
-                starting_position.y,
-                starting_position.z
+        # For this simulation, we would like the vehicles to
+        # move in a straight line. Therefore, we calculate a
+        # velocity vector here and will keep it throughout the
+        # simulation. An improvement would be for the vehicles
+        # to be able to change directions at the intersection.
+        if not isclose(self.current_velocity.x, 0):
+            self.velocity_vector['x'] = self.current_velocity.x / abs(self.current_velocity.x) # Keep the sign
+        
+        if not isclose(self.current_velocity.y, 0):
+            self.velocity_vector['y'] = self.current_velocity.y / abs(self.current_velocity.y) # Keep the sign
+        
+        """
+        print("Simulator: Vehicle {}:\n".format(self.bank_index + 1),
+            "Initial position: x={:f}, y={:f}, z={:f}\n".format(
+                self.current_pos.x,
+                self.current_pos.y,
+                self.current_pos.z
             ),
-            "initial velocity: x={:f}, y={:f}, z={:f}".format(
-                starting_velocity.x,
-                starting_velocity.y,
-                starting_velocity.z
-        ))
+            "Initial velocity: x={:f}, y={:f}, z={:f}\n".format(
+                self.current_velocity.x,
+                self.current_velocity.y,
+                self.current_velocity.z
+            ),
+            "Velocity vector: x={:f}, y={:f}".format(
+                self.velocity_vector['x'],
+                self.velocity_vector['y']
+            )
+            )
+        """
         
         vehicle_pos.set(vehicle_position(self.current_pos))
         vehicle_stat.set(vehicle_status(self.current_velocity))
     =}
-    
-    reaction(vehicle_command) {=
-        self.current_throttle = vechile_command.value.throttle
-        self.current_brake = vehicle_command.value.brake
-    =}
-    
+        
     timer tick(0, interval)
-    reaction(tick) {=
+    reaction(tick) -> vehicle_stat, vehicle_pos {=
         previous_velocity = self.current_velocity
         
-        # Linearly calculate an acceleration based on the value of throttle
+        # Linearly calculate an acceleration based on the value of throttle and brake
         current_acceleration = self.current_throttle * self.max_acceleration
+        current_acceleration -= self.current_brake * self.max_acceleration
+        
+        print("Simulator: Vehicle {}:\n".format(self.bank_index + 1),
+            "Current position: x={:f}, y={:f}, z={:f}\n".format(
+                self.current_pos.x,
+                self.current_pos.y,
+                self.current_pos.z
+            ),
+            "Current velocity: x={:f}, y={:f}, z={:f}\n".format(
+                self.current_velocity.x,
+                self.current_velocity.y,
+                self.current_velocity.z
+            ),
+            "Current acceleration: {:f}\n".format(
+                current_acceleration
+            ),
+            "Velocity vector: x={:f}, y={:f}".format(
+                self.velocity_vector['x'],
+                self.velocity_vector['y']
+            )
+            )
+        
+        # Apply a constant drag
+        current_acceleration -= self.drag_acceleration
         
         # Apply acceleration
-        self.current_velocity.x += (current_acceleration / (self.interval / BILLION)) \
-            * (self.current_velocity.x/(self.current_velocity.x + 0.00001)) # Keep the direction
-        self.current_velocity.y += current_acceleration / (self.interval / BILLION) \
-            * (self.current_velocity.y/(self.current_velocity.y + 0.00001)) # Keep the direction
+        self.current_velocity.x += (current_acceleration * (self.interval / BILLION)) \
+            * self.velocity_vector['x']  # Keep the direction
+        self.current_velocity.y += (current_acceleration * (self.interval / BILLION)) \
+            * self.velocity_vector['y']  # Keep the direction
             
-        # change the position of the vehicle
+        vehicle_stat.set(vehicle_status(self.current_velocity))
+            
+        # Change the GPS position of the vehicle
+        x_move_meters = previous_velocity.x * self.interval / BILLION
+        y_move_meters = previous_velocity.y * self.interval / BILLION
         
+        self.current_pos.x = self.current_pos.x + (180/pi)*(x_move_meters/6378137)
+        self.current_pos.y = self.current_pos.y + (180/pi)*(y_move_meters/6378137)
+        
+        vehicle_pos.set(vehicle_position(self.current_pos))
+    =}
+    
+    
+    reaction(vehicle_command) {=
+        # Update throttle and brake values
+        self.current_throttle = vehicle_command.value.throttle
+        self.current_brake = vehicle_command.value.brake
     =}
 }
