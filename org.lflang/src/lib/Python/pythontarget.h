@@ -248,6 +248,11 @@ instant_t get_elapsed_physical_time();
 static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args);
 
 /**
+ * Return the start time in nanoseconds.
+ */
+static PyObject* py_get_start_time(PyObject *self, PyObject *args);
+
+/**
  * Stop execution at the conclusion of the current logical time.
  */
 static PyObject* py_stop(PyObject *self);

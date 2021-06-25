@@ -219,6 +219,14 @@ static PyObject* py_get_elapsed_physical_time(PyObject *self, PyObject *args) {
 }
 
 /**
+ * Return the start time in nanoseconds.
+ */
+instant_t get_start_time();
+static PyObject* py_get_start_time(PyObject *self, PyObject *args) {
+    return PyLong_FromLong(get_start_time());
+}
+
+/**
  * Prototype for the main function.
  */
 int lf_reactor_c_main(int argc, char *argv[]);
@@ -720,6 +728,7 @@ static PyMethodDef GEN_NAME(MODULE_NAME,_methods)[] = {
   {"get_logical_time", py_get_logical_time, METH_NOARGS, NULL},
   {"get_physical_time", py_get_physical_time, METH_NOARGS, NULL},
   {"get_elapsed_physical_time", py_get_elapsed_physical_time, METH_NOARGS, NULL},
+  {"get_start_time", py_get_start_time, METH_NOARGS, NULL},
   {"request_stop", py_request_stop, METH_NOARGS, NULL},
   {NULL, NULL, 0, NULL}
 };
