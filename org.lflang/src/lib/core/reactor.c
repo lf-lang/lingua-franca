@@ -38,6 +38,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include <assert.h>
 
 /**
+ * Unless the "fast" option is given, an LF program will wait until
+ * physical time matches logical time before handling an event with
+ * a given logical time. The amount of time is less than this given
+ * threshold, then no wait will occur. The purpose of this is
+ * to prevent unnecessary delays caused by simply setting up and
+ * performing the wait.
+ */
+#define MIN_WAIT_TIME NSEC(10)
+
+/**
  * Schedule the specified trigger at current_tag.time plus the offset of the
  * specified trigger plus the delay.
  * See reactor.h for documentation.
@@ -97,16 +107,13 @@ int wait_until(instant_t logical_time_ns) {
         LOG_PRINT("Waiting for elapsed logical time %lld.", logical_time_ns - start_time);
         interval_t ns_to_wait = logical_time_ns - get_physical_time();
     
-        if (ns_to_wait <= 0) {
+        if (ns_to_wait < MIN_WAIT_TIME) {
+            DEBUG_PRINT("Wait time %lld is less than MIN_WAIT_TIME %lld. Skipping wait.",
+                ns_to_wait, MIN_WAIT_TIME);
             return return_value;
         }
-    
-        // timespec is seconds and nanoseconds.
-        struct timespec wait_time = {(time_t)ns_to_wait / BILLION, (long)ns_to_wait % BILLION};
-        DEBUG_PRINT("Waiting %lld seconds, %lld nanoseconds.", ns_to_wait / BILLION, ns_to_wait % BILLION);
-        struct timespec remaining_time;
-        // FIXME: If the wait time is less than the time resolution, don't sleep.
-        return_value = lf_nanosleep(_LF_CLOCK, &wait_time, &remaining_time);
+
+        return_value = lf_nanosleep(ns_to_wait);
     }
     return return_value;
 }
