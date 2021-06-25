@@ -141,11 +141,21 @@ class PythonGenerator extends CGenerator {
      * @return A value string in the target language
      */
     private def getPythonTargetValue(Value v) {
+        var String returnValue = "";
         switch(v.toText) {
-            case "false": return "False"
-            case "true": return "True"
-            default: return super.getTargetValue(v)
+            case "false": returnValue = "False"
+            case "true": returnValue = "True"
+            default: returnValue = super.getTargetValue(v)
         }
+        
+        // Parameters in Python are always prepended with a 'self.'
+        // predicate. Therefore, we need to append the returned value
+        // if it is a parameter.
+        if (v.parameter !== null) {
+            returnValue = "self." + returnValue;
+        }
+        
+        return returnValue;
     }
     
     /**
@@ -181,7 +191,7 @@ class PythonGenerator extends CGenerator {
      */
      protected def String getPythonInitializer(StateVar state) throws Exception {        
             if (state.init.size > 1) {
-                // parameters are initialized as mutable lists
+                // state variables are initialized as mutable lists
                 return state.init.join('[', ', ', ']', [it.pythonTargetValue])
             } else if (state.isInitialized) {
                 return state.init.get(0).getPythonTargetValue
@@ -463,27 +473,6 @@ class PythonGenerator extends CGenerator {
         val reactor = decl.toDefinition
         var StringBuilder temporary_code = new StringBuilder()
         
-        
-        temporary_code.append('''        # Define state variables
-        ''')
-        // Next, handle state variables
-        for (stateVar : reactor.allStateVars) {
-            if (!stateVar.inferredType.targetType.equals("PyObject*")) {
-                // If type is given, use it
-                temporary_code.
-                    append('''        self.«stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
-                    ''')
-            } else if (stateVar.isInitialized) {
-                // If type is not given, pass along the initialization directly if it is present
-                temporary_code.append('''        self.«stateVar.name» = «stateVar.pythonInitializer»
-                ''')
-            } else {
-                // If neither the type nor the initialization is given, use None
-                temporary_code.append('''        self.«stateVar.name» = None
-                ''')                        
-            }
-        }
-        
         temporary_code.append('''        #Define parameters and their default values
         ''')
         
@@ -507,6 +496,31 @@ class PythonGenerator extends CGenerator {
         temporary_code.append('''        self.__dict__.update(kwargs)
         
         ''')
+        
+        
+        temporary_code.append('''        # Define state variables
+        ''')
+        // Next, handle state variables
+        for (stateVar : reactor.allStateVars) {
+            if (!stateVar.inferredType.targetType.equals("PyObject*")) {
+                // If type is given, use it
+                temporary_code.
+                    append('''        self.«stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
+                    ''')
+            } else if (stateVar.isInitialized) {
+                // If type is not given, pass along the initialization directly if it is present
+                temporary_code.append('''        self.«stateVar.name» = «stateVar.pythonInitializer»
+                ''')
+            } else {
+                // If neither the type nor the initialization is given, use None
+                temporary_code.append('''        self.«stateVar.name» = None
+                ''')                        
+            }
+        }        
+        
+        temporary_code.append('''
+        
+        ''') 
         
         // Next, create getters for parameters
         for (param : decl.toDefinition.allParameters) {
