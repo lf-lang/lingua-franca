@@ -411,16 +411,22 @@ class PythonGenerator extends CGenerator {
 
                 val reactor = decl.toDefinition
 
+                // Handle runtime initializations
+                pythonClasses.append('''    
+                    «'    '»def __init__(self, **kwargs):
+                        «'    '»self.__dict__.update(kwargs)
+                ''')
+                
                 // Handle parameters first
                 for (param : decl.toDefinition.allParameters) {
                     if (!param.inferredType.targetType.equals("PyObject*")) {
                         // If type is given, use it
                         pythonClasses.
-                            append('''    «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
+                            append('''        «param.name»:«param.inferredType.pythonType» = «param.pythonInitializer»
                             ''')
                     } else {
                         // If type is not given, just pass along the initialization
-                        pythonClasses.append('''    «param.name» = «param.pythonInitializer»
+                        pythonClasses.append('''        «param.name» = «param.pythonInitializer»
                         ''')
 
                     }
@@ -431,24 +437,18 @@ class PythonGenerator extends CGenerator {
                     if (!stateVar.inferredType.targetType.equals("PyObject*")) {
                         // If type is given, use it
                         pythonClasses.
-                            append('''    «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
+                            append('''        «stateVar.name»:«stateVar.inferredType.pythonType» = «stateVar.pythonInitializer»
                             ''')
                     } else if (stateVar.isInitialized) {
                         // If type is not given, pass along the initialization directly if it is present
-                        pythonClasses.append('''    «stateVar.name» = «stateVar.pythonInitializer»
+                        pythonClasses.append('''        «stateVar.name» = «stateVar.pythonInitializer»
                         ''')
                     } else {
                         // If neither the type nor the initialization is given, use None
-                        pythonClasses.append('''    «stateVar.name» = None
+                        pythonClasses.append('''        «stateVar.name» = None
                         ''')                        
                     }
                 }
-
-                // Handle runtime initializations
-                pythonClasses.append('''    
-                    «'    '»def __init__(self, **kwargs):
-                        «'    '»self.__dict__.update(kwargs)
-                ''')
 
                 var reactionIndex = 0
                 for (reaction : reactor.allReactions) {
