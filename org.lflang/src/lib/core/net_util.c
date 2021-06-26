@@ -55,8 +55,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int host_is_big_endian() {
     static int host = 0;
     union {
-        int uint;
-        unsigned char c[4];
+        uint32_t uint;
+        unsigned char c[sizeof(uint32_t)];
     } x;
     if (host == 0) {
         // Determine the endianness of the host by setting the low-order bit.
@@ -247,11 +247,11 @@ int write_to_socket(int socket, int num_bytes, unsigned char* buffer) {
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_ll(long long data, unsigned char* buffer) {
+void encode_int64(int64_t data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
     // alignment problems.
     int shift = 0;
-    for(size_t i = 0; i < sizeof(long long); i++) {
+    for(size_t i = 0; i < sizeof(int64_t); i++) {
         buffer[i] = (data & (0xffLL << shift)) >> shift;
         shift += 8;
     }
@@ -259,14 +259,14 @@ void encode_ll(long long data, unsigned char* buffer) {
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
- *  order (lowest order byte first). This works for either int or
- *  unsigned int.
+ *  order (lowest order byte first). This works for either int32_t or
+ *  uint32_t.
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_int(int data, unsigned char* buffer) {
+void encode_int32(int32_t data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
-    // alignment problems.  Note that this assumes an int is four bytes.
+    // alignment problems.  Note that this assumes an int32_t is four bytes.
     buffer[0] = data & 0xff;
     buffer[1] = (data & 0xff00) >> 8;
     buffer[2] = (data & 0xff0000) >> 16;
@@ -279,7 +279,7 @@ void encode_int(int data, unsigned char* buffer) {
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_ushort(unsigned short data, unsigned char* buffer) {
+void encode_uint16(uint16_t data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
     // alignment problems. Note that this assumes a short is two bytes.
     buffer[0] = data & 0xff;
@@ -296,10 +296,10 @@ void encode_ushort(unsigned short data, unsigned char* buffer) {
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-int swap_bytes_if_big_endian_int(int src) {
+int32_t swap_bytes_if_big_endian_int32(int32_t src) {
     union {
-        int uint;
-        unsigned char c[4];
+        int32_t uint;
+        unsigned char c[sizeof(int32_t)];
     } x;
     if (!host_is_big_endian()) return src;
     // printf("DEBUG: Host is little endian.\n");
@@ -323,10 +323,10 @@ int swap_bytes_if_big_endian_int(int src) {
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-long long swap_bytes_if_big_endian_ll(long long src) {
+int64_t swap_bytes_if_big_endian_int64(int64_t src) {
     union {
-        long long ull;
-        unsigned char c[8];
+        int64_t ull;
+        unsigned char c[sizeof(int64_t)];
     } x;
     if (!host_is_big_endian()) return src;
     // printf("DEBUG: Host is little endian.\n");
@@ -352,10 +352,10 @@ long long swap_bytes_if_big_endian_ll(long long src) {
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-int swap_bytes_if_big_endian_ushort(unsigned short src) {
+uint16_t swap_bytes_if_big_endian_uint16(uint16_t src) {
     union {
-        unsigned short uint;
-        unsigned char c[2];
+        uint16_t uint;
+        unsigned char c[sizeof(uint16_t)];
     } x;
     if (!host_is_big_endian()) return src;
     // printf("DEBUG: Host is little endian.\n");
@@ -368,46 +368,46 @@ int swap_bytes_if_big_endian_ushort(unsigned short src) {
     return x.uint;
 }
 
-/** Extract an int from the specified byte sequence.
+/** Extract an int32_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-int extract_int(unsigned char* bytes) {
+int32_t extract_int32(unsigned char* bytes) {
     // Use memcpy to prevent possible alignment problems on some processors.
     union {
-        int uint;
-        unsigned char c[sizeof(int)];
+        int32_t uint;
+        unsigned char c[sizeof(int32_t)];
     } result;
-    memcpy(&result.c, bytes, sizeof(int));
-    return swap_bytes_if_big_endian_int(result.uint);
+    memcpy(&result.c, bytes, sizeof(int32_t));
+    return swap_bytes_if_big_endian_int32(result.uint);
 }
 
-/** Extract a long long from the specified byte sequence.
+/** Extract a int64_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-long long extract_ll(unsigned char* bytes) {
+int64_t extract_int64(unsigned char* bytes) {
     // Use memcpy to prevent possible alignment problems on some processors.
     union {
-        long long ull;
-        unsigned char c[sizeof(long long)];
+        int64_t ull;
+        unsigned char c[sizeof(int64_t)];
     } result;
-    memcpy(&result.c, bytes, sizeof(long long));
-    return swap_bytes_if_big_endian_ll(result.ull);
+    memcpy(&result.c, bytes, sizeof(int64_t));
+    return swap_bytes_if_big_endian_int64(result.ull);
 }
 
-/** Extract an unsigned short from the specified byte sequence.
+/** Extract an uint16_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-unsigned short extract_ushort(unsigned char* bytes) {
+uint16_t extract_uint16(unsigned char* bytes) {
     // Use memcpy to prevent possible alignment problems on some processors.
     union {
-        unsigned short ushort;
-        unsigned char c[sizeof(unsigned short)];
+        uint16_t ushort;
+        unsigned char c[sizeof(uint16_t)];
     } result;
-    memcpy(&result.c, bytes, sizeof(unsigned short));
-    return swap_bytes_if_big_endian_ushort(result.ushort);
+    memcpy(&result.c, bytes, sizeof(uint16_t));
+    return swap_bytes_if_big_endian_uint16(result.ushort);
 }
 
 /**
@@ -422,21 +422,21 @@ unsigned short extract_ushort(unsigned char* bytes) {
  */
 void extract_header(
         unsigned char* buffer,
-        unsigned short* port_id,
-        unsigned short* federate_id,
-        unsigned int* length
+        uint16_t* port_id,
+        uint16_t* federate_id,
+        uint32_t* length
 ) {
     // The first two bytes are the ID of the destination reactor.
-    *port_id = extract_ushort(buffer);
+    *port_id = extract_uint16(buffer);
     
     // The next two bytes are the ID of the destination federate.
-    *federate_id = extract_ushort(&(buffer[sizeof(unsigned short)]));
+    *federate_id = extract_uint16(&(buffer[sizeof(uint16_t)]));
 
     // printf("DEBUG: Message for port %d of federate %d.\n", *port_id, *federate_id);
     // FIXME: Better error handling needed here.
     assert(*federate_id < NUMBER_OF_FEDERATES);
     // The next four bytes are the message length.
-    *length = extract_int(&(buffer[sizeof(unsigned short) + sizeof(unsigned short)]));
+    *length = extract_int32(&(buffer[sizeof(uint16_t) + sizeof(uint16_t)]));
 
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 }
@@ -455,13 +455,13 @@ void extract_header(
  */
 void extract_timed_header(
         unsigned char* buffer,
-        unsigned short* port_id,
-        unsigned short* federate_id,
-        unsigned int* length,
+        uint16_t* port_id,
+        uint16_t* federate_id,
+        uint32_t* length,
 		tag_t* tag
 ) {
 	extract_header(buffer, port_id, federate_id, length);
 
-    tag->time = extract_ll(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
-    tag->microstep = extract_int(&(buffer[sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
+    tag->time = extract_int64(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t)]));
+    tag->microstep = extract_int32(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t) + sizeof(instant_t)]));
 }

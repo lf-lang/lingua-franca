@@ -151,7 +151,7 @@ int write_to_socket2(int socket, int num_bytes, unsigned char* buffer);
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_ll(long long data, unsigned char* buffer);
+void encode_int64(int64_t data, unsigned char* buffer);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
@@ -160,7 +160,7 @@ void encode_ll(long long data, unsigned char* buffer);
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_int(int data, unsigned char* buffer);
+void encode_int32(int32_t data, unsigned char* buffer);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
@@ -168,7 +168,7 @@ void encode_int(int data, unsigned char* buffer);
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
-void encode_ushort(unsigned short data, unsigned char* buffer);
+void encode_uint16(uint16_t data, unsigned char* buffer);
 
 /** If this host is little endian, then reverse the order of
  *  the bytes of the argument. Otherwise, return the argument
@@ -180,7 +180,7 @@ void encode_ushort(unsigned short data, unsigned char* buffer);
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-int swap_bytes_if_big_endian_int(int src);
+int32_t swap_bytes_if_big_endian_int32(int32_t src);
 
 /** If this host is little endian, then reverse the order of
  *  the bytes of the argument. Otherwise, return the argument
@@ -192,7 +192,7 @@ int swap_bytes_if_big_endian_int(int src);
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-long long swap_bytes_if_big_endian_ll(long long src);
+int64_t swap_bytes_if_big_endian_int64(int64_t src);
 
 /** If this host is little endian, then reverse the order of
  *  the bytes of the argument. Otherwise, return the argument
@@ -204,25 +204,25 @@ long long swap_bytes_if_big_endian_ll(long long src);
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-int swap_bytes_if_big_endian_ushort(unsigned short src);
+uint16_t swap_bytes_if_big_endian_uint16(uint16_t src);
 
-/** Extract an int from the specified byte sequence.
+/** Extract an int32_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-int extract_int(unsigned char* bytes);
+int32_t extract_int32(unsigned char* bytes);
 
-/** Extract a long long from the specified byte sequence.
+/** Extract a int64_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-long long extract_ll(unsigned char* bytes);
+int64_t extract_int64(unsigned char* bytes);
 
-/** Extract an unsigned short from the specified byte sequence.
+/** Extract an uint16_t from the specified byte sequence.
  *  This will swap the order of the bytes if this machine is big endian.
  *  @param bytes The address of the start of the sequence of bytes.
  */
-unsigned short extract_ushort(unsigned char* bytes);
+uint16_t extract_uint16(unsigned char* bytes);
 
 /**
  * Extract the core header information that all messages between
@@ -236,9 +236,9 @@ unsigned short extract_ushort(unsigned char* bytes);
  */
 void extract_header(
         unsigned char* buffer,
-        unsigned short* port_id,
-        unsigned short* federate_id,
-        unsigned int* length
+        uint16_t* port_id,
+        uint16_t* federate_id,
+        uint32_t* length
 );
 
 /**
@@ -255,9 +255,9 @@ void extract_header(
  */
 void extract_timed_header(
         unsigned char* buffer,
-        unsigned short* port_id,
-        unsigned short* federate_id,
-        unsigned int* length,
+        uint16_t* port_id,
+        uint16_t* federate_id,
+        uint32_t* length,
 		tag_t* tag
 );
 
