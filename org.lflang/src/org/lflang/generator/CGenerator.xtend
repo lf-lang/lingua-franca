@@ -334,7 +334,7 @@ class CGenerator extends GeneratorBase {
         super()
         // set defaults
         targetConfig.compiler = "gcc"
-        targetConfig.compilerFlags.add("-O2") // -Wall -Wconversion"
+        targetConfig.compilerFlags.addAll("-O2", "-Wconversion") // "-Wall -Wconversion"
     }
 
     ////////////////////////////////////////////
