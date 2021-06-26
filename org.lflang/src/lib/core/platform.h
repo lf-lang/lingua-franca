@@ -72,8 +72,6 @@ typedef _lf_cond_t lf_cond_t;            // Type to hold handle to a condition v
 typedef _lf_thread_t lf_thread_t;        // Type to hold handle to a thread
 #endif
 
-typedef _lf_clock_t lf_clock_t;          // Type to hold a clock identifier (e.g., CLOCK_REALTIME on POSIX)
-
 /**
  * Time instant. Both physical and logical times are represented
  * using this typedef.
