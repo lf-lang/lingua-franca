@@ -260,7 +260,7 @@ void synchronize_initial_physical_clock_with_rti(int rti_socket_TCP) {
  */
 int handle_T1_clock_sync_message(unsigned char* buffer, int socket, instant_t t2) {
     // Extract the payload
-    instant_t t1 = extract_ll(&(buffer[1]));
+    instant_t t1 = extract_int64(&(buffer[1]));
 
     DEBUG_PRINT("Received T1 message with time payload %lld from RTI at local time %lld.",
                 t1, t2);
@@ -274,7 +274,7 @@ int handle_T1_clock_sync_message(unsigned char* buffer, int socket, instant_t t2
     // Reply will have the federate ID as a payload.
     unsigned char reply_buffer[1 + sizeof(int)];
     reply_buffer[0] = MSG_TYPE_CLOCK_SYNC_T3;
-    encode_int(_lf_my_fed_id, &(reply_buffer[1]));
+    encode_int32(_lf_my_fed_id, &(reply_buffer[1]));
 
     // Write the reply to the socket.
     DEBUG_PRINT("Sending T3 message to RTI.");
@@ -311,7 +311,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     _lf_rti_socket_stat.received_T4_messages_in_current_sync_window++;
 
     // Extract the payload
-    instant_t t4 = extract_ll(&(buffer[1]));
+    instant_t t4 = extract_int64(&(buffer[1]));
 
     DEBUG_PRINT("Clock sync: Received T4 message with time payload %lld from RTI at local time %lld. "
             "(difference %lld)",
@@ -354,7 +354,7 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
             return;
         }
         // Filter out noise.
-        instant_t t5 = extract_ll(&(buffer[1]));  // Time at the RTI of sending the coded probe.
+        instant_t t5 = extract_int64(&(buffer[1]));  // Time at the RTI of sending the coded probe.
 
         // Compare the difference in time at the RTI between sending T4 and the coded probe
         // against the difference in time at this federate of receiving these two message.

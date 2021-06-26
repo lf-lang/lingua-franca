@@ -183,7 +183,7 @@ void create_server(int specified_port) {
     // on an MSG_TYPE_ADDRESS_ADVERTISEMENT message (@see rti.h).
     unsigned char buffer[sizeof(int) + 1];
     buffer[0] = MSG_TYPE_ADDRESS_ADVERTISEMENT;
-    encode_int(_fed.server_port, &(buffer[1]));
+    encode_int32(_fed.server_port, &(buffer[1]));
     write_to_socket_errexit(_fed.socket_TCP_RTI, sizeof(int) + 1, (unsigned char*)buffer,
                     "Failed to send address advertisement.");
     DEBUG_PRINT("Sent port %d to the RTI.", _fed.server_port);
@@ -225,13 +225,13 @@ int send_message(int message_type,
     header_buffer[0] = message_type;
     // Next two bytes identify the destination port.
     // NOTE: Send messages little endian, not big endian.
-    encode_ushort(port, &(header_buffer[1]));
+    encode_uint16(port, &(header_buffer[1]));
 
     // Next two bytes identify the destination federate.
-    encode_ushort(federate, &(header_buffer[1 + sizeof(ushort)]));
+    encode_uint16(federate, &(header_buffer[1 + sizeof(ushort)]));
 
     // The next four bytes are the message length.
-    encode_int(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
+    encode_int32(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
 
     LOG_PRINT("Sending untimed message to %s.", next_destination_str);
 
@@ -307,13 +307,13 @@ int send_timed_message(interval_t additional_delay,
     header_buffer[0] = message_type;
     // Next two bytes identify the destination port.
     // NOTE: Send messages little endian, not big endian.
-    encode_ushort(port, &(header_buffer[1]));
+    encode_uint16(port, &(header_buffer[1]));
 
     // Next two bytes identify the destination federate.
-    encode_ushort(federate, &(header_buffer[1 + sizeof(ushort)]));
+    encode_uint16(federate, &(header_buffer[1 + sizeof(ushort)]));
 
     // The next four bytes are the message length.
-    encode_int(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
+    encode_int32(length, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort)]));
 
     // Apply the additional delay to the current tag and use that as the intended
     // tag of the outgoing message
@@ -321,9 +321,9 @@ int send_timed_message(interval_t additional_delay,
                                                     additional_delay);
 
     // Next 8 bytes are the timestamp.
-    encode_ll(current_message_intended_tag.time, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
+    encode_int64(current_message_intended_tag.time, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int)]));
     // Next 4 bytes are the microstep.
-    encode_int(current_message_intended_tag.microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
+    encode_int32(current_message_intended_tag.microstep, &(header_buffer[1 + sizeof(ushort) + sizeof(ushort) + sizeof(int) + sizeof(instant_t)]));
     LOG_PRINT("Sending message with tag (%lld, %u) to %s.",
             current_message_intended_tag.time - start_time, current_message_intended_tag.microstep, next_destination_str);
 
@@ -371,7 +371,7 @@ void _lf_send_time(unsigned char type, instant_t time) {
     int bytes_to_write = 1 + sizeof(instant_t);
     unsigned char buffer[bytes_to_write];
     buffer[0] = type;
-    encode_ll(time, &(buffer[1]));
+    encode_int64(time, &(buffer[1]));
     lf_mutex_lock(&outbound_socket_mutex);
     if (_fed.socket_TCP_RTI < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
@@ -407,8 +407,8 @@ void _lf_send_tag(unsigned char type, tag_t tag) {
     int bytes_to_write = 1 + sizeof(instant_t) + sizeof(microstep_t);
     unsigned char buffer[bytes_to_write];
     buffer[0] = type;
-    encode_ll(tag.time, &(buffer[1]));
-    encode_int(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
+    encode_int64(tag.time, &(buffer[1]));
+    encode_int32(tag.microstep, &(buffer[1 + sizeof(instant_t)]));
     lf_mutex_lock(&outbound_socket_mutex);
     if (_fed.socket_TCP_RTI < 0) {
     	warning_print("Socket is no longer connected. Dropping message.");
@@ -493,7 +493,7 @@ void* handle_p2p_connections_from_federates(void* ignored) {
         }
 
         // Extract the ID of the sending federate.
-        ushort remote_fed_id = extract_ushort((unsigned char*)&(buffer[1]));
+        ushort remote_fed_id = extract_uint16((unsigned char*)&(buffer[1]));
         DEBUG_PRINT("Received sending federate ID %d.", remote_fed_id);
 
         // Once we record the socket_id here, all future calls to close() on
@@ -617,7 +617,7 @@ void connect_to_federate(ushort remote_federate_id) {
     while (port == -1) {
         buffer[0] = MSG_TYPE_ADDRESS_QUERY;
         // NOTE: Sending messages in little endian.
-        encode_ushort(remote_federate_id, &(buffer[1]));
+        encode_uint16(remote_federate_id, &(buffer[1]));
 
         DEBUG_PRINT("Sending address query for federate %d.", remote_federate_id);
 
@@ -630,7 +630,7 @@ void connect_to_federate(ushort remote_federate_id) {
                 "Failed to read the requested port number for federate %d from RTI.",
                 remote_federate_id);
 
-        port = extract_int(buffer);
+        port = extract_int32(buffer);
 
         read_from_socket_errexit(_fed.socket_TCP_RTI, sizeof(host_ip_addr), (unsigned char*)&host_ip_addr,
                 "Failed to read the IP address for federate %d from RTI.",
@@ -726,7 +726,7 @@ void connect_to_federate(ushort remote_federate_id) {
                 // This error is very unlikely to occur.
                 error_print_and_exit("Too many federates! More than %d.", USHRT_MAX);
             }
-            encode_ushort((ushort)_lf_my_fed_id, (unsigned char*)&(buffer[1]));
+            encode_uint16((ushort)_lf_my_fed_id, (unsigned char*)&(buffer[1]));
             unsigned char federation_id_length = strnlen(federation_id, 255);
             buffer[sizeof(ushort) + 1] = federation_id_length;
             write_to_socket_errexit(socket_id,
@@ -877,7 +877,7 @@ void connect_to_rti(char* hostname, int port) {
             if (_lf_my_fed_id > USHRT_MAX) {
                 error_print_and_exit("Too many federates! More than %d.", USHRT_MAX);
             }
-            encode_ushort((ushort)_lf_my_fed_id, &buffer[1]);
+            encode_uint16((ushort)_lf_my_fed_id, &buffer[1]);
             // Next send the federation ID length.
             // The federation ID is limited to 255 bytes.
             size_t federation_id_length = strnlen(federation_id, 255);
@@ -918,7 +918,7 @@ void connect_to_rti(char* hostname, int port) {
                 // Write the returned port number to the RTI
                 unsigned char UDP_port_number[1 + sizeof(ushort)];
                 UDP_port_number[0] = MSG_TYPE_UDP_PORT;
-                encode_ushort(udp_port, &(UDP_port_number[1]));
+                encode_uint16(udp_port, &(UDP_port_number[1]));
                 write_to_socket_errexit(_fed.socket_TCP_RTI, 1 + sizeof(ushort), UDP_port_number,
                             "Failed to send the UDP port number to the RTI.");
             } else {
@@ -958,7 +958,7 @@ instant_t get_start_time_from_rti(instant_t my_physical_time) {
                              buffer[0]);
     }
 
-    instant_t timestamp = extract_ll(&(buffer[1]));
+    instant_t timestamp = extract_int64(&(buffer[1]));
     info_print("Starting timestamp is: %lld.", timestamp);
     LOG_PRINT("Current physical time is: %lld.", get_physical_time());
 
@@ -1235,10 +1235,10 @@ void send_port_absent_to_federate(interval_t additional_delay,
             port_ID, fed_ID);
 
     buffer[0] = MSG_TYPE_PORT_ABSENT;
-    encode_ushort(port_ID, &(buffer[1]));
-    encode_ushort(fed_ID, &(buffer[1+sizeof(port_ID)]));
-    encode_ll(current_message_intended_tag.time, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
-    encode_int(current_message_intended_tag.microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
+    encode_uint16(port_ID, &(buffer[1]));
+    encode_uint16(fed_ID, &(buffer[1+sizeof(port_ID)]));
+    encode_int64(current_message_intended_tag.time, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)]));
+    encode_int32(current_message_intended_tag.microstep, &(buffer[1+sizeof(port_ID)+sizeof(fed_ID)+sizeof(instant_t)]));
 
     lf_mutex_lock(&outbound_socket_mutex);
 #ifdef FEDERATED_CENTRALIZED
@@ -1494,12 +1494,12 @@ void handle_port_absent_message(int socket, int fed_id) {
     		"Failed to read port absent message.");
 
     // Extract the header information.
-    unsigned short port_id = extract_ushort(buffer);
+    unsigned short port_id = extract_uint16(buffer);
     // The next part of the message is the federate_id, but we don't need it.
-    // unsigned short federate_id = extract_ushort(&(buffer[sizeof(ushort)]));
+    // unsigned short federate_id = extract_uint16(&(buffer[sizeof(ushort)]));
     tag_t intended_tag;
-    intended_tag.time = extract_ll(&(buffer[sizeof(ushort)+sizeof(ushort)]));
-    intended_tag.microstep = extract_int(&(buffer[sizeof(ushort)+sizeof(ushort)+sizeof(instant_t)])); 
+    intended_tag.time = extract_int64(&(buffer[sizeof(ushort)+sizeof(ushort)]));
+    intended_tag.microstep = extract_int32(&(buffer[sizeof(ushort)+sizeof(ushort)+sizeof(instant_t)])); 
 
     LOG_PRINT("Handling port absent for tag (%lld, %u) for port %d.",
             intended_tag.time - start_time,
@@ -1763,8 +1763,8 @@ void handle_tag_advance_grant() {
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read tag advance grant from RTI.");
     tag_t TAG;
-    TAG.time = extract_ll(buffer);
-    TAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+    TAG.time = extract_int64(buffer);
+    TAG.microstep = extract_int32(&(buffer[sizeof(instant_t)]));
 
     lf_mutex_lock(&mutex);
 
@@ -1841,8 +1841,8 @@ void handle_provisional_tag_advance_grant() {
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read provisional tag advance grant from RTI.");
     tag_t PTAG;
-    PTAG.time = extract_ll(buffer);
-    PTAG.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+    PTAG.time = extract_int64(buffer);
+    PTAG.microstep = extract_int32(&(buffer[sizeof(instant_t)]));
 
     // Note: it is important that last_known_status_tag of ports does not
     // get updated to a PTAG value because a PTAG does not indicate that
@@ -1986,8 +1986,8 @@ void handle_stop_granted_message() {
     lf_mutex_lock(&mutex);
 
     tag_t received_stop_tag;
-    received_stop_tag.time = extract_ll(buffer);
-    received_stop_tag.microstep = extract_ll(&(buffer[sizeof(instant_t)]));
+    received_stop_tag.time = extract_int64(buffer);
+    received_stop_tag.microstep = extract_int32(&(buffer[sizeof(instant_t)]));
 
     LOG_PRINT("Received from RTI a MSG_TYPE_STOP_GRANTED message with elapsed tag (%lld, %d).",
             received_stop_tag.time - start_time, received_stop_tag.microstep);
@@ -2040,8 +2040,8 @@ void handle_stop_request_message() {
     }
 
     tag_t tag_to_stop;
-    tag_to_stop.time = extract_ll(buffer); 
-    tag_to_stop.microstep = extract_int(&(buffer[sizeof(instant_t)]));
+    tag_to_stop.time = extract_int64(buffer); 
+    tag_to_stop.microstep = extract_int32(&(buffer[sizeof(instant_t)]));
 
     LOG_PRINT("Received from RTI a MSG_TYPE_STOP_REQUEST message with tag (%lld, %u).",
              tag_to_stop.time - start_time,

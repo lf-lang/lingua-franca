@@ -433,8 +433,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define STOP_REQUEST_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_REQUEST(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_REQUEST; \
-    encode_ll(time, &(buffer[1])); \
-    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int64(time, &(buffer[1])); \
+    encode_int32(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
@@ -449,8 +449,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define STOP_REQUEST_REPLY_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_REQUEST_REPLY(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_REQUEST_REPLY; \
-    encode_ll(time, &(buffer[1])); \
-    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int64(time, &(buffer[1])); \
+    encode_int32(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
@@ -464,8 +464,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define STOP_GRANTED_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_GRANTED(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_GRANTED; \
-    encode_ll(time, &(buffer[1])); \
-    encode_int(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    encode_int64(time, &(buffer[1])); \
+    encode_int32(microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /////////// End of request_stop() messages ////////////////
