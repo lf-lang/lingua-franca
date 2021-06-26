@@ -474,7 +474,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Byte identifying a address query message, sent by a federate to RTI
  * to ask for another federate's address and port number.
  * The next two bytes are the other federate's ID.
- * The reply from the RTI will a port number (an int), which is -1
+ * The reply from the RTI will a port number (an int32_t), which is -1
  * if the RTI does not know yet (it has not received MSG_TYPE_ADDRESS_ADVERTISEMENT from
  * the other federate), followed by the IP address of the other
  * federate (an IPV4 address, which has length INET_ADDRSTRLEN).
@@ -485,7 +485,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Byte identifying a message advertising the port for the TCP connection server
  * of a federate. This is utilized in decentralized coordination as well as for physical
  * connections in centralized coordination.
- * The next four bytes (or sizeof(int)) will be the port number.
+ * The next four bytes (or sizeof(int32_t)) will be the port number.
  * The sending federate will not wait for a response from the RTI and assumes its
  * request will be processed eventually by the RTI.
  */
@@ -641,7 +641,7 @@ typedef enum fed_state_t {
  * any scheduling constraints.
  */
 typedef struct federate_t {
-    int id;                 // ID of this federate.
+    int32_t id;             // ID of this federate.
     pthread_t thread_id;    // The ID of the thread handling communication with this federate.
     int socket;             // The TCP socket descriptor for communicating with this federate.
     struct sockaddr_in UDP_addr;           // The UDP address for the federate.
@@ -661,7 +661,7 @@ typedef struct federate_t {
     int num_downstream;     // Size of the array of downstream federates.
     execution_mode_t mode;  // FAST or REALTIME.
     char server_hostname[INET_ADDRSTRLEN]; // Human-readable IP address and
-    int server_port;        // port number of the socket server of the federate
+    int32_t server_port;    // port number of the socket server of the federate
                             // if it has any incoming direct connections from other federates.
                             // The port number will be -1 if there is no server or if the
                             // RTI has not been informed of the port number.
