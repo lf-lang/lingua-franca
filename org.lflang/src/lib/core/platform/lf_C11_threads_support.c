@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "lf_C11_threads_support.h"
 #include <stdlib.h>
+#include <stdint.h> // For fixed-width integral types
 
 /**
  * Create a new thread, starting with execution of lf_thread
@@ -128,7 +129,7 @@ int lf_cond_wait(_lf_cond_t* cond, _lf_mutex_t* mutex) {
  * @return 0 on success, LF_TIMEOUT on timeout, and platform-specific error
  *  number otherwise (see pthread_cond_timedwait).
  */
-int lf_cond_timedwait(_lf_cond_t* cond, _lf_mutex_t* mutex, long long absolute_time_ns) {
+int lf_cond_timedwait(_lf_cond_t* cond, _lf_mutex_t* mutex, int64_t absolute_time_ns) {
     // Convert the absolute time to a timespec.
     // timespec is seconds and nanoseconds.
     struct timespec timespec_absolute_time
