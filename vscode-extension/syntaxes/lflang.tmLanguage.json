@@ -101,6 +101,12 @@
                 },
                 {
                     "include": "#after"
+                },
+                {
+                    "include": "#mutation"
+                },
+                {
+                    "include": "#member-access-operator"
                 }
             ]
         },
@@ -214,16 +220,6 @@
                     "name": "comment.block.lflang",
                     "begin": "/\\*(\\*)?(?!/)",
                     "end": "\\*/"
-                },
-                {
-                    "name": "comment.block.lflang",
-                    "begin": "\"\"\"",
-                    "end": "\"\"\""
-                },
-                {
-                    "name": "comment.block.lflang",
-                    "begin": "'''",
-                    "end": "'''"
                 }
             ]
         },
@@ -288,8 +284,16 @@
             "match": "\\b(timer)\\b"
         },
         "type": {
-            "name": "storage.type.lflang",
-            "match": "(?<=(input|output|action|state|timer).*:(\\s*))(\\b(\\w*)\\b)"
+            "patterns": [
+                {
+                    "name": "entity.name.type.lflang",
+                    "match": "(?<=(input|output|action|state).*:(\\s*))(\\b([A-Z]\\w*)\\b)"
+                },
+                {
+                    "name": "storage.type.lflang",
+                    "match": "(?<=(input|output|action|state).*:(\\s*))(\\b(\\w*)\\b)"
+                }
+            ]
         },
         "number": {
             "name": "constant.numeric.lflang",
@@ -298,14 +302,24 @@
         "string": {
             "patterns": [
                 {
+                    "name": "string.quoted.triple.lflang",
+                    "begin": "'''",
+                    "end": "'''"
+                },
+                {
+                    "name": "string.quoted.triple.lflang",
+                    "begin": "\"\"\"",
+                    "end": "\"\"\""
+                },
+                {
                     "name": "string.quoted.double.lflang",
                     "begin": "\"",
-                    "end": "(?<=(\\\\.|[^\"\\\\])*)\""
+                    "end": "(?<=(\\\\.|[^\"\\\\])*)(\"|$)"
                 },
                 {
                     "name": "string.quoted.single.lflang",
                     "begin": "'",
-                    "end": "(?<=(\\\\.|[^'\\\\])*)'"
+                    "end": "(?<=(\\\\.|[^'\\\\])*)('|$)"
                 }
             ]
         },
@@ -352,6 +366,22 @@
         "after": {
             "name": "keyword.control.lflang",
             "match": "\\b(after)\\b"
+        },
+        "mutation": {
+            "name": "keyword.control.lflang",
+            "match": "\\b(mutation)\\b"
+        },
+        "member-access-operator": {
+            "patterns": [
+                {
+                    "name": "variable.other.lflang",
+                    "match": "(\\b\\w+\\b)(?=\\.\\w+)"
+                },
+                {
+                    "name": "variable.other.lflang",
+                    "match": "(?<=\\w+\\.)(\\b\\w+\\b)"
+                }
+            ]
         }
     },
     "patterns": [
