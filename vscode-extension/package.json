@@ -53,7 +53,9 @@
         "semanticTokenScopes": [
             {
                 "scopes": {
-                    "type": ["storage.type.lflang"]
+                    "type": [
+                        "storage.type.lflang"
+                    ]
                 }
             }
         ],
