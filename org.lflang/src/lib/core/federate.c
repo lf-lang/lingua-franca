@@ -1498,8 +1498,7 @@ void handle_port_absent_message(int socket, int fed_id) {
     // The next part of the message is the federate_id, but we don't need it.
     // unsigned short federate_id = extract_uint16(&(buffer[sizeof(ushort)]));
     tag_t intended_tag;
-    intended_tag.time = extract_int64(&(buffer[sizeof(ushort)+sizeof(ushort)]));
-    intended_tag.microstep = extract_int32(&(buffer[sizeof(ushort)+sizeof(ushort)+sizeof(instant_t)])); 
+    extract_tag(&(buffer[sizeof(ushort)+sizeof(ushort)]), &intended_tag.time, &intended_tag.microstep);
 
     LOG_PRINT("Handling port absent for tag (%lld, %u) for port %d.",
             intended_tag.time - start_time,
@@ -1763,8 +1762,7 @@ void handle_tag_advance_grant() {
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read tag advance grant from RTI.");
     tag_t TAG;
-    TAG.time = extract_int64(buffer);
-    TAG.microstep = extract_int32(&(buffer[sizeof(instant_t)]));
+    extract_tag(buffer, &TAG.time, &TAG.microstep);
 
     lf_mutex_lock(&mutex);
 
@@ -1841,8 +1839,7 @@ void handle_provisional_tag_advance_grant() {
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read provisional tag advance grant from RTI.");
     tag_t PTAG;
-    PTAG.time = extract_int64(buffer);
-    PTAG.microstep = extract_int32(&(buffer[sizeof(instant_t)]));
+    extract_tag(buffer, &PTAG.time, &PTAG.microstep);
 
     // Note: it is important that last_known_status_tag of ports does not
     // get updated to a PTAG value because a PTAG does not indicate that
@@ -1986,8 +1983,7 @@ void handle_stop_granted_message() {
     lf_mutex_lock(&mutex);
 
     tag_t received_stop_tag;
-    received_stop_tag.time = extract_int64(buffer);
-    received_stop_tag.microstep = extract_int32(&(buffer[sizeof(instant_t)]));
+    extract_tag(buffer, &received_stop_tag.time, &received_stop_tag.microstep);
 
     LOG_PRINT("Received from RTI a MSG_TYPE_STOP_GRANTED message with elapsed tag (%lld, %d).",
             received_stop_tag.time - start_time, received_stop_tag.microstep);
@@ -2040,8 +2036,7 @@ void handle_stop_request_message() {
     }
 
     tag_t tag_to_stop;
-    tag_to_stop.time = extract_int64(buffer); 
-    tag_to_stop.microstep = extract_int32(&(buffer[sizeof(instant_t)]));
+    extract_tag(buffer, &tag_to_stop.time, &tag_to_stop.microstep);
 
     LOG_PRINT("Received from RTI a MSG_TYPE_STOP_REQUEST message with tag (%lld, %u).",
              tag_to_stop.time - start_time,
