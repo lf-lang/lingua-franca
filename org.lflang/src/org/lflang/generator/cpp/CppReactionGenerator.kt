@@ -41,9 +41,14 @@ class CppReactionGenerator(
     private val VarRef.isContainedRef: Boolean get() = container != null
     private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
 
-    private val Reaction.allUncontainedTriggers get() = triggers.filterNot { it in effects || it.isContainedRef }
+    private fun VarRef.isEffectOf(reaction: Reaction): Boolean =
+        reaction.effects.any { name == it.name && container?.name == it.container?.name }
+
+    private fun TriggerRef.isEffectOf(reaction: Reaction): Boolean = this is VarRef && isEffectOf(reaction)
+
+    private val Reaction.allUncontainedTriggers get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
     private val Reaction.allUncontainedEffects get() = effects.filterNot { it.isContainedRef }
-    private val Reaction.allUncontainedSources get() = sources.filterNot { it in effects || it.isContainedRef }
+    private val Reaction.allUncontainedSources get() = sources.filterNot { it.isEffectOf(this) || it.isContainedRef }
     private val Reaction.allVariableReferences get() = (effects + sources + triggers.mapNotNull { it as? VarRef }).distinct()
     private val Reaction.allReferencedContainers get() = allVariableReferences.mapNotNull { it.container }.distinct()
 
