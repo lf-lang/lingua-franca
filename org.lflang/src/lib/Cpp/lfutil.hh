@@ -59,4 +59,21 @@ class LFScope {
   reactor::Environment* environment() const { return reactor->environment(); }
 };
 
+template<class T>
+void bind_multiple_ports(
+    const std::vector<reactor::Output<T>*>& left_ports,
+    const std::vector<reactor::Input<T>*>& right_ports) {
+
+  auto left_it = left_ports.begin();
+  auto right_it = right_ports.begin();
+
+  while (left_it != left_ports.end() && right_it != right_ports.end()) {
+    auto left = *left_it;
+    auto right = *right_it;
+    left->bind_to(right);
+    left_it++;
+    right_it++;
+  }
+}
+
 }

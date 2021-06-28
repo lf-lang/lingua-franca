@@ -168,7 +168,7 @@ class CppAssembleMethodGenerator(
 
     private fun declareConnection(c: Connection, idx: Int): String {
         if (c.isMultiportConnection) {
-            TODO()
+            return declareMultiportConnection(c, idx);
         } else {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
@@ -177,6 +177,47 @@ class CppAssembleMethodGenerator(
                 // connection $idx
                 ${leftPort.name}.bind_to(&${rightPort.name});
             """.trimIndent()
+        }
+    }
+
+    private fun declareMultiportConnection(c: Connection, idx: Int): String {
+        // It should be safe to assume that all ports have the same type. Thus we just pick the
+        // first left port to determine the type of the entire connection
+        val type = (c.leftPorts[0].variable as Port).targetType
+
+        return with(PrependOperator) {
+            """
+                |// connection $idx
+                |std::vector<reactor::Output<$type>*> __lf_left_ports_$idx;
+            ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
+                |std::vector<reactor::Input<$type>*> __lf_right_ports_$idx;
+            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+                |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx);
+            """.trimMargin()
+        }
+    }
+
+    private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String {
+        val port = varRef.variable as Port
+        val container = varRef.container
+        if (port.isMultiport) {
+            if (container?.isBank == true) {
+                TODO()
+            } else {
+                // is mulitport, but not in a bank
+                return """
+                        for (auto& __lf_port : ${varRef.name}) {
+                          ${vectorName}.push_back(&__lf_port);
+                        }
+                    """.trimIndent()
+            }
+        } else {
+            if (container?.isBank == true) {
+                TODO()
+            } else {
+                // is just a normal port
+                return "${vectorName}.push_back(&${varRef.name});"
+            }
         }
     }
 
