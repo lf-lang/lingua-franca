@@ -520,7 +520,7 @@ lf_token_t* create_token(size_t element_size) {
  * @return Either the specified token or a new one, in each case with a value
  *  field pointing to newly allocated memory.
  */
-lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, int length) {
+lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, size_t length) {
     // assert(token != NULL);
 
     // If necessary, allocate memory for a new lf_token_t struct.
@@ -550,7 +550,7 @@ lf_token_t* __initialize_token_with_value(lf_token_t* token, void* value, int le
  * @return Either the specified token or a new one, in each case with a value
  *  field pointing to newly allocated memory.
  */
-lf_token_t* __initialize_token(lf_token_t* token, int length) {
+lf_token_t* __initialize_token(lf_token_t* token, size_t length) {
     // assert(token != NULL);
 
     // Allocate memory for storing the array.
@@ -1425,7 +1425,7 @@ handle_t _lf_schedule_int(void* action, interval_t extra_delay, int value) {
  * @return A pointer to the new or reused token or null if the template token
  *  is incompatible with this usage.
  */
-lf_token_t* __set_new_array_impl(lf_token_t* token, int length, int num_destinations) {
+lf_token_t* __set_new_array_impl(lf_token_t* token, size_t length, int num_destinations) {
     // If the template token cannot carry a payload, then it is incompatible.
     if (token->element_size == 0) {
         error_print("set_new_array: specified token cannot carry an array. It has zero element_size.");
@@ -1763,10 +1763,11 @@ int process_args(int argc, char* argv[]) {
     	   }
     	   i++;
     	   char* threads_spec = argv[i++];
-    	   _lf_number_of_threads = atoi(threads_spec);
-    	   if (_lf_number_of_threads <= 0) {
+    	   int num_threads = atoi(threads_spec);
+    	   if (num_threads <= 0) {
     	       error_print("Invalid value for --threads: %s", threads_spec);
     	   }
+           _lf_number_of_threads = (unsigned int)num_threads;
        } else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--id") == 0) {
            if (argc < i + 2) {
                error_print("--id needs a string argument.");

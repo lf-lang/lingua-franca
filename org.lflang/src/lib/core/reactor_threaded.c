@@ -318,7 +318,7 @@ handle_t _lf_schedule_token(void* action, interval_t extra_delay, lf_token_t* to
  * with a copy of the specified value.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int length) {
+handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, size_t length) {
     if (value == NULL) {
         return _lf_schedule_token(action, offset, NULL);
     }
@@ -345,7 +345,7 @@ handle_t _lf_schedule_copy(void* action, interval_t offset, void* value, int len
  * Variant of schedule_token that creates a token to carry the specified value.
  * See reactor.h for documentation.
  */
-handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, int length) {
+handle_t _lf_schedule_value(void* action, interval_t extra_delay, void* value, size_t length) {
     trigger_t* trigger = _lf_action_to_trigger(action);
 
     lf_mutex_lock(&mutex);
