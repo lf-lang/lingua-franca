@@ -29,7 +29,7 @@
 namespace lfutil {
 
 template<class T>
-void after_delay(reactor::Action<T>* action, reactor::Port<T>* port) {
+void after_delay(reactor::Action<T>* action, const reactor::Port<T>* port) {
   if constexpr(std::is_void<T>::value) {
     action->schedule();
   } else {
@@ -38,7 +38,7 @@ void after_delay(reactor::Action<T>* action, reactor::Port<T>* port) {
 }
 
 template<class T>
-void after_forward(reactor::Action<T>* action, reactor::Port<T>* port) {
+void after_forward(const reactor::Action<T>* action, reactor::Port<T>* port) {
   if constexpr(std::is_void<T>::value) {
     port->set();
   } else {
