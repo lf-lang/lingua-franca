@@ -33,7 +33,8 @@ import org.lflang.toText
 /** A C++ code generator for reactions and their function bodies */
 class CppReactionGenerator(
     private val reactor: Reactor,
-    private val portGenerator: CppPortGenerator
+    private val portGenerator: CppPortGenerator,
+    private val instanceGenerator: CppInstanceGenerator
 ) {
 
     private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
@@ -170,12 +171,12 @@ class CppReactionGenerator(
     }
 
     private fun generateViewForContainer(r: Reaction, container: Instantiation): String {
-        val reactorClass = container.reactorClass.name
+        val cppType = with(instanceGenerator) { container.cppType }
         val variables = r.getAllReferencedVariablesForContainer(container)
         return with(PrependOperator) {
             """
-                |struct ${r.getViewName(container)} : protected $reactorClass {
-            ${" |  "..variables.joinToString("\n") { "using $reactorClass::${it.variable.name};" }}
+                |struct ${r.getViewName(container)} : protected $cppType {
+            ${" |  "..variables.joinToString("\n") { "using $cppType::${it.variable.name};" }}
                 |};
             """.trimMargin()
         }

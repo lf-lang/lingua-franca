@@ -36,19 +36,19 @@ class CppInstanceGenerator(
     private val errorReporter: ErrorReporter,
 ) {
 
-    private val Instantiation.type: String
+    val Instantiation.cppType: String
         get() {
-            return if (this.reactor.isGeneric)
-                """${this.reactor.name}<${this.typeParms.joinToString(", ") { it.toText() }}>"""
+            return if (reactor.isGeneric)
+                """${reactor.name}<${typeParms.joinToString(", ") { it.toText() }}>"""
             else
-                this.reactor.name
+                reactor.name
         }
 
     private fun generateDeclaration(inst: Instantiation): String {
         return if (inst.isBank)
-            "std::array<std::unique_ptr<${inst.type}>, ${inst.getValidWidth()}> ${inst.name};"
+            "std::array<std::unique_ptr<${inst.cppType}>, ${inst.getValidWidth()}> ${inst.name};"
         else
-            "std::unique_ptr<${inst.type}> ${inst.name};"
+            "std::unique_ptr<${inst.cppType}> ${inst.name};"
     }
 
     private fun Instantiation.getParameterValue(param: Parameter, instanceId: Int? = null): String {
@@ -74,21 +74,21 @@ class CppInstanceGenerator(
         return if (inst.isBank) {
             val initializations = if (parameters.isEmpty()) {
                 (0 until inst.getValidWidth()).joinToString(", ") {
-                    """std::make_unique<${inst.type}>("${inst.name}_$it", this)"""
+                    """std::make_unique<${inst.cppType}>("${inst.name}_$it", this)"""
                 }
             } else {
                 (0 until inst.getValidWidth()).joinToString(", ") {
                     val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, it) }
-                    """std::make_unique<${inst.type}>("${inst.name}", this, $params)"""
+                    """std::make_unique<${inst.cppType}>("${inst.name}", this, $params)"""
                 }
             }
             """, ${inst.name}{{$initializations}}"""
         } else {
             if (parameters.isEmpty())
-                """, ${inst.name}(std::make_unique<${inst.type}>("${inst.name}", this))"""
+                """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this))"""
             else {
                 val params = parameters.joinToString(", ") { inst.getParameterValue(it) }
-                """, ${inst.name}(std::make_unique<${inst.type}>("${inst.name}", this, $params))"""
+                """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this, $params))"""
             }
         }
     }
