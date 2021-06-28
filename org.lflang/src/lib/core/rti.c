@@ -1020,10 +1020,9 @@ void handle_address_query(uint16_t fed_id) {
     
     DEBUG_PRINT("RTI received address query from %d for %d.", fed_id, remote_fed_id);
 
-    assert(federates[remote_fed_id].server_port < 65536);
     // NOTE: server_port initializes to -1, which means the RTI does not know
     // the port number because it has not yet received an MSG_TYPE_ADDRESS_ADVERTISEMENT message
-    // from this federate. It will respond by sending -1.
+    // from this federate. In that case, it will respond by sending -1.
 
     // Encode the port number.
     encode_int32(federates[remote_fed_id].server_port, (unsigned char*)buffer);
@@ -1070,7 +1069,7 @@ void handle_address_ad(uint16_t federate_id) {
 
     server_port = extract_int32(buffer);
     
-    // FIXME: move assert < 65K here.
+    assert(server_port < 65536);
 
     pthread_mutex_lock(&rti_mutex);
     federates[federate_id].server_port = server_port;
