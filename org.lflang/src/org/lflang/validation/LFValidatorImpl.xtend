@@ -93,7 +93,7 @@ import static extension org.lflang.ASTUtils.*
  * @author(Christian Menard <christian.menard@tu-dresden.de>}
  *
  */
-class LFValidator extends AbstractLFValidator {
+class LFValidatorImpl extends AbstractLFValidator {
 
     var Target target
 
@@ -133,9 +133,9 @@ class LFValidator extends AbstractLFValidator {
 
     static val spacingViolationPolicies = #['defer', 'drop', 'replace']
 
-    private val List<String> targetPropertyErrors = newLinkedList
+    val List<String> targetPropertyErrors = newLinkedList
 
-    private val List<String> targetPropertyWarnings = newLinkedList
+    val List<String> targetPropertyWarnings = newLinkedList
 
     def List<String> getTargetPropertyErrors() {
         this.targetPropertyErrors
