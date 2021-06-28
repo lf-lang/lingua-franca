@@ -155,12 +155,19 @@ void encode_int64(int64_t data, unsigned char* buffer);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
- *  order (lowest order byte first). This works for either int or
- *  unsigned int.
+ *  order (lowest order byte first). This works for int32_t.
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
 void encode_int32(int32_t data, unsigned char* buffer);
+
+/** Write the specified data as a sequence of bytes starting
+ *  at the specified address. This encodes the data in little-endian
+ *  order (lowest order byte first). This works for uint32_t.
+ *  @param data The data to write.
+ *  @param buffer The location to start writing.
+ */
+void encode_uint32(uint32_t data, unsigned char* buffer);
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
@@ -268,13 +275,23 @@ void extract_timed_header(
  * 32-bit (4 byte) unsigned integer for microstep.
  * 
  * @param buffer The buffer to read from.
- * @param time Will be populated after reading from the buffer.
- * @param microstep Will be populated after reading from the buffer.
+ * @return The extracted tag.
  */
-void extract_tag(
-        unsigned char* buffer,
-        int64_t* time,
-        uint32_t* microstep
+tag_t extract_tag(
+	unsigned char* buffer
+);
+
+/**
+ * Encode tag information into buffer.
+ * 
+ * Buffer must have been allocated externally.
+ * 
+ * @param buffer The buffer to encode into.
+ * @param tag The tag to encode into 'buffer'.
+ */
+void encode_tag(
+    unsigned char* buffer,
+	tag_t tag
 );
 
 #endif /* NET_UTIL_H */
