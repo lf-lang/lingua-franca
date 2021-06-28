@@ -260,8 +260,7 @@ void encode_int64(int64_t data, unsigned char* buffer) {
 
 /** Write the specified data as a sequence of bytes starting
  *  at the specified address. This encodes the data in little-endian
- *  order (lowest order byte first). This works for either int32_t or
- *  uint32_t.
+ *  order (lowest order byte first). This works for int32_t.
  *  @param data The data to write.
  *  @param buffer The location to start writing.
  */
@@ -272,6 +271,21 @@ void encode_int32(int32_t data, unsigned char* buffer) {
     buffer[1] = (unsigned char)((data & 0xff00) >> 8);
     buffer[2] = (unsigned char)((data & 0xff0000) >> 16);
     buffer[3] = (unsigned char)((data & (int32_t)0xff000000) >> 24);
+}
+
+/** Write the specified data as a sequence of bytes starting
+ *  at the specified address. This encodes the data in little-endian
+ *  order (lowest order byte first). This works for uint32_t.
+ *  @param data The data to write.
+ *  @param buffer The location to start writing.
+ */
+void encode_uint32(uint32_t data, unsigned char* buffer) {
+    // This strategy is fairly brute force, but it avoids potential
+    // alignment problems.  Note that this assumes an int32_t is four bytes.
+    buffer[0] = (unsigned char)(data & 0xff);
+    buffer[1] = (unsigned char)((data & 0xff00) >> 8);
+    buffer[2] = (unsigned char)((data & 0xff0000) >> 16);
+    buffer[3] = (unsigned char)((data & (uint32_t)0xff000000) >> 24);
 }
 
 /** Write the specified data as a sequence of bytes starting
@@ -301,6 +315,33 @@ int32_t swap_bytes_if_big_endian_int32(int32_t src) {
     union {
         int32_t uint;
         unsigned char c[sizeof(int32_t)];
+    } x;
+    if (!host_is_big_endian()) return src;
+    // printf("DEBUG: Host is little endian.\n");
+    x.uint = src;
+    // printf("DEBUG: Before swapping bytes: %lld.\n", x.ull);
+    unsigned char c;
+    // Swap bytes.
+    c = x.c[0]; x.c[0] = x.c[3]; x.c[3] = c;
+    c = x.c[1]; x.c[1] = x.c[2]; x.c[2] = c;
+    // printf("DEBUG: After swapping bytes: %lld.\n", x.ull);
+    return x.uint;
+}
+
+/** If this host is little endian, then reverse the order of
+ *  the bytes of the argument. Otherwise, return the argument
+ *  unchanged. This can be used to convert the argument to
+ *  network order (big endian) and then back again.
+ *  Network transmissions, by convention, are big endian,
+ *  meaning that the high-order byte is sent first.
+ *  But many platforms, including my Mac, are little endian,
+ *  meaning that the low-order byte is first in memory.
+ *  @param src The argument to convert.
+ */
+uint32_t swap_bytes_if_big_endian_uint32(int32_t src) {
+    union {
+        uint32_t uint;
+        unsigned char c[sizeof(uint32_t)];
     } x;
     if (!host_is_big_endian()) return src;
     // printf("DEBUG: Host is little endian.\n");
@@ -381,6 +422,20 @@ int32_t extract_int32(unsigned char* bytes) {
     } result;
     memcpy(&result.c, bytes, sizeof(int32_t));
     return swap_bytes_if_big_endian_int32(result.uint);
+}
+
+/** Extract a uint32_t from the specified byte sequence.
+ *  This will swap the order of the bytes if this machine is big endian.
+ *  @param bytes The address of the start of the sequence of bytes.
+ */
+uint32_t extract_uint32(unsigned char* bytes) {
+    // Use memcpy to prevent possible alignment problems on some processors.
+    union {
+        uint32_t uint;
+        unsigned char c[sizeof(uint32_t)];
+    } result;
+    memcpy(&result.c, bytes, sizeof(uint32_t));
+    return swap_bytes_if_big_endian_uint32(result.uint);
 }
 
 /** Extract a int64_t from the specified byte sequence.
@@ -471,20 +526,7 @@ void extract_timed_header(
 ) {
 	extract_header(buffer, port_id, federate_id, length);
 
-    tag->time = extract_int64(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t)]));
-    int32_t temporary_microstep = extract_int32(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t) + sizeof(instant_t)]));
-    
-    if (temporary_microstep < 0) {
-        error_print(
-            "Received an invalid microstep (%d) from federate %d."
-            " Using zero instead.",
-            temporary_microstep,
-            federate_id
-        );
-        temporary_microstep = 0;
-    }
-
-    tag->microstep = (microstep_t)temporary_microstep;
+    *tag = extract_tag(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t)]));
 }
 
 /**
@@ -494,23 +536,30 @@ void extract_timed_header(
  * 32-bit (4 byte) unsigned integer for microstep.
  * 
  * @param buffer The buffer to read from.
- * @param time Will be populated after reading from the buffer.
- * @param microstep Will be populated after reading from the buffer.
+ * @return The extracted tag.
  */
-void extract_tag(
-        unsigned char* buffer,
-        int64_t* time,
-        uint32_t* microstep
+tag_t extract_tag(
+    unsigned char* buffer
 ) {
-    *time = extract_int64(buffer);
-    int32_t temporary_microstep = extract_int32(&(buffer[sizeof(int64_t)]));
-    if (temporary_microstep < 0) {
-        error_print(
-            "Received a negative microstep (%d)."
-            " Using zero instead.",
-            temporary_microstep
-        );
-        temporary_microstep = 0;
-    }
-    *microstep = (microstep_t)temporary_microstep;
+    tag_t tag;
+    tag.time = extract_int64(buffer);
+    tag.microstep = extract_uint32(&(buffer[sizeof(int64_t)]));
+        
+    return tag;
+}
+
+/**
+ * Encode tag information into buffer.
+ * 
+ * Buffer must have been allocated externally.
+ * 
+ * @param buffer The buffer to encode into.
+ * @param tag The tag to encode into 'buffer'.
+ */
+void encode_tag(
+    unsigned char* buffer,
+	tag_t tag
+){
+    encode_int64(tag.time, buffer);
+    encode_uint32(tag.microstep, &(buffer[sizeof(int64_t)]));  
 }
