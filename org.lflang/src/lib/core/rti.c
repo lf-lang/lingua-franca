@@ -258,6 +258,8 @@ int create_server(int32_t specified_port, uint16_t port, socket_type_t socket_ty
 
 /**
  * Handle a port absent message being received rom a federate via the RIT.
+ * 
+ * This function assumes the caller does not hold the mutex.
  */
 void handle_port_absent_message(federate_t* sending_federate, unsigned char* buffer) {
     size_t message_size = sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int64_t) + sizeof(uint32_t);
@@ -302,9 +304,13 @@ void handle_port_absent_message(federate_t* sending_federate, unsigned char* buf
     pthread_mutex_unlock(&rti_mutex);
 }
 
-/** Handle a timed message being received from a federate by the RTI to relay to another federate.
- *  @param sending_federate The sending federate.
- *  @param buffer The buffer to read into (the first byte is already there).
+/** 
+ * Handle a timed message being received from a federate by the RTI to relay to another federate.
+ * 
+ * This function assumes the caller does not hold the mutex.
+ * 
+ * @param sending_federate The sending federate.
+ * @param buffer The buffer to read into (the first byte is already there).
  */
 void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
     size_t header_size = 1 + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t) + sizeof(int64_t) + sizeof(uint32_t);
@@ -712,6 +718,9 @@ bool send_tag_advance_if_appropriate(federate_t* fed) {
 
 /**
  * Handle a logical tag complete (LTC) message.
+ * 
+ * This function assumes the caller does not hold the mutex.
+ * 
  * @param fed The federate that has completed a logical tag.
  */
 void handle_logical_tag_complete(federate_t* fed) {
@@ -759,6 +768,9 @@ void transitive_send_TAG_if_appropriate(federate_t* fed, bool visited[]) {
 
 /**
  * Handle a next event tag (NET) message.
+ * 
+ * This function assumes the caller does not hold the mutex.
+ * 
  * @param fed The federate sending a NET message.
  */
 void handle_next_event_tag(federate_t* fed) {
@@ -793,6 +805,9 @@ void handle_next_event_tag(federate_t* fed) {
 
 /**
  * Handle a time advance notice (TAN) message.
+ * 
+ * This function assumes the caller does not hold the mutex.
+ * 
  * @param fed The federate sending a TAN message.
  */
 void handle_time_advance_notice(federate_t* fed) {
@@ -900,6 +915,9 @@ void mark_federate_requesting_stop(federate_t* fed) {
 
 /**
  * Handle a MSG_TYPE_STOP_REQUEST message.
+ * 
+ * This function assumes the caller does not hold the mutex.
+ * 
  * @param fed The federate sending a MSG_TYPE_STOP_REQUEST message.
  */
 void handle_stop_request_message(federate_t* fed) {
@@ -970,6 +988,9 @@ void handle_stop_request_message(federate_t* fed) {
 
 /** 
  * Handle a MSG_TYPE_STOP_REQUEST_REPLY message.
+ * 
+ * This function assumes the caller does not hold the mutex.
+ * 
  * @param fed The federate replying the MSG_TYPE_STOP_REQUEST
  */
 void handle_stop_request_reply(federate_t* fed) {
@@ -1005,7 +1026,7 @@ void handle_stop_request_reply(federate_t* fed) {
  * are initialized to -1. If no MSG_TYPE_ADDRESS_ADVERTISEMENT message has been received from
  * the destination federate, the RTI will simply reply with -1 for the port.
  * The sending federate is responsible for checking back with the RTI after a 
- * period of time. @see connect_to_federate() in federate.c.
+ * period of time. @see connect_to_federate() in federate.c. * 
  * @param fed_id The federate sending a MSG_TYPE_ADDRESS_QUERY message.
  */
 void handle_address_query(uint16_t fed_id) {
@@ -1050,6 +1071,8 @@ void handle_address_query(uint16_t fed_id) {
  * The server_hostname and server_ip_addr fields are assigned
  * in connect_to_federates() upon accepting the socket
  * from the remote federate.
+ * 
+ * This function assumes the caller does not hold the mutex.
  * 
  * @param federate_id The id of the remote federate that is
  *  sending the address advertisement.
@@ -1328,6 +1351,8 @@ void* clock_synchronization_thread(void* noargs) {
  * on the federate. This function assumes
  * that the caller does not hold the mutex
  * lock.
+ * 
+ * This function assumes the caller does not hold the mutex.
  * 
  * @note At this point, the RTI might have
  * outgoing messages to the federate. This
