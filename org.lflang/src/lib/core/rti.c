@@ -403,6 +403,10 @@ void handle_timed_message(federate_t* sending_federate, unsigned char* buffer) {
                 "RTI failed to read message chunks.");
         total_bytes_read += bytes_to_read;
 
+        // FIXME: a mutex needs to be held for this so that other threads
+        // do not write to destination_socket and cause interleaving. However,
+        // holding the rti_mutex might be very expensive. Instead, each outgoing
+        // socket should probably have its own mutex.
         write_to_socket_errexit(destination_socket, bytes_to_read, buffer,
                 "RTI failed to send message chunks.");
     }
@@ -732,7 +736,7 @@ void handle_logical_tag_complete(federate_t* fed) {
     // Careful with handling startup and shutdown.
     pthread_mutex_lock(&rti_mutex);
 
-    extract_tag(buffer, &fed->completed.time, &fed->completed.microstep);
+    fed->completed = extract_tag(buffer);
 
     LOG_PRINT("RTI received from federate %d the Logical Tag Complete (LTC) (%lld, %u).",
                 fed->id, fed->completed.time - start_time, fed->completed.microstep);
@@ -782,7 +786,7 @@ void handle_next_event_tag(federate_t* fed) {
     // message is in transport or being used to determine a TAG.
     pthread_mutex_lock(&rti_mutex);
 
-    extract_tag(buffer, &fed->next_event.time, &fed->next_event.microstep);
+    fed->next_event = extract_tag(buffer);
 
     LOG_PRINT("RTI received from federate %d the Next Event Tag (NET) (%lld, %u).",
             fed->id, fed->next_event.time - start_time,
@@ -941,8 +945,7 @@ void handle_stop_request_message(federate_t* fed) {
     }
 
     // Extract the proposed stop tag for the federate
-    tag_t proposed_stop_tag;
-    extract_tag(buffer, &proposed_stop_tag.time, &proposed_stop_tag.microstep);
+    tag_t proposed_stop_tag = extract_tag(buffer);
 
     // Update the maximum stop tag received from federates
     if (compare_tags(proposed_stop_tag, max_stop_tag) > 0) {
@@ -999,8 +1002,7 @@ void handle_stop_request_reply(federate_t* fed) {
     read_from_socket_errexit(fed->socket, bytes_to_read, buffer_stop_time, 
     		"RTI failed to read the reply to MSG_TYPE_STOP_REQUEST message from federate %d.", fed->id);
     
-    tag_t federate_stop_tag;
-    extract_tag(buffer_stop_time, &federate_stop_tag.time, &federate_stop_tag.microstep);
+    tag_t federate_stop_tag = extract_tag(buffer_stop_time);
     
     LOG_PRINT("RTI received from federate %d STOP reply tag (%lld, %u).", fed->id,
             federate_stop_tag.time - start_time,
@@ -1420,6 +1422,7 @@ void* federate_thread_TCP(void* fed) {
             // mark_federate_requesting_stop(my_fed);
             break;
         }
+        DEBUG_PRINT("RTI: Received message type %u from federate %d.", buffer[0], my_fed->id);
         switch(buffer[0]) {
             case MSG_TYPE_TIMESTAMP:
                 handle_timestamp(my_fed);
