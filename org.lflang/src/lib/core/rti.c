@@ -851,7 +851,7 @@ void _lf_rti_broadcast_stop_time_to_federates_already_locked() {
         return;
     }
     // Reply with a stop granted to all federates
-    unsigned char outgoing_buffer[STOP_GRANTED_MESSAGE_LENGTH];
+    unsigned char outgoing_buffer[MSG_TYPE_STOP_GRANTED_LENGTH];
     ENCODE_STOP_GRANTED(outgoing_buffer, max_stop_tag.time, max_stop_tag.microstep);
 
     // Iterate over federates and send each the message.
@@ -863,7 +863,7 @@ void _lf_rti_broadcast_stop_time_to_federates_already_locked() {
         	// Need the next_event to be no greater than the stop tag.
         	federates[i].next_event = max_stop_tag;
         }
-        write_to_socket_errexit(federates[i].socket, STOP_GRANTED_MESSAGE_LENGTH, outgoing_buffer,
+        write_to_socket_errexit(federates[i].socket, MSG_TYPE_STOP_GRANTED_LENGTH, outgoing_buffer,
                 "RTI failed to send MSG_TYPE_STOP_GRANTED message to federate %d.", federates[i].id);
     }
 
@@ -905,7 +905,7 @@ void mark_federate_requesting_stop(federate_t* fed) {
 void handle_stop_request_message(federate_t* fed) {
     DEBUG_PRINT("RTI handling stop_request from federate %d.", fed->id);
     
-    size_t bytes_to_read = STOP_REQUEST_MESSAGE_LENGTH - 1;
+    size_t bytes_to_read = MSG_TYPE_STOP_REQUEST_LENGTH - 1;
     unsigned char buffer[bytes_to_read];
     read_from_socket_errexit(fed->socket, bytes_to_read, buffer, 
     		"RTI failed to read the MSG_TYPE_STOP_REQUEST payload from federate %d.", fed->id);
@@ -947,7 +947,7 @@ void handle_stop_request_message(federate_t* fed) {
     }
     // Forward the stop request to all other federates that have not
     // also issued a stop request.
-    unsigned char stop_request_buffer[STOP_REQUEST_MESSAGE_LENGTH];
+    unsigned char stop_request_buffer[MSG_TYPE_STOP_REQUEST_LENGTH];
     ENCODE_STOP_REQUEST(stop_request_buffer, max_stop_tag.time, max_stop_tag.microstep);
 
     // Iterate over federates and send each the MSG_TYPE_STOP_REQUEST message
@@ -958,7 +958,7 @@ void handle_stop_request_message(federate_t* fed) {
                 mark_federate_requesting_stop(&federates[i]);
                 continue;
             }
-            write_to_socket_errexit(federates[i].socket, STOP_REQUEST_MESSAGE_LENGTH, stop_request_buffer,
+            write_to_socket_errexit(federates[i].socket, MSG_TYPE_STOP_REQUEST_LENGTH, stop_request_buffer,
                     "RTI failed to forward MSG_TYPE_STOP_REQUEST message to federate %d.", federates[i].id);
         }
     }
@@ -973,7 +973,7 @@ void handle_stop_request_message(federate_t* fed) {
  * @param fed The federate replying the MSG_TYPE_STOP_REQUEST
  */
 void handle_stop_request_reply(federate_t* fed) {
-    size_t bytes_to_read = STOP_REQUEST_REPLY_MESSAGE_LENGTH - 1;
+    size_t bytes_to_read = MSG_TYPE_STOP_REQUEST_REPLY_LENGTH - 1;
     unsigned char buffer_stop_time[bytes_to_read];
     read_from_socket_errexit(fed->socket, bytes_to_read, buffer_stop_time, 
     		"RTI failed to read the reply to MSG_TYPE_STOP_REQUEST message from federate %d.", fed->id);
@@ -1110,25 +1110,25 @@ void handle_timestamp(federate_t *my_fed) {
         }
     }
 
-    // FIXME: release the lock here.
+    pthread_mutex_unlock(&rti_mutex);
 
-    // Send back to the federate the maximum time plus an offset.
-    // Start by sending a timestamp marker.
-    unsigned char message_marker = MSG_TYPE_TIMESTAMP;
-    ssize_t bytes_written = write_to_socket(my_fed->socket, 1, &message_marker);
-    if (bytes_written < 1) {
-        error_print("ERROR sending timestamp to federate %d.", my_fed->id);
-    }
-
-    // Send the timestamp.
+    // Send back to the federate the maximum time plus an offset on a TIMESTAMP
+    // message.
+    unsigned char start_time_buffer[MSG_TYPE_TIMESTAMP_LENGTH];
+    start_time_buffer[0] = MSG_TYPE_TIMESTAMP;
     // Add an offset to this start time to get everyone starting together.
     start_time = max_start_time + DELAY_START;
-    int64_t message = swap_bytes_if_big_endian_int64(start_time);
-    bytes_written = write_to_socket(my_fed->socket, sizeof(int64_t), (unsigned char *)(&message));
-    if (bytes_written < 1) {
-        error_print("ERROR sending starting time to federate %d.", my_fed->id);
+    encode_int64(swap_bytes_if_big_endian_int64(start_time), &start_time_buffer[1]);
+    
+    ssize_t bytes_written = write_to_socket(
+        my_fed->socket, MSG_TYPE_TIMESTAMP_LENGTH, 
+        start_time_buffer
+    );
+    if (bytes_written < MSG_TYPE_TIMESTAMP_LENGTH) {
+        error_print("Failed to send the starting time to federate %d.", my_fed->id);
     }
 
+    pthread_mutex_lock(&rti_mutex);
     // Update state for the federate to indicate that the MSG_TYPE_TIMESTAMP
     // message has been sent. That MSG_TYPE_TIMESTAMP message grants time advance to
     // the federate to the start time.
