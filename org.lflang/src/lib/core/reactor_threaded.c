@@ -1257,7 +1257,10 @@ lf_thread_t* __thread_ids;
 void start_threads() {
     LOG_PRINT("Starting %d worker threads.", _lf_number_of_threads);
     __thread_ids = (lf_thread_t*)malloc(_lf_number_of_threads * sizeof(lf_thread_t));
-    number_of_idle_threads = _lf_number_of_threads;
+    number_of_idle_threads = (int)_lf_number_of_threads; // Sign is checked when 
+                                                         // reading the argument
+                                                         // from the command
+                                                         // line.
     for (unsigned int i = 0; i < _lf_number_of_threads; i++) {
         lf_thread_create(&__thread_ids[i], worker, NULL);
     }
