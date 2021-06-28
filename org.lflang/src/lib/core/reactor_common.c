@@ -182,7 +182,7 @@ void set_stp_offset(interval_t offset) {
 void readable_time(char* buffer, instant_t time) {
     // If the number is negative or below 1000, just print it and return.
     if (time < 1000LL) {
-        sprintf(buffer, "%lld", time);
+        sprintf(buffer, "%lld", (long long)time);
         return;
     }
     int count = 0;
@@ -193,7 +193,7 @@ void readable_time(char* buffer, instant_t time) {
     }
     // Highest order clause should not be filled with zeros.
     instant_t to_print = clauses[--count] % 1000LL;
-    sprintf(buffer, "%lld", to_print);
+    sprintf(buffer, "%lld", (long long)to_print);
     if (to_print >= 100LL) {
         buffer += 3;
     } else if (to_print >= 10LL) {
@@ -203,7 +203,7 @@ void readable_time(char* buffer, instant_t time) {
     }
     while (count-- > 1) {
         to_print = clauses[count] % 1000LL;
-        sprintf(buffer, ",%03lld,", to_print);
+        sprintf(buffer, ",%03lld,", (long long)to_print);
         buffer += 4;
     }
     sprintf(buffer, ",%03lld", clauses[0] % 1000LL);

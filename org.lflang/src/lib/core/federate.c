@@ -1549,7 +1549,7 @@ void handle_message(int socket, int fed_id) {
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
-    unsigned int length;
+    size_t length;
     extract_header(buffer, &port_id, &federate_id, &length);
     // Check if the message is intended for this federate
     assert(_lf_my_fed_id == federate_id);
@@ -1598,7 +1598,7 @@ void handle_tagged_message(int socket, int fed_id) {
     // Extract the header information.
     unsigned short port_id;
     unsigned short federate_id;
-    unsigned int length;
+    size_t length;
     tag_t intended_tag;
     extract_timed_header(buffer, &port_id, &federate_id, &length, &intended_tag);
     // Check if the message is intended for this federate
@@ -1948,7 +1948,7 @@ void _lf_fd_send_stop_request_to_rti() {
     _lf_increment_global_tag_barrier_already_locked(current_tag);
 
     // Send a stop request with the current tag to the RTI
-    unsigned char buffer[STOP_REQUEST_MESSAGE_LENGTH];
+    unsigned char buffer[MSG_TYPE_STOP_REQUEST_LENGTH];
     // Stop at the next microstep
     ENCODE_STOP_REQUEST(buffer, current_tag.time, current_tag.microstep + 1);
 
@@ -1958,7 +1958,7 @@ void _lf_fd_send_stop_request_to_rti() {
         lf_mutex_unlock(&outbound_socket_mutex);
     	return;
     }
-    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, STOP_REQUEST_MESSAGE_LENGTH, 
+    write_to_socket_errexit_with_mutex(_fed.socket_TCP_RTI, MSG_TYPE_STOP_REQUEST_LENGTH, 
     		buffer, &outbound_socket_mutex,
             "Failed to send stop time %lld to the RTI.", current_tag.time - start_time);
     lf_mutex_unlock(&outbound_socket_mutex);
@@ -1976,7 +1976,7 @@ void _lf_fd_send_stop_request_to_rti() {
  * the mutex lock, therefore, it acquires it.
  */
 void handle_stop_granted_message() {
-    int bytes_to_read = STOP_GRANTED_MESSAGE_LENGTH - 1;
+    int bytes_to_read = MSG_TYPE_STOP_GRANTED_LENGTH - 1;
     unsigned char buffer[bytes_to_read];    
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read stop granted from RTI.");
@@ -2024,7 +2024,7 @@ void handle_stop_granted_message() {
  * the mutex lock, therefore, it acquires it.
  */
 void handle_stop_request_message() {
-    int bytes_to_read = STOP_REQUEST_MESSAGE_LENGTH - 1;
+    int bytes_to_read = MSG_TYPE_STOP_REQUEST_LENGTH - 1;
     unsigned char buffer[bytes_to_read];    
     read_from_socket_errexit(_fed.socket_TCP_RTI, bytes_to_read, buffer,
     		"Failed to read stop request from RTI.");
@@ -2055,7 +2055,7 @@ void handle_stop_request_message() {
         tag_to_stop.microstep++;
     }
 
-    unsigned char outgoing_buffer[STOP_REQUEST_REPLY_MESSAGE_LENGTH];
+    unsigned char outgoing_buffer[MSG_TYPE_STOP_REQUEST_REPLY_LENGTH];
     ENCODE_STOP_REQUEST_REPLY(outgoing_buffer, tag_to_stop.time, tag_to_stop.microstep);
 
     lf_mutex_lock(&outbound_socket_mutex);
@@ -2068,7 +2068,7 @@ void handle_stop_request_message() {
     // Send the current logical time to the RTI. This message does not have an identifying byte since
     // since the RTI is waiting for a response from this federate.
     write_to_socket_errexit_with_mutex(
-    		_fed.socket_TCP_RTI, STOP_REQUEST_REPLY_MESSAGE_LENGTH, outgoing_buffer, &outbound_socket_mutex,
+    		_fed.socket_TCP_RTI, MSG_TYPE_STOP_REQUEST_REPLY_LENGTH, outgoing_buffer, &outbound_socket_mutex,
             "Failed to send the answer to MSG_TYPE_STOP_REQUEST to RTI.");
     lf_mutex_unlock(&outbound_socket_mutex);
 
