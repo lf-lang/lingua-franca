@@ -85,6 +85,7 @@ public class FedASTUtils {
      * 
      * @param portRef The network input port
      * @param receivingPortID The ID of the receiving port
+     * @param bankIndex The bank index of the receiving federate, or -1 if not in a bank.
      * @param instance The federate instance is used to keep track of all
      *  network input ports globally
      * @param parent The federated reactor
@@ -94,6 +95,7 @@ public class FedASTUtils {
     public static void addNetworkInputControlReaction(
             VarRef port,
             int recevingPortID,
+            int bankIndex,
             FederateInstance instance,
             Reactor parent,
             GeneratorBase generator
@@ -103,6 +105,10 @@ public class FedASTUtils {
         VarRef newPortRef = factory.createVarRef();        
         Type portType = ASTUtils.getCopy(((Port)port.getVariable()).getType());
         
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        generator.setReactionBankIndex(reaction, bankIndex);
+
         // Create a new Input port for the reaction trigger.
         Input newTriggerForControlReactionInput = factory.createInput();       
 
@@ -300,6 +306,10 @@ public class FedASTUtils {
         Reactor reactor = (Reactor) portRef.eContainer().eContainer();
         VarRef newPortRef = factory.createVarRef();
         
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        generator.setReactionBankIndex(reaction, bankIndex);
+
         newPortRef.setContainer(portRef.getContainer());
         newPortRef.setVariable(portRef.getVariable());
 
@@ -403,6 +413,11 @@ public class FedASTUtils {
         // to other reactions in the container.
         generator.makeUnordered(r1);
         generator.makeUnordered(r2);
+        
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        generator.setReactionBankIndex(r1, leftBankIndex);
+        generator.setReactionBankIndex(r2, rightBankIndex);
 
         // Name the newly created action; set its delay and type.
         action.setName(ASTUtils.getUniqueIdentifier(parent, "networkMessage"));
@@ -493,6 +508,7 @@ public class FedASTUtils {
             FedASTUtils.addNetworkInputControlReaction(
                 connection.getRightPorts().get(0),
                 receivingPortID,
+                rightBankIndex,
                 rightFederate,
                 parent,
                 generator

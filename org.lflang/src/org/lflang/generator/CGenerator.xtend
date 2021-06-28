@@ -4520,7 +4520,7 @@ class CGenerator extends GeneratorBase {
      * @param port The port to generate the control reaction for
      * @param portID The ID assigned to the port in the AST transformation
      * @param receivingFederateID The ID of the receiving federate
-     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
+     * @param sendingBankIndex The bank index of the sending federate, if it is in a bank.
      * @param sendingChannelIndex The channel if a multiport
      * @param delay The delay value imposed on the connection using after
      */
@@ -5554,7 +5554,7 @@ class CGenerator extends GeneratorBase {
     
     /**
      * Data structure that for each instantiation of a contained
-     * reactor, provides a set of input and output ports that trigger
+     * reactor. This provides a set of input and output ports that trigger
      * reactions of the container, are read by a reaction of the
      * container, or that receive data from a reaction of the container.
      * For each port, this provides a list of reaction indices that
