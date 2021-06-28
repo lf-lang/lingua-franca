@@ -81,3 +81,13 @@ task generateStandaloneCompiler() {
 }
 
 generateStandaloneCompiler.finalizedBy shadowJar
+
+task runLfc(type: JavaExec) {
+    // Note: when you use --args, you need to escape cli flags which start with --
+    // For instance --args ' --help'
+    // Otherwise they're parsed as arguments to the Gradle CLI, not LFC.
+    description = "Build and run LFC, use --args to pass arguments"
+    group = "application"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.lflang.generator.Main'
+}
