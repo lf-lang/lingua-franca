@@ -86,19 +86,20 @@ int host_is_big_endian() {
  * @return The number of bytes read, or 0 if an EOF is received, or
  *  a negative number for an error.
  */
-int read_from_socket_errexit(
+ssize_t read_from_socket_errexit(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		char* format, ...) {
     va_list args;
-	if (socket < 0 && format != NULL) {
+	// Error checking first
+    if (socket < 0 && format != NULL) {
 		error_print("Socket is no longer open.");
         error_print_and_exit(format, args);
 	}
-    int bytes_read = 0;
-    while (bytes_read < num_bytes) {
-        int more = read(socket, buffer + bytes_read, num_bytes - bytes_read);
+    ssize_t bytes_read = 0;
+    while (bytes_read < (ssize_t)num_bytes) {
+        ssize_t more = read(socket, buffer + bytes_read, num_bytes - (size_t)bytes_read);
         if(more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // The error code set by the socket indicates
             // that we should try again (@see man errno).
@@ -138,7 +139,7 @@ int read_from_socket_errexit(
  * @param buffer The buffer into which to put the bytes.
  * @return The number of bytes read or 0 when EOF is received or negative for an error.
  */
-int read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
+ssize_t read_from_socket(int socket, size_t num_bytes, unsigned char* buffer) {
     return read_from_socket_errexit(socket, num_bytes, buffer, NULL);
 }
 
@@ -163,16 +164,16 @@ int read_from_socket(int socket, int num_bytes, unsigned char* buffer) {
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit_with_mutex(
+ssize_t write_to_socket_errexit_with_mutex(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		lf_mutex_t* mutex,
 		char* format, ...) {
-    int bytes_written = 0;
+    ssize_t bytes_written = 0;
     va_list args;
-    while (bytes_written < num_bytes) {
-        int more = write(socket, buffer + bytes_written, num_bytes - bytes_written);
+    while (bytes_written < (ssize_t)num_bytes) {
+        ssize_t more = write(socket, buffer + bytes_written, num_bytes - (size_t)bytes_written);
         if (more <= 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                     // The error code set by the socket indicates
                     // that we should try again (@see man errno).
@@ -215,9 +216,9 @@ int write_to_socket_errexit_with_mutex(
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit(
+ssize_t write_to_socket_errexit(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		char* format, ...) {
 	return write_to_socket_errexit_with_mutex(socket, num_bytes, buffer, NULL, format);
@@ -237,7 +238,7 @@ int write_to_socket_errexit(
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket(int socket, int num_bytes, unsigned char* buffer) {
+ssize_t write_to_socket(int socket, size_t num_bytes, unsigned char* buffer) {
     return write_to_socket_errexit_with_mutex(socket, num_bytes, buffer, NULL, NULL);
 }
 
@@ -252,7 +253,7 @@ void encode_int64(int64_t data, unsigned char* buffer) {
     // alignment problems.
     int shift = 0;
     for(size_t i = 0; i < sizeof(int64_t); i++) {
-        buffer[i] = (data & (0xffLL << shift)) >> shift;
+        buffer[i] = (unsigned char)((data & (0xffLL << shift)) >> shift);
         shift += 8;
     }
 }
@@ -267,10 +268,10 @@ void encode_int64(int64_t data, unsigned char* buffer) {
 void encode_int32(int32_t data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
     // alignment problems.  Note that this assumes an int32_t is four bytes.
-    buffer[0] = data & 0xff;
-    buffer[1] = (data & 0xff00) >> 8;
-    buffer[2] = (data & 0xff0000) >> 16;
-    buffer[3] = (data & 0xff000000) >> 24;
+    buffer[0] = (unsigned char)(data & 0xff);
+    buffer[1] = (unsigned char)((data & 0xff00) >> 8);
+    buffer[2] = (unsigned char)((data & 0xff0000) >> 16);
+    buffer[3] = (unsigned char)((data & (int32_t)0xff000000) >> 24);
 }
 
 /** Write the specified data as a sequence of bytes starting
@@ -282,8 +283,8 @@ void encode_int32(int32_t data, unsigned char* buffer) {
 void encode_uint16(uint16_t data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
     // alignment problems. Note that this assumes a short is two bytes.
-    buffer[0] = data & 0xff;
-    buffer[1] = (data & 0xff00) >> 8;
+    buffer[0] = (unsigned char)(data & 0xff);
+    buffer[1] = (unsigned char)((data & 0xff00) >> 8);
 }
 
 /** If this host is little endian, then reverse the order of
@@ -424,7 +425,7 @@ void extract_header(
         unsigned char* buffer,
         uint16_t* port_id,
         uint16_t* federate_id,
-        uint32_t* length
+        size_t* length
 ) {
     // The first two bytes are the ID of the destination reactor.
     *port_id = extract_uint16(buffer);
@@ -436,7 +437,15 @@ void extract_header(
     // FIXME: Better error handling needed here.
     assert(*federate_id < NUMBER_OF_FEDERATES);
     // The next four bytes are the message length.
-    *length = extract_int32(&(buffer[sizeof(uint16_t) + sizeof(uint16_t)]));
+    int32_t local_length_signed = extract_int32(&(buffer[sizeof(uint16_t) + sizeof(uint16_t)]));
+    if (local_length_signed < 0) {
+        error_print_and_exit(
+            "Received an invalid message length (%d) from federate %d.", 
+            local_length_signed, 
+            *federate_id
+        );
+    }
+    *length = (size_t)local_length_signed;
 
     // printf("DEBUG: Federate receiving message to port %d to federate %d of length %d.\n", port_id, federate_id, length);
 }
@@ -457,11 +466,51 @@ void extract_timed_header(
         unsigned char* buffer,
         uint16_t* port_id,
         uint16_t* federate_id,
-        uint32_t* length,
+        size_t* length,
 		tag_t* tag
 ) {
 	extract_header(buffer, port_id, federate_id, length);
 
     tag->time = extract_int64(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t)]));
-    tag->microstep = extract_int32(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t) + sizeof(instant_t)]));
+    int32_t temporary_microstep = extract_int32(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t) + sizeof(instant_t)]));
+    
+    if (temporary_microstep < 0) {
+        error_print(
+            "Received an invalid microstep (%d) from federate %d."
+            " Using zero instead.",
+            temporary_microstep,
+            federate_id
+        );
+        temporary_microstep = 0;
+    }
+
+    tag->microstep = (microstep_t)temporary_microstep;
+}
+
+/**
+ * Extract tag information from buffer.
+ *
+ * The tag is transmitted as a 64-bit (8 byte) signed integer for time and a
+ * 32-bit (4 byte) unsigned integer for microstep.
+ * 
+ * @param buffer The buffer to read from.
+ * @param time Will be populated after reading from the buffer.
+ * @param microstep Will be populated after reading from the buffer.
+ */
+void extract_tag(
+        unsigned char* buffer,
+        int64_t* time,
+        uint32_t* microstep
+) {
+    *time = extract_int64(buffer);
+    int32_t temporary_microstep = extract_int32(&(buffer[sizeof(int64_t)]));
+    if (temporary_microstep < 0) {
+        error_print(
+            "Received a negative microstep (%d)."
+            " Using zero instead.",
+            temporary_microstep
+        );
+        temporary_microstep = 0;
+    }
+    *microstep = (microstep_t)temporary_microstep;
 }

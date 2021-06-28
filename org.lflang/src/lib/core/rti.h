@@ -187,7 +187,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This is used by both the federates and the rti, so message lengths
  * should generally match.
  */
-#define FED_COM_BUFFER_SIZE 256
+#define FED_COM_BUFFER_SIZE 256u
 
 /**
  * Number of seconds that elapse between a federate's attempts
@@ -434,7 +434,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENCODE_STOP_REQUEST(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_REQUEST; \
     encode_int64(time, &(buffer[1])); \
-    encode_int32(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    assert(microstep >= 0); \
+    encode_int32((int32_t)microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
@@ -450,7 +451,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENCODE_STOP_REQUEST_REPLY(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_REQUEST_REPLY; \
     encode_int64(time, &(buffer[1])); \
-    encode_int32(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    assert(microstep >= 0); \
+    encode_int32((int32_t)microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /**
@@ -465,7 +467,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ENCODE_STOP_GRANTED(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_GRANTED; \
     encode_int64(time, &(buffer[1])); \
-    encode_int32(microstep, &(buffer[1 + sizeof(instant_t)])); \
+    assert(microstep >= 0); \
+    encode_int32((int32_t)microstep, &(buffer[1 + sizeof(instant_t)])); \
 } while(0)
 
 /////////// End of request_stop() messages ////////////////
@@ -641,7 +644,7 @@ typedef enum fed_state_t {
  * any scheduling constraints.
  */
 typedef struct federate_t {
-    int32_t id;             // ID of this federate.
+    uint16_t id;            // ID of this federate.
     pthread_t thread_id;    // The ID of the thread handling communication with this federate.
     int socket;             // The TCP socket descriptor for communicating with this federate.
     struct sockaddr_in UDP_addr;           // The UDP address for the federate.
