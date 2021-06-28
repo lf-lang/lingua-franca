@@ -343,11 +343,11 @@ void handle_T4_clock_sync_message(unsigned char* buffer, int socket, instant_t r
     if (socket == _lf_rti_socket_UDP) {
         // Read the coded probe message.
         // We can reuse the same buffer.
-        int bytes_read = read_from_socket(socket, 1 + sizeof(instant_t), buffer);
+        ssize_t bytes_read = read_from_socket(socket, 1 + sizeof(instant_t), buffer);
 
         instant_t r5 = get_physical_time();
 
-        if (bytes_read < (int)(1 + sizeof(instant_t))
+        if ((bytes_read < 1 + (ssize_t)sizeof(instant_t))
                 || buffer[0] != MSG_TYPE_CLOCK_SYNC_CODED_PROBE) {
             warning_print("Clock sync: Did not get the expected coded probe message from the RTI. "
                     "Skipping clock synchronization round.");
@@ -455,7 +455,7 @@ void* listen_to_rti_UDP_thread(void* args) {
     // Listen for UDP messages from the RTI.
     // The only expected messages are T1 and T4, which have
     // a payload of a time value.
-    int message_size = 1 + sizeof(instant_t);
+    size_t message_size = 1 + sizeof(instant_t);
     unsigned char buffer[message_size];
     // This thread will be either waiting for T1 or waiting
     // for T4. Track the mode with this variable:
@@ -467,12 +467,12 @@ void* listen_to_rti_UDP_thread(void* args) {
     while (1) {
         struct sockaddr_in RTI_UDP_addr;
         socklen_t RTI_UDP_addr_length = sizeof(RTI_UDP_addr);
-        int bytes_read = 0;
+        ssize_t bytes_read = 0;
         // Read from the UDP socket
         do {
-            int bytes = recvfrom(_lf_rti_socket_UDP,                    // The UDP socket
+            ssize_t bytes = recvfrom(_lf_rti_socket_UDP,                    // The UDP socket
                                     &buffer[bytes_read],                // The buffer to read into
-                                    message_size - bytes_read,          // Number of bytes to read
+                                    message_size - (size_t)bytes_read,  // Number of bytes to read
                                     MSG_WAITALL,                        // Read the entire datagram
                                     (struct sockaddr*)&RTI_UDP_addr,    // Record the RTI's address
                                     &RTI_UDP_addr_length);              // The RTI's address length
