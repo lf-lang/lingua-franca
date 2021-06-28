@@ -484,6 +484,9 @@ reactor Simulator(
         current_acceleration = self.current_throttle * self.max_acceleration
         current_acceleration -= self.current_brake * self.max_acceleration
         
+        # Apply a constant drag
+        current_acceleration -= self.drag_acceleration
+        
         print("Simulator: Vehicle {}:\n".format(self.bank_index + 1),
             "Current position: x={:f}, y={:f}, z={:f}\n".format(
                 self.current_pos.x,
@@ -502,10 +505,7 @@ reactor Simulator(
                 self.velocity_vector['x'],
                 self.velocity_vector['y']
             )
-            )
-        
-        # Apply a constant drag
-        current_acceleration -= self.drag_acceleration
+        )
         
         # Apply acceleration
         self.current_velocity.x += (current_acceleration * (self.interval / BILLION)) \
