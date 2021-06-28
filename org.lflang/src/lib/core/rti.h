@@ -308,6 +308,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * time as a message of this type.
  s*/
 #define MSG_TYPE_TIMESTAMP 2
+#define MSG_TYPE_TIMESTAMP_LENGTH (1 + sizeof(int64_t))
 
 /** Byte identifying a message to forward to another federate.
  *  The next two bytes will be the ID of the destination port.
@@ -430,7 +431,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * other federate, then it should be possible to respect its requested stop tag.
  */
 #define MSG_TYPE_STOP_REQUEST 10
-#define STOP_REQUEST_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define MSG_TYPE_STOP_REQUEST_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_REQUEST(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_REQUEST; \
     encode_int64(time, &(buffer[1])); \
@@ -447,7 +448,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 4 bytes will be the microstep.
  */
 #define MSG_TYPE_STOP_REQUEST_REPLY 11
-#define STOP_REQUEST_REPLY_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define MSG_TYPE_STOP_REQUEST_REPLY_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_REQUEST_REPLY(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_REQUEST_REPLY; \
     encode_int64(time, &(buffer[1])); \
@@ -463,7 +464,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The next 4 bytes will be the microstep at which the federates will stop..
  */
 #define MSG_TYPE_STOP_GRANTED 12
-#define STOP_GRANTED_MESSAGE_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
+#define MSG_TYPE_STOP_GRANTED_LENGTH (1 + sizeof(instant_t) + sizeof(microstep_t))
 #define ENCODE_STOP_GRANTED(buffer, time, microstep) do { \
     buffer[0] = MSG_TYPE_STOP_GRANTED; \
     encode_int64(time, &(buffer[1])); \
