@@ -228,7 +228,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * try again. The number of increments is limited by PORT_RANGE_LIMIT.
  * FIXME: Clarify what happens if a specific port has been given in "at".
  */
-#define STARTING_PORT 15045
+#define STARTING_PORT 15045u
 
 /**
  * Number of ports to try to connect to. Unless the LF program specifies
