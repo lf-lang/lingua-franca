@@ -200,23 +200,37 @@ class CppAssembleMethodGenerator(
     private fun addAllPortsToVector(varRef: VarRef, vectorName: String): String {
         val port = varRef.variable as Port
         val container = varRef.container
-        if (port.isMultiport) {
+        // FIXME, this does not support yet the (...)+ operator
+        return if (port.isMultiport) {
             if (container?.isBank == true) {
-                TODO()
+                // is multiport in a bank
+                // FIXME: iterate over banks or ports first?
+                """
+                    for (auto& __lf_instance : ${container.name}) {
+                      for (auto& __lf_port : __lf_instance->${port.name}) {
+                        ${vectorName}.push_back(&${port.name});
+                      }
+                    }
+                """.trimIndent()
             } else {
                 // is mulitport, but not in a bank
-                return """
-                        for (auto& __lf_port : ${varRef.name}) {
-                          ${vectorName}.push_back(&__lf_port);
-                        }
-                    """.trimIndent()
+                """
+                   for (auto& __lf_port : ${varRef.name}) {
+                     ${vectorName}.push_back(&__lf_port);
+                   }
+                """.trimIndent()
             }
         } else {
             if (container?.isBank == true) {
-                TODO()
+                // is in a bank, but not a multiport
+                """
+                    for (auto& __lf_instance : ${container.name}) {
+                      ${vectorName}.push_back(&__lf_instance->${port.name});
+                    }
+                """.trimIndent()
             } else {
                 // is just a normal port
-                return "${vectorName}.push_back(&${varRef.name});"
+                "${vectorName}.push_back(&${varRef.name});"
             }
         }
     }
