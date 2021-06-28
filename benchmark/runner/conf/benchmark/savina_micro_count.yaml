@@ -23,3 +23,10 @@ targets:
     gen_args: null
     run_args:
       messages: ["--countTo", "<value>"]
+  lf-c:
+    copy_sources:
+      - "${lf_path}/benchmark/C/Savina/count/CountingBenchmarkN.lf"
+    lf_file: "CountingBenchmarkN.lf"
+    binary: "CountingBenchmarkN"
+    gen_args:
+      messages: ["-D", "countTo=<value>"]
