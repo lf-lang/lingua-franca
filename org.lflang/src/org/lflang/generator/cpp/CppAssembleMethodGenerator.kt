@@ -28,7 +28,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.*
-import kotlin.math.ceil
 
 /**
  * A code generator for the assemble() method of a C++ reactor class
@@ -146,23 +145,38 @@ class CppAssembleMethodGenerator(
         return ports
     }
 
-    private fun declareConnection(c: Connection): String {
-        val lhsPorts = enumerateAllPortsFromReferences(c.leftPorts)
-        val rhsPorts = enumerateAllPortsFromReferences(c.rightPorts)
+    private val Connection.isMultiportConnection: Boolean
+        get() {
+            // if there are multiple ports listed on the left or right side, this is a multiport connection
+            if (leftPorts.size > 1 || rightPorts.size > 1)
+                return true
 
-        // If the connection is a broadcast connection, then repeat the lhs ports until it is equal
-        // or greater to the number of rhs ports. Otherwise, continue with the unmodified list of lhs
-        // ports
-        val iteratedLhsPorts = if (c.isIsIterated) {
-            val numIterations = ceil(rhsPorts.size.toDouble() / lhsPorts.size.toDouble()).toInt()
-            (1..numIterations).flatMap { lhsPorts }
-        } else {
-            lhsPorts
+            // if the ports on either side are multiports, this is a multiport connection
+            val leftPort = leftPorts[0].variable as Port
+            val rightPort = rightPorts[0].variable as Port
+            if (leftPort.isMultiport || rightPort.isMultiport)
+                return true
+
+            // if the containers on either side are banks, this is a multiport connection
+            val leftContainer = leftPorts[0].container
+            val rightContainer = rightPorts[0].container
+            if (leftContainer?.isBank == true || rightContainer?.isBank == true)
+                return true
+
+            return false
         }
 
-        // bind each pair of lhs and rhs ports individually
-        return (iteratedLhsPorts zip rhsPorts).joinToString("\n") {
-            "${it.first.toCode()}.bind_to(&${it.second.toCode()});"
+    private fun declareConnection(c: Connection, idx: Int): String {
+        if (c.isMultiportConnection) {
+            TODO()
+        } else {
+            val leftPort = c.leftPorts[0]
+            val rightPort = c.rightPorts[0]
+
+            return """
+                // connection $idx
+                ${leftPort.name}.bind_to(&${rightPort.name});
+            """.trimIndent()
         }
     }
 
@@ -172,11 +186,12 @@ class CppAssembleMethodGenerator(
      * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
      */
     fun generateDefinition() = with(PrependOperator) {
+        val indexedConnections = reactor.connections.withIndex()
         """
             |${reactor.templateLine}
             |void ${reactor.templateName}::assemble() {
-        ${" |  "..reactor.reactions.joinToString(separator = "\n\n") { assembleReaction(it) }}
-        ${" |  "..reactor.connections.joinToString(separator = "\n", prefix = "// connections\n") { declareConnection(it) }}
+        ${" |  "..reactor.reactions.joinToString("\n\n") { assembleReaction(it) }}
+        ${" |  "..indexedConnections.joinToString("\n", prefix = "// connections\n") { declareConnection(it.value, it.index) }}
             |}
         """.trimMargin()
     }
