@@ -281,7 +281,7 @@ void encode_int32(int32_t data, unsigned char* buffer) {
  */
 void encode_uint32(uint32_t data, unsigned char* buffer) {
     // This strategy is fairly brute force, but it avoids potential
-    // alignment problems.  Note that this assumes an int32_t is four bytes.
+    // alignment problems.  Note that this assumes a uint32_t is four bytes.
     buffer[0] = (unsigned char)(data & 0xff);
     buffer[1] = (unsigned char)((data & 0xff00) >> 8);
     buffer[2] = (unsigned char)((data & 0xff0000) >> 16);
@@ -338,7 +338,7 @@ int32_t swap_bytes_if_big_endian_int32(int32_t src) {
  *  meaning that the low-order byte is first in memory.
  *  @param src The argument to convert.
  */
-uint32_t swap_bytes_if_big_endian_uint32(int32_t src) {
+uint32_t swap_bytes_if_big_endian_uint32(uint32_t src) {
     union {
         uint32_t uint;
         unsigned char c[sizeof(uint32_t)];
@@ -526,7 +526,11 @@ void extract_timed_header(
 ) {
 	extract_header(buffer, port_id, federate_id, length);
 
-    *tag = extract_tag(&(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t)]));
+    tag_t temporary_tag = extract_tag(
+        &(buffer[sizeof(uint16_t) + sizeof(uint16_t) + sizeof(int32_t)])
+    );
+    tag->time = temporary_tag.time;
+    tag->microstep = temporary_tag.microstep;
 }
 
 /**
@@ -544,7 +548,7 @@ tag_t extract_tag(
     tag_t tag;
     tag.time = extract_int64(buffer);
     tag.microstep = extract_uint32(&(buffer[sizeof(int64_t)]));
-        
+
     return tag;
 }
 
@@ -558,7 +562,7 @@ tag_t extract_tag(
  */
 void encode_tag(
     unsigned char* buffer,
-	tag_t tag
+    tag_t tag
 ){
     encode_int64(tag.time, buffer);
     encode_uint32(tag.microstep, &(buffer[sizeof(int64_t)]));  
