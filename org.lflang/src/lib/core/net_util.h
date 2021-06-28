@@ -65,9 +65,9 @@ int host_is_big_endian();
  * @return The number of bytes read, or 0 if an EOF is received, or
  *  a negative number for an error.
  */
-int read_from_socket_errexit(
+ssize_t read_from_socket_errexit(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		char* format, ...);
 
@@ -82,7 +82,7 @@ int read_from_socket_errexit(
  * @param buffer The buffer into which to put the bytes.
  * @return The number of bytes read or 0 when EOF is received or negative for an error.
  */
-int read_from_socket(int socket, int num_bytes, unsigned char* buffer);
+ssize_t read_from_socket(int socket, size_t num_bytes, unsigned char* buffer);
 
 /**
  * Write the specified number of bytes to the specified socket from the
@@ -101,9 +101,9 @@ int read_from_socket(int socket, int num_bytes, unsigned char* buffer);
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit_with_mutex(
+ssize_t write_to_socket_errexit_with_mutex(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		lf_mutex_t* mutex,
 		char* format, ...);
@@ -125,9 +125,9 @@ int write_to_socket_errexit_with_mutex(
  * @return The number of bytes written, or 0 if an EOF was received, or a negative
  *  number if an error occurred.
  */
-int write_to_socket_errexit(
+ssize_t write_to_socket_errexit(
 		int socket,
-		int num_bytes,
+		size_t num_bytes,
 		unsigned char* buffer,
 		char* format, ...);
 
@@ -238,7 +238,7 @@ void extract_header(
         unsigned char* buffer,
         uint16_t* port_id,
         uint16_t* federate_id,
-        uint32_t* length
+        size_t* length
 );
 
 /**
@@ -257,8 +257,24 @@ void extract_timed_header(
         unsigned char* buffer,
         uint16_t* port_id,
         uint16_t* federate_id,
-        uint32_t* length,
+        size_t* length,
 		tag_t* tag
+);
+
+/**
+ * Extract tag information from buffer.
+ *
+ * The tag is transmitted as a 64-bit (8 byte) signed integer for time and a
+ * 32-bit (4 byte) unsigned integer for microstep.
+ * 
+ * @param buffer The buffer to read from.
+ * @param time Will be populated after reading from the buffer.
+ * @param microstep Will be populated after reading from the buffer.
+ */
+void extract_tag(
+        unsigned char* buffer,
+        int64_t* time,
+        uint32_t* microstep
 );
 
 #endif /* NET_UTIL_H */
