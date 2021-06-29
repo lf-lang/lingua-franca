@@ -36,11 +36,7 @@ import org.lflang.lf.*
  * responsible for declaring all triggers, dependencies and effects (antidependencies) of reactions.
  * It is also responsible for creating all connections within the reactor.
  */
-class CppAssembleMethodGenerator(
-    private val reactor: Reactor,
-    private val portGenerator: CppPortGenerator,
-    private val instanceGenerator: CppInstanceGenerator,
-) {
+class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String {
         // check if the trigger is a multiport
@@ -98,51 +94,6 @@ class CppAssembleMethodGenerator(
         ${" |"..reaction.effects.joinToString(separator = "\n") { declareAntidependency(reaction, it) }}
         ${" |"..if (reaction.deadline != null) setDeadline(reaction) else ""}
         """.trimMargin()
-    }
-
-    /** A data class for holding all information that is relevant for reverencing one specific port
-     *
-     * The port could be a member of a bank instance and it could be an instance of a multiport.
-     * Thus, the information in this class includes a bank and port index. If the bank (or port)
-     * index is null, then the referenced port is not part of a bank (or multiport).
-     */
-    private data class PortReference(val port: Port, val portIndex: Int?, val container: Instantiation?, val containerIndex: Int?)
-
-    private fun PortReference.toCode(): String {
-        val portRef = if (port.isMultiport) "${port.name}[$portIndex]" else port.name
-        return if (container != null) {
-            val containerRef = if (container.isBank) "${container.name}[$containerIndex]" else container.name
-            "$containerRef->$portRef"
-        } else {
-            portRef
-        }
-    }
-
-    /** Get a list of PortReferences for the given list of variables
-     *
-     * This checks whether the variable refers to a multiport and generated an instance of
-     * PortReferrence for each port instance in the multiport. If the port is containe in a
-     * multiport, the result includes instances PortReference for each pair of bank and multiport
-     * instance.
-     */
-    private fun enumerateAllPortsFromReferences(references: List<VarRef>): List<PortReference> {
-        val ports = mutableListOf<PortReference>()
-
-        for (ref in references) {
-            val container = ref.container
-            val port = ref.variable as Port
-            val bankIndexes =
-                if (container?.isBank == true) with(instanceGenerator) { (0 until container.getValidWidth()) }
-                else listOf<Int?>(null)
-            val portIndexes =
-                if (port.isMultiport) with(portGenerator) { (0 until port.getValidWidth()) }
-                else listOf<Int?>(null)
-            // calculate the Cartesian product af both index lists defined above
-            // TODO iterate over banks or ports first?
-            val indexPairs = portIndexes.flatMap { portIdx -> bankIndexes.map { bankIdx -> portIdx to bankIdx } }
-            ports.addAll(indexPairs.map { PortReference(port, it.first, container, it.second) })
-        }
-        return ports
     }
 
     private val Connection.isMultiportConnection: Boolean
