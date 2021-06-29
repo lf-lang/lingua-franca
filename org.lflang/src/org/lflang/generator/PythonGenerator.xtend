@@ -135,6 +135,38 @@ class PythonGenerator extends CGenerator {
         println('******** Generated sources: ' + fileConfig.getSrcGenPath)
     }
     
+    /**
+     * Print information about necessary steps to install the supporting
+     * Python C extension for the generated program.
+     * 
+     * @note Only needed if no-compile is set to true
+     */
+    def printSetupInfo() {
+        println('''
+        
+        #####################################
+        To compile and install the generated code, do:
+            
+            cd «fileConfig.srcGenPath»«File.separator»
+            python3 -m pip install --ignore-installed --force-reinstall --no-binary :all: --user .
+        ''');
+    }
+    
+    /**
+     * Print information on how to execute the generated program.
+     */
+    def printRunInfo() {
+        println('''
+        
+        #####################################
+        To run the generated program, use:
+            
+            python3 «fileConfig.srcGenPath»«File.separator»«topLevelName».py
+        
+        #####################################
+        ''');
+    }
+    
     ////////////////////////////////////////////
     //// Protected methods
     
@@ -1055,27 +1087,10 @@ class PythonGenerator extends CGenerator {
                         // If there are no federates, compile and install the generated code
                         pythonCompileCode
                     } else {
-                        println('''
-                        
-                        #####################################
-                        To compile and install the generated code, do:
-                            
-                            cd «fileConfig.srcGenPath»«File.separator»
-                            python3 -m pip install --ignore-installed --force-reinstall --no-binary :all: --user .
-                        ''');
+                        printSetupInfo();
                     }
                     
-                    
-                        
-                    println('''
-                    
-                    #####################################
-                    To run the generated code, use:
-                        
-                        python3 «fileConfig.srcGenPath»«File.separator»«topLevelName».py
-                    
-                    #####################################
-                    ''');
+                    printRunInfo();
                 }
             }
 
