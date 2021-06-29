@@ -36,8 +36,8 @@ class CppPortGenerator(private val reactor: Reactor, private val errorReporter: 
 
     private fun generateDeclaration(port: Port): String = with(port) {
         return if (isMultiport) {
-            val initializerLists = (0 until getValidWidth()).joinToString(", ") { """{"${name}_$it", this}""" }
-            """$cppType $name{{$initializerLists}};"""
+            //val initializerLists = (0 until getValidWidth()).joinToString(", ") { """{"${name}_$it", this}""" }
+            """$cppType $name;"""
         } else {
             """$cppType $name{"$name", this};"""
         }
@@ -53,7 +53,7 @@ class CppPortGenerator(private val reactor: Reactor, private val errorReporter: 
             }
 
             return if (isMultiport) {
-                "std::array<$portType<$targetType>, ${getValidWidth()}>"
+                "std::vector<$portType<$targetType>>"
             } else {
                 "$portType<$targetType>"
             }
@@ -75,6 +75,21 @@ class CppPortGenerator(private val reactor: Reactor, private val errorReporter: 
         }
         return width
     }
+
+    private fun generateConstructorInitializer(port: Port) = with(port) {
+        """
+            // initialize port $name
+            ${name}.reserve(${getValidWidth()});
+            for (size_t __lf_idx = 0; __lf_idx < ${getValidWidth()}; __lf_idx++) {
+              std::string __lf_port_name = "${name}_" + std::to_string(__lf_idx);
+              ${name}.emplace_back(__lf_port_name, this);
+            }
+        """.trimIndent()
+    }
+
+    fun generateConstructorInitializers() =
+        reactor.inputs.filter { it.isMultiport }.joinToString("\n") { generateConstructorInitializer(it) } +
+                reactor.outputs.filter { it.isMultiport }.joinToString("\n") { generateConstructorInitializer(it) }
 
     fun generateDeclarations() =
         reactor.inputs.joinToString("\n", "// input ports\n", postfix = "\n") { generateDeclaration(it) } +

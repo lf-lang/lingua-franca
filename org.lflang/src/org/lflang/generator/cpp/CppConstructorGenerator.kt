@@ -34,7 +34,8 @@ class CppConstructorGenerator(
     private val state: CppStateGenerator,
     private val instances: CppInstanceGenerator,
     private val timers: CppTimerGenerator,
-    private val actions: CppActionGenerator
+    private val actions: CppActionGenerator,
+    private val ports: CppPortGenerator
 ) {
 
     /**
@@ -100,7 +101,9 @@ class CppConstructorGenerator(
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
-                |{}
+                |{
+            ${" |  "..ports.generateConstructorInitializers()}
+                |}
             """.trimMargin()
         }
     }
