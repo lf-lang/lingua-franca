@@ -127,9 +127,13 @@ class PythonGenerator extends CGenerator {
 	// Regular expression pattern for pointer types. The star at the end has to be visible.
     static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
     
-   ////////////////////////////////////////////
+    ////////////////////////////////////////////
     //// Public methods
-    
+    override printInfo() {
+        println("Generating code for: " + fileConfig.resource.getURI.toString)
+        println('******** Mode: ' + mode)
+        println('******** Generated sources: ' + fileConfig.getSrcGenPath)
+    }
     
     ////////////////////////////////////////////
     //// Protected methods
@@ -1050,7 +1054,28 @@ class PythonGenerator extends CGenerator {
                     if (targetConfig.noCompile !== true) {
                         // If there are no federates, compile and install the generated code
                         pythonCompileCode
+                    } else {
+                        println('''
+                        
+                        #####################################
+                        To compile and install the generated code, do:
+                            
+                            cd «fileConfig.srcGenPath»«File.separator»
+                            python3 -m pip install --ignore-installed --force-reinstall --no-binary :all: --user .
+                        ''');
                     }
+                    
+                    
+                        
+                    println('''
+                    
+                    #####################################
+                    To run the generated code, use:
+                        
+                        python3 «fileConfig.srcGenPath»«File.separator»«topLevelName».py
+                    
+                    #####################################
+                    ''');
                 }
             }
 
